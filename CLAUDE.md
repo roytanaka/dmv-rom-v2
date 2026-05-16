@@ -46,3 +46,17 @@ The app serves ~500 volunteers at the Department of Museum Volunteers, Royal Ont
 - Character encoding: legacy data is in latin1 / cp1252. New DB is utf8mb4. Migration scripts must convert deliberately.
 - Permissive SQL mode in legacy: artifacts like zero-dates may exist. Migration scripts must handle them.
 - Bilingual content: every user-facing string is translatable. See `docs/conventions.md` § Internationalization.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues at `roytanaka/dmv-rom-v2`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), plus a `prd` label to distinguish PRDs from regular issues. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout — `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
