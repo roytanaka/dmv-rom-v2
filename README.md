@@ -39,6 +39,17 @@ pnpm dev
 
 The app is available at http://localhost:80 (or `APP_PORT` if customized). Vite dev server runs on http://localhost:5173.
 
+## Local development database
+
+Local dev uses **two** MariaDB instances running side by side:
+
+- **Application DB** — the `mariadb` container started by sail. Exposed on host port `3307` (set via `FORWARD_DB_PORT` in `.env.example`) to avoid clashing with the legacy snapshot. Laravel itself talks to it as `mariadb:3306` over the sail network. This is what `php artisan migrate`, models, and tests use.
+- **Legacy snapshot DB** — a separate Docker setup outside this repo (the "legacy archaeology docker") hosting a read-only copy of the production database. Bound to host port `3306`. Reached from inside the sail container as `host.docker.internal:3306`, which is the `LEGACY_DB_HOST` default in `.env.example`. Only the migration scripts in `database/migrations/legacy/` read from it; no application code touches it.
+
+Both run MariaDB 10.6 to match Stormweb production. If you only have the application DB and no legacy snapshot, fill in `LEGACY_DB_*` once the archaeology docker is available — application development doesn't depend on it.
+
+If port `3307` is already in use on your machine, override `FORWARD_DB_PORT` in your `.env` to any free port.
+
 ## Project structure
 
 Standard Laravel layout. Key locations:
