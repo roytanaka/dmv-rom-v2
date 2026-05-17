@@ -40,7 +40,6 @@ Workflows live in `.github/workflows/`:
 - `ci.yml` — runs on every PR: lint (Pint, ESLint, Prettier), PHP tests, JS tests, Tailwind compile, Vite build. Required to pass before merge into `staging` or `main`.
 - `deploy-staging.yml` — runs on push to `staging`: rebuilds artifacts, rsyncs to `staging.dmv-rom.ca` over SSH, runs Composer install + migrations on the server.
 - `deploy-production.yml` — runs on push to `main`: same as staging deploy but targeting the production webroot, **gated behind a GitHub Environment** (`production`) with required-reviewer approval. The job pauses on trigger and sends a notification; the developer clicks "approve" from email/mobile/web to release the deploy.
-- `deploy-pr-to-staging.yml` — manually triggered (`workflow_dispatch` from a PR comment or the Actions tab): deploys a specific PR's branch to `staging.dmv-rom.ca` for visual review. Reclaimed automatically when `staging` advances on next merge.
 
 Branch protection on both `staging` and `main`:
 - Require PR
@@ -76,11 +75,9 @@ If a migration goes wrong:
 
 Migration-specific approval gates (CI flagging new migration files) are not added — the existing production approval gate already requires deliberate human action for every deploy that includes any change.
 
-### PR preview mechanism
+### PR previews
 
-When a reviewer wants a clickable version of a PR's code, anyone with repo write access can trigger `deploy-pr-to-staging.yml` from the PR (workflow_dispatch). It overwrites `staging.dmv-rom.ca` with that PR's branch. The slot is reclaimed when `staging` next advances. One PR previewed at a time — coordination via PR comments.
-
-**Per-PR isolated preview environments** (Vercel-style `pr-123.staging.dmv-rom.ca` with their own DBs) are out of scope. Building that on Stormweb would require control-panel API scripting and per-PR DB provisioning — significant engineering for an occasional-contributor reality. Revisit if PR throughput becomes a bottleneck.
+Out of scope. At single-developer volunteer pace with one feature in flight at a time, the `staging` branch itself serves as the preview surface — merging a feature branch into `staging` auto-deploys it via `deploy-staging.yml`. No standalone PR-preview workflow is needed. Revisit if PR throughput grows enough that previewing multiple PRs in parallel becomes a real bottleneck.
 
 ## Considered alternatives
 
@@ -88,7 +85,7 @@ When a reviewer wants a clickable version of a PR's code, anyone with repo write
 - **Shape 1: single `main` branch with workflow_dispatch promotion to prod.** Lower overhead per change. Rejected in favor of Shape 2 (two long-lived branches) because the explicit `staging` branch matches the developer's mental model from Vercel/PlanetScale workflows and makes "what's in staging vs. prod" a `git log` away. The cost of an extra merge per release is acceptable.
 - **Build artifacts on the production server.** Node is technically available on Stormweb, but installing it adds a toolchain to prod (versioning, ~hundreds of MB of `node_modules`, builds running on shared-host CPU) for a build-time concern. Server stays minimal: PHP + Composer + Apache. Break-glass: if CI is ever unavailable, building locally and rsync'ing is a known fallback.
 - **Committing `public/build/` to git.** Rejected because every asset change creates a noisy diff, bloats history, and creates merge friction on built files.
-- **Per-PR preview environments (Vercel-style).** Out of scope. See "PR preview mechanism" above.
+- **PR preview workflows (any form).** Both per-PR isolated environments (Vercel-style) and a shared-slot `deploy-pr-to-staging.yml` workflow were considered and dropped. The isolated form requires control-panel API scripting and per-PR DB provisioning — too much engineering for an occasional-contributor reality. The shared-slot form is dropped because `staging` itself already serves as the preview surface at single-feature-at-a-time pace. Revisit if PR throughput grows.
 - **Migration approval gate in CI.** Rejected; existing production approval gate is enough.
 - **Self-hosted GitHub Actions runner on Stormweb.** Free, no minute limits, but more setup and a maintenance burden for a problem you don't have.
 
@@ -130,3 +127,7 @@ This ADR supersedes the "no CI/CD platform required for v1" statement in `docs/a
 - `docs/conventions.md` § Git, § Code style and tooling — branch naming and lint hooks
 - [ADR-0002](0002-stay-on-stormweb-shared-hosting.md) — Stormweb hosting, backup posture
 - [ADR-0005](0005-inertia-instead-of-spa-plus-api.md) — Vue + Inertia + Vite stack (the reason there's a build step at all)
+
+## Amendments
+
+**2026-05-16** — Removed the `deploy-pr-to-staging.yml` workflow from scope during Deploy PRD grilling. Rationale: at single-developer volunteer pace with one feature in flight at a time, the `staging` branch itself is the preview surface; a standalone PR-preview workflow is over-engineered for current operational reality. The "Considered alternatives" entry was generalized to cover both isolated and shared-slot preview forms.
