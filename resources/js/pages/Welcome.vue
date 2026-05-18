@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import type { SharedData } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+
+const page = usePage<SharedData>();
 </script>
 
 <template>
@@ -32,8 +27,8 @@ import {
                         <DialogHeader>
                             <DialogTitle>Toolchain wired</DialogTitle>
                             <DialogDescription>
-                                Inertia, Vue 3, Tailwind, and shadcn-vue are rendering through Laravel. You're looking at a Card and a Dialog —
-                                that's three baseline components on screen.
+                                Inertia, Vue 3, Tailwind, and shadcn-vue are rendering through Laravel. You're looking at a Card and a Dialog — that's
+                                three baseline components on screen.
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
@@ -43,7 +38,7 @@ import {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-                <Button v-if="$page.props.auth.user" variant="outline" as-child>
+                <Button v-if="page.props.auth.user" variant="outline" as-child>
                     <Link :href="route('dashboard')">Go to dashboard</Link>
                 </Button>
                 <template v-else>

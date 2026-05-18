@@ -27,6 +27,7 @@ export interface SharedData {
         defaults: Record<string, unknown>;
         routes: Record<string, string>;
     };
+    [key: string]: unknown;
 }
 
 export interface User {
