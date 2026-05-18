@@ -72,14 +72,13 @@ jobs:
             --exclude='./storage/framework/testing/*' \
             --exclude='./.env' \
             --exclude='./.env.*' \
-            --exclude='./deploy-bundle.tar.gz' \
-            -czf deploy-bundle.tar.gz .
+            -czf "$RUNNER_TEMP/deploy-bundle.tar.gz" .
 
       - name: Upload deploy bundle
         uses: actions/upload-artifact@v4
         with:
           name: deploy-bundle
-          path: deploy-bundle.tar.gz
+          path: ${{ runner.temp }}/deploy-bundle.tar.gz
           retention-days: 7
 
   deploy:
