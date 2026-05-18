@@ -117,7 +117,7 @@ See `docs/conventions.md` § Documents for implementation details.
 Automated via GitHub Actions. See [ADR-0007](adr/0007-dev-staging-deploy-strategy.md) for the full strategy. In brief:
 
 - Two long-lived branches: `staging` (auto-deploys to staging) and `main` (auto-deploys to production with an approval gate).
-- CI runs lint + tests + build on every PR; branch protection requires green.
+- CI runs lint + tests + build on every PR; branch protection requires green. "Tests" here means PHP (Pest); JS tests are intentionally deferred to a follow-on PRD and their absence is not an oversight.
 - Vite builds in CI; artifacts (`public/build/`) are rsync'd to Stormweb. Node is not installed on the production server.
 - Composer install + `php artisan migrate` run on the server via SSH from the deploy workflow.
 - Production deploys take a `mysqldump` of the DB before running migrations (fresh recovery point).
