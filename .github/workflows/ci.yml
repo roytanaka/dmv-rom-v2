@@ -90,8 +90,8 @@ jobs:
       - name: Typecheck (vue-tsc)
         run: pnpm run typecheck
 
-      - name: Run Pest
-        run: vendor/bin/pest
-
       - name: Build assets (Vite)
         run: pnpm run build
+
+      - name: Run Pest
+        run: vendor/bin/pest
