@@ -14,7 +14,8 @@
         "sail:up": "sh vendor/bin/sail up -d",
         "sail:down": "sh vendor/bin/sail down",
         "sail:logs": "sh vendor/bin/sail logs -f",
-        "sail:shell": "sh vendor/bin/sail shell"
+        "sail:shell": "sh vendor/bin/sail shell",
+        "typecheck": "vue-tsc --noEmit"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",
