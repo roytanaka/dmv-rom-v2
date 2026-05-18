@@ -41,11 +41,12 @@ echo "==> Step 2: composer install --no-dev --optimize-autoloader"
 $COMPOSER install --no-dev --optimize-autoloader --no-interaction
 
 echo "==> Step 3: detect pending migrations"
-# `migrate:status` exits 0 and prints a table; a "Pending" entry means there's
-# work to do. Capture the table and grep for the marker.
-if $ARTISAN migrate:status 2>/dev/null | grep -qE '(Pending|No migrations found)'; then
-    # `No migrations found` only happens on a virgin DB; treat that as "pending"
-    # so the initial deploy actually runs migrations.
+# `migrate:status` prints a table with "Pending" rows when work is queued.
+# On a virgin DB it prints either "No migrations found" (table exists, empty)
+# or "Migration table not found." to stderr (table doesn't exist yet). Capture
+# stdout+stderr so the virgin-DB branch fires on a fresh production deploy.
+STATUS_OUTPUT=$($ARTISAN migrate:status 2>&1 || true)
+if echo "$STATUS_OUTPUT" | grep -qE '(Pending|No migrations found|Migration table not found)'; then
     HAS_PENDING=1
 else
     HAS_PENDING=0
