@@ -1,0 +1,124 @@
+name: deploy-staging
+
+on:
+  push:
+    branches:
+      - staging
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+env:
+  DEPLOY_PATH: ~/domains/staging.dmv-rom.ca/dmv-rom-v2
+  SMOKE_URL: https://staging.dmv-rom.ca/
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build assets (Vite)
+        run: pnpm run build
+
+      - name: Package deploy bundle
+        run: |
+          tar \
+            --exclude='./.git' \
+            --exclude='./node_modules' \
+            --exclude='./vendor' \
+            --exclude='./tests' \
+            --exclude='./storage/logs/*' \
+            --exclude='./storage/framework/cache/*' \
+            --exclude='./storage/framework/views/*' \
+            --exclude='./storage/framework/sessions/*' \
+            --exclude='./storage/framework/testing/*' \
+            --exclude='./.env' \
+            --exclude='./.env.*' \
+            -czf "$RUNNER_TEMP/deploy-bundle.tar.gz" .
+
+      - name: Upload deploy bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-bundle
+          path: ${{ runner.temp }}/deploy-bundle.tar.gz
+          retention-days: 7
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download deploy bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-bundle
+
+      - name: Extract deploy bundle
+        run: |
+          mkdir -p deploy
+          tar -xzf deploy-bundle.tar.gz -C deploy
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STORMWEB_SSH_KEY }}
+
+      - name: Add Stormweb host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.STORMWEB_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Rsync to staging webroot
+        run: |
+          rsync -az --delete \
+            --exclude='.env' \
+            --exclude='storage/' \
+            --exclude='bootstrap/cache/' \
+            deploy/ \
+            "${{ secrets.STORMWEB_SSH_USER }}@${{ secrets.STORMWEB_SSH_HOST }}:${{ env.DEPLOY_PATH }}/"
+
+      - name: Run deploy script on Stormweb
+        run: |
+          ssh "${{ secrets.STORMWEB_SSH_USER }}@${{ secrets.STORMWEB_SSH_HOST }}" \
+            "cd ${{ env.DEPLOY_PATH }} && bash scripts/deploy.sh staging"
+
+      - name: Smoke check
+        run: curl -sf "${{ env.SMOKE_URL }}" > /dev/null
