@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import type { SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 
@@ -13,31 +12,16 @@ const page = usePage<SharedData>();
     <div class="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
         <Card class="w-full max-w-xl">
             <CardHeader>
-                <CardTitle>DMV-ROM</CardTitle>
+                <CardTitle>Welcome, DMV Volunteers</CardTitle>
                 <CardDescription>
-                    Volunteer management for the Department of Museum Volunteers, Royal Ontario Museum. Structural rebuild scaffold.
+                    This is the in-progress rebuild of the volunteer system for the Department of Museum Volunteers at the Royal Ontario Museum. The
+                    current live system is still at dmv-rom.ca — head there to sign in to scheduling, hours, and the volunteer directory.
                 </CardDescription>
             </CardHeader>
             <CardContent class="flex flex-wrap gap-3">
-                <Dialog>
-                    <DialogTrigger as-child>
-                        <Button>Smoke-test the toolchain</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Toolchain wired</DialogTitle>
-                            <DialogDescription>
-                                Inertia, Vue 3, Tailwind, and shadcn-vue are rendering through Laravel. You're looking at a Card and a Dialog — that's
-                                three baseline components on screen.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                            <Button variant="secondary" as-child>
-                                <a href="https://github.com/roytanaka/dmv-rom-v2" target="_blank" rel="noopener">Repo</a>
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <Button as-child>
+                    <a href="https://dmv-rom.ca" target="_blank" rel="noopener noreferrer">Go to dmv-rom.ca</a>
+                </Button>
                 <Button v-if="page.props.auth.user" variant="outline" as-child>
                     <Link :href="route('dashboard')">Go to dashboard</Link>
                 </Button>
