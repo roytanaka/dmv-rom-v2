@@ -46,6 +46,7 @@ The app serves ~500 volunteers at the Department of Museum Volunteers, Royal Ont
 - Character encoding: legacy data is in latin1 / cp1252. New DB is utf8mb4. Migration scripts must convert deliberately.
 - Permissive SQL mode in legacy: artifacts like zero-dates may exist. Migration scripts must handle them.
 - Bilingual content: every user-facing string is translatable. See `docs/conventions.md` § Internationalization.
+- Bilingual URLs: English is canonical at the root; French lives under `/fr/` with translated path segments (`/volunteers/123` ↔ `/fr/benevoles/123`). See [ADR-0008](docs/adr/0008-bilingual-url-routing.md).
 
 ## Agent skills
 

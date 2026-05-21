@@ -118,6 +118,20 @@ description_en, description_fr  // optional
 - Both `lang/en/*.php` and `lang/fr/*.php` are updated together. Never ship English-only.
 - Translatable model fields use suffix convention: `title_en`, `title_fr`. The model has a `title` accessor that returns the right one based on the current locale.
 
+### URL routing
+
+Bilingual URL strategy is fixed by [ADR-0008](adr/0008-bilingual-url-routing.md). Read it before touching routes.
+
+- English is the default locale and lives at the root (`/volunteers/123`). French lives under `/fr/` with **translated path segments** (`/fr/benevoles/123`). Routes are added French-second as features become available.
+- Route segment translations live in `lang/en/routes.php` and `lang/fr/routes.php` alongside the UI string files. Every translatable segment is keyed there.
+- Declare translatable routes via `LaravelLocalization::transRoute('routes.volunteers.show')` — the `mcamara/laravel-localization` package resolves them per-locale.
+- Build language-switcher links with `LaravelLocalization::getLocalizedURL($locale)`. Hide the alternate-locale link on pages where no equivalent route is registered.
+- No per-record translated slugs in v1 — dynamic resources use IDs (`/fr/exhibits/123`, not `/fr/exhibits/vikings-au-rom`). No `slug_en`/`slug_fr` columns.
+- The `Volunteer` model has a `locale` column (default `'en'`). Post-login redirects and system-generated URLs (password resets, notification emails, calendar links) read it; the toolbar selector writes it when authenticated.
+- Direct visits are URL-authoritative — no auto-redirect based on saved preference. Bookmarks always render the locale in their URL.
+- A `/fr/...` request for an untranslated route returns a locale-aware 404 with a "request translation" CTA, not the English page.
+- Every translatable route should have a smoke test that hits both `/x` and `/fr/x-translated` and asserts the resolved Eloquent model is the same.
+
 ## Frontend (Vue + Inertia)
 
 - One page component per route, in `resources/js/Pages/{Feature}/{Action}.vue`.

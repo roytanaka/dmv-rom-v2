@@ -49,6 +49,8 @@ The project runs on version control, code review, and explicit scope. The aim is
 
 The app must work fully in English and French. When adding user-facing text, add translations to both `lang/en/` and `lang/fr/` files. Don't ship English-only strings.
 
+URLs are bilingual too: English at the root, French under `/fr/` with translated path segments. When adding a new route, register both locales and add the segment translations to `lang/{en,fr}/routes.php`. See [ADR-0008](docs/adr/0008-bilingual-url-routing.md).
+
 ## Security
 
 - Don't disclose vulnerabilities in public issues. Email the project lead directly.

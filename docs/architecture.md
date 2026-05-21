@@ -102,7 +102,8 @@ See `docs/conventions.md` § Documents for implementation details.
 ## Bilingual (i18n) architecture
 
 - All user-facing strings come from `lang/en/*.php` and `lang/fr/*.php` files. No hardcoded strings in templates or components.
-- The user's language preference is stored on their user record and applied via middleware.
+- The user's locale preference is stored on the `Volunteer` record (`locale` column, default `'en'`) and applied via middleware.
+- URLs are bilingual too: English is canonical at the root, French lives under `/fr/` with translated path segments (`/fr/benevoles/123`). Route segments are translated via `lang/en/routes.php` + `lang/fr/routes.php` and resolved by the `mcamara/laravel-localization` package. See [ADR-0008](adr/0008-bilingual-url-routing.md) and `docs/conventions.md` § Internationalization → URL routing.
 - Document titles and descriptions can be stored bilingually (per-document fields for `title_en`, `title_fr`, etc.). Decide per-feature whether content is translatable or single-language.
 - Dates and numbers use locale-aware formatting (`Carbon` for PHP, `Intl.DateTimeFormat` for JS).
 
