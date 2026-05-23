@@ -23,7 +23,7 @@ In active development. The legacy production application remains live during the
 
 ## Quick start
 
-Prerequisites: Docker, Git, Node.js 20+, pnpm (`brew install pnpm` or via Corepack).
+Prerequisites: Docker, Git, Node.js 24+ (see `.nvmrc`), pnpm (`brew install pnpm` or via Corepack).
 
 ```bash
 git clone https://github.com/roytanaka/dmv-rom-v2.git
