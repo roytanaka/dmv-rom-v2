@@ -10,7 +10,7 @@ const page = usePage<SharedData>();
 
 <template>
     <Head title="DMV-ROM" />
-    <div class="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+    <div class="bg-background text-foreground flex min-h-screen items-center justify-center p-6">
         <Card class="w-full max-w-xl">
             <CardHeader>
                 <CardTitle>DMV-ROM</CardTitle>
