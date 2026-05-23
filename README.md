@@ -26,29 +26,24 @@ In active development. The legacy production application remains live during the
 Prerequisites: Docker, Git, Node.js 24+ (see `.nvmrc`), pnpm (`brew install pnpm` or via Corepack).
 
 ```bash
-git clone https://github.com/roytanaka/dmv-rom-v2.git
-cd dmv-rom-v2
-cp .env.example .env
-pnpm install
-pnpm sail:up
-pnpm sail vendor/bin/sail composer install
-pnpm sail vendor/bin/sail php artisan key:generate
-pnpm sail vendor/bin/sail php artisan migrate
-pnpm dev
+git clone https://github.com/roytanaka/dmv-rom-v2.git           # clone the repo
+cd dmv-rom-v2                                                   # enter the project directory
+cp .env.example .env                                            # create your local environment file from the template
+pnpm install                                                    # install JS dependencies (Vue, Vite, shadcn-vue, etc.)
+pnpm sail:up                                                    # start Docker containers (Laravel app + MariaDB) via Sail
+pnpm sail composer install                                      # install PHP dependencies inside the Sail container
+pnpm sail php artisan key:generate                              # generate the Laravel APP_KEY (used to encrypt sessions/cookies)
+pnpm sail php artisan migrate                                   # create the database schema
+pnpm dev                                                        # start the Vite dev server (hot module reload for Vue/CSS)
 ```
 
 The app is available at http://localhost:80 (or `APP_PORT` if customized). Vite dev server runs on http://localhost:5173.
 
 ## Local development database
 
-Local dev uses **two** MariaDB instances running side by side:
+The application uses a MariaDB 10.6 instance (matching Stormweb production), provisioned automatically by Laravel Sail. Once `pnpm sail:up` is running, `php artisan migrate` is all you need to be ready for development.
 
-- **Application DB** — the `mariadb` container started by sail. Exposed on host port `3307` (set via `FORWARD_DB_PORT` in `.env.example`) to avoid clashing with the legacy snapshot. Laravel itself talks to it as `mariadb:3306` over the sail network. This is what `php artisan migrate`, models, and tests use.
-- **Legacy snapshot DB** — a separate Docker setup outside this repo (the "legacy archaeology docker") hosting a read-only copy of the production database. Bound to host port `3306`. Reached from inside the sail container as `host.docker.internal:3306`, which is the `LEGACY_DB_HOST` default in `.env.example`. Only the migration scripts in `database/migrations/legacy/` read from it; no application code touches it.
-
-Both run MariaDB 10.6 to match Stormweb production. If you only have the application DB and no legacy snapshot, fill in `LEGACY_DB_*` once the archaeology docker is available — application development doesn't depend on it.
-
-If port `3307` is already in use on your machine, override `FORWARD_DB_PORT` in your `.env` to any free port.
+Sail exposes MariaDB on host port `3307` by default (`FORWARD_DB_PORT` in `.env.example`). Inside the Sail container, Laravel reaches it as `mariadb:3306`. If port `3307` is already in use on your machine, override `FORWARD_DB_PORT` in your `.env` to any free port.
 
 ## Project structure
 

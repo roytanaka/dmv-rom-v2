@@ -56,20 +56,6 @@ return Inertia::render('Documents/Show', [
 ]);
 ```
 
-## Legacy database connection
-
-The `legacy` connection in `config/database.php` points at a MariaDB instance holding the legacy data — locally a Docker container with a snapshot, in production the read-only legacy database retained after cutover. It is configured with `latin1` charset to read legacy data faithfully — conversion to utf8mb4 happens deliberately inside migration scripts, never at the connection layer.
-
-**Only migration scripts in `database/migrations/legacy/` may use this connection.** Application code (controllers, services, models, jobs, console commands) reads exclusively from the default connection. A grep for `connection('legacy')` outside `database/migrations/legacy/` is a bug.
-
-Migration scripts use it like:
-
-```php
-$rows = DB::connection('legacy')->table('member')->get();
-```
-
-Configuration env vars (`LEGACY_DB_HOST`, `LEGACY_DB_PORT`, `LEGACY_DB_DATABASE`, `LEGACY_DB_USERNAME`, `LEGACY_DB_PASSWORD`, `LEGACY_DB_CHARSET`) live in `.env`.
-
 ## Documents
 
 This is the most important convention in the project — get it right.

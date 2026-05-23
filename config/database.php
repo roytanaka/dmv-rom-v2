@@ -82,21 +82,6 @@ return [
             ]) : [],
         ],
 
-        'legacy' => [
-            'driver' => 'mariadb',
-            'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
-            'port' => env('LEGACY_DB_PORT', '3306'),
-            'database' => env('LEGACY_DB_DATABASE', ''),
-            'username' => env('LEGACY_DB_USERNAME', ''),
-            'password' => env('LEGACY_DB_PASSWORD', ''),
-            'charset' => env('LEGACY_DB_CHARSET', 'latin1'),
-            'collation' => env('LEGACY_DB_COLLATION', 'latin1_swedish_ci'),
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => false,
-            'engine' => null,
-        ],
-
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
