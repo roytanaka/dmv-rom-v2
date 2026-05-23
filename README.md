@@ -6,7 +6,7 @@ A web application for managing volunteers, schedules, documents, and committee a
 
 The DMV-ROM has approximately 500 active volunteers contributing to museum tours, education programs, and special events. This application supports the day-to-day operations of the volunteer organization: scheduling, member management, committee coordination, document sharing, and communications.
 
-This repository contains a rebuild of the original application (in production at https://www.dmv-rom.ca), modernizing the technology stack while preserving functionality. The rebuild aims to make the codebase maintainable by future volunteer contributors using AI-assisted development.
+This repository contains a rebuild of the original application, modernizing the technology stack while preserving functionality. The rebuild aims to make the codebase maintainable by future volunteer contributors using AI-assisted development.
 
 ## Status
 

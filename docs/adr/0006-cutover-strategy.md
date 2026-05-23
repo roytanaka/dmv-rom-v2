@@ -17,7 +17,7 @@ The migration plan commits to a **big-bang cutover with parallel running and a p
 
 The rebuild cuts over **big-bang inside a scheduled maintenance window**. Specifically:
 
-1. **Parallel running before cutover.** The new app runs at `staging.dmv-rom.ca` against the new database for weeks. Recruited volunteers exercise it alongside the still-live legacy app. Issues feed back into ongoing rebuild work.
+1. **Parallel running before cutover.** The new app runs on a separate staging subdomain against the new database for weeks. Recruited volunteers exercise it alongside the still-live legacy app. Issues feed back into ongoing rebuild work.
 2. **Pre-copy documents with UUID renaming and DB rows.** During Phase 5, the document tree is copied to `storage/app/documents/` with opaque UUID filenames and a `documents` row per file, populated per [ADR-0003](0003-document-storage-architecture.md). At cutover, a final rsync-style delta pass catches anything uploaded to legacy after the pre-copy.
 3. **Legacy fully offline during the cutover window.** Legacy webroot returns a maintenance page (host-level config, not a code change — honors the "legacy untouched" principle). Final delta migration runs against a quiescent legacy DB.
 4. **First-login credential challenge.** No bulk credential emails. On first new-app login, the volunteer enters their email plus their legacy credential. The system verifies against a one-time migrated hash, immediately forces a "set your new password" flow, and discards the legacy hash. Each volunteer's transition is one login + one short upgrade screen.

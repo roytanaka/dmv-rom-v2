@@ -4,7 +4,7 @@ Entry point for Claude Code in this repo. Kept lean. Detailed rules live in `doc
 
 ## What this project is
 
-A rebuild of the DMV-ROM volunteer management web app (dmv-rom.ca). The legacy app is hand-rolled PHP + jQuery on shared hosting. This rebuild replaces it with Laravel + Inertia + Vue while preserving current functionality first ("structural rebuild" — same features, new architecture), then adding new features per the UI/UX committee's vision.
+A rebuild of the DMV-ROM volunteer management web app. The legacy app is hand-rolled PHP + jQuery on shared hosting. This rebuild replaces it with Laravel + Inertia + Vue while preserving current functionality first ("structural rebuild" — same features, new architecture), then adding new features per the UI/UX committee's vision.
 
 The app serves ~500 volunteers at the Department of Museum Volunteers, Royal Ontario Museum. Tens of users concurrent at peak. Bilingual (English/French).
 

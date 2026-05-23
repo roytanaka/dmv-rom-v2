@@ -110,7 +110,7 @@ See `docs/conventions.md` § Documents for implementation details.
 ## Environments
 
 - **Local:** Laravel Sail (Docker Compose) with PHP 8.4 + MariaDB 10.6. Matches production versions.
-- **Staging:** A subdomain (e.g., `staging.dmv-rom.ca`) on the same Stormweb account, with its own database. Stormweb's PHP version is per-domain, so staging can run PHP 8.4 independent of the live legacy domain until cutover.
+- **Staging:** A separate subdomain on the same Stormweb account, with its own database. Stormweb's PHP version is per-domain, so staging can run PHP 8.4 independent of the live legacy domain until cutover.
 - **Production:** Cuts over to the rebuild's database at migration time. Legacy DB retained as read-only backup. The live domain's PHP version updates as part of cutover.
 
 ## Deployment

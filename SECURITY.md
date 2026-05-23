@@ -30,6 +30,6 @@ In scope:
 
 Out of scope:
 
-- The legacy PHP application at `dmv-rom.ca` (separate codebase, not maintained here).
+- The legacy PHP application (separate codebase, not maintained here).
 - Third-party services (Stormweb hosting, GitHub Actions, etc.) — please report those to the respective vendor.
 - Findings that require physical access to a user's device or social engineering.

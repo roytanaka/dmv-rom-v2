@@ -27,8 +27,8 @@ Two long-lived branches:
 
 | Branch | Deploys to | Trigger |
 |---|---|---|
-| `staging` | `staging.dmv-rom.ca` | auto on push |
-| `main` | `dmv-rom.ca` (production) | auto on merge from `staging`, **with required-reviewer approval gate** |
+| `staging` | staging subdomain | auto on push |
+| `main` | production domain | auto on merge from `staging`, **with required-reviewer approval gate** |
 
 Short-lived `feature/*`, `fix/*`, `chore/*` branches per `docs/conventions.md` § Git. Feature branches merge into `staging` via PR; `staging` → `main` is a separate PR that triggers the production deploy.
 
@@ -38,7 +38,7 @@ Short-lived `feature/*`, `fix/*`, `chore/*` branches per `docs/conventions.md` �
 
 Workflows live in `.github/workflows/`:
 - `ci.yml` — runs on every PR: lint (Pint, ESLint, Prettier), PHP tests, JS tests, Tailwind compile, Vite build. Required to pass before merge into `staging` or `main`.
-- `deploy-staging.yml` — runs on push to `staging`: rebuilds artifacts, rsyncs to `staging.dmv-rom.ca` over SSH, runs Composer install + migrations on the server.
+- `deploy-staging.yml` — runs on push to `staging`: rebuilds artifacts, rsyncs to the staging subdomain over SSH, runs Composer install + migrations on the server.
 - `deploy-production.yml` — runs on push to `main`: same as staging deploy but targeting the production webroot, **gated behind a GitHub Environment** (`production`) with required-reviewer approval. The job pauses on trigger and sends a notification; the developer clicks "approve" from email/mobile/web to release the deploy.
 
 Branch protection on both `staging` and `main`:

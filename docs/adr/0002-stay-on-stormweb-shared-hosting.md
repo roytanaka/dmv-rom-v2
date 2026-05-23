@@ -20,7 +20,7 @@ The constraints that shaped this decision:
 
 ## Decision
 
-Run the rebuild on the **same Stormweb shared hosting account** as the legacy app, in a separate domain and database (`staging.dmv-rom.ca` + a separate database). At cutover, the live `dmv-rom.ca` domain flips its document root + PHP version, and the legacy database is retained read-only as backup.
+Run the rebuild on the **same Stormweb shared hosting account** as the legacy app, in a separate domain and database (a staging subdomain + a separate database). At cutover, the live legacy domain flips its document root + PHP version, and the legacy database is retained read-only as backup.
 
 ## Considered alternatives
 
