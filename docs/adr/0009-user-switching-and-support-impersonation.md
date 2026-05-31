@@ -91,7 +91,7 @@ The production support tool is a different feature with its own consent + audit 
 
 - ADR-0001 — roles and identity (role representation deferred; this feature depends on it)
 - ADR-0002 — Canadian data residency / PIPEDA scope
-- The authorization model (forthcoming ADR) — the *initiate-support-session* gate is an explicit named permission defined there; the restricted-initiator design here depends on it. Cross-link to be wired when that ADR publishes.
+- [ADR-0011](0011-authorization-model.md) — authorization model; the *initiate-support-session* gate is an explicit named permission in its terms, and the restricted-initiator design here depends on it.
 - `CONTEXT.md § Roles today` — anticipated finer-grained roles
 - `docs/architecture.md` — rule of three; package-flagging
 - CLAUDE.md § Hard rules — never bypass authorization checks for document downloads (the view-as read-mostly boundary must not become a path around document policies)

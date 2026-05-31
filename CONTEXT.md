@@ -11,15 +11,22 @@ _Avoid_: Member (legacy schema artifact — the `Members` table holds volunteers
 **Login**:
 The act of authenticating into the app with email + password. The only authentication flow in the rebuild.
 
-**Program**:
-A named area of DMV activity that volunteers staff (e.g., docents, gallery guides, special tours, reception).
+**Group**:
+The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (roster, meetings, documents, scheduling, content, stats). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Volunteer's Group memberships and the roles they carry there. See [ADR-0011](docs/adr/0011-authorization-model.md).
 
 **Committee**:
-An organizing group within DMV (membership, scheduling, social, communications, etc.). A **Volunteer** can belong to zero or more committees; committee membership drives some authorization decisions and some document visibility.
+A **Kind** of **Group**: a standing, org-scoped group that meets and holds documents but runs no shift scheduling (governance, operations, social). One Kind among several — not the central entity.
+_Avoid_: treating "committee" as the organizing entity, or "subcommittee" as a separate noun. Both are Groups (see **Group**).
 
-**PRD** (product requirements document):
-A scoped chunk of product work — large enough to need its own document, small enough to be implementable. PRDs are drafted as GitHub issues labeled `prd`, then broken into implementation tickets.
-_Avoid_: epic, spec, brief, initiative — all refer to the same artifact in other vocabularies; in this project, call it a PRD.
+**Program**:
+A **Kind** of **Group**: the volunteer-facing operating units that run scheduling, content, and stats (docents, gallery guides, GDR, reception, special events). Distinguished from a **Committee** mainly by having the scheduling + stats capabilities turned on.
+
+**Shift**:
+A dated thing a **Volunteer** signs up to staff — a tour, a desk slot, an event role. Has a date, time, capacity, location, and (depending on the **Program**) an optional reserved object or qualification requirement. The unit of scheduling. Programs name it differently — docents say "tour," Visitor Guides say "shift" — but **Shift** is the canonical umbrella term. A recurring **Shift** is spawned from a repeat rule; a Group may also create one-off Shifts directly.
+
+**Sign-up**:
+The record that a **Volunteer** has taken (or been assigned) a **Shift**. Carries cancel / swap / assistant state.
+_Avoid_: confusing with **Login** (authentication) — a Sign-up is *staffing a Shift*, not authenticating.
 
 **Locale**:
 The technical identifier for a language + regional convention pair. The app supports two locales: `en` (English, default) and `fr` (French). A **Volunteer**'s `locale` column captures their saved preference. Laravel's `app()->setLocale()` consumes it.
@@ -28,16 +35,22 @@ _Avoid_: Language (the user-facing label is "Language" or "Langue," but in code 
 **Default locale**:
 English (`en`). It is the canonical, unprefixed locale — English URLs live at the root, French URLs live under `/fr/`. See [ADR-0008](docs/adr/0008-bilingual-url-routing.md).
 
+**PRD** (product requirements document):
+A scoped chunk of product work — large enough to need its own document, small enough to be implementable. PRDs are drafted as GitHub issues labeled `prd`, then broken into implementation tickets.
+_Avoid_: epic, spec, brief, initiative — all refer to the same artifact in other vocabularies; in this project, call it a PRD.
+
 ## Relationships
 
 - A **Volunteer** has exactly one identity (one unique email, one password)
-- A **Volunteer** may belong to zero or more **Committees** and participate in one or more **Programs**
+- A **Volunteer** may belong to zero or more **Groups**; each membership carries the **role(s)** that Volunteer holds in that Group
+- A **Group** has one parent (one tree, DMV at the root); **Committee** and **Program** are Kinds of Group
+- A **Program** that runs scheduling offers **Shifts**; a **Volunteer** takes a **Shift** via a **Sign-up**
 - **Login** to the app grants the **Volunteer** their session and their authorization scope
 
 ## Example dialogue
 
 > **Dev:** "When a **Volunteer** logs into the app, what determines what they can do?"
-> **Domain:** "Their **Committee** memberships and any officer roles attached to those memberships. Authorization isn't a global role flag — it's per-committee."
+> **Domain:** "Their **Group** memberships and the roles they carry in each. Authorization isn't a global role flag — it's per-Group. The one exception is DMV's top leadership, who hold an explicit org-wide grant."
 >
 > **Dev:** "And households where two **Volunteers** share an inbox?"
 > **Domain:** "Not supported. Each **Volunteer** has a unique email."
