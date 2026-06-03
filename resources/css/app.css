@@ -81,8 +81,12 @@
 }
 
 @theme inline {
+    /* Native system-font stack — no webfont download, mirrored verbatim from the
+       design system's colors_and_type.css. Text renders instantly and stays crisp
+       on every device. --font-mono is new (the starter kit shipped none). */
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+        system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -148,12 +152,76 @@
     --color-sidebar-border: var(--sidebar-border);
 }
 
+/* TYPE — the scale is sized UP for the DMV's retiree volunteer base: body is
+   18px, persistent UI text never drops below the 15px accessibility floor.
+   Tailwind v4's --text-* tokens are remapped 1:1 by name to the design ramp,
+   so every installed component adopts the new sizes with no per-component
+   edits (they render slightly larger until PR #2 retunes them — accepted).
+   Each step carries a coupled line-height: body steps roomy at 1.55, headings
+   tight at 1.2–1.35. Values mirror colors_and_type.css. */
+@theme {
+    --text-xs: 13px; /* micro-labels / timestamps          */
+    --text-xs--line-height: 1.55;
+    --text-sm: 15px; /* secondary UI, table cells, captions */
+    --text-sm--line-height: 1.55;
+    --text-base: 18px; /* body — the default                */
+    --text-base--line-height: 1.55;
+    --text-lg: 20px; /* lead paragraphs, large form labels  */
+    --text-lg--line-height: 1.55;
+    --text-xl: 23px; /* card titles (h4)                    */
+    --text-xl--line-height: 1.35;
+    --text-2xl: 28px; /* section headings (h3)              */
+    --text-2xl--line-height: 1.35;
+    --text-3xl: 34px; /* page headings (h2)                 */
+    --text-3xl--line-height: 1.2;
+    --text-4xl: 42px; /* page title (h1)                    */
+    --text-4xl--line-height: 1.2;
+    --text-5xl: 54px; /* hero / login title                 */
+    --text-5xl--line-height: 1.2;
+
+    /* Tracking — verbatim from the design (tighter than Tailwind's defaults):
+       tight on large headings, wide on uppercase eyebrows. */
+    --tracking-tight: -0.02em;
+    --tracking-wide: 0.04em;
+}
+
 @layer base {
     * {
         @apply border-border outline-ring/50;
     }
 
+    /* House element defaults — heading/body/eyebrow/caption styled once at the
+       foundation so prose and headings are correct everywhere by default. Sizes
+       and line-heights come coupled with the --text-* ramp above; weights and
+       tracking are set here per role. Bare elements pick these up; an explicit
+       utility class (a higher layer) still wins. Mirrors colors_and_type.css. */
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground font-sans text-base;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+
+    h1 {
+        @apply text-4xl font-bold tracking-tight;
+    }
+
+    h2 {
+        @apply text-3xl font-bold tracking-tight;
+    }
+
+    h3 {
+        @apply text-2xl font-semibold;
+    }
+
+    h4 {
+        @apply text-xl font-semibold;
+    }
+
+    .eyebrow {
+        @apply text-muted-foreground text-xs font-semibold tracking-wide uppercase;
+    }
+
+    .caption {
+        @apply text-muted-foreground text-sm;
     }
 }
