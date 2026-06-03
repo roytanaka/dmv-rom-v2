@@ -14,7 +14,7 @@ The app serves ~500 volunteers at the Department of Museum Volunteers, Royal Ont
 - Inertia.js + Vue 3 + Tailwind CSS + shadcn-vue
 - MariaDB 10.6 (matches production)
 - Vite for asset building
-- Docker (Laravel Sail) for local development
+- Docker (Laravel Sail) runs the PHP/Laravel app + MariaDB; the frontend toolchain (Vite/pnpm) runs on the host (see "Things that are easy to get wrong here")
 
 ## Required reading before non-trivial work
 
@@ -43,6 +43,7 @@ The app serves ~500 volunteers at the Department of Museum Volunteers, Royal Ont
 
 ## Things that are easy to get wrong here
 
+- Split dev environment: the PHP/Laravel app and MariaDB run in Docker (Sail), but the frontend toolchain (Vite, vue-tsc) runs on the **host** with pnpm — never in the container. Run backend commands and tests via Sail (`pnpm sail …`, `pnpm sail test`); run the frontend CI gates on the host (`pnpm typecheck`, `pnpm build`, `pnpm dev`). `node_modules` carries host-arch native bindings, so running Vite inside the Linux container fails with a missing-native-binding error.
 - Character encoding: legacy data is in latin1 / cp1252. New DB is utf8mb4. Migration scripts must convert deliberately.
 - Permissive SQL mode in legacy: artifacts like zero-dates may exist. Migration scripts must handle them.
 - Bilingual content: every user-facing string is translatable. See `docs/conventions.md` § Internationalization.
