@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CheckboxRootEmits, CheckboxRootProps } from 'radix-vue'
 import { cn } from '@/lib/utils'
-import { Check } from 'lucide-vue-next'
+import { PhCheck } from '@phosphor-icons/vue';
 import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from 'radix-vue'
 import { computed, type HTMLAttributes } from 'vue'
 
@@ -26,7 +26,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   >
     <CheckboxIndicator class="flex h-full w-full items-center justify-center text-current">
       <slot>
-        <Check class="size-3.5 stroke-3" />
+        <PhCheck class="size-3.5 stroke-3" />
       </slot>
     </CheckboxIndicator>
   </CheckboxRoot>

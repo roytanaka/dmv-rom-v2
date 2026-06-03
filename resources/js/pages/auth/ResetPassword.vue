@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { PhCircleNotch } from '@phosphor-icons/vue';
 
 interface Props {
     token: string;
@@ -72,7 +72,7 @@ const submit = () => {
                 </div>
 
                 <Button type="submit" class="mt-4 w-full" :disabled="form.processing">
-                    <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
+                    <PhCircleNotch v-if="form.processing" class="h-4 w-4 animate-spin" />
                     Reset password
                 </Button>
             </div>
