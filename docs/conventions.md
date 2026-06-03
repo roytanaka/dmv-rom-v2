@@ -147,6 +147,10 @@ const submit = () => form.put(route('committees.update', props.committee.id))
 </script>
 ```
 
+### Styling and the design system
+
+- **Heritage-blue accent.** The brand's single interactive hue is exposed as Tailwind utilities via `@theme inline` in `resources/css/app.css`: `rom-slate`, `rom-slate-50`, `rom-slate-300`, `rom-slate-700`. Use `text-rom-slate` / `hover:text-rom-slate-700` for links and interactive accents, `bg-rom-slate-50` for the slate-tinted wash, and `ring-rom-slate` / `border-rom-slate` for accented focus. Reference these tokens rather than arbitrary hex or neutral greys so the accent stays consistent and a future token change propagates everywhere. The `--color-info{,-bg}` tokens carry the same value but belong to the status family (badges/banners) — use the `info` utilities for status, the `rom-slate` utilities for interactive accents.
+
 ## Database migrations
 
 - One migration per change. Don't bundle unrelated changes.
