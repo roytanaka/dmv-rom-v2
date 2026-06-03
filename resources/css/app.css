@@ -5,82 +5,88 @@
 @source '../../storage/framework/views/*.php';
 @source '../views';
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    /* BRAND — ROM black & white with one muted heritage-blue accent (after
+       rom.on.ca). Black owns primary actions; the slate is the single
+       interactive accent (links, active wayfinding, info, focus). Mirrored
+       verbatim from the design system's colors_and_type.css. */
+    --rom-ink: #000000; /* primary text/logo, top app bar, buttons */
+    --rom-ink-90: #1a1a1a; /* button hover / pressed */
+    --rom-slate: #516d80; /* muted heritage-blue accent — the one hue */
+    --rom-slate-700: #3e5666; /* link hover / pressed */
+    --rom-slate-300: #93a6b3; /* active tab on the black bar / lighter slate */
+    --rom-slate-50: #eef1f4; /* slate-tinted surface wash */
+    --rom-gray: #f5f5f5; /* support gray — neutral surface/fill (rom.on.ca) */
+    --rom-gray-mid: #8b8b85; /* functional mid-gray — dividers, icons, focus */
+
+    /* NEUTRALS — a clean greyscale on a pure-white canvas, anchored on ROM's
+       #8b8b85 support gray. Muted text is darker than #8b8b85 to stay
+       AA-readable for the retiree base. */
+    --background: #ffffff;
+    --foreground: #1a1a1a; /* neutral near-black ink */
+    --card: #ffffff;
+    --card-foreground: #1a1a1a;
+    --popover: #ffffff;
+    --popover-foreground: #1a1a1a;
+    --primary: #000000; /* pure black — ROM B&W */
+    --primary-foreground: #ffffff;
+    --secondary: #f5f5f5; /* neutral quiet fill */
+    --secondary-foreground: #1a1a1a;
+    --muted: #f5f5f5;
+    --muted-foreground: #686868; /* AA captions (~5:1) */
+    --accent: #efefef; /* hover fill */
+    --accent-foreground: #1a1a1a;
+    --border: #e3e3e3; /* neutral hairlines */
+    --input: #e3e3e3;
+    --ring: #8b8b85; /* focus ring (support gray) */
+
+    /* SIDEBAR — a neutral charcoal rail beneath the black top bar. Inactive
+       labels use the support gray; the active row takes the slate. */
+    --sidebar: #262626;
+    --sidebar-foreground: #f4f3f2;
+    --sidebar-muted: #8b8b85; /* inactive label (support) */
+    --sidebar-accent: #383838; /* hover row */
+    --sidebar-active: var(--rom-slate); /* active row → heritage blue */
+    --sidebar-active-foreground: #ffffff;
+    --sidebar-border: #383838;
+
+    /* SEMANTIC — status & feedback, one colour each, used sparingly. Status
+       tokens use shadcn -foreground naming; -bg is the soft tint backing for
+       banners/badges. --destructive is normalized to its hex. */
+    --success: #1b7a4b;
+    --success-foreground: #ffffff;
+    --success-bg: #e8f4ed;
+    --warning: #f08c00;
+    --warning-foreground: #422700;
+    --warning-bg: #fff3e0;
+    --destructive: #d4322b;
+    --destructive-foreground: #ffffff;
+    --destructive-bg: #fbeae9;
+    --info: var(--rom-slate); /* heritage blue */
+    --info-bg: var(--rom-slate-50);
+
+    /* CHART — inert placeholder. The design specifies no chart palette;
+       data-viz is deferred to the first statistics work (its own design pass
+       + ADR), so these starter-kit values are left untouched. */
     --chart-1: oklch(0.646 0.222 41.116);
     --chart-2: oklch(0.6 0.118 184.704);
     --chart-3: oklch(0.398 0.07 227.392);
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-}
 
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    /* RADIUS — kept from the starter kit. The square ROM identity is applied
+       at the component level in PR #2; this proportional scale stays as a
+       working escape hatch for deliberate rounding. */
+    --radius: 0.625rem;
 }
 
 @theme inline {
+    /* Native system-font stack — no webfont download, mirrored verbatim from the
+       design system's colors_and_type.css. Text renders instantly and stays crisp
+       on every device. --font-mono is new (the starter kit shipped none). */
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+        system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -105,6 +111,18 @@
 
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
+    --color-destructive-bg: var(--destructive-bg);
+
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-success-bg: var(--success-bg);
+
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-warning-bg: var(--warning-bg);
+
+    --color-info: var(--info);
+    --color-info-bg: var(--info-bg);
 
     --color-border: var(--border);
     --color-input: var(--input);
@@ -121,14 +139,50 @@
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
 
+    /* Sidebar utilities follow the design's renamed tokens. The installed
+       shadcn Sidebar still expects the starter-kit names (--sidebar-primary,
+       --sidebar-ring, --sidebar-accent-foreground); those break here and are
+       reconciled when the app shell is built (PR #2/#3). */
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-muted: var(--sidebar-muted);
     --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-active: var(--sidebar-active);
+    --color-sidebar-active-foreground: var(--sidebar-active-foreground);
     --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* TYPE — the scale is sized UP for the DMV's retiree volunteer base: body is
+   18px, persistent UI text never drops below the 15px accessibility floor.
+   Tailwind v4's --text-* tokens are remapped 1:1 by name to the design ramp,
+   so every installed component adopts the new sizes with no per-component
+   edits (they render slightly larger until PR #2 retunes them — accepted).
+   Each step carries a coupled line-height: body steps roomy at 1.55, headings
+   tight at 1.2–1.35. Values mirror colors_and_type.css. */
+@theme {
+    --text-xs: 13px; /* micro-labels / timestamps          */
+    --text-xs--line-height: 1.55;
+    --text-sm: 15px; /* secondary UI, table cells, captions */
+    --text-sm--line-height: 1.55;
+    --text-base: 18px; /* body — the default                */
+    --text-base--line-height: 1.55;
+    --text-lg: 20px; /* lead paragraphs, large form labels  */
+    --text-lg--line-height: 1.55;
+    --text-xl: 23px; /* card titles (h4)                    */
+    --text-xl--line-height: 1.35;
+    --text-2xl: 28px; /* section headings (h3)              */
+    --text-2xl--line-height: 1.35;
+    --text-3xl: 34px; /* page headings (h2)                 */
+    --text-3xl--line-height: 1.2;
+    --text-4xl: 42px; /* page title (h1)                    */
+    --text-4xl--line-height: 1.2;
+    --text-5xl: 54px; /* hero / login title                 */
+    --text-5xl--line-height: 1.2;
+
+    /* Tracking — verbatim from the design (tighter than Tailwind's defaults):
+       tight on large headings, wide on uppercase eyebrows. */
+    --tracking-tight: -0.02em;
+    --tracking-wide: 0.04em;
 }
 
 @layer base {
@@ -136,7 +190,38 @@
         @apply border-border outline-ring/50;
     }
 
+    /* House element defaults — heading/body/eyebrow/caption styled once at the
+       foundation so prose and headings are correct everywhere by default. Sizes
+       and line-heights come coupled with the --text-* ramp above; weights and
+       tracking are set here per role. Bare elements pick these up; an explicit
+       utility class (a higher layer) still wins. Mirrors colors_and_type.css. */
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground font-sans text-base;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+
+    h1 {
+        @apply text-4xl font-bold tracking-tight;
+    }
+
+    h2 {
+        @apply text-3xl font-bold tracking-tight;
+    }
+
+    h3 {
+        @apply text-2xl font-semibold;
+    }
+
+    h4 {
+        @apply text-xl font-semibold;
+    }
+
+    .eyebrow {
+        @apply text-muted-foreground text-xs font-semibold tracking-wide uppercase;
+    }
+
+    .caption {
+        @apply text-muted-foreground text-sm;
     }
 }
