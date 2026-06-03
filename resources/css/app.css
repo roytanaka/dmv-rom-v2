@@ -124,6 +124,16 @@
     --color-info: var(--info);
     --color-info-bg: var(--info-bg);
 
+    /* Heritage-blue accent — the single interactive hue, exposed as utilities
+       (text-/bg-/border-/ring-rom-slate{,-50,-300,-700}) so links, the Button
+       link variant, input focus, the Badge info tone, and the Table selected
+       row reference the brand token rather than arbitrary values. --color-info
+       above keeps the same value under its distinct status-family role. */
+    --color-rom-slate: var(--rom-slate);
+    --color-rom-slate-50: var(--rom-slate-50);
+    --color-rom-slate-300: var(--rom-slate-300);
+    --color-rom-slate-700: var(--rom-slate-700);
+
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
