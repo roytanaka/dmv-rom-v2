@@ -10,7 +10,7 @@ accepted: 2026-05-31
 
 [ADR-0001](0001-authentication-and-identity.md) deferred authorization ("who can see which members, which committee, which documents is a separate concern"). It is now the central remaining decision: the per-Group feature work (scheduling admin, news, document upload, reports, member email) all gate officer-only actions, and they cannot be scoped consistently until the model is fixed once.
 
-This ADR uses **Group** as the organizing entity (see `CONTEXT.md`): every committee, program, working group, and event cohort is a **Group** — a named set of people, each holding **role(s) within that Group**, with one parent and a set of capabilities switched on. "Role" always means "role within a Group."
+This ADR uses **Group** as the organizing entity (see [ADR-0010](0010-group-model.md) and `CONTEXT.md`): every committee, program, working group, and event cohort is a **Group** — a named set of people, each holding **role(s) within that Group**, with one parent and a set of capabilities switched on. "Role" always means "role within a Group."
 
 The defining shape of DMV authorization is that it is **per-Group** — not inheritance down an org tree, and not a single global role. A role grants authority only within its own Group; leading a parent Group confers no authority over a child Group. There is exactly one genuine org-wide override (top leadership) and one org-wide responsibility (member administration), and both are explicit rather than emergent from tree position.
 
@@ -69,5 +69,6 @@ Implementation mechanism: Laravel gates + policies + form requests, with the per
 ## References
 
 - [ADR-0001](0001-authentication-and-identity.md) — authentication & identity (this ADR is the authorization counterpart it deferred)
+- [ADR-0010](0010-group-model.md) — Group model (the entity and capability set this model's roles attach to; scoped-down roles use its capability-subdivision representation)
 - [ADR-0009](0009-user-switching-and-support-impersonation.md) — user switching and support impersonation (downstream consumer of this model)
 - `docs/conventions.md § Authorization` — the Laravel enforcement mechanism (gates/policies/form requests)
