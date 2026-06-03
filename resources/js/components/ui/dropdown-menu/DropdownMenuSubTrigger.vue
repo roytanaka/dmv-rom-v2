@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
-import { ChevronRight } from 'lucide-vue-next';
+import { PhCaretRight } from '@phosphor-icons/vue';
 import { DropdownMenuSubTrigger, useForwardProps, type DropdownMenuSubTriggerProps } from 'radix-vue';
 import { computed, type HTMLAttributes } from 'vue';
 
@@ -26,6 +26,6 @@ const forwardedProps = useForwardProps(delegatedProps);
         "
     >
         <slot />
-        <ChevronRight class="ml-auto h-4 w-4" />
+        <PhCaretRight class="ml-auto h-4 w-4" />
     </DropdownMenuSubTrigger>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
-import { X } from 'lucide-vue-next';
+import { PhX } from '@phosphor-icons/vue';
 import {
     DialogClose,
     DialogContent,
@@ -50,7 +50,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
                 <slot />
 
                 <DialogClose class="absolute right-3 top-3 rounded-md p-0.5 transition-colors hover:bg-secondary">
-                    <X class="h-4 w-4" />
+                    <PhX class="h-4 w-4" />
                     <span class="sr-only">Close</span>
                 </DialogClose>
             </DialogContent>
