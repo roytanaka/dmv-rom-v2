@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// ROM identity: uppercase bold black column labels at the 12px-class size
+// ROM identity: uppercase bold black column labels at the 13px-class size
 // (`text-xs` — the sanctioned passive-label exception to the 15px floor, same
 // category as .eyebrow), replacing upstream's medium muted-gray heads.
 import { cn } from '@/lib/utils';
