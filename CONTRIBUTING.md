@@ -18,12 +18,16 @@ The project runs on version control, code review, and explicit scope. The aim is
 
 **Maintenance is a feature.** Time spent on tests, refactoring, documentation, and dependency updates is real work, not overhead.
 
-**Pull requests, not pushes to main.** Every change goes through a branch and a review, even if the reviewer is the same person who wrote it (self-review forces a second look).
+**Pull requests, not direct pushes.** Every change goes through a branch and a review, even if the reviewer is the same person who wrote it (self-review forces a second look).
+
+## Branch model
+
+During the structural-rebuild phase, `staging` is the integration trunk — branch off it, target PRs at it, and it auto-deploys to staging.dmv-rom.ca. `main` is reserved as the release branch and stays dormant until go-live, when `staging` is promoted into it. Until then, treat `staging` as "the trunk."
 
 ## Development workflow
 
 1. Pick up an issue from the project board, or open one for discussion before writing code.
-2. Branch from `main`: `git checkout -b feature/short-description` or `fix/short-description`.
+2. Branch from `staging`: `git checkout -b feature/short-description` or `fix/short-description`.
 3. Write the change. If using Claude Code, follow the rules in `CLAUDE.md` and the docs it references.
 4. Run tests locally: `pnpm sail vendor/bin/sail php artisan test`.
 5. Open a pull request. Describe what changed and why. Link the issue.
