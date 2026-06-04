@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import DesignSystemLayout from '@/layouts/DesignSystemLayout.vue';
@@ -495,6 +496,19 @@ const tableRows: TableSpecimenRow[] = [
                         <TooltipContent>Tours lock 24 hours before they start.</TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
+            </div>
+
+            <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Skeleton</h3>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                Square (<code>rounded-none</code>) loading placeholders that animate while content is fetched — shown here as a card-shaped shimmer.
+            </p>
+
+            <div class="mt-6 flex max-w-sm items-center gap-4">
+                <Skeleton class="size-12" />
+                <div class="flex-1 space-y-2">
+                    <Skeleton class="h-4 w-3/4" />
+                    <Skeleton class="h-4 w-1/2" />
+                </div>
             </div>
         </section>
     </DesignSystemLayout>
