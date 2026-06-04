@@ -2,12 +2,43 @@
 import InputError from '@/components/InputError.vue';
 import { Badge, type BadgeVariants } from '@/components/ui/badge';
 import { Button, type ButtonVariants } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import DesignSystemLayout from '@/layouts/DesignSystemLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { PhPlus } from '@phosphor-icons/vue';
+import { PhCaretDown, PhPlus } from '@phosphor-icons/vue';
+import { ref } from 'vue';
+
+// Local state for the interactive component specimens (checkbox, dropdown
+// menu). These exist only to make the specimens demonstrable on the page.
+const checkboxChecked = ref(true);
+const notify = ref(true);
+const density = ref<'comfortable' | 'compact'>('comfortable');
 
 // Colour-token specimens. Each swatch fills its chip from the live CSS variable
 // (`var(--token)`) so the page renders the actual token value — the palette is
@@ -353,6 +384,117 @@ const tableRows: TableSpecimenRow[] = [
                         </TableRow>
                     </TableBody>
                 </Table>
+            </div>
+
+            <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Card</h3>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                Square (<code>rounded-none</code>) with a 1px border and a <code>shadow-xs</code> whisper — the calm container for grouped content.
+            </p>
+
+            <div class="mt-6 max-w-sm">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Museum Highlights</CardTitle>
+                        <CardDescription>Wed 01 Jul · 11:00 — Bloor Street Entrance</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p class="text-base">A one-hour walk through the museum’s signature galleries. Two of four guide spots are filled.</p>
+                    </CardContent>
+                    <CardFooter class="gap-3">
+                        <Button>Sign up</Button>
+                        <Button variant="outline">Details</Button>
+                    </CardFooter>
+                </Card>
+            </div>
+
+            <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Checkbox</h3>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                Square (<code>rounded-none</code>) and bumped to <strong>20px</strong> (<code>size-5</code>) for the audience, with a Phosphor check
+                glyph. Shown checked, unchecked, and disabled.
+            </p>
+
+            <div class="mt-6 space-y-4">
+                <div class="flex items-center gap-3">
+                    <Checkbox id="ds-check-on" v-model:checked="checkboxChecked" />
+                    <Label for="ds-check-on">Email me when a tour I lead changes</Label>
+                </div>
+                <div class="flex items-center gap-3">
+                    <Checkbox id="ds-check-off" :default-checked="false" />
+                    <Label for="ds-check-off">Also send a calendar invitation</Label>
+                </div>
+                <div class="flex items-center gap-3">
+                    <Checkbox id="ds-check-disabled" :default-checked="true" disabled />
+                    <Label for="ds-check-disabled" class="opacity-50">Locked by your coordinator</Label>
+                </div>
+            </div>
+
+            <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Dropdown menu</h3>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                Square content and items with Phosphor icons, lifted on a <code>shadow-md</code> (popovers lift off the page). The radio dot stays a
+                true circle.
+            </p>
+
+            <div class="mt-6">
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                        <Button variant="outline">
+                            Options
+                            <PhCaretDown class="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent class="w-56" align="start">
+                        <DropdownMenuLabel>Tour preferences</DropdownMenuLabel>
+                        <DropdownMenuItem>Edit details</DropdownMenuItem>
+                        <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuCheckboxItem v-model:checked="notify">Email reminders</DropdownMenuCheckboxItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Density</DropdownMenuLabel>
+                        <DropdownMenuRadioGroup v-model="density">
+                            <DropdownMenuRadioItem value="comfortable">Comfortable</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="compact">Compact</DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Dialog &amp; tooltip</h3>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                The dialog is square with a Phosphor <code>×</code> close glyph over the dimming overlay. The tooltip is square on its on-brand black
+                surface. Both are shown by their triggers.
+            </p>
+
+            <div class="mt-6 flex flex-wrap items-center gap-4">
+                <Dialog>
+                    <DialogTrigger as-child>
+                        <Button>Cancel sign-up</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Cancel your sign-up?</DialogTitle>
+                            <DialogDescription>
+                                You are leading Museum Highlights on Wed 01 Jul. Cancelling frees your spot for another volunteer.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter class="gap-3">
+                            <DialogClose as-child>
+                                <Button variant="outline">Keep my spot</Button>
+                            </DialogClose>
+                            <DialogClose as-child>
+                                <Button variant="destructive">Cancel sign-up</Button>
+                            </DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger as-child>
+                            <Button variant="outline">Hover for a tooltip</Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Tours lock 24 hours before they start.</TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
         </section>
     </DesignSystemLayout>
