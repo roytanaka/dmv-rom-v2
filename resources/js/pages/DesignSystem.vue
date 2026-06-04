@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import InputError from '@/components/InputError.vue';
 import { Button, type ButtonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import DesignSystemLayout from '@/layouts/DesignSystemLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { PhPlus } from '@phosphor-icons/vue';
@@ -242,6 +245,35 @@ const buttonRows: { variant: ButtonVariant; label: string }[] = [
                         <PhPlus class="size-4" />
                     </Button>
                     <Button :variant="row.variant" disabled>{{ row.label }}</Button>
+                </div>
+            </div>
+
+            <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Form inputs</h3>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                <code>Input</code> is square (<code>rounded-none</code>), 44px tall, and holds 18px text at every breakpoint. Focus is the one
+                heritage-blue exception — a <code>rom-slate</code> border with a soft <code>rom-slate-50</code> glow — while the error state is driven
+                by the <code>aria-invalid</code> attribute, not a custom prop. <code>Label</code> stays 15px / medium and
+                <code>InputError</code> renders on the <code>destructive</code> token.
+            </p>
+
+            <div class="mt-6 grid max-w-2xl gap-6 sm:grid-cols-2">
+                <div class="grid gap-2">
+                    <Label for="ds-input-default">Default</Label>
+                    <Input id="ds-input-default" placeholder="Volunteer name" />
+                </div>
+                <div class="grid gap-2">
+                    <Label for="ds-input-focus">Focus</Label>
+                    <Input id="ds-input-focus" placeholder="Volunteer name" class="border-rom-slate ring-rom-slate-50 ring-2" />
+                    <p class="text-muted-foreground text-sm">Shown statically — the resting <code>:focus</code> state needs interaction to render.</p>
+                </div>
+                <div class="grid gap-2">
+                    <Label for="ds-input-error">Error</Label>
+                    <Input id="ds-input-error" aria-invalid="true" default-value="not-an-email" />
+                    <InputError message="Enter a valid email address." />
+                </div>
+                <div class="grid gap-2">
+                    <Label for="ds-input-disabled">Disabled</Label>
+                    <Input id="ds-input-disabled" placeholder="Volunteer name" disabled />
                 </div>
             </div>
         </section>
