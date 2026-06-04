@@ -127,7 +127,7 @@ Bilingual URL strategy is fixed by [ADR-0008](adr/0008-bilingual-url-routing.md)
 - Composition API only. No Options API.
 - `<script setup>` syntax.
 - Tailwind for all styling. No scoped `<style>` blocks unless absolutely necessary.
-- Use shadcn-vue components from `resources/js/Components/ui/` for UI primitives (Button, Dialog, DropdownMenu, Input, Select, etc.). Add new ones via the shadcn-vue CLI.
+- Use shadcn-vue components from `resources/js/components/ui/` for UI primitives (Button, Dialog, DropdownMenu, Input, Select, etc.). Add new ones with `pnpm dlx shadcn-vue@latest add <component>` (run on the host, not in Sail). The CLI reads `components.json`; its `aliases` must stay `@/`-prefixed (e.g. `@/components/ui`) so the CLI can resolve them via tsconfig `paths` — bare paths break newer CLI versions.
 - Edit shadcn-vue component source freely when needed — they live in our repo and we own them. Document non-trivial customizations in a comment at the top of the file.
 
 ```vue
