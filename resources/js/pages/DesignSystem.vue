@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { Button, type ButtonVariants } from '@/components/ui/button';
 import DesignSystemLayout from '@/layouts/DesignSystemLayout.vue';
 import { Head } from '@inertiajs/vue3';
+import { PhPlus } from '@phosphor-icons/vue';
 
 // Colour-token specimens. Each swatch fills its chip from the live CSS variable
 // (`var(--token)`) so the page renders the actual token value — the palette is
@@ -117,6 +119,20 @@ const radiusSteps = [
     { name: 'lg', class: 'rounded-lg' },
     { name: 'xl', class: 'rounded-xl' },
 ] as const;
+
+// Component-gallery specimens. This section is established here (PRD #44, slice
+// #47) and grown by later slices. Each row renders one Button variant across the
+// sm / default / lg / icon sizes plus a disabled state — squareness and the
+// bumped size scale are verified by eye, not asserted in tests.
+type ButtonVariant = NonNullable<ButtonVariants['variant']>;
+const buttonRows: { variant: ButtonVariant; label: string }[] = [
+    { variant: 'default', label: 'Default' },
+    { variant: 'destructive', label: 'Destructive' },
+    { variant: 'outline', label: 'Outline' },
+    { variant: 'secondary', label: 'Secondary' },
+    { variant: 'ghost', label: 'Ghost' },
+    { variant: 'link', label: 'Link' },
+];
 </script>
 
 <template>
@@ -189,7 +205,7 @@ const radiusSteps = [
             </div>
         </section>
 
-        <section aria-labelledby="radius-heading">
+        <section aria-labelledby="radius-heading" class="mb-12">
             <h2 id="radius-heading" class="text-xl font-semibold tracking-tight">Radius</h2>
             <p class="text-muted-foreground mt-1 text-sm">
                 The proportional <code>sm/md/lg/xl</code> ramp from the <code>--radius</code> scale, kept intentionally.
@@ -201,6 +217,33 @@ const radiusSteps = [
                     <span class="text-muted-foreground text-sm">{{ step.name }}</span>
                 </li>
             </ul>
+        </section>
+
+        <section aria-labelledby="components-heading">
+            <h2 id="components-heading" class="text-xl font-semibold tracking-tight">Components</h2>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                Customised <code>shadcn-vue</code> primitives. Corners are square (<code>rounded-none</code>) by default and the size scale is bumped
+                for the DMV’s audience, floored at 15px. Each component is added here as its slice lands.
+            </p>
+
+            <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Button</h3>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                The six variants across the <code>sm</code> / <code>default</code> / <code>lg</code> / <code>icon</code> sizes, with a disabled state.
+                The <code>link</code> variant carries the heritage-blue accent.
+            </p>
+
+            <div class="mt-6 space-y-5">
+                <div v-for="row in buttonRows" :key="row.variant" class="flex flex-wrap items-center gap-4">
+                    <code class="text-muted-foreground w-24 flex-none font-mono text-xs">{{ row.variant }}</code>
+                    <Button :variant="row.variant" size="sm">{{ row.label }}</Button>
+                    <Button :variant="row.variant">{{ row.label }}</Button>
+                    <Button :variant="row.variant" size="lg">{{ row.label }}</Button>
+                    <Button :variant="row.variant" size="icon" :aria-label="`${row.label} icon`">
+                        <PhPlus class="size-4" />
+                    </Button>
+                    <Button :variant="row.variant" disabled>{{ row.label }}</Button>
+                </div>
+            </div>
         </section>
     </DesignSystemLayout>
 </template>
