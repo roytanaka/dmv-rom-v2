@@ -4,6 +4,7 @@ import { Badge, type BadgeVariants } from '@/components/ui/badge';
 import { Button, type ButtonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import DesignSystemLayout from '@/layouts/DesignSystemLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { PhPlus } from '@phosphor-icons/vue';
@@ -150,6 +151,20 @@ const badgeRows: { variant: BadgeVariant; label: string }[] = [
     { variant: 'warning', label: 'Warning' },
     { variant: 'destructive', label: 'Destructive' },
     { variant: 'outline', label: 'Outline' },
+];
+
+// Representative Table specimen (slice #50). The ROM listing identity is baked
+// into the component defaults — a 2px black top rule, uppercase bold black heads
+// on a black underline, 18px rows, hairline separators, no zebra, and a quiet
+// whole-row hover. One row is flagged `selected` to show the heritage-blue wash
+// (`data-[state=selected]:bg-rom-slate-50`). The above-table toolbar (filters /
+// search / count / sort) is a per-screen composition, not part of the primitive.
+type TableSpecimenRow = { when: string; tour: string; capacity: string; status: { variant: BadgeVariant; label: string }; selected?: boolean };
+const tableRows: TableSpecimenRow[] = [
+    { when: 'Wed 01 Jul · 11:00', tour: 'Museum Highlights', capacity: '2 / 4', status: { variant: 'success', label: 'Signed up' }, selected: true },
+    { when: 'Thu 02 Jul · 14:00', tour: 'Egyptian Galleries', capacity: '4 / 4', status: { variant: 'warning', label: 'At capacity' } },
+    { when: 'Sat 04 Jul · 10:30', tour: 'Dinosaurs & Fossils', capacity: '1 / 5', status: { variant: 'info', label: 'Open' } },
+    { when: 'Sun 05 Jul · 13:00', tour: 'Bloor Street Entrance', capacity: '0 / 3', status: { variant: 'secondary', label: 'Not started' } },
 ];
 </script>
 
@@ -307,6 +322,37 @@ const badgeRows: { variant: BadgeVariant; label: string }[] = [
                     <Badge :variant="row.variant">{{ row.label }}</Badge>
                     <Badge :variant="row.variant" dot>{{ row.label }}</Badge>
                 </div>
+            </div>
+
+            <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Table</h3>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                The ROM listing identity is baked into the defaults — a <strong>2px black top rule</strong>, uppercase bold black column labels on a
+                1px black underline (no muted-gray band), <strong>18px</strong> rows with generous padding, hairline separators, and no zebra
+                striping. Hover tints the whole row a quiet neutral; the selected row (first below) takes the heritage-blue wash. The above-table
+                toolbar (filters, search, count, sort) is a per-screen composition, not part of the primitive.
+            </p>
+
+            <div class="mt-6 max-w-3xl">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>When</TableHead>
+                            <TableHead>Tour</TableHead>
+                            <TableHead>Capacity</TableHead>
+                            <TableHead>Status</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow v-for="row in tableRows" :key="row.tour" :data-state="row.selected ? 'selected' : undefined">
+                            <TableCell class="font-medium whitespace-nowrap">{{ row.when }}</TableCell>
+                            <TableCell>{{ row.tour }}</TableCell>
+                            <TableCell class="tabular-nums">{{ row.capacity }}</TableCell>
+                            <TableCell>
+                                <Badge :variant="row.status.variant">{{ row.status.label }}</Badge>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
             </div>
         </section>
     </DesignSystemLayout>
