@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
+import { Badge, type BadgeVariants } from '@/components/ui/badge';
 import { Button, type ButtonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -135,6 +136,20 @@ const buttonRows: { variant: ButtonVariant; label: string }[] = [
     { variant: 'secondary', label: 'Secondary' },
     { variant: 'ghost', label: 'Ghost' },
     { variant: 'link', label: 'Link' },
+];
+
+// Badge tone taxonomy (slice #49). Status variants use the soft-tint pattern;
+// `destructive` is deliberately soft (not upstream's solid red) so chips stay
+// calm. Each row is shown with and without the leading `dot`.
+type BadgeVariant = NonNullable<BadgeVariants['variant']>;
+const badgeRows: { variant: BadgeVariant; label: string }[] = [
+    { variant: 'default', label: 'Default' },
+    { variant: 'secondary', label: 'Secondary' },
+    { variant: 'info', label: 'Info' },
+    { variant: 'success', label: 'Success' },
+    { variant: 'warning', label: 'Warning' },
+    { variant: 'destructive', label: 'Destructive' },
+    { variant: 'outline', label: 'Outline' },
 ];
 </script>
 
@@ -274,6 +289,23 @@ const buttonRows: { variant: ButtonVariant; label: string }[] = [
                 <div class="grid gap-2">
                     <Label for="ds-input-disabled">Disabled</Label>
                     <Input id="ds-input-disabled" placeholder="Volunteer name" disabled />
+                </div>
+            </div>
+
+            <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Badge</h3>
+            <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                Status chips, square (<code>rounded-none</code>) like every component. The four status tones (<code>info</code>, <code>success</code>,
+                <code>warning</code>, <code>destructive</code>) use the soft-tint pattern — a tinted <code>-bg</code> surface with the solid token for
+                text. Note the deliberate divergence: <code>destructive</code> is soft here (calm status), unlike the solid-red destructive
+                <em>Button</em>. The optional <code>dot</code> is a tone-matched true circle (<code>rounded-full</code>) — the documented exception to
+                square-by-default.
+            </p>
+
+            <div class="mt-6 space-y-5">
+                <div v-for="row in badgeRows" :key="row.variant" class="flex flex-wrap items-center gap-4">
+                    <code class="text-muted-foreground w-24 flex-none font-mono text-xs">{{ row.variant }}</code>
+                    <Badge :variant="row.variant">{{ row.label }}</Badge>
+                    <Badge :variant="row.variant" dot>{{ row.label }}</Badge>
                 </div>
             </div>
         </section>
