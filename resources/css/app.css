@@ -63,6 +63,7 @@
     --destructive-foreground: #ffffff;
     --destructive-bg: #fbeae9;
     --info: var(--rom-slate); /* heritage blue */
+    --info-foreground: #ffffff; /* on solid --info (white passes AA: 5.46:1) */
     --info-bg: var(--rom-slate-50);
 
     /* CHART — inert placeholder. The design specifies no chart palette;
@@ -122,6 +123,7 @@
     --color-warning-bg: var(--warning-bg);
 
     --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
     --color-info-bg: var(--info-bg);
 
     /* Heritage-blue accent — the single interactive hue, exposed as utilities
