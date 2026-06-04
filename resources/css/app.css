@@ -62,6 +62,10 @@
     --destructive: #d4322b;
     --destructive-foreground: #ffffff;
     --destructive-bg: #fbeae9;
+    /* on-tint text for the soft destructive chip: the solid --destructive
+       (#d4322b) on --destructive-bg is only 4.21:1 (fails AA for small text),
+       so the chip uses this darker red — ~5.6:1 (AA), still clearly "danger". */
+    --destructive-tint-foreground: #b42318;
     --info: var(--rom-slate); /* heritage blue */
     --info-foreground: #ffffff; /* on solid --info (white passes AA: 5.46:1) */
     --info-bg: var(--rom-slate-50);
@@ -113,6 +117,7 @@
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
     --color-destructive-bg: var(--destructive-bg);
+    --color-destructive-tint-foreground: var(--destructive-tint-foreground);
 
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
@@ -182,13 +187,17 @@
     --text-lg--line-height: 1.55;
     --text-xl: 23px; /* card titles (h4)                    */
     --text-xl--line-height: 1.35;
-    --text-2xl: 28px; /* section headings (h3)              */
+    /* Upper steps are fluid: clamp(min, vw, max) steps the heading down on
+       small screens (≈min at ~375px) and up to the design max by ~640px, so a
+       42px h1 / 54px hero no longer eat the mobile viewport. One source of truth
+       — no per-heading breakpoint classes. The xs–xl steps stay fixed. */
+    --text-2xl: clamp(24px, 4.4vw, 28px); /* section headings (h3)         */
     --text-2xl--line-height: 1.35;
-    --text-3xl: 34px; /* page headings (h2)                 */
+    --text-3xl: clamp(27px, 5.3vw, 34px); /* page headings (h2)            */
     --text-3xl--line-height: 1.2;
-    --text-4xl: 42px; /* page title (h1)                    */
+    --text-4xl: clamp(30px, 6.5vw, 42px); /* page title (h1)               */
     --text-4xl--line-height: 1.2;
-    --text-5xl: 54px; /* hero / login title                 */
+    --text-5xl: clamp(34px, 8.4vw, 54px); /* hero / login title            */
     --text-5xl--line-height: 1.2;
 
     /* Tracking — verbatim from the design (tighter than Tailwind's defaults):
