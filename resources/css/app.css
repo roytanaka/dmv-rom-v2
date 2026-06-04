@@ -38,6 +38,7 @@
     --accent-foreground: #1a1a1a;
     --border: #e3e3e3; /* neutral hairlines */
     --input: #e3e3e3;
+    --skeleton: #dcdcdc; /* loading placeholder fill — ~10% darker than --muted so the pulse reads */
     --ring: #8b8b85; /* focus ring (support gray) */
 
     /* SIDEBAR — a neutral charcoal rail beneath the black top bar. Inactive
@@ -110,6 +111,7 @@
 
     --color-muted: var(--muted);
     --color-muted-foreground: var(--muted-foreground);
+    --color-skeleton: var(--skeleton);
 
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
