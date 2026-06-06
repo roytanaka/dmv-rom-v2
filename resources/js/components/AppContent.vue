@@ -1,21 +1,21 @@
 <script setup lang="ts">
 import { SidebarInset } from '@/components/ui/sidebar';
-import { computed } from 'vue';
 
 interface Props {
-    variant?: 'header' | 'sidebar';
     class?: string;
 }
 
-const props = defineProps<Props>();
-const className = computed(() => props.class);
+defineProps<Props>();
 </script>
 
 <template>
-    <SidebarInset v-if="props.variant === 'sidebar'" :class="className">
+    <!-- text-foreground: the sidebar wrapper paints everything text-sidebar-foreground
+         (near-white for the charcoal rail); the content pane opts back into ink text.
+         min-w-0: let this flex item shrink below its content's intrinsic width so the
+         top bar's section scroll-strip scrolls internally instead of widening the page.
+         min-h-0: the top bar now lives above this row, so the inset fills the row via
+         flex-1 rather than the primitive's min-h-svh (which would overflow by 1 header). -->
+    <SidebarInset :class="['text-foreground min-h-0 min-w-0', $props.class]">
         <slot />
     </SidebarInset>
-    <main v-else class="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-4 rounded-xl" :class="className">
-        <slot />
-    </main>
 </template>

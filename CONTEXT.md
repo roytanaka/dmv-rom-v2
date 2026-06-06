@@ -28,6 +28,10 @@ A dated thing a **Volunteer** signs up to staff — a tour, a desk slot, an even
 The record that a **Volunteer** has taken (or been assigned) a **Shift**. Carries cancel / swap / assistant state.
 _Avoid_: confusing with **Login** (authentication) — a Sign-up is *staffing a Shift*, not authenticating.
 
+**Chrome**:
+The application's persistent **frame** — the top bar, side rail, breadcrumb strip, and footer that wrap every screen and stay put while the page content changes. A UI term (after [GUI chrome](https://www.nngroup.com/articles/browser-and-gui-chrome/)), unrelated to the web browser. The Part 3 app shell *is* the chrome; product screens render inside it.
+_Avoid_: confusing with the Google Chrome browser. Synonyms "shell" / "frame" are fine.
+
 **Locale**:
 The technical identifier for a language + regional convention pair. The app supports two locales: `en` (English, default) and `fr` (French). A **Volunteer**'s `locale` column captures their saved preference. Laravel's `app()->setLocale()` consumes it.
 _Avoid_: Language (the user-facing label is "Language" or "Langue," but in code and ADRs, use **Locale**).
