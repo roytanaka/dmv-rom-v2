@@ -24,17 +24,22 @@ const showAvatar = computed(() => user.avatar && user.avatar !== '');
             <button
                 type="button"
                 aria-label="Account menu"
-                class="ring-offset-rom-ink flex shrink-0 items-center rounded-full focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:outline-none"
+                class="ring-offset-rom-ink flex shrink-0 cursor-pointer items-center rounded-full focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
-                <Avatar class="size-8 rounded-full">
+                <!-- bg-transparent drops the Avatar's default light bg-secondary so the
+                     translucent fallback sits on the black bar — white initials on a
+                     light disc were unreadable otherwise. -->
+                <Avatar class="size-10 rounded-full bg-transparent">
                     <AvatarImage v-if="showAvatar" :src="user.avatar ?? ''" :alt="user.name" />
-                    <AvatarFallback class="rounded-full bg-white/15 text-sm text-white">
+                    <AvatarFallback class="rounded-full bg-white/20 p-4 text-sm text-white">
                         {{ getInitials(user.name) }}
                     </AvatarFallback>
                 </Avatar>
             </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent class="w-56 rounded-lg" align="end" :side-offset="8">
+        <!-- Square corners — ROM identity. The component defaults to rounded-none;
+             no rounded-* override here (the avatar inside stays the only circle). -->
+        <DropdownMenuContent class="w-56" align="end" :side-offset="8">
             <UserMenuContent :user="user" />
         </DropdownMenuContent>
     </DropdownMenu>
