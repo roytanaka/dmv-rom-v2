@@ -3,7 +3,7 @@ import UserInfo from '@/components/UserInfo.vue';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { User } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { PhSignOut, PhGear } from '@phosphor-icons/vue';
+import { PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
 
 interface Props {
     user: User;
@@ -22,8 +22,8 @@ defineProps<Props>();
     <DropdownMenuGroup>
         <DropdownMenuItem :as-child="true">
             <Link class="block w-full" :href="route('profile.edit')" as="button">
-                <PhGear class="mr-2 h-4 w-4" />
-                Settings
+                <PhUserCircle class="mr-2 h-4 w-4" />
+                My Profile
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>

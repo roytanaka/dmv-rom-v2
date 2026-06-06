@@ -4,12 +4,11 @@
 // built-in mobile sheet is the ☰ drawer on small screens (decision M1) — one IA
 // across breakpoints.
 //
-// The ROM/DMV wordmark lives in the top bar (#67), which persists when this rail is
-// collapsed — so the rail carries no second wordmark. The user/avatar menu sits in
-// the footer for this slice; it moves to the top bar when that surface lands (#69).
+// The ROM/DMV wordmark and the avatar menu both live in the top bar (#67/#69),
+// which persists when this rail is collapsed — so the rail is nav only, no second
+// wordmark and no footer user menu.
 import NavRail from '@/components/NavRail.vue';
-import NavUser from '@/components/NavUser.vue';
-import { Sidebar, SidebarContent, SidebarFooter } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent } from '@/components/ui/sidebar';
 </script>
 
 <template>
@@ -17,10 +16,6 @@ import { Sidebar, SidebarContent, SidebarFooter } from '@/components/ui/sidebar'
         <SidebarContent class="pt-2">
             <NavRail />
         </SidebarContent>
-
-        <SidebarFooter>
-            <NavUser />
-        </SidebarFooter>
     </Sidebar>
     <slot />
 </template>
