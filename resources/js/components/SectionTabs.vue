@@ -9,15 +9,29 @@ import { t } from '@/chrome/messages';
 import type { NavNode } from '@/chrome/types';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
+import { useScroll } from '@vueuse/core';
+import { computed, ref } from 'vue';
 
 defineProps<{ items: NavNode[] }>();
 
 const page = usePage<SharedData>();
 const isActive = (href: string) => href === page.url;
+
+// Edge fade — the strip is horizontally scrollable, so we fade the side that has
+// content scrolled out of view (and only that side: no fade at the very start/end).
+// `arrivedState` flips as the user reaches each edge; the mask collapses that edge's
+// fade to 0 when there's nothing more to reveal.
+const strip = ref<HTMLElement | null>(null);
+const { arrivedState } = useScroll(strip);
+const maskImage = computed(() => {
+    const left = arrivedState.left ? '0px' : '2rem';
+    const right = arrivedState.right ? '0px' : '2rem';
+    return `linear-gradient(to right, transparent, black ${left}, black calc(100% - ${right}), transparent)`;
+});
 </script>
 
 <template>
-    <nav class="flex min-w-0 items-stretch gap-1 overflow-x-auto" aria-label="Section">
+    <nav ref="strip" class="flex min-w-0 items-stretch gap-1 overflow-x-auto" :style="{ maskImage, WebkitMaskImage: maskImage }" aria-label="Section">
         <template v-for="item in items" :key="item.href">
             <!-- Outbound tab — leaves the app; the trailing icon marks it external. -->
             <a
@@ -36,11 +50,10 @@ const isActive = (href: string) => href === page.url;
                 :href="item.href"
                 :aria-current="isActive(item.href) ? 'page' : undefined"
                 :class="[
-                    'flex shrink-0 items-center gap-1.5 border-b-2 px-3 text-sm whitespace-nowrap transition-colors',
+                    'flex shrink-0 items-center border-b-2 px-3 text-sm whitespace-nowrap transition-colors',
                     isActive(item.href) ? 'border-rom-slate-300 text-rom-slate-300' : 'border-transparent text-white/70 hover:text-white',
                 ]"
             >
-                <component :is="item.icon" v-if="item.icon" class="size-4" />
                 <span>{{ t(item.labelKey) }}</span>
             </Link>
         </template>

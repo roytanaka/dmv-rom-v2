@@ -20,12 +20,17 @@ withDefaults(defineProps<Props>(), {
 
 <template>
     <AppShell>
-        <AppSidebar />
-        <AppContent>
-            <TopBar :active-group-id="activeGroupId" />
-            <AppSidebarHeader :breadcrumbs="breadcrumbs" />
-            <slot />
-            <AppFooter />
-        </AppContent>
+        <!-- Full-width top bar spans above both the rail and the content. Sticky so it
+             stays pinned while the page scrolls and the fixed rail (offset below it)
+             remains aligned. -->
+        <TopBar :active-group-id="activeGroupId" class="sticky top-0 z-30" />
+        <div class="flex w-full flex-1">
+            <AppSidebar />
+            <AppContent>
+                <AppSidebarHeader :breadcrumbs="breadcrumbs" />
+                <slot />
+                <AppFooter />
+            </AppContent>
+        </div>
     </AppShell>
 </template>

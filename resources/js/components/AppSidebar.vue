@@ -8,11 +8,27 @@
 // which persists when this rail is collapsed — so the rail is nav only, no second
 // wordmark and no footer user menu.
 import NavRail from '@/components/NavRail.vue';
-import { Sidebar, SidebarContent } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInput } from '@/components/ui/sidebar';
+import { PhMagnifyingGlass } from '@phosphor-icons/vue';
 </script>
 
 <template>
     <Sidebar collapsible="offcanvas" variant="sidebar">
+        <!-- Inert search — relocated here from the top bar (#73). No backend yet; styled
+             for the charcoal rail. Lives only in the rail, so it's hidden when the rail
+             is collapsed (reopen with ☰). -->
+        <SidebarHeader class="px-2 pt-3 pb-1">
+            <div class="relative">
+                <PhMagnifyingGlass class="text-sidebar-foreground/70 pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+                <SidebarInput
+                    type="search"
+                    disabled
+                    placeholder="Search"
+                    aria-label="Search (not yet available)"
+                    class="bg-rom-ink border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/70 h-9 cursor-not-allowed rounded-md pl-8 opacity-100 disabled:opacity-100"
+                />
+            </div>
+        </SidebarHeader>
         <SidebarContent class="pt-2">
             <NavRail />
         </SidebarContent>

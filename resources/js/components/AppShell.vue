@@ -15,7 +15,10 @@ const handleSidebarChange = (open: boolean) => {
 </script>
 
 <template>
-    <SidebarProvider :default-open="isOpen" :open="isOpen" @update:open="handleSidebarChange">
+    <!-- flex-col so the full-width top bar stacks above the [rail][content] row;
+         --header-height (= TopBar h-16 / 4rem) offsets the rail's fixed positioning
+         so it starts below the bar (consumed in Sidebar.vue). -->
+    <SidebarProvider :default-open="isOpen" :open="isOpen" class="flex-col [--header-height:4rem]" @update:open="handleSidebarChange">
         <slot />
     </SidebarProvider>
 </template>
