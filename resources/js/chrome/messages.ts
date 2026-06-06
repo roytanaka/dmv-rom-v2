@@ -23,6 +23,14 @@ export const navMessages: Record<string, string> = {
     'nav.group.docents.school_visits': 'School Visits',
     'nav.group.docents.public_tours': 'Public Tours',
     'nav.group.gallery_interpreters': 'Gallery Interpreters',
+    'nav.group.gallery_guides': 'Gallery Guides',
+    'nav.group.gallery_guides.highlights': 'Highlights Tours',
+    'nav.group.gallery_guides.family': 'Family Programs',
+    'nav.group.gallery_guides.access': 'Access Tours',
+    'nav.group.special_events': 'Special Events',
+    'nav.group.special_events.openings': 'Exhibition Openings',
+    'nav.group.special_events.previews': 'Member Previews',
+    'nav.group.reception': 'Reception',
     'nav.group.romwalks': 'ROMWalks',
 
     // Zone C — officer/admin cluster

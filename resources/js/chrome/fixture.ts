@@ -67,8 +67,39 @@ const myGroups: GroupNode[] = [
     },
 ];
 
-// Zone B — All Groups (browse the rest of the org). One representative entry.
+// Zone B — All Groups (browse the rest of the org). Representative stub entries:
+// some carry subcommittees — a Group whose parent is another Group (ADR-0010 §
+// "'Subcommittee' is not a separate noun") — so the collapsed-by-default browse
+// list exercises the rail's expand/collapse. Names are PLACEHOLDERS; the real
+// catalogue is out of band in docs/nav-spec.md.
 const allGroups: GroupNode[] = [
+    {
+        groupId: 'gallery-guides',
+        labelKey: 'nav.group.gallery_guides',
+        href: '/groups/gallery-guides',
+        icon: PhUsersThree,
+        children: [
+            { groupId: 'gallery-guides-highlights', labelKey: 'nav.group.gallery_guides.highlights', href: '/groups/gallery-guides/highlights' },
+            { groupId: 'gallery-guides-family', labelKey: 'nav.group.gallery_guides.family', href: '/groups/gallery-guides/family' },
+            { groupId: 'gallery-guides-access', labelKey: 'nav.group.gallery_guides.access', href: '/groups/gallery-guides/access' },
+        ],
+    },
+    {
+        groupId: 'special-events',
+        labelKey: 'nav.group.special_events',
+        href: '/groups/special-events',
+        icon: PhUsersThree,
+        children: [
+            { groupId: 'special-events-openings', labelKey: 'nav.group.special_events.openings', href: '/groups/special-events/openings' },
+            { groupId: 'special-events-previews', labelKey: 'nav.group.special_events.previews', href: '/groups/special-events/previews' },
+        ],
+    },
+    {
+        groupId: 'reception',
+        labelKey: 'nav.group.reception',
+        href: '/groups/reception',
+        icon: PhUsersThree,
+    },
     {
         groupId: 'romwalks',
         labelKey: 'nav.group.romwalks',
