@@ -52,6 +52,15 @@ export const navMessages: Record<string, string> = {
     'nav.section.docents.meetings': 'Meetings',
     'nav.section.docents.statistics': 'Statistics',
     'nav.section.docents.schedule_admin': 'Schedule Admin',
+
+    // Footer (institutional). The inclusion statement and land acknowledgement must
+    // use the ROM's OFFICIAL wording and are NEVER machine-translated — the strings
+    // below are clearly-marked placeholders, not final copy.
+    // TODO(copy): replace with the ROM-approved English; add the official French.
+    'footer.org': 'Department of Museum Volunteers, Royal Ontario Museum',
+    'footer.land_ack':
+        '[Placeholder — the ROM’s official land acknowledgement will appear here verbatim, in approved English and French. Never machine-translated.]',
+    'footer.inclusion': '[Placeholder — the DMV’s official inclusion statement will appear here, pending the ROM-approved wording.]',
 };
 
 /**
