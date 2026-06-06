@@ -180,34 +180,38 @@
 }
 
 /* TYPE — the scale is sized UP for the DMV's retiree volunteer base: body is
-   18px, persistent UI text never drops below the 15px accessibility floor.
-   Tailwind v4's --text-* tokens are remapped 1:1 by name to the design ramp,
-   so every installed component adopts the new sizes with no per-component
-   edits (they render slightly larger until PR #2 retunes them — accepted).
-   Each step carries a coupled line-height: body steps roomy at 1.55, headings
-   tight at 1.2–1.35. Values mirror colors_and_type.css. */
+   1.125rem (18px), persistent UI text never drops below the 1rem (16px)
+   accessibility floor. Every step is expressed in rem against the 16px root, so
+   the whole ramp scales from one knob — a future "larger text" control adjusts
+   the root font-size and headings, body, and chrome all grow together; rem also
+   honours the browser's own font-size preference. (px equivalents in comments
+   are at the 16px default root.) Tailwind v4's --text-* tokens are remapped 1:1
+   by name to the design ramp, so every installed component adopts the new sizes
+   with no per-component edits. Each step carries a coupled line-height: body
+   steps roomy at 1.55, headings tight at 1.2–1.35. */
 @theme {
-    --text-xs: 13px; /* micro-labels / timestamps          */
+    --text-xs: 0.8125rem; /* 13px — micro-labels / timestamps          */
     --text-xs--line-height: 1.55;
-    --text-sm: 15px; /* secondary UI, table cells, captions */
+    --text-sm: 1rem; /* 16px — secondary UI, table cells, captions */
     --text-sm--line-height: 1.55;
-    --text-base: 18px; /* body — the default                */
+    --text-base: 1.125rem; /* 18px — body, the default                */
     --text-base--line-height: 1.55;
-    --text-lg: 20px; /* lead paragraphs, large form labels  */
+    --text-lg: 1.25rem; /* 20px — lead paragraphs, large form labels  */
     --text-lg--line-height: 1.55;
-    --text-xl: 23px; /* card titles (h4)                    */
+    --text-xl: 1.4375rem; /* 23px — card titles (h4)                  */
     --text-xl--line-height: 1.35;
     /* Upper steps are fluid: clamp(min, vw, max) steps the heading down on
        small screens (≈min at ~375px) and up to the design max by ~640px, so a
        42px h1 / 54px hero no longer eat the mobile viewport. One source of truth
-       — no per-heading breakpoint classes. The xs–xl steps stay fixed. */
-    --text-2xl: clamp(24px, 4.4vw, 28px); /* section headings (h3)         */
+       — no per-heading breakpoint classes. The rem min/max anchors scale with
+       the root; the vw middle stays viewport-relative. The xs–xl steps are fixed. */
+    --text-2xl: clamp(1.5rem, 4.4vw, 1.75rem); /* 24→28px — section headings (h3)   */
     --text-2xl--line-height: 1.35;
-    --text-3xl: clamp(27px, 5.3vw, 34px); /* page headings (h2)            */
+    --text-3xl: clamp(1.6875rem, 5.3vw, 2.125rem); /* 27→34px — page headings (h2)  */
     --text-3xl--line-height: 1.2;
-    --text-4xl: clamp(30px, 6.5vw, 42px); /* page title (h1)               */
+    --text-4xl: clamp(1.875rem, 6.5vw, 2.625rem); /* 30→42px — page title (h1)      */
     --text-4xl--line-height: 1.2;
-    --text-5xl: clamp(34px, 8.4vw, 54px); /* hero / login title            */
+    --text-5xl: clamp(2.125rem, 8.4vw, 3.375rem); /* 34→54px — hero / login title   */
     --text-5xl--line-height: 1.2;
 
     /* Tracking — verbatim from the design (tighter than Tailwind's defaults):
