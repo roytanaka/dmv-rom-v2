@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import BrandLogo from '@/components/BrandLogo.vue';
+import CodeSnippet from '@/components/CodeSnippet.vue';
 import CopyButton from '@/components/CopyButton.vue';
+import DesignNote from '@/components/DesignNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge, type BadgeVariants } from '@/components/ui/badge';
@@ -338,6 +340,153 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
     // "Schedule" is the illustrative current section (mirrors ADR-0013's example).
     active: node.labelKey === 'nav.section.docents.schedule',
 }));
+
+// Illustrative usage snippets — import line plus a minimal example — shown beside
+// each component specimen and copyable via the #77 clipboard composable. These
+// are deliberately minimal and NOT an API contract: kept short on purpose to
+// limit drift from the real component props (the page says so up top). Authored
+// as plain strings so no syntax-highlighting dependency is needed.
+const snippets: Record<string, string> = {
+    button: `import { Button } from '@/components/ui/button';
+
+<Button variant="default" size="default">Sign up</Button>`,
+
+    input: `import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import InputError from '@/components/InputError.vue';
+
+<Label for="email">Email</Label>
+<Input id="email" type="email" v-model="form.email" :aria-invalid="!!form.errors.email" />
+<InputError :message="form.errors.email" />`,
+
+    badge: `import { Badge } from '@/components/ui/badge';
+
+<Badge variant="success" dot>Signed up</Badge>`,
+
+    table: `import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+<Table>
+  <TableHeader>
+    <TableRow><TableHead>Tour</TableHead></TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow :data-state="row.selected ? 'selected' : undefined">
+      <TableCell>Museum Highlights</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>`,
+
+    card: `import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
+<Card>
+  <CardHeader>
+    <CardTitle>Museum Highlights</CardTitle>
+    <CardDescription>Wed 01 Jul · 11:00</CardDescription>
+  </CardHeader>
+  <CardContent>…</CardContent>
+  <CardFooter><Button>Sign up</Button></CardFooter>
+</Card>`,
+
+    checkbox: `import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+
+<Checkbox id="notify" v-model:checked="notify" />
+<Label for="notify">Email me when a tour changes</Label>`,
+
+    dropdown: `import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+<DropdownMenu>
+  <DropdownMenuTrigger as-child>
+    <Button variant="outline">Options</Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="start">
+    <DropdownMenuItem>Edit details</DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>`,
+
+    dialog: `import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
+<Dialog>
+  <DialogTrigger as-child>
+    <Button>Cancel sign-up</Button>
+  </DialogTrigger>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Cancel your sign-up?</DialogTitle>
+      <DialogDescription>…</DialogDescription>
+    </DialogHeader>
+  </DialogContent>
+</Dialog>`,
+
+    tooltip: `import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger as-child>
+      <Button variant="outline">Hover</Button>
+    </TooltipTrigger>
+    <TooltipContent>Tours lock 24 hours before they start.</TooltipContent>
+  </Tooltip>
+</TooltipProvider>`,
+
+    skeleton: `import { Skeleton } from '@/components/ui/skeleton';
+
+<Skeleton class="h-4 w-3/4" />`,
+
+    avatar: `import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+<Avatar size="base">
+  <AvatarImage :src="volunteer.photo" alt="" />
+  <AvatarFallback>{{ initials }}</AvatarFallback>
+</Avatar>`,
+
+    breadcrumb: `import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+
+<Breadcrumb>
+  <BreadcrumbList>
+    <BreadcrumbItem><BreadcrumbLink href="#">Dashboard</BreadcrumbLink></BreadcrumbItem>
+    <BreadcrumbSeparator />
+    <BreadcrumbItem><BreadcrumbPage>Alex Rivera</BreadcrumbPage></BreadcrumbItem>
+  </BreadcrumbList>
+</Breadcrumb>`,
+
+    collapsible: `import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+<Collapsible v-slot="{ open }" default-open>
+  <CollapsibleTrigger>What should I bring?</CollapsibleTrigger>
+  <CollapsibleContent>Wear your volunteer badge…</CollapsibleContent>
+</Collapsible>`,
+
+    navigationMenu: `import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from '@/components/ui/navigation-menu';
+
+<NavigationMenu>
+  <NavigationMenuList>
+    <NavigationMenuItem>
+      <NavigationMenuLink href="#" :active="true">Tours</NavigationMenuLink>
+    </NavigationMenuItem>
+  </NavigationMenuList>
+</NavigationMenu>`,
+
+    separator: `import { Separator } from '@/components/ui/separator';
+
+<Separator />
+<Separator label="or" />
+<Separator orientation="vertical" />`,
+
+    sheet: `import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+
+<Sheet>
+  <SheetTrigger as-child>
+    <Button variant="outline">Filter tours</Button>
+  </SheetTrigger>
+  <SheetContent side="right">
+    <SheetHeader>
+      <SheetTitle>Filter tours</SheetTitle>
+      <SheetDescription>…</SheetDescription>
+    </SheetHeader>
+  </SheetContent>
+</Sheet>`,
+};
 </script>
 
 <template>
@@ -349,6 +498,11 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
             <p class="text-muted-foreground mt-2 text-base">
                 Internal reference for the DMV-ROM design tokens. Specimens are added here as each token slice lands.
             </p>
+            <DesignNote class="mt-6" title="Snippets are illustrative">
+                The usage snippets beside each component show a typical import and a minimal example. They are deliberately short and are
+                <strong>not</strong> an API contract — for the authoritative props and slots, read the component source under
+                <code>@/components/ui</code>.
+            </DesignNote>
         </header>
 
         <div class="lg:grid lg:grid-cols-[10rem_minmax(0,1fr)] lg:gap-x-12 xl:gap-x-16">
@@ -411,6 +565,11 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                         <strong>18px</strong>; persistent UI text never drops below <strong>15px</strong>. Each step carries a coupled line-height
                         (body 1.55, headings 1.2–1.35).
                     </p>
+                    <DesignNote variant="dont" title="Don’t go below 15px">
+                        The audience is the DMV’s retiree volunteers, so persistent UI text — labels, table cells, secondary copy — is floored at
+                        <strong>15px</strong> (<code>text-sm</code>). Reach for <code>text-xs</code> (13px) only for incidental micro-labels like
+                        timestamps, never for content a volunteer has to act on.
+                    </DesignNote>
 
                     <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Scale</h3>
                     <ul class="border-border mt-4 divide-y border-y">
@@ -505,6 +664,12 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                         Customised <code>shadcn-vue</code> primitives. Corners are square (<code>rounded-none</code>) by default and the size scale is
                         bumped for the DMV’s audience, floored at 15px. Each component is added here as its slice lands.
                     </p>
+                    <DesignNote title="Square by default — a few true circles">
+                        Square corners are the house identity, so every component is <code>rounded-none</code> unless roundness carries meaning. The
+                        deliberate <code>rounded-full</code> exceptions are small, round-by-nature marks: the <strong>avatar</strong>, the
+                        <strong>badge dot</strong>, the dropdown <strong>radio dot</strong>, and <strong>spinners</strong>. If a new element needs a
+                        radius, default to square and justify the curve.
+                    </DesignNote>
 
                     <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Button</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -524,6 +689,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             <Button :variant="row.variant" disabled>{{ row.label }}</Button>
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.button" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Form inputs</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -555,6 +721,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             <Input id="ds-input-disabled" placeholder="Volunteer name" disabled />
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.input" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Badge</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -572,6 +739,15 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             <Badge :variant="row.variant" dot>{{ row.label }}</Badge>
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.badge" />
+                    <DesignNote variant="do" title="Do — keep the destructive badge soft">
+                        A <code>destructive</code> badge is a calm <em>status</em> (“Cancelled”, “Overdue”), so it uses the soft-tint pattern — the
+                        <code>destructive-bg</code> wash with solid-token text — like the other status tones. It reads as information, not alarm.
+                    </DesignNote>
+                    <DesignNote variant="dont" title="Don’t make it the solid red of the button">
+                        The destructive <em>Button</em> is solid red because it triggers an irreversible action and should stop you. Don’t carry that
+                        weight onto a badge: a wall of solid-red chips cries wolf and drowns out the one button that genuinely needs the alarm.
+                    </DesignNote>
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Table</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -603,6 +779,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             </TableBody>
                         </Table>
                     </div>
+                    <CodeSnippet :code="snippets.table" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Card</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -625,6 +802,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             </CardFooter>
                         </Card>
                     </div>
+                    <CodeSnippet :code="snippets.card" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Checkbox</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -646,6 +824,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             <Label for="ds-check-disabled" class="opacity-50">Locked by your coordinator</Label>
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.checkbox" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Dropdown menu</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -676,6 +855,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
+                    <CodeSnippet :code="snippets.dropdown" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Dialog &amp; tooltip</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -715,6 +895,8 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             </Tooltip>
                         </TooltipProvider>
                     </div>
+                    <CodeSnippet :code="snippets.dialog" />
+                    <CodeSnippet :code="snippets.tooltip" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Skeleton</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -729,6 +911,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             <Skeleton class="h-4 w-1/2" />
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.skeleton" />
                 </section>
 
                 <section id="avatar" aria-labelledby="avatar-heading" class="mb-12 scroll-mt-24">
@@ -762,6 +945,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             <code class="text-muted-foreground font-mono text-xs">{{ size }}</code>
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.avatar" />
                 </section>
 
                 <section id="breadcrumb" aria-labelledby="breadcrumb-heading" class="mb-12 scroll-mt-24">
@@ -809,6 +993,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             </BreadcrumbList>
                         </Breadcrumb>
                     </div>
+                    <CodeSnippet :code="snippets.breadcrumb" />
                 </section>
 
                 <section id="collapsible" aria-labelledby="collapsible-heading" class="mb-12 scroll-mt-24">
@@ -834,6 +1019,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
+                    <CodeSnippet :code="snippets.collapsible" />
                 </section>
 
                 <section id="navigation-menu" aria-labelledby="navigation-menu-heading" class="mb-12 scroll-mt-24">
@@ -865,6 +1051,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             </NavigationMenuList>
                         </NavigationMenu>
                     </div>
+                    <CodeSnippet :code="snippets.navigationMenu" />
                 </section>
 
                 <section id="separator" aria-labelledby="separator-heading" class="mb-12 scroll-mt-24">
@@ -891,6 +1078,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                         <Separator orientation="vertical" />
                         <span>Reports</span>
                     </div>
+                    <CodeSnippet :code="snippets.separator" />
                 </section>
 
                 <section id="sheet" aria-labelledby="sheet-heading" class="mb-12 scroll-mt-24">
@@ -924,6 +1112,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                             </SheetContent>
                         </Sheet>
                     </div>
+                    <CodeSnippet :code="snippets.sheet" />
                 </section>
 
                 <section id="app-shell" aria-labelledby="app-shell-heading" class="scroll-mt-24">
