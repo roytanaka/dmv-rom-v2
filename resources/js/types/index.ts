@@ -1,7 +1,7 @@
 // @phosphor-icons/vue ships no shared icon type — every icon is the same Vue
 // component shape, so we alias one representative export as the icon type. The
 // type-level import query keeps this purely a type (no runtime icon import).
-type PhosphorIcon = (typeof import('@phosphor-icons/vue'))['PhSquaresFour'];
+export type PhosphorIcon = (typeof import('@phosphor-icons/vue'))['PhSquaresFour'];
 
 export interface Auth {
     user: User;
