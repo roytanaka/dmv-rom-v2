@@ -1,7 +1,12 @@
 <script setup lang="ts">
+import { launcherGrids } from '@/chrome/fixture';
+import { isNodeVisible } from '@/chrome/gating';
+import { t } from '@/chrome/messages';
+import GroupTile from '@/components/GroupTile.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -10,18 +15,23 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-defineProps<{
-    name?: string;
-}>();
+// The landing-page group-tile launcher (the legacy home grid). My Groups always
+// shows; the All Groups grid is gated to super-tier officers through the same
+// show-all stub as the rail (visible for now — see chrome/gating.ts).
+const grids = computed(() => launcherGrids.filter(isNodeVisible));
 </script>
 
 <template>
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <!-- TODO(#72): replace with the group-tile launcher (feature/ds-dashboard-tiles). -->
-        <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <h1>Dashboard</h1>
+        <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-6">
+            <section v-for="grid in grids" :key="grid.labelKey">
+                <h2 class="text-rom-ink mb-3 text-sm font-semibold tracking-wide uppercase">{{ t(grid.labelKey) }}</h2>
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+                    <GroupTile v-for="item in grid.items" :key="item.href" :item="item" />
+                </div>
+            </section>
         </div>
     </AppLayout>
 </template>
