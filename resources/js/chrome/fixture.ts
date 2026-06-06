@@ -14,8 +14,28 @@
  * Labels are i18n KEYS (resolved via messages.ts), never final copy.
  */
 
-import { PhBuildings, PhChartBar, PhChatCircleDots, PhGear, PhMegaphone, PhUsersThree } from '@phosphor-icons/vue';
-import type { GroupNode, RailNav } from './types';
+import {
+    PhAddressBook,
+    PhArrowSquareOut,
+    PhBookOpenText,
+    PhBuildings,
+    PhCalendarBlank,
+    PhChartBar,
+    PhChatCircleDots,
+    PhClock,
+    PhFileText,
+    PhFolder,
+    PhGear,
+    PhGearSix,
+    PhInfo,
+    PhMegaphone,
+    PhNewspaper,
+    PhPresentation,
+    PhUserCircle,
+    PhUsers,
+    PhUsersThree,
+} from '@phosphor-icons/vue';
+import type { GroupNode, NavNode, RailNav } from './types';
 
 // Zone B — My Groups. Docents carries subcommittees that nest under it; the
 // `requiresRole: 'chair'` child shows the gating contract living in the data
@@ -56,6 +76,43 @@ const allGroups: GroupNode[] = [
         icon: PhUsersThree,
     },
 ];
+
+// ── Top-bar section tabs (the Group Menu layer) ──────────────────────────────
+// The rail picks the *context*; these drive the top-bar tab strip that reflects it.
+
+// Zone A — personal/global. The tab set on the Dashboard (no Group selected).
+// `Renew Membership` leaves the app for the ROM renewal site (external link).
+export const zoneA: NavNode[] = [
+    { labelKey: 'nav.personal.calendar', href: '/calendar', icon: PhCalendarBlank },
+    { labelKey: 'nav.personal.hours', href: '/hours', icon: PhClock },
+    { labelKey: 'nav.personal.directory', href: '/directory', icon: PhAddressBook },
+    { labelKey: 'nav.personal.documents', href: '/documents', icon: PhFolder },
+    { labelKey: 'nav.personal.news', href: '/news', icon: PhNewspaper },
+    { labelKey: 'nav.personal.profile', href: '/profile', icon: PhUserCircle },
+    // STUB renewal URL — the real ROM membership-renewal destination drops in later.
+    { labelKey: 'nav.personal.renew', href: 'https://www.rom.on.ca/en/join-give/membership', icon: PhArrowSquareOut, external: true },
+];
+
+// Group Menus, keyed by `GroupNode.groupId`. A Group's tab strip is its capability
+// slots × per-program labels: the SAME slot reads differently per Group (Catalog →
+// "Data Sheets" for Docents), so labels are i18n keys, never hard-coded. `About` is
+// always present; the capability/role slots are gated (stubbed show-all for now).
+//
+// ONE fully-populated sample (`docents`) — the exhaustive per-Group catalogue lives
+// in docs/nav-spec.md. Other Groups resolve to an empty menu until they're modelled.
+export const groupMenus: Record<string, NavNode[]> = {
+    docents: [
+        { labelKey: 'nav.section.about', href: '/groups/docents/about', icon: PhInfo },
+        { labelKey: 'nav.section.docents.roster', href: '/groups/docents/roster', icon: PhUsers },
+        { labelKey: 'nav.section.docents.schedule', href: '/groups/docents/schedule', icon: PhCalendarBlank, requiresCapability: 'scheduling' },
+        { labelKey: 'nav.section.docents.catalog', href: '/groups/docents/data-sheets', icon: PhFileText, requiresCapability: 'content' },
+        { labelKey: 'nav.section.docents.publications', href: '/groups/docents/publications', icon: PhBookOpenText, requiresCapability: 'documents' },
+        { labelKey: 'nav.section.docents.meetings', href: '/groups/docents/meetings', icon: PhPresentation, requiresCapability: 'meetings' },
+        { labelKey: 'nav.section.docents.statistics', href: '/groups/docents/statistics', icon: PhChartBar, requiresCapability: 'stats' },
+        // Officer-only slot — role-gated (stubbed show-all for now).
+        { labelKey: 'nav.section.docents.schedule_admin', href: '/groups/docents/schedule/admin', icon: PhGearSix, requiresRole: 'chair' },
+    ],
+};
 
 export const railNav: RailNav = {
     myGroups: {

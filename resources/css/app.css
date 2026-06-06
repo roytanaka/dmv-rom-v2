@@ -143,6 +143,14 @@
     --color-rom-slate-300: var(--rom-slate-300);
     --color-rom-slate-700: var(--rom-slate-700);
 
+    /* Ink & support gray — exposed as utilities so the dark chrome surfaces (the
+       black top bar, the institutional footer) reference the brand token rather
+       than bare `black`. --color-primary is the same black under its action role. */
+    --color-rom-ink: var(--rom-ink);
+    --color-rom-ink-90: var(--rom-ink-90);
+    --color-rom-gray: var(--rom-gray);
+    --color-rom-gray-mid: var(--rom-gray-mid);
+
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);

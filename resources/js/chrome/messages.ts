@@ -31,6 +31,27 @@ export const navMessages: Record<string, string> = {
     'nav.officer.reports': 'Reports',
     'nav.officer.flash_messages': 'Flash Messages',
     'nav.officer.dmv_settings': 'DMV Settings',
+
+    // Zone A — personal/global (top-bar tab set on the Dashboard)
+    'nav.personal.calendar': 'My Calendar',
+    'nav.personal.hours': 'My Hours',
+    'nav.personal.directory': 'Directory',
+    'nav.personal.documents': 'Documents',
+    'nav.personal.news': 'News',
+    'nav.personal.profile': 'My Profile',
+    'nav.personal.renew': 'Renew Membership',
+
+    // Group Menu — capability slots. Labels are keyed off the program, so the same
+    // slot reads differently per Group (e.g. Catalog → "Data Sheets" for Docents).
+    // Representative for the sample Docents menu; full set → docs/nav-spec.md.
+    'nav.section.about': 'About',
+    'nav.section.docents.roster': "Who's Who",
+    'nav.section.docents.schedule': 'Schedule',
+    'nav.section.docents.catalog': 'Data Sheets',
+    'nav.section.docents.publications': 'Publications',
+    'nav.section.docents.meetings': 'Meetings',
+    'nav.section.docents.statistics': 'Statistics',
+    'nav.section.docents.schedule_admin': 'Schedule Admin',
 };
 
 /**
