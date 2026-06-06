@@ -4,12 +4,14 @@
 // and a copyright line. Black bracketing the white canvas, mirroring the top bar.
 //
 // Copy is keyed (see chrome/messages.ts) so French drops in without restructuring.
-// The land acknowledgement and inclusion statement are CLEARLY-MARKED PLACEHOLDERS:
-// they must use the ROM's official wording and are never machine-translated.
+// The land acknowledgement and inclusion statement use the ROM's official English
+// wording and are never machine-translated.
 import { t } from '@/chrome/messages';
 
-// Copyright year is computed at render — only the org name is translated copy.
-const year = new Date().getFullYear();
+// Copyright spans a fixed start year to the current year, computed at render — only
+// the org name is translated copy.
+const startYear = 2011;
+const currentYear = new Date().getFullYear();
 </script>
 
 <template>
@@ -17,7 +19,7 @@ const year = new Date().getFullYear();
         <div class="mx-auto flex max-w-5xl flex-col gap-4 text-sm">
             <p>{{ t('footer.land_ack') }}</p>
             <p>{{ t('footer.inclusion') }}</p>
-            <p class="text-xs text-white/45">© {{ year }} {{ t('footer.org') }}</p>
+            <p class="text-xs text-white/45">© {{ startYear }}–{{ currentYear }} {{ t('footer.org') }}</p>
         </div>
     </footer>
 </template>

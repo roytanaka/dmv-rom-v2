@@ -53,14 +53,14 @@ export const navMessages: Record<string, string> = {
     'nav.section.docents.statistics': 'Statistics',
     'nav.section.docents.schedule_admin': 'Schedule Admin',
 
-    // Footer (institutional). The land acknowledgement and inclusion statement must
-    // use the ROM's OFFICIAL wording and are NEVER machine-translated.
-    // - land_ack: official ROM English, verbatim. TODO(copy): add the official French.
-    // - inclusion: still a clearly-marked placeholder pending ROM-approved wording.
-    'footer.org': 'Department of Museum Volunteers, Royal Ontario Museum',
+    // Footer (institutional). The land acknowledgement and inclusion statement use
+    // the ROM's OFFICIAL English wording, verbatim, and are NEVER machine-translated.
+    // TODO(copy): add the official French for all three keys below.
+    'footer.org': 'ROM Department of Museum Volunteers',
     'footer.land_ack':
         'ROM acknowledges that this museum sits on the traditional ancestral lands of the Wendat, the Haudenosaunee Confederacy, and the Anishinabek Nation, including the Mississaugas of the Credit First Nation.',
-    'footer.inclusion': '[Placeholder — the DMV’s official inclusion statement will appear here, pending the ROM-approved wording.]',
+    'footer.inclusion':
+        'The DMV values all its members and recognizes the right of each to be treated with respect and courtesy without abuse, harassment or discrimination.',
 };
 
 /**
