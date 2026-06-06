@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import CopyButton from '@/components/CopyButton.vue';
 import InputError from '@/components/InputError.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge, type BadgeVariants } from '@/components/ui/badge';
+import {
+    Breadcrumb,
+    BreadcrumbEllipsis,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Button, type ButtonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     Dialog,
     DialogClose,
@@ -28,12 +39,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from '@/components/ui/navigation-menu';
+import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import DesignSystemLayout from '@/layouts/DesignSystemLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { PhCaretDown, PhPlus } from '@phosphor-icons/vue';
+import { PhCaretDown, PhCaretRight, PhPlus } from '@phosphor-icons/vue';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 // Local state for the interactive component specimens (checkbox, dropdown
@@ -55,6 +69,12 @@ const sections = [
     { id: 'elevation', label: 'Elevation' },
     { id: 'spacing', label: 'Spacing' },
     { id: 'components', label: 'Components' },
+    { id: 'avatar', label: 'Avatar' },
+    { id: 'breadcrumb', label: 'Breadcrumb' },
+    { id: 'collapsible', label: 'Collapsible' },
+    { id: 'navigation-menu', label: 'Navigation menu' },
+    { id: 'separator', label: 'Separator' },
+    { id: 'sheet', label: 'Sheet' },
 ] as const;
 
 // Scrollspy: highlight the rail entry for the section currently in view. The
@@ -269,6 +289,24 @@ const tableRows: TableSpecimenRow[] = [
     { when: 'Thu 02 Jul · 14:00', tour: 'Egyptian Galleries', capacity: '4 / 4', status: { variant: 'warning', label: 'At capacity' } },
     { when: 'Sat 04 Jul · 10:30', tour: 'Dinosaurs & Fossils', capacity: '1 / 5', status: { variant: 'info', label: 'Open' } },
     { when: 'Sun 05 Jul · 13:00', tour: 'Bloor Street Entrance', capacity: '0 / 3', status: { variant: 'secondary', label: 'Not started' } },
+];
+
+// Avatar image specimen. A self-contained SVG data URI (no network) so the
+// image branch always renders in the gallery, visibly distinct from the
+// initials fallback shown alongside it.
+const avatarImage = `data:image/svg+xml,${encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='#516d80'/><circle cx='32' cy='24' r='12' fill='#ffffff'/><path d='M12 58a20 20 0 0 1 40 0z' fill='#ffffff'/></svg>",
+)}`;
+
+// NavigationMenu specimen — mirrors the top-bar section nav (SectionTabs): a
+// horizontal strip of section links on the black bar, exactly one active in the
+// heritage-blue accent with the bottom-border cue. Shown on a `bg-rom-ink`
+// surface because that is the context the section nav actually lives in.
+const navMenuItems = [
+    { label: 'Dashboard', active: false },
+    { label: 'Tours', active: true },
+    { label: 'Volunteers', active: false },
+    { label: 'Reports', active: false },
 ];
 </script>
 
@@ -660,6 +698,201 @@ const tableRows: TableSpecimenRow[] = [
                             <Skeleton class="h-4 w-3/4" />
                             <Skeleton class="h-4 w-1/2" />
                         </div>
+                    </div>
+                </section>
+
+                <section id="avatar" aria-labelledby="avatar-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="avatar-heading" class="text-xl font-semibold tracking-tight">Avatar</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        The one deliberately-round element on the page — a true circle (<code>rounded-full</code>) against the square component
+                        identity. It shows an image when one loads and falls back to initials when it doesn’t, across the
+                        <code>sm</code> / <code>base</code> / <code>lg</code> sizes.
+                    </p>
+
+                    <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Sizes (image)</h3>
+                    <div class="mt-4 flex flex-wrap items-end gap-6">
+                        <div v-for="size in ['sm', 'base', 'lg'] as const" :key="size" class="flex flex-col items-center gap-2">
+                            <Avatar :size="size">
+                                <AvatarImage :src="avatarImage" alt="Volunteer portrait" />
+                                <AvatarFallback>RT</AvatarFallback>
+                            </Avatar>
+                            <code class="text-muted-foreground font-mono text-xs">{{ size }}</code>
+                        </div>
+                    </div>
+
+                    <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Initials fallback</h3>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        With no image source the fallback renders the volunteer’s initials on the secondary surface.
+                    </p>
+                    <div class="mt-4 flex flex-wrap items-end gap-6">
+                        <div v-for="size in ['sm', 'base', 'lg'] as const" :key="size" class="flex flex-col items-center gap-2">
+                            <Avatar :size="size">
+                                <AvatarFallback>RT</AvatarFallback>
+                            </Avatar>
+                            <code class="text-muted-foreground font-mono text-xs">{{ size }}</code>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="breadcrumb" aria-labelledby="breadcrumb-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="breadcrumb-heading" class="text-xl font-semibold tracking-tight">Breadcrumb</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A wayfinding trail with Phosphor caret separators. Long trails collapse the middle to an ellipsis (the Phosphor
+                        <code>⋯</code> glyph), keeping the root and the current page in view. The current page is the unlinked
+                        <code>BreadcrumbPage</code>.
+                    </p>
+
+                    <div class="mt-6 space-y-6">
+                        <Breadcrumb>
+                            <BreadcrumbList>
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">Dashboard</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">Volunteers</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbPage>Roy Tanaka</BreadcrumbPage>
+                                </BreadcrumbItem>
+                            </BreadcrumbList>
+                        </Breadcrumb>
+
+                        <Breadcrumb>
+                            <BreadcrumbList>
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">Dashboard</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbEllipsis />
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">Tours</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbPage>Museum Highlights</BreadcrumbPage>
+                                </BreadcrumbItem>
+                            </BreadcrumbList>
+                        </Breadcrumb>
+                    </div>
+                </section>
+
+                <section id="collapsible" aria-labelledby="collapsible-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="collapsible-heading" class="text-xl font-semibold tracking-tight">Collapsible</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A disclosure that toggles a region open and closed. The trigger caret rotates on
+                        <code>data-[state=open]</code>; the content animates its height. Shown open by default below.
+                    </p>
+
+                    <div class="mt-6 max-w-md">
+                        <Collapsible v-slot="{ open }" default-open>
+                            <CollapsibleTrigger
+                                class="border-border hover:bg-accent flex w-full items-center justify-between gap-2 border px-4 py-3 text-left text-sm font-medium transition-colors"
+                            >
+                                <span>What should I bring on tour day?</span>
+                                <PhCaretRight class="size-4 shrink-0 transition-transform" :class="open ? 'rotate-90' : ''" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <div class="border-border border border-t-0 px-4 py-3 text-sm">
+                                    Wear your volunteer badge and comfortable shoes. Arrive fifteen minutes before your tour starts to check in at the
+                                    Bloor Street entrance.
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+                    </div>
+                </section>
+
+                <section id="navigation-menu" aria-labelledby="navigation-menu-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="navigation-menu-heading" class="text-xl font-semibold tracking-tight">Navigation menu</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        Shown in the form the top-bar section nav uses it — a horizontal strip of section links on the black bar, with exactly one
+                        active in the heritage-blue accent (<code>rom-slate-300</code>) carrying the bottom-border cue. Rendered on the
+                        <code>rom-ink</code> surface because that is the context it lives in.
+                    </p>
+
+                    <div class="bg-rom-ink mt-6 flex px-4 py-3">
+                        <NavigationMenu>
+                            <NavigationMenuList class="gap-1">
+                                <NavigationMenuItem v-for="item in navMenuItems" :key="item.label">
+                                    <NavigationMenuLink
+                                        href="#navigation-menu"
+                                        :active="item.active"
+                                        :aria-current="item.active ? 'page' : undefined"
+                                        :class="[
+                                            'flex items-center border-b-2 px-3 py-1 text-sm whitespace-nowrap transition-colors',
+                                            item.active
+                                                ? 'border-rom-slate-300 text-rom-slate-300'
+                                                : 'border-transparent text-white/70 hover:text-white',
+                                        ]"
+                                    >
+                                        {{ item.label }}
+                                    </NavigationMenuLink>
+                                </NavigationMenuItem>
+                            </NavigationMenuList>
+                        </NavigationMenu>
+                    </div>
+                </section>
+
+                <section id="separator" aria-labelledby="separator-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="separator-heading" class="text-xl font-semibold tracking-tight">Separator</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A hairline rule on the <code>border</code> token, in both orientations. An optional <code>label</code> centres text on the
+                        rule for “or”-style dividers.
+                    </p>
+
+                    <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Horizontal</h3>
+                    <div class="mt-4 max-w-md">
+                        <p class="text-sm">Museum Highlights</p>
+                        <Separator class="my-4" />
+                        <p class="text-sm">Egyptian Galleries</p>
+                        <Separator class="my-4" label="or" />
+                        <p class="text-sm">Dinosaurs &amp; Fossils</p>
+                    </div>
+
+                    <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Vertical</h3>
+                    <div class="text-muted-foreground mt-4 flex h-6 items-center gap-3 text-sm">
+                        <span>Tours</span>
+                        <Separator orientation="vertical" />
+                        <span>Volunteers</span>
+                        <Separator orientation="vertical" />
+                        <span>Reports</span>
+                    </div>
+                </section>
+
+                <section id="sheet" aria-labelledby="sheet-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="sheet-heading" class="text-xl font-semibold tracking-tight">Sheet</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A panel that slides in over a dimming overlay, from any of the four edges. It lifts on <code>shadow-lg</code> and carries the
+                        Phosphor <code>×</code> close glyph. Each trigger below opens the sheet from its named side.
+                    </p>
+
+                    <div class="mt-6 flex flex-wrap gap-4">
+                        <Sheet v-for="side in ['top', 'right', 'bottom', 'left'] as const" :key="side">
+                            <SheetTrigger as-child>
+                                <Button variant="outline" class="capitalize">{{ side }}</Button>
+                            </SheetTrigger>
+                            <SheetContent :side="side">
+                                <SheetHeader>
+                                    <SheetTitle>Filter tours</SheetTitle>
+                                    <SheetDescription>
+                                        Narrow the listing by date, gallery, and remaining capacity. Opened from the
+                                        <strong>{{ side }}</strong> edge.
+                                    </SheetDescription>
+                                </SheetHeader>
+                                <SheetFooter class="mt-6 gap-3">
+                                    <SheetClose as-child>
+                                        <Button variant="outline">Cancel</Button>
+                                    </SheetClose>
+                                    <SheetClose as-child>
+                                        <Button>Apply filters</Button>
+                                    </SheetClose>
+                                </SheetFooter>
+                            </SheetContent>
+                        </Sheet>
                     </div>
                 </section>
             </div>
