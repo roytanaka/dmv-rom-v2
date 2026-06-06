@@ -31,7 +31,7 @@ const showAvatar = computed(() => user.avatar && user.avatar !== '');
                      light disc were unreadable otherwise. -->
                 <Avatar class="size-10 rounded-full bg-transparent">
                     <AvatarImage v-if="showAvatar" :src="user.avatar ?? ''" :alt="user.name" />
-                    <AvatarFallback class="rounded-full bg-white/20 p-4 text-sm text-white">
+                    <AvatarFallback class="rounded-full bg-white/20 text-sm text-white">
                         {{ getInitials(user.name) }}
                     </AvatarFallback>
                 </Avatar>

@@ -332,7 +332,7 @@ const navMenuItems = [
 // fixture through `t()`, so the labels match the running app and demonstrate that
 // the top-bar section nav changes by context: Zone A on the Dashboard, else the
 // active Group's Menu. The active section is fixed here for the static specimen.
-const shellZoneATabs = zoneA.map((node, i) => ({ label: t(node.labelKey), active: i === 0, external: !!node.external }));
+const shellZoneATabs = zoneA.map((node, i) => ({ label: t(node.labelKey), active: i === 0 }));
 const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
     label: t(node.labelKey),
     // "Schedule" is the illustrative current section (mirrors ADR-0013's example).
@@ -744,7 +744,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                         <div v-for="size in ['sm', 'base', 'lg'] as const" :key="size" class="flex flex-col items-center gap-2">
                             <Avatar :size="size">
                                 <AvatarImage :src="avatarImage" alt="Volunteer portrait" />
-                                <AvatarFallback>RT</AvatarFallback>
+                                <AvatarFallback>AR</AvatarFallback>
                             </Avatar>
                             <code class="text-muted-foreground font-mono text-xs">{{ size }}</code>
                         </div>
@@ -757,7 +757,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                     <div class="mt-4 flex flex-wrap items-end gap-6">
                         <div v-for="size in ['sm', 'base', 'lg'] as const" :key="size" class="flex flex-col items-center gap-2">
                             <Avatar :size="size">
-                                <AvatarFallback>RT</AvatarFallback>
+                                <AvatarFallback>AR</AvatarFallback>
                             </Avatar>
                             <code class="text-muted-foreground font-mono text-xs">{{ size }}</code>
                         </div>
@@ -784,7 +784,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                                 </BreadcrumbItem>
                                 <BreadcrumbSeparator />
                                 <BreadcrumbItem>
-                                    <BreadcrumbPage>Roy Tanaka</BreadcrumbPage>
+                                    <BreadcrumbPage>Alex Rivera</BreadcrumbPage>
                                 </BreadcrumbItem>
                             </BreadcrumbList>
                         </Breadcrumb>
@@ -993,7 +993,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                         </nav>
                         <div class="flex shrink-0 items-center">
                             <Avatar class="size-10 rounded-full bg-white/20">
-                                <AvatarFallback class="rounded-full bg-transparent text-sm text-white">RT</AvatarFallback>
+                                <AvatarFallback class="rounded-full bg-transparent text-sm text-white">AR</AvatarFallback>
                             </Avatar>
                         </div>
                     </div>
@@ -1128,12 +1128,12 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                     </p>
                     <div class="mt-4 flex flex-wrap items-start gap-6">
                         <Avatar class="size-10 rounded-full bg-white/20 ring-2 ring-black/5">
-                            <AvatarFallback class="bg-rom-ink/80 rounded-full text-sm text-white">RT</AvatarFallback>
+                            <AvatarFallback class="bg-rom-ink/80 rounded-full text-sm text-white">AR</AvatarFallback>
                         </Avatar>
                         <div class="bg-popover text-popover-foreground border-border w-56 border shadow-md">
                             <div class="border-border flex flex-col border-b px-2 py-1.5">
-                                <span class="text-sm font-medium">Roy Tanaka</span>
-                                <span class="text-muted-foreground text-xs">roy.tanaka@example.org</span>
+                                <span class="text-sm font-medium">Alex Rivera</span>
+                                <span class="text-muted-foreground text-xs">alex.rivera@example.org</span>
                             </div>
                             <div class="flex items-center gap-2 px-2 py-2.5 text-sm"><PhUserCircle class="size-4" /> My Profile</div>
                             <div class="text-muted-foreground flex items-center gap-2 px-2 py-2.5 text-sm opacity-60">
