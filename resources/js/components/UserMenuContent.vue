@@ -3,7 +3,7 @@ import UserInfo from '@/components/UserInfo.vue';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { User } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
+import { PhSignOut, PhTranslate, PhUserCircle } from '@phosphor-icons/vue';
 
 interface Props {
     user: User;
@@ -20,15 +20,21 @@ defineProps<Props>();
     </DropdownMenuLabel>
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
-        <DropdownMenuItem :as-child="true">
+        <DropdownMenuItem class="py-2.5" :as-child="true">
             <Link class="block w-full" :href="route('profile.edit')" as="button">
                 <PhUserCircle class="mr-2 h-4 w-4" />
                 My Profile
             </Link>
         </DropdownMenuItem>
+        <!-- Language preference — disabled until bilingual routing (ADR-0008/0013). -->
+        <DropdownMenuItem class="py-2.5" disabled>
+            <PhTranslate class="mr-2 h-4 w-4" />
+            Language
+            <span class="text-muted-foreground ml-auto text-xs">EN / FR</span>
+        </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
-    <DropdownMenuItem :as-child="true">
+    <DropdownMenuItem class="py-2.5" :as-child="true">
         <Link class="block w-full" method="post" :href="route('logout')" as="button">
             <PhSignOut class="mr-2 h-4 w-4" />
             Log out
