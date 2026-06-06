@@ -84,6 +84,25 @@ export interface NavSection {
     defaultOpen?: boolean;
 }
 
+/**
+ * One tile grid on the Dashboard launcher — Zone B rendered as solid squares rather
+ * than as the rail. The launcher is the legacy home grid: a Group is a black tile
+ * with a white program icon and label.
+ */
+export interface LauncherGrid {
+    /** i18n key for the grid heading (e.g. "My Groups" / "All Groups"). */
+    labelKey: string;
+    /** Groups rendered as tiles — top-level only; subcommittees stay in the rail. */
+    items: GroupNode[];
+    /**
+     * GATING: the whole grid is hidden unless the Volunteer holds this role — a
+     * super-tier officer (President / VP1 / VP2) additionally gets the "All Groups"
+     * grid. Unset → always shown. Honoured by the same show-all stub as every node
+     * (see gating.ts); the real resolver lands with the authorization model.
+     */
+    requiresRole?: Role;
+}
+
 /** The grouping rail — Zone B (Groups) + Zone C (officer/admin). */
 export interface RailNav {
     /** Zone B lead — the Groups this Volunteer belongs to. */

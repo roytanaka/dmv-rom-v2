@@ -22,8 +22,11 @@ import type { NavNode } from './types';
 const CAPABILITY_GRANTED: boolean = true;
 const ROLE_GRANTED: boolean = true;
 
-/** True unless the node declares a requirement the resolved context does not satisfy. */
-export function isNodeVisible(node: NavNode): boolean {
+/** The gating-relevant slice of any chrome element — a nav node OR a launcher grid. */
+type Gated = Pick<NavNode, 'requiresCapability' | 'requiresRole'>;
+
+/** True unless the element declares a requirement the resolved context does not satisfy. */
+export function isNodeVisible(node: Gated): boolean {
     if (node.requiresCapability && !CAPABILITY_GRANTED) return false;
     if (node.requiresRole && !ROLE_GRANTED) return false;
     return true;

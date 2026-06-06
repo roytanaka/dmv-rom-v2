@@ -35,7 +35,7 @@ import {
     PhUsers,
     PhUsersThree,
 } from '@phosphor-icons/vue';
-import type { GroupNode, NavNode, RailNav } from './types';
+import type { GroupNode, LauncherGrid, NavNode, RailNav } from './types';
 
 // Zone B — My Groups. Docents carries subcommittees that nest under it; the
 // `requiresRole: 'chair'` child shows the gating contract living in the data
@@ -144,6 +144,16 @@ export const groupMenus: Record<string, NavNode[]> = {
         { labelKey: 'nav.section.docents.schedule_admin', href: '/groups/docents/schedule/admin', icon: PhGearSix, requiresRole: 'chair' },
     ],
 };
+
+// ── Dashboard launcher (the legacy home grid) ────────────────────────────────
+// The same Zone B Groups the rail lists, rendered as the landing-page tile grid.
+// My Groups is always shown; the All Groups grid is gated to super-tier officers
+// (President / VP1 / VP2) so org-wide navigation is reachable from landing —
+// fixture-modelled now, gated for real later (stubbed show-all → visible for now).
+export const launcherGrids: LauncherGrid[] = [
+    { labelKey: 'nav.rail.my_groups', items: myGroups },
+    { labelKey: 'nav.rail.all_groups', items: allGroups, requiresRole: 'super-tier' },
+];
 
 export const railNav: RailNav = {
     myGroups: {
