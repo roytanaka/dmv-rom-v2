@@ -214,7 +214,7 @@ const typeScale: TypeStep[] = [
     { name: 'text-xl', px: 23, lh: '1.35', class: 'text-xl', role: 'card title (h4)' },
     { name: 'text-lg', px: 20, lh: '1.55', class: 'text-lg', role: 'lead paragraph' },
     { name: 'text-base', px: 18, lh: '1.55', class: 'text-base', role: 'body — the default' },
-    { name: 'text-sm', px: 15, lh: '1.55', class: 'text-sm', role: 'secondary UI, cells' },
+    { name: 'text-sm', px: 16, lh: '1.55', class: 'text-sm', role: 'secondary UI, cells' },
     { name: 'text-xs', px: 13, lh: '1.55', class: 'text-xs', role: 'micro-labels, timestamps' },
 ];
 
@@ -562,13 +562,19 @@ import { Label } from '@/components/ui/label';
                     <h2 id="type-heading" class="text-xl font-semibold tracking-tight">Typography</h2>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
                         One native system-font stack, no webfont. The scale is sized up for the DMV’s retiree volunteers — body is
-                        <strong>18px</strong>; persistent UI text never drops below <strong>15px</strong>. Each step carries a coupled line-height
+                        <strong>18px</strong>; persistent UI text never drops below <strong>16px</strong>. Each step carries a coupled line-height
                         (body 1.55, headings 1.2–1.35).
                     </p>
-                    <DesignNote variant="dont" title="Don’t go below 15px">
+                    <DesignNote variant="dont" title="Don’t go below 16px">
                         The audience is the DMV’s retiree volunteers, so persistent UI text — labels, table cells, secondary copy — is floored at
-                        <strong>15px</strong> (<code>text-sm</code>). Reach for <code>text-xs</code> (13px) only for incidental micro-labels like
+                        <strong>16px</strong> (<code>text-sm</code>). Reach for <code>text-xs</code> (13px) only for incidental micro-labels like
                         timestamps, never for content a volunteer has to act on.
+                    </DesignNote>
+                    <DesignNote title="Sized in rem, not px">
+                        Every step is expressed in <code>rem</code> against the 16px root, so the whole scale honours the browser’s own font-size
+                        preference and is ready to grow or shrink from a single root change — the hook for a future text-size control. The px values
+                        shown here are the equivalents at the default root. See
+                        <a href="/docs/adr/0014-design-token-decisions.md" class="underline">ADR-0014</a>.
                     </DesignNote>
 
                     <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Scale</h3>
@@ -602,7 +608,7 @@ import { Label } from '@/components/ui/label';
                         <p class="text-sm">Secondary UI · 01 WED @ 11:00 — Museum Highlights</p>
                         <p class="text-xs">Micro-label · last updated 2 hours ago</p>
                         <p class="eyebrow">Department of Museum Volunteers</p>
-                        <p class="caption">Caption — sized at 15px in the muted foreground tone.</p>
+                        <p class="caption">Caption — sized at 16px in the muted foreground tone.</p>
                     </div>
                 </section>
 
@@ -662,7 +668,7 @@ import { Label } from '@/components/ui/label';
                     <h2 id="components-heading" class="text-xl font-semibold tracking-tight">Components</h2>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
                         Customised <code>shadcn-vue</code> primitives. Corners are square (<code>rounded-none</code>) by default and the size scale is
-                        bumped for the DMV’s audience, floored at 15px. Each component is added here as its slice lands.
+                        bumped for the DMV’s audience, floored at 16px. Each component is added here as its slice lands.
                     </p>
                     <DesignNote title="Square by default — a few true circles">
                         Square corners are the house identity, so every component is <code>rounded-none</code> unless roundness carries meaning. The
@@ -695,7 +701,7 @@ import { Label } from '@/components/ui/label';
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
                         <code>Input</code> is square (<code>rounded-none</code>), 44px tall, and holds 18px text at every breakpoint. Focus is the one
                         heritage-blue exception — a <code>rom-slate</code> border with a soft <code>rom-slate-50</code> glow — while the error state
-                        is driven by the <code>aria-invalid</code> attribute, not a custom prop. <code>Label</code> stays 15px / medium and
+                        is driven by the <code>aria-invalid</code> attribute, not a custom prop. <code>Label</code> stays 16px / medium and
                         <code>InputError</code> renders on the <code>destructive</code> token.
                     </p>
 
@@ -1181,8 +1187,8 @@ import { Label } from '@/components/ui/label';
                             </span>
                         </nav>
                         <div class="flex shrink-0 items-center">
-                            <Avatar class="size-10 rounded-full bg-white/20">
-                                <AvatarFallback class="rounded-full bg-transparent text-sm text-white">AR</AvatarFallback>
+                            <Avatar class="size-10 bg-white/20">
+                                <AvatarFallback class="bg-transparent text-sm text-white">AR</AvatarFallback>
                             </Avatar>
                         </div>
                     </div>
@@ -1316,8 +1322,8 @@ import { Label } from '@/components/ui/label';
                         here (ADR-0013), disabled until bilingual routing (ADR-0008). Shown below in its open state:
                     </p>
                     <div class="mt-4 flex flex-wrap items-start gap-6">
-                        <Avatar class="size-10 rounded-full bg-white/20 ring-2 ring-black/5">
-                            <AvatarFallback class="bg-rom-ink/80 rounded-full text-sm text-white">AR</AvatarFallback>
+                        <Avatar class="size-10 bg-white/20 ring-2 ring-black/5">
+                            <AvatarFallback class="bg-rom-ink/80 text-sm text-white">AR</AvatarFallback>
                         </Avatar>
                         <div class="bg-popover text-popover-foreground border-border w-56 border shadow-md">
                             <div class="border-border flex flex-col border-b px-2 py-1.5">
