@@ -49,6 +49,12 @@ export const navMessages: Record<string, string> = {
     'nav.personal.profile': 'My Profile',
     'nav.personal.renew': 'Renew Membership',
 
+    // Avatar (account) menu — top-bar right slot (ADR-0013). Keyed like every other
+    // chrome string so French drops in without touching the component.
+    'nav.user.profile': 'My Profile',
+    'nav.user.language': 'Language',
+    'nav.user.logout': 'Log out',
+
     // Group Menu — capability slots. Labels are keyed off the program, so the same
     // slot reads differently per Group (e.g. Catalog → "Data Sheets" for Docents).
     // Representative for the sample Docents menu; full set → docs/nav-spec.md.

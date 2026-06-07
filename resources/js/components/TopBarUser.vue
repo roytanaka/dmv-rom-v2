@@ -29,9 +29,9 @@ const showAvatar = computed(() => user.avatar && user.avatar !== '');
                 <!-- bg-transparent drops the Avatar's default light bg-secondary so the
                      translucent fallback sits on the black bar — white initials on a
                      light disc were unreadable otherwise. -->
-                <Avatar class="size-10 rounded-full bg-transparent">
+                <Avatar class="size-10 bg-transparent">
                     <AvatarImage v-if="showAvatar" :src="user.avatar ?? ''" :alt="user.name" />
-                    <AvatarFallback class="rounded-full bg-white/20 p-4 text-sm text-white">
+                    <AvatarFallback class="bg-white/20 text-sm text-white">
                         {{ getInitials(user.name) }}
                     </AvatarFallback>
                 </Avatar>
