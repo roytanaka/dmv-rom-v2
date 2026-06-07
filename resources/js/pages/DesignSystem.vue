@@ -1,10 +1,24 @@
 <script setup lang="ts">
+import BrandLogo from '@/components/BrandLogo.vue';
+import CodeSnippet from '@/components/CodeSnippet.vue';
 import CopyButton from '@/components/CopyButton.vue';
+import DesignNote from '@/components/DesignNote.vue';
 import InputError from '@/components/InputError.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge, type BadgeVariants } from '@/components/ui/badge';
+import {
+    Breadcrumb,
+    BreadcrumbEllipsis,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Button, type ButtonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     Dialog,
     DialogClose,
@@ -28,12 +42,29 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from '@/components/ui/navigation-menu';
+import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { groupMenus, zoneA } from '@/chrome/fixture';
+import { t } from '@/chrome/messages';
 import DesignSystemLayout from '@/layouts/DesignSystemLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { PhCaretDown, PhPlus } from '@phosphor-icons/vue';
+import {
+    PhBuildings,
+    PhCaretDown,
+    PhCaretRight,
+    PhChartBar,
+    PhList,
+    PhMagnifyingGlass,
+    PhPlus,
+    PhSignOut,
+    PhTranslate,
+    PhUserCircle,
+    PhUsersThree,
+} from '@phosphor-icons/vue';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 // Local state for the interactive component specimens (checkbox, dropdown
@@ -55,6 +86,13 @@ const sections = [
     { id: 'elevation', label: 'Elevation' },
     { id: 'spacing', label: 'Spacing' },
     { id: 'components', label: 'Components' },
+    { id: 'avatar', label: 'Avatar' },
+    { id: 'breadcrumb', label: 'Breadcrumb' },
+    { id: 'collapsible', label: 'Collapsible' },
+    { id: 'navigation-menu', label: 'Navigation menu' },
+    { id: 'separator', label: 'Separator' },
+    { id: 'sheet', label: 'Sheet' },
+    { id: 'app-shell', label: 'App shell' },
 ] as const;
 
 // Scrollspy: highlight the rail entry for the section currently in view. The
@@ -176,7 +214,7 @@ const typeScale: TypeStep[] = [
     { name: 'text-xl', px: 23, lh: '1.35', class: 'text-xl', role: 'card title (h4)' },
     { name: 'text-lg', px: 20, lh: '1.55', class: 'text-lg', role: 'lead paragraph' },
     { name: 'text-base', px: 18, lh: '1.55', class: 'text-base', role: 'body — the default' },
-    { name: 'text-sm', px: 15, lh: '1.55', class: 'text-sm', role: 'secondary UI, cells' },
+    { name: 'text-sm', px: 16, lh: '1.55', class: 'text-sm', role: 'secondary UI, cells' },
     { name: 'text-xs', px: 13, lh: '1.55', class: 'text-xs', role: 'micro-labels, timestamps' },
 ];
 
@@ -270,6 +308,185 @@ const tableRows: TableSpecimenRow[] = [
     { when: 'Sat 04 Jul · 10:30', tour: 'Dinosaurs & Fossils', capacity: '1 / 5', status: { variant: 'info', label: 'Open' } },
     { when: 'Sun 05 Jul · 13:00', tour: 'Bloor Street Entrance', capacity: '0 / 3', status: { variant: 'secondary', label: 'Not started' } },
 ];
+
+// Avatar image specimen. A self-contained SVG data URI (no network) so the
+// image branch always renders in the gallery, visibly distinct from the
+// initials fallback shown alongside it.
+const avatarImage = `data:image/svg+xml,${encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='#516d80'/><circle cx='32' cy='24' r='12' fill='#ffffff'/><path d='M12 58a20 20 0 0 1 40 0z' fill='#ffffff'/></svg>",
+)}`;
+
+// NavigationMenu specimen — mirrors the top-bar section nav (SectionTabs): a
+// horizontal strip of section links on the black bar, exactly one active in the
+// heritage-blue accent with the bottom-border cue. Shown on a `bg-rom-ink`
+// surface because that is the context the section nav actually lives in.
+const navMenuItems = [
+    { label: 'Dashboard', active: false },
+    { label: 'Tours', active: true },
+    { label: 'Volunteers', active: false },
+    { label: 'Reports', active: false },
+];
+
+// App-shell ("Chrome") documentation specimens. The Part 3 shell is stateful and
+// contextual, so it is documented here with static fragments + prose — not embedded
+// live (a live nav inside a page about the nav would be confusing and would forfeit
+// clean breakpoint/state demos). The two contextual tab sets read the REAL chrome
+// fixture through `t()`, so the labels match the running app and demonstrate that
+// the top-bar section nav changes by context: Zone A on the Dashboard, else the
+// active Group's Menu. The active section is fixed here for the static specimen.
+const shellZoneATabs = zoneA.map((node, i) => ({ label: t(node.labelKey), active: i === 0 }));
+const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
+    label: t(node.labelKey),
+    // "Schedule" is the illustrative current section (mirrors ADR-0013's example).
+    active: node.labelKey === 'nav.section.docents.schedule',
+}));
+
+// Illustrative usage snippets — import line plus a minimal example — shown beside
+// each component specimen and copyable via the #77 clipboard composable. These
+// are deliberately minimal and NOT an API contract: kept short on purpose to
+// limit drift from the real component props (the page says so up top). Authored
+// as plain strings so no syntax-highlighting dependency is needed.
+const snippets: Record<string, string> = {
+    button: `import { Button } from '@/components/ui/button';
+
+<Button variant="default" size="default">Sign up</Button>`,
+
+    input: `import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import InputError from '@/components/InputError.vue';
+
+<Label for="email">Email</Label>
+<Input id="email" type="email" v-model="form.email" :aria-invalid="!!form.errors.email" />
+<InputError :message="form.errors.email" />`,
+
+    badge: `import { Badge } from '@/components/ui/badge';
+
+<Badge variant="success" dot>Signed up</Badge>`,
+
+    table: `import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+<Table>
+  <TableHeader>
+    <TableRow><TableHead>Tour</TableHead></TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow :data-state="row.selected ? 'selected' : undefined">
+      <TableCell>Museum Highlights</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>`,
+
+    card: `import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
+<Card>
+  <CardHeader>
+    <CardTitle>Museum Highlights</CardTitle>
+    <CardDescription>Wed 01 Jul · 11:00</CardDescription>
+  </CardHeader>
+  <CardContent>…</CardContent>
+  <CardFooter><Button>Sign up</Button></CardFooter>
+</Card>`,
+
+    checkbox: `import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+
+<Checkbox id="notify" v-model:checked="notify" />
+<Label for="notify">Email me when a tour changes</Label>`,
+
+    dropdown: `import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+<DropdownMenu>
+  <DropdownMenuTrigger as-child>
+    <Button variant="outline">Options</Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="start">
+    <DropdownMenuItem>Edit details</DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>`,
+
+    dialog: `import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
+<Dialog>
+  <DialogTrigger as-child>
+    <Button>Cancel sign-up</Button>
+  </DialogTrigger>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Cancel your sign-up?</DialogTitle>
+      <DialogDescription>…</DialogDescription>
+    </DialogHeader>
+  </DialogContent>
+</Dialog>`,
+
+    tooltip: `import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger as-child>
+      <Button variant="outline">Hover</Button>
+    </TooltipTrigger>
+    <TooltipContent>Tours lock 24 hours before they start.</TooltipContent>
+  </Tooltip>
+</TooltipProvider>`,
+
+    skeleton: `import { Skeleton } from '@/components/ui/skeleton';
+
+<Skeleton class="h-4 w-3/4" />`,
+
+    avatar: `import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+<Avatar size="base">
+  <AvatarImage :src="volunteer.photo" alt="" />
+  <AvatarFallback>{{ initials }}</AvatarFallback>
+</Avatar>`,
+
+    breadcrumb: `import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+
+<Breadcrumb>
+  <BreadcrumbList>
+    <BreadcrumbItem><BreadcrumbLink href="#">Dashboard</BreadcrumbLink></BreadcrumbItem>
+    <BreadcrumbSeparator />
+    <BreadcrumbItem><BreadcrumbPage>Alex Rivera</BreadcrumbPage></BreadcrumbItem>
+  </BreadcrumbList>
+</Breadcrumb>`,
+
+    collapsible: `import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+<Collapsible v-slot="{ open }" default-open>
+  <CollapsibleTrigger>What should I bring?</CollapsibleTrigger>
+  <CollapsibleContent>Wear your volunteer badge…</CollapsibleContent>
+</Collapsible>`,
+
+    navigationMenu: `import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from '@/components/ui/navigation-menu';
+
+<NavigationMenu>
+  <NavigationMenuList>
+    <NavigationMenuItem>
+      <NavigationMenuLink href="#" :active="true">Tours</NavigationMenuLink>
+    </NavigationMenuItem>
+  </NavigationMenuList>
+</NavigationMenu>`,
+
+    separator: `import { Separator } from '@/components/ui/separator';
+
+<Separator />
+<Separator label="or" />
+<Separator orientation="vertical" />`,
+
+    sheet: `import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+
+<Sheet>
+  <SheetTrigger as-child>
+    <Button variant="outline">Filter tours</Button>
+  </SheetTrigger>
+  <SheetContent side="right">
+    <SheetHeader>
+      <SheetTitle>Filter tours</SheetTitle>
+      <SheetDescription>…</SheetDescription>
+    </SheetHeader>
+  </SheetContent>
+</Sheet>`,
+};
 </script>
 
 <template>
@@ -281,6 +498,11 @@ const tableRows: TableSpecimenRow[] = [
             <p class="text-muted-foreground mt-2 text-base">
                 Internal reference for the DMV-ROM design tokens. Specimens are added here as each token slice lands.
             </p>
+            <DesignNote class="mt-6" title="Snippets are illustrative">
+                The usage snippets beside each component show a typical import and a minimal example. They are deliberately short and are
+                <strong>not</strong> an API contract — for the authoritative props and slots, read the component source under
+                <code>@/components/ui</code>.
+            </DesignNote>
         </header>
 
         <div class="lg:grid lg:grid-cols-[10rem_minmax(0,1fr)] lg:gap-x-12 xl:gap-x-16">
@@ -340,9 +562,20 @@ const tableRows: TableSpecimenRow[] = [
                     <h2 id="type-heading" class="text-xl font-semibold tracking-tight">Typography</h2>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
                         One native system-font stack, no webfont. The scale is sized up for the DMV’s retiree volunteers — body is
-                        <strong>18px</strong>; persistent UI text never drops below <strong>15px</strong>. Each step carries a coupled line-height
+                        <strong>18px</strong>; persistent UI text never drops below <strong>16px</strong>. Each step carries a coupled line-height
                         (body 1.55, headings 1.2–1.35).
                     </p>
+                    <DesignNote variant="dont" title="Don’t go below 16px">
+                        The audience is the DMV’s retiree volunteers, so persistent UI text — labels, table cells, secondary copy — is floored at
+                        <strong>16px</strong> (<code>text-sm</code>). Reach for <code>text-xs</code> (13px) only for incidental micro-labels like
+                        timestamps, never for content a volunteer has to act on.
+                    </DesignNote>
+                    <DesignNote title="Sized in rem, not px">
+                        Every step is expressed in <code>rem</code> against the 16px root, so the whole scale honours the browser’s own font-size
+                        preference and is ready to grow or shrink from a single root change — the hook for a future text-size control. The px values
+                        shown here are the equivalents at the default root. See
+                        <a href="/docs/adr/0014-design-token-decisions.md" class="underline">ADR-0014</a>.
+                    </DesignNote>
 
                     <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Scale</h3>
                     <ul class="border-border mt-4 divide-y border-y">
@@ -375,7 +608,7 @@ const tableRows: TableSpecimenRow[] = [
                         <p class="text-sm">Secondary UI · 01 WED @ 11:00 — Museum Highlights</p>
                         <p class="text-xs">Micro-label · last updated 2 hours ago</p>
                         <p class="eyebrow">Department of Museum Volunteers</p>
-                        <p class="caption">Caption — sized at 15px in the muted foreground tone.</p>
+                        <p class="caption">Caption — sized at 16px in the muted foreground tone.</p>
                     </div>
                 </section>
 
@@ -435,8 +668,14 @@ const tableRows: TableSpecimenRow[] = [
                     <h2 id="components-heading" class="text-xl font-semibold tracking-tight">Components</h2>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
                         Customised <code>shadcn-vue</code> primitives. Corners are square (<code>rounded-none</code>) by default and the size scale is
-                        bumped for the DMV’s audience, floored at 15px. Each component is added here as its slice lands.
+                        bumped for the DMV’s audience, floored at 16px. Each component is added here as its slice lands.
                     </p>
+                    <DesignNote title="Square by default — a few true circles">
+                        Square corners are the house identity, so every component is <code>rounded-none</code> unless roundness carries meaning. The
+                        deliberate <code>rounded-full</code> exceptions are small, round-by-nature marks: the <strong>avatar</strong>, the
+                        <strong>badge dot</strong>, the dropdown <strong>radio dot</strong>, and <strong>spinners</strong>. If a new element needs a
+                        radius, default to square and justify the curve.
+                    </DesignNote>
 
                     <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Button</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -456,12 +695,13 @@ const tableRows: TableSpecimenRow[] = [
                             <Button :variant="row.variant" disabled>{{ row.label }}</Button>
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.button" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Form inputs</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
                         <code>Input</code> is square (<code>rounded-none</code>), 44px tall, and holds 18px text at every breakpoint. Focus is the one
                         heritage-blue exception — a <code>rom-slate</code> border with a soft <code>rom-slate-50</code> glow — while the error state
-                        is driven by the <code>aria-invalid</code> attribute, not a custom prop. <code>Label</code> stays 15px / medium and
+                        is driven by the <code>aria-invalid</code> attribute, not a custom prop. <code>Label</code> stays 16px / medium and
                         <code>InputError</code> renders on the <code>destructive</code> token.
                     </p>
 
@@ -487,6 +727,7 @@ const tableRows: TableSpecimenRow[] = [
                             <Input id="ds-input-disabled" placeholder="Volunteer name" disabled />
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.input" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Badge</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -504,6 +745,15 @@ const tableRows: TableSpecimenRow[] = [
                             <Badge :variant="row.variant" dot>{{ row.label }}</Badge>
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.badge" />
+                    <DesignNote variant="do" title="Do — keep the destructive badge soft">
+                        A <code>destructive</code> badge is a calm <em>status</em> (“Cancelled”, “Overdue”), so it uses the soft-tint pattern — the
+                        <code>destructive-bg</code> wash with solid-token text — like the other status tones. It reads as information, not alarm.
+                    </DesignNote>
+                    <DesignNote variant="dont" title="Don’t make it the solid red of the button">
+                        The destructive <em>Button</em> is solid red because it triggers an irreversible action and should stop you. Don’t carry that
+                        weight onto a badge: a wall of solid-red chips cries wolf and drowns out the one button that genuinely needs the alarm.
+                    </DesignNote>
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Table</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -535,6 +785,7 @@ const tableRows: TableSpecimenRow[] = [
                             </TableBody>
                         </Table>
                     </div>
+                    <CodeSnippet :code="snippets.table" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Card</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -557,6 +808,7 @@ const tableRows: TableSpecimenRow[] = [
                             </CardFooter>
                         </Card>
                     </div>
+                    <CodeSnippet :code="snippets.card" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Checkbox</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -578,6 +830,7 @@ const tableRows: TableSpecimenRow[] = [
                             <Label for="ds-check-disabled" class="opacity-50">Locked by your coordinator</Label>
                         </div>
                     </div>
+                    <CodeSnippet :code="snippets.checkbox" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Dropdown menu</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -608,6 +861,7 @@ const tableRows: TableSpecimenRow[] = [
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
+                    <CodeSnippet :code="snippets.dropdown" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Dialog &amp; tooltip</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -647,6 +901,8 @@ const tableRows: TableSpecimenRow[] = [
                             </Tooltip>
                         </TooltipProvider>
                     </div>
+                    <CodeSnippet :code="snippets.dialog" />
+                    <CodeSnippet :code="snippets.tooltip" />
 
                     <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Skeleton</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -659,6 +915,441 @@ const tableRows: TableSpecimenRow[] = [
                         <div class="flex-1 space-y-2">
                             <Skeleton class="h-4 w-3/4" />
                             <Skeleton class="h-4 w-1/2" />
+                        </div>
+                    </div>
+                    <CodeSnippet :code="snippets.skeleton" />
+                </section>
+
+                <section id="avatar" aria-labelledby="avatar-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="avatar-heading" class="text-xl font-semibold tracking-tight">Avatar</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        The one deliberately-round element on the page — a true circle (<code>rounded-full</code>) against the square component
+                        identity. It shows an image when one loads and falls back to initials when it doesn’t, across the
+                        <code>sm</code> / <code>base</code> / <code>lg</code> sizes.
+                    </p>
+
+                    <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Sizes (image)</h3>
+                    <div class="mt-4 flex flex-wrap items-end gap-6">
+                        <div v-for="size in ['sm', 'base', 'lg'] as const" :key="size" class="flex flex-col items-center gap-2">
+                            <Avatar :size="size">
+                                <AvatarImage :src="avatarImage" alt="Volunteer portrait" />
+                                <AvatarFallback>AR</AvatarFallback>
+                            </Avatar>
+                            <code class="text-muted-foreground font-mono text-xs">{{ size }}</code>
+                        </div>
+                    </div>
+
+                    <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Initials fallback</h3>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        With no image source the fallback renders the volunteer’s initials on the secondary surface.
+                    </p>
+                    <div class="mt-4 flex flex-wrap items-end gap-6">
+                        <div v-for="size in ['sm', 'base', 'lg'] as const" :key="size" class="flex flex-col items-center gap-2">
+                            <Avatar :size="size">
+                                <AvatarFallback>AR</AvatarFallback>
+                            </Avatar>
+                            <code class="text-muted-foreground font-mono text-xs">{{ size }}</code>
+                        </div>
+                    </div>
+                    <CodeSnippet :code="snippets.avatar" />
+                </section>
+
+                <section id="breadcrumb" aria-labelledby="breadcrumb-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="breadcrumb-heading" class="text-xl font-semibold tracking-tight">Breadcrumb</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A wayfinding trail with Phosphor caret separators. Long trails collapse the middle to an ellipsis (the Phosphor
+                        <code>⋯</code> glyph), keeping the root and the current page in view. The current page is the unlinked
+                        <code>BreadcrumbPage</code>.
+                    </p>
+
+                    <div class="mt-6 space-y-6">
+                        <Breadcrumb>
+                            <BreadcrumbList>
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">Dashboard</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">Volunteers</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbPage>Alex Rivera</BreadcrumbPage>
+                                </BreadcrumbItem>
+                            </BreadcrumbList>
+                        </Breadcrumb>
+
+                        <Breadcrumb>
+                            <BreadcrumbList>
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">Dashboard</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbEllipsis />
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">Tours</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbPage>Museum Highlights</BreadcrumbPage>
+                                </BreadcrumbItem>
+                            </BreadcrumbList>
+                        </Breadcrumb>
+                    </div>
+                    <CodeSnippet :code="snippets.breadcrumb" />
+                </section>
+
+                <section id="collapsible" aria-labelledby="collapsible-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="collapsible-heading" class="text-xl font-semibold tracking-tight">Collapsible</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A disclosure that toggles a region open and closed. The trigger caret rotates on
+                        <code>data-[state=open]</code>; the content animates its height. Shown open by default below.
+                    </p>
+
+                    <div class="mt-6 max-w-md">
+                        <Collapsible v-slot="{ open }" default-open>
+                            <CollapsibleTrigger
+                                class="border-border hover:bg-accent flex w-full items-center justify-between gap-2 border px-4 py-3 text-left text-sm font-medium transition-colors"
+                            >
+                                <span>What should I bring on tour day?</span>
+                                <PhCaretRight class="size-4 shrink-0 transition-transform" :class="open ? 'rotate-90' : ''" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <div class="border-border border border-t-0 px-4 py-3 text-sm">
+                                    Wear your volunteer badge and comfortable shoes. Arrive fifteen minutes before your tour starts to check in at the
+                                    Bloor Street entrance.
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+                    </div>
+                    <CodeSnippet :code="snippets.collapsible" />
+                </section>
+
+                <section id="navigation-menu" aria-labelledby="navigation-menu-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="navigation-menu-heading" class="text-xl font-semibold tracking-tight">Navigation menu</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        Shown in the form the top-bar section nav uses it — a horizontal strip of section links on the black bar, with exactly one
+                        active in the heritage-blue accent (<code>rom-slate-300</code>) carrying the bottom-border cue. Rendered on the
+                        <code>rom-ink</code> surface because that is the context it lives in.
+                    </p>
+
+                    <div class="bg-rom-ink mt-6 flex px-4 py-3">
+                        <NavigationMenu>
+                            <NavigationMenuList class="gap-1">
+                                <NavigationMenuItem v-for="item in navMenuItems" :key="item.label">
+                                    <NavigationMenuLink
+                                        href="#navigation-menu"
+                                        :active="item.active"
+                                        :aria-current="item.active ? 'page' : undefined"
+                                        :class="[
+                                            'flex items-center border-b-2 px-3 py-1 text-sm whitespace-nowrap transition-colors',
+                                            item.active
+                                                ? 'border-rom-slate-300 text-rom-slate-300'
+                                                : 'border-transparent text-white/70 hover:text-white',
+                                        ]"
+                                    >
+                                        {{ item.label }}
+                                    </NavigationMenuLink>
+                                </NavigationMenuItem>
+                            </NavigationMenuList>
+                        </NavigationMenu>
+                    </div>
+                    <CodeSnippet :code="snippets.navigationMenu" />
+                </section>
+
+                <section id="separator" aria-labelledby="separator-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="separator-heading" class="text-xl font-semibold tracking-tight">Separator</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A hairline rule on the <code>border</code> token, in both orientations. An optional <code>label</code> centres text on the
+                        rule for “or”-style dividers.
+                    </p>
+
+                    <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Horizontal</h3>
+                    <div class="mt-4 max-w-md">
+                        <p class="text-sm">Museum Highlights</p>
+                        <Separator class="my-4" />
+                        <p class="text-sm">Egyptian Galleries</p>
+                        <Separator class="my-4" label="or" />
+                        <p class="text-sm">Dinosaurs &amp; Fossils</p>
+                    </div>
+
+                    <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Vertical</h3>
+                    <div class="text-muted-foreground mt-4 flex h-6 items-center gap-3 text-sm">
+                        <span>Tours</span>
+                        <Separator orientation="vertical" />
+                        <span>Volunteers</span>
+                        <Separator orientation="vertical" />
+                        <span>Reports</span>
+                    </div>
+                    <CodeSnippet :code="snippets.separator" />
+                </section>
+
+                <section id="sheet" aria-labelledby="sheet-heading" class="mb-12 scroll-mt-24">
+                    <h2 id="sheet-heading" class="text-xl font-semibold tracking-tight">Sheet</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A panel that slides in over a dimming overlay, from any of the four edges. It lifts on <code>shadow-lg</code> and carries the
+                        Phosphor <code>×</code> close glyph. Each trigger below opens the sheet from its named side.
+                    </p>
+
+                    <div class="mt-6 flex flex-wrap gap-4">
+                        <Sheet v-for="side in ['top', 'right', 'bottom', 'left'] as const" :key="side">
+                            <SheetTrigger as-child>
+                                <Button variant="outline" class="capitalize">{{ side }}</Button>
+                            </SheetTrigger>
+                            <SheetContent :side="side">
+                                <SheetHeader>
+                                    <SheetTitle>Filter tours</SheetTitle>
+                                    <SheetDescription>
+                                        Narrow the listing by date, gallery, and remaining capacity. Opened from the
+                                        <strong>{{ side }}</strong> edge.
+                                    </SheetDescription>
+                                </SheetHeader>
+                                <SheetFooter class="mt-6 gap-3">
+                                    <SheetClose as-child>
+                                        <Button variant="outline">Cancel</Button>
+                                    </SheetClose>
+                                    <SheetClose as-child>
+                                        <Button>Apply filters</Button>
+                                    </SheetClose>
+                                </SheetFooter>
+                            </SheetContent>
+                        </Sheet>
+                    </div>
+                    <CodeSnippet :code="snippets.sheet" />
+                </section>
+
+                <section id="app-shell" aria-labelledby="app-shell-heading" class="scroll-mt-24">
+                    <h2 id="app-shell-heading" class="text-xl font-semibold tracking-tight">App shell</h2>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        The persistent <strong>Chrome</strong> from Part 3 — the frame that wraps every authenticated screen: a full-width black top
+                        bar over a row of the charcoal grouping rail and the white content canvas, a slim breadcrumb strip between bar and canvas, and
+                        the dark institutional footer bracketing the bottom. It is the biggest thing Part 3 built, and it renders nowhere else on this
+                        reference page.
+                    </p>
+                    <p class="text-muted-foreground mt-3 max-w-2xl text-sm">
+                        The shell is <em>stateful and contextual</em> — which is why it is documented here with static fragments and prose, not a live
+                        embedded mini-shell. Nesting the live nav inside a page <em>about</em> the nav would be confusing and would forfeit clean
+                        breakpoint and state demos. For the same reason this page is deliberately <strong>not</strong> wrapped in
+                        <code>AppLayout</code>: it stays standalone and English-only. The fragments below are illustrative reconstructions built from
+                        the live tokens and the real chrome fixture — the assembled components live in <code>AppSidebarLayout</code>.
+                    </p>
+
+                    <!-- Anatomy ─────────────────────────────────────────────────────────── -->
+                    <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Anatomy</h3>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A schematic of the regions and how they stack — full-width top bar above, then the fixed rail beside the scrolling canvas,
+                        with the breadcrumb strip and footer banding the content.
+                    </p>
+
+                    <div class="border-border mt-4 max-w-3xl overflow-hidden border">
+                        <div class="bg-rom-ink flex h-10 items-center px-3 text-xs font-medium text-white/80">
+                            Top bar — black, full width, sticky
+                        </div>
+                        <div class="flex h-56">
+                            <div class="bg-sidebar text-sidebar-foreground flex w-40 flex-none items-start p-3 text-xs">Grouping rail</div>
+                            <div class="flex min-w-0 flex-1 flex-col">
+                                <div class="bg-rom-slate-50 text-muted-foreground border-border flex h-8 items-center border-b px-3 text-xs">
+                                    Breadcrumb strip
+                                </div>
+                                <div class="bg-background text-muted-foreground flex flex-1 items-start p-3 text-xs">Content canvas (white)</div>
+                                <div class="bg-rom-ink flex h-12 items-center px-3 text-xs text-white/60">Footer</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top bar ─────────────────────────────────────────────────────────── -->
+                    <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Top bar</h3>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        Left: the <code>☰</code> rail trigger and the ROM/DMV wordmark (the SVG asset, never live text), linking home. Centre: the
+                        <strong>contextual section nav</strong> — a tab strip whose set <em>changes by context</em>, with exactly one active tab in
+                        the heritage-blue accent (<code>rom-slate-300</code>) carrying the bottom-border cue. Right: the avatar menu (search moved
+                        into the rail; the EN/FR control moved into the avatar menu, per ADR-0013 — no inert bar buttons, no notification bell).
+                    </p>
+
+                    <div class="bg-rom-ink mt-4 flex h-16 items-stretch gap-3 px-4 text-white">
+                        <div class="flex shrink-0 items-center gap-2">
+                            <span class="flex size-9 items-center justify-center text-white/80"><PhList class="size-5" /></span>
+                            <BrandLogo variant="white" class="hidden h-8 w-auto sm:block" />
+                        </div>
+                        <nav class="flex min-w-0 flex-1 items-stretch gap-1 overflow-hidden" aria-label="Section (illustrative)">
+                            <span
+                                v-for="tab in shellZoneATabs"
+                                :key="tab.label"
+                                :class="[
+                                    'flex shrink-0 items-center border-b-2 px-3 text-sm whitespace-nowrap',
+                                    tab.active ? 'border-rom-slate-300 text-rom-slate-300' : 'border-transparent text-white/70',
+                                ]"
+                            >
+                                {{ tab.label }}
+                            </span>
+                        </nav>
+                        <div class="flex shrink-0 items-center">
+                            <Avatar class="size-10 bg-white/20">
+                                <AvatarFallback class="bg-transparent text-sm text-white">AR</AvatarFallback>
+                            </Avatar>
+                        </div>
+                    </div>
+                    <p class="text-muted-foreground mt-2 text-xs">
+                        Above — the <strong>Zone A</strong> set shown on the Dashboard, when no Group is selected.
+                    </p>
+
+                    <p class="text-muted-foreground mt-4 max-w-2xl text-sm">
+                        Select a Group and the same strip becomes that Group’s <strong>Menu</strong> — its capability slots, labelled per program (the
+                        same slot reads differently per Group). The Docents menu, for example:
+                    </p>
+                    <div class="bg-rom-ink mt-2 flex h-12 items-stretch gap-1 overflow-hidden px-4 text-white">
+                        <span
+                            v-for="tab in shellGroupTabs"
+                            :key="tab.label"
+                            :class="[
+                                'flex shrink-0 items-center border-b-2 px-3 text-sm whitespace-nowrap',
+                                tab.active ? 'border-rom-slate-300 text-rom-slate-300' : 'border-transparent text-white/70',
+                            ]"
+                        >
+                            {{ tab.label }}
+                        </span>
+                    </div>
+
+                    <!-- Responsive section nav (M1 / ADR-0013) ──────────────────────────── -->
+                    <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Section nav — responsive</h3>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        ADR-0013 reverses the original <strong>M1</strong> all-breakpoints scroll-strip (horizontal scrolling is undiscoverable for
+                        the DMV’s aging volunteers). At <code>lg</code> and up the strip shows in full (above).
+                        <strong>Below <code>lg</code></strong> the whole strip collapses into one full-width trigger that <em>names</em> the current
+                        section and opens a vertical list of every section. <strong>Below <code>sm</code></strong> the wordmark also drops (no square
+                        brand mark exists yet); the <code>☰</code> and the black bar anchor “home”.
+                    </p>
+                    <div class="bg-rom-ink mt-4 max-w-xs p-3">
+                        <button
+                            type="button"
+                            class="border-rom-slate-300/40 text-rom-slate-300 flex h-11 w-full items-center justify-between gap-2 border bg-white/5 px-3 text-base font-medium"
+                        >
+                            <span class="flex items-center gap-2 truncate"><PhList class="size-5 shrink-0 opacity-80" /> Schedule</span>
+                            <PhCaretDown class="size-5 shrink-0 opacity-80" />
+                        </button>
+                    </div>
+                    <p class="text-muted-foreground mt-2 text-xs">The collapsed below-<code>lg</code> trigger, naming the current section.</p>
+
+                    <!-- Grouping rail ───────────────────────────────────────────────────── -->
+                    <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Grouping rail</h3>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        The charcoal rail carries the grouping nav in three zones: <strong>Zone B</strong> leads with <em>My Groups</em>, then a
+                        collapsible <em>All Groups</em> browse list; <strong>Zone C</strong> (officer/admin) is pinned to the bottom and appears only
+                        when its gated items survive. It is built on the restyled shadcn <code>sidebar</code> primitive as its substrate — offcanvas
+                        on desktop (the <code>☰</code> toggles it) and the primitive’s own mobile sheet as the M1 drawer on small screens — so the
+                        substrate is acknowledged here, not shown bare. The inert search lives in the rail header.
+                    </p>
+
+                    <div class="bg-sidebar text-sidebar-foreground mt-4 max-w-xs space-y-4 p-3">
+                        <div class="relative">
+                            <PhMagnifyingGlass
+                                class="text-sidebar-foreground/70 pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+                            />
+                            <div
+                                class="bg-rom-ink border-sidebar-border text-sidebar-foreground/70 flex h-9 items-center rounded-md border pl-8 text-sm"
+                            >
+                                Search
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="text-sidebar-muted px-2 text-xs font-semibold tracking-wide uppercase">{{ t('nav.rail.my_groups') }}</p>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="bg-sidebar-active text-sidebar-active-foreground flex h-10 items-center gap-2 px-2 text-sm">
+                                    <PhUsersThree class="size-4" /> {{ t('nav.group.docents') }}
+                                </div>
+                                <div class="flex h-10 items-center gap-2 px-2 text-sm">
+                                    <PhUsersThree class="size-4" /> {{ t('nav.group.gallery_interpreters') }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-sidebar-muted flex items-center justify-between px-2 text-xs font-semibold tracking-wide uppercase">
+                            {{ t('nav.rail.all_groups') }}
+                            <PhCaretDown class="size-4" />
+                        </div>
+
+                        <div class="mt-auto">
+                            <p class="text-sidebar-muted px-2 text-xs font-semibold tracking-wide uppercase">{{ t('nav.rail.officer') }}</p>
+                            <div class="mt-1 space-y-0.5">
+                                <div class="flex h-10 items-center gap-2 px-2 text-sm">
+                                    <PhBuildings class="size-4" /> {{ t('nav.officer.members') }}
+                                </div>
+                                <div class="flex h-10 items-center gap-2 px-2 text-sm">
+                                    <PhChartBar class="size-4" /> {{ t('nav.officer.reports') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-muted-foreground mt-2 max-w-2xl text-xs">
+                        Active row in the heritage-blue <code>sidebar-active</code> token; inactive labels in the <code>sidebar-muted</code> support
+                        gray. Subcommittees nest under their parent Group, and the split row (label navigates, chevron toggles) is the rail’s pattern.
+                    </p>
+
+                    <!-- Breadcrumb strip ────────────────────────────────────────────────── -->
+                    <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Breadcrumb strip</h3>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        A slim wayfinding band between the black bar and the white canvas, on the faint <code>rom-slate-50</code> wash so it reads as
+                        its own strip. It is fed by each page’s <code>breadcrumbs</code> prop and renders the restyled breadcrumb primitive (the same
+                        one documented above). Shown here with a representative trail:
+                    </p>
+                    <div class="bg-rom-slate-50 border-border mt-4 flex h-12 max-w-3xl items-center border px-6">
+                        <Breadcrumb>
+                            <BreadcrumbList>
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">{{ t('nav.group.docents') }}</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbLink href="#">{{ t('nav.section.docents.schedule') }}</BreadcrumbLink>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator />
+                                <BreadcrumbItem>
+                                    <BreadcrumbPage>Wed 01 Jul</BreadcrumbPage>
+                                </BreadcrumbItem>
+                            </BreadcrumbList>
+                        </Breadcrumb>
+                    </div>
+
+                    <!-- Avatar menu ─────────────────────────────────────────────────────── -->
+                    <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Avatar menu</h3>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        The top bar’s right slot (#69) — an avatar-only trigger suited to the dark bar, opening the user menu (moved here from the
+                        rail footer). Square content (ROM identity), with the avatar staying the one circle. The EN/FR language control is folded in
+                        here (ADR-0013), disabled until bilingual routing (ADR-0008). Shown below in its open state:
+                    </p>
+                    <div class="mt-4 flex flex-wrap items-start gap-6">
+                        <Avatar class="size-10 bg-white/20 ring-2 ring-black/5">
+                            <AvatarFallback class="bg-rom-ink/80 text-sm text-white">AR</AvatarFallback>
+                        </Avatar>
+                        <div class="bg-popover text-popover-foreground border-border w-56 border shadow-md">
+                            <div class="border-border flex flex-col border-b px-2 py-1.5">
+                                <span class="text-sm font-medium">Alex Rivera</span>
+                                <span class="text-muted-foreground text-xs">alex.rivera@example.org</span>
+                            </div>
+                            <div class="flex items-center gap-2 px-2 py-2.5 text-sm"><PhUserCircle class="size-4" /> My Profile</div>
+                            <div class="text-muted-foreground flex items-center gap-2 px-2 py-2.5 text-sm opacity-60">
+                                <PhTranslate class="size-4" /> Language <span class="ml-auto text-xs">EN / FR</span>
+                            </div>
+                            <div class="border-border flex items-center gap-2 border-t px-2 py-2.5 text-sm"><PhSignOut class="size-4" /> Log out</div>
+                        </div>
+                    </div>
+
+                    <!-- Footer ──────────────────────────────────────────────────────────── -->
+                    <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Footer</h3>
+                    <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
+                        The dark institutional footer mirrors the top bar, bracketing the white canvas. It carries the institutional voice — the land
+                        acknowledgement, the DMV inclusion statement, and a copyright line. The copy is keyed for French, but the land acknowledgement
+                        and inclusion statement use the ROM’s official English wording and are never machine-translated.
+                    </p>
+                    <div class="bg-rom-ink mt-4 px-6 py-8 text-white/70">
+                        <div class="mx-auto flex max-w-5xl flex-col gap-4 text-sm">
+                            <p>{{ t('footer.land_ack') }}</p>
+                            <p>{{ t('footer.inclusion') }}</p>
+                            <p class="text-xs text-white/45">© 2011–2026 {{ t('footer.org') }}</p>
                         </div>
                     </div>
                 </section>

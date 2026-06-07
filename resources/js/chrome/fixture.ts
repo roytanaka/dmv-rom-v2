@@ -163,7 +163,6 @@ export const railNav: RailNav = {
     allGroups: {
         labelKey: 'nav.rail.all_groups',
         items: allGroups,
-        collapsible: true,
         defaultOpen: false,
     },
     // Zone C — officer/admin. Each item requires the `officer` role; the section as a
