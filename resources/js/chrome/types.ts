@@ -78,9 +78,7 @@ export interface NavSection {
     /** i18n key for the section heading; omit for an unlabelled cluster. */
     labelKey?: string;
     items: NavNode[];
-    /** Render as a collapsible disclosure (e.g. "All Groups" browse). */
-    collapsible?: boolean;
-    /** Initial open state when `collapsible`. */
+    /** Initial open state for a collapsible browse section (e.g. "All Groups"). */
     defaultOpen?: boolean;
 }
 
