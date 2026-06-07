@@ -108,7 +108,7 @@ const updatePassword = () => {
                     </div>
 
                     <div class="flex items-center gap-4">
-                        <Button :disabled="form.processing">Save password</Button>
+                        <Button :loading="form.processing">Save password</Button>
 
                         <TransitionRoot
                             :show="form.recentlySuccessful"

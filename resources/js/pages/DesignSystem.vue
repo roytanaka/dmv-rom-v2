@@ -269,8 +269,8 @@ const spacingSteps = [
 
 // Component-gallery specimens. This section is established here (PRD #44, slice
 // #47) and grown by later slices. Each row renders one Button variant across the
-// sm / default / lg / icon sizes plus a disabled state — squareness and the
-// bumped size scale are verified by eye, not asserted in tests.
+// sm / default / lg / icon sizes plus disabled and loading states — squareness and
+// the bumped size scale are verified by eye, not asserted in tests.
 type ButtonVariant = NonNullable<ButtonVariants['variant']>;
 const buttonRows: { variant: ButtonVariant; label: string }[] = [
     { variant: 'default', label: 'Default' },
@@ -349,7 +349,8 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
 const snippets: Record<string, string> = {
     button: `import { Button } from '@/components/ui/button';
 
-<Button variant="default" size="default">Sign up</Button>`,
+<Button variant="default" size="default">Sign up</Button>
+<Button :loading="form.processing">Sign up</Button>`,
 
     input: `import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -679,8 +680,10 @@ import { Label } from '@/components/ui/label';
 
                     <h3 class="text-muted-foreground mt-8 text-sm font-semibold tracking-wide uppercase">Button</h3>
                     <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
-                        The six variants across the <code>sm</code> / <code>default</code> / <code>lg</code> / <code>icon</code> sizes, with a
-                        disabled state. The <code>link</code> variant carries the heritage-blue accent.
+                        The six variants across the <code>sm</code> / <code>default</code> / <code>lg</code> / <code>icon</code> sizes, with the
+                        <code>disabled</code> and <code>loading</code> states. The <code>loading</code> prop shows a spinning
+                        <code>PhCircleNotch</code> (a documented <code>rounded-full</code> exception) and disables the button so a pending submit
+                        can't be re-triggered. The <code>link</code> variant carries the heritage-blue accent.
                     </p>
 
                     <div class="mt-6 space-y-5">
@@ -693,6 +696,7 @@ import { Label } from '@/components/ui/label';
                                 <PhPlus class="size-4" />
                             </Button>
                             <Button :variant="row.variant" disabled>{{ row.label }}</Button>
+                            <Button :variant="row.variant" loading>{{ row.label }}</Button>
                         </div>
                     </div>
                     <CodeSnippet :code="snippets.button" />

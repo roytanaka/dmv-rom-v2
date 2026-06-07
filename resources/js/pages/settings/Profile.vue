@@ -90,7 +90,7 @@ const submit = () => {
                     </div>
 
                     <div class="flex items-center gap-4">
-                        <Button :disabled="form.processing">Save</Button>
+                        <Button :loading="form.processing">Save</Button>
 
                         <TransitionRoot
                             :show="form.recentlySuccessful"

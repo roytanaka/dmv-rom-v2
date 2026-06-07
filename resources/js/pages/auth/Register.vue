@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { PhCircleNotch } from '@phosphor-icons/vue';
 
 const form = useForm({
     name: '',
@@ -68,10 +67,7 @@ const submit = () => {
                     <InputError :message="form.errors.password_confirmation" />
                 </div>
 
-                <Button type="submit" class="mt-2 w-full" tabindex="5" :disabled="form.processing">
-                    <PhCircleNotch v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Create account
-                </Button>
+                <Button type="submit" class="mt-2 w-full" tabindex="5" :loading="form.processing"> Create account </Button>
             </div>
 
             <div class="text-muted-foreground text-center text-sm">

@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { PhCircleNotch } from '@phosphor-icons/vue';
 
 interface Props {
     token: string;
@@ -71,10 +70,7 @@ const submit = () => {
                     <InputError :message="form.errors.password_confirmation" />
                 </div>
 
-                <Button type="submit" class="mt-4 w-full" :disabled="form.processing">
-                    <PhCircleNotch v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Reset password
-                </Button>
+                <Button type="submit" class="mt-4 w-full" :loading="form.processing"> Reset password </Button>
             </div>
         </form>
     </AuthLayout>
