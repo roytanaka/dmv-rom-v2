@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { PhCircleNotch } from '@phosphor-icons/vue';
 
 defineProps<{
     status?: string;
@@ -38,10 +37,7 @@ const submit = () => {
                 </div>
 
                 <div class="my-6 flex items-center justify-start">
-                    <Button class="w-full" :disabled="form.processing">
-                        <PhCircleNotch v-if="form.processing" class="h-4 w-4 animate-spin" />
-                        Email password reset link
-                    </Button>
+                    <Button class="w-full" :loading="form.processing"> Email password reset link </Button>
                 </div>
             </form>
 
