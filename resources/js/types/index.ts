@@ -23,6 +23,8 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
+    sidebarOpen: boolean;
     ziggy: {
         location: string;
         url: string;
