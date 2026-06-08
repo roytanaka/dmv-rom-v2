@@ -57,6 +57,6 @@ import { snippets } from '../snippets';
                 </BreadcrumbList>
             </Breadcrumb>
         </div>
-        <CodeSnippet :code="snippets.breadcrumb" />
+        <CodeSnippet :value="snippets.breadcrumb" />
     </section>
 </template>

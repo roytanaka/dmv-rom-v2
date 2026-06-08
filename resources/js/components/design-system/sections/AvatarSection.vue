@@ -43,6 +43,6 @@ const avatarImage = `data:image/svg+xml,${encodeURIComponent(
                 <code class="text-muted-foreground font-mono text-xs">{{ size }}</code>
             </div>
         </div>
-        <CodeSnippet :code="snippets.avatar" />
+        <CodeSnippet :value="snippets.avatar" />
     </section>
 </template>

@@ -120,7 +120,7 @@ const tableRows: TableSpecimenRow[] = [
                 <Button :variant="row.variant" loading>{{ row.label }}</Button>
             </div>
         </div>
-        <CodeSnippet :code="snippets.button" />
+        <CodeSnippet :value="snippets.button" />
 
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Form inputs</h3>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -150,7 +150,7 @@ const tableRows: TableSpecimenRow[] = [
                 <Input id="ds-input-disabled" placeholder="Volunteer name" disabled />
             </div>
         </div>
-        <CodeSnippet :code="snippets.input" />
+        <CodeSnippet :value="snippets.input" />
 
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Badge</h3>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -168,7 +168,7 @@ const tableRows: TableSpecimenRow[] = [
                 <Badge :variant="row.variant" dot>{{ row.label }}</Badge>
             </div>
         </div>
-        <CodeSnippet :code="snippets.badge" />
+        <CodeSnippet :value="snippets.badge" />
         <DesignNote variant="do" title="Do — keep the destructive badge soft">
             A <code>destructive</code> badge is a calm <em>status</em> (“Cancelled”, “Overdue”), so it uses the soft-tint pattern — the
             <code>destructive-bg</code> wash with solid-token text — like the other status tones. It reads as information, not alarm.
@@ -208,7 +208,7 @@ const tableRows: TableSpecimenRow[] = [
                 </TableBody>
             </Table>
         </div>
-        <CodeSnippet :code="snippets.table" />
+        <CodeSnippet :value="snippets.table" />
 
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Card</h3>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -230,7 +230,7 @@ const tableRows: TableSpecimenRow[] = [
                 </CardFooter>
             </Card>
         </div>
-        <CodeSnippet :code="snippets.card" />
+        <CodeSnippet :value="snippets.card" />
 
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Checkbox</h3>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -252,7 +252,7 @@ const tableRows: TableSpecimenRow[] = [
                 <Label for="ds-check-disabled" class="opacity-50">Locked by your coordinator</Label>
             </div>
         </div>
-        <CodeSnippet :code="snippets.checkbox" />
+        <CodeSnippet :value="snippets.checkbox" />
 
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Dropdown menu</h3>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -283,7 +283,7 @@ const tableRows: TableSpecimenRow[] = [
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
-        <CodeSnippet :code="snippets.dropdown" />
+        <CodeSnippet :value="snippets.dropdown" />
 
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Dialog &amp; tooltip</h3>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -323,8 +323,8 @@ const tableRows: TableSpecimenRow[] = [
                 </Tooltip>
             </TooltipProvider>
         </div>
-        <CodeSnippet :code="snippets.dialog" />
-        <CodeSnippet :code="snippets.tooltip" />
+        <CodeSnippet :value="snippets.dialog" />
+        <CodeSnippet :value="snippets.tooltip" />
 
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Skeleton</h3>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
@@ -338,6 +338,6 @@ const tableRows: TableSpecimenRow[] = [
                 <Skeleton class="h-4 w-1/2" />
             </div>
         </div>
-        <CodeSnippet :code="snippets.skeleton" />
+        <CodeSnippet :value="snippets.skeleton" />
     </section>
 </template>

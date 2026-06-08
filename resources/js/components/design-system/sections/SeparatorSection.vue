@@ -29,6 +29,6 @@ import { snippets } from '../snippets';
             <Separator orientation="vertical" />
             <span>Reports</span>
         </div>
-        <CodeSnippet :code="snippets.separator" />
+        <CodeSnippet :value="snippets.separator" />
     </section>
 </template>
