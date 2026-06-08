@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // The sidebar:state cookie is written client-side by the shadcn
+        // SidebarProvider (document.cookie), so it's unencrypted; except it so
+        // the server can read it back to seed the sidebar's open state.
+        $middleware->encryptCookies(except: ['sidebar:state']);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

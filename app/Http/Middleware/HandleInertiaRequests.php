@@ -45,6 +45,11 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // Persisted sidebar state. The cookie is written client-side by the
+            // shadcn SidebarProvider (raw, hence excepted from encryption in
+            // bootstrap/app.php); seeding it here lets the rail render expanded
+            // or collapsed on first paint without a flash. Defaults to open.
+            'sidebarOpen' => $request->cookie('sidebar:state') !== 'false',
         ]);
     }
 }
