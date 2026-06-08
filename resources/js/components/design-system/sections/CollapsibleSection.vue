@@ -29,6 +29,6 @@ import { snippets } from '../snippets';
                 </CollapsibleContent>
             </Collapsible>
         </div>
-        <CodeSnippet :code="snippets.collapsible" />
+        <CodeSnippet :value="snippets.collapsible" />
     </section>
 </template>

@@ -43,6 +43,6 @@ const navMenuItems = [
                 </NavigationMenuList>
             </NavigationMenu>
         </div>
-        <CodeSnippet :code="snippets.navigationMenu" />
+        <CodeSnippet :value="snippets.navigationMenu" />
     </section>
 </template>

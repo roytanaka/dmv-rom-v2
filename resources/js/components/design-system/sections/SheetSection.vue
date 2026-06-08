@@ -37,6 +37,6 @@ import { snippets } from '../snippets';
                 </SheetContent>
             </Sheet>
         </div>
-        <CodeSnippet :code="snippets.sheet" />
+        <CodeSnippet :value="snippets.sheet" />
     </section>
 </template>
