@@ -13,6 +13,7 @@
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "prepare": "husky",
+        "sandcastle": "npx tsx .sandcastle/main.ts",
         "sail": "sh vendor/bin/sail",
         "sail:up": "sh vendor/bin/sail up -d",
         "sail:down": "sh vendor/bin/sail down",
@@ -21,6 +22,7 @@
         "typecheck": "vue-tsc --noEmit"
     },
     "devDependencies": {
+        "@ai-hero/sandcastle": "^0.8.0",
         "@eslint/js": "^10.0.1",
         "@vue/eslint-config-typescript": "^14.8.0",
         "eslint": "^10.4.1",
