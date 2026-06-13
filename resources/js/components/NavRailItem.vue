@@ -68,9 +68,8 @@ watch(hasActiveDescendant, (active) => {
             </SidebarMenuButton>
 
             <CollapsibleTrigger as-child>
-                <!-- top-0! overrides the primitive's peer-data-[size=lg]/menu-button:top-2.5 variant;
-                     justify-end pr-0.5 keeps the icon at the same x as the default 20px box. -->
-                <SidebarMenuAction class="top-0! aspect-auto h-10 w-8 justify-end pr-0.5">
+                <!-- top-0! overrides the primitive's peer-data-[size=lg]/menu-button:top-2.5 variant;. -->
+                <SidebarMenuAction class="top-0! aspect-auto h-10 w-8 translate-x-1">
                     <PhCaretDown class="transition-transform group-data-[state=open]/collapsible:rotate-180" />
                     <span class="sr-only">{{ t(item.labelKey) }}</span>
                 </SidebarMenuAction>

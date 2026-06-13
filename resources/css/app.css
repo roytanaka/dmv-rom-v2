@@ -236,6 +236,14 @@
         text-rendering: optimizeLegibility;
     }
 
+    /* Tailwind v4 Preflight drops the default pointer cursor on <button>. Restore
+       it once here so interactive controls feel clickable without a per-button
+       utility. Excludes :disabled (Button's disabled:cursor-not-allowed still wins). */
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+
     h1 {
         @apply text-4xl font-bold tracking-tight;
     }

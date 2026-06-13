@@ -19,7 +19,7 @@ const props = defineProps<{
             :value="value"
             :label="label ?? 'Copy code snippet'"
             icon-class="size-4"
-            class="group/snippet bg-background/80 text-muted-foreground/60 hover:text-foreground border-border absolute top-1.5 right-1.5 inline-flex size-7 cursor-pointer items-center justify-center border transition-colors"
+            class="group/snippet bg-background/80 text-muted-foreground/60 hover:text-foreground border-border absolute top-1.5 right-1.5 inline-flex size-7 items-center justify-center border transition-colors"
         />
     </div>
 </template>

@@ -16,7 +16,7 @@ defineProps<{
     <ClipboardCopy
         :value="value"
         :label="label"
-        class="group/copy inline-flex max-w-full cursor-pointer items-center gap-1.5 text-left"
+        class="group/copy inline-flex max-w-full items-center gap-1.5 text-left"
         icon-class="size-3.5 flex-none"
         copy-icon-class="text-muted-foreground/40 group-hover/copy:text-muted-foreground transition-colors"
     >

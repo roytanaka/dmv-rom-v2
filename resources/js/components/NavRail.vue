@@ -32,7 +32,9 @@ const officerItems = computed(() => visibleNodes(railNav.officer.items));
     <Collapsible :default-open="railNav.allGroups.defaultOpen" class="group/all-groups">
         <SidebarGroup class="px-2 py-0">
             <SidebarGroupLabel as-child>
-                <CollapsibleTrigger class="text-sidebar-muted flex w-full items-center justify-between text-xs font-semibold tracking-wide uppercase">
+                <CollapsibleTrigger
+                    class="text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground flex w-full items-center justify-between text-xs font-semibold tracking-wide uppercase"
+                >
                     {{ t(railNav.allGroups.labelKey ?? '') }}
                     <PhCaretDown class="size-4 transition-transform group-data-[state=open]/all-groups:rotate-180" />
                 </CollapsibleTrigger>
