@@ -68,7 +68,12 @@ watch(hasActiveDescendant, (active) => {
             </SidebarMenuButton>
 
             <CollapsibleTrigger as-child>
-                <SidebarMenuAction>
+                <!-- Grow the toggle's hit area to the full row height and a wider right strip,
+                     so it's easy to click and visibly its own target. The icon stays put: full
+                     height keeps it vertically centred on the row, while justify-end + matching
+                     right padding pin it to the same x it had in the original 20px box. The
+                     extra width is claimed from the row's right edge, not the link's label. -->
+                <SidebarMenuAction class="top-0! aspect-auto h-10 w-8 justify-end pr-0.5">
                     <PhCaretDown class="transition-transform group-data-[state=open]/collapsible:rotate-180" />
                     <span class="sr-only">{{ t(item.labelKey) }}</span>
                 </SidebarMenuAction>
