@@ -32,17 +32,19 @@ const TARGET_BRANCH = 'staging';
 // host node_modules is macOS-arch and is deliberately NOT copied in (that would
 // break esbuild/rollup/lightningcss native bindings), so there is no
 // copyToWorktree here — the sandbox installs cleanly each iteration.
+//
+// onSandboxReady commands run in PARALLEL, so this must be a single sequential
+// chain: key:generate needs vendor/ (composer) in place first, and Vite needs
+// node_modules (pnpm). One command keeps the order deterministic.
 const hooks = {
     sandbox: {
         onSandboxReady: [
             {
-                command: 'composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader',
-                timeoutMs: 600_000,
-            },
-            { command: 'pnpm install --frozen-lockfile', timeoutMs: 600_000 },
-            {
-                command: 'cp .env.example .env && php artisan key:generate',
-                timeoutMs: 60_000,
+                command:
+                    'composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader && ' +
+                    'pnpm install --frozen-lockfile && ' +
+                    'cp .env.example .env && php artisan key:generate',
+                timeoutMs: 900_000,
             },
         ],
     },
