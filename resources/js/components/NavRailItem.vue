@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/sidebar';
 import { visibleNodes } from '@/chrome/gating';
 import type { RailNode } from '@/chrome/types';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { PhCaretDown } from '@phosphor-icons/vue';
@@ -31,7 +32,10 @@ import { computed, ref, watch } from 'vue';
 const props = withDefaults(defineProps<{ item: RailNode; defaultOpen?: boolean }>(), { defaultOpen: false });
 
 const page = usePage<SharedData>();
-const isActive = (href: string) => href === page.url;
+// Fixture hrefs are English-canonical; localise to the active locale so rail
+// navigation stays in-locale and the active row matches under /fr/ (ADR-0008).
+const localizeHref = useLocalizedHref();
+const isActive = (href: string) => localizeHref(href) === page.url;
 
 // Group name (content) → verbatim; structural node → translated label (chrome).
 const label = (node: RailNode) => ('name' in node ? node.name : trans(node.labelKey));
@@ -60,7 +64,7 @@ watch(hasActiveDescendant, (active) => {
                 <component :is="item.icon" v-if="item.icon" />
                 <span>{{ label(item) }}</span>
             </a>
-            <Link v-else :href="item.href">
+            <Link v-else :href="localizeHref(item.href)">
                 <component :is="item.icon" v-if="item.icon" />
                 <span>{{ label(item) }}</span>
             </Link>
@@ -71,7 +75,7 @@ watch(hasActiveDescendant, (active) => {
     <Collapsible v-else v-model:open="open" as-child class="group/collapsible">
         <SidebarMenuItem>
             <SidebarMenuButton as-child size="lg" :is-active="isActive(item.href)" class="h-10 text-sm">
-                <Link :href="item.href">
+                <Link :href="localizeHref(item.href)">
                     <component :is="item.icon" v-if="item.icon" />
                     <span>{{ label(item) }}</span>
                 </Link>
@@ -91,7 +95,7 @@ watch(hasActiveDescendant, (active) => {
                 <SidebarMenuSub>
                     <SidebarMenuSubItem v-for="child in children" :key="child.href">
                         <SidebarMenuSubButton as-child :is-active="isActive(child.href)" class="text-sm">
-                            <Link :href="child.href">
+                            <Link :href="localizeHref(child.href)">
                                 <span>{{ label(child) }}</span>
                             </Link>
                         </SidebarMenuSubButton>

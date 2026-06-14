@@ -26,10 +26,21 @@ export interface SharedData {
     /** Active locale, resolved server-side from the URL (ADR-0008). */
     locale: string;
     /**
-     * Target of the avatar-menu Language switcher: the current page's twin in
-     * the other locale, or null when the page has no registered twin (#110).
+     * Per-locale URI-segment translation table (non-default locales only), used by
+     * `useLocalizedHref` to keep English-canonical nav hrefs in the active locale
+     * (ADR-0008). Keyed locale → { englishSegment: localisedSegment }.
      */
-    localeSwitch: { locale: string; url: string } | null;
+    routeSegments: Record<string, Record<string, string>>;
+    /**
+     * Top-bar language switcher: the active locale plus one option per supported
+     * locale. Each option's `url` is the current page's twin in that locale, or
+     * null when there is no twin (the active locale, or a page with no twin) —
+     * those render disabled (ADR-0008 / #110).
+     */
+    localeSwitcher: {
+        current: string;
+        options: Array<{ code: string; label: string; url: string | null }>;
+    };
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
     sidebarOpen: boolean;
     ziggy: {

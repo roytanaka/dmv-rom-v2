@@ -5,7 +5,12 @@
 // (heritage-blue link hover, ink current page) renders the trail. Titles come from
 // the page, so they are translatable at the source.
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import type { BreadcrumbItemType } from '@/types';
+
+// Breadcrumb hrefs come from each page English-canonical; localise to the active
+// locale so the trail's links stay in-locale (ADR-0008).
+const localizeHref = useLocalizedHref();
 
 withDefaults(
     defineProps<{
@@ -27,7 +32,7 @@ withDefaults(
                             <BreadcrumbPage>{{ item.title }}</BreadcrumbPage>
                         </template>
                         <template v-else>
-                            <BreadcrumbLink :href="item.href">
+                            <BreadcrumbLink :href="localizeHref(item.href)">
                                 {{ item.title }}
                             </BreadcrumbLink>
                         </template>

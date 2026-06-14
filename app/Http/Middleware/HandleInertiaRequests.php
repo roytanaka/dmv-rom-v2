@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Str;
 use Inertia\Middleware;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
@@ -47,12 +48,17 @@ class HandleInertiaRequests extends Middleware
             // (ADR-0008). Surfaced so the laravel-vue-i18n bridge boots in the right
             // locale on first paint (the prop is in the initial Inertia payload).
             'locale' => app()->getLocale(),
-            // Target of the avatar-menu Language switcher (#110): the current
-            // page's twin in the other locale, built from the registered
-            // translated route so the Volunteer keeps their place. Null on any
-            // page that has no twin, so the switcher is hidden rather than
-            // offering a link that 404s.
-            'localeSwitch' => $this->localeSwitch($request),
+            // Per-locale URI-segment translation table, for localising the static
+            // nav hrefs (the fixture authors them English-canonical) so in-app
+            // navigation stays in the active locale instead of reverting to English
+            // (ADR-0008). Keyed by non-default locale → { englishSegment: localised }.
+            'routeSegments' => $this->routeSegments(),
+            // Top-bar language switcher (ADR-0013): the active locale plus every
+            // supported locale's twin URL for the current page. Each option's url
+            // is the page's twin in that locale, or null when no twin is
+            // registered — the option renders disabled rather than offering a link
+            // that 404s (ADR-0008 / #110).
+            'localeSwitcher' => $this->localeSwitcher($request),
             'auth' => [
                 'user' => $request->user(),
             ],
@@ -65,45 +71,111 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Resolve the Language switcher's target: the current page's twin in the
-     * other locale, or null when the current page has no registered twin.
+     * Resolve the top-bar language switcher: the active locale and one option per
+     * supported locale, each carrying the current page's twin URL in that locale.
      *
-     * The twin is computed via LaravelLocalization::getLocalizedURL() for the
-     * current route (ADR-0008). We only offer it when the current path is a
-     * registered translated route AND the other locale has a segment for it —
-     * pages outside the localized route group (auth, settings, design-system)
-     * have no twin and the switcher is hidden.
+     * A locale's url is null when the current page has no registered twin in it —
+     * the active locale (no self-link needed) and any locale outside the page's
+     * localized route group (auth, settings, design-system). The component renders
+     * those disabled so we never offer a link that 404s (ADR-0008 / #110).
      *
-     * @return array{locale: string, url: string}|null
+     * @return array{current: string, options: list<array{code: string, label: string, url: string|null}>}
      */
-    private function localeSwitch(Request $request): ?array
+    private function localeSwitcher(Request $request): array
     {
         $current = app()->getLocale();
-
-        $target = collect(array_keys(LaravelLocalization::getSupportedLocales()))
-            ->first(fn (string $locale) => $locale !== $current);
-
-        if ($target === null) {
-            return null;
-        }
-
         $routeName = $request->route()?->getName();
 
-        if ($routeName === null || ! Lang::has("routes.{$routeName}", $target)) {
+        $options = collect(LaravelLocalization::getSupportedLocales())
+            ->map(fn (array $props, string $code) => [
+                'code' => $code,
+                'label' => $this->localeLabel($code, $props),
+                'url' => $code === $current ? null : $this->twinUrl($request, $routeName, $code),
+            ])
+            ->values()
+            ->all();
+
+        return ['current' => $current, 'options' => $options];
+    }
+
+    /**
+     * The current page's twin URL in the given locale, or null when no twin is
+     * registered (the route has no segment translation for that locale).
+     */
+    private function twinUrl(Request $request, ?string $routeName, string $locale): ?string
+    {
+        if ($routeName === null || ! Lang::has("routes.{$routeName}", $locale)) {
             return null;
         }
 
+        // Build via route name + params rather than the raw URL string.
+        // getLocalizedURL(url) must reverse-match the path to a route before
+        // applying the segment table — a step that fails FR→EN on the dynamic
+        // group route and leaves /groupes untranslated (#121, ADR-0008).
+        return LaravelLocalization::getURLFromRouteNameTranslated(
+            $locale,
+            "routes.{$routeName}",
+            $request->route()->parameters(),
+        );
+    }
+
+    /**
+     * The switcher label for a locale — its autonym (the language named in itself:
+     * English, Français), falling back to the configured native name.
+     *
+     * @param  array{native?: string}  $props
+     */
+    private function localeLabel(string $code, array $props): string
+    {
         return [
-            'locale' => $target,
-            // Build via route name + params rather than the raw URL string.
-            // getLocalizedURL(url) must reverse-match the path to a route before
-            // applying the segment table — a step that fails FR→EN on the dynamic
-            // group route and leaves /groupes untranslated (#121, ADR-0008).
-            'url' => LaravelLocalization::getURLFromRouteNameTranslated(
-                $target,
-                "routes.{$routeName}",
-                $request->route()->parameters(),
-            ),
-        ];
+            'en' => 'English',
+            'fr' => 'Français',
+        ][$code] ?? Str::ucfirst($props['native'] ?? $code);
+    }
+
+    /**
+     * URI-segment translation table per non-default locale, derived from the route
+     * tables (lang/{locale}/routes.php) so the segment words stay single-sourced.
+     *
+     * The frontend localises English-canonical nav hrefs by mapping each path
+     * segment through this table (slugs and {params} pass through unchanged), so a
+     * Volunteer on /fr/… navigates to /fr/… twins rather than reverting to English.
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function routeSegments(): array
+    {
+        $default = LaravelLocalization::getDefaultLocale();
+        $base = Lang::get('routes', [], $default);
+
+        $out = [];
+
+        foreach (array_keys(LaravelLocalization::getSupportedLocales()) as $locale) {
+            if ($locale === $default) {
+                continue;
+            }
+
+            $target = Lang::get('routes', [], $locale);
+            $dict = [];
+
+            foreach ($base as $key => $basePattern) {
+                $baseSegs = explode('/', $basePattern);
+                $targetSegs = explode('/', $target[$key] ?? $basePattern);
+
+                foreach ($baseSegs as $i => $segment) {
+                    $localised = $targetSegs[$i] ?? $segment;
+
+                    // Only record words that actually differ; skip {param}
+                    // placeholders (group slugs are content, never translated).
+                    if ($segment !== $localised && ! str_starts_with($segment, '{')) {
+                        $dict[$segment] = $localised;
+                    }
+                }
+            }
+
+            $out[$locale] = $dict;
+        }
+
+        return $out;
     }
 }

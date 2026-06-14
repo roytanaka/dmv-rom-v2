@@ -4,7 +4,7 @@ import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSep
 import type { SharedData, User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhSignOut, PhTranslate, PhUserCircle } from '@phosphor-icons/vue';
+import { PhCheck, PhGlobe, PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
 interface Props {
@@ -15,9 +15,11 @@ defineProps<Props>();
 
 const page = usePage<SharedData>();
 
-// A plain anchor (not an Inertia <Link>) forces a full page load so the i18n
-// bridge re-boots in the target locale (#110).
-const localeSwitch = computed(() => page.props.localeSwitch);
+// The language switcher's locale list (ADR-0013). On desktop this lives in the
+// top-bar globe (LanguageSwitcher); below lg the globe is hidden and the same list
+// renders here (the lg:hidden group below). It is a SELECTABLE list with a checkmark
+// on the active locale — never a toggle — so the current selection is always visible.
+const localeSwitcher = computed(() => page.props.localeSwitcher);
 </script>
 
 <template>
@@ -34,16 +36,37 @@ const localeSwitch = computed(() => page.props.localeSwitch);
                 {{ trans('user.profile') }}
             </Link>
         </DropdownMenuItem>
-        <!-- Language switcher — navigates to the current page's twin in the other
-             locale (ADR-0008). Hidden when the page has no registered twin. -->
-        <DropdownMenuItem v-if="localeSwitch" class="py-2.5" :as-child="true">
-            <a class="flex w-full items-center" :href="localeSwitch.url">
-                <PhTranslate class="mr-2 h-4 w-4" />
-                {{ trans('user.language') }}
-                <span class="text-muted-foreground ml-auto text-xs">{{ localeSwitch.locale.toUpperCase() }}</span>
-            </a>
-        </DropdownMenuItem>
     </DropdownMenuGroup>
+
+    <!-- Language — below lg only (desktop uses the top-bar globe). A selectable list
+         with a checkmark on the active locale; a plain anchor forces a full page load
+         so the i18n bridge re-boots (#110). Locales with no twin render disabled. -->
+    <template v-if="localeSwitcher.options.length">
+        <DropdownMenuSeparator class="lg:hidden" />
+        <DropdownMenuGroup class="lg:hidden">
+            <DropdownMenuLabel class="text-muted-foreground px-2 py-1.5 text-xs font-normal">
+                {{ trans('user.language') }}
+            </DropdownMenuLabel>
+            <template v-for="opt in localeSwitcher.options" :key="opt.code">
+                <DropdownMenuItem v-if="opt.code === localeSwitcher.current" class="py-2.5">
+                    <PhGlobe class="mr-2 h-4 w-4" />
+                    {{ opt.label }}
+                    <PhCheck class="ml-auto h-4 w-4" />
+                </DropdownMenuItem>
+                <DropdownMenuItem v-else-if="opt.url" class="py-2.5" :as-child="true">
+                    <a class="flex w-full items-center" :href="opt.url">
+                        <PhGlobe class="mr-2 h-4 w-4" />
+                        {{ opt.label }}
+                    </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem v-else class="py-2.5" disabled>
+                    <PhGlobe class="mr-2 h-4 w-4" />
+                    {{ opt.label }}
+                </DropdownMenuItem>
+            </template>
+        </DropdownMenuGroup>
+    </template>
+
     <DropdownMenuSeparator />
     <DropdownMenuItem class="py-2.5" :as-child="true">
         <Link class="block w-full" method="post" :href="route('logout')" as="button">

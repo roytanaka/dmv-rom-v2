@@ -14,6 +14,7 @@
 // External tabs (e.g. Renew Membership) render as visibly outbound links.
 import type { NavNode } from '@/chrome/types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { useMediaQuery, useScroll } from '@vueuse/core';
@@ -24,7 +25,11 @@ import { computed, ref } from 'vue';
 const props = defineProps<{ items: NavNode[] }>();
 
 const page = usePage<SharedData>();
-const isActive = (href: string) => href === page.url;
+// Hrefs are English-canonical in the fixture; localise them to the active locale so
+// navigation stays in-locale (ADR-0008), and match the active tab against the
+// localised href.
+const localizeHref = useLocalizedHref();
+const isActive = (href: string) => localizeHref(href) === page.url;
 
 // The single break: at/above lg the full Group Menu fits as tabs; below it can't.
 const isWide = useMediaQuery('(min-width: 1024px)');
@@ -72,7 +77,7 @@ const maskImage = computed(() => {
 
             <Link
                 v-else
-                :href="item.href"
+                :href="localizeHref(item.href)"
                 :aria-current="isActive(item.href) ? 'page' : undefined"
                 :class="[
                     'flex shrink-0 items-center border-b-2 px-3 text-sm whitespace-nowrap transition-colors',
@@ -104,7 +109,11 @@ const maskImage = computed(() => {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem v-else :as-child="true" :class="['gap-3 py-3 text-base', isActive(item.href) ? 'text-rom-ink font-semibold' : '']">
-                    <Link :href="item.href" :aria-current="isActive(item.href) ? 'page' : undefined" class="flex w-full items-center gap-3">
+                    <Link
+                        :href="localizeHref(item.href)"
+                        :aria-current="isActive(item.href) ? 'page' : undefined"
+                        class="flex w-full items-center gap-3"
+                    >
                         <component :is="item.icon" v-if="item.icon" class="size-5 opacity-70" />
                         <span>{{ trans(item.labelKey) }}</span>
                     </Link>
