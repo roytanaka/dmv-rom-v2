@@ -4,7 +4,9 @@ namespace App\Http\Middleware;
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Middleware;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -45,6 +47,12 @@ class HandleInertiaRequests extends Middleware
             // (ADR-0008). Surfaced so the laravel-vue-i18n bridge boots in the right
             // locale on first paint (the prop is in the initial Inertia payload).
             'locale' => app()->getLocale(),
+            // Target of the avatar-menu Language switcher (#110): the current
+            // page's twin in the other locale, built from the registered
+            // translated route so the Volunteer keeps their place. Null on any
+            // page that has no twin, so the switcher is hidden rather than
+            // offering a link that 404s.
+            'localeSwitch' => $this->localeSwitch($request),
             'auth' => [
                 'user' => $request->user(),
             ],
@@ -54,5 +62,47 @@ class HandleInertiaRequests extends Middleware
             // or collapsed on first paint without a flash. Defaults to open.
             'sidebarOpen' => $request->cookie('sidebar:state') !== 'false',
         ]);
+    }
+
+    /**
+     * Resolve the Language switcher's target: the current page's twin in the
+     * other locale, or null when the current page has no registered twin.
+     *
+     * The twin is computed via LaravelLocalization::getLocalizedURL() for the
+     * current route (ADR-0008). We only offer it when the current path is a
+     * registered translated route AND the other locale has a segment for it —
+     * pages outside the localized route group (auth, settings, design-system)
+     * have no twin and the switcher is hidden.
+     *
+     * @return array{locale: string, url: string}|null
+     */
+    private function localeSwitch(Request $request): ?array
+    {
+        $current = app()->getLocale();
+
+        $target = collect(array_keys(LaravelLocalization::getSupportedLocales()))
+            ->first(fn (string $locale) => $locale !== $current);
+
+        if ($target === null) {
+            return null;
+        }
+
+        // A page has a twin only if its route is a localized route — i.e. its
+        // name maps to a `routes.*` segment registered for the target locale
+        // (ADR-0008). Routes outside the localized group (home, auth, settings,
+        // design-system) have no such key, so the switcher stays hidden.
+        $routeName = $request->route()?->getName();
+
+        if ($routeName === null || ! Lang::has("routes.{$routeName}", $target)) {
+            return null;
+        }
+
+        return [
+            'locale' => $target,
+            // Resolve the twin from the current URL explicitly rather than the
+            // package's internally-held request, which is bound once at route
+            // registration and would otherwise resolve the wrong path.
+            'url' => LaravelLocalization::getLocalizedURL($target, $request->fullUrl()),
+        ];
     }
 }
