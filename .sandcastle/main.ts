@@ -61,15 +61,97 @@ function sh(command: string): string {
     }).trim();
 }
 
+// Run a command for its output, swallowing failures (non-zero exit -> '').
+// Used by the cleanup checks below, where "command failed" is just "no".
+function tryCapture(command: string): string {
+    try {
+        return execSync(command, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    } catch {
+        return '';
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Worktree cleanup
+// ---------------------------------------------------------------------------
+//
+// sandcastle.createSandbox({ branch }) materializes a git worktree under
+// .sandcastle/worktrees/ for every iteration. sandbox.close() tears down the
+// Docker sandbox but NOT the worktree, and `gh pr merge --delete-branch` only
+// removes the *remote* branch — the local branch can't be deleted while it's
+// still checked out in the leftover worktree. So worktrees + local branches
+// pile up one per iteration. This prunes them.
+//
+// HARD INVARIANT: never delete un-pushed work. A worktree is removed only when
+// it is provably safe — it is clean (no uncommitted/untracked changes) AND its
+// work is preserved elsewhere (branch pushed to origin, OR its PR is merged, OR
+// the branch has no unique commits over the target branch). Anything else is
+// left intact and logged, so a crashed-mid-edit or never-pushed iteration stays
+// recoverable by hand. `git worktree remove` is called WITHOUT --force, so git
+// itself refuses to remove a dirty worktree as a backstop even if the explicit
+// checks somehow miss it.
+//
+// Called once at startup (to sweep crash-recovery leftovers from prior runs)
+// and after each iteration's merge gate (to clean up the iteration that just
+// landed). Idempotent: only ever removes worktrees that pass the safety check.
+function pruneAgentWorktrees(): void {
+    sh('git worktree prune');
+
+    // Parse `git worktree list --porcelain` into { path, branch } records,
+    // keeping only our agent/night/* worktrees.
+    const out = tryCapture('git worktree list --porcelain');
+    const trees: { path: string; branch: string }[] = [];
+    let path = '';
+    for (const line of out.split('\n')) {
+        if (line.startsWith('worktree ')) {
+            path = line.slice('worktree '.length);
+        } else if (line.startsWith('branch refs/heads/')) {
+            const branch = line.slice('branch refs/heads/'.length);
+            if (branch.startsWith('agent/night/')) trees.push({ path, branch });
+        }
+    }
+
+    for (const { path, branch } of trees) {
+        const dirty = tryCapture(`git -C "${path}" status --porcelain`) !== '';
+        if (dirty) {
+            console.warn(`Keeping ${branch}: worktree has uncommitted changes.`);
+            continue;
+        }
+
+        const pushed = tryCapture(`git ls-remote --heads origin "${branch}"`) !== '';
+        const merged = tryCapture(`gh pr list --head "${branch}" --state merged --json number -q '.[0].number'`) !== '';
+        const noUniqueCommits = tryCapture(`git rev-list --count ${TARGET_BRANCH}..${branch}`) === '0';
+        if (!(pushed || merged || noUniqueCommits)) {
+            console.warn(`Keeping ${branch}: has un-pushed commits and no merged PR.`);
+            continue;
+        }
+
+        try {
+            sh(`git worktree remove "${path}"`); // no --force: dirty-tree backstop
+            tryCapture(`git branch -D "${branch}"`); // may already be gone (--delete-branch)
+            console.log(`Pruned worktree + branch ${branch}.`);
+        } catch {
+            console.warn(`Could not remove worktree for ${branch} — leaving it for manual review.`);
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Main loop
 // ---------------------------------------------------------------------------
+
+// Safety net: sweep any worktrees left behind by a previous run that crashed
+// or was interrupted before its per-iteration cleanup ran (Decision 1/3).
+pruneAgentWorktrees();
 
 for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     console.log(`\n=== Iteration ${iteration}/${MAX_ITERATIONS} ===\n`);
 
     // Always fork off the latest staging so each issue builds on merged work.
+    // --prune drops the stale origin/agent/night/* tracking ref left behind
+    // when the previous iteration's PR merged with --delete-branch.
     sh(`git checkout ${TARGET_BRANCH}`);
+    sh(`git fetch --prune origin`);
     sh(`git pull --ff-only`);
 
     const branch = `agent/night/${Date.now()}`;
@@ -118,6 +200,11 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     } catch {
         console.warn(`CI failed or no PR for ${branch} — leaving it open for the morning review.`);
     }
+
+    // Clean up this iteration's worktree (and any other now-safe leftovers).
+    // A merged iteration is removed here; a CI-failed-but-pushed one has its
+    // local worktree removed while the PR/branch stay on GitHub for review.
+    pruneAgentWorktrees();
 }
 
 console.log('\nNight shift complete.');
