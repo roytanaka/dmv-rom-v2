@@ -8,8 +8,7 @@
 // department name are institutional strings, excluded from machine translation.
 import { trans } from 'laravel-vue-i18n';
 
-// Copyright spans a fixed start year to the current year, computed at render — only
-// the org name is translated copy.
+// Copyright spans a fixed start year to the current year, computed at render.
 const startYear = '2011';
 const currentYear = String(new Date().getFullYear());
 </script>

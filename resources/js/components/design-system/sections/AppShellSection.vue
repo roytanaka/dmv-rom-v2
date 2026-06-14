@@ -246,7 +246,9 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
             <div class="mx-auto flex max-w-5xl flex-col gap-4 text-sm">
                 <p>{{ trans('institutional.land_acknowledgement') }}</p>
                 <p>{{ trans('institutional.inclusion') }}</p>
-                <p class="text-xs text-white/45">© 2011–2026 {{ trans('institutional.department') }}</p>
+                <p class="text-xs text-white/45">
+                    {{ trans('footer.copyright', { start: '2011', current: '2026', org: trans('institutional.department') }) }}
+                </p>
             </div>
         </div>
     </section>
