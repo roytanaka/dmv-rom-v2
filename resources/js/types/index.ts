@@ -23,6 +23,13 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    /** Active locale, resolved server-side from the URL (ADR-0008). */
+    locale: string;
+    /**
+     * Target of the avatar-menu Language switcher: the current page's twin in
+     * the other locale, or null when the page has no registered twin (#110).
+     */
+    localeSwitch: { locale: string; url: string } | null;
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
     sidebarOpen: boolean;
     ziggy: {

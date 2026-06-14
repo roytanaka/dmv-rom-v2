@@ -1,16 +1,23 @@
 <script setup lang="ts">
 import UserInfo from '@/components/UserInfo.vue';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import type { User } from '@/types';
-import { Link } from '@inertiajs/vue3';
+import type { SharedData, User } from '@/types';
+import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { PhSignOut, PhTranslate, PhUserCircle } from '@phosphor-icons/vue';
+import { computed } from 'vue';
 
 interface Props {
     user: User;
 }
 
 defineProps<Props>();
+
+const page = usePage<SharedData>();
+
+// A plain anchor (not an Inertia <Link>) forces a full page load so the i18n
+// bridge re-boots in the target locale (#110).
+const localeSwitch = computed(() => page.props.localeSwitch);
 </script>
 
 <template>
@@ -27,11 +34,14 @@ defineProps<Props>();
                 {{ trans('user.profile') }}
             </Link>
         </DropdownMenuItem>
-        <!-- Language preference — disabled until bilingual routing (ADR-0008/0013). -->
-        <DropdownMenuItem class="py-2.5" disabled>
-            <PhTranslate class="mr-2 h-4 w-4" />
-            {{ trans('user.language') }}
-            <span class="text-muted-foreground ml-auto text-xs">EN / FR</span>
+        <!-- Language switcher — navigates to the current page's twin in the other
+             locale (ADR-0008). Hidden when the page has no registered twin. -->
+        <DropdownMenuItem v-if="localeSwitch" class="py-2.5" :as-child="true">
+            <a class="flex w-full items-center" :href="localeSwitch.url">
+                <PhTranslate class="mr-2 h-4 w-4" />
+                {{ trans('user.language') }}
+                <span class="text-muted-foreground ml-auto text-xs">{{ localeSwitch.locale.toUpperCase() }}</span>
+            </a>
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
