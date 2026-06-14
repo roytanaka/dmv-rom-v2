@@ -4,13 +4,35 @@
 // Vue (laravel-vue-i18n `trans`). Only chrome is translated; Volunteer-authored
 // Group names render as-authored and never enter this lookup (ADR-0004).
 //
-// Tracer-bullet scope (#105): rail section headings only. The remaining nav keys
-// migrate from resources/js/chrome/messages.ts in #106.
+// Rail headings, the Zone A personal tab set, and the Zone C officer cluster all
+// live here (#106, migrated from resources/js/chrome/messages.ts). Group NAMES are
+// content and are NOT keyed here — they render as-authored from the nav fixture.
 return [
     'rail' => [
         'my_groups' => 'My Groups',
         'all_groups' => 'All Groups',
         'officer' => 'Officer Tools',
+    ],
+
+    // Zone A — personal/global (the Dashboard top-bar tab set). `renew` leaves the
+    // app for the ROM renewal site; its label is still chrome.
+    'personal' => [
+        'calendar' => 'My Calendar',
+        'hours' => 'My Hours',
+        'directory' => 'Directory',
+        'documents' => 'Documents',
+        'news' => 'News',
+        'profile' => 'My Profile',
+        'renew' => 'Renew Membership',
+    ],
+
+    // Zone C — officer/admin cluster (rail, pinned bottom, officer-only).
+    'officer' => [
+        'members' => 'Members',
+        'communications' => 'Communications',
+        'reports' => 'Reports',
+        'flash_messages' => 'Flash Messages',
+        'dmv_settings' => 'DMV Settings',
     ],
 
     // Accessible name for the split-rail chevron that expands/collapses a Group's

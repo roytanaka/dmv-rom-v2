@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { groupMenus, zoneA } from '@/chrome/fixture';
 import { t } from '@/chrome/messages';
+import { trans } from 'laravel-vue-i18n';
 import {
     PhBuildings,
     PhCaretDown,
@@ -20,14 +21,15 @@ import {
 // contextual, so it is documented here with static fragments + prose — not embedded
 // live (a live nav inside a page about the nav would be confusing and would forfeit
 // clean breakpoint/state demos). The two contextual tab sets read the REAL chrome
-// fixture through `t()`, so the labels match the running app and demonstrate that
-// the top-bar section nav changes by context: Zone A on the Dashboard, else the
-// active Group's Menu. The active section is fixed here for the static specimen.
-const shellZoneATabs = zoneA.map((node, i) => ({ label: t(node.labelKey), active: i === 0 }));
+// fixture through the i18n bridge (`trans()`), so the labels match the running app
+// and demonstrate that the top-bar section nav changes by context: Zone A on the
+// Dashboard, else the active Group's Menu. The active section is fixed here for the
+// static specimen.
+const shellZoneATabs = zoneA.map((node, i) => ({ label: trans(node.labelKey), active: i === 0 }));
 const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
-    label: t(node.labelKey),
+    label: trans(node.labelKey),
     // "Schedule" is the illustrative current section (mirrors ADR-0013's example).
-    active: node.labelKey === 'nav.section.docents.schedule',
+    active: node.labelKey === 'section.docents.schedule',
 }));
 </script>
 

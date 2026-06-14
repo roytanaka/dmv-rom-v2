@@ -12,12 +12,12 @@
 //     a consistent set every time (horizontal scroll is undiscoverable for the DMV's
 //     aging volunteers; see ADR-0013).
 // External tabs (e.g. Renew Membership) render as visibly outbound links.
-import { t } from '@/chrome/messages';
 import type { NavNode } from '@/chrome/types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { useMediaQuery, useScroll } from '@vueuse/core';
+import { trans } from 'laravel-vue-i18n';
 import { PhCaretDown, PhList } from '@phosphor-icons/vue';
 import { computed, ref } from 'vue';
 
@@ -32,7 +32,7 @@ const isWide = useMediaQuery('(min-width: 1024px)');
 // The section to name on the collapsed trigger: the active one, else the first.
 const activeLabel = computed(() => {
     const active = props.items.find((i) => isActive(i.href));
-    return t((active ?? props.items[0])?.labelKey ?? '');
+    return trans((active ?? props.items[0])?.labelKey ?? '');
 });
 
 // Edge fade — the strip is horizontally scrollable, so we fade the side that has
@@ -66,7 +66,7 @@ const maskImage = computed(() => {
                 rel="noopener noreferrer"
                 class="flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-3 text-sm whitespace-nowrap text-white/70 transition-colors hover:text-white"
             >
-                <span>{{ t(item.labelKey) }}</span>
+                <span>{{ trans(item.labelKey) }}</span>
                 <component :is="item.icon" v-if="item.icon" class="size-4 opacity-80" />
             </a>
 
@@ -79,7 +79,7 @@ const maskImage = computed(() => {
                     isActive(item.href) ? 'border-rom-slate-300 text-rom-slate-300' : 'border-transparent text-white/70 hover:text-white',
                 ]"
             >
-                <span>{{ t(item.labelKey) }}</span>
+                <span>{{ trans(item.labelKey) }}</span>
             </Link>
         </template>
     </nav>
@@ -99,14 +99,14 @@ const maskImage = computed(() => {
                 <DropdownMenuItem v-if="item.external" :as-child="true" class="gap-3 py-3 text-base">
                     <a :href="item.href" target="_blank" rel="noopener noreferrer" class="flex w-full items-center gap-3">
                         <component :is="item.icon" v-if="item.icon" class="size-5 opacity-70" />
-                        <span>{{ t(item.labelKey) }}</span>
+                        <span>{{ trans(item.labelKey) }}</span>
                     </a>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem v-else :as-child="true" :class="['gap-3 py-3 text-base', isActive(item.href) ? 'text-rom-ink font-semibold' : '']">
                     <Link :href="item.href" :aria-current="isActive(item.href) ? 'page' : undefined" class="flex w-full items-center gap-3">
                         <component :is="item.icon" v-if="item.icon" class="size-5 opacity-70" />
-                        <span>{{ t(item.labelKey) }}</span>
+                        <span>{{ trans(item.labelKey) }}</span>
                     </Link>
                 </DropdownMenuItem>
             </template>

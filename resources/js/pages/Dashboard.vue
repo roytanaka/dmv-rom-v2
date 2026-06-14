@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { launcherGrids } from '@/chrome/fixture';
 import { isNodeVisible } from '@/chrome/gating';
-import { t } from '@/chrome/messages';
 import GroupTile from '@/components/GroupTile.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -27,7 +27,7 @@ const grids = computed(() => launcherGrids.filter(isNodeVisible));
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-6">
             <section v-for="grid in grids" :key="grid.labelKey">
-                <h2 class="text-rom-ink mb-3 text-sm font-semibold tracking-wide uppercase">{{ t(grid.labelKey) }}</h2>
+                <h2 class="text-rom-ink mb-3 text-sm font-semibold tracking-wide uppercase">{{ trans(grid.labelKey) }}</h2>
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
                     <GroupTile v-for="item in grid.items" :key="item.href" :item="item" />
                 </div>

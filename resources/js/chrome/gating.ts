@@ -32,7 +32,11 @@ export function isNodeVisible(node: Gated): boolean {
     return true;
 }
 
-/** Filter a node list (recursively, including children) down to the visible nodes. */
-export function visibleNodes<T extends NavNode>(nodes: T[]): T[] {
+/**
+ * Filter a node list (recursively, including children) down to the visible nodes.
+ * Constrained structurally (gating fields + optional children), not to `NavNode`,
+ * so it filters both structural {@link NavNode}s and content {@link GroupNode}s.
+ */
+export function visibleNodes<T extends Gated & { children?: T[] }>(nodes: T[]): T[] {
     return nodes.filter(isNodeVisible).map((node) => (node.children ? { ...node, children: visibleNodes(node.children) } : node));
 }
