@@ -7,9 +7,9 @@ import NavRailItem from '@/components/NavRailItem.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu } from '@/components/ui/sidebar';
 import { visibleNodes } from '@/chrome/gating';
-import { t } from '@/chrome/messages';
 import { railNav } from '@/chrome/fixture';
 import { PhCaretDown } from '@phosphor-icons/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
 const myGroups = computed(() => visibleNodes(railNav.myGroups.items));
@@ -21,7 +21,7 @@ const officerItems = computed(() => visibleNodes(railNav.officer.items));
     <!-- Zone B — My Groups (lead) -->
     <SidebarGroup class="px-2 py-0">
         <SidebarGroupLabel class="text-sidebar-muted text-xs font-semibold tracking-wide uppercase">{{
-            t(railNav.myGroups.labelKey ?? '')
+            trans(railNav.myGroups.labelKey ?? '')
         }}</SidebarGroupLabel>
         <SidebarMenu>
             <NavRailItem v-for="item in myGroups" :key="item.href" :item="item" :default-open="true" />
@@ -35,7 +35,7 @@ const officerItems = computed(() => visibleNodes(railNav.officer.items));
                 <CollapsibleTrigger
                     class="text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground flex w-full items-center justify-between text-xs font-semibold tracking-wide uppercase"
                 >
-                    {{ t(railNav.allGroups.labelKey ?? '') }}
+                    {{ trans(railNav.allGroups.labelKey ?? '') }}
                     <PhCaretDown class="size-4 transition-transform group-data-[state=open]/all-groups:rotate-180" />
                 </CollapsibleTrigger>
             </SidebarGroupLabel>
@@ -52,7 +52,7 @@ const officerItems = computed(() => visibleNodes(railNav.officer.items));
     <!-- Zone C — officer/admin (pinned bottom, officer-only) -->
     <SidebarGroup v-if="officerItems.length" class="mt-auto px-2 py-0">
         <SidebarGroupLabel class="text-sidebar-muted text-xs font-semibold tracking-wide uppercase">{{
-            t(railNav.officer.labelKey ?? '')
+            trans(railNav.officer.labelKey ?? '')
         }}</SidebarGroupLabel>
         <SidebarMenu>
             <NavRailItem v-for="item in officerItems" :key="item.href" :item="item" />

@@ -42,6 +42,10 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
+            // Active locale, resolved from the URL by mcamara's localize middleware
+            // (ADR-0008). Surfaced so the laravel-vue-i18n bridge boots in the right
+            // locale on first paint (the prop is in the initial Inertia payload).
+            'locale' => app()->getLocale(),
             'auth' => [
                 'user' => $request->user(),
             ],
