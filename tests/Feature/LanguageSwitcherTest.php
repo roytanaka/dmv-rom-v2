@@ -8,9 +8,9 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 // Seam C — the avatar-menu Language switcher target. The shared `localeSwitch`
-// prop carries the URL of the current page's twin in the other locale, computed
-// via LaravelLocalization::getLocalizedURL(). It is absent on any page that has
-// no registered twin, so the Volunteer is never offered a link that 404s.
+// prop carries the URL of the current page's twin in the other locale. It is
+// absent on any page that has no registered twin, so the Volunteer is never
+// offered a link that 404s.
 class LanguageSwitcherTest extends TestCase
 {
     use RefreshDatabase;

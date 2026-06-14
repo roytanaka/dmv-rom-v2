@@ -95,14 +95,10 @@ class HandleInertiaRequests extends Middleware
 
         return [
             'locale' => $target,
-            // Build the twin from the route name + params Laravel already matched
-            // for this request, not the raw URL string. getLocalizedURL(url) would
-            // first have to reverse-match the path back to a registered route
-            // before applying the segment table — a fragile, asymmetric step that
-            // fails FR→EN on the dynamic group route and leaves /groupes
-            // untranslated (#121). Keying off the known route name skips it: the
-            // en↔fr segment table is explicit and the {group} slug echoes back
-            // as-authored (ADR-0008).
+            // Build via route name + params rather than the raw URL string.
+            // getLocalizedURL(url) must reverse-match the path to a route before
+            // applying the segment table — a step that fails FR→EN on the dynamic
+            // group route and leaves /groupes untranslated (#121, ADR-0008).
             'url' => LaravelLocalization::getURLFromRouteNameTranslated(
                 $target,
                 "routes.{$routeName}",
