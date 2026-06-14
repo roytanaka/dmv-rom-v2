@@ -21,6 +21,7 @@ import type { NavNode } from '@/chrome/types';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { PhCaretDown } from '@phosphor-icons/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
 const props = withDefaults(defineProps<{ item: NavNode; defaultOpen?: boolean }>(), { defaultOpen: false });
@@ -71,7 +72,9 @@ watch(hasActiveDescendant, (active) => {
                 <!-- top-0! overrides the primitive's peer-data-[size=lg]/menu-button:top-2.5 variant;. -->
                 <SidebarMenuAction class="top-0! aspect-auto h-10 w-8 translate-x-1">
                     <PhCaretDown class="transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    <span class="sr-only">{{ t(item.labelKey) }}</span>
+                    <!-- #91: gives the chevron a distinct accessible label ("Toggle Docents subgroups")
+                         so it reads differently from the sibling nav link in the same row. -->
+                    <span class="sr-only">{{ trans('nav.toggle', { group: t(item.labelKey) }) }}</span>
                 </SidebarMenuAction>
             </CollapsibleTrigger>
 

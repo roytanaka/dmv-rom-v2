@@ -12,4 +12,10 @@ return [
         'all_groups' => 'All Groups',
         'officer' => 'Officer Tools',
     ],
+
+    // Accessible name for the split-rail chevron that expands/collapses a Group's
+    // subgroups (#91). Distinct from the sibling nav link so a screen reader does
+    // not announce the Group name twice. `:group` is the as-authored Group name
+    // (content), interpolated into chrome — never a translation key.
+    'toggle' => 'Toggle :group subgroups',
 ];
