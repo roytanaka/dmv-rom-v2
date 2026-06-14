@@ -33,8 +33,12 @@ The application's persistent **frame** — the top bar, side rail, breadcrumb st
 _Avoid_: confusing with the Google Chrome browser. Synonyms "shell" / "frame" are fine.
 
 **Locale**:
-The technical identifier for a language + regional convention pair. The app supports two locales: `en` (English, default) and `fr` (French). A **Volunteer**'s `locale` column captures their saved preference. Laravel's `app()->setLocale()` consumes it.
+The technical identifier for a language + regional convention pair. The app supports two locales: `en` (English, default) and `fr` (Canadian French, `fr-CA`). A **Volunteer**'s `locale` column captures their saved preference. Laravel's `app()->setLocale()` consumes it.
 _Avoid_: Language (the user-facing label is "Language" or "Langue," but in code and ADRs, use **Locale**).
+
+**Chrome / content translation boundary**:
+The line that decides what gets translated. **Chrome** (the frame's own words — UI labels, navigation, system emails) is translated from `lang/{en,fr}` files. **Content** (anything a **Volunteer** authors into a DB row — **Group** names, news, document titles) is single-column and rendered **as-authored**, identical in both locales — never translated, no `_en`/`_fr` columns. See [ADR-0004](docs/adr/0004-chrome-only-translation.md).
+_Avoid_: "bilingual content," "translatable field" — content is as-authored, not bilingual.
 
 **Default locale**:
 English (`en`). It is the canonical, unprefixed locale — English URLs live at the root, French URLs live under `/fr/`. See [ADR-0008](docs/adr/0008-bilingual-url-routing.md).

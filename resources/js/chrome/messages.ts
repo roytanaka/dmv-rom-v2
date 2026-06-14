@@ -72,7 +72,7 @@ export const navMessages: Record<string, string> = {
     // TODO(copy): add the official French for all three keys below.
     'footer.org': 'ROM Department of Museum Volunteers',
     'footer.land_ack':
-        'ROM acknowledges that this museum sits on the traditional ancestral lands of the Wendat, the Haudenosaunee Confederacy, and the Anishinabek Nation, including the Mississaugas of the Credit First Nation.',
+        'ROM acknowledges that this museum sits on the ancestral lands of the Wendat, the Haudenosaunee Confederacy, and the Anishinaabek Nation, which includes the Mississaugas of the Credit First Nation, since time immemorial to today.',
     'footer.inclusion':
         'The DMV values all its members and recognizes the right of each to be treated with respect and courtesy without abuse, harassment or discrimination.',
 };

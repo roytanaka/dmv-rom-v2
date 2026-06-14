@@ -36,10 +36,21 @@ Work on issues in this order, picking the highest-priority open issue that is
 2. **Explore** — read the issue carefully. Pull in the parent PRD if referenced.
    Read the relevant source files and tests before writing any code.
 3. **Plan** — decide what to change and why. Keep the change as small as possible.
-4. **Execute** — use RGR (Red → Green → Repeat → Refactor): write a failing test
-   first, then the implementation to pass it. Follow Laravel/Inertia conventions
-   and the patterns in `docs/conventions.md`. Eloquent only — never raw SQL.
-   Every user-facing string is translatable (English + French).
+4. **Execute** — use RGR (Red → Green → Repeat → Refactor), one behaviour at a
+   time. The issue is already a vertical slice (cut by `/to-issues`); work it as
+   incremental cycles, not all-tests-then-all-code:
+   - **Red** — write one failing test for the next behaviour. Test observable
+     behaviour through the public interface (HTTP routes, Inertia responses,
+     model API), not implementation details. Don't mock internal collaborators
+     or assert against the database directly when the interface can verify it. A
+     good test survives an internal refactor.
+   - **Green** — write the minimal code to pass that test. Don't anticipate
+     future tests or add speculative features.
+   - **Refactor** — only once green, never while red. Extract duplication, move
+     complexity behind simple interfaces, run the tests after each step.
+   Follow Laravel/Inertia conventions and the patterns in `docs/conventions.md`.
+   Eloquent only — never raw SQL. Every user-facing string is translatable
+   (English + French).
 5. **Verify** — run the full CI gate and fix every failure before committing:
    - `vendor/bin/pint --test`
    - `pnpm exec eslint .`

@@ -76,8 +76,8 @@ uploaded_by_id          // FK to users
 uploaded_at
 committee_id            // FK to committees, nullable
 visibility              // enum: 'public', 'members', 'committee'
-title_en, title_fr      // optional human-curated titles, bilingual
-description_en, description_fr  // optional
+title                   // optional human-curated title, single-column (as-authored)
+description             // optional, single-column (as-authored)
 ```
 
 **Upload flow:**
@@ -102,7 +102,8 @@ description_en, description_fr  // optional
 - Every user-facing string goes through `__('key')` (PHP) or the i18n helper in Vue.
 - Translation keys are namespaced by feature: `members.profile.title`, `documents.upload.success`.
 - Both `lang/en/*.php` and `lang/fr/*.php` are updated together. Never ship English-only.
-- Translatable model fields use suffix convention: `title_en`, `title_fr`. The model has a `title` accessor that returns the right one based on the current locale.
+- **Only chrome is translated.** UI labels, navigation, buttons, system emails come from the lang files. **Content** a Volunteer authors into a DB row (Group names, news, document titles, meeting notes) is **single-column and rendered as-authored** in both locales — no `_en`/`_fr` content columns. Keep DB-sourced names out of the `__()` / i18n lookup. See [ADR-0004](adr/0004-chrome-only-translation.md).
+- French chrome targets **Canadian French (`fr-CA`)**, machine-translated as a baseline — except the institutional strings (land acknowledgement, inclusion statement, department name), which use ROM's official French verbatim in a hands-off `lang/{en,fr}/institutional.php` the MT step never touches.
 
 ### URL routing
 

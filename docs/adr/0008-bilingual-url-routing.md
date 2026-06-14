@@ -5,7 +5,7 @@ date: 2026-05-20
 
 # Bilingual URL routing strategy
 
-The rebuild is bilingual (English / French). This ADR fixes the public **shape of HTTP routes** for the two languages and the rules for how a volunteer reaches the right URL. It is independent of [ADR-0004 (reserved)](./), which will cover the content-side bilingual decisions (suffix-column storage, save-time policy for translatable fields).
+The rebuild is bilingual (English / French). This ADR fixes the public **shape of HTTP routes** for the two languages and the rules for how a volunteer reaches the right URL. It is independent of [ADR-0004](0004-chrome-only-translation.md), which covers the content side — and decided content is *not* translated (chrome-only; no suffix columns).
 
 ## Decision
 
@@ -42,7 +42,7 @@ The complete rules:
 - **The toolbar language switcher is built using `LaravelLocalization::getLocalizedURL($locale)`** which knows the correct French URL for the current page, including translated slugs. Hide the switcher entry for the alternate locale when no equivalent route is registered.
 - **Volunteer model gains a `locale` column** (default `'en'`). The post-login redirect and system-generated URLs read it. The toolbar selector writes it (when authenticated).
 - **The 404 controller is locale-aware.** Under a `/fr/` prefix, it renders a French "not translated yet" message and a request-translation CTA. The mechanism for the CTA (internal feedback form, email to a coordinator, GitHub issue) is an implementation detail.
-- **Adding a French version of an existing English feature is a structured task**: register the French route(s), add the `lang/fr/routes.php` entries for any new segments, translate the `lang/fr/*.php` UI strings, fill in `_fr` content columns where applicable. The toolbar "Français" link begins appearing automatically on those pages.
-- **Future ADR-0004 (bilingual content storage)** addresses what happens when a French route exists but `title_fr` is empty on a specific record. That's a content fallback question, separate from this ADR's route-existence question.
+- **Adding a French version of an existing English feature is a structured task**: register the French route(s), add the `lang/fr/routes.php` entries for any new segments, translate the `lang/fr/*.php` UI strings. (No content columns are touched — content renders as-authored per [ADR-0004](0004-chrome-only-translation.md).) The toolbar "Français" link begins appearing automatically on those pages.
+- **[ADR-0004](0004-chrome-only-translation.md) (chrome-only translation)** settles the content side: content is single-column and rendered as-authored, so there is no `title_fr`-empty fallback question — a French route renders the same authored content as its English twin, with only the chrome translated.
 - **Route caching** (`php artisan route:cache`) needs the package's locale-aware handling. The package documents the pattern; configure it during initial install rather than retrofitting later.
 - **Test coverage**: every translatable route should have a smoke test that hits both `/x` and `/fr/x-translated` and asserts the resolved Eloquent model is the same. Easy to add as a parameterized test once the first translated route lands.

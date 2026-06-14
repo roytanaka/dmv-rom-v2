@@ -104,8 +104,8 @@ See `docs/conventions.md` § Documents for implementation details.
 - All user-facing strings come from `lang/en/*.php` and `lang/fr/*.php` files. No hardcoded strings in templates or components.
 - The user's locale preference is stored on the `Volunteer` record (`locale` column, default `'en'`) and applied via middleware.
 - URLs are bilingual too: English is canonical at the root, French lives under `/fr/` with translated path segments (`/fr/benevoles/123`). Route segments are translated via `lang/en/routes.php` + `lang/fr/routes.php` and resolved by the `mcamara/laravel-localization` package. See [ADR-0008](adr/0008-bilingual-url-routing.md) and `docs/conventions.md` § Internationalization → URL routing.
-- Document titles and descriptions can be stored bilingually (per-document fields for `title_en`, `title_fr`, etc.). Decide per-feature whether content is translatable or single-language.
-- Dates and numbers use locale-aware formatting (`Carbon` for PHP, `Intl.DateTimeFormat` for JS).
+- **Only chrome is translated.** Volunteer-authored content (Group names, news, document titles, meeting notes) is single-column and rendered as-authored in both locales — no `_en`/`_fr` content columns. See [ADR-0004](adr/0004-chrome-only-translation.md).
+- French chrome targets **Canadian French (`fr-CA`)**; dates and numbers use locale-aware formatting (`Carbon` for PHP, `Intl.DateTimeFormat` for JS).
 
 ## Environments
 

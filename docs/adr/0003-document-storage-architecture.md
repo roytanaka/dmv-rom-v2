@@ -7,7 +7,7 @@ date: 2026-05-15
 
 ## Context
 
-The app needs to manage roughly 40 GB of documents — committee meeting minutes, member records, program materials — uploaded by volunteers and downloaded by other volunteers, with bilingual titles where applicable.
+The app needs to manage roughly 40 GB of documents — committee meeting minutes, member records, program materials — uploaded by volunteers and downloaded by other volunteers, with optional human-curated titles.
 
 Document handling has three structural requirements:
 
@@ -22,7 +22,7 @@ The rebuild treats **Document as a first-class entity** with a single `documents
 1. **Files live in `storage/app/documents/`, outside the webroot.** Apache never serves them directly.
 2. **Disk filename is a UUID with no extension.** The user-facing filename and MIME type are stored in DB columns and applied at download time via `Content-Disposition: attachment; filename="..."` (Laravel's `Storage::download()` handles this).
 3. **Every download routes through a controller.** The controller authenticates the user, authorizes via `DocumentPolicy`, logs the access, then streams the file.
-4. **One `documents` table for the whole app.** Schema (minimum) per `docs/conventions.md § Documents`: `id`, `original_filename`, `storage_path`, `mime_type`, `size_bytes`, `uploaded_by_id`, `uploaded_at`, `visibility` enum (`public` / `members` / `committee`), optional `title_en` / `title_fr` / `description_en` / `description_fr`.
+4. **One `documents` table for the whole app.** Schema (minimum) per `docs/conventions.md § Documents`: `id`, `original_filename`, `storage_path`, `mime_type`, `size_bytes`, `uploaded_by_id`, `uploaded_at`, `visibility` enum (`public` / `members` / `committee`), optional `title` / `description` (single-column, rendered as-authored — content is not translated; see [ADR-0004](0004-chrome-only-translation.md)).
 5. **Ownership is expressed via multiple explicit nullable FKs** on the documents table — `committee_id`, `program_id`, `meeting_id`, etc. — added per-feature as migration scripts surface them. **Not polymorphic.**
 6. **Storage backend is the local filesystem on Stormweb.** Backups are covered by Stormweb's daily off-site backups (see [ADR-0002](0002-stay-on-stormweb-shared-hosting.md)).
 7. **Legacy document URLs are preserved via an Apache redirect map** built at migration time (see "Legacy URL preservation" below).
