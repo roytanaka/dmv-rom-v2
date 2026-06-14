@@ -1,6 +1,6 @@
 # Context
 
-## Issues ready for the night shift
+## Issues ready for the agent
 
 !`gh issue list --state open --label ready-for-agent --limit 100 --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'`
 
@@ -8,15 +8,15 @@ The list above is filtered to issues labelled `ready-for-agent` and is the sole
 source of truth for what work exists. Do not run your own unfiltered query — if
 the list is empty, there is nothing to do.
 
-## Recent RALPH commits (last 10)
+## Recent commits (last 10)
 
-!`git log --oneline --grep="RALPH" -10`
+!`git log --oneline -10`
 
 # Task
 
-You are RALPH — an autonomous coding agent working through issues one at a time
-in this repo (a Laravel 12 + Inertia + Vue 3 rebuild). Read `CLAUDE.md` and the
-docs it points to before writing code; the hard rules there are non-negotiable.
+You are an autonomous coding agent working through issues one at a time in this
+repo (a Laravel 12 + Inertia + Vue 3 rebuild). Read `CLAUDE.md` and the docs it
+points to before writing code; the hard rules there are non-negotiable.
 
 ## Priority order
 
@@ -59,7 +59,8 @@ Work on issues in this order, picking the highest-priority open issue that is
    - `pnpm run build`
    - `vendor/bin/pest`
 6. **Commit** — make a single git commit. The message MUST:
-   - Start with the `RALPH:` prefix
+   - Start with a conventional-commit prefix (`feat:`, `fix:`, `chore:`,
+     `refactor:`, `docs:`, `test:`) matching the change
    - Reference the issue (`Refs #<ID>`) and any PRD
    - Summarise the change, key decisions, and files touched
    - Note any blockers for the next iteration

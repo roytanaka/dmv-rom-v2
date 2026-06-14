@@ -1,4 +1,4 @@
-// Night shift — sequential implement → review → PR → CI → squash-merge loop.
+// Autonomous agent loop — sequential implement → review → PR → CI → squash-merge.
 //
 // Per iteration (one issue):
 //   1. Host forks a fresh branch off the latest `staging`.
@@ -7,10 +7,10 @@
 //   3. Reviewer (Sonnet) reviews + fixes in the SAME sandbox, re-runs the gate,
 //      pushes the branch, and opens a PR into `staging`.
 //   4. Host owns the merge gate: waits for CI (`gh pr checks --watch`), and on
-//      green squash-merges; otherwise leaves the PR open for the morning.
+//      green squash-merges; otherwise leaves the PR open for manual review.
 //   5. Loop. Serialized so each issue builds on merged work (no branch races).
 //
-// See docs/adr/0016-autonomous-night-shift-agents.md for the why.
+// See docs/adr/0016-autonomous-agent-loop.md for the why.
 //
 // Run:  pnpm run sandcastle   (= npx tsx .sandcastle/main.ts)
 // Needs: Docker Desktop running, .sandcastle/.env filled, a clean `staging`,
@@ -94,11 +94,11 @@ function tryCapture(command: string): string {
 // Called once at startup (to sweep crash-recovery leftovers from prior runs)
 // and after each iteration's merge gate (to clean up the iteration that just
 // landed). Idempotent: only ever removes worktrees that pass the safety check.
-function pruneAgentWorktrees(): void {
+function pruneSandcastleWorktrees(): void {
     sh('git worktree prune');
 
     // Parse `git worktree list --porcelain` into { path, branch } records,
-    // keeping only our agent/night/* worktrees.
+    // keeping only our sandcastle/* worktrees.
     const out = tryCapture('git worktree list --porcelain');
     const trees: { path: string; branch: string }[] = [];
     let path = '';
@@ -107,7 +107,7 @@ function pruneAgentWorktrees(): void {
             path = line.slice('worktree '.length);
         } else if (line.startsWith('branch refs/heads/')) {
             const branch = line.slice('branch refs/heads/'.length);
-            if (branch.startsWith('agent/night/')) trees.push({ path, branch });
+            if (branch.startsWith('sandcastle/')) trees.push({ path, branch });
         }
     }
 
@@ -141,20 +141,20 @@ function pruneAgentWorktrees(): void {
 // ---------------------------------------------------------------------------
 
 // Safety net: sweep any worktrees left behind by a previous run that crashed
-// or was interrupted before its per-iteration cleanup ran (Decision 1/3).
-pruneAgentWorktrees();
+// or was interrupted before its per-iteration cleanup ran.
+pruneSandcastleWorktrees();
 
 for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     console.log(`\n=== Iteration ${iteration}/${MAX_ITERATIONS} ===\n`);
 
     // Always fork off the latest staging so each issue builds on merged work.
-    // --prune drops the stale origin/agent/night/* tracking ref left behind
+    // --prune drops the stale origin/sandcastle/* tracking ref left behind
     // when the previous iteration's PR merged with --delete-branch.
     sh(`git checkout ${TARGET_BRANCH}`);
     sh(`git fetch --prune origin`);
     sh(`git pull --ff-only`);
 
-    const branch = `agent/night/${Date.now()}`;
+    const branch = `sandcastle/${Date.now()}`;
 
     // One sandbox shared by implementer and reviewer, on the same named branch.
     const sandbox = await sandcastle.createSandbox({
@@ -198,13 +198,13 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
         sh(`gh pr merge ${branch} --squash --delete-branch`);
         console.log(`Merged ${branch} into ${TARGET_BRANCH}.`);
     } catch {
-        console.warn(`CI failed or no PR for ${branch} — leaving it open for the morning review.`);
+        console.warn(`CI failed or no PR for ${branch} — leaving it open for manual review.`);
     }
 
     // Clean up this iteration's worktree (and any other now-safe leftovers).
     // A merged iteration is removed here; a CI-failed-but-pushed one has its
     // local worktree removed while the PR/branch stay on GitHub for review.
-    pruneAgentWorktrees();
+    pruneSandcastleWorktrees();
 }
 
-console.log('\nNight shift complete.');
+console.log('\nAutonomous loop complete.');

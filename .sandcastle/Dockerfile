@@ -1,4 +1,4 @@
-# Sandbox image for the night shift. Mirrors the toolchain in
+# Sandbox image for the autonomous agent loop. Mirrors the toolchain in
 # .github/workflows/ci.yml so the agent can run the full gate before it commits:
 # PHP 8.4 + Composer + Pint + Pest, and Node 24 + pnpm + vue-tsc + Vite.
 # No MariaDB — the test suite runs against in-memory SQLite (phpunit.xml).
