@@ -10,7 +10,7 @@ a pointer plus the things most likely to be violated by an autonomous agent.
 - `docs/conventions.md` — code patterns, naming, Documents, Internationalization
 - `docs/adr/` — accepted decisions; do not contradict them
 
-## Hard rules (most relevant to night-shift work)
+## Hard rules (most relevant to autonomous-loop work)
 
 - **Eloquent only.** Never write raw SQL outside migrations / legacy-migration
   scripts.

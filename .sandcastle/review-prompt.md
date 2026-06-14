@@ -39,18 +39,18 @@ message — read it from the log above; you need it for the PR body.
 2. Run the full gate and ensure it is green before opening the PR:
    `vendor/bin/pint --test` · `pnpm exec eslint .` · `pnpm run format:check` ·
    `pnpm run typecheck` · `pnpm run build` · `vendor/bin/pest`
-3. If you made review fixes, commit them with a `RALPH(review):` prefix and no
-   `Co-Authored-By` trailer.
+3. If you made review fixes, commit them with a conventional-commit prefix
+   (e.g. `refactor:` or `fix:`) and no `Co-Authored-By` trailer.
 4. Push the branch and open the PR into `{{TARGET_BRANCH}}`:
    ```
    git push -u origin {{BRANCH}}
    gh pr create --base {{TARGET_BRANCH}} --head {{BRANCH}} \
-     --title "RALPH: <short summary>" \
+     --title "<conventional-commit prefix>: <short summary>" \
      --body "Closes #<ID>
 
    <one-paragraph summary of the change and any review notes>
 
-   🤖 Night shift (sandcastle)"
+   🤖 sandcastle"
    ```
    The PR body **must** contain `Closes #<ID>` so the merge closes the issue.
 
