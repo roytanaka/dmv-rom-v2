@@ -48,10 +48,8 @@ export type Capability = 'scheduling' | 'content' | 'documents' | 'meetings' | '
  */
 export type Role = 'chair' | 'about-contact' | 'officer' | 'super-tier';
 
-/** A single navigable node in the chrome (rail or, later, top bar). */
-export interface NavNode {
-    /** i18n message key resolved to display copy by `t()` — never final copy. */
-    labelKey: string;
+/** Fields shared by every chrome nav node, structural or Group. */
+interface NavNodeBase {
     /** Inertia path (internal) or absolute URL (when `external`). */
     href: string;
     /** Phosphor icon component. */
@@ -62,22 +60,50 @@ export interface NavNode {
     requiresCapability?: Capability;
     /** GATING: hidden unless the Volunteer holds this role. Unset → no constraint. */
     requiresRole?: Role;
-    /** Nested children (e.g. subcommittees under their parent Group). */
+}
+
+/**
+ * A structural chrome node (rail rows, officer items, top-bar sections). Its label
+ * is CHROME — a translation key resolved through the i18n bridge, never final copy.
+ */
+export interface NavNode extends NavNodeBase {
+    /** i18n message key resolved to display copy by `trans()`. */
+    labelKey: string;
+    /** Nested structural children. */
     children?: NavNode[];
 }
 
-/** A Group in the rail (Group List). Its `groupId` keys the Group Menu built in #67. */
-export interface GroupNode extends NavNode {
+/**
+ * A Group in the rail (Group List). Its name is CONTENT (ADR-0004): rendered exactly
+ * as authored in both locales and never resolved through the translator — so a
+ * French-named Group (Guides du ROM) reads identically under `/` and `/fr/`. Its
+ * `groupId` keys the Group Menu built in #67.
+ */
+export interface GroupNode extends NavNodeBase {
+    /** As-authored Group name (content) — rendered verbatim, never translated. */
+    name: string;
     /** Stable Group identifier — the top bar resolves this Group's Menu by it. */
     groupId: string;
+    /** Subcommittees — themselves Groups, so their names are content too. */
     children?: GroupNode[];
 }
 
-/** A labelled cluster of rail nodes (one row group under an optional heading). */
-export interface NavSection {
+/**
+ * Either kind of rail row: a structural {@link NavNode} (officer cluster) or a
+ * content {@link GroupNode} (a Group). The rail renders both through one component,
+ * so its label resolution branches on which kind a node is.
+ */
+export type RailNode = NavNode | GroupNode;
+
+/**
+ * A labelled cluster of rail nodes (one row group under an optional heading).
+ * Generic over its item type: Zone B holds {@link GroupNode}s (content names),
+ * Zone C holds structural {@link NavNode}s (translated labels).
+ */
+export interface NavSection<T extends NavNode | GroupNode = NavNode> {
     /** i18n key for the section heading; omit for an unlabelled cluster. */
     labelKey?: string;
-    items: NavNode[];
+    items: T[];
     /** Initial open state for a collapsible browse section (e.g. "All Groups"). */
     defaultOpen?: boolean;
 }
@@ -103,10 +129,10 @@ export interface LauncherGrid {
 
 /** The grouping rail — Zone B (Groups) + Zone C (officer/admin). */
 export interface RailNav {
-    /** Zone B lead — the Groups this Volunteer belongs to. */
-    myGroups: NavSection;
-    /** Zone B browse — the rest of the org, collapsed by default. */
-    allGroups: NavSection;
-    /** Zone C — officer/admin, pinned to the rail bottom, officer-only. */
-    officer: NavSection;
+    /** Zone B lead — the Groups this Volunteer belongs to (content names). */
+    myGroups: NavSection<GroupNode>;
+    /** Zone B browse — the rest of the org, collapsed by default (content names). */
+    allGroups: NavSection<GroupNode>;
+    /** Zone C — officer/admin, pinned to the rail bottom, officer-only (chrome labels). */
+    officer: NavSection<NavNode>;
 }

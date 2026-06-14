@@ -11,7 +11,10 @@
  * `docs/nav-spec.md`, the eventual source of truth. Swapping this fixture for a
  * server-shared Inertia prop driven by real Group/role data is a later slice.
  *
- * Labels are i18n KEYS (resolved via messages.ts), never final copy.
+ * Structural labels are i18n KEYS (`labelKey`, resolved via the i18n bridge). Group
+ * NAMES are CONTENT (`name`): authored strings rendered verbatim in both locales,
+ * never resolved through the translator (ADR-0004). French-named Groups (Guides du
+ * ROM, Les Amis Francophiles) sit here as literals and read identically under `/fr/`.
  */
 
 import {
@@ -43,25 +46,25 @@ import type { GroupNode, LauncherGrid, NavNode, RailNav } from './types';
 const myGroups: GroupNode[] = [
     {
         groupId: 'docents',
-        labelKey: 'nav.group.docents',
+        name: 'Docents',
         href: '/groups/docents',
         icon: PhUsersThree,
         children: [
             {
                 groupId: 'docents-school-visits',
-                labelKey: 'nav.group.docents.school_visits',
+                name: 'School Visits',
                 href: '/groups/docents/school-visits',
             },
             {
                 groupId: 'docents-public-tours',
-                labelKey: 'nav.group.docents.public_tours',
+                name: 'Public Tours',
                 href: '/groups/docents/public-tours',
             },
         ],
     },
     {
         groupId: 'gallery-interpreters',
-        labelKey: 'nav.group.gallery_interpreters',
+        name: 'Gallery Interpreters',
         href: '/groups/gallery-interpreters',
         icon: PhUsersThree,
     },
@@ -73,36 +76,39 @@ const myGroups: GroupNode[] = [
 // list exercises the rail's expand/collapse. Names are PLACEHOLDERS; the real
 // catalogue is out of band in docs/nav-spec.md.
 const allGroups: GroupNode[] = [
+    // GDR — a French-named Group. Its `name` is content, so it reads identically
+    // ("Guides du ROM") under `/` and `/fr/` with no special-casing (ADR-0004).
     {
         groupId: 'gallery-guides',
-        labelKey: 'nav.group.gallery_guides',
+        name: 'Guides du ROM',
         href: '/groups/gallery-guides',
         icon: PhUsersThree,
         children: [
-            { groupId: 'gallery-guides-highlights', labelKey: 'nav.group.gallery_guides.highlights', href: '/groups/gallery-guides/highlights' },
-            { groupId: 'gallery-guides-family', labelKey: 'nav.group.gallery_guides.family', href: '/groups/gallery-guides/family' },
-            { groupId: 'gallery-guides-access', labelKey: 'nav.group.gallery_guides.access', href: '/groups/gallery-guides/access' },
+            { groupId: 'gallery-guides-highlights', name: 'Highlights Tours', href: '/groups/gallery-guides/highlights' },
+            { groupId: 'gallery-guides-family', name: 'Family Programs', href: '/groups/gallery-guides/family' },
+            { groupId: 'gallery-guides-access', name: 'Access Tours', href: '/groups/gallery-guides/access' },
         ],
     },
     {
         groupId: 'special-events',
-        labelKey: 'nav.group.special_events',
+        name: 'Special Events',
         href: '/groups/special-events',
         icon: PhUsersThree,
         children: [
-            { groupId: 'special-events-openings', labelKey: 'nav.group.special_events.openings', href: '/groups/special-events/openings' },
-            { groupId: 'special-events-previews', labelKey: 'nav.group.special_events.previews', href: '/groups/special-events/previews' },
+            { groupId: 'special-events-openings', name: 'Exhibition Openings', href: '/groups/special-events/openings' },
+            { groupId: 'special-events-previews', name: 'Member Previews', href: '/groups/special-events/previews' },
         ],
     },
+    // Another French-named Group — same as-authored rule, no special case.
     {
-        groupId: 'reception',
-        labelKey: 'nav.group.reception',
-        href: '/groups/reception',
+        groupId: 'amis-francophiles',
+        name: 'Les Amis Francophiles',
+        href: '/groups/amis-francophiles',
         icon: PhUsersThree,
     },
     {
         groupId: 'romwalks',
-        labelKey: 'nav.group.romwalks',
+        name: 'ROMWalks',
         href: '/groups/romwalks',
         icon: PhUsersThree,
     },
@@ -133,15 +139,15 @@ export const zoneA: NavNode[] = [
 // in docs/nav-spec.md. Other Groups resolve to an empty menu until they're modelled.
 export const groupMenus: Record<string, NavNode[]> = {
     docents: [
-        { labelKey: 'nav.section.about', href: '/groups/docents/about', icon: PhInfo },
-        { labelKey: 'nav.section.docents.roster', href: '/groups/docents/roster', icon: PhUsers },
-        { labelKey: 'nav.section.docents.schedule', href: '/groups/docents/schedule', icon: PhCalendarBlank, requiresCapability: 'scheduling' },
-        { labelKey: 'nav.section.docents.catalog', href: '/groups/docents/data-sheets', icon: PhFileText, requiresCapability: 'content' },
-        { labelKey: 'nav.section.docents.publications', href: '/groups/docents/publications', icon: PhBookOpenText, requiresCapability: 'documents' },
-        { labelKey: 'nav.section.docents.meetings', href: '/groups/docents/meetings', icon: PhPresentation, requiresCapability: 'meetings' },
-        { labelKey: 'nav.section.docents.statistics', href: '/groups/docents/statistics', icon: PhChartBar, requiresCapability: 'stats' },
+        { labelKey: 'section.about', href: '/groups/docents/about', icon: PhInfo },
+        { labelKey: 'section.docents.roster', href: '/groups/docents/roster', icon: PhUsers },
+        { labelKey: 'section.docents.schedule', href: '/groups/docents/schedule', icon: PhCalendarBlank, requiresCapability: 'scheduling' },
+        { labelKey: 'section.docents.catalog', href: '/groups/docents/data-sheets', icon: PhFileText, requiresCapability: 'content' },
+        { labelKey: 'section.docents.publications', href: '/groups/docents/publications', icon: PhBookOpenText, requiresCapability: 'documents' },
+        { labelKey: 'section.docents.meetings', href: '/groups/docents/meetings', icon: PhPresentation, requiresCapability: 'meetings' },
+        { labelKey: 'section.docents.statistics', href: '/groups/docents/statistics', icon: PhChartBar, requiresCapability: 'stats' },
         // Officer-only slot — role-gated (stubbed show-all for now).
-        { labelKey: 'nav.section.docents.schedule_admin', href: '/groups/docents/schedule/admin', icon: PhGearSix, requiresRole: 'chair' },
+        { labelKey: 'section.docents.schedule_admin', href: '/groups/docents/schedule/admin', icon: PhGearSix, requiresRole: 'chair' },
     ],
 };
 

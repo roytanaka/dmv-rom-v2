@@ -5,7 +5,12 @@
 // WITHOUT navigating — decoupling the two actions the legacy app fused into one click.
 // Open state seeds from the section default (`defaultOpen`), force-opens whenever the
 // Group or one of its children is the current page (so you can see where you are), and
-// is otherwise driven by the chevron. Labels come from i18n keys; gating filters children.
+// is otherwise driven by the chevron. Gating filters children.
+//
+// A rail row is either a structural NavNode (the officer cluster — translated
+// `labelKey`) or a content GroupNode (a Group — as-authored `name`, ADR-0004).
+// `label()` branches on which kind a node is, so Group names never enter the
+// translation lookup while structural labels always do.
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     SidebarMenuAction,
@@ -16,21 +21,25 @@ import {
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { visibleNodes } from '@/chrome/gating';
-import { t } from '@/chrome/messages';
-import type { NavNode } from '@/chrome/types';
+import type { RailNode } from '@/chrome/types';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { PhCaretDown } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
-const props = withDefaults(defineProps<{ item: NavNode; defaultOpen?: boolean }>(), { defaultOpen: false });
+const props = withDefaults(defineProps<{ item: RailNode; defaultOpen?: boolean }>(), { defaultOpen: false });
 
 const page = usePage<SharedData>();
 const isActive = (href: string) => href === page.url;
 
+// Group name (content) → verbatim; structural node → translated label (chrome).
+const label = (node: RailNode) => ('name' in node ? node.name : trans(node.labelKey));
+
 // Subcommittees nest under their active parent; re-filter through the (stubbed) gate.
-const children = computed(() => (props.item.children ? visibleNodes(props.item.children) : []));
+// Children are a Group's subcommittees (GroupNode[]); widen to RailNode[] so `label()`
+// resolves them the same way as their parent.
+const children = computed(() => (props.item.children ? visibleNodes<RailNode>(props.item.children) : []));
 
 // "In context" — this Group or one of its visible subgroups is the current page.
 const hasActiveDescendant = computed(() => isActive(props.item.href) || children.value.some((child) => isActive(child.href)));
@@ -49,11 +58,11 @@ watch(hasActiveDescendant, (active) => {
         <SidebarMenuButton as-child size="lg" :is-active="isActive(item.href)" class="h-10 text-sm">
             <a v-if="item.external" :href="item.href" target="_blank" rel="noopener noreferrer">
                 <component :is="item.icon" v-if="item.icon" />
-                <span>{{ t(item.labelKey) }}</span>
+                <span>{{ label(item) }}</span>
             </a>
             <Link v-else :href="item.href">
                 <component :is="item.icon" v-if="item.icon" />
-                <span>{{ t(item.labelKey) }}</span>
+                <span>{{ label(item) }}</span>
             </Link>
         </SidebarMenuButton>
     </SidebarMenuItem>
@@ -64,7 +73,7 @@ watch(hasActiveDescendant, (active) => {
             <SidebarMenuButton as-child size="lg" :is-active="isActive(item.href)" class="h-10 text-sm">
                 <Link :href="item.href">
                     <component :is="item.icon" v-if="item.icon" />
-                    <span>{{ t(item.labelKey) }}</span>
+                    <span>{{ label(item) }}</span>
                 </Link>
             </SidebarMenuButton>
 
@@ -74,7 +83,7 @@ watch(hasActiveDescendant, (active) => {
                     <PhCaretDown class="transition-transform group-data-[state=open]/collapsible:rotate-180" />
                     <!-- #91: gives the chevron a distinct accessible label ("Toggle Docents subgroups")
                          so it reads differently from the sibling nav link in the same row. -->
-                    <span class="sr-only">{{ trans('nav.toggle', { group: t(item.labelKey) }) }}</span>
+                    <span class="sr-only">{{ trans('nav.toggle', { group: label(item) }) }}</span>
                 </SidebarMenuAction>
             </CollapsibleTrigger>
 
@@ -83,7 +92,7 @@ watch(hasActiveDescendant, (active) => {
                     <SidebarMenuSubItem v-for="child in children" :key="child.href">
                         <SidebarMenuSubButton as-child :is-active="isActive(child.href)" class="text-sm">
                             <Link :href="child.href">
-                                <span>{{ t(child.labelKey) }}</span>
+                                <span>{{ label(child) }}</span>
                             </Link>
                         </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
