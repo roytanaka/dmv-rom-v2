@@ -27,6 +27,11 @@ import { execSync } from 'node:child_process';
 const MAX_ITERATIONS = 10;
 const TARGET_BRANCH = 'staging';
 
+// Both agents emit this when finished (implementer: nothing left to do;
+// reviewer: PR opened). Passed to sandbox.run so the run result reports it and
+// logRunSummary can show whether the agent signaled completion.
+const COMPLETION_SIGNAL = '<promise>COMPLETE</promise>';
+
 // Sandbox setup, mirroring .github/workflows/ci.yml. composer + pnpm install
 // give the agent vendor/ and a node_modules with correct Linux bindings. The
 // host node_modules is macOS-arch and is deliberately NOT copied in (that would
@@ -68,6 +73,37 @@ function tryCapture(command: string): string {
         return execSync(command, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
     } catch {
         return '';
+    }
+}
+
+// Structural shape of the bits of SandboxRunResult that logRunSummary reads.
+type RunSummary = {
+    readonly iterations: readonly {
+        readonly usage?: {
+            readonly inputTokens: number;
+            readonly cacheCreationInputTokens: number;
+            readonly cacheReadInputTokens: number;
+        };
+    }[];
+    readonly completionSignal?: string;
+};
+
+// Reproduce the run summary that sandcastle's high-level run() prints but the
+// low-level sandbox.run() (which we use, to wrap it with PR/merge logic) does
+// not: a completion line plus the context-window size for each iteration that
+// reported token usage. The size mirrors @ai-hero/sandcastle's own (internal,
+// unexported) formatContextWindowSize — input-side tokens (input +
+// cache-creation + cache-read), rounded up to the nearest 1k.
+function logRunSummary(label: string, result: RunSummary): void {
+    const n = result.iterations.length;
+    if (result.completionSignal !== undefined) {
+        console.log(`[${label}] Agent signaled completion after ${n} iteration(s).`);
+    }
+    console.log(`[${label}] Run complete: agent finished after ${n} iteration(s).`);
+    for (const { usage } of result.iterations) {
+        if (!usage) continue;
+        const total = usage.inputTokens + usage.cacheCreationInputTokens + usage.cacheReadInputTokens;
+        console.log(`[${label}] Context window: ${Math.ceil(total / 1000)}k`);
     }
 }
 
@@ -169,7 +205,9 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
             maxIterations: 1,
             agent: sandcastle.claudeCode('claude-opus-4-8'),
             promptFile: './.sandcastle/implement-prompt.md',
+            completionSignal: COMPLETION_SIGNAL,
         });
+        logRunSummary('implementer', implement);
 
         if (!implement.commits.length) {
             console.log('No commits — backlog empty or all remaining issues blocked. Stopping.');
@@ -179,13 +217,15 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 
         // Reviewer reviews + fixes, then pushes the branch and opens the PR.
         // {{TARGET_BRANCH}} is auto-injected from the host's active branch (staging).
-        await sandbox.run({
+        const review = await sandbox.run({
             name: 'reviewer',
             maxIterations: 1,
             agent: sandcastle.claudeCode('claude-sonnet-4-6'),
             promptFile: './.sandcastle/review-prompt.md',
             promptArgs: { BRANCH: branch },
+            completionSignal: COMPLETION_SIGNAL,
         });
+        logRunSummary('reviewer', review);
         console.log('Review complete; PR opened against staging.');
     } finally {
         await sandbox.close();
