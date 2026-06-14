@@ -17,6 +17,9 @@ screenshots/
 # Application uploads
 storage/app/documents/
 
+# laravel-vue-i18n — compiled PHP→JSON translation bundles (build artifacts)
+/lang/php_*.json
+
 # Laravel
 /.phpunit.cache
 /node_modules

@@ -111,8 +111,11 @@ Bilingual URL strategy is fixed by [ADR-0008](adr/0008-bilingual-url-routing.md)
 
 - English is the default locale and lives at the root (`/volunteers/123`). French lives under `/fr/` with **translated path segments** (`/fr/benevoles/123`). Routes are added French-second as features become available.
 - Route segment translations live in `lang/en/routes.php` and `lang/fr/routes.php` alongside the UI string files. Every translatable segment is keyed there.
-- Declare translatable routes via `LaravelLocalization::transRoute('routes.volunteers.show')` — the `mcamara/laravel-localization` package resolves them per-locale.
+- Declare translatable routes via `LaravelLocalization::transRoute('routes.volunteers.show')` inside the localized group in `routes/web.php` (`prefix => LaravelLocalization::setLocale()`, `middleware => ['localize']`) — the `mcamara/laravel-localization` package resolves them per-locale.
 - Build language-switcher links with `LaravelLocalization::getLocalizedURL($locale)`. Hide the alternate-locale link on pages where no equivalent route is registered.
+- **Route caching: use `php artisan route:trans:cache` / `route:trans:clear`, never stock `route:cache`** (which 404s localized routes). `AppServiceProvider` wires the per-locale cache via the package's `LoadsTranslatedCachedRoutes` trait.
+- The active locale is shared to the frontend as an Inertia `locale` prop (from `HandleInertiaRequests`, derived from the URL). The `laravel-vue-i18n` bridge boots from it so chrome renders in the right locale on first paint. Lang files are the single source of truth for both PHP `__()` and Vue `trans()` (the Vite plugin compiles `lang/{locale}/*.php`).
+- Feature tests for non-default-locale routes need the routes re-registered for that locale in-process — use the `withLocaleRoutes()` helper on `Tests\TestCase` (mcamara registers one locale per app boot).
 - No per-record translated slugs in v1 — dynamic resources use IDs (`/fr/exhibits/123`, not `/fr/exhibits/vikings-au-rom`). No `slug_en`/`slug_fr` columns.
 - The `Volunteer` model has a `locale` column (default `'en'`). Post-login redirects and system-generated URLs (password resets, notification emails, calendar links) read it; the toolbar selector writes it when authenticated.
 - Direct visits are URL-authoritative — no auto-redirect based on saved preference. Bookmarks always render the locale in their URL.
