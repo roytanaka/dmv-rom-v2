@@ -96,7 +96,12 @@ fi
 
 echo "==> Step 5: framework caches"
 $ARTISAN config:cache
-$ARTISAN route:cache
+# Locale-aware route cache (mcamara/laravel-localization). The stock route
+# cache only registers the default locale, so every `/fr/` route would 404
+# (#120). Clear first: the deploy rsync excludes bootstrap/cache/, so a stale
+# stock routes-v7.php can otherwise persist and shadow the per-locale files.
+$ARTISAN route:trans:clear
+$ARTISAN route:trans:cache
 $ARTISAN view:cache
 $ARTISAN event:cache
 
