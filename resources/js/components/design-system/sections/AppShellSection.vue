@@ -3,7 +3,6 @@ import BrandLogo from '@/components/BrandLogo.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { groupMenus, zoneA } from '@/chrome/fixture';
-import { t } from '@/chrome/messages';
 import { trans } from 'laravel-vue-i18n';
 import {
     PhBuildings,
@@ -160,27 +159,25 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
             </div>
 
             <div>
-                <p class="text-sidebar-muted px-2 text-xs font-semibold tracking-wide uppercase">{{ t('nav.rail.my_groups') }}</p>
+                <p class="text-sidebar-muted px-2 text-xs font-semibold tracking-wide uppercase">{{ trans('nav.rail.my_groups') }}</p>
                 <div class="mt-1 space-y-0.5">
                     <div class="bg-sidebar-active text-sidebar-active-foreground flex h-10 items-center gap-2 px-2 text-sm">
-                        <PhUsersThree class="size-4" /> {{ t('nav.group.docents') }}
+                        <PhUsersThree class="size-4" /> Docents
                     </div>
-                    <div class="flex h-10 items-center gap-2 px-2 text-sm">
-                        <PhUsersThree class="size-4" /> {{ t('nav.group.gallery_interpreters') }}
-                    </div>
+                    <div class="flex h-10 items-center gap-2 px-2 text-sm"><PhUsersThree class="size-4" /> Gallery Interpreters</div>
                 </div>
             </div>
 
             <div class="text-sidebar-muted flex items-center justify-between px-2 text-xs font-semibold tracking-wide uppercase">
-                {{ t('nav.rail.all_groups') }}
+                {{ trans('nav.rail.all_groups') }}
                 <PhCaretDown class="size-4" />
             </div>
 
             <div class="mt-auto">
-                <p class="text-sidebar-muted px-2 text-xs font-semibold tracking-wide uppercase">{{ t('nav.rail.officer') }}</p>
+                <p class="text-sidebar-muted px-2 text-xs font-semibold tracking-wide uppercase">{{ trans('nav.rail.officer') }}</p>
                 <div class="mt-1 space-y-0.5">
-                    <div class="flex h-10 items-center gap-2 px-2 text-sm"><PhBuildings class="size-4" /> {{ t('nav.officer.members') }}</div>
-                    <div class="flex h-10 items-center gap-2 px-2 text-sm"><PhChartBar class="size-4" /> {{ t('nav.officer.reports') }}</div>
+                    <div class="flex h-10 items-center gap-2 px-2 text-sm"><PhBuildings class="size-4" /> {{ trans('nav.officer.members') }}</div>
+                    <div class="flex h-10 items-center gap-2 px-2 text-sm"><PhChartBar class="size-4" /> {{ trans('nav.officer.reports') }}</div>
                 </div>
             </div>
         </div>
@@ -200,11 +197,11 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
-                        <BreadcrumbLink href="#">{{ t('nav.group.docents') }}</BreadcrumbLink>
+                        <BreadcrumbLink href="#">Docents</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbLink href="#">{{ t('nav.section.docents.schedule') }}</BreadcrumbLink>
+                        <BreadcrumbLink href="#">{{ trans('section.docents.schedule') }}</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
@@ -247,9 +244,9 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
         </p>
         <div class="bg-rom-ink mt-4 px-6 py-8 text-white/70">
             <div class="mx-auto flex max-w-5xl flex-col gap-4 text-sm">
-                <p>{{ t('footer.land_ack') }}</p>
-                <p>{{ t('footer.inclusion') }}</p>
-                <p class="text-xs text-white/45">© 2011–2026 {{ t('footer.org') }}</p>
+                <p>{{ trans('institutional.land_acknowledgement') }}</p>
+                <p>{{ trans('institutional.inclusion') }}</p>
+                <p class="text-xs text-white/45">© 2011–2026 {{ trans('institutional.department') }}</p>
             </div>
         </div>
     </section>
