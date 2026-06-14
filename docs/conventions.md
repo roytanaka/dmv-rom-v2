@@ -103,7 +103,7 @@ description             // optional, single-column (as-authored)
 - Translation keys are namespaced by feature: `members.profile.title`, `documents.upload.success`.
 - Both `lang/en/*.php` and `lang/fr/*.php` are updated together. Never ship English-only.
 - **Only chrome is translated.** UI labels, navigation, buttons, system emails come from the lang files. **Content** a Volunteer authors into a DB row (Group names, news, document titles, meeting notes) is **single-column and rendered as-authored** in both locales — no `_en`/`_fr` content columns. Keep DB-sourced names out of the `__()` / i18n lookup. See [ADR-0004](adr/0004-chrome-only-translation.md).
-- French chrome targets **Canadian French (`fr-CA`)**, machine-translated as a baseline — except the institutional strings (land acknowledgement, inclusion statement, department name), which use ROM's official French verbatim in a hands-off `lang/{en,fr}/institutional.php` the MT step never touches.
+- French chrome targets **Canadian French (`fr-CA`)**, machine-translated as a baseline — except the institutional strings (land acknowledgement, inclusion statement, department name), which use ROM's official French verbatim in a hands-off `lang/{en,fr}/institutional.php` the MT step never touches (excluded by filename via `config('translation.machine_translation_excludes')`).
 
 ### URL routing
 
