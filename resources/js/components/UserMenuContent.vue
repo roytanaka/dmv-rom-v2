@@ -15,10 +15,8 @@ defineProps<Props>();
 
 const page = usePage<SharedData>();
 
-// The current page's twin in the other locale, or null when no twin is
-// registered — in which case the switcher is hidden so the Volunteer is never
-// offered a link that 404s (#110). A plain anchor (not an Inertia <Link>) forces
-// a full page load so the i18n bridge re-boots in the target locale.
+// A plain anchor (not an Inertia <Link>) forces a full page load so the i18n
+// bridge re-boots in the target locale (#110).
 const localeSwitch = computed(() => page.props.localeSwitch);
 </script>
 

@@ -87,10 +87,6 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
-        // A page has a twin only if its route is a localized route — i.e. its
-        // name maps to a `routes.*` segment registered for the target locale
-        // (ADR-0008). Routes outside the localized group (home, auth, settings,
-        // design-system) have no such key, so the switcher stays hidden.
         $routeName = $request->route()?->getName();
 
         if ($routeName === null || ! Lang::has("routes.{$routeName}", $target)) {
