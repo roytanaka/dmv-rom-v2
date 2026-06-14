@@ -4,9 +4,9 @@
 // inclusion statement) and the department name. Rendered in the footer chrome, but
 // kept in their own namespace because they are reusable institutional copy AND
 // because the machine-translation step excludes THIS file by name so an automated
-// pass can never overwrite the official French (enforced + hardened in #111). The
-// French baseline in lang/fr/institutional.php is provisional until ROM's approved
-// wording is hand-authored. Mirrors lang/fr/institutional.php key-for-key.
+// pass can never overwrite the official French (hardened in #111). The French in
+// lang/fr/institutional.php is ROM's official verbatim wording, not a baseline.
+// Mirrors lang/fr/institutional.php key-for-key.
 return [
     // ROM's official English land acknowledgement (corrected working-tree wording).
     'land_acknowledgement' => 'ROM acknowledges that this museum sits on the ancestral lands of the Wendat, the Haudenosaunee Confederacy, and the Anishinaabek Nation, which includes the Mississaugas of the Credit First Nation, since time immemorial to today.',
