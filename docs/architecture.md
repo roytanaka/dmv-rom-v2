@@ -122,3 +122,18 @@ Automated via GitHub Actions. See [ADR-0007](adr/0007-dev-staging-deploy-strateg
 - Vite builds in CI; artifacts (`public/build/`) are rsync'd to Stormweb. Node is not installed on the production server.
 - Composer install + `php artisan migrate` run on the server via SSH from the deploy workflow.
 - Production deploys take a `mysqldump` of the DB before running migrations (fresh recovery point).
+
+### Demo seeding for a presentation (manual, staging only)
+
+`DemoSeeder` (see PRD #139) populates staging with a curated, believable slice of the DMV org — committees, programs, members, memberships, roles, stewardship — so a board pitch lands against a living app instead of the near-empty default. It is **manual and on-demand only**: deliberately not wired into `DatabaseSeeder` or the deploy pipeline, so an unrelated push never populates or alters staging. It runs by hand over SSH, and **only on staging — never on production**, where real volunteer data lives.
+
+Procedure, run right before the presentation:
+
+1. **Deploy the demo build first.** Every push to `staging` runs `migrate:fresh --seed`, which **drops the database** and reseeds only the test login. So deploy before you seed — never the other way around.
+2. **Seed last.** SSH into the Stormweb staging account and run (Stormweb's default `php` is 7.4; the app needs 8.4):
+
+   ```bash
+   /usr/local/php84/bin/php artisan db:seed --class=DemoSeeder --force
+   ```
+
+3. **Present — and don't push to `staging` again until you're done.** Any further push triggers `migrate:fresh --seed` and wipes the demo data. If that happens, just re-run the command above: `DemoSeeder` is idempotent, so re-seeding heals the data (keyed on slug / email / membership pair) rather than duplicating it.
