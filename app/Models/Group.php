@@ -91,6 +91,16 @@ class Group extends Model
     }
 
     /**
+     * Every membership in this Group — the roster source.
+     *
+     * @return HasMany<GroupMember, $this>
+     */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(GroupMember::class);
+    }
+
+    /**
      * Limit the query to Groups that are still alive: lifecycle Active, and not
      * an expired time-boxed Group (one whose end_date has passed). A time-boxed
      * Group with no end_date is treated as still open.

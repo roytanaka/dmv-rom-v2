@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Enums\Category;
 use Database\Factories\MemberFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -61,5 +62,25 @@ class Member extends Authenticatable
     public function isAllDmv(): bool
     {
         return $this->super_tier;
+    }
+
+    /**
+     * Every membership this Member holds, one per Group they belong to.
+     *
+     * @return HasMany<GroupMember, $this>
+     */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(GroupMember::class);
+    }
+
+    /**
+     * Fetch this Member's membership in a given Group, or null if they aren't a
+     * member of it. Standing is per-Group, so this is the entry point every
+     * Group-scoped authorization decision reads.
+     */
+    public function membershipIn(Group $group): ?GroupMember
+    {
+        return $this->memberships()->where('group_id', $group->getKey())->first();
     }
 }
