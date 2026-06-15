@@ -3,14 +3,15 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
+use App\Enums\Category;
+use Database\Factories\MemberFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class Member extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
+    /** @use HasFactory<MemberFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -22,6 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'category',
+        'super_tier',
     ];
 
     /**
@@ -44,6 +47,19 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'category' => Category::class,
+            'super_tier' => 'boolean',
         ];
+    }
+
+    /**
+     * Whether this Member holds the single org-wide "all-DMV" access grant.
+     *
+     * This is the only authority that reaches across the whole DMV; every other
+     * grant is scoped to a Group via the membership pivot (later spine slices).
+     */
+    public function isAllDmv(): bool
+    {
+        return $this->super_tier;
     }
 }

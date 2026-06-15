@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -13,7 +13,7 @@ class SidebarStatePersistenceTest extends TestCase
 
     public function test_sidebar_open_defaults_to_true_without_a_cookie()
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->get('/dashboard')
             ->assertInertia(fn (Assert $page) => $page->where('sidebarOpen', true));
@@ -21,7 +21,7 @@ class SidebarStatePersistenceTest extends TestCase
 
     public function test_sidebar_open_reflects_the_collapsed_cookie()
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->withUnencryptedCookie('sidebar:state', 'false')
             ->get('/dashboard')
@@ -30,7 +30,7 @@ class SidebarStatePersistenceTest extends TestCase
 
     public function test_sidebar_open_reflects_the_expanded_cookie()
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->withUnencryptedCookie('sidebar:state', 'true')
             ->get('/dashboard')

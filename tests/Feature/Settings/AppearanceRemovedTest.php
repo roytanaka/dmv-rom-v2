@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Models\User;
+use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,7 +15,7 @@ class AppearanceRemovedTest extends TestCase
         // Dark mode was excised per ADR-0012. An authenticated user proves the
         // route is gone (a surviving route would return 200), not just hidden
         // behind an auth redirect.
-        $user = User::factory()->create();
+        $user = Member::factory()->create();
         $this->actingAs($user);
 
         $response = $this->get('/settings/appearance');
