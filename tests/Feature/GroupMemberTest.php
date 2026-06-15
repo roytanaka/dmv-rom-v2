@@ -25,8 +25,10 @@ it('round-trips memberships from both the Member and the Group', function () {
         'member_id' => $member->id,
     ]);
 
-    expect($membership->fresh()->group->is($group))->toBeTrue()
-        ->and($membership->fresh()->member->is($member))->toBeTrue()
+    $fresh = $membership->fresh();
+
+    expect($fresh->group->is($group))->toBeTrue()
+        ->and($fresh->member->is($member))->toBeTrue()
         ->and($member->fresh()->memberships->pluck('id'))->toContain($membership->id)
         ->and($group->fresh()->memberships->pluck('id'))->toContain($membership->id);
 });

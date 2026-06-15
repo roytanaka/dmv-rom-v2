@@ -11,8 +11,8 @@ return new class extends Migration
      *
      * The `group_member` pivot is the single authoritative source of "who is in
      * this Group, with what standing" — the table every authorization decision
-     * and roster reads. `status` is the within-Group standing (App\Enums\
-     * MembershipStatus), distinct from the Member's DMV-wide `category`. The LOA
+     * and roster reads. `status` is the within-Group standing (`App\Enums\MembershipStatus`),
+     * distinct from the Member's DMV-wide `category`. The LOA
      * window answers "on leave from this Group until X" before the scheduling
      * feature exists.
      */
