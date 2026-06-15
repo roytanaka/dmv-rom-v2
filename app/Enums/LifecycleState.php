@@ -7,7 +7,7 @@ namespace App\Enums;
  * with the time-boxed window, this is what makes "which Groups are dead?" a
  * standing query rather than a manual audit.
  *
- * Backed string enum: the stored value is the case value.
+ * Backed string enum: the stored value is the snake_case case value.
  */
 enum LifecycleState: string
 {

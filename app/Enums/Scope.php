@@ -6,7 +6,7 @@ namespace App\Enums;
  * A Group's Scope — where it sits in the tree (ADR-0010). One of three
  * orthogonal axes (Kind / Scope / Lifecycle), stored explicitly.
  *
- * Backed string enum: the stored value is the case value.
+ * Backed string enum: the stored value is the snake_case case value.
  */
 enum Scope: string
 {
