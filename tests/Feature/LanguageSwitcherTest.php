@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -19,7 +19,7 @@ class LanguageSwitcherTest extends TestCase
 
     public function test_switcher_targets_the_french_twin_on_a_translatable_english_route(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         // The fr option's url is the dashboard route's French twin — the translated
         // segment, not a bare /fr/ prefix.
@@ -35,7 +35,7 @@ class LanguageSwitcherTest extends TestCase
 
     public function test_switcher_targets_the_english_twin_on_a_translatable_french_route(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->withLocaleRoutes('fr', function () {
             // English is canonical at the root, so the twin drops the locale
@@ -52,7 +52,7 @@ class LanguageSwitcherTest extends TestCase
 
     public function test_switcher_keeps_the_group_slug_in_the_dynamic_route_twin(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         // Only the /groups segment is translated; the {group} slug is content and
         // stays as-authored in the twin URL (ADR-0008).
@@ -66,7 +66,7 @@ class LanguageSwitcherTest extends TestCase
 
     public function test_switcher_translates_the_group_segment_back_on_a_french_route(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->withLocaleRoutes('fr', function () {
             // FR→EN on the dynamic group route: the structural /groupes segment
@@ -83,7 +83,7 @@ class LanguageSwitcherTest extends TestCase
 
     public function test_switcher_translates_the_group_segment_back_with_the_optional_section(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->withLocaleRoutes('fr', function () {
             // Same FR→EN translation with the optional {section?} present.
@@ -98,7 +98,7 @@ class LanguageSwitcherTest extends TestCase
 
     public function test_switcher_disables_the_other_locale_on_a_page_with_no_twin(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         // The internal design-system page is English-only — it lives outside the
         // localized route group, so it has no /fr/ twin (PRD #37). The fr option

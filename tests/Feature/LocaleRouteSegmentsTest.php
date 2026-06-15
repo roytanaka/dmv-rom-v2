@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -17,7 +17,7 @@ class LocaleRouteSegmentsTest extends TestCase
 
     public function test_route_segments_translate_structural_words_for_french(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->get('/dashboard')->assertInertia(
             fn (Assert $page) => $page
@@ -36,7 +36,7 @@ class LocaleRouteSegmentsTest extends TestCase
 
     public function test_route_segments_omit_unchanged_words(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         // 'documents' is identical in both locales, so it is not recorded — the
         // frontend passes unknown segments through verbatim.

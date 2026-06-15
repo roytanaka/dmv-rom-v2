@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -17,7 +17,7 @@ class FrenchFallbackTest extends TestCase
 
     public function test_unregistered_french_url_returns_a_not_translated_response(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->withLocaleRoutes('fr', function () {
             $response = $this->get('/fr/cette-page-nexiste-pas');
@@ -31,7 +31,7 @@ class FrenchFallbackTest extends TestCase
 
     public function test_unregistered_english_url_is_a_plain_404_not_the_inertia_boundary_page(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         // English is canonical; an unknown English path is an ordinary 404, not the
         // "not translated yet" boundary page (which is reserved for /fr/ misses).

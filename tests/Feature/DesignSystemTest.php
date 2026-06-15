@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,7 +18,7 @@ class DesignSystemTest extends TestCase
 
     public function test_authenticated_users_can_visit_the_design_system_page()
     {
-        $user = User::factory()->create();
+        $user = Member::factory()->create();
         $this->actingAs($user);
 
         $response = $this->get('/design-system');

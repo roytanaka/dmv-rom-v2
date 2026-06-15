@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -53,7 +53,7 @@ class LocaleResolutionTest extends TestCase
     #[DataProvider('translatableRoutes')]
     public function test_english_url_resolves_the_english_locale(string $en, string $fr, string $component): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->get($en)->assertInertia(
             fn (Assert $page) => $page->component($component)->where('locale', 'en')
@@ -63,7 +63,7 @@ class LocaleResolutionTest extends TestCase
     #[DataProvider('translatableRoutes')]
     public function test_french_twin_resolves_the_french_locale_and_same_component(string $en, string $fr, string $component): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->withLocaleRoutes('fr', function () use ($fr, $component) {
             $this->get($fr)->assertInertia(
@@ -74,7 +74,7 @@ class LocaleResolutionTest extends TestCase
 
     public function test_dynamic_group_route_echoes_the_group_slug_back(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         $this->get('/groups/gallery-interpreters')->assertInertia(
             fn (Assert $page) => $page->component('ComingSoon')->where('group', 'gallery-interpreters')
@@ -83,7 +83,7 @@ class LocaleResolutionTest extends TestCase
 
     public function test_dynamic_group_route_echoes_an_as_authored_french_slug_unchanged(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(Member::factory()->create());
 
         // Group slugs are content: they stay as-authored even under /fr/ (no
         // model lookup, no per-locale slug translation — ADR-0008).
