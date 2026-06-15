@@ -22,7 +22,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('group_member_id')->constrained('group_member')->cascadeOnDelete();
             $table->string('role');
-            // At most one of each role per membership.
             $table->unique(['group_member_id', 'role']);
             $table->timestamps();
         });
