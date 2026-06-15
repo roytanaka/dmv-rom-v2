@@ -177,6 +177,7 @@ const submit = () => form.put(route('committees.update', props.committee.id))
 - Unit tests for service classes with non-trivial logic.
 - Don't test framework code. Don't test getters and setters.
 - Tests use `RefreshDatabase` and SQLite for speed when possible (or MariaDB for tests that depend on DB-specific behavior).
+- **Canonical spine fixture.** When a feature test needs a realistic org to hang off — members, Groups, the tree, memberships, roles, stewardship — seed `Database\Seeders\OrgTreeSeeder` (`$this->seed(OrgTreeSeeder::class)`) rather than rebuilding the world with factories. It's a miniature DMV: a root Group with a standing committee, the Records Group stewarding `member_admin`, a scheduling program, a time-boxed cohort, a working group, an archived project, members (including a super-tier holder), and memberships with varied statuses, an LOA window, and core + capability-backed roles. Reach the rows by the seeder's public slug / email constants. It's idempotent and composes the per-slice factories; it is deliberately *not* wired into `DatabaseSeeder` (its factories need faker, absent from `--no-dev` deploys).
 
 ## Code style and tooling
 
