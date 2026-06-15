@@ -56,9 +56,6 @@ class MemberFactory extends Factory
         ]);
     }
 
-    /**
-     * Indicate the Member's DMV-wide standing.
-     */
     public function category(Category $category): static
     {
         return $this->state(fn (array $attributes) => [
