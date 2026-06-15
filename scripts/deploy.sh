@@ -85,8 +85,21 @@ if [[ "$HAS_PENDING" -eq 1 ]]; then
         echo "    Skipping mysqldump (staging is disposable)."
     fi
 
-    echo "==> Step 3b: php artisan migrate --force"
-    $ARTISAN migrate --force
+    if [[ "$ENVIRONMENT" == "production" ]]; then
+        echo "==> Step 3b: php artisan migrate --force"
+        $ARTISAN migrate --force
+    else
+        # Staging is disposable (no data worth keeping — see the skipped
+        # mysqldump above). Rebuild from scratch so a drifted ledger can't
+        # wedge the deploy: e.g. a renamed migration (users→members, #133)
+        # leaves the old name recorded while the new one re-creates an
+        # existing table → "1050 Table already exists". migrate:fresh drops
+        # everything and replays the current migration set cleanly.
+        # --seed reinstates the known test login (DatabaseSeeder) the wipe
+        # would otherwise remove, keeping staging usable after every deploy.
+        echo "==> Step 3b: php artisan migrate:fresh --seed --force (staging — disposable DB)"
+        $ARTISAN migrate:fresh --seed --force
+    fi
 
     $ARTISAN up
     trap - EXIT
