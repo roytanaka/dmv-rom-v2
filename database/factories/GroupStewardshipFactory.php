@@ -32,7 +32,7 @@ class GroupStewardshipFactory extends Factory
     /**
      * Set the org-wide function this Group stewards.
      */
-    public function function(StewardshipFunction $function): static
+    public function stewarding(StewardshipFunction $function): static
     {
         return $this->state(fn () => [
             'function' => $function,

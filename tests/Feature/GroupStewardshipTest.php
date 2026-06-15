@@ -26,7 +26,7 @@ it('rounds-trips a Group and the functions it stewards', function () {
 });
 
 it('casts function to the StewardshipFunction enum', function () {
-    $stewardship = GroupStewardship::factory()->function(StewardshipFunction::Website)->create();
+    $stewardship = GroupStewardship::factory()->stewarding(StewardshipFunction::Website)->create();
 
     expect($stewardship->fresh()->function)->toBe(StewardshipFunction::Website);
 });
@@ -37,7 +37,7 @@ it('rejects an illegal function value', function () {
 
 it('returns the Group that stewards member_admin', function () {
     $records = Group::factory()->create(['name' => 'Records Group']);
-    GroupStewardship::factory()->function(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
+    GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
     Group::factory()->create();
 
     expect(Group::stewardOf(StewardshipFunction::MemberAdmin)?->is($records))->toBeTrue();
@@ -45,7 +45,7 @@ it('returns the Group that stewards member_admin', function () {
 
 it('generalizes the steward lookup per function', function () {
     $stats = Group::factory()->create();
-    GroupStewardship::factory()->function(StewardshipFunction::Statistics)->create(['group_id' => $stats->id]);
+    GroupStewardship::factory()->stewarding(StewardshipFunction::Statistics)->create(['group_id' => $stats->id]);
 
     expect(Group::stewardOf(StewardshipFunction::Statistics)?->is($stats))->toBeTrue()
         ->and(Group::stewardOf(StewardshipFunction::Website))->toBeNull();
@@ -61,7 +61,7 @@ it('answers whether a Member is all-DMV via super_tier', function () {
 
 it('grants member-admin authority to a member of the Records-stewarding Group', function () {
     $records = Group::factory()->create();
-    GroupStewardship::factory()->function(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
+    GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
 
     $steward = Member::factory()->create();
     GroupMember::factory()->create(['group_id' => $records->id, 'member_id' => $steward->id]);
@@ -71,7 +71,7 @@ it('grants member-admin authority to a member of the Records-stewarding Group', 
 
 it('withholds member-admin authority from a non-member of the Records-stewarding Group', function () {
     $records = Group::factory()->create();
-    GroupStewardship::factory()->function(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
+    GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
 
     $other = Group::factory()->create();
     $outsider = Member::factory()->create();

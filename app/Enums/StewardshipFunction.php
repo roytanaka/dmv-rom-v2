@@ -8,8 +8,6 @@ namespace App\Enums;
  * Records Group stewards `member_admin`, so member-administration authority is
  * membership in that Group, not a standalone flag (ADR-0011: authority stays
  * explicit and per-Group).
- *
- * Backed string enum: the stored value is the snake_case case value.
  */
 enum StewardshipFunction: string
 {

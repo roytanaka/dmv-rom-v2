@@ -114,9 +114,7 @@ class Group extends Model
 
     /**
      * Limit the query to Groups that steward the given org-wide function — the
-     * input a later authorization PRD reads to resolve "who runs this system
-     * function". Generalizes per function; there is conventionally one steward
-     * per function, so callers typically take the first.
+     * input the authorization layer reads to resolve "who runs this system function".
      *
      * @param  Builder<Group>  $query
      */
