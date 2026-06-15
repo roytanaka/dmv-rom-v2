@@ -6,9 +6,12 @@ use App\Enums\Category;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\MembershipStatus;
+use App\Enums\Role;
 use App\Enums\Scope;
+use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\GroupStewardship;
 use App\Models\Member;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Seeder;
@@ -57,7 +60,11 @@ class DemoSeeder extends Seeder
 
     public const COMMITTEE = 'governance-operations';
 
+    public const RECORDS = 'records';
+
     public const PROGRAM = 'docents';
+
+    public const RECEPTION = 'reception';
 
     public const CHAIR_EMAIL = 'demo.chair@dmv.test';
 
@@ -75,17 +82,54 @@ class DemoSeeder extends Seeder
     {
         $this->seenSlugs = [];
         $this->build($this->tree(), null, 0);
+        $this->roster();
+    }
 
-        // A minimal demo roster (the full curated roster lands in #142): two
-        // members anchored on stable handles so tests have people to resolve.
-        $chair = $this->member(self::CHAIR_EMAIL, 'Demo Chair');
-        $coordinator = $this->member(self::COORDINATOR_EMAIL, 'Demo Coordinator');
-
+    /**
+     * A curated demo roster (PRD #139, slice 3 / #142): a believable spread of
+     * people across the tree so the board demo shows the app modelling how DMV
+     * actually works. It spans varied membership statuses (Full, Trainee, an LOA
+     * with a window set, plus Emeritus and Transitional for breadth), the
+     * capability-backed roles on the scheduling/documenting/stats-tracking
+     * Docents program (Scheduler, Librarian, Statistician — each gated by a
+     * Group flag), the core Chair and Secretary roles, and the Records Group
+     * stewarding `member_admin`.
+     *
+     * Like the rest of this seeder it is faker-free (plain Eloquent) and
+     * idempotent: members key on email, memberships on the (Group, Member) pair,
+     * and roles/stewardships heal rather than duplicate on re-run. The slice is
+     * deliberately small (~30 rows) — realistic full-roster volume is out of
+     * scope for v1.
+     */
+    private function roster(): void
+    {
+        $root = Group::where('slug', self::ROOT)->firstOrFail();
         $committee = Group::where('slug', self::COMMITTEE)->firstOrFail();
+        $records = Group::where('slug', self::RECORDS)->firstOrFail();
         $program = Group::where('slug', self::PROGRAM)->firstOrFail();
+        $reception = Group::where('slug', self::RECEPTION)->firstOrFail();
 
-        $this->membership($committee, $chair, MembershipStatus::Full);
-        $this->membership($program, $coordinator, MembershipStatus::Full);
+        // Governance — core roles, which attach to any Group regardless of flags.
+        $this->membership($root, $this->member(self::CHAIR_EMAIL, 'Demo Chair'), MembershipStatus::Full, [Role::Chair]);
+        $this->membership($committee, $this->member('demo.secretary@dmv.test', 'Demo Secretary'), MembershipStatus::Full, [Role::Secretary]);
+        $this->membership($committee, $this->member('demo.treasurer@dmv.test', 'Demo Treasurer'), MembershipStatus::Full, [Role::Treasurer]);
+
+        // The Docents program — its capability flags back the roles below.
+        $this->membership($program, $this->member(self::COORDINATOR_EMAIL, 'Demo Coordinator'), MembershipStatus::Full, [Role::Scheduler]);
+        $this->membership($program, $this->member('demo.librarian@dmv.test', 'Demo Librarian'), MembershipStatus::Full, [Role::Librarian]);
+        $this->membership($program, $this->member('demo.statistician@dmv.test', 'Demo Statistician'), MembershipStatus::Full, [Role::Statistician]);
+        $this->membership($program, $this->member('demo.trainee@dmv.test', 'Demo Trainee'), MembershipStatus::Trainee);
+        $this->loaMembership($program, $this->member('demo.onleave@dmv.test', 'Demo On Leave'));
+
+        // A second program, for roster breadth and varied standings.
+        $this->membership($reception, $this->member('demo.greeter@dmv.test', 'Demo Greeter'), MembershipStatus::Full);
+        $this->membership($reception, $this->member('demo.emeritus@dmv.test', 'Demo Emeritus'), MembershipStatus::Emeritus);
+        $this->membership($reception, $this->member('demo.transitional@dmv.test', 'Demo Transitional'), MembershipStatus::Transitional);
+
+        // The Records Group stewards member administration (ADR-0011): authority
+        // is membership in it, not a standalone flag.
+        $this->membership($records, $this->member('demo.clerk@dmv.test', 'Demo Clerk'), MembershipStatus::Full);
+        $this->steward($records, StewardshipFunction::MemberAdmin);
     }
 
     /**
@@ -393,11 +437,45 @@ class DemoSeeder extends Seeder
         ]);
     }
 
-    private function membership(Group $group, Member $member, MembershipStatus $status): GroupMember
+    /**
+     * Ensure a membership exists for the Member in the Group with the given
+     * status, carrying the given roles (each attached once). Keyed on the
+     * (Group, Member) pair so re-running heals rather than duplicates.
+     *
+     * @param  list<Role>  $roles
+     */
+    private function membership(Group $group, Member $member, MembershipStatus $status, array $roles = []): GroupMember
+    {
+        $membership = GroupMember::firstOrCreate(
+            ['group_id' => $group->id, 'member_id' => $member->id],
+            ['status' => $status],
+        );
+
+        foreach ($roles as $role) {
+            $membership->roles()->firstOrCreate(['role' => $role]);
+        }
+
+        return $membership;
+    }
+
+    /** A membership on an open LOA window (started a month ago, ends a month out). */
+    private function loaMembership(Group $group, Member $member): GroupMember
     {
         return GroupMember::firstOrCreate(
             ['group_id' => $group->id, 'member_id' => $member->id],
-            ['status' => $status],
+            [
+                'status' => MembershipStatus::Loa,
+                'loa_start' => now()->subMonth()->toDateString(),
+                'loa_end' => now()->addMonth()->toDateString(),
+            ],
+        );
+    }
+
+    /** Ensure the Group stewards the given org-wide function, without duplicating. */
+    private function steward(Group $group, StewardshipFunction $function): GroupStewardship
+    {
+        return GroupStewardship::firstOrCreate(
+            ['group_id' => $group->id, 'function' => $function],
         );
     }
 }
