@@ -7,10 +7,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
-// Seam C — the avatar-menu Language switcher target. The shared `localeSwitch`
-// prop carries the URL of the current page's twin in the other locale. It is
-// absent on any page that has no registered twin, so the Volunteer is never
-// offered a link that 404s.
+// Seam C — the avatar-menu language switcher (ADR-0013). The shared `localeSwitcher`
+// prop carries the active locale plus one option per supported locale, each with
+// the current page's twin URL in that locale. An option's url is null when the page
+// has no twin in it (the active locale, or a page outside the localized route
+// group), so the Volunteer is never offered a link that 404s. Locale order follows
+// config/laravellocalization.php: en (0), fr (1).
 class LanguageSwitcherTest extends TestCase
 {
     use RefreshDatabase;
@@ -19,12 +21,15 @@ class LanguageSwitcherTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        // The twin URL is what LaravelLocalization::getLocalizedURL('fr') resolves
-        // for the dashboard route — the French segment, not a bare /fr/ prefix.
+        // The fr option's url is the dashboard route's French twin — the translated
+        // segment, not a bare /fr/ prefix.
         $this->get('/dashboard')->assertInertia(
             fn (Assert $page) => $page
-                ->where('localeSwitch.locale', 'fr')
-                ->where('localeSwitch.url', url('/fr/tableau-de-bord'))
+                ->where('localeSwitcher.current', 'en')
+                ->where('localeSwitcher.options.0.code', 'en')
+                ->where('localeSwitcher.options.0.url', null)
+                ->where('localeSwitcher.options.1.code', 'fr')
+                ->where('localeSwitcher.options.1.url', url('/fr/tableau-de-bord'))
         );
     }
 
@@ -34,11 +39,13 @@ class LanguageSwitcherTest extends TestCase
 
         $this->withLocaleRoutes('fr', function () {
             // English is canonical at the root, so the twin drops the locale
-            // prefix entirely (getLocalizedURL('en') → /dashboard).
+            // prefix entirely (the en option's url → /dashboard).
             $this->get('/fr/tableau-de-bord')->assertInertia(
                 fn (Assert $page) => $page
-                    ->where('localeSwitch.locale', 'en')
-                    ->where('localeSwitch.url', url('/dashboard'))
+                    ->where('localeSwitcher.current', 'fr')
+                    ->where('localeSwitcher.options.0.code', 'en')
+                    ->where('localeSwitcher.options.0.url', url('/dashboard'))
+                    ->where('localeSwitcher.options.1.url', null)
             );
         });
     }
@@ -51,8 +58,9 @@ class LanguageSwitcherTest extends TestCase
         // stays as-authored in the twin URL (ADR-0008).
         $this->get('/groups/docents')->assertInertia(
             fn (Assert $page) => $page
-                ->where('localeSwitch.locale', 'fr')
-                ->where('localeSwitch.url', url('/fr/groupes/docents'))
+                ->where('localeSwitcher.current', 'en')
+                ->where('localeSwitcher.options.1.code', 'fr')
+                ->where('localeSwitcher.options.1.url', url('/fr/groupes/docents'))
         );
     }
 
@@ -66,8 +74,9 @@ class LanguageSwitcherTest extends TestCase
             // authored (ADR-0008). Regression for #121.
             $this->get('/fr/groupes/gallery-interpreters')->assertInertia(
                 fn (Assert $page) => $page
-                    ->where('localeSwitch.locale', 'en')
-                    ->where('localeSwitch.url', url('/groups/gallery-interpreters'))
+                    ->where('localeSwitcher.current', 'fr')
+                    ->where('localeSwitcher.options.0.code', 'en')
+                    ->where('localeSwitcher.options.0.url', url('/groups/gallery-interpreters'))
             );
         });
     }
@@ -80,21 +89,26 @@ class LanguageSwitcherTest extends TestCase
             // Same FR→EN translation with the optional {section?} present.
             $this->get('/fr/groupes/docents/school-visits')->assertInertia(
                 fn (Assert $page) => $page
-                    ->where('localeSwitch.locale', 'en')
-                    ->where('localeSwitch.url', url('/groups/docents/school-visits'))
+                    ->where('localeSwitcher.current', 'fr')
+                    ->where('localeSwitcher.options.0.code', 'en')
+                    ->where('localeSwitcher.options.0.url', url('/groups/docents/school-visits'))
             );
         });
     }
 
-    public function test_switcher_is_absent_on_a_page_with_no_registered_twin(): void
+    public function test_switcher_disables_the_other_locale_on_a_page_with_no_twin(): void
     {
         $this->actingAs(User::factory()->create());
 
         // The internal design-system page is English-only — it lives outside the
-        // localized route group, so it has no /fr/ twin (PRD #37). The switcher
-        // must not offer a link that would 404.
+        // localized route group, so it has no /fr/ twin (PRD #37). The fr option
+        // arrives with a null url and renders disabled rather than offering a link
+        // that would 404.
         $this->get('/design-system')->assertInertia(
-            fn (Assert $page) => $page->where('localeSwitch', null)
+            fn (Assert $page) => $page
+                ->where('localeSwitcher.current', 'en')
+                ->where('localeSwitcher.options.1.code', 'fr')
+                ->where('localeSwitcher.options.1.url', null)
         );
     }
 }

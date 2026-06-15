@@ -4,14 +4,19 @@
 // corners (ROM identity); the label is the Group's as-authored NAME (content —
 // rendered verbatim in both locales, never translated; ADR-0004).
 import type { GroupNode } from '@/chrome/types';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import { Link } from '@inertiajs/vue3';
 
 defineProps<{ item: GroupNode }>();
+
+// Tile hrefs are English-canonical in the fixture; localise to the active locale so
+// launching a Group stays in-locale (ADR-0008).
+const localizeHref = useLocalizedHref();
 </script>
 
 <template>
     <Link
-        :href="item.href"
+        :href="localizeHref(item.href)"
         class="bg-rom-ink hover:bg-rom-ink-90 focus-visible:ring-rom-slate-300 flex aspect-square flex-col items-center justify-center gap-3 rounded-none p-4 text-center text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
     >
         <component :is="item.icon" v-if="item.icon" class="size-12 sm:size-14" />
