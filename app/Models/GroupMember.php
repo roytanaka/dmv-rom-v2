@@ -7,6 +7,7 @@ use Database\Factories\GroupMemberFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A membership — the pivot row binding a Member to a Group with a within-Group
@@ -72,5 +73,16 @@ class GroupMember extends Model
     public function member(): BelongsTo
     {
         return $this->belongsTo(Member::class);
+    }
+
+    /**
+     * The roles this membership carries — a membership may hold several at once
+     * (e.g. a Chair who also schedules).
+     *
+     * @return HasMany<GroupMemberRole, $this>
+     */
+    public function roles(): HasMany
+    {
+        return $this->hasMany(GroupMemberRole::class);
     }
 }
