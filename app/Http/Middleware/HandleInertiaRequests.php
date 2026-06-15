@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 use Inertia\Middleware;
@@ -141,41 +142,47 @@ class HandleInertiaRequests extends Middleware
      * segment through this table (slugs and {params} pass through unchanged), so a
      * Volunteer on /fr/… navigates to /fr/… twins rather than reverting to English.
      *
+     * Derived purely from static config (the route lang files + supported locales),
+     * so it's the same for every request — cached forever and rebuilt on deploy when
+     * the cache is cleared, rather than recomputed on every Inertia response.
+     *
      * @return array<string, array<string, string>>
      */
     private function routeSegments(): array
     {
-        $default = LaravelLocalization::getDefaultLocale();
-        $base = Lang::get('routes', [], $default);
+        return Cache::rememberForever('inertia.route_segments', function (): array {
+            $default = LaravelLocalization::getDefaultLocale();
+            $base = Lang::get('routes', [], $default);
 
-        $out = [];
+            $out = [];
 
-        foreach (array_keys(LaravelLocalization::getSupportedLocales()) as $locale) {
-            if ($locale === $default) {
-                continue;
-            }
+            foreach (array_keys(LaravelLocalization::getSupportedLocales()) as $locale) {
+                if ($locale === $default) {
+                    continue;
+                }
 
-            $target = Lang::get('routes', [], $locale);
-            $dict = [];
+                $target = Lang::get('routes', [], $locale);
+                $dict = [];
 
-            foreach ($base as $key => $basePattern) {
-                $baseSegs = explode('/', $basePattern);
-                $targetSegs = explode('/', $target[$key] ?? $basePattern);
+                foreach ($base as $key => $basePattern) {
+                    $baseSegs = explode('/', $basePattern);
+                    $targetSegs = explode('/', $target[$key] ?? $basePattern);
 
-                foreach ($baseSegs as $i => $segment) {
-                    $localised = $targetSegs[$i] ?? $segment;
+                    foreach ($baseSegs as $i => $segment) {
+                        $localised = $targetSegs[$i] ?? $segment;
 
-                    // Only record words that actually differ; skip {param}
-                    // placeholders (group slugs are content, never translated).
-                    if ($segment !== $localised && ! str_starts_with($segment, '{')) {
-                        $dict[$segment] = $localised;
+                        // Only record words that actually differ; skip {param}
+                        // placeholders (group slugs are content, never translated).
+                        if ($segment !== $localised && ! str_starts_with($segment, '{')) {
+                            $dict[$segment] = $localised;
+                        }
                     }
                 }
+
+                $out[$locale] = $dict;
             }
 
-            $out[$locale] = $dict;
-        }
-
-        return $out;
+            return $out;
+        });
     }
 }

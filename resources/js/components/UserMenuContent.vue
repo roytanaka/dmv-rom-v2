@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import LocaleOptionList from '@/components/LocaleOptionList.vue';
 import UserInfo from '@/components/UserInfo.vue';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { SharedData, User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhCheck, PhGlobe, PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
+import { PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
 interface Props {
@@ -47,23 +48,7 @@ const localeSwitcher = computed(() => page.props.localeSwitcher);
             <DropdownMenuLabel class="text-muted-foreground px-2 py-1.5 text-xs font-normal">
                 {{ trans('user.language') }}
             </DropdownMenuLabel>
-            <template v-for="opt in localeSwitcher.options" :key="opt.code">
-                <DropdownMenuItem v-if="opt.code === localeSwitcher.current" class="py-2.5">
-                    <PhGlobe class="mr-2 h-4 w-4" />
-                    {{ opt.label }}
-                    <PhCheck class="ml-auto h-4 w-4" />
-                </DropdownMenuItem>
-                <DropdownMenuItem v-else-if="opt.url" class="py-2.5" :as-child="true">
-                    <a class="flex w-full items-center" :href="opt.url">
-                        <PhGlobe class="mr-2 h-4 w-4" />
-                        {{ opt.label }}
-                    </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem v-else class="py-2.5" disabled>
-                    <PhGlobe class="mr-2 h-4 w-4" />
-                    {{ opt.label }}
-                </DropdownMenuItem>
-            </template>
+            <LocaleOptionList :switcher="localeSwitcher" icon-class="mr-2 h-4 w-4" />
         </DropdownMenuGroup>
     </template>
 
