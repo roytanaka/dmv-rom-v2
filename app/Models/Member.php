@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Category;
 use App\Enums\Role;
+use App\Enums\StewardshipFunction;
 use Database\Factories\MemberFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -94,5 +95,19 @@ class Member extends Authenticatable
     {
         return $this->membershipIn($group)
             ?->roles()->where('role', $role)->exists() ?? false;
+    }
+
+    /**
+     * Whether this Member holds member-administration authority — i.e. is a member
+     * of the Group that stewards `member_admin` (the Records Group). Authority is
+     * explicit and per-Group (ADR-0011): reach over member administration comes
+     * from membership in the stewarding Group, never a standalone flag. False when
+     * no Group stewards the function.
+     */
+    public function hasMemberAdminAuthority(): bool
+    {
+        $records = Group::stewardOf(StewardshipFunction::MemberAdmin);
+
+        return $records !== null && $this->membershipIn($records) !== null;
     }
 }

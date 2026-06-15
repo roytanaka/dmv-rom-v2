@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\Scope;
+use App\Enums\StewardshipFunction;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -98,6 +99,42 @@ class Group extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(GroupMember::class);
+    }
+
+    /**
+     * The org-wide system functions this Group stewards — a Group may steward
+     * several (e.g. the Records Group stewarding `member_admin`).
+     *
+     * @return HasMany<GroupStewardship, $this>
+     */
+    public function stewardships(): HasMany
+    {
+        return $this->hasMany(GroupStewardship::class);
+    }
+
+    /**
+     * Limit the query to Groups that steward the given org-wide function — the
+     * input a later authorization PRD reads to resolve "who runs this system
+     * function". Generalizes per function; there is conventionally one steward
+     * per function, so callers typically take the first.
+     *
+     * @param  Builder<Group>  $query
+     */
+    public function scopeStewarding(Builder $query, StewardshipFunction $function): void
+    {
+        $query->whereHas('stewardships', function (Builder $query) use ($function) {
+            $query->where('function', $function);
+        });
+    }
+
+    /**
+     * The Group that stewards the given org-wide function, or null if none does.
+     * `Group::stewardOf(StewardshipFunction::MemberAdmin)` resolves the Records
+     * Group; member-administration authority is membership in it (ADR-0011).
+     */
+    public static function stewardOf(StewardshipFunction $function): ?self
+    {
+        return static::stewarding($function)->first();
     }
 
     /**
