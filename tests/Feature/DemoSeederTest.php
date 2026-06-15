@@ -2,8 +2,12 @@
 
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
+use App\Enums\MembershipStatus;
+use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\GroupMemberRole;
+use App\Models\GroupStewardship;
 use App\Models\Member;
 use Database\Seeders\DemoSeeder;
 
@@ -75,6 +79,41 @@ it('excludes archived and stale groups from the active scope but keeps live ones
     expect($activeIds->contains($liveProgram->id))->toBeTrue();
 });
 
+it('represents varied membership statuses including Full, Trainee and LOA', function () {
+    $present = GroupMember::query()->distinct()->pluck('status');
+
+    foreach ([MembershipStatus::Full, MembershipStatus::Trainee, MembershipStatus::Loa] as $status) {
+        expect($present->contains($status))->toBeTrue();
+    }
+});
+
+it('sets an LOA window on every membership on leave', function () {
+    $onLeave = GroupMember::where('status', MembershipStatus::Loa)->get();
+
+    expect($onLeave)->not->toBeEmpty();
+    $onLeave->each(function (GroupMember $membership) {
+        expect($membership->loa_start)->not->toBeNull()
+            ->and($membership->loa_end)->not->toBeNull();
+    });
+});
+
+it('resolves a capability-backed role on a Group whose capability is enabled', function () {
+    $role = GroupMemberRole::with('groupMember.group')->get()
+        ->first(fn (GroupMemberRole $role) => $role->role->requiredCapability() !== null);
+
+    expect($role)->not->toBeNull();
+
+    $capability = $role->role->requiredCapability();
+    expect($role->groupMember->group->{$capability})->toBeTrue();
+});
+
+it('resolves a Group stewarding an org-wide function via the stewardship helper', function () {
+    $steward = Group::stewardOf(StewardshipFunction::MemberAdmin);
+
+    expect($steward)->not->toBeNull()
+        ->and($steward->stewardships()->where('function', StewardshipFunction::MemberAdmin)->exists())->toBeTrue();
+});
+
 it('leaves no membership orphaned — every one references a real Group and Member', function () {
     GroupMember::with(['group', 'member'])->get()->each(function (GroupMember $membership) {
         expect($membership->group)->not->toBeNull()
@@ -87,6 +126,8 @@ it('is idempotent — re-seeding leaves row counts unchanged', function () {
         'groups' => Group::count(),
         'members' => Member::count(),
         'memberships' => GroupMember::count(),
+        'roles' => GroupMemberRole::count(),
+        'stewardships' => GroupStewardship::count(),
     ];
     $before = $counts();
 
