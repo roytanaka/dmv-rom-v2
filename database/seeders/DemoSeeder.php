@@ -64,6 +64,8 @@ class DemoSeeder extends Seeder
 
     public const PROGRAM = 'docents';
 
+    public const RECEPTION = 'reception';
+
     public const CHAIR_EMAIL = 'demo.chair@dmv.test';
 
     public const COORDINATOR_EMAIL = 'demo.coordinator@dmv.test';
@@ -105,7 +107,7 @@ class DemoSeeder extends Seeder
         $committee = Group::where('slug', self::COMMITTEE)->firstOrFail();
         $records = Group::where('slug', self::RECORDS)->firstOrFail();
         $program = Group::where('slug', self::PROGRAM)->firstOrFail();
-        $reception = Group::where('slug', 'reception')->firstOrFail();
+        $reception = Group::where('slug', self::RECEPTION)->firstOrFail();
 
         // Governance — core roles, which attach to any Group regardless of flags.
         $this->membership($root, $this->member(self::CHAIR_EMAIL, 'Demo Chair'), MembershipStatus::Full, [Role::Chair]);
@@ -450,9 +452,7 @@ class DemoSeeder extends Seeder
         );
 
         foreach ($roles as $role) {
-            if (! $membership->roles()->where('role', $role)->exists()) {
-                $membership->roles()->create(['role' => $role]);
-            }
+            $membership->roles()->firstOrCreate(['role' => $role]);
         }
 
         return $membership;
