@@ -1,16 +1,19 @@
 <?php
 
+use App\Enums\Kind;
+use App\Enums\LifecycleState;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
 use Database\Seeders\DemoSeeder;
 
 /*
- * The curated demo data (PRD #139, slice 1 / #140): the faker-free, idempotent
- * spine seeded into staging by hand before a board pitch. These assertions check
- * external, observable invariants — the tree resolves, no membership is orphaned,
- * and re-seeding heals rather than duplicates — rather than specific curated
- * content, so the suite survives the tree growing in later slices.
+ * The curated demo data (PRD #139, slice 2 / #141): the faker-free, idempotent
+ * full DMV org tree seeded into staging by hand before a board pitch. These
+ * assertions check external, observable invariants — the tree resolves at real
+ * depth, every Group Kind is present, archived/stale nodes drop out of the
+ * active filter, and re-seeding heals rather than duplicates — rather than
+ * specific curated content, so the suite survives the org list changing.
  */
 
 beforeEach(fn () => $this->seed(DemoSeeder::class));
@@ -23,15 +26,53 @@ it('builds a tree whose relationships resolve from the root', function () {
         ->and($root->children->every(fn (Group $child) => $child->parent->is($root)))->toBeTrue();
 });
 
-it('seeds the spine: standing committee, program, and members under the root', function () {
+it('anchors stable handles for a committee and a program under the root', function () {
     $root = Group::where('slug', DemoSeeder::ROOT)->firstOrFail();
     $committee = Group::where('slug', DemoSeeder::COMMITTEE)->firstOrFail();
     $program = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
 
     expect($committee->parent->is($root))->toBeTrue()
-        ->and($program->parent->is($root))->toBeTrue()
-        ->and(Member::count())->toBeGreaterThanOrEqual(2)
-        ->and(GroupMember::count())->toBeGreaterThanOrEqual(2);
+        ->and($program->kind)->toBe(Kind::Program)
+        ->and($program->parent)->not->toBeNull()
+        ->and($program->parent->parent->is($root))->toBeTrue();
+});
+
+it('represents every Group Kind in the curated tree', function () {
+    foreach (Kind::cases() as $kind) {
+        expect(Group::where('kind', $kind)->exists())->toBeTrue();
+    }
+});
+
+it('resolves working groups and cohorts up to their program at depth', function () {
+    $workingGroupUnderProgram = Group::where('kind', Kind::WorkingGroup)->get()
+        ->first(fn (Group $g) => $g->parent?->kind === Kind::Program);
+
+    $cohortUnderProgram = Group::where('kind', Kind::Cohort)->get()
+        ->first(fn (Group $g) => $g->parent?->kind === Kind::Program);
+
+    expect($workingGroupUnderProgram)->not->toBeNull()
+        ->and($cohortUnderProgram)->not->toBeNull();
+});
+
+it('excludes archived and stale groups from the active scope but keeps live ones', function () {
+    $activeIds = Group::active()->pluck('id');
+
+    $archived = Group::where('lifecycle_state', LifecycleState::Archived)->get();
+    expect($archived)->not->toBeEmpty();
+    $archived->each(fn (Group $g) => expect($activeIds->contains($g->id))->toBeFalse());
+
+    // An active-but-stale pool: lifecycle Active, but its time-boxed window lapsed.
+    $stale = Group::where('lifecycle_state', LifecycleState::Active)
+        ->where('time_boxed', true)
+        ->whereDate('end_date', '<', now())
+        ->get();
+    expect($stale)->not->toBeEmpty();
+    $stale->each(fn (Group $g) => expect($activeIds->contains($g->id))->toBeFalse());
+
+    $liveProgram = Group::where('kind', Kind::Program)
+        ->where('lifecycle_state', LifecycleState::Active)
+        ->firstOrFail();
+    expect($activeIds->contains($liveProgram->id))->toBeTrue();
 });
 
 it('leaves no membership orphaned — every one references a real Group and Member', function () {
