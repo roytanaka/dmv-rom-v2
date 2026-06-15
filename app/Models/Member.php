@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Category;
+use App\Enums\Role;
 use Database\Factories\MemberFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -82,5 +83,16 @@ class Member extends Authenticatable
     public function membershipIn(Group $group): ?GroupMember
     {
         return $this->memberships()->where('group_id', $group->getKey())->first();
+    }
+
+    /**
+     * Whether this Member holds the given role in the given Group. Roles are
+     * scoped to a membership, so this reads the membership in that Group and asks
+     * whether it carries the role — false when the Member isn't in the Group.
+     */
+    public function holdsRole(Role $role, Group $group): bool
+    {
+        return $this->membershipIn($group)
+            ?->roles()->where('role', $role)->exists() ?? false;
     }
 }
