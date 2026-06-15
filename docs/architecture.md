@@ -132,7 +132,7 @@ Procedure, run right before the presentation:
 1. **Deploy the demo build first.** Every push to `staging` runs `migrate:fresh --seed`, which **drops the database** and reseeds only the test login. So deploy before you seed — never the other way around.
 2. **Seed last.** SSH into the Stormweb staging account and run (Stormweb's default `php` is 7.4; the app needs 8.4):
 
-   ```
+   ```bash
    /usr/local/php84/bin/php artisan db:seed --class=DemoSeeder --force
    ```
 
