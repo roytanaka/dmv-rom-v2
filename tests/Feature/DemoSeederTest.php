@@ -41,7 +41,7 @@ it('leaves no membership orphaned — every one references a real Group and Memb
     });
 });
 
-it('is faker-free idempotent — re-seeding leaves row counts unchanged', function () {
+it('is idempotent — re-seeding leaves row counts unchanged', function () {
     $counts = fn () => [
         'groups' => Group::count(),
         'members' => Member::count(),

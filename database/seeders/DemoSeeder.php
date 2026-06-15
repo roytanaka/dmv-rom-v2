@@ -43,9 +43,6 @@ class DemoSeeder extends Seeder
 
     public const COORDINATOR_EMAIL = 'demo.coordinator@dmv.test';
 
-    /**
-     * Build the curated demo spine end-to-end.
-     */
     public function run(): void
     {
         $root = $this->group(self::ROOT, [
@@ -80,9 +77,6 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Look up a Group by slug, or create it. Keying on the unique slug is what
-     * makes the seed idempotent.
-     *
      * @param  array<string, mixed>  $attributes
      */
     private function group(string $slug, array $attributes): Group
@@ -92,10 +86,7 @@ class DemoSeeder extends Seeder
         ]);
     }
 
-    /**
-     * Look up a Member by email, or create them. Created directly (not via the
-     * factory) so the seed runs under a --no-dev install.
-     */
+    /** Not via the factory: factories call fake(), absent from the --no-dev build. */
     private function member(string $email, string $name): Member
     {
         return Member::firstOrCreate(['email' => $email], [
@@ -107,11 +98,6 @@ class DemoSeeder extends Seeder
         ]);
     }
 
-    /**
-     * Ensure a membership exists for the Member in the Group with the given
-     * status. Keyed on the (Group, Member) pair so re-running heals rather than
-     * duplicates.
-     */
     private function membership(Group $group, Member $member, MembershipStatus $status): GroupMember
     {
         return GroupMember::firstOrCreate(
