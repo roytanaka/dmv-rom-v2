@@ -41,14 +41,9 @@ const page = usePage<SharedData>();
                 <Button v-if="page.props.auth.user" variant="outline" as-child>
                     <Link :href="route('dashboard')">Go to dashboard</Link>
                 </Button>
-                <template v-else>
-                    <Button variant="outline" as-child>
-                        <Link :href="route('login')">Log in</Link>
-                    </Button>
-                    <Button variant="ghost" as-child>
-                        <Link :href="route('register')">Register</Link>
-                    </Button>
-                </template>
+                <Button v-else variant="outline" as-child>
+                    <Link :href="route('login')">Log in</Link>
+                </Button>
             </CardContent>
         </Card>
     </div>
