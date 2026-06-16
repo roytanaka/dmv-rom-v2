@@ -46,6 +46,7 @@ class Group extends Model
         'has_content_catalog',
         'has_vetting',
         'has_hours_stats',
+        'has_announcements',
     ];
 
     /**
@@ -68,6 +69,7 @@ class Group extends Model
             'has_content_catalog' => 'boolean',
             'has_vetting' => 'boolean',
             'has_hours_stats' => 'boolean',
+            'has_announcements' => 'boolean',
         ];
     }
 

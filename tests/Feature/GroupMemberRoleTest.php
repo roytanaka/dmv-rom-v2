@@ -83,6 +83,32 @@ it('rejects a capability-backed role when the Group lacks the flag', function ()
     ]);
 })->throws(DomainException::class);
 
+it('maps the news-editor role to the announcements capability', function () {
+    expect(Role::NewsEditor->requiredCapability())->toBe('has_announcements');
+});
+
+it('attaches the news-editor role when the Group has announcements on', function () {
+    $group = Group::factory()->create(['has_announcements' => true]);
+    $membership = GroupMember::factory()->create(['group_id' => $group->id]);
+
+    $role = GroupMemberRole::factory()->create([
+        'group_member_id' => $membership->id,
+        'role' => Role::NewsEditor,
+    ]);
+
+    expect($role->fresh()->role)->toBe(Role::NewsEditor);
+});
+
+it('rejects the news-editor role when the Group lacks announcements', function () {
+    $group = Group::factory()->create(['has_announcements' => false]);
+    $membership = GroupMember::factory()->create(['group_id' => $group->id]);
+
+    GroupMemberRole::factory()->create([
+        'group_member_id' => $membership->id,
+        'role' => Role::NewsEditor,
+    ]);
+})->throws(DomainException::class);
+
 it('attaches core roles regardless of capability flags', function () {
     $group = Group::factory()->create();
     $membership = GroupMember::factory()->create(['group_id' => $group->id]);

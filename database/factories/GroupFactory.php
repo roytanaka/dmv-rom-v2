@@ -44,6 +44,7 @@ class GroupFactory extends Factory
             'has_content_catalog' => false,
             'has_vetting' => false,
             'has_hours_stats' => false,
+            'has_announcements' => false,
         ];
     }
 

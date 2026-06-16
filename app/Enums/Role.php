@@ -3,7 +3,8 @@
 namespace App\Enums;
 
 /**
- * A role held on a membership — the closed spine catalog of 8 (PRD #126, slice 4).
+ * A role held on a membership — the closed spine catalog of 9 (PRD #126, slice 4;
+ * news-editor added per ADR-0011 delta for the announcements capability).
  * Roles are stored as their own rows on the membership, never as boolean columns.
  *
  * Core roles (chair, secretary, treasurer) attach to any Group. The rest each
@@ -24,6 +25,7 @@ enum Role: string
     case Vetting = 'vetting';
     case Librarian = 'librarian';
     case ContentMaintainer = 'content_maintainer';
+    case NewsEditor = 'news_editor';
 
     /**
      * The Group capability flag this role requires to be on, or null for a core
@@ -38,6 +40,7 @@ enum Role: string
             self::Vetting => 'has_vetting',
             self::Librarian => 'has_documents',
             self::ContentMaintainer => 'has_content_catalog',
+            self::NewsEditor => 'has_announcements',
         };
     }
 }
