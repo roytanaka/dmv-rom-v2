@@ -45,9 +45,6 @@ const page = usePage<SharedData>();
                     <Button variant="outline" as-child>
                         <Link :href="route('login')">Log in</Link>
                     </Button>
-                    <Button variant="ghost" as-child>
-                        <Link :href="route('register')">Register</Link>
-                    </Button>
                 </template>
             </CardContent>
         </Card>
