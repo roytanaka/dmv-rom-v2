@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MemberController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -56,6 +57,14 @@ Route::group([
 Route::get('design-system', function () {
     return Inertia::render('DesignSystem');
 })->middleware(['auth'])->name('design-system');
+
+// Member administration (ADR-0017). Editing a member record is gated by the
+// MemberPolicy via the UpdateMemberRequest: self by default, Records or super-tier
+// for anyone else. The richer member-admin UI (and its localized routes) lands in
+// a later slice; this is the write endpoint the authorization tracer enforces.
+Route::patch('members/{member}', [MemberController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('members.update');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

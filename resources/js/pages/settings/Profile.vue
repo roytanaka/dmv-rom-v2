@@ -16,6 +16,9 @@ interface Props {
     mustVerifyEmail: boolean;
     status?: string;
     className?: string;
+    // Per-resource UI hint from MemberPolicy (ADR-0017). Drives whether the save
+    // control renders enabled; the server enforces the action regardless.
+    can: { update: boolean };
 }
 
 defineProps<Props>();
@@ -90,7 +93,7 @@ const submit = () => {
                     </div>
 
                     <div class="flex items-center gap-4">
-                        <Button :loading="form.processing">Save</Button>
+                        <Button :loading="form.processing" :disabled="!can.update">Save</Button>
 
                         <TransitionRoot
                             :show="form.recentlySuccessful"
