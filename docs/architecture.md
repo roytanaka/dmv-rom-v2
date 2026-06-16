@@ -130,10 +130,14 @@ Automated via GitHub Actions. See [ADR-0007](adr/0007-dev-staging-deploy-strateg
 Procedure, run right before the presentation:
 
 1. **Deploy the demo build first.** Every push to `staging` runs `migrate:fresh --seed`, which **drops the database** and reseeds only the test login. So deploy before you seed — never the other way around.
-2. **Seed last.** SSH into the Stormweb staging account and run (Stormweb's default `php` is 7.4; the app needs 8.4):
+2. **Seed last.** SSH into the Stormweb account and `cd` into the **staging** app folder, then run the seeder (Stormweb's default `php` is 7.4; the app needs 8.4):
 
    ```bash
+   ssh dmvromca@dmv-rom.ca
+   cd ~/domains/staging.dmv-rom.ca/dmv-rom-v2        # staging — NOT the prod domain folder
    /usr/local/php84/bin/php artisan db:seed --class=DemoSeeder --force
    ```
+
+   Staging and production are sibling domain folders under the **same** `dmvromca@dmv-rom.ca` account, so the directory you `cd` into is the only thing keeping this off production. Confirm before seeding — `pwd` should end in `staging.dmv-rom.ca/dmv-rom-v2`, and `grep -E '^(APP_ENV|APP_URL|DB_DATABASE)=' .env` should show the staging environment. If `.env` says production, **stop** — you're in the wrong folder. (`DemoSeeder` is insert-only, so it won't overwrite real data, but it would scatter `*@dmv.test` members and demo groups through the live org.) The seeder picks up the DB credentials from that folder's `.env`; `--force` is needed only to skip Laravel's production-env confirmation prompt.
 
 3. **Present — and don't push to `staging` again until you're done.** Any further push triggers `migrate:fresh --seed` and wipes the demo data. If that happens, just re-run the command above: `DemoSeeder` is idempotent, so re-seeding heals the data (keyed on slug / email / membership pair) rather than duplicating it.
