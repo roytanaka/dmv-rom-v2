@@ -59,7 +59,7 @@ it('answers whether a Member is all-DMV via super_tier', function () {
 });
 
 it('produces varied categories via the factory state', function () {
-    $member = Member::factory()->category(Category::Life)->create();
+    $member = Member::factory()->category(Category::Sustaining)->create();
 
-    expect($member->fresh()->category)->toBe(Category::Life);
+    expect($member->fresh()->category)->toBe(Category::Sustaining);
 });
