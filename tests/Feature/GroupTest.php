@@ -53,6 +53,7 @@ it('casts the capability flags and time_boxed to booleans', function () {
         'has_content_catalog' => true,
         'has_vetting' => true,
         'has_hours_stats' => true,
+        'has_announcements' => true,
         'time_boxed' => true,
     ]);
 
@@ -64,6 +65,7 @@ it('casts the capability flags and time_boxed to booleans', function () {
         ->and($fresh->has_content_catalog)->toBeTrue()
         ->and($fresh->has_vetting)->toBeTrue()
         ->and($fresh->has_hours_stats)->toBeTrue()
+        ->and($fresh->has_announcements)->toBeTrue()
         ->and($fresh->time_boxed)->toBeTrue();
 });
 
