@@ -23,7 +23,7 @@ use Database\Seeders\DemoSeeder;
 beforeEach(fn () => $this->seed(DemoSeeder::class));
 
 it('builds a tree whose relationships resolve from the root', function () {
-    $root = Group::where('slug', DemoSeeder::ROOT)->firstOrFail();
+    $root = Group::where('slug', DemoSeeder::ROOT)->with(['parent', 'children.parent'])->firstOrFail();
 
     expect($root->parent)->toBeNull()
         ->and($root->children)->not->toBeEmpty()
@@ -48,10 +48,10 @@ it('represents every Group Kind in the curated tree', function () {
 });
 
 it('resolves working groups and cohorts up to their program at depth', function () {
-    $workingGroupUnderProgram = Group::where('kind', Kind::WorkingGroup)->get()
+    $workingGroupUnderProgram = Group::where('kind', Kind::WorkingGroup)->with('parent')->get()
         ->first(fn (Group $g) => $g->parent?->kind === Kind::Program);
 
-    $cohortUnderProgram = Group::where('kind', Kind::Cohort)->get()
+    $cohortUnderProgram = Group::where('kind', Kind::Cohort)->with('parent')->get()
         ->first(fn (Group $g) => $g->parent?->kind === Kind::Program);
 
     expect($workingGroupUnderProgram)->not->toBeNull()

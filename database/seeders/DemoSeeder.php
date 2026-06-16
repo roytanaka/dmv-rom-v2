@@ -428,13 +428,20 @@ class DemoSeeder extends Seeder
     /** Not via the factory: factories call fake(), absent from the --no-dev build. */
     private function member(string $email, string $name): Member
     {
-        return Member::firstOrCreate(['email' => $email], [
+        // super_tier is not mass-assignable (#153) and defaults to false in the
+        // schema. email_verified_at is likewise non-fillable: forceFill marks the
+        // demo member verified once, idempotently.
+        $member = Member::firstOrCreate(['email' => $email], [
             'name' => $name,
-            'email_verified_at' => now(),
             'category' => Category::Active,
-            'super_tier' => false,
             'password' => Hash::make('password'),
         ]);
+
+        if ($member->email_verified_at === null) {
+            $member->forceFill(['email_verified_at' => now()])->save();
+        }
+
+        return $member;
     }
 
     /**

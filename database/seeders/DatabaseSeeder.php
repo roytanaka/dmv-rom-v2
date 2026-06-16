@@ -19,15 +19,20 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        Member::firstOrCreate(
+        // super_tier is not mass-assignable (#153) and defaults to false in the
+        // schema, so it is set by neither this seeder nor any form. email_verified_at
+        // is likewise non-fillable: forceFill marks the known login verified once.
+        $member = Member::firstOrCreate(
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test Member',
-                'email_verified_at' => now(),
                 'category' => Category::Active,
-                'super_tier' => false,
                 'password' => Hash::make('password'),
             ],
         );
+
+        if ($member->email_verified_at === null) {
+            $member->forceFill(['email_verified_at' => now()])->save();
+        }
     }
 }

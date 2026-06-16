@@ -27,7 +27,6 @@ class Member extends Authenticatable
         'email',
         'password',
         'category',
-        'super_tier',
     ];
 
     /**
