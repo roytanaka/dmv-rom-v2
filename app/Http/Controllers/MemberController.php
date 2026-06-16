@@ -10,8 +10,7 @@ class MemberController extends Controller
 {
     /**
      * Update a member's record. Authorization and the field whitelist both live in
-     * the Form Request (ADR-0017); the controller only ever sees `validated()`
-     * data, never the raw request.
+     * the Form Request (ADR-0017).
      */
     public function update(UpdateMemberRequest $request, Member $member): RedirectResponse
     {

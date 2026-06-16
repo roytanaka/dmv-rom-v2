@@ -16,9 +16,6 @@ use Illuminate\Validation\Rule;
  */
 class UpdateMemberRequest extends FormRequest
 {
-    /**
-     * The member being edited, resolved from the route binding.
-     */
     private function target(): Member
     {
         return $this->route('member');
