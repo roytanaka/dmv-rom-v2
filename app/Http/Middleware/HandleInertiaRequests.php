@@ -62,6 +62,13 @@ class HandleInertiaRequests extends Middleware
             'localeSwitcher' => $this->localeSwitcher($request),
             'auth' => [
                 'user' => $request->user(),
+                // Coarse, app-wide capability map for chrome/nav (ADR-0017 §9).
+                // UI hint only — every action is enforced server-side; hiding a
+                // control is never the lock. Fine-grained per-resource `can` props
+                // are computed by the relevant policy on each page.
+                'can' => [
+                    'administerMembers' => (bool) $request->user()?->can('administer-members'),
+                ],
             ],
             // Persisted sidebar state. The cookie is written client-side by the
             // shadcn SidebarProvider (raw, hence excepted from encryption in

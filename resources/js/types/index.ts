@@ -5,6 +5,15 @@ export type PhosphorIcon = (typeof import('@phosphor-icons/vue'))['PhSquaresFour
 
 export interface Auth {
     user: User;
+    /**
+     * Coarse, app-wide capability map for chrome/nav (ADR-0017). UI hints only —
+     * the server enforces every action; a `false` here hides a control, it is
+     * never the security boundary. Fine-grained per-resource `can` props are
+     * passed per page.
+     */
+    can: {
+        administerMembers: boolean;
+    };
 }
 
 export interface BreadcrumbItem {

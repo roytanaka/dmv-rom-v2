@@ -21,6 +21,12 @@ class ProfileController extends Controller
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            // Fine-grained, per-resource UI hint (ADR-0017 §9): may this member edit
+            // this record? The server still enforces the action; this only drives
+            // whether the form's controls render enabled.
+            'can' => [
+                'update' => $request->user()->can('update', $request->user()),
+            ],
         ]);
     }
 

@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Member;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Mcamara\LaravelLocalization\Traits\LoadsTranslatedCachedRoutes;
 
@@ -27,5 +29,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RouteServiceProvider::loadCachedRoutesUsing(fn () => $this->loadCachedRoutes());
+
+        // Super-tier — the one org-wide grant (ADR-0017 §1). Runs ahead of every
+        // gate and policy: `true` grants everything, `null` falls through to the
+        // normal check (never `false`), so org-wide authority lives in exactly one
+        // place and is never re-checked inside a policy.
+        Gate::before(fn (Member $member) => $member->isAllDmv() ? true : null);
+
+        // Coarse, app-wide ability for chrome/nav (ADR-0017 §9): may this member
+        // reach member administration at all? Held via the Records stewardship
+        // (ADR-0011); super-tier passes through the Gate::before above. Shared as
+        // `auth.can.administerMembers`; fine-grained per-record checks use the
+        // MemberPolicy. `can` is a UI hint — the server still enforces every action.
+        Gate::define('administer-members', fn (Member $member) => $member->hasMemberAdminAuthority());
     }
 }
