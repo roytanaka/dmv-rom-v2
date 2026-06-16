@@ -77,6 +77,16 @@ it('forbids a non-super-tier member from granting super-tier', function () {
     expect($target->fresh()->super_tier)->toBeFalse();
 });
 
+it('forbids a non-super-tier member from revoking super-tier', function () {
+    $target = Member::factory()->superTier()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->put(route('members.super-tier.update', $target), ['super_tier' => false])
+        ->assertForbidden();
+
+    expect($target->fresh()->super_tier)->toBeTrue();
+});
+
 it('redirects an unauthenticated grant request to login', function () {
     $target = Member::factory()->create();
 
