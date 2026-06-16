@@ -80,21 +80,57 @@ class Member extends Authenticatable
      * Fetch this Member's membership in a given Group, or null if they aren't a
      * member of it. Standing is per-Group, so this is the entry point every
      * Group-scoped authorization decision reads.
+     *
+     * Resolves against the `memberships` relation collection, which loads once
+     * and then resolves in memory — so a gate/policy that asks repeated
+     * authorization questions about one Member (or eager-loads
+     * `memberships.roles`) never re-queries per call.
      */
     public function membershipIn(Group $group): ?GroupMember
     {
-        return $this->memberships()->where('group_id', $group->getKey())->first();
+        return $this->memberships->firstWhere('group_id', $group->getKey());
     }
 
     /**
-     * Whether this Member holds the given role in the given Group. Roles are
-     * scoped to a membership, so this reads the membership in that Group and asks
-     * whether it carries the role — false when the Member isn't in the Group.
+     * Whether this Member literally holds the given role in the given Group —
+     * the "is an X" check for display. Authorization decisions call
+     * {@see canActAs()} instead, which also folds in Chair-implication. False
+     * when the Member isn't in the Group.
      */
     public function holdsRole(Role $role, Group $group): bool
     {
         return $this->membershipIn($group)
-            ?->roles()->where('role', $role)->exists() ?? false;
+            ?->roles->contains('role', $role) ?? false;
+    }
+
+    /**
+     * Whether this Member can act with the authority of the given role in the
+     * given Group — the single resolver every gate and policy calls. Unlike
+     * {@see holdsRole()}, this folds in Chair-implication: a Chair implies every
+     * officer role within its *own* Group except `Treasurer`, whose finance
+     * authority requires the explicit role (separation of duties). Authority
+     * never leaks across Groups — a role held in Group A grants nothing in
+     * Group B.
+     *
+     * Matches group-wide role rows only. There is no subdivision column yet;
+     * when ADR-0010's subdivision-scoped roles land, this keeps matching
+     * group-wide rows and the narrowing lives in the consuming capability's own
+     * policy — the seam is preserved here, not built.
+     */
+    public function canActAs(Role $role, Group $group): bool
+    {
+        $membership = $this->membershipIn($group);
+
+        if ($membership === null) {
+            return false;
+        }
+
+        if ($membership->roles->contains('role', $role)) {
+            return true;
+        }
+
+        return $role !== Role::Treasurer
+            && $membership->roles->contains('role', Role::Chair);
     }
 
     /**
