@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\SuperTierController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -65,6 +66,13 @@ Route::get('design-system', function () {
 Route::patch('members/{member}', [MemberController::class, 'update'])
     ->middleware(['auth'])
     ->name('members.update');
+
+// Grant/revoke super-tier (ADR-0017 §1). A dedicated, separately-gated action —
+// never a field on a member form. Reserved to super-tier itself via the
+// `manage-super-tier` gate in the UpdateSuperTierRequest; everyone else is denied.
+Route::put('members/{member}/super-tier', SuperTierController::class)
+    ->middleware(['auth'])
+    ->name('members.super-tier.update');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
