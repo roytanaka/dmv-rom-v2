@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\SuperTierController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -29,7 +30,7 @@ Route::group([
     // exist. They all render one shared "coming soon" placeholder.
     $stubRoutes = [
         // Zone A — personal
-        'calendar', 'hours', 'directory', 'documents', 'news', 'profile', 'renew',
+        'calendar', 'hours', 'directory', 'documents', 'profile', 'renew',
         // Zone C — officer/admin
         'officer.members', 'officer.communications', 'officer.reports',
         'officer.flash-messages', 'officer.settings',
@@ -40,6 +41,13 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // Org-wide news feed (#155, ADR-0017 §5). The read is open to every logged-in
+    // member regardless of their Groups — one feed, localized chrome. Writes live
+    // on the non-localized seam routes below; this is the canonical feed page,
+    // replacing the earlier ComingSoon stub now that the feature has landed.
+    Route::get(LaravelLocalization::transRoute('routes.news'), [NewsController::class, 'index'])
+        ->middleware('auth')->name('news');
 
     // Dynamic group route. The {group} slug is content: it echoes straight back
     // (no Group model lookup) and stays as-authored in the French URL — only the
@@ -81,6 +89,21 @@ Route::get('members/{member}', [MemberController::class, 'show'])
 Route::put('members/{member}/super-tier', SuperTierController::class)
     ->middleware(['auth'])
     ->name('members.super-tier.update');
+
+// News feed mutations (#155, ADR-0017 §5). The non-localized write seam: posting,
+// editing, and deleting are each structurally authorized in their Form Request,
+// which delegates to the NewsPolicy — a news-editor of the posting Group, only
+// while its announcements capability is on. The localized read lives on the `news`
+// route above.
+Route::post('news', [NewsController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('news.store');
+Route::patch('news/{news}', [NewsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('news.update');
+Route::delete('news/{news}', [NewsController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('news.destroy');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
