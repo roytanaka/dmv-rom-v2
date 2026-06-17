@@ -108,27 +108,33 @@ class OrgTreeSeeder extends Seeder
 
         // Members — a super-tier holder plus the people who fill the roles below.
         $president = $this->member('president@dmv.test', fn () => Member::factory()->superTier()->create([
-            'name' => 'DMV President',
+            'first_name' => 'DMV',
+            'last_name' => 'President',
             'email' => 'president@dmv.test',
         ]));
         $secretary = $this->member('secretary@dmv.test', fn () => Member::factory()->create([
-            'name' => 'Committee Secretary',
+            'first_name' => 'Committee',
+            'last_name' => 'Secretary',
             'email' => 'secretary@dmv.test',
         ]));
         $clerk = $this->member('clerk@dmv.test', fn () => Member::factory()->create([
-            'name' => 'Records Clerk',
+            'first_name' => 'Records',
+            'last_name' => 'Clerk',
             'email' => 'clerk@dmv.test',
         ]));
         $scheduler = $this->member(self::SCHEDULER_EMAIL, fn () => Member::factory()->create([
-            'name' => 'Program Scheduler',
+            'first_name' => 'Program',
+            'last_name' => 'Scheduler',
             'email' => self::SCHEDULER_EMAIL,
         ]));
         $trainee = $this->member('trainee@dmv.test', fn () => Member::factory()->create([
-            'name' => 'Trainee Docent',
+            'first_name' => 'Trainee',
+            'last_name' => 'Docent',
             'email' => 'trainee@dmv.test',
         ]));
         $onLeave = $this->member('onleave@dmv.test', fn () => Member::factory()->create([
-            'name' => 'Docent On Leave',
+            'first_name' => 'Docent',
+            'last_name' => 'On Leave',
             'email' => 'onleave@dmv.test',
         ]));
 

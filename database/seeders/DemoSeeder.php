@@ -430,9 +430,11 @@ class DemoSeeder extends Seeder
     {
         // super_tier is not mass-assignable (#153) and defaults to false in the
         // schema. email_verified_at is likewise non-fillable: forceFill marks the
-        // demo member verified once, idempotently.
+        // demo member verified once, idempotently. The demo labels arrive as a
+        // single "First Last" string; split on the first space into the two columns.
         $member = Member::firstOrCreate(['email' => $email], [
-            'name' => $name,
+            'first_name' => Str::before($name, ' '),
+            'last_name' => Str::after($name, ' '),
             'category' => Category::Active,
             'password' => Hash::make('password'),
         ]);

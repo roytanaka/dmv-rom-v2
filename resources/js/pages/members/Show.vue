@@ -18,7 +18,8 @@ interface MemberGroup {
 
 interface Member {
     id: number;
-    name: string;
+    first_name: string;
+    last_name: string;
     photo: string | null;
     groups?: MemberGroup[];
     email?: string;
@@ -27,18 +28,21 @@ interface Member {
 
 const props = defineProps<{ member: Member }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: props.member.name, href: '#' }];
+// Profile renders the member as "First Last".
+const fullName = computed(() => `${props.member.first_name} ${props.member.last_name}`);
+
+const breadcrumbs: BreadcrumbItem[] = [{ title: fullName.value, href: '#' }];
 
 // Contact is present only when the server's allowlist included it.
 const hasContact = computed(() => props.member.email !== undefined || props.member.phone !== undefined);
 </script>
 
 <template>
-    <Head :title="member.name" />
+    <Head :title="fullName" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-6">
-            <h1 class="text-rom-ink text-lg font-semibold">{{ member.name }}</h1>
+            <h1 class="text-rom-ink text-lg font-semibold">{{ fullName }}</h1>
 
             <section>
                 <h2 class="text-rom-ink mb-3 text-sm font-semibold tracking-wide uppercase">{{ trans('member.contact') }}</h2>

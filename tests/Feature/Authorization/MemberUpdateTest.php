@@ -43,7 +43,7 @@ function chairOfOwnGroup(): Member
     return $officer;
 }
 
-$payload = ['name' => 'Edited Name', 'email' => 'edited@example.com'];
+$payload = ['first_name' => 'Edited', 'last_name' => 'Name', 'email' => 'edited@example.com'];
 
 // --- Allow rows -------------------------------------------------------------
 
@@ -55,7 +55,7 @@ it('lets a member edit their own profile', function () use ($payload) {
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
-    expect($member->fresh()->name)->toBe('Edited Name');
+    expect($member->fresh()->first_name)->toBe('Edited');
 });
 
 it('lets a Records officer edit another member', function () use ($payload) {
@@ -66,7 +66,7 @@ it('lets a Records officer edit another member', function () use ($payload) {
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
-    expect($target->fresh()->name)->toBe('Edited Name');
+    expect($target->fresh()->first_name)->toBe('Edited');
 });
 
 it('lets a super-tier member edit another member', function () use ($payload) {
@@ -77,7 +77,7 @@ it('lets a super-tier member edit another member', function () use ($payload) {
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
-    expect($target->fresh()->name)->toBe('Edited Name');
+    expect($target->fresh()->first_name)->toBe('Edited');
 });
 
 // --- Deny rows (required) ---------------------------------------------------
@@ -89,7 +89,7 @@ it('forbids a non-officer member from editing another member', function () use (
         ->patch(route('members.update', $target), $payload)
         ->assertForbidden();
 
-    expect($target->fresh()->name)->not->toBe('Edited Name');
+    expect($target->fresh()->first_name)->not->toBe('Edited');
 });
 
 it('forbids an officer of an unrelated Group from editing a member', function () use ($payload) {
@@ -99,7 +99,7 @@ it('forbids an officer of an unrelated Group from editing a member', function ()
         ->patch(route('members.update', $target), $payload)
         ->assertForbidden();
 
-    expect($target->fresh()->name)->not->toBe('Edited Name');
+    expect($target->fresh()->first_name)->not->toBe('Edited');
 });
 
 it('redirects an unauthenticated request to login', function () use ($payload) {

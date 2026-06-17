@@ -62,7 +62,8 @@ it('always exposes name and Groups-roles to any logged-in member', function () {
         ->get(route('members.show', $target))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('member.name', $target->name)
+            ->where('member.first_name', $target->first_name)
+            ->where('member.last_name', $target->last_name)
             ->has('member.groups', 1)
             ->where('member.groups.0.name', $group->name)
             ->where('member.groups.0.roles.0', Role::Chair->value)
@@ -122,7 +123,8 @@ it('hides contact from a non-officer member', function () {
         ->get(route('members.show', $target))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('member.name', $target->name)
+            ->where('member.first_name', $target->first_name)
+            ->where('member.last_name', $target->last_name)
             ->missing('member.email')
             ->missing('member.phone'));
 });
