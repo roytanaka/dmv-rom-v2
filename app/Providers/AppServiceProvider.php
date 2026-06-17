@@ -58,5 +58,12 @@ class AppServiceProvider extends ServiceProvider
         // ever runs for everyone else — and denies them. Records stewardship or any
         // Group officer role buys nothing here.
         Gate::define('manage-super-tier', fn (Member $member) => false);
+
+        // Coarse hint for the news feed's "New post" control (ADR-0017 §5, §9): may
+        // this member post to the org-wide feed at all? True when they can act as
+        // news-editor of any announcements-on Group they belong to. Super-tier passes
+        // via the Gate::before short-circuit above. UI hint only — StoreNewsRequest
+        // re-checks the specific posting Group against the NewsPolicy on every post.
+        Gate::define('post-news', fn (Member $member) => $member->canPostNews());
     }
 }

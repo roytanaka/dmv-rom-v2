@@ -33,7 +33,7 @@ class LocaleResolutionTest extends TestCase
             'hours' => ['en' => '/hours', 'fr' => '/fr/heures', 'component' => 'ComingSoon'],
             'directory' => ['en' => '/directory', 'fr' => '/fr/annuaire', 'component' => 'ComingSoon'],
             'documents' => ['en' => '/documents', 'fr' => '/fr/documents', 'component' => 'ComingSoon'],
-            'news' => ['en' => '/news', 'fr' => '/fr/nouvelles', 'component' => 'ComingSoon'],
+            'news' => ['en' => '/news', 'fr' => '/fr/nouvelles', 'component' => 'news/Index'],
             'profile' => ['en' => '/profile', 'fr' => '/fr/profil', 'component' => 'ComingSoon'],
             'renew' => ['en' => '/renew', 'fr' => '/fr/renouveler', 'component' => 'ComingSoon'],
 

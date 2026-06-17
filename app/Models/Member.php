@@ -134,6 +134,21 @@ class Member extends Authenticatable
     }
 
     /**
+     * Whether this Member may post to the org-wide news feed at all — i.e. can act
+     * as news-editor of any announcements-on Group they belong to (ADR-0017 §5).
+     * The coarse hint behind the feed's "New post" control; the per-item edit/
+     * delete decisions still run through the NewsPolicy. Super-tier passes via the
+     * `Gate::before` short-circuit on the `post-news` gate, not through here.
+     */
+    public function canPostNews(): bool
+    {
+        return $this->memberships->contains(
+            fn (GroupMember $membership) => $membership->group->has_announcements
+                && $this->canActAs(Role::NewsEditor, $membership->group)
+        );
+    }
+
+    /**
      * Whether this Member holds member-administration authority — i.e. is a member
      * of the Group that stewards `member_admin` (the Records Group). Authority is
      * explicit and per-Group (ADR-0011): reach over member administration comes
