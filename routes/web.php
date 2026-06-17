@@ -67,6 +67,14 @@ Route::patch('members/{member}', [MemberController::class, 'update'])
     ->middleware(['auth'])
     ->name('members.update');
 
+// Member record (ADR-0017). Readable by any logged-in member; the payload routes
+// through the centralized MemberResource, whose allowlist gates contact PII behind
+// the `viewContact` ability. The localized directory/profile UI lands in a later
+// slice — this is the data seam.
+Route::get('members/{member}', [MemberController::class, 'show'])
+    ->middleware(['auth'])
+    ->name('members.show');
+
 // Grant/revoke super-tier (ADR-0017 §1). A dedicated, separately-gated action —
 // never a field on a member form. Reserved to super-tier itself via the
 // `manage-super-tier` gate in the UpdateSuperTierRequest; everyone else is denied.
