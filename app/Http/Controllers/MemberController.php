@@ -13,6 +13,29 @@ use Inertia\Response;
 class MemberController extends Controller
 {
     /**
+     * The member directory: the living roster as a single load-all payload (#169).
+     * Scoped to {@see Member::scopeInDirectory()} — departed and not-yet-activated
+     * members are excluded in one place. Eager-loads each member's Groups + roles
+     * for the Groups column, then routes through
+     * {@see MemberResource::directoryCollection()}, which suppresses contact PII for
+     * every row regardless of viewer (contact is a profile-only concern).
+     */
+    public function index(): Response
+    {
+        $members = Member::inDirectory()
+            ->with('memberships.group', 'memberships.roles')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
+        return Inertia::render('members/Index', [
+            // resolve() to the unwrapped array of rows — the page consumes a flat
+            // `members` list, not a `{ data: [...] }` envelope.
+            'members' => MemberResource::directoryCollection($members)->resolve(),
+        ]);
+    }
+
+    /**
      * Show a member record. The payload routes through the centralized
      * MemberResource (ADR-0017), whose allowlist gates contact PII behind the
      * `viewContact` ability — the controller never hand-builds a member array.

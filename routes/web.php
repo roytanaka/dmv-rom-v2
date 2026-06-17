@@ -34,7 +34,7 @@ Route::group([
     // exist. They all render one shared "coming soon" placeholder.
     $stubRoutes = [
         // Zone A — personal
-        'calendar', 'hours', 'directory', 'documents', 'profile', 'renew',
+        'calendar', 'hours', 'documents', 'profile', 'renew',
         // Zone C — officer/admin
         'officer.members', 'officer.communications', 'officer.reports',
         'officer.flash-messages', 'officer.settings',
@@ -45,6 +45,12 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // Member directory (#169, PRD #167). The living roster, readable by every
+    // logged-in member; the payload routes through MemberResource::directoryCollection
+    // so no row carries contact PII. Replaces the earlier ComingSoon stub.
+    Route::get(LaravelLocalization::transRoute('routes.directory'), [MemberController::class, 'index'])
+        ->middleware('auth')->name('directory');
 
     // Org-wide news feed (#155, ADR-0017 §5). The read is open to every logged-in
     // member regardless of their Groups — one feed, localized chrome. Writes live

@@ -7,6 +7,7 @@ use App\Enums\Category;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use Database\Factories\MemberFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -54,6 +55,25 @@ class Member extends Authenticatable
             'category' => Category::class,
             'super_tier' => 'boolean',
         ];
+    }
+
+    /**
+     * The directory roster: Members whose DMV-wide Category grants a listing —
+     * Active, Honourary, Sustaining, and LOA (on leave, but still Full access).
+     * Excludes the departed (Resigned / Withdrawn / Deceased) and the not-yet-
+     * activated (PreActive / Provisional). The privacy rule has one home here —
+     * tunable in a single place, never scattered across controllers.
+     *
+     * @param  Builder<Member>  $query
+     */
+    public function scopeInDirectory(Builder $query): void
+    {
+        $query->whereIn('category', [
+            Category::Active,
+            Category::Honourary,
+            Category::Sustaining,
+            Category::Loa,
+        ]);
     }
 
     /**
