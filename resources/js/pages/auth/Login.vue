@@ -21,10 +21,8 @@ const form = useForm({
     password: '',
 });
 
-// Show/hide toggle for the password field.
 const showPassword = ref(false);
 
-// Reception contact for the help footer. Plain phone (call), mailto for the office.
 const receptionPhone = '(416) 586-8097';
 const officeEmail = 'volunteers@rom.on.ca';
 

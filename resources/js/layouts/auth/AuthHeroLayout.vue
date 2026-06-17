@@ -1,17 +1,9 @@
 <script setup lang="ts">
-// The ROM split auth chrome (#157): authentication form on the LEFT, a full-height
-// ROM-interior photo on the RIGHT. This is the institutional mirror of the starter
-// AuthSplitLayout (which put a solid panel on the left). The layout owns only the
-// frame — the black brand bar, the photo, and its scrim/captions — and renders
-// whatever form the page drops into the slot. Title/description are props so a
-// future minimal credential-challenge screen (single-field "set a new password"
-// state) can reuse this exact layout with different copy and a different slot,
-// no restructure. Below `lg` the photo is dropped and the form goes single-column.
+// ROM split auth layout (#157): form left, photo right (hidden below lg).
 import BrandLogo from '@/components/BrandLogo.vue';
 import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-// The hero is served AVIF-first with a JPG fallback — every user must reach this
-// screen, so it is never AVIF-only. Both are committed under resources/images/auth.
+// AVIF-first with JPG fallback — every user hits this screen, so it cannot be AVIF-only.
 import heroAvif from '../../../images/auth/login-hero.avif';
 import heroJpg from '../../../images/auth/login-hero.jpg';
 

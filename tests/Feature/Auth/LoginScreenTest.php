@@ -6,10 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
-// The redesigned ROM split login (#157). The visual layout lives in Vue, but two
-// things are server-observable and worth pinning: the redesigned Inertia page is
-// what renders, and every visible string resolves from the new bilingual
-// lang/{en,fr}/auth.php — without clobbering Laravel's framework auth messages.
+// Pins the server-observable properties of the redesigned login (#157): component name and bilingual string resolution.
 class LoginScreenTest extends TestCase
 {
     use RefreshDatabase;
@@ -32,7 +29,7 @@ class LoginScreenTest extends TestCase
     {
         $this->assertSame('Connexion', __('auth.login.heading', [], 'fr'));
         $this->assertSame('Mot de passe oublié?', __('auth.login.forgot', [], 'fr'));
-        $this->assertNotSame('auth.login.help_email', __('auth.login.help_email', [], 'fr'));
+        $this->assertSame('écrivez au bureau', __('auth.login.help_email', [], 'fr'));
     }
 
     public function test_reception_phone_interpolates_into_the_help_text(): void
