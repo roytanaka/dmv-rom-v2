@@ -39,14 +39,11 @@ const fullName = computed(() => `${props.member.first_name} ${props.member.last_
 // Two-initial fallback (no photos exist yet), matching the Directory list.
 const initials = computed(() => `${props.member.first_name.charAt(0)}${props.member.last_name.charAt(0)}`.toUpperCase());
 
-// A real Directory → {name} trail: the root links back to the roster, the leaf is
-// the current page (rendered un-linked by the breadcrumb chrome).
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     { title: trans('directory.title'), href: route('directory') },
     { title: fullName.value, href: '#' },
 ]);
 
-// Contact is present only when the server's allowlist included it.
 const hasContact = computed(() => props.member.email !== undefined || props.member.phone !== undefined);
 </script>
 
