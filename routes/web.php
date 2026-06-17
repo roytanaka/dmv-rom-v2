@@ -8,8 +8,12 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
+// Root lands on login for guests, dashboard for authenticated members.
+// The login page (auth/Login) is the front door; '/' just routes to it.
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
 })->name('home');
 
 // Localized routes (ADR-0008). The group prefix is '' for English (canonical root)
