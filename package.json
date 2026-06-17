@@ -65,7 +65,7 @@
         "lightningcss-linux-x64-gnu": "^1.29.1"
     },
     "lint-staged": {
-        "*.php": "vendor/bin/pint",
+        "*.php": "sh vendor/bin/sail pint",
         "*.{js,ts,vue}": [
             "prettier --write",
             "eslint --fix"
