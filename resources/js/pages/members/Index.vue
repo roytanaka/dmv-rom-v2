@@ -8,7 +8,13 @@
 // #170 adds client-side findability over the already-loaded set (no server round
 // trip): a live name search, a single-select Group filter (composing as an
 // intersection), and an explicit no-matches row so an empty result reads as a
-// filter state, not a broken page. Sort lands in a follow-up slice.
+// filter state, not a broken page.
+//
+// #171 adds two scanning aids over the same loaded set: a surname/given-name sort
+// toggle (display order follows the active sort) and an A–Z jump rail that leaps to
+// the first row under a letter. Both follow the active sort — the rail keys on the
+// surname when sorting by last name, the given name when sorting by first name.
+import AlphaJumpRail from '@/components/AlphaJumpRail.vue';
 import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -47,6 +53,10 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: trans('directory.title'), href: 
 const search = ref('');
 const groupFilter = ref('');
 
+// Active sort: by surname ('last') or given name ('first'). Display order, the row
+// label, and the jump rail all key off this.
+const sortBy = ref<'last' | 'first'>('last');
+
 // The Group filter's options: the distinct Groups present across the loaded roster,
 // keyed by slug and labelled with the DB-authored name (rendered as-authored —
 // Group names are content, not chrome; ADR-0004). Sorted by name for a scannable list.
@@ -84,9 +94,59 @@ const clearFilters = () => {
     groupFilter.value = '';
 };
 
+// The name the active sort keys on — surname or given name. The jump rail and the
+// sort comparator both read it so they can never disagree.
+const sortName = (member: DirectoryMember) => (sortBy.value === 'last' ? member.last_name : member.first_name);
+
+// The A–Z bucket for a name: its first letter, accent-folded (so "Étienne" jumps
+// under E) and uppercased. Non-letter or empty names fall outside A–Z and simply
+// get no rail entry.
+const jumpLetter = (member: DirectoryMember) =>
+    sortName(member)
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .charAt(0)
+        .toUpperCase();
+
+// Display order follows the active sort: surnames break ties on given name and vice
+// versa, both folded so accents sort with their base letter (fr-CA-friendly).
+const sortedMembers = computed(() => {
+    const primary = (m: DirectoryMember) => sortName(m);
+    const secondary = (m: DirectoryMember) => (sortBy.value === 'last' ? m.first_name : m.last_name);
+    return [...filteredMembers.value].sort(
+        (a, b) => primary(a).localeCompare(primary(b)) || secondary(a).localeCompare(secondary(b)),
+    );
+});
+
+// Letters with at least one row, for the rail to light up.
+const availableLetters = computed(() => [...new Set(sortedMembers.value.map(jumpLetter))]);
+
+// The first row id under each letter, so a rail tap scrolls straight to the bucket.
+const firstIdByLetter = computed(() => {
+    const map = new Map<string, number>();
+    for (const member of sortedMembers.value) {
+        const letter = jumpLetter(member);
+        if (!map.has(letter)) {
+            map.set(letter, member.id);
+        }
+    }
+    return map;
+});
+
+// Anchor id for a row, present only on the first row of each letter (the jump target).
+const anchorId = (member: DirectoryMember) =>
+    firstIdByLetter.value.get(jumpLetter(member)) === member.id ? `directory-letter-${jumpLetter(member)}` : undefined;
+
+const jumpTo = (letter: string) => {
+    document.getElementById(`directory-letter-${letter}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
 const initials = (member: DirectoryMember) => `${member.first_name.charAt(0)}${member.last_name.charAt(0)}`.toUpperCase();
 
-const surnameOrder = (member: DirectoryMember) => `${member.last_name}, ${member.first_name}`;
+// Display order follows the sort: "Last, First" under surname sort, "First Last"
+// under given-name sort, so the leading token is always what the list is ordered by.
+const displayName = (member: DirectoryMember) =>
+    sortBy.value === 'last' ? `${member.last_name}, ${member.first_name}` : `${member.first_name} ${member.last_name}`;
 
 const groupNames = (member: DirectoryMember) =>
     member.groups.length ? member.groups.map((group) => group.name).join(', ') : trans('directory.no_groups');
@@ -133,9 +193,41 @@ const groupNames = (member: DirectoryMember) =>
                         </DropdownMenuRadioGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                <!-- Surname / given-name sort toggle: a two-segment control over the
+                     installed Button primitive (no toggle-group primitive is installed).
+                     Display order and the jump rail both follow the active sort. -->
+                <div
+                    role="group"
+                    :aria-label="trans('directory.sort.label')"
+                    class="flex items-center gap-2 sm:ml-auto"
+                >
+                    <span class="text-muted-foreground text-sm">{{ trans('directory.sort.label') }}</span>
+                    <div class="flex">
+                        <Button
+                            :variant="sortBy === 'last' ? 'default' : 'outline'"
+                            size="sm"
+                            :aria-pressed="sortBy === 'last'"
+                            @click="sortBy = 'last'"
+                        >
+                            {{ trans('directory.sort.last_name') }}
+                        </Button>
+                        <Button
+                            :variant="sortBy === 'first' ? 'default' : 'outline'"
+                            size="sm"
+                            class="-ml-px"
+                            :aria-pressed="sortBy === 'first'"
+                            @click="sortBy = 'first'"
+                        >
+                            {{ trans('directory.sort.first_name') }}
+                        </Button>
+                    </div>
+                </div>
             </div>
 
-            <Table>
+            <div class="flex items-start gap-2">
+                <div class="min-w-0 flex-1">
+                    <Table>
                 <TableHeader>
                     <TableRow>
                         <TableHead class="w-12"
@@ -147,14 +239,14 @@ const groupNames = (member: DirectoryMember) =>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    <TableRow v-for="member in filteredMembers" :key="member.id">
+                    <TableRow v-for="member in sortedMembers" :id="anchorId(member)" :key="member.id" class="scroll-mt-24">
                         <TableCell>
                             <Avatar size="sm">
                                 <AvatarFallback>{{ initials(member) }}</AvatarFallback>
                             </Avatar>
                         </TableCell>
                         <TableCell class="font-medium">
-                            <TextLink :href="route('members.show', { member: member.id })">{{ surnameOrder(member) }}</TextLink>
+                            <TextLink :href="route('members.show', { member: member.id })">{{ displayName(member) }}</TextLink>
                         </TableCell>
                         <TableCell class="text-muted-foreground">{{ groupNames(member) }}</TableCell>
                         <TableCell><StandingBadge :standing="member.standing" /></TableCell>
@@ -162,7 +254,7 @@ const groupNames = (member: DirectoryMember) =>
 
                     <!-- No-matches row: an empty result reads as a filter state, with a
                          one-click way back to the full roster. -->
-                    <TableRow v-if="!filteredMembers.length">
+                    <TableRow v-if="!sortedMembers.length">
                         <TableCell colspan="4" class="py-10 text-center">
                             <div class="text-muted-foreground flex flex-col items-center gap-1">
                                 <span>{{ trans('directory.no_matches.message') }}</span>
@@ -173,7 +265,17 @@ const groupNames = (member: DirectoryMember) =>
                         </TableCell>
                     </TableRow>
                 </TableBody>
-            </Table>
+                    </Table>
+                </div>
+
+                <!-- A–Z jump rail: a large-screen scanning aid that sticks beside the
+                     table. It keys on whichever name the active sort orders by. -->
+                <AlphaJumpRail
+                    :available="availableLetters"
+                    class="sticky top-24 hidden self-start sm:flex"
+                    @jump="jumpTo"
+                />
+            </div>
         </div>
     </AppLayout>
 </template>
