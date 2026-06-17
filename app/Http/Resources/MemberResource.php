@@ -52,9 +52,7 @@ class MemberResource extends JsonResource
     public static function directoryCollection(iterable $resource): AnonymousResourceCollection
     {
         $collection = static::collection($resource);
-        // Block body, not an arrow fn: `$member->includeContact = false` evaluates to
-        // false, and Collection::each() halts the moment a callback returns false.
-        $collection->collection->each(function (self $member) {
+        $collection->collection->each(function (self $member): void {
             $member->includeContact = false;
         });
 

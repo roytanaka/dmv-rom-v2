@@ -15,10 +15,10 @@ class MemberController extends Controller
     /**
      * The member directory: the living roster as a single load-all payload (#169).
      * Scoped to {@see Member::scopeInDirectory()} — departed and not-yet-activated
-     * members are excluded in one place. The list routes through
+     * members are excluded in one place. Eager-loads each member's Groups + roles
+     * for the Groups column, then routes through
      * {@see MemberResource::directoryCollection()}, which suppresses contact PII for
-     * every row regardless of viewer (contact is a profile-only concern), and eager-
-     * loads each member's Groups + roles for the Groups column.
+     * every row regardless of viewer (contact is a profile-only concern).
      */
     public function index(): Response
     {
