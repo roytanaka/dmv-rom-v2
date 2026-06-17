@@ -28,7 +28,6 @@ interface Member {
 
 const props = defineProps<{ member: Member }>();
 
-// Profile renders the member as "First Last".
 const fullName = computed(() => `${props.member.first_name} ${props.member.last_name}`);
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: fullName.value, href: '#' }];
