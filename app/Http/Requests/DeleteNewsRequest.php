@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Models\News;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
