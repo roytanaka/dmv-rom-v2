@@ -62,7 +62,6 @@ const groupOptions = computed(() => {
     return [...bySlug.entries()].map(([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name));
 });
 
-// The label on the filter trigger: the active Group's name, or the "all" default.
 const activeGroupLabel = computed(
     () => groupOptions.value.find((group) => group.slug === groupFilter.value)?.name ?? trans('directory.filter.group.all'),
 );
