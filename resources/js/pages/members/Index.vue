@@ -111,11 +111,8 @@ const jumpLetter = (member: DirectoryMember) =>
 // Display order follows the active sort: surnames break ties on given name and vice
 // versa, both folded so accents sort with their base letter (fr-CA-friendly).
 const sortedMembers = computed(() => {
-    const primary = (m: DirectoryMember) => sortName(m);
     const secondary = (m: DirectoryMember) => (sortBy.value === 'last' ? m.first_name : m.last_name);
-    return [...filteredMembers.value].sort(
-        (a, b) => primary(a).localeCompare(primary(b)) || secondary(a).localeCompare(secondary(b)),
-    );
+    return [...filteredMembers.value].sort((a, b) => sortName(a).localeCompare(sortName(b)) || secondary(a).localeCompare(secondary(b)));
 });
 
 // Letters with at least one row, for the rail to light up.
@@ -134,8 +131,10 @@ const firstIdByLetter = computed(() => {
 });
 
 // Anchor id for a row, present only on the first row of each letter (the jump target).
-const anchorId = (member: DirectoryMember) =>
-    firstIdByLetter.value.get(jumpLetter(member)) === member.id ? `directory-letter-${jumpLetter(member)}` : undefined;
+const anchorId = (member: DirectoryMember) => {
+    const letter = jumpLetter(member);
+    return firstIdByLetter.value.get(letter) === member.id ? `directory-letter-${letter}` : undefined;
+};
 
 const jumpTo = (letter: string) => {
     document.getElementById(`directory-letter-${letter}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -197,11 +196,7 @@ const groupNames = (member: DirectoryMember) =>
                 <!-- Surname / given-name sort toggle: a two-segment control over the
                      installed Button primitive (no toggle-group primitive is installed).
                      Display order and the jump rail both follow the active sort. -->
-                <div
-                    role="group"
-                    :aria-label="trans('directory.sort.label')"
-                    class="flex items-center gap-2 sm:ml-auto"
-                >
+                <div role="group" :aria-label="trans('directory.sort.label')" class="flex items-center gap-2 sm:ml-auto">
                     <span class="text-muted-foreground text-sm">{{ trans('directory.sort.label') }}</span>
                     <div class="flex">
                         <Button
@@ -228,53 +223,49 @@ const groupNames = (member: DirectoryMember) =>
             <div class="flex items-start gap-2">
                 <div class="min-w-0 flex-1">
                     <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead class="w-12"
-                            ><span class="sr-only">{{ trans('directory.column.name') }}</span></TableHead
-                        >
-                        <TableHead>{{ trans('directory.column.name') }}</TableHead>
-                        <TableHead>{{ trans('directory.column.groups') }}</TableHead>
-                        <TableHead>{{ trans('directory.column.standing') }}</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow v-for="member in sortedMembers" :id="anchorId(member)" :key="member.id" class="scroll-mt-24">
-                        <TableCell>
-                            <Avatar size="sm">
-                                <AvatarFallback>{{ initials(member) }}</AvatarFallback>
-                            </Avatar>
-                        </TableCell>
-                        <TableCell class="font-medium">
-                            <TextLink :href="route('members.show', { member: member.id })">{{ displayName(member) }}</TextLink>
-                        </TableCell>
-                        <TableCell class="text-muted-foreground">{{ groupNames(member) }}</TableCell>
-                        <TableCell><StandingBadge :standing="member.standing" /></TableCell>
-                    </TableRow>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead class="w-12"
+                                    ><span class="sr-only">{{ trans('directory.column.name') }}</span></TableHead
+                                >
+                                <TableHead>{{ trans('directory.column.name') }}</TableHead>
+                                <TableHead>{{ trans('directory.column.groups') }}</TableHead>
+                                <TableHead>{{ trans('directory.column.standing') }}</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow v-for="member in sortedMembers" :id="anchorId(member)" :key="member.id" class="scroll-mt-24">
+                                <TableCell>
+                                    <Avatar size="sm">
+                                        <AvatarFallback>{{ initials(member) }}</AvatarFallback>
+                                    </Avatar>
+                                </TableCell>
+                                <TableCell class="font-medium">
+                                    <TextLink :href="route('members.show', { member: member.id })">{{ displayName(member) }}</TextLink>
+                                </TableCell>
+                                <TableCell class="text-muted-foreground">{{ groupNames(member) }}</TableCell>
+                                <TableCell><StandingBadge :standing="member.standing" /></TableCell>
+                            </TableRow>
 
-                    <!-- No-matches row: an empty result reads as a filter state, with a
-                         one-click way back to the full roster. -->
-                    <TableRow v-if="!sortedMembers.length">
-                        <TableCell colspan="4" class="py-10 text-center">
-                            <div class="text-muted-foreground flex flex-col items-center gap-1">
-                                <span>{{ trans('directory.no_matches.message') }}</span>
-                                <Button v-if="hasActiveFilters" variant="link" class="h-auto p-0" @click="clearFilters">
-                                    {{ trans('directory.no_matches.clear') }}
-                                </Button>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
+                            <!-- No-matches row: an empty result reads as a filter state, with a
+                                 one-click way back to the full roster. -->
+                            <TableRow v-if="!sortedMembers.length">
+                                <TableCell colspan="4" class="py-10 text-center">
+                                    <div class="text-muted-foreground flex flex-col items-center gap-1">
+                                        <span>{{ trans('directory.no_matches.message') }}</span>
+                                        <Button v-if="hasActiveFilters" variant="link" class="h-auto p-0" @click="clearFilters">
+                                            {{ trans('directory.no_matches.clear') }}
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
                     </Table>
                 </div>
 
                 <!-- A–Z jump rail: a large-screen scanning aid that sticks beside the
                      table. It keys on whichever name the active sort orders by. -->
-                <AlphaJumpRail
-                    :available="availableLetters"
-                    class="sticky top-24 hidden self-start sm:flex"
-                    @jump="jumpTo"
-                />
+                <AlphaJumpRail :available="availableLetters" class="sticky top-24 hidden self-start sm:flex" @jump="jumpTo" />
             </div>
         </div>
     </AppLayout>
