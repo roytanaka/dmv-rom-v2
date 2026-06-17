@@ -3,13 +3,19 @@
  *
  * A single typed source for the grouping rail so wiring real data later is a fixture
  * swap, not a rewrite. It models the two-layer / three-zone shape (see types.ts):
- * a couple of sample My Groups (one with nested subcommittees), a sample All Groups
- * browse entry, and the Zone C officer/admin cluster.
+ * a few My Groups, the collapsible All Groups browse list (several with nested
+ * subcommittees), and the Zone C officer/admin cluster.
  *
- * The exhaustive catalogue (every Program, its capabilities, all officer items, the
- * dropped programs) is OUT OF SCOPE here — it lives in the forthcoming
- * `docs/nav-spec.md`, the eventual source of truth. Swapping this fixture for a
- * server-shared Inertia prop driven by real Group/role data is a later slice.
+ * The Group nodes below are transcribed from `database/seeders/DemoSeeder.php` — the
+ * curated DMV org tree (PRD #139) — so the rail reads like the real org. `groupId`s
+ * match each node's seeder slug (`Str::slug(name)`, or the explicit slug the seeder
+ * assigns to disambiguate recurring names like "Training"). This is still a SUBSET:
+ * archived/stale cohorts and the org-level container sections (Governance &
+ * Operations, Programs, Special Projects) are omitted — they aren't rail destinations.
+ *
+ * The exhaustive catalogue (every Program, its capabilities, all officer items) is the
+ * forthcoming `docs/nav-spec.md`, the eventual source of truth. Swapping this fixture
+ * for a server-shared Inertia prop driven by real Group/role data is a later slice.
  *
  * Structural labels are i18n KEYS (`labelKey`, resolved via the i18n bridge). Group
  * NAMES are CONTENT (`name`): authored strings rendered verbatim in both locales,
@@ -40,27 +46,22 @@ import {
 } from '@phosphor-icons/vue';
 import type { GroupNode, LauncherGrid, NavNode, RailNav } from './types';
 
-// Zone B — My Groups. Docents carries subcommittees that nest under it; the
-// `requiresRole: 'chair'` child shows the gating contract living in the data
-// (stubbed show-all → visible for now).
+// Zone B — My Groups. The Groups this Volunteer belongs to: two org-level standing
+// committees (Communications, System Services — both under Governance & Operations
+// in the seeder) and the Gallery Interpreters program. Flat, as they are in the
+// curated tree — nesting is exercised by the All Groups list below.
 const myGroups: GroupNode[] = [
     {
-        groupId: 'docents',
-        name: 'Docents',
-        href: '/groups/docents',
-        icon: PhUsersThree,
-        children: [
-            {
-                groupId: 'docents-school-visits',
-                name: 'School Visits',
-                href: '/groups/docents/school-visits',
-            },
-            {
-                groupId: 'docents-public-tours',
-                name: 'Public Tours',
-                href: '/groups/docents/public-tours',
-            },
-        ],
+        groupId: 'communications',
+        name: 'Communications',
+        href: '/groups/communications',
+        icon: PhMegaphone,
+    },
+    {
+        groupId: 'system-services',
+        name: 'System Services',
+        href: '/groups/system-services',
+        icon: PhGearSix,
     },
     {
         groupId: 'gallery-interpreters',
@@ -70,47 +71,114 @@ const myGroups: GroupNode[] = [
     },
 ];
 
-// Zone B — All Groups (browse the rest of the org). Representative stub entries:
-// some carry subcommittees — a Group whose parent is another Group (ADR-0010 §
-// "'Subcommittee' is not a separate noun") — so the collapsed-by-default browse
-// list exercises the rail's expand/collapse. Names are PLACEHOLDERS; the real
-// catalogue is out of band in docs/nav-spec.md.
+// Zone B — All Groups (browse the rest of the org). A representative subset of the
+// curated Programs and Friends-of committees from DemoSeeder: several carry
+// subcommittees — a Group whose parent is another Group (ADR-0010 § "'Subcommittee'
+// is not a separate noun") — so the collapsed-by-default browse list exercises the
+// rail's expand/collapse. Archived/stale cohorts are omitted (dead pools, not nav
+// destinations). `groupId`s match seeder slugs; the explicit `*-training` slugs
+// mirror the seeder's disambiguation of names that recur across the tree.
 const allGroups: GroupNode[] = [
+    // Docents keeps the one fully-populated Group Menu (see groupMenus below); its
+    // cohorts are all archived in the seeder, so it renders flat here.
+    {
+        groupId: 'docents',
+        name: 'Docents',
+        href: '/groups/docents',
+        icon: PhUsersThree,
+    },
     // GDR — a French-named Group. Its `name` is content, so it reads identically
     // ("Guides du ROM") under `/` and `/fr/` with no special-casing (ADR-0004).
     {
-        groupId: 'gallery-guides',
+        groupId: 'guides-du-rom',
         name: 'Guides du ROM',
-        href: '/groups/gallery-guides',
+        href: '/groups/guides-du-rom',
         icon: PhUsersThree,
-        children: [
-            { groupId: 'gallery-guides-highlights', name: 'Highlights Tours', href: '/groups/gallery-guides/highlights' },
-            { groupId: 'gallery-guides-family', name: 'Family Programs', href: '/groups/gallery-guides/family' },
-            { groupId: 'gallery-guides-access', name: 'Access Tours', href: '/groups/gallery-guides/access' },
-        ],
-    },
-    {
-        groupId: 'special-events',
-        name: 'Special Events',
-        href: '/groups/special-events',
-        icon: PhUsersThree,
-        children: [
-            { groupId: 'special-events-openings', name: 'Exhibition Openings', href: '/groups/special-events/openings' },
-            { groupId: 'special-events-previews', name: 'Member Previews', href: '/groups/special-events/previews' },
-        ],
     },
     // Another French-named Group — same as-authored rule, no special case.
     {
-        groupId: 'amis-francophiles',
+        groupId: 'les-amis-francophiles',
         name: 'Les Amis Francophiles',
-        href: '/groups/amis-francophiles',
+        href: '/groups/les-amis-francophiles',
         icon: PhUsersThree,
+    },
+    {
+        groupId: 'dmv-hands-on-tours',
+        name: 'DMV Hands-on Tours',
+        href: '/groups/dmv-hands-on-tours',
+        icon: PhUsersThree,
+        children: [
+            { groupId: 'hands-on-tours-social', name: 'Social', href: '/groups/dmv-hands-on-tours/social' },
+            { groupId: 'hands-on-tours-training', name: 'Training', href: '/groups/dmv-hands-on-tours/training' },
+            { groupId: 'vetting', name: 'Vetting', href: '/groups/dmv-hands-on-tours/vetting' },
+        ],
+    },
+    {
+        groupId: 'romforyou',
+        name: 'ROMForYou',
+        href: '/groups/romforyou',
+        icon: PhUsersThree,
+        children: [
+            { groupId: 'content-development', name: 'Content Development', href: '/groups/romforyou/content-development' },
+            { groupId: 'team-leads-adult-presentations', name: 'Team Leads — adult presentations', href: '/groups/romforyou/team-leads' },
+            { groupId: 'outreach', name: 'Outreach', href: '/groups/romforyou/outreach' },
+            { groupId: 'adapted-presentations', name: 'Adapted Presentations', href: '/groups/romforyou/adapted-presentations' },
+        ],
+    },
+    {
+        groupId: 'visitor-wayfinders',
+        name: 'Visitor Wayfinders',
+        href: '/groups/visitor-wayfinders',
+        icon: PhUsersThree,
+        children: [
+            { groupId: 'documentation', name: 'Documentation', href: '/groups/visitor-wayfinders/documentation' },
+            {
+                groupId: 'shadow-shift-vetting-volunteers',
+                name: 'Shadow Shift & Vetting Volunteers',
+                href: '/groups/visitor-wayfinders/shadow-shift-vetting',
+            },
+            { groupId: 'social-committee', name: 'Social Committee', href: '/groups/visitor-wayfinders/social-committee' },
+        ],
     },
     {
         groupId: 'romwalks',
         name: 'ROMWalks',
         href: '/groups/romwalks',
         icon: PhUsersThree,
+        children: [
+            { groupId: 'brochure-committee', name: 'Brochure Committee', href: '/groups/romwalks/brochure-committee' },
+            { groupId: 'education', name: 'Education', href: '/groups/romwalks/education' },
+            { groupId: 'pr-committee', name: 'PR Committee', href: '/groups/romwalks/pr-committee' },
+            { groupId: 'script-vetting', name: 'Script Vetting', href: '/groups/romwalks/script-vetting' },
+            { groupId: 'statistical', name: 'Statistical', href: '/groups/romwalks/statistical' },
+            { groupId: 'romwalks-training', name: 'Training', href: '/groups/romwalks/training' },
+            { groupId: 'walker-vetting', name: 'Walker Vetting', href: '/groups/romwalks/walker-vetting' },
+        ],
+    },
+    {
+        groupId: 'romtravel',
+        name: 'ROMTravel',
+        href: '/groups/romtravel',
+        icon: PhUsersThree,
+        children: [
+            { groupId: 'admin-committee', name: 'Admin Committee', href: '/groups/romtravel/admin-committee' },
+            { groupId: 'feasibility-committee', name: 'Feasibility Committee', href: '/groups/romtravel/feasibility-committee' },
+            { groupId: 'support-roles', name: 'Support Roles', href: '/groups/romtravel/support-roles' },
+        ],
+    },
+    // A Friends-of standing committee with its own sub-groups.
+    {
+        groupId: 'friends-of-textiles-costume',
+        name: 'Friends of Textiles & Costume',
+        href: '/groups/friends-of-textiles-costume',
+        icon: PhUsersThree,
+        children: [
+            { groupId: 'adopt-a-journal', name: 'Adopt-a-Journal', href: '/groups/friends-of-textiles-costume/adopt-a-journal' },
+            { groupId: 'donor-friends', name: 'Donor Friends', href: '/groups/friends-of-textiles-costume/donor-friends' },
+            { groupId: 'education-subcommittee', name: 'Education SubCommittee', href: '/groups/friends-of-textiles-costume/education' },
+            { groupId: 'newsletter-subcommittee', name: 'Newsletter SubCommittee', href: '/groups/friends-of-textiles-costume/newsletter' },
+            { groupId: 'programs-events', name: 'Programs & Events', href: '/groups/friends-of-textiles-costume/programs-events' },
+        ],
     },
 ];
 
