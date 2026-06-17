@@ -34,7 +34,8 @@ it('ignores super_tier submitted through the self-service profile form', functio
 
     $this->actingAs($member)
         ->patch(route('profile.update'), [
-            'name' => 'New Name',
+            'first_name' => 'New',
+            'last_name' => 'Name',
             'email' => 'new-email@example.com',
             'super_tier' => true,
         ])

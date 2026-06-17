@@ -15,8 +15,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * The shape is an allowlist, least-privilege by default:
  *
- * - Always public to any logged-in member: id, name, photo (if uploaded), and the
- *   member's Groups + roles — enough for a useful directory.
+ * - Always public to any logged-in member: id, first/last name, photo (if
+ *   uploaded), and the member's Groups + roles — enough for a useful directory.
  * - Gated behind the `viewContact` ability: email, phone, and every other contact
  *   field. A field that is not added to the gated block below is simply absent —
  *   so a newly added column is private until someone deliberately exposes it.
@@ -42,7 +42,8 @@ class MemberResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
             // null until the photo-upload feature lands.
             'photo' => $this->photo_path,
             'groups' => $this->whenLoaded('memberships', fn () => $this->memberships

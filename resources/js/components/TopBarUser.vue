@@ -15,6 +15,7 @@ const page = usePage<SharedData>();
 const user = page.props.auth.user as User;
 
 const { getInitials } = useInitials();
+const fullName = computed(() => `${user.first_name} ${user.last_name}`);
 const showAvatar = computed(() => user.avatar && user.avatar !== '');
 </script>
 
@@ -30,9 +31,9 @@ const showAvatar = computed(() => user.avatar && user.avatar !== '');
                      translucent fallback sits on the black bar — white initials on a
                      light disc were unreadable otherwise. -->
                 <Avatar class="size-10 bg-transparent">
-                    <AvatarImage v-if="showAvatar" :src="user.avatar ?? ''" :alt="user.name" />
+                    <AvatarImage v-if="showAvatar" :src="user.avatar ?? ''" :alt="fullName" />
                     <AvatarFallback class="bg-white/20 text-sm text-white">
-                        {{ getInitials(user.name) }}
+                        {{ getInitials(fullName) }}
                     </AvatarFallback>
                 </Avatar>
             </button>

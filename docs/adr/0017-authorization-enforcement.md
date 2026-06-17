@@ -63,6 +63,7 @@ Member::canActAs(Role $role, Group $group): bool
 - A `viewContact($viewer, $target)` ability: Records + super-tier (org-wide); own-Group officers with a contact-need role (default Chair/Scheduler/Secretary, tunable).
 - Enforced in **one centralized `MemberResource`** — no hand-built member arrays in controllers.
 - **Allowlist, not blocklist:** every logged-in member sees only first/last name, photo (if uploaded), Groups/roles; everything else is gated by default, so new fields are private until deliberately exposed. (Consequence: an in-app, email-native member-to-member messaging path is needed as the directory no longer exposes contact details — separate PRD.)
+- **Name is stored split as `first_name` + `last_name`** (no middle, preferred, or display name) — the Directory sorts and jumps by surname and the legacy migration source already separates the two. `MemberResource` exposes both fields, not a composed `name`; UI composes the display form it needs ("First Last" on a profile, "Last, First" in the roster). (#168)
 
 ### 7. Mass-assignment / no client-asserted authority
 

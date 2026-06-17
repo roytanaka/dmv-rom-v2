@@ -25,7 +25,8 @@ class DatabaseSeeder extends Seeder
         $member = Member::firstOrCreate(
             ['email' => 'test@example.com'],
             [
-                'name' => 'Test Member',
+                'first_name' => 'Test',
+                'last_name' => 'Member',
                 'category' => Category::Active,
                 'password' => Hash::make('password'),
             ],

@@ -13,13 +13,15 @@ use App\Models\Member;
 
 it('round-trips a Member identity', function () {
     $member = Member::factory()->create([
-        'name' => 'Ada Lovelace',
+        'first_name' => 'Ada',
+        'last_name' => 'Lovelace',
         'email' => 'ada@example.com',
     ]);
 
     $fresh = $member->fresh();
 
-    expect($fresh->name)->toBe('Ada Lovelace')
+    expect($fresh->first_name)->toBe('Ada')
+        ->and($fresh->last_name)->toBe('Lovelace')
         ->and($fresh->email)->toBe('ada@example.com')
         ->and($fresh->exists)->toBeTrue();
 });
@@ -32,7 +34,8 @@ it('casts category to the Category enum', function () {
 
 it('defaults a newly registered Member to pre-active', function () {
     $member = Member::create([
-        'name' => 'New Recruit',
+        'first_name' => 'New',
+        'last_name' => 'Recruit',
         'email' => 'recruit@example.com',
         'password' => 'password',
     ]);
