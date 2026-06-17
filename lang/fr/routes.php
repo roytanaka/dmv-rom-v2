@@ -12,6 +12,10 @@ return [
     'calendar' => 'calendrier',
     'hours' => 'heures',
     'directory' => 'annuaire',
+    // Fiche d'un membre (#172, PRD #167). Le mot anglais « members » se traduit ici
+    // par « benevoles » (et non « membres » comme pour officer.members) — voir la
+    // note dans lang/en/routes.php sur la collision de segment.
+    'members.show' => 'benevoles/{member}',
     'documents' => 'documents',
     'news' => 'nouvelles',
     'profile' => 'profil',
