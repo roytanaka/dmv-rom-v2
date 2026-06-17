@@ -43,8 +43,7 @@ class MemberResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            // Null until the photo-upload feature lands; the directory shows
-            // name-only in the meantime ("photo if uploaded").
+            // null until the photo-upload feature lands.
             'photo' => $this->photo_path,
             'groups' => $this->whenLoaded('memberships', fn () => $this->memberships
                 ->map(fn (GroupMember $membership) => [
@@ -56,8 +55,7 @@ class MemberResource extends JsonResource
                 ])
                 ->values()
                 ->all()),
-            // Contact PII — present only when the viewer passes `viewContact`.
-            // Absent (not null) otherwise, so an unauthorized payload omits the key.
+            // Absent (not null) when unauthorized — mergeWhen omits the key entirely.
             $this->mergeWhen($canViewContact, fn () => [
                 'email' => $this->email,
                 'phone' => $this->phone,

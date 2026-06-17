@@ -5,7 +5,6 @@ namespace App\Policies;
 use App\Enums\Role;
 use App\Models\GroupMember;
 use App\Models\Member;
-use Illuminate\Support\Collection;
 
 /**
  * Authorization for member records (ADR-0017). The super-tier short-circuit lives
@@ -53,7 +52,7 @@ class MemberPolicy
         }
 
         return $target->memberships->contains(
-            fn (GroupMember $membership) => Collection::make(self::CONTACT_NEED_ROLES)
+            fn (GroupMember $membership) => collect(self::CONTACT_NEED_ROLES)
                 ->contains(fn (Role $role) => $viewer->canActAs($role, $membership->group))
         );
     }
