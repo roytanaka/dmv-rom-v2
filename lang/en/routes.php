@@ -12,6 +12,15 @@ return [
     'calendar' => 'calendar',
     'hours' => 'hours',
     'directory' => 'directory',
+    // Member profile (#172, PRD #167). Canonical at /members/{member}; the French
+    // twin is /benevoles/{member}. Its leading word collides with officer.members
+    // ('members' → 'membres'): both share the English segment "members" but resolve
+    // to different French words. The routeSegments table (HandleInertiaRequests) is
+    // keyed by English segment, so only one French value can win there — and
+    // officer.members is declared LAST, so the table keeps 'members' → 'membres'.
+    // That table only localises relative chrome-nav hrefs; profile links are
+    // server-generated via route(), so they get /benevoles from this entry directly.
+    'members.show' => 'members/{member}',
     'documents' => 'documents',
     'news' => 'news',
     'profile' => 'profile',
