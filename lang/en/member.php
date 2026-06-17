@@ -11,4 +11,19 @@ return [
     'phone' => 'Phone',
     'groups' => 'Groups & roles',
     'no_groups' => 'No group memberships.',
+
+    // DMV-wide standing labels (the Member's Category), keyed by the enum value the
+    // MemberResource exposes as `standing`. Drives the directory/profile standing
+    // badge. Mirrors lang/fr/member.php.
+    'standing' => [
+        'active' => 'Active',
+        'pre_active' => 'Pre-active',
+        'provisional' => 'Provisional',
+        'sustaining' => 'Sustaining',
+        'honourary' => 'Honourary',
+        'loa' => 'On leave',
+        'withdrawn' => 'Withdrawn',
+        'resigned' => 'Resigned',
+        'deceased' => 'Deceased',
+    ],
 ];

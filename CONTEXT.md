@@ -31,6 +31,10 @@ _Avoid_: equating "DMV Executive" with all-DMV access (that is the super-tier), 
 - **Support administration** — a maintainer administering data or impersonating for support; the explicit `initiate-support-session` permission ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)), deliberately *not* super-tier.
 _Avoid_: "admin" unqualified; admin-ness is a role or grant, never a membership standing.
 
+**Directory**:
+The org-wide, read-only roster of **Members** — every Member whose DMV-wide **Category** grants a listing (Active, Honourary, Sustaining, LOA), shown to any logged-in Member at `/directory`. Each row carries avatar, name, **Group** memberships, and standing — but never contact details (email/phone are a profile-only concern, gated by `viewContact`). The departed (Resigned/Withdrawn/Deceased) and the not-yet-activated (PreActive/Provisional) are excluded.
+_Avoid_: treating the Directory as a member-administration or editing surface — it is read-only; managing member records is a separate authority (see **Admin** → member administration).
+
 **Login**:
 The act of authenticating into the app with email + password. The only authentication flow in the rebuild.
 

@@ -12,4 +12,19 @@ return [
     'phone' => 'Téléphone',
     'groups' => 'Groupes et rôles',
     'no_groups' => 'Aucune adhésion à un groupe.',
+
+    // Libellés de statut au sein du DMV (la Catégorie du membre), indexés par la
+    // valeur d'énumération exposée par MemberResource sous `standing`. Alimente le
+    // badge de statut de l'annuaire/profil. Reflète lang/en/member.php.
+    'standing' => [
+        'active' => 'Actif',
+        'pre_active' => 'Pré-actif',
+        'provisional' => 'Provisoire',
+        'sustaining' => 'De soutien',
+        'honourary' => 'Honoraire',
+        'loa' => 'En congé',
+        'withdrawn' => 'Retiré',
+        'resigned' => 'Démissionnaire',
+        'deceased' => 'Décédé',
+    ],
 ];
