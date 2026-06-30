@@ -60,6 +60,11 @@ interface NavNodeBase {
     requiresCapability?: Capability;
     /** GATING: hidden unless the Volunteer holds this role. Unset → no constraint. */
     requiresRole?: Role;
+    /**
+     * A capability slot whose feature has not shipped yet — rendered as a muted,
+     * non-navigable "soon" stub rather than a link (the in-body section tabs, #188).
+     */
+    soon?: boolean;
 }
 
 /**

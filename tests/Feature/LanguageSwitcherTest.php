@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Group;
 use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -52,6 +53,7 @@ class LanguageSwitcherTest extends TestCase
 
     public function test_switcher_keeps_the_group_slug_in_the_dynamic_route_twin(): void
     {
+        Group::factory()->create(['slug' => 'docents']);
         $this->actingAs(Member::factory()->create());
 
         // Only the /groups segment is translated; the {group} slug is content and
@@ -66,6 +68,7 @@ class LanguageSwitcherTest extends TestCase
 
     public function test_switcher_translates_the_group_segment_back_on_a_french_route(): void
     {
+        Group::factory()->create(['slug' => 'gallery-interpreters']);
         $this->actingAs(Member::factory()->create());
 
         $this->withLocaleRoutes('fr', function () {
@@ -83,6 +86,7 @@ class LanguageSwitcherTest extends TestCase
 
     public function test_switcher_translates_the_group_segment_back_with_the_optional_section(): void
     {
+        Group::factory()->create(['slug' => 'docents']);
         $this->actingAs(Member::factory()->create());
 
         $this->withLocaleRoutes('fr', function () {
