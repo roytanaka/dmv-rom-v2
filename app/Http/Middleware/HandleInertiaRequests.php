@@ -71,10 +71,9 @@ class HandleInertiaRequests extends Middleware
             // resolved here, never echoed from the client.
             'chromeNav' => $this->chromeNav($request),
             // Grouping rail (PRD #209): the per-Member Group/officer navigation,
-            // built and pruned server-side and shared as a single prop. This slice
-            // (#210) wires the My Groups zone; the other zones stay fixture-fed in the
-            // client until their slices land. Hrefs are localized server-side, gating
-            // resolves here — the client renders only what it is given.
+            // built and pruned server-side and shared as a single prop — all three
+            // zones (My Groups, All Groups, Officer Tools). Hrefs are localized
+            // server-side, gating resolves here — the client renders only what it is given.
             'rail' => $this->rail($request),
             'auth' => [
                 'user' => $request->user(),
@@ -132,11 +131,11 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * The grouping rail (PRD #209), built per signed-in Member and server-pruned —
-     * the client receives only the nodes it may see. This slice ships My Groups and
-     * All Groups; Officer Tools remains fixture-fed in the client until its slice
-     * lands, so only the zones built here appear on the prop. Guests get an empty rail.
+     * the client receives only the nodes it may see. Ships all three zones: My Groups,
+     * All Groups, and Officer Tools (each per-item gated by a real authority). A zone is
+     * omitted whole when nothing in it survives for the Member. Guests get an empty rail.
      *
-     * @return array{myGroups?: array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}, allGroups?: array{labelKey: string, items: list<array<string, mixed>>}}
+     * @return array{myGroups?: array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}, allGroups?: array{labelKey: string, items: list<array<string, mixed>>}, officer?: array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}}
      */
     private function rail(Request $request): array
     {
@@ -154,7 +153,56 @@ class HandleInertiaRequests extends Middleware
             $rail['allGroups'] = $allGroups;
         }
 
+        if ($officer = $this->officer($request->user())) {
+            $rail['officer'] = $officer;
+        }
+
         return $rail;
+    }
+
+    /**
+     * The Officer Tools zone (#212): the org-wide administration cluster, each item
+     * gated by a real authority resolved server-side. "Officer Tools" denotes org-wide
+     * administration and is deliberately distinct from a Group's officers (Chair /
+     * Secretary / Treasurer). The cluster — heading included — is emitted only when at
+     * least one item survives for this Member, so an ordinary Member never sees it.
+     *
+     * Members and Communications map to existing Gate abilities (Records / member-admin
+     * stewardship and news-editor of an announcements-on Group). Reports, Flash Messages
+     * and DMV Settings are super-tier-only on an interim basis — they are ComingSoon
+     * stubs with no real ability yet, a placeholder a real gate later replaces (PRD #209).
+     * Super-tier passes the abilities too via the Gate::before short-circuit, so it sees
+     * all five.
+     *
+     * @return array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}|null
+     */
+    private function officer(Member $member): ?array
+    {
+        // Each item, in render order, with the authority that gates it: a Gate ability
+        // (`gate`) or the interim super-tier-only check (no ability yet).
+        $items = [
+            ['key' => 'members', 'route' => 'officer.members', 'labelKey' => 'nav.officer.members', 'gate' => 'administer-members'],
+            ['key' => 'communications', 'route' => 'officer.communications', 'labelKey' => 'nav.officer.communications', 'gate' => 'post-news'],
+            ['key' => 'reports', 'route' => 'officer.reports', 'labelKey' => 'nav.officer.reports'],
+            ['key' => 'flash-messages', 'route' => 'officer.flash-messages', 'labelKey' => 'nav.officer.flash_messages'],
+            ['key' => 'settings', 'route' => 'officer.settings', 'labelKey' => 'nav.officer.dmv_settings'],
+        ];
+
+        $visible = collect($items)
+            ->filter(fn (array $spec) => isset($spec['gate'])
+                ? $member->can($spec['gate'])
+                : $member->isAllDmv())
+            ->map(fn (array $spec) => $this->destination($spec))
+            ->values();
+
+        if ($visible->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'labelKey' => 'nav.rail.officer',
+            'items' => $visible->all(),
+        ];
     }
 
     /**

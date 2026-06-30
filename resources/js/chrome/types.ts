@@ -46,7 +46,7 @@ export type Capability = 'scheduling' | 'content' | 'documents' | 'meetings' | '
  * A role a Volunteer can hold (in a Group, or org-wide). The other gating driver.
  * Resolved server-side. Representative, not the full catalogue — see docs/nav-spec.md.
  */
-export type Role = 'chair' | 'about-contact' | 'officer' | 'super-tier';
+export type Role = 'chair' | 'about-contact' | 'super-tier';
 
 /** Fields shared by every chrome nav node, structural or Group. */
 interface NavNodeBase {
@@ -132,12 +132,14 @@ export interface LauncherGrid {
     requiresRole?: Role;
 }
 
-/** The grouping rail — Zone B (Groups) + Zone C (officer/admin). */
+/**
+ * The grouping rail's Zone B (Groups). Zone C (Officer Tools) is server-built and
+ * server-pruned (PRD #209 / #212) — it arrives on the shared `rail.officer` prop, not
+ * through this fixture-fed shape.
+ */
 export interface RailNav {
     /** Zone B lead — the Groups this Volunteer belongs to (content names). */
     myGroups: NavSection<GroupNode>;
     /** Zone B browse — the rest of the org, collapsed by default (content names). */
     allGroups: NavSection<GroupNode>;
-    /** Zone C — officer/admin, pinned to the rail bottom, officer-only (chrome labels). */
-    officer: NavSection<NavNode>;
 }
