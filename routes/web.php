@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
@@ -141,6 +142,23 @@ Route::patch('meetings/{meeting}', [MeetingController::class, 'update'])
 Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('meetings.destroy');
+
+// Group officer roster CRUD (#192, PRD #186). The roster write seam: adding a
+// member, changing standing (including a leave window), assigning / revoking roles,
+// resigning (a soft status change via update), and the added-in-error hard-remove
+// (a true row delete). Each is structurally authorized in its Form Request, which
+// delegates to the GroupMemberPolicy — a Secretary or Chair of the Group (plus the
+// super-tier). Add nests under the owning Group (bound by slug); change/remove bind
+// the membership by id. The read surface lives on `groups.show`.
+Route::post('groups/{group}/members', [GroupMemberController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('group-members.store');
+Route::patch('memberships/{membership}', [GroupMemberController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('group-members.update');
+Route::delete('memberships/{membership}', [GroupMemberController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('group-members.destroy');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

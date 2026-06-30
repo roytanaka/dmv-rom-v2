@@ -22,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { NavNode } from '@/chrome/types';
 import { bannerUrl, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type Meeting, type RosterMember, type SharedData } from '@/types';
+import { type Meeting, type RosterMember, type RosterMeta, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { PhImage, PhPencilSimple } from '@phosphor-icons/vue';
@@ -66,9 +66,11 @@ const props = defineProps<{
     section: string;
     // UI hints from the policies — drive the officer affordances only; the server
     // enforces every mutation regardless. `update` gates the Overview edits (#191);
-    // `createMeeting` gates the Meetings tab's "New meeting" control (#193).
-    can: { update: boolean; createMeeting: boolean };
+    // `createMeeting` gates the Meetings tab's "New meeting" control (#193);
+    // `manageRoster` gates the Roster tab's officer CRUD (#192).
+    can: { update: boolean; createMeeting: boolean; manageRoster: boolean };
     roster: RosterMember[];
+    rosterMeta: RosterMeta;
     meetings: Meeting[];
     overview: {
         description: string | null;
@@ -326,8 +328,15 @@ const pickBanner = (key: string | null) => {
                     </div>
                 </div>
 
-                <!-- Roster (#189) — the Group-scoped Directory surface. -->
-                <GroupRoster v-else-if="section === 'roster'" :members="roster" />
+                <!-- Roster (#189) — the Group-scoped Directory surface, with officer
+                     CRUD (#192) behind the `can.manageRoster` hint. -->
+                <GroupRoster
+                    v-else-if="section === 'roster'"
+                    :members="roster"
+                    :can-manage="can.manageRoster"
+                    :meta="rosterMeta"
+                    :group-slug="group.slug"
+                />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
                      surface, with officer CRUD behind the `can` hints. -->
