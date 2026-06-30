@@ -1,27 +1,32 @@
 <script setup lang="ts">
 // Group detail page (#188, PRD #186) — the "committee shell" every Group runs on,
-// expressed once and reused for every Kind. A persistent header (full-bleed default
-// banner with the Group name overlaid, the parent as a breadcrumb, a lifecycle
-// badge), a sticky in-body section-tab strip (the first consumer of the section-tab
-// relocation, ADR-0013 amendment), and the read-only Overview tab.
+// expressed once and reused for every Kind. A persistent header (full-bleed banner
+// from the curated set with the Group name overlaid, the parent as a breadcrumb, a
+// lifecycle badge), a sticky in-body section-tab strip (the first consumer of the
+// section-tab relocation, ADR-0013 amendment), and the Overview tab.
 //
-// This slice ships Overview only; Roster (#189) and Meetings (#190) replace the
-// "coming soon" panel with their own surfaces on top of this shell. The Group's name
-// and About Us are member-authored content, rendered as-authored; everything else is
-// translated chrome (ADR-0004). All data arrives as props — no authority is computed
-// here, and there is no edit affordance (officer edits land in #191).
+// Roster (#189) and Meetings (#190) supply their own surfaces on top of this shell.
+// The Group's name and About Us are member-authored content, rendered as-authored;
+// everything else is translated chrome (ADR-0004). Officer edits to the Overview
+// (#191) — inline About Us and banner selection — render only behind the server's
+// `can.update` hint; the GroupPolicy enforces every mutation regardless.
 import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import type { NavNode } from '@/chrome/types';
+import { bannerUrl, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type Meeting, type RosterMember, type SharedData } from '@/types';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { PhImage, PhPencilSimple } from '@phosphor-icons/vue';
+import { computed, ref } from 'vue';
 
 interface Parent {
     name: string;
@@ -55,9 +60,13 @@ const props = defineProps<{
         archived: boolean;
         end_date: string | null;
         parent: Parent | null;
+        banner_key: string | null;
         capabilities: { meetings: boolean; documents: boolean; scheduling: boolean; content: boolean; hours: boolean };
     };
     section: string;
+    // UI hint from the GroupPolicy — drives the officer Overview affordances only;
+    // the server enforces every mutation regardless (#191).
+    can: { update: boolean };
     roster: RosterMember[];
     meetings: Meeting[];
     overview: {
@@ -101,6 +110,44 @@ const datesFact = computed(() => {
     if (end_date) return trans('group.facts_ends', { date: formatDate(end_date) });
     return null;
 });
+
+// The selected banner's built asset URL, or null to fall back to the header's
+// heritage gradient (the neutral default). Officers pick from the curated set.
+const bannerImage = computed(() => bannerUrl(props.group.banner_key));
+
+// Officer edits (#191) — gated entirely by `can.update`; the controls below only
+// render when the server says so. Two independent forms hit `groups.update`, each
+// sending exactly the field it owns so an unsaved About edit never rides along
+// with a banner pick and vice versa.
+const updateUrl = () => route('groups.update', { group: props.group.slug });
+
+const editingAbout = ref(false);
+const aboutForm = useForm<{ description: string | null }>({ description: props.overview.description });
+// Bridge the nullable form field to the Textarea (which takes string|number):
+// an emptied field persists as null so the Overview shows its "no description" state.
+const aboutDraft = computed({
+    get: () => aboutForm.description ?? '',
+    set: (value: string) => (aboutForm.description = value === '' ? null : value),
+});
+const saveAbout = () =>
+    aboutForm.patch(updateUrl(), {
+        preserveScroll: true,
+        onSuccess: () => (editingAbout.value = false),
+    });
+const cancelAbout = () => {
+    aboutForm.description = props.overview.description;
+    editingAbout.value = false;
+};
+
+const bannerPickerOpen = ref(false);
+const bannerForm = useForm<{ banner_key: string | null }>({ banner_key: props.group.banner_key });
+const pickBanner = (key: string | null) => {
+    bannerForm.banner_key = key;
+    bannerForm.patch(updateUrl(), {
+        preserveScroll: true,
+        onSuccess: () => (bannerPickerOpen.value = false),
+    });
+};
 </script>
 
 <template>
@@ -108,11 +155,64 @@ const datesFact = computed(() => {
 
     <AppLayout>
         <div class="flex h-full flex-1 flex-col">
-            <!-- Persistent header — full-bleed default banner (a curated set + per-Group
-                 selection lands in #191), the Group name on a dark bottom gradient, the
-                 parent breadcrumb, and the lifecycle badge. No Kind badge (PRD #186). -->
+            <!-- Persistent header — a full-bleed banner from the curated set (#191),
+                 the Group name on a dark bottom gradient, the parent breadcrumb, and
+                 the lifecycle badge. The heritage gradient shows through as the
+                 neutral default when no banner is set. No Kind badge (PRD #186). -->
             <header class="from-rom-ink to-rom-slate-700 relative isolate flex h-44 items-end overflow-hidden bg-gradient-to-br sm:h-52 lg:h-56">
+                <div
+                    v-if="bannerImage"
+                    class="absolute inset-0 bg-repeat"
+                    :style="{ backgroundImage: `url(${bannerImage})`, backgroundSize: '120px' }"
+                    :aria-label="trans('group.banner.aria')"
+                    role="img"
+                ></div>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+
+                <!-- Officer affordance: pick the Group's banner from the curated set. -->
+                <Dialog v-if="can.update" v-model:open="bannerPickerOpen">
+                    <DialogTrigger as-child>
+                        <Button variant="secondary" size="sm" class="absolute top-4 right-4 z-10 gap-1.5">
+                            <PhImage class="h-4 w-4" />
+                            {{ trans('group.edit.banner') }}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{{ trans('group.edit.banner_title') }}</DialogTitle>
+                        </DialogHeader>
+                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            <button
+                                type="button"
+                                class="focus-visible:ring-rom-slate flex flex-col items-stretch gap-1.5 focus-visible:ring-2 focus-visible:outline-none"
+                                :disabled="bannerForm.processing"
+                                @click="pickBanner(null)"
+                            >
+                                <span
+                                    class="from-rom-ink to-rom-slate-700 h-16 w-full border-2 bg-gradient-to-br"
+                                    :class="group.banner_key === null ? 'border-rom-slate' : 'border-transparent'"
+                                ></span>
+                                <span class="text-muted-foreground text-xs">{{ trans('group.banner.default') }}</span>
+                            </button>
+                            <button
+                                v-for="key in groupBannerKeys"
+                                :key="key"
+                                type="button"
+                                class="focus-visible:ring-rom-slate flex flex-col items-stretch gap-1.5 focus-visible:ring-2 focus-visible:outline-none"
+                                :disabled="bannerForm.processing"
+                                @click="pickBanner(key)"
+                            >
+                                <span
+                                    class="h-16 w-full border-2 bg-repeat"
+                                    :class="group.banner_key === key ? 'border-rom-slate' : 'border-transparent'"
+                                    :style="{ backgroundImage: `url(${groupBanners[key]})`, backgroundSize: '80px' }"
+                                ></span>
+                                <span class="text-muted-foreground text-xs">{{ trans(`group.banner.option.${key}`) }}</span>
+                            </button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
                 <div class="relative z-10 flex w-full flex-col gap-1.5 p-4 sm:p-6">
                     <nav v-if="group.parent" aria-label="Breadcrumb" class="text-sm text-white/80">
                         <TextLink
@@ -145,12 +245,32 @@ const datesFact = computed(() => {
                 <div v-if="section === 'overview'" class="grid gap-6 lg:grid-cols-3">
                     <div class="flex flex-col gap-6 lg:col-span-2">
                         <Card>
-                            <CardHeader>
+                            <CardHeader class="flex flex-row items-center justify-between gap-2 space-y-0">
                                 <CardTitle class="text-sm font-semibold tracking-wide uppercase">{{ trans('group.about') }}</CardTitle>
+                                <Button v-if="can.update && !editingAbout" variant="ghost" size="sm" class="gap-1.5" @click="editingAbout = true">
+                                    <PhPencilSimple class="h-4 w-4" />
+                                    {{ trans('group.edit.about') }}
+                                </Button>
                             </CardHeader>
                             <CardContent>
-                                <p v-if="overview.description" class="text-rom-ink text-base whitespace-pre-line">{{ overview.description }}</p>
-                                <p v-else class="text-muted-foreground text-sm">{{ trans('group.about_empty') }}</p>
+                                <form v-if="editingAbout" class="flex flex-col gap-3" @submit.prevent="saveAbout">
+                                    <Textarea
+                                        v-model="aboutDraft"
+                                        :rows="6"
+                                        :placeholder="trans('group.edit.about_placeholder')"
+                                        :aria-label="trans('group.about')"
+                                    />
+                                    <div class="flex gap-2">
+                                        <Button type="submit" size="sm" :disabled="aboutForm.processing">{{ trans('group.edit.save') }}</Button>
+                                        <Button type="button" variant="ghost" size="sm" :disabled="aboutForm.processing" @click="cancelAbout">
+                                            {{ trans('group.edit.cancel') }}
+                                        </Button>
+                                    </div>
+                                </form>
+                                <template v-else>
+                                    <p v-if="overview.description" class="text-rom-ink text-base whitespace-pre-line">{{ overview.description }}</p>
+                                    <p v-else class="text-muted-foreground text-sm">{{ trans('group.about_empty') }}</p>
+                                </template>
                             </CardContent>
                         </Card>
 

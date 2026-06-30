@@ -72,6 +72,28 @@ return [
         ],
     ],
 
+    'edit' => [
+        'about' => 'Modifier',
+        'about_title' => 'Modifier la section À propos',
+        'about_placeholder' => 'Décrivez ce groupe…',
+        'banner' => 'Changer la bannière',
+        'banner_title' => 'Choisir une bannière',
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
+    ],
+
+    'banner' => [
+        'aria' => 'Bannière du groupe',
+        'default' => 'Par défaut',
+        'option' => [
+            'columns' => 'Colonnes',
+            'quill' => 'Plume',
+            'lattice' => 'Treillis',
+            'ribbon' => 'Ruban',
+            'terrazzo' => 'Terrazzo',
+        ],
+    ],
+
     'coming_soon' => 'Cette section arrive bientôt.',
 
     'role' => [
