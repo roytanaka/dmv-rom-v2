@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { launcherGrids } from '@/chrome/fixture';
-import { isNodeVisible } from '@/chrome/gating';
 import type { GroupNode } from '@/chrome/types';
 import GroupTile from '@/components/GroupTile.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -19,11 +17,12 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const page = usePage<SharedData>();
 
-// The landing-page group-tile launcher (the legacy home grid). My Groups is
-// server-built (PRD #209), the same prop that feeds the rail, so the two can never
-// disagree about what the Member belongs to — pre-localized, omitted when they belong
-// to none, each tile carrying the interim placeholder Group icon. The All Groups grid
-// stays fixture-fed (super-tier gated via the show-all stub) until its slice (#211).
+// The landing-page group-tile launcher (the legacy home grid). Both grids are
+// server-built (PRD #209) from the same `rail` prop that feeds the rail, so the
+// launcher and the rail can never disagree — pre-localized, each tile carrying the
+// interim placeholder Group icon. My Groups is omitted when the Member belongs to no
+// Group; All Groups is shown to every Member (the former super-tier gate is gone, #211),
+// its top-level rows only — subcommittees stay in the rail.
 type LauncherGridView = { labelKey: string; items: GroupNode[]; localized: boolean };
 
 const grids = computed<LauncherGridView[]>(() => {
@@ -38,9 +37,13 @@ const grids = computed<LauncherGridView[]>(() => {
         });
     }
 
-    const allGroups = launcherGrids.find((grid) => grid.labelKey === 'nav.rail.all_groups');
-    if (allGroups && isNodeVisible(allGroups)) {
-        out.push({ labelKey: allGroups.labelKey, items: allGroups.items, localized: false });
+    const allGroups = page.props.rail.allGroups;
+    if (allGroups) {
+        out.push({
+            labelKey: allGroups.labelKey,
+            items: allGroups.items.map((item) => ({ ...item, icon: PhUsersThree })),
+            localized: true,
+        });
     }
 
     return out;

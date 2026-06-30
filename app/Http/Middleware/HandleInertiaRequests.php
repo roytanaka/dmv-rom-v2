@@ -8,6 +8,7 @@ use App\Models\GroupMember;
 use App\Models\Member;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
@@ -123,20 +124,34 @@ class HandleInertiaRequests extends Middleware
         ];
     }
 
+    /** The Governance & Operations container, folded into the root DMV node (Option C). */
+    private const GOVERNANCE_SLUG = 'governance-operations';
+
+    /** The Programs container, dissolved with its programs promoted to the top level (Option C). */
+    private const PROGRAMS_SLUG = 'programs';
+
     /**
      * The grouping rail (PRD #209), built per signed-in Member and server-pruned —
-     * the client receives only the nodes it may see. This slice ships the My Groups
-     * zone; All Groups and Officer Tools remain fixture-fed in the client until their
-     * slices land, so only the zones built here appear on the prop.
+     * the client receives only the nodes it may see. This slice ships My Groups and
+     * All Groups; Officer Tools remains fixture-fed in the client until its slice
+     * lands, so only the zones built here appear on the prop. Guests get an empty rail.
      *
-     * @return array{myGroups?: array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}}
+     * @return array{myGroups?: array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}, allGroups?: array{labelKey: string, items: list<array<string, mixed>>}}
      */
     private function rail(Request $request): array
     {
+        if ($request->user() === null) {
+            return [];
+        }
+
         $rail = [];
 
         if ($myGroups = $this->myGroups($request->user())) {
             $rail['myGroups'] = $myGroups;
+        }
+
+        if ($allGroups = $this->allGroups()) {
+            $rail['allGroups'] = $allGroups;
         }
 
         return $rail;
@@ -178,11 +193,153 @@ class HandleInertiaRequests extends Middleware
 
         return [
             'labelKey' => 'nav.rail.my_groups',
-            'items' => $groups->map(fn (Group $group) => [
-                'groupId' => $group->slug,
-                'name' => $group->name,
-                'href' => $this->groupHref($group),
-            ])->all(),
+            'items' => $groups->map(fn (Group $group) => $this->nodeAttributes($group))->all(),
+        ];
+    }
+
+    /**
+     * The All Groups zone (#211): the whole active organization tree, reshaped by the
+     * curated Option C transform (below) into the shape volunteers already know from
+     * the live rail. Visible to every signed-in Member and collapsed by default in the
+     * client; returns null when no active Group exists, so the section is omitted whole.
+     *
+     * Sourced from {@see Group::scopeActive()} — archived and stale (lapsed-window)
+     * Groups never appear — and nested by parent_id at full depth. The tree is loaded
+     * in one query and assembled in PHP (no N+1).
+     *
+     * @return array{labelKey: string, items: list<array<string, mixed>>}|null
+     */
+    private function allGroups(): ?array
+    {
+        $active = Group::active()->get();
+        $byParent = $active->groupBy(fn (Group $group) => $group->parent_id);
+        $roots = $active->whereNull('parent_id');
+
+        if ($roots->isEmpty()) {
+            return null;
+        }
+
+        $items = $this->sortNodes($roots)
+            ->flatMap(fn (Group $root) => $this->optionCForest($root, $byParent))
+            ->all();
+
+        return [
+            'labelKey' => 'nav.rail.all_groups',
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * The Option C transform (PRD #209), applied server-side to one root's subtree. It
+     * is a curated, named transform — each container is handled on purpose, not by a
+     * uniform rule:
+     *
+     * - the Governance & Operations container's children fold into the root DMV node;
+     * - the Programs container dissolves, its programs promoted to the top level (each
+     *   still carrying its own subcommittees);
+     * - Special Projects and the Friends-of committees stay as ordinary top-level
+     *   expandable nodes.
+     *
+     * The container Groups remain real rows in the data model — they keep parenting
+     * children and carrying scope; this is presentation only.
+     *
+     * @param  Collection<int, Collection<int, Group>>  $byParent
+     * @return list<array<string, mixed>>
+     */
+    private function optionCForest(Group $root, Collection $byParent): array
+    {
+        $folded = [];   // Governance & Operations' children → the DMV node's children
+        $promoted = []; // the Programs container's children → the rail's top level
+        $others = [];   // Special Projects + Friends-of → top level, as authored
+
+        foreach ($this->childrenOf($root, $byParent) as $child) {
+            if ($child->slug === self::GOVERNANCE_SLUG) {
+                $folded = $this->builtChildren($child, $byParent);
+            } elseif ($child->slug === self::PROGRAMS_SLUG) {
+                $promoted = $this->builtChildren($child, $byParent);
+            } else {
+                $others[] = $this->railNode($child, $byParent);
+            }
+        }
+
+        $rootNode = $this->nodeAttributes($root);
+        if ($folded) {
+            $rootNode['children'] = $folded;
+        }
+
+        return array_merge([$rootNode], $promoted, $others);
+    }
+
+    /**
+     * Build a rail node for a Group and, recursively, its active subcommittees at full
+     * depth. The `children` key is present only when the Group has visible children.
+     *
+     * @param  Collection<int, Collection<int, Group>>  $byParent
+     * @return array<string, mixed>
+     */
+    private function railNode(Group $group, Collection $byParent): array
+    {
+        $node = $this->nodeAttributes($group);
+
+        if ($children = $this->builtChildren($group, $byParent)) {
+            $node['children'] = $children;
+        }
+
+        return $node;
+    }
+
+    /**
+     * The built rail nodes for a Group's direct children, in display order.
+     *
+     * @param  Collection<int, Collection<int, Group>>  $byParent
+     * @return list<array<string, mixed>>
+     */
+    private function builtChildren(Group $group, Collection $byParent): array
+    {
+        return $this->childrenOf($group, $byParent)
+            ->map(fn (Group $child) => $this->railNode($child, $byParent))
+            ->all();
+    }
+
+    /**
+     * A Group's direct children, sorted into display order.
+     *
+     * @param  Collection<int, Collection<int, Group>>  $byParent
+     * @return Collection<int, Group>
+     */
+    private function childrenOf(Group $group, Collection $byParent): Collection
+    {
+        return $this->sortNodes($byParent->get($group->id) ?? collect());
+    }
+
+    /**
+     * Sibling order on the rail: the curated `display_order`, then name as a stable
+     * tiebreak.
+     *
+     * @param  Collection<int, Group>  $groups
+     * @return Collection<int, Group>
+     */
+    private function sortNodes(Collection $groups): Collection
+    {
+        return $groups->sortBy([
+            ['display_order', 'asc'],
+            ['name', 'asc'],
+        ])->values();
+    }
+
+    /**
+     * The shared, as-authored shape of one Group rail row: a stable slug id, the Group
+     * name verbatim (content — never translated, ADR-0004), and its locale-localized
+     * path. The client supplies the interim placeholder icon; the wire carries none.
+     *
+     * @return array{groupId: string, name: string, href: string}
+     */
+    private function nodeAttributes(Group $group): array
+    {
+        return [
+            'groupId' => $group->slug,
+            'name' => $group->name,
+            'href' => $this->groupHref($group),
         ];
     }
 
