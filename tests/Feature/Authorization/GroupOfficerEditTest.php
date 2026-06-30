@@ -79,15 +79,15 @@ it('lets a Secretary pick a banner from the curated set', function () {
     $group = Group::factory()->create(['banner_key' => null]);
 
     $this->actingAs(groupOfficerOf($group, Role::Secretary))
-        ->patch(route('groups.update', $group), ['banner_key' => GroupBanner::Quill->value])
+        ->patch(route('groups.update', $group), ['banner_key' => GroupBanner::Gallery->value])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
-    expect($group->fresh()->banner_key)->toBe(GroupBanner::Quill);
+    expect($group->fresh()->banner_key)->toBe(GroupBanner::Gallery);
 });
 
 it('lets an officer clear the banner back to the default', function () {
-    $group = Group::factory()->create(['banner_key' => GroupBanner::Quill->value]);
+    $group = Group::factory()->create(['banner_key' => GroupBanner::Gallery->value]);
 
     $this->actingAs(groupOfficerOf($group, Role::Chair))
         ->patch(route('groups.update', $group), ['banner_key' => null])
@@ -160,9 +160,9 @@ it('hints update on for an officer and off for an ordinary member', function () 
 });
 
 it('exposes the selected banner key on the Group payload', function () {
-    $group = Group::factory()->create(['banner_key' => GroupBanner::Lattice->value]);
+    $group = Group::factory()->create(['banner_key' => GroupBanner::Crystal->value]);
 
     $this->actingAs(Member::factory()->create())
         ->get(route('groups.show', $group))
-        ->assertInertia(fn (Assert $page) => $page->where('group.banner_key', GroupBanner::Lattice->value));
+        ->assertInertia(fn (Assert $page) => $page->where('group.banner_key', GroupBanner::Crystal->value));
 });

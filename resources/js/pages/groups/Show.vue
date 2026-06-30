@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import type { NavNode } from '@/chrome/types';
-import { bannerUrl, groupBannerKeys, groupBanners } from '@/groups/banners';
+import { bannerSources, defaultBannerKey, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type Meeting, type RosterMember, type RosterMeta, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
@@ -114,9 +114,10 @@ const datesFact = computed(() => {
     return null;
 });
 
-// The selected banner's built asset URL, or null to fall back to the header's
-// heritage gradient (the neutral default). Officers pick from the curated set.
-const bannerImage = computed(() => bannerUrl(props.group.banner_key));
+// The selected banner's AVIF + JPG sources. An unset (or unknown) banner_key
+// falls back to the default banner (Rotunda); the heritage gradient stays as the
+// base layer underneath, showing through only while the image loads.
+const banner = computed(() => bannerSources(props.group.banner_key) ?? groupBanners[defaultBannerKey]);
 
 // Officer edits (#191) — gated entirely by `can.update`; the controls below only
 // render when the server says so. Two independent forms hit `groups.update`, each
@@ -163,14 +164,11 @@ const pickBanner = (key: string | null) => {
                  the lifecycle badge. The heritage gradient shows through as the
                  neutral default when no banner is set. No Kind badge (PRD #186). -->
             <header class="from-rom-ink to-rom-slate-700 relative isolate flex h-44 items-end overflow-hidden bg-gradient-to-br sm:h-52 lg:h-56">
-                <div
-                    v-if="bannerImage"
-                    class="absolute inset-0 bg-repeat"
-                    :style="{ backgroundImage: `url(${bannerImage})`, backgroundSize: '120px' }"
-                    :aria-label="trans('group.banner.aria')"
-                    role="img"
-                ></div>
-                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                <picture v-if="banner">
+                    <source :srcset="banner.avif" type="image/avif" />
+                    <img :src="banner.jpg" :alt="trans('group.banner.aria')" class="absolute inset-0 h-full w-full object-cover" />
+                </picture>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/10"></div>
 
                 <!-- Officer affordance: pick the Group's banner from the curated set. -->
                 <Dialog v-if="can.update" v-model:open="bannerPickerOpen">
@@ -185,18 +183,8 @@ const pickBanner = (key: string | null) => {
                             <DialogTitle>{{ trans('group.edit.banner_title') }}</DialogTitle>
                         </DialogHeader>
                         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                            <button
-                                type="button"
-                                class="focus-visible:ring-rom-slate flex flex-col items-stretch gap-1.5 focus-visible:ring-2 focus-visible:outline-none"
-                                :disabled="bannerForm.processing"
-                                @click="pickBanner(null)"
-                            >
-                                <span
-                                    class="from-rom-ink to-rom-slate-700 h-16 w-full border-2 bg-gradient-to-br"
-                                    :class="group.banner_key === null ? 'border-rom-slate' : 'border-transparent'"
-                                ></span>
-                                <span class="text-muted-foreground text-xs">{{ trans('group.banner.default') }}</span>
-                            </button>
+                            <!-- The 6 curated landmarks. An unset Group defaults to Rotunda,
+                                 so the Rotunda swatch reads as selected when banner_key is null. -->
                             <button
                                 v-for="key in groupBannerKeys"
                                 :key="key"
@@ -205,11 +193,13 @@ const pickBanner = (key: string | null) => {
                                 :disabled="bannerForm.processing"
                                 @click="pickBanner(key)"
                             >
-                                <span
-                                    class="h-16 w-full border-2 bg-repeat"
-                                    :class="group.banner_key === key ? 'border-rom-slate' : 'border-transparent'"
-                                    :style="{ backgroundImage: `url(${groupBanners[key]})`, backgroundSize: '80px' }"
-                                ></span>
+                                <picture
+                                    class="block h-16 w-full border-2"
+                                    :class="(group.banner_key ?? defaultBannerKey) === key ? 'border-rom-slate' : 'border-transparent'"
+                                >
+                                    <source :srcset="groupBanners[key].avif" type="image/avif" />
+                                    <img :src="groupBanners[key].jpg" alt="" class="h-full w-full object-cover" />
+                                </picture>
                                 <span class="text-muted-foreground text-xs">{{ trans(`group.banner.option.${key}`) }}</span>
                             </button>
                         </div>
@@ -237,7 +227,7 @@ const pickBanner = (key: string | null) => {
 
             <!-- Sticky in-body section-tab strip, directly under the header (ADR-0013
                  amendment). Reuses SectionTabs in its 'body' placement. -->
-            <div class="bg-background border-border sticky top-16 z-20 border-b px-4 sm:px-6">
+            <div class="bg-background sticky top-16 z-20 px-4 py-4 shadow-sm sm:px-6">
                 <SectionTabs :items="tabs" variant="body" :soon-label="trans('group.soon')" />
             </div>
 
