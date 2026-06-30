@@ -17,14 +17,17 @@ import { computed } from 'vue';
 
 const page = usePage<SharedData>();
 
-// My Groups is server-built and server-pruned (PRD #209): the prop carries only the
-// Groups this Member belongs to, pre-localized, and is omitted entirely when they
-// belong to none. Each row gets the interim placeholder Group icon (custom per-Group
-// icons are a later slice). All Groups and Officer Tools stay fixture-fed until their
-// own slices land.
+// My Groups and All Groups are both server-built and server-pruned (PRD #209): the
+// prop carries pre-localized Group rows, My Groups flat and All Groups as the active
+// org tree already reshaped (Option C) with subcommittees nested. My Groups is omitted
+// when the Member belongs to no Group; All Groups, present for every Member, is omitted
+// only when no active Group exists. Each top-level row gets the interim placeholder
+// Group icon (custom per-Group icons are a later slice). Officer Tools stays fixture-fed
+// until its own slice lands.
 const myGroupsSection = computed(() => page.props.rail.myGroups);
 const myGroups = computed<GroupNode[]>(() => (myGroupsSection.value?.items ?? []).map((item) => ({ ...item, icon: PhUsersThree })));
-const allGroups = computed(() => visibleNodes(railNav.allGroups.items));
+const allGroupsSection = computed(() => page.props.rail.allGroups);
+const allGroups = computed<GroupNode[]>(() => (allGroupsSection.value?.items ?? []).map((item) => ({ ...item, icon: PhUsersThree })));
 const officerItems = computed(() => visibleNodes(railNav.officer.items));
 </script>
 
@@ -39,21 +42,22 @@ const officerItems = computed(() => visibleNodes(railNav.officer.items));
         </SidebarMenu>
     </SidebarGroup>
 
-    <!-- Zone B — All Groups (browse, collapsible) -->
-    <Collapsible :default-open="railNav.allGroups.defaultOpen" class="group/all-groups">
+    <!-- Zone B — All Groups (browse, collapsible). Collapsed by default; omitted whole
+         only when no active Group exists. -->
+    <Collapsible v-if="allGroupsSection" :default-open="false" class="group/all-groups">
         <SidebarGroup class="px-2 py-0">
             <SidebarGroupLabel as-child>
                 <CollapsibleTrigger
                     class="text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground flex w-full items-center justify-between text-xs font-semibold tracking-wide uppercase"
                 >
-                    {{ trans(railNav.allGroups.labelKey ?? '') }}
+                    {{ trans(allGroupsSection.labelKey) }}
                     <PhCaretDown class="size-4 transition-transform group-data-[state=open]/all-groups:rotate-180" />
                 </CollapsibleTrigger>
             </SidebarGroupLabel>
             <CollapsibleContent>
                 <SidebarGroupContent>
                     <SidebarMenu>
-                        <NavRailItem v-for="item in allGroups" :key="item.href" :item="item" />
+                        <NavRailItem v-for="item in allGroups" :key="item.href" :item="item" localized />
                     </SidebarMenu>
                 </SidebarGroupContent>
             </CollapsibleContent>

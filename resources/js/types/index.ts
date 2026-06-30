@@ -27,6 +27,20 @@ export interface ChromeDestination {
     href: string;
 }
 
+/**
+ * One Group row on the server-built grouping rail (PRD #209): an as-authored `name`
+ * (content — rendered verbatim in both locales, never translated; ADR-0004), a stable
+ * slug `groupId`, an `href` already localized server-side (ADR-0008), and any nested
+ * subcommittees at full depth. The wire carries no icon — the client supplies the
+ * interim placeholder.
+ */
+export interface RailGroupNode {
+    groupId: string;
+    name: string;
+    href: string;
+    children?: RailGroupNode[];
+}
+
 export interface BreadcrumbItem {
     title: string;
     href: string;
@@ -76,13 +90,18 @@ export interface SharedData {
      * The grouping rail (PRD #209), built and pruned server-side per signed-in
      * Member. The wire format carries plain Group rows (no icon — the client supplies
      * the interim placeholder); hrefs are localized server-side (ADR-0008), so the
-     * client renders them verbatim. Zones absent from a Member's rail are omitted. This
-     * slice (#210) ships My Groups; All Groups and Officer Tools land in later slices.
+     * client renders them verbatim. Zones absent from a Member's rail are omitted. My
+     * Groups is flat; All Groups carries the active org tree reshaped (Option C) with
+     * subcommittees nested at full depth. Officer Tools lands in a later slice.
      */
     rail: {
         myGroups?: {
             labelKey: string;
             items: Array<{ groupId: string; name: string; href: string }>;
+        };
+        allGroups?: {
+            labelKey: string;
+            items: RailGroupNode[];
         };
     };
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
