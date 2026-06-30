@@ -107,3 +107,67 @@ it('lets any logged-in Member view an active Group roster', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->has('roster', 1));
 });
+
+// --- Officer affordances (#192) --------------------------------------------
+
+it('hints roster management on for an officer and off for an ordinary member', function () {
+    $group = Group::factory()->create();
+    $secretary = rosterMember($group, 'Sec', 'Retary', MembershipStatus::Full, [Role::Secretary]);
+    $section = ['group' => $group, 'section' => 'roster'];
+
+    $this->actingAs($secretary)
+        ->get(route('groups.show', $section))
+        ->assertInertia(fn (Assert $page) => $page->where('can.manageRoster', true));
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $section))
+        ->assertInertia(fn (Assert $page) => $page->where('can.manageRoster', false));
+});
+
+it('reveals Resigned to an officer who shows past members, never Deceased', function () {
+    $group = Group::factory()->create();
+    $secretary = rosterMember($group, 'Sec', 'Retary', MembershipStatus::Full, [Role::Secretary]);
+    $resigned = rosterMember($group, 'Re', 'Signed', MembershipStatus::Resigned);
+    $deceased = rosterMember($group, 'De', 'Ceased', MembershipStatus::Deceased);
+
+    $this->actingAs($secretary)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'roster', 'past' => 1]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rosterMeta.showingPast', true)
+            ->where('roster', function (Collection $roster) use ($resigned, $deceased) {
+                $ids = $roster->pluck('id')->all();
+
+                return in_array($resigned->id, $ids, true) && ! in_array($deceased->id, $ids, true);
+            }));
+});
+
+it('ignores the show-past toggle for an ordinary member', function () {
+    $group = Group::factory()->create();
+    rosterMember($group, 'Re', 'Signed', MembershipStatus::Resigned);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'roster', 'past' => 1]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rosterMeta.showingPast', false)
+            ->where('roster', fn (Collection $roster) => $roster->isEmpty()));
+});
+
+it('offers add-member candidates and capability-valid roles to an officer only', function () {
+    $group = Group::factory()->program()->create(); // scheduling on, vetting off
+    $secretary = rosterMember($group, 'Sec', 'Retary', MembershipStatus::Full, [Role::Secretary]);
+    $outsider = Member::factory()->create(['first_name' => 'Out', 'last_name' => 'Sider']);
+
+    $this->actingAs($secretary)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'roster']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rosterMeta.candidates', fn (Collection $candidates) => $candidates->contains('id', $outsider->id)
+                && ! $candidates->contains('id', $secretary->id))
+            ->where('rosterMeta.assignableRoles', fn (Collection $roles) => $roles->contains(Role::Scheduler->value)
+                && ! $roles->contains(Role::Vetting->value)));
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'roster']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rosterMeta.candidates', fn (Collection $candidates) => $candidates->isEmpty())
+            ->where('rosterMeta.assignableRoles', fn (Collection $roles) => $roles->isEmpty()));
+});

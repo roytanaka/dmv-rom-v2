@@ -12,6 +12,7 @@ use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
+use App\Models\Member;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -90,15 +91,27 @@ class GroupController extends Controller
             'section' => $section,
             // UI hints only — the server enforces in the Form Requests. `update`
             // drives the Overview's inline About Us edit and banner picker;
-            // `createMeeting` drives the Meetings tab's "New meeting" affordance.
+            // `createMeeting` drives the Meetings tab's "New meeting" affordance;
+            // `manageRoster` drives the Roster tab's officer CRUD (#192).
             'can' => [
                 'update' => $request->user()->can('update', $group),
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
+                'manageRoster' => $request->user()->can('create', [GroupMember::class, $group]),
             ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
             // the Overview never needs.
             'roster' => $section === 'roster' ? $this->roster($request, $group) : [],
+            // Officer roster CRUD scaffolding (#192), resolved only on the Roster tab.
+            // `candidates` (Members not yet in the Group, for the add-member search)
+            // and `assignableRoles` (the Group's capability-valid roles) are withheld
+            // from a non-officer; `showingPast` reflects the officer-only Resigned
+            // reveal so the toggle renders its current state.
+            'rosterMeta' => $section === 'roster' ? $this->rosterMeta($request, $group) : [
+                'candidates' => [],
+                'assignableRoles' => [],
+                'showingPast' => false,
+            ],
             // The Meetings tab's payload is resolved only when that tab is active
             // and the viewer has cleared the members-only gate above.
             'meetings' => $section === 'meetings' ? $this->meetings($request, $group) : [],
@@ -167,9 +180,15 @@ class GroupController extends Controller
      * top of the centralized {@see MemberResource} payload, so contact PII stays
      * gated behind `viewContact` (ADR-0017) per row and is never hand-built here.
      *
-     * Default visibility hides only the departed (Resigned / Deceased); Inactive
-     * still shows. The officer "show past members" toggle that reveals Resigned
-     * lands with the roster-CRUD slice (#192) — this is the read-only default view.
+     * Default visibility hides the departed (Resigned / Deceased); Inactive still
+     * shows. An officer may flip the "show past members" toggle (`?past=1`) to reveal
+     * Resigned so a resigned member can be found and reinstated; Deceased never
+     * appears for anyone (#192). The toggle is ignored for a non-officer.
+     *
+     * Each row carries its membership id and leave window so the officer CRUD can
+     * target it, plus a `can_hard_remove` hint — true only when the viewer manages
+     * the roster and the membership has no dependent records (the added-in-error
+     * case). These extra keys are inert for an ordinary member.
      *
      * @return list<array<string, mixed>>
      */
@@ -184,8 +203,16 @@ class GroupController extends Controller
         ]);
         $request->user()?->loadMissing('memberships.roles');
 
+        $canManage = $request->user()->can('create', [GroupMember::class, $group]);
+
+        // Deceased is always hidden; Resigned only when an officer asks to see past
+        // members. A non-officer can never reveal Resigned, whatever the query says.
+        $hidden = $canManage && $request->boolean('past')
+            ? [MembershipStatus::Deceased]
+            : [MembershipStatus::Resigned, MembershipStatus::Deceased];
+
         return $group->memberships
-            ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
+            ->whereNotIn('status', $hidden)
             // A–Z by surname, breaking ties on given name (a space sorts ahead of
             // any letter, so "Smith" precedes "Smithson").
             ->sortBy(fn (GroupMember $membership) => mb_strtolower($membership->member->last_name.' '.$membership->member->first_name))
@@ -198,9 +225,58 @@ class GroupController extends Controller
                     ->values()
                     ->all(),
                 'group_standing' => $membership->status->value,
+                // Officer CRUD targeting + the leave window for the change-standing
+                // editor. The hard-remove affordance is offered only for a membership
+                // with no dependent records — anything else must be resigned.
+                'membership_id' => $membership->id,
+                'loa_start' => $membership->loa_start?->toDateString(),
+                'loa_end' => $membership->loa_end?->toDateString(),
+                'can_hard_remove' => $canManage && $membership->roles->isEmpty(),
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * The Roster tab's officer-CRUD scaffolding (#192) — withheld from a non-officer.
+     * `candidates` is every Member not already in the Group (the add-member search
+     * source, id + name only, no contact PII); `assignableRoles` is the Group's
+     * capability-valid role set (a role whose backing capability is off is never
+     * offered); `showingPast` echoes whether Resigned members are currently revealed.
+     *
+     * @return array{candidates: list<array{id: int, first_name: string, last_name: string}>, assignableRoles: list<string>, showingPast: bool}
+     */
+    private function rosterMeta(Request $request, Group $group): array
+    {
+        if (! $request->user()->can('create', [GroupMember::class, $group])) {
+            return ['candidates' => [], 'assignableRoles' => [], 'showingPast' => false];
+        }
+
+        $existing = $group->memberships->pluck('member_id')->all();
+
+        $candidates = Member::query()
+            ->whereNotIn('id', $existing)
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get(['id', 'first_name', 'last_name'])
+            ->map(fn (Member $member) => [
+                'id' => $member->id,
+                'first_name' => $member->first_name,
+                'last_name' => $member->last_name,
+            ])
+            ->all();
+
+        $assignableRoles = collect(Role::cases())
+            ->filter(fn (Role $role) => $role->requiredCapability() === null || $group->{$role->requiredCapability()})
+            ->map(fn (Role $role) => $role->value)
+            ->values()
+            ->all();
+
+        return [
+            'candidates' => $candidates,
+            'assignableRoles' => $assignableRoles,
+            'showingPast' => $request->boolean('past'),
+        ];
     }
 
     /**

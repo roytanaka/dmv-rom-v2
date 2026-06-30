@@ -42,10 +42,37 @@ return [
             'roles' => 'Rôles',
             'contact' => 'Coordonnées',
             'standing' => 'Statut',
+            'actions' => 'Actions',
         ],
         'no_contact' => '—',
         'empty' => 'Aucun membre pour le moment.',
         'no_matches' => 'Aucun membre ne correspond à votre recherche.',
+
+        // CRUD du registre par les officiers (#192) — visible uniquement pour un·e
+        // secrétaire / président·e / super-palier (contrôlé côté serveur via
+        // `can.manageRoster`). Les messages de validation proviennent des Form Requests.
+        'role_unavailable' => 'Ce rôle n’est pas disponible pour ce groupe.',
+        'cannot_hard_remove' => 'Ce membre a un historique et ne peut être retiré. Faites-le démissionner.',
+        'show_past' => 'Afficher les anciens membres',
+        'manage' => 'Gérer',
+        'add' => 'Ajouter un membre',
+        'add_title' => 'Ajouter un membre',
+        'add_search' => 'Rechercher parmi tous les membres',
+        'add_submit' => 'Ajouter au groupe',
+        'no_candidates' => 'Aucun membre ne correspond à votre recherche.',
+        'edit_title' => 'Gérer l’adhésion',
+        'field' => [
+            'standing' => 'Statut',
+            'roles' => 'Rôles',
+            'loa_start' => 'Début du congé',
+            'loa_end' => 'Fin du congé',
+        ],
+        'resign' => 'Faire démissionner',
+        'confirm_resign' => 'Faire démissionner ce membre? Son historique est conservé et il peut être réintégré.',
+        'remove' => 'Retirer (ajouté par erreur)',
+        'confirm_remove' => 'Retirer définitivement ce membre? Cette action est irréversible.',
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
     ],
 
     'standing' => [

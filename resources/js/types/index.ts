@@ -106,6 +106,26 @@ export interface RosterMember {
     group_standing: string;
     email?: string;
     phone?: string;
+    // Officer roster CRUD targeting (#192) — the membership id, its leave window, and
+    // whether it may be hard-removed (no dependent records). Inert for a non-officer.
+    membership_id: number;
+    loa_start: string | null;
+    loa_end: string | null;
+    can_hard_remove: boolean;
+}
+
+// The Roster tab's officer-CRUD scaffolding (#192) — withheld (empty) from a
+// non-officer. Candidates are the add-member search source (id + name only).
+export interface RosterCandidate {
+    id: number;
+    first_name: string;
+    last_name: string;
+}
+
+export interface RosterMeta {
+    candidates: RosterCandidate[];
+    assignableRoles: string[];
+    showingPast: boolean;
 }
 
 export interface MeetingLink {

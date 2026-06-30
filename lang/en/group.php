@@ -48,11 +48,38 @@ return [
             'roles' => 'Roles',
             'contact' => 'Contact',
             'standing' => 'Standing',
+            'actions' => 'Actions',
         ],
         // Shown in the contact cell when the viewer may not see contact details.
         'no_contact' => '—',
         'empty' => 'No members yet.',
         'no_matches' => 'No members match your search.',
+
+        // Officer roster CRUD (#192) — shown only to a Secretary / Chair / super-tier
+        // (server-gated via `can.manageRoster`). The validation strings surface from
+        // the Form Requests when a bad role or a hard-remove with history is rejected.
+        'role_unavailable' => 'That role is not available for this group.',
+        'cannot_hard_remove' => 'This member has history and cannot be removed. Resign them instead.',
+        'show_past' => 'Show past members',
+        'manage' => 'Manage',
+        'add' => 'Add member',
+        'add_title' => 'Add member',
+        'add_search' => 'Search all members',
+        'add_submit' => 'Add to group',
+        'no_candidates' => 'No members match your search.',
+        'edit_title' => 'Manage membership',
+        'field' => [
+            'standing' => 'Standing',
+            'roles' => 'Roles',
+            'loa_start' => 'Leave starts',
+            'loa_end' => 'Leave ends',
+        ],
+        'resign' => 'Resign member',
+        'confirm_resign' => 'Resign this member? Their history is kept and they can be reinstated.',
+        'remove' => 'Remove (added in error)',
+        'confirm_remove' => 'Permanently remove this member? This cannot be undone.',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
     ],
 
     // Within-Group standing labels (App\Enums\MembershipStatus), distinct from a
