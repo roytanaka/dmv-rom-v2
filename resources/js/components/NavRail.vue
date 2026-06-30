@@ -12,7 +12,7 @@ import type { PhosphorIcon, SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhBuildings, PhCaretDown, PhChartBar, PhChatCircleDots, PhGear, PhMegaphone, PhUsersThree } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const page = usePage<SharedData>();
 
@@ -42,6 +42,19 @@ const officerSection = computed(() => page.props.rail.officer);
 const officerItems = computed<NavNode[]>(() =>
     (officerSection.value?.items ?? []).map((item) => ({ labelKey: item.labelKey, href: item.href, icon: OFFICER_ICONS[item.key] })),
 );
+
+// Force All Groups open when the active page lives inside it. The section was uncontrolled
+// and re-seeded closed on every Inertia navigation (#122). Hrefs arrive pre-localized
+// (ADR-0018); strip query strings to mirror NavRailItem's ancestor-aware matching.
+const currentPath = computed(() => page.url.split('?')[0]);
+const isWithin = (href: string) => currentPath.value === href || currentPath.value.startsWith(`${href}/`);
+const containsCurrent = (group: GroupNode): boolean => isWithin(group.href) || (group.children ?? []).some(containsCurrent);
+const allGroupsHasActive = computed(() => allGroups.value.some(containsCurrent));
+
+const allGroupsOpen = ref(allGroupsHasActive.value);
+watch(allGroupsHasActive, (active) => {
+    if (active) allGroupsOpen.value = true;
+});
 </script>
 
 <template>
@@ -57,7 +70,7 @@ const officerItems = computed<NavNode[]>(() =>
 
     <!-- Zone B — All Groups (browse, collapsible). Collapsed by default; omitted whole
          only when no active Group exists. -->
-    <Collapsible v-if="allGroupsSection" :default-open="false" class="group/all-groups">
+    <Collapsible v-if="allGroupsSection" v-model:open="allGroupsOpen" class="group/all-groups">
         <SidebarGroup class="px-2 py-0">
             <SidebarGroupLabel as-child>
                 <CollapsibleTrigger
