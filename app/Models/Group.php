@@ -74,6 +74,16 @@ class Group extends Model
     }
 
     /**
+     * Route-model bind a Group by its slug, not its id — the slug is the Group's
+     * URL identity (ADR-0008): `/groups/{slug}` resolves here and `route('groups.show',
+     * $group)` generates the slug URL. An unknown slug 404s automatically.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    /**
      * The Group directly above this one in the tree (null for the root).
      *
      * @return BelongsTo<Group, $this>

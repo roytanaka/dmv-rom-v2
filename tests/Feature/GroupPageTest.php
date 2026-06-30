@@ -1,0 +1,140 @@
+<?php
+
+use App\Enums\MembershipStatus;
+use App\Enums\Role;
+use App\Models\Group;
+use App\Models\GroupMember;
+use App\Models\Member;
+use Database\Seeders\OrgTreeSeeder;
+use Illuminate\Support\Collection;
+use Inertia\Testing\AssertableInertia as Assert;
+
+/*
+ * Group detail page (#188, PRD #186). The committee shell + read-only Overview tab,
+ * asserted at the Inertia prop seam: the right page and Overview props render, any
+ * logged-in Member sees an active Group, an archived Group is reachable directly but
+ * absent from its parent's navigable child list, and an unknown slug 404s.
+ */
+
+it('redirects an unauthenticated request to login', function () {
+    $group = Group::factory()->create();
+
+    $this->get(route('groups.show', $group))->assertRedirect(route('login'));
+});
+
+it('renders the Groups/Show page with header and Overview props for any Member', function () {
+    $group = Group::factory()->standingCommittee()->create([
+        'name' => 'Membership Committee',
+        'description' => 'Stewards the membership lifecycle.',
+    ]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('groups/Show')
+            ->where('group.name', 'Membership Committee')
+            ->where('group.archived', false)
+            ->where('section', 'overview')
+            ->where('overview.description', 'Stewards the membership lifecycle.'));
+});
+
+it('defaults a bare slug to the Overview section and reads the {section} segment', function () {
+    $group = Group::factory()->create();
+    $this->actingAs(Member::factory()->create());
+
+    $this->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page->where('section', 'overview'));
+
+    $this->get(route('groups.show', ['group' => $group, 'section' => 'roster']))
+        ->assertInertia(fn (Assert $page) => $page->where('section', 'roster'));
+});
+
+it('404s an unknown slug', function () {
+    $this->actingAs(Member::factory()->create())
+        ->get('/groups/no-such-group')
+        ->assertNotFound();
+});
+
+it('renders an archived Group directly but flags it archived', function () {
+    $group = Group::factory()->archived()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('group.archived', true));
+});
+
+it('lists active child Groups but never an archived child', function () {
+    $parent = Group::factory()->create();
+    $active = Group::factory()->create(['parent_id' => $parent->id, 'name' => 'Digital Working Group']);
+    $archived = Group::factory()->archived()->create(['parent_id' => $parent->id, 'name' => 'Oral History Project']);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $parent))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('overview.children', function (Collection $children) use ($active, $archived) {
+                $slugs = $children->pluck('slug')->all();
+
+                return in_array($active->slug, $slugs, true)
+                    && ! in_array($archived->slug, $slugs, true);
+            }));
+});
+
+it('surfaces the Group leadership by role, names and profile ids', function () {
+    $group = Group::factory()->create();
+    $chair = Member::factory()->create(['first_name' => 'Ada', 'last_name' => 'Lovelace']);
+    $membership = GroupMember::factory()->status(MembershipStatus::Full)->create([
+        'group_id' => $group->id,
+        'member_id' => $chair->id,
+    ]);
+    $membership->roles()->create(['role' => Role::Chair]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('overview.leadership', function (Collection $leadership) use ($chair) {
+                $entry = $leadership->firstWhere('member_id', $chair->id);
+
+                return $entry !== null
+                    && $entry['role'] === Role::Chair->value
+                    && $entry['name'] === 'Ada Lovelace';
+            }));
+});
+
+it('counts living members in the facts card, excluding the departed', function () {
+    $group = Group::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['group_id' => $group->id]);
+    GroupMember::factory()->status(MembershipStatus::Inactive)->create(['group_id' => $group->id]);
+    GroupMember::factory()->status(MembershipStatus::Resigned)->create(['group_id' => $group->id]);
+    GroupMember::factory()->status(MembershipStatus::Deceased)->create(['group_id' => $group->id]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page->where('overview.facts.member_count', 2));
+});
+
+it('renders the French twin of the Group page', function () {
+    $group = Group::factory()->create(['slug' => 'docents-program']);
+    $this->actingAs(Member::factory()->create());
+
+    $this->withLocaleRoutes('fr', function () use ($group) {
+        $this->get("/fr/groupes/{$group->slug}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('groups/Show')
+                ->where('locale', 'fr'));
+    });
+});
+
+it('omits contact details from the Overview surface', function () {
+    $this->seed(OrgTreeSeeder::class);
+    $group = Group::where('slug', OrgTreeSeeder::COMMITTEE)->firstOrFail();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('overview')
+            ->missing('overview.leadership.0.email')
+            ->missing('overview.leadership.0.phone'));
+});

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Group;
 use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -44,15 +45,17 @@ class LocaleResolutionTest extends TestCase
             'officer flash-messages' => ['en' => '/officer/flash-messages', 'fr' => '/fr/officier/messages-eclair', 'component' => 'ComingSoon'],
             'officer settings' => ['en' => '/officer/settings', 'fr' => '/fr/officier/parametres', 'component' => 'ComingSoon'],
 
-            // Dynamic group route — the {group} slug is content, echoed as-authored
-            // in both locales (ADR-0008); only the /groups segment is translated.
-            'group (dynamic)' => ['en' => '/groups/docents', 'fr' => '/fr/groupes/docents', 'component' => 'ComingSoon'],
+            // Dynamic group route — the {group} slug is content, resolved to a real
+            // Group (#188) and rendered as-authored in both locales (ADR-0008); only
+            // the /groups segment is translated. The Group is seeded per-test below.
+            'group (dynamic)' => ['en' => '/groups/docents', 'fr' => '/fr/groupes/docents', 'component' => 'groups/Show'],
         ];
     }
 
     #[DataProvider('translatableRoutes')]
     public function test_english_url_resolves_the_english_locale(string $en, string $fr, string $component): void
     {
+        $this->seedGroupFor($en);
         $this->actingAs(Member::factory()->create());
 
         $this->get($en)->assertInertia(
@@ -63,6 +66,7 @@ class LocaleResolutionTest extends TestCase
     #[DataProvider('translatableRoutes')]
     public function test_french_twin_resolves_the_french_locale_and_same_component(string $en, string $fr, string $component): void
     {
+        $this->seedGroupFor($en);
         $this->actingAs(Member::factory()->create());
 
         $this->withLocaleRoutes('fr', function () use ($fr, $component) {
@@ -72,25 +76,38 @@ class LocaleResolutionTest extends TestCase
         });
     }
 
-    public function test_dynamic_group_route_echoes_the_group_slug_back(): void
+    public function test_dynamic_group_route_resolves_the_group_by_slug(): void
     {
+        Group::factory()->create(['slug' => 'gallery-interpreters']);
         $this->actingAs(Member::factory()->create());
 
         $this->get('/groups/gallery-interpreters')->assertInertia(
-            fn (Assert $page) => $page->component('ComingSoon')->where('group', 'gallery-interpreters')
+            fn (Assert $page) => $page->component('groups/Show')->where('group.slug', 'gallery-interpreters')
         );
     }
 
-    public function test_dynamic_group_route_echoes_an_as_authored_french_slug_unchanged(): void
+    public function test_dynamic_group_route_keeps_an_as_authored_slug_unchanged_under_fr(): void
     {
+        Group::factory()->create(['slug' => 'docents']);
         $this->actingAs(Member::factory()->create());
 
         // Group slugs are content: they stay as-authored even under /fr/ (no
-        // model lookup, no per-locale slug translation — ADR-0008).
+        // per-locale slug translation — only the /groups segment is — ADR-0008).
         $this->withLocaleRoutes('fr', function () {
             $this->get('/fr/groupes/docents')->assertInertia(
-                fn (Assert $page) => $page->component('ComingSoon')->where('group', 'docents')->where('locale', 'fr')
+                fn (Assert $page) => $page->component('groups/Show')->where('group.slug', 'docents')->where('locale', 'fr')
             );
         });
+    }
+
+    /**
+     * Seed the Group a dynamic /groups/{slug} route resolves, so the data-provider
+     * smoke tests don't 404 on the now-real route. A no-op for non-group routes.
+     */
+    private function seedGroupFor(string $en): void
+    {
+        if (str_contains($en, '/groups/')) {
+            Group::factory()->create(['slug' => basename($en)]);
+        }
     }
 }

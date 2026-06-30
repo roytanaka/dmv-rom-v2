@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\GroupController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\SuperTierController;
@@ -66,15 +67,12 @@ Route::group([
     Route::get(LaravelLocalization::transRoute('routes.news'), [NewsController::class, 'index'])
         ->middleware('auth')->name('news');
 
-    // Dynamic group route. The {group} slug is content: it echoes straight back
-    // (no Group model lookup) and stays as-authored in the French URL — only the
-    // /groups segment is translated (ADR-0008).
-    Route::get(LaravelLocalization::transRoute('routes.groups.show'), function (string $group, ?string $section = null) {
-        return Inertia::render('ComingSoon', [
-            'group' => $group,
-            'section' => $section,
-        ]);
-    })->middleware('auth')->name('groups.show');
+    // Group detail page (#188, PRD #186). Resolves the Group by its slug (content,
+    // as-authored even under /fr/ — only the /groups segment is translated, ADR-0008)
+    // and renders the committee shell + Overview tab. The {section} segment selects
+    // the active tab; an unknown slug 404s via slug route-model binding.
+    Route::get(LaravelLocalization::transRoute('routes.groups.show'), [GroupController::class, 'show'])
+        ->middleware('auth')->name('groups.show');
 });
 
 // Internal design-system reference page. Login-only (auth) but available in all
