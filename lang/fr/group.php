@@ -129,13 +129,13 @@ return [
 
     'banner' => [
         'aria' => 'Bannière du groupe',
-        'default' => 'Par défaut',
         'option' => [
-            'columns' => 'Colonnes',
-            'quill' => 'Plume',
-            'lattice' => 'Treillis',
-            'ribbon' => 'Ruban',
-            'terrazzo' => 'Terrazzo',
+            'rotunda' => 'Rotonde',
+            'crystal' => 'Cristal',
+            'gallery' => 'Galerie',
+            'mural' => 'Murale',
+            'stained-glass' => 'Vitrail',
+            'totem' => 'Totem',
         ],
     ],
 

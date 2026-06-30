@@ -141,16 +141,17 @@ return [
         'cancel' => 'Cancel',
     ],
 
-    // The curated banner set (#191). The neutral default applies when none is set.
+    // The curated banner set (#191) — full-bleed photos of ROM landmarks. The
+    // neutral default applies when none is set.
     'banner' => [
         'aria' => 'Group banner',
-        'default' => 'Default',
         'option' => [
-            'columns' => 'Columns',
-            'quill' => 'Quill',
-            'lattice' => 'Lattice',
-            'ribbon' => 'Ribbon',
-            'terrazzo' => 'Terrazzo',
+            'rotunda' => 'Rotunda',
+            'crystal' => 'Crystal',
+            'gallery' => 'Gallery',
+            'mural' => 'Mural',
+            'stained-glass' => 'Stained glass',
+            'totem' => 'Totem',
         ],
     ],
 
