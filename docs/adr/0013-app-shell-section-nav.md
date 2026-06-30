@@ -5,6 +5,28 @@ date: 2026-06-06
 
 # App-shell section nav: a labeled dropdown on small screens, not a scroll-strip
 
+## Amendment (2026-06-29) — section tabs relocate to the page body; the top bar becomes fixed global navigation
+
+This ADR (and PRD #65) deliberately left the broader rail/top-bar **topology** unsettled ("Revisit once the shape settles"). The Group-pages design pass settled it — and in doing so **reverses the premise that section tabs live in the top bar.** The small-screen decision below (option **C**) still stands; it now governs the *relocated* in-body strip rather than a top-bar strip.
+
+**New topology — chrome carries cross-domain navigation; the body carries within-domain navigation:**
+
+- **Section tabs move OUT of the top bar and INTO the page body.** A Group's section tabs (Overview · Roster · Meetings + capability-gated stubs) render as a **sticky strip in the body, directly under the Group's banner/header** — co-located with the entity they belong to. Rationale: Overview/Roster/Meetings are *group-scoped* (meaningful only inside a Group), so they are within-domain navigation and belong with the page content, not in app-wide chrome. The Group-page prototype (Variant C) demonstrated the better read.
+
+- **The top bar becomes a fixed GLOBAL nav strip**, no longer a context-dependent tab surface:
+  - **Primary destinations** (persistent, reachable from anywhere): **My Hours · My Calendar · News · Directory**. "Directory" deep-links to the **root DMV Group's Roster** (the Directory is the root instance of the Group Roster surface).
+  - **Utilities** (right cluster): **Help**, **language**, **Account ▾** — the account menu now also holds **Renew Membership** (an outbound action), plus Profile, Settings, Sign out.
+  - Left cluster unchanged: ☰ + wordmark/home.
+  - **Search remains in the rail**, not the top bar.
+
+- **Dashboard / Zone A:** the genuinely-global personal destinations (My Hours, My Calendar, News) are **promoted to the persistent top bar** rather than living as dashboard-only top-bar tabs. The Dashboard, having no banner/header to host body-tabs, simply renders its content and no longer owns a top-bar tab set.
+
+- **Carried over unchanged:** the labeled-section **dropdown-below-`lg`** treatment (option **C**) and its contrast findings — they now apply to the relocated **in-body** section-tab strip. The horizontal-scroll discoverability problem and its solution are identical; only the strip's *location* moved.
+
+**Implementation** is a follow-up, separate from the Committees/Group-pages PRD (which only assumes body-tabs): move `SectionTabs.vue` into the Group page body as a sticky strip; recompose `TopBar.vue` as the fixed global strip (primary destinations + utilities); fold Renew Membership into `UserMenuContent`. The original `SectionTabs.vue` two-mode dropdown logic is reused verbatim in the new location.
+
+---
+
 ## Context
 
 The Part 3 app shell (PRD #65) has two navigation surfaces: a charcoal **rail** (grouping nav — which Group/area) and a black **top bar** (contextual *section* nav — which section within the active context). This ADR is about the **top-bar section nav only** (`components/SectionTabs.vue`). It does **not** decide the broader two-layer rail/top-bar topology — PRD #65 deliberately left that unsettled ("an app-shell-topology ADR was drafted and withdrawn … Revisit once the shape settles"), and it stays unsettled here.
