@@ -248,8 +248,7 @@ it('gives a news-editor Officer Tools with Communications only', function () {
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.officer.items.0.key', 'communications')
-            ->where('rail.officer.items.0.labelKey', 'nav.officer.communications')
+            ->where('rail.officer.items.0', ['key' => 'communications', 'labelKey' => 'nav.officer.communications', 'href' => '/officer/communications'])
             ->count('rail.officer.items', 1));
 });
 

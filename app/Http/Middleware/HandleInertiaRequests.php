@@ -139,13 +139,15 @@ class HandleInertiaRequests extends Middleware
      */
     private function rail(Request $request): array
     {
-        if ($request->user() === null) {
+        $member = $request->user();
+
+        if ($member === null) {
             return [];
         }
 
         $rail = [];
 
-        if ($myGroups = $this->myGroups($request->user())) {
+        if ($myGroups = $this->myGroups($member)) {
             $rail['myGroups'] = $myGroups;
         }
 
@@ -153,7 +155,7 @@ class HandleInertiaRequests extends Middleware
             $rail['allGroups'] = $allGroups;
         }
 
-        if ($officer = $this->officer($request->user())) {
+        if ($officer = $this->officer($member)) {
             $rail['officer'] = $officer;
         }
 
@@ -217,12 +219,8 @@ class HandleInertiaRequests extends Middleware
      *
      * @return array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}|null
      */
-    private function myGroups(?Member $member): ?array
+    private function myGroups(Member $member): ?array
     {
-        if ($member === null) {
-            return null;
-        }
-
         $member->loadMissing('memberships.group');
 
         $groups = $member->memberships
