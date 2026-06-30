@@ -12,7 +12,7 @@ import type { PhosphorIcon, SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhBuildings, PhCaretDown, PhChartBar, PhChatCircleDots, PhGear, PhMegaphone, PhUsersThree } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const page = usePage<SharedData>();
 
@@ -42,6 +42,22 @@ const officerSection = computed(() => page.props.rail.officer);
 const officerItems = computed<NavNode[]>(() =>
     (officerSection.value?.items ?? []).map((item) => ({ labelKey: item.labelKey, href: item.href, icon: OFFICER_ICONS[item.key] })),
 );
+
+// All Groups auto-open. The browse section is collapsible and was uncontrolled, so it
+// re-seeded closed on every Inertia navigation — hiding the selection when you navigate
+// into one of its Groups (#122). Make it controlled: force-open whenever it holds the
+// current page (path or any nested section), otherwise leave the user's toggle alone.
+// Hrefs arrive pre-localized (ADR-0018); compare against the path with the query
+// stripped, mirroring NavRailItem's ancestor-aware match.
+const currentPath = computed(() => page.url.split('?')[0]);
+const isWithin = (href: string) => currentPath.value === href || currentPath.value.startsWith(`${href}/`);
+const containsCurrent = (group: GroupNode): boolean => isWithin(group.href) || (group.children ?? []).some(containsCurrent);
+const allGroupsHasActive = computed(() => allGroups.value.some(containsCurrent));
+
+const allGroupsOpen = ref(allGroupsHasActive.value);
+watch(allGroupsHasActive, (active) => {
+    if (active) allGroupsOpen.value = true;
+});
 </script>
 
 <template>
@@ -57,7 +73,7 @@ const officerItems = computed<NavNode[]>(() =>
 
     <!-- Zone B — All Groups (browse, collapsible). Collapsed by default; omitted whole
          only when no active Group exists. -->
-    <Collapsible v-if="allGroupsSection" :default-open="false" class="group/all-groups">
+    <Collapsible v-if="allGroupsSection" v-model:open="allGroupsOpen" class="group/all-groups">
         <SidebarGroup class="px-2 py-0">
             <SidebarGroupLabel as-child>
                 <CollapsibleTrigger

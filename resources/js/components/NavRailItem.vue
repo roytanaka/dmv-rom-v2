@@ -35,8 +35,19 @@ const props = withDefaults(defineProps<{ item: RailNode; defaultOpen?: boolean }
 const page = usePage<SharedData>();
 // Rail hrefs arrive pre-localized from the server (ADR-0018), mirroring chromeNav, so
 // they are used verbatim — no client-side locale step — and match the active row
-// under /fr/ without double-prefixing.
-const isActive = (href: string) => href === page.url;
+// under /fr/ without double-prefixing. Compare against the path only: a deep-linked
+// section page may carry a query string (?tab=…) that the rail href never does.
+const currentPath = computed(() => page.url.split('?')[0]);
+
+// Strong active — this node IS the current page (exact match). Only the deepest
+// matching node (a leaf, or a Group when it is itself the page) earns the strong
+// highlight; ancestors get the softer contains-active state instead (#122).
+const isActive = (href: string) => currentPath.value === href;
+
+// Ancestor-aware — the current page is this node or nested beneath it. A section page
+// (/groups/docents/data-sheets) lives under the Group's /groups/docents href, so the
+// Group still counts as "in context" even though no node matches the path exactly.
+const isWithin = (href: string) => currentPath.value === href || currentPath.value.startsWith(`${href}/`);
 
 // Group name (content) → verbatim; structural node → translated label (chrome).
 const label = (node: RailNode) => ('name' in node ? node.name : trans(node.labelKey));
@@ -46,8 +57,14 @@ const label = (node: RailNode) => ('name' in node ? node.name : trans(node.label
 // same way as their parent.
 const children = computed<RailNode[]>(() => (props.item.children ?? []) as RailNode[]);
 
-// "In context" — this Group or one of its visible subgroups is the current page.
-const hasActiveDescendant = computed(() => isActive(props.item.href) || children.value.some((child) => isActive(child.href)));
+// "In context" — this Group or one of its visible subgroups contains the current page.
+// Drives force-open (so you can see where you are) and the soft contains-active state.
+const hasActiveDescendant = computed(() => isWithin(props.item.href) || children.value.some((child) => isWithin(child.href)));
+
+// Soft "contains-active" — the page is inside this Group but no exact node matched it
+// (a section page, or the page is one of the children): the parent row shows a subtle
+// highlight while the deepest matching node keeps the strong one.
+const containsActive = computed(() => hasActiveDescendant.value && !isActive(props.item.href));
 
 // Open state: seeded from the section default, force-open while in context, and freely
 // toggled by the chevron afterwards. Navigating in reveals it; the user can still close it.
@@ -60,7 +77,7 @@ watch(hasActiveDescendant, (active) => {
 <template>
     <!-- Leaf — a single navigable row. -->
     <SidebarMenuItem v-if="!children.length">
-        <SidebarMenuButton as-child size="lg" :is-active="isActive(item.href)" class="h-10 text-sm">
+        <SidebarMenuButton as-child size="lg" :is-active="isActive(item.href)" :class="['h-10 text-sm', { 'font-medium': containsActive }]">
             <a v-if="item.external" :href="item.href" target="_blank" rel="noopener noreferrer">
                 <component :is="item.icon" v-if="item.icon" />
                 <span>{{ label(item) }}</span>
@@ -75,7 +92,7 @@ watch(hasActiveDescendant, (active) => {
     <!-- Parent — link to navigate + chevron to toggle children. -->
     <Collapsible v-else v-model:open="open" as-child class="group/collapsible">
         <SidebarMenuItem>
-            <SidebarMenuButton as-child size="lg" :is-active="isActive(item.href)" class="h-10 text-sm">
+            <SidebarMenuButton as-child size="lg" :is-active="isActive(item.href)" :class="['h-10 text-sm', { 'font-medium': containsActive }]">
                 <Link :href="item.href">
                     <component :is="item.icon" v-if="item.icon" />
                     <span>{{ label(item) }}</span>
@@ -95,7 +112,11 @@ watch(hasActiveDescendant, (active) => {
             <CollapsibleContent>
                 <SidebarMenuSub>
                     <SidebarMenuSubItem v-for="child in children" :key="child.href">
-                        <SidebarMenuSubButton as-child :is-active="isActive(child.href)" class="text-sm">
+                        <SidebarMenuSubButton
+                            as-child
+                            :is-active="isActive(child.href)"
+                            :class="['text-sm', { 'font-medium': isWithin(child.href) && !isActive(child.href) }]"
+                        >
                             <Link :href="child.href">
                                 <span>{{ label(child) }}</span>
                             </Link>
