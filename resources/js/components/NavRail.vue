@@ -51,7 +51,7 @@ const officerItems = computed<NavNode[]>(() =>
             trans(myGroupsSection.labelKey)
         }}</SidebarGroupLabel>
         <SidebarMenu>
-            <NavRailItem v-for="item in myGroups" :key="item.href" :item="item" :default-open="true" localized />
+            <NavRailItem v-for="item in myGroups" :key="item.href" :item="item" :default-open="true" />
         </SidebarMenu>
     </SidebarGroup>
 
@@ -70,7 +70,7 @@ const officerItems = computed<NavNode[]>(() =>
             <CollapsibleContent>
                 <SidebarGroupContent>
                     <SidebarMenu>
-                        <NavRailItem v-for="item in allGroups" :key="item.href" :item="item" localized />
+                        <NavRailItem v-for="item in allGroups" :key="item.href" :item="item" />
                     </SidebarMenu>
                 </SidebarGroupContent>
             </CollapsibleContent>
@@ -84,7 +84,7 @@ const officerItems = computed<NavNode[]>(() =>
             trans(officerSection.labelKey)
         }}</SidebarGroupLabel>
         <SidebarMenu>
-            <NavRailItem v-for="item in officerItems" :key="item.href" :item="item" localized />
+            <NavRailItem v-for="item in officerItems" :key="item.href" :item="item" />
         </SidebarMenu>
     </SidebarGroup>
 </template>
