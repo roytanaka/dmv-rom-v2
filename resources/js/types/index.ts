@@ -97,7 +97,7 @@ export interface SharedData {
     rail: {
         myGroups?: {
             labelKey: string;
-            items: Array<{ groupId: string; name: string; href: string }>;
+            items: RailGroupNode[];
         };
         allGroups?: {
             labelKey: string;

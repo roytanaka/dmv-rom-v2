@@ -140,11 +140,11 @@ class HandleInertiaRequests extends Middleware
      */
     private function rail(Request $request): array
     {
-        $rail = [];
-
         if ($request->user() === null) {
-            return $rail;
+            return [];
         }
+
+        $rail = [];
 
         if ($myGroups = $this->myGroups($request->user())) {
             $rail['myGroups'] = $myGroups;
@@ -256,7 +256,7 @@ class HandleInertiaRequests extends Middleware
             if ($child->slug === self::GOVERNANCE_SLUG) {
                 $folded = $this->builtChildren($child, $byParent);
             } elseif ($child->slug === self::PROGRAMS_SLUG) {
-                $promoted = array_merge($promoted, $this->builtChildren($child, $byParent));
+                $promoted = $this->builtChildren($child, $byParent);
             } else {
                 $others[] = $this->railNode($child, $byParent);
             }
