@@ -40,17 +40,15 @@ class GroupController extends Controller
     {
         $section ??= 'overview';
 
-        // Resolve the viewer's officer authority once, in memory, for the `can`
-        // hint that drives the Overview edit affordances (strict mode forbids the
-        // lazy load inside canActAs).
+        // Resolve the viewer's memberships and roles once, in memory: both the
+        // GroupPolicy (canActAs, for the `can` hint) and the MeetingPolicy (for
+        // the members-only meetings gate below) traverse them, and strict mode
+        // forbids the lazy load in either case.
         $request->user()->loadMissing('memberships.roles');
 
         // The Meetings list is members-only (MeetingPolicy), unlike the org-open
         // Overview and Roster — a non-member visiting the section is forbidden.
-        // Load the viewer's memberships first so the gate resolves in memory
-        // (strict mode forbids the lazy load), then authorize.
         if ($section === 'meetings') {
-            $request->user()->loadMissing('memberships');
             abort_unless($request->user()->can('viewAny', [Meeting::class, $group]), 403);
         }
 

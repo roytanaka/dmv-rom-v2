@@ -91,7 +91,8 @@ it('lets an officer clear the banner back to the default', function () {
 
     $this->actingAs(groupOfficerOf($group, Role::Chair))
         ->patch(route('groups.update', $group), ['banner_key' => null])
-        ->assertSessionHasNoErrors();
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
 
     expect($group->fresh()->banner_key)->toBeNull();
 });
