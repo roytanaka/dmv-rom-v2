@@ -33,15 +33,11 @@ const props = withDefaults(defineProps<{ item: RailNode; defaultOpen?: boolean }
 });
 
 const page = usePage<SharedData>();
-// Rail hrefs arrive pre-localized from the server (ADR-0018), mirroring chromeNav, so
-// they are used verbatim — no client-side locale step — and match the active row
-// under /fr/ without double-prefixing. Compare against the path only: a deep-linked
-// section page may carry a query string (?tab=…) that the rail href never does.
+// Rail hrefs arrive pre-localized (ADR-0018) — used verbatim. Strip the query string:
+// section pages carry ?tab=… that rail hrefs never do.
 const currentPath = computed(() => page.url.split('?')[0]);
 
-// Strong active — this node IS the current page (exact match). Only the deepest
-// matching node (a leaf, or a Group when it is itself the page) earns the strong
-// highlight; ancestors get the softer contains-active state instead (#122).
+// Strong active — only the deepest matching node earns this; ancestors get the softer contains-active state (#122).
 const isActive = (href: string) => currentPath.value === href;
 
 // Ancestor-aware — the current page is this node or nested beneath it. A section page
@@ -61,9 +57,7 @@ const children = computed<RailNode[]>(() => (props.item.children ?? []) as RailN
 // Drives force-open (so you can see where you are) and the soft contains-active state.
 const hasActiveDescendant = computed(() => isWithin(props.item.href) || children.value.some((child) => isWithin(child.href)));
 
-// Soft "contains-active" — the page is inside this Group but no exact node matched it
-// (a section page, or the page is one of the children): the parent row shows a subtle
-// highlight while the deepest matching node keeps the strong one.
+// Soft highlight: active page is nested inside but this node isn't the exact match.
 const containsActive = computed(() => hasActiveDescendant.value && !isActive(props.item.href));
 
 // Open state: seeded from the section default, force-open while in context, and freely

@@ -43,12 +43,9 @@ const officerItems = computed<NavNode[]>(() =>
     (officerSection.value?.items ?? []).map((item) => ({ labelKey: item.labelKey, href: item.href, icon: OFFICER_ICONS[item.key] })),
 );
 
-// All Groups auto-open. The browse section is collapsible and was uncontrolled, so it
-// re-seeded closed on every Inertia navigation — hiding the selection when you navigate
-// into one of its Groups (#122). Make it controlled: force-open whenever it holds the
-// current page (path or any nested section), otherwise leave the user's toggle alone.
-// Hrefs arrive pre-localized (ADR-0018); compare against the path with the query
-// stripped, mirroring NavRailItem's ancestor-aware match.
+// Force All Groups open when the active page lives inside it. The section was uncontrolled
+// and re-seeded closed on every Inertia navigation (#122). Hrefs arrive pre-localized
+// (ADR-0018); strip query strings to mirror NavRailItem's ancestor-aware matching.
 const currentPath = computed(() => page.url.split('?')[0]);
 const isWithin = (href: string) => currentPath.value === href || currentPath.value.startsWith(`${href}/`);
 const containsCurrent = (group: GroupNode): boolean => isWithin(group.href) || (group.children ?? []).some(containsCurrent);
