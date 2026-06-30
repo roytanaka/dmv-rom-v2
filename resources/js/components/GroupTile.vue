@@ -6,17 +6,20 @@
 import type { GroupNode } from '@/chrome/types';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
-defineProps<{ item: GroupNode }>();
+const props = withDefaults(defineProps<{ item: GroupNode; localized?: boolean }>(), { localized: false });
 
 // Tile hrefs are English-canonical in the fixture; localise to the active locale so
-// launching a Group stays in-locale (ADR-0008).
+// launching a Group stays in-locale (ADR-0008). Server-built grids (PRD #209, My
+// Groups) arrive pre-localized, so they pass `localized` to skip the client step.
 const localizeHref = useLocalizedHref();
+const href = computed(() => (props.localized ? props.item.href : localizeHref(props.item.href)));
 </script>
 
 <template>
     <Link
-        :href="localizeHref(item.href)"
+        :href="href"
         class="bg-rom-ink hover:bg-rom-ink-90 focus-visible:ring-rom-slate-300 flex aspect-square flex-col items-center justify-center gap-3 rounded-none p-4 text-center text-white transition-colors focus-visible:ring-2 focus-visible:outline-none"
     >
         <component :is="item.icon" v-if="item.icon" class="size-12 sm:size-14" />

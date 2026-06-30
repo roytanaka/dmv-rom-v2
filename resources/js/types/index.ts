@@ -72,6 +72,20 @@ export interface SharedData {
         destinations: ChromeDestination[];
         help: ChromeDestination;
     };
+    /**
+     * The grouping rail (PRD #209), built and pruned server-side per signed-in
+     * Member. The wire format carries plain Group rows (no icon — the client supplies
+     * the interim placeholder); hrefs are localized server-side (ADR-0008), so the
+     * client renders them verbatim. Zones absent from a Member's rail are omitted. This
+     * slice (#210) ships My Groups; All Groups and Officer Tools land in later slices.
+     */
+    rail: {
+        myGroups?: {
+            labelKey?: string;
+            items: Array<{ groupId: string; name: string; href: string }>;
+            defaultOpen?: boolean;
+        };
+    };
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
     sidebarOpen: boolean;
     ziggy: {

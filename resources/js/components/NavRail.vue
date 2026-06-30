@@ -8,23 +8,34 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu } from '@/components/ui/sidebar';
 import { visibleNodes } from '@/chrome/gating';
 import { railNav } from '@/chrome/fixture';
-import { PhCaretDown } from '@phosphor-icons/vue';
+import type { GroupNode } from '@/chrome/types';
+import type { SharedData } from '@/types';
+import { usePage } from '@inertiajs/vue3';
+import { PhCaretDown, PhUsersThree } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
-const myGroups = computed(() => visibleNodes(railNav.myGroups.items));
+const page = usePage<SharedData>();
+
+// My Groups is server-built and server-pruned (PRD #209): the prop carries only the
+// Groups this Member belongs to, pre-localized, and is omitted entirely when they
+// belong to none. Each row gets the interim placeholder Group icon (custom per-Group
+// icons are a later slice). All Groups and Officer Tools stay fixture-fed until their
+// own slices land.
+const myGroupsSection = computed(() => page.props.rail.myGroups);
+const myGroups = computed<GroupNode[]>(() => (myGroupsSection.value?.items ?? []).map((item) => ({ ...item, icon: PhUsersThree })));
 const allGroups = computed(() => visibleNodes(railNav.allGroups.items));
 const officerItems = computed(() => visibleNodes(railNav.officer.items));
 </script>
 
 <template>
-    <!-- Zone B — My Groups (lead) -->
-    <SidebarGroup class="px-2 py-0">
+    <!-- Zone B — My Groups (lead). Omitted whole when the Member belongs to no Group. -->
+    <SidebarGroup v-if="myGroups.length" class="px-2 py-0">
         <SidebarGroupLabel class="text-sidebar-muted text-xs font-semibold tracking-wide uppercase">{{
-            trans(railNav.myGroups.labelKey ?? '')
+            trans(myGroupsSection?.labelKey ?? '')
         }}</SidebarGroupLabel>
         <SidebarMenu>
-            <NavRailItem v-for="item in myGroups" :key="item.href" :item="item" :default-open="true" />
+            <NavRailItem v-for="item in myGroups" :key="item.href" :item="item" :default-open="true" localized />
         </SidebarMenu>
     </SidebarGroup>
 
