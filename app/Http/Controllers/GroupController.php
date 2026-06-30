@@ -9,6 +9,9 @@ use App\Http\Resources\MemberResource;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
+use App\Models\Meeting;
+use App\Models\MeetingLink;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,6 +37,15 @@ class GroupController extends Controller
     public function show(Request $request, Group $group, ?string $section = null): Response
     {
         $section ??= 'overview';
+
+        // The Meetings list is members-only (MeetingPolicy), unlike the org-open
+        // Overview and Roster — a non-member visiting the section is forbidden.
+        // Load the viewer's memberships first so the gate resolves in memory
+        // (strict mode forbids the lazy load), then authorize.
+        if ($section === 'meetings') {
+            $request->user()->loadMissing('memberships');
+            abort_unless($request->user()->can('viewAny', [Meeting::class, $group]), 403);
+        }
 
         $group->load([
             'parent',
@@ -72,6 +84,9 @@ class GroupController extends Controller
             // its per-row contact gating eager-loads each member's memberships, work
             // the Overview never needs.
             'roster' => $section === 'roster' ? $this->roster($request, $group) : [],
+            // The Meetings tab's payload is resolved only when that tab is active
+            // and the viewer has cleared the members-only gate above.
+            'meetings' => $section === 'meetings' ? $this->meetings($request, $group) : [],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -158,6 +173,43 @@ class GroupController extends Controller
                 'group_standing' => $membership->status->value,
             ])
             ->values()
+            ->all();
+    }
+
+    /**
+     * The Group's meetings (#190) — upcoming and past, newest first, each carrying
+     * its location, optional video link, and the agenda / minutes / report links.
+     *
+     * The published/hidden flag is respected: an ordinary member sees published
+     * meetings only. The super-tier sees drafts too (it sees everything); the
+     * officer drafting view lands with the meetings-CRUD slice (#193).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function meetings(Request $request, Group $group): array
+    {
+        return $group->meetings()
+            ->when(
+                ! $request->user()->isAllDmv(),
+                fn (Builder $query) => $query->published(),
+            )
+            ->with('links')
+            ->orderByDesc('held_at')
+            ->get()
+            ->map(fn (Meeting $meeting) => [
+                'id' => $meeting->id,
+                'title' => $meeting->title,
+                'description' => $meeting->description,
+                'held_at' => $meeting->held_at->toIso8601String(),
+                'location' => $meeting->location,
+                'video_url' => $meeting->video_url,
+                'links' => $meeting->links
+                    ->map(fn (MeetingLink $link) => [
+                        'kind' => $link->kind->value,
+                        'url' => $link->url,
+                    ])
+                    ->all(),
+            ])
             ->all();
     }
 }

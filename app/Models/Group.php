@@ -114,6 +114,17 @@ class Group extends Model
     }
 
     /**
+     * The meetings this Group runs — present only when its `has_meetings`
+     * capability is on (#190).
+     *
+     * @return HasMany<Meeting, $this>
+     */
+    public function meetings(): HasMany
+    {
+        return $this->hasMany(Meeting::class);
+    }
+
+    /**
      * The org-wide system functions this Group stewards — a Group may steward
      * several (e.g. the Records Group stewarding `member_admin`).
      *
