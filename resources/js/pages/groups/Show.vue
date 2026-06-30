@@ -64,9 +64,10 @@ const props = defineProps<{
         capabilities: { meetings: boolean; documents: boolean; scheduling: boolean; content: boolean; hours: boolean };
     };
     section: string;
-    // UI hint from the GroupPolicy — drives the officer Overview affordances only;
-    // the server enforces every mutation regardless (#191).
-    can: { update: boolean };
+    // UI hints from the policies — drive the officer affordances only; the server
+    // enforces every mutation regardless. `update` gates the Overview edits (#191);
+    // `createMeeting` gates the Meetings tab's "New meeting" control (#193).
+    can: { update: boolean; createMeeting: boolean };
     roster: RosterMember[];
     meetings: Meeting[];
     overview: {
@@ -328,8 +329,9 @@ const pickBanner = (key: string | null) => {
                 <!-- Roster (#189) — the Group-scoped Directory surface. -->
                 <GroupRoster v-else-if="section === 'roster'" :members="roster" />
 
-                <!-- Meetings (#190) — the Group's first own-data, members-only surface. -->
-                <GroupMeetings v-else-if="section === 'meetings'" :meetings="meetings" />
+                <!-- Meetings (#190, #193) — the Group's first own-data, members-only
+                     surface, with officer CRUD behind the `can` hints. -->
+                <GroupMeetings v-else-if="section === 'meetings'" :meetings="meetings" :can-create="can.createMeeting" :group-slug="group.slug" />
 
                 <!-- The capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>

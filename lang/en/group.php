@@ -80,6 +80,26 @@ return [
             'minutes' => 'Minutes',
             'report' => 'Report',
         ],
+        // Officer CRUD (#193) — shown only to a Secretary / Chair / super-tier
+        // (server-gated via `can`). A hidden meeting carries the Draft badge.
+        'draft' => 'Draft',
+        'new' => 'New meeting',
+        'edit' => 'Edit',
+        'delete' => 'Delete',
+        'create_title' => 'New meeting',
+        'edit_title' => 'Edit meeting',
+        'confirm_delete' => 'Delete this meeting? This cannot be undone.',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+        'field' => [
+            'title' => 'Title',
+            'held_at' => 'Date and time',
+            'description' => 'Description',
+            'location' => 'Location',
+            'video_url' => 'Video link',
+            'published' => 'Published (visible to members)',
+            'links' => 'Document links',
+        ],
     ],
 
     // Officer edits on the Overview (#191) — inline About Us and banner selection.

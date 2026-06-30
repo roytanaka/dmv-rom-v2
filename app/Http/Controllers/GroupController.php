@@ -88,10 +88,12 @@ class GroupController extends Controller
                 ],
             ],
             'section' => $section,
-            // UI hint only — the server enforces in UpdateGroupRequest. Drives the
-            // Overview's inline About Us edit and banner picker affordances.
+            // UI hints only — the server enforces in the Form Requests. `update`
+            // drives the Overview's inline About Us edit and banner picker;
+            // `createMeeting` drives the Meetings tab's "New meeting" affordance.
             'can' => [
                 'update' => $request->user()->can('update', $group),
+                'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
             ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
@@ -202,20 +204,24 @@ class GroupController extends Controller
     }
 
     /**
-     * The Group's meetings (#190) — upcoming and past, newest first, each carrying
-     * its location, optional video link, and the agenda / minutes / report links.
+     * The Group's meetings (#190, #193) — upcoming and past, newest first, each
+     * carrying its location, optional video link, the agenda / minutes / report
+     * links, its published/hidden state, and per-meeting `can` management hints.
      *
      * The published/hidden flag is respected: an ordinary member sees published
-     * meetings only. The super-tier sees drafts too (it sees everything); the
-     * officer drafting view lands with the meetings-CRUD slice (#193).
+     * meetings only, while an officer (Secretary / Chair / super-tier) sees drafts
+     * too, so they can finish and publish them. Management authority is Group-scoped
+     * — identical for every meeting in the Group — so it is resolved once.
      *
      * @return list<array<string, mixed>>
      */
     private function meetings(Request $request, Group $group): array
     {
+        $canManage = $request->user()->can('create', [Meeting::class, $group]);
+
         return $group->meetings()
-            ->when(
-                ! $request->user()->isAllDmv(),
+            ->unless(
+                $canManage,
                 fn (Builder $query) => $query->published(),
             )
             ->with('links')
@@ -228,12 +234,19 @@ class GroupController extends Controller
                 'held_at' => $meeting->held_at->toIso8601String(),
                 'location' => $meeting->location,
                 'video_url' => $meeting->video_url,
+                'is_published' => $meeting->is_published,
                 'links' => $meeting->links
                     ->map(fn (MeetingLink $link) => [
                         'kind' => $link->kind->value,
                         'url' => $link->url,
                     ])
                     ->all(),
+                // Group-scoped, so equal for every meeting — the `$canManage`
+                // resolved once above drives both edit and delete affordances.
+                'can' => [
+                    'update' => $canManage,
+                    'delete' => $canManage,
+                ],
             ])
             ->all();
     }
