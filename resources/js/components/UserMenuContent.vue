@@ -17,10 +17,7 @@ defineProps<Props>();
 
 const page = usePage<SharedData>();
 
-// Renew Membership is an account/utility action (#196), deliberately not a primary
-// top-bar destination. It points at the localized `renew` route, authored
-// English-canonical and localised here so /fr/ resolves to /fr/renouveler — Ziggy's
-// route() is not locale-aware, so we map the segments ourselves (ADR-0008).
+// Ziggy's route() isn't locale-aware; localizeHref maps segments per ADR-0008 (#196).
 const localizeHref = useLocalizedHref();
 
 // The language switcher's locale list (ADR-0013). On desktop this lives in the
@@ -44,9 +41,7 @@ const localeSwitcher = computed(() => page.props.localeSwitcher);
                 {{ trans('user.profile') }}
             </Link>
         </DropdownMenuItem>
-        <!-- Renew Membership — an account/utility action (#196), not a primary
-             destination. Locale-aware href (ADR-0008); the trailing icon marks it
-             as an outbound renewal action. -->
+        <!-- Renew Membership: account-menu action (#196), locale-aware href per ADR-0008. -->
         <DropdownMenuItem class="py-2.5" :as-child="true">
             <Link class="block w-full" :href="localizeHref('/renew')" as="button">
                 <PhArrowSquareOut class="mr-2 h-4 w-4" />

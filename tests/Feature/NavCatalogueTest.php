@@ -14,9 +14,6 @@ it('resolves the personal (Zone A) nav keys under both locales', function () {
 });
 
 it('carries no Renew key in the personal nav set — it moved to the account menu (#196)', function () {
-    // Renew Membership is an account/utility action, not a primary top-bar
-    // destination: its label lives in the avatar-menu (user) catalogue. Assert the
-    // personal/Zone A set no longer carries it, in either locale.
     expect(__('nav.personal', [], 'en'))->not->toHaveKey('renew')
         ->and(__('nav.personal', [], 'fr'))->not->toHaveKey('renew');
 });

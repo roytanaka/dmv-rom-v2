@@ -184,9 +184,7 @@ const allGroups: GroupNode[] = [
 // ── Top-bar section tabs (the Group Menu layer) ──────────────────────────────
 // The rail picks the *context*; these drive the top-bar tab strip that reflects it.
 
-// Zone A — personal/global. The tab set on the Dashboard (no Group selected).
-// Renew Membership is NOT here: it is an account/utility action and lives in the
-// avatar (Account) menu instead (UserMenuContent), keeping the primary set uncrowded (#196).
+// Zone A — personal/global. The Dashboard tab set. Renew is in the avatar menu (#196).
 export const zoneA: NavNode[] = [
     { labelKey: 'nav.personal.calendar', href: '/calendar', icon: PhCalendarBlank },
     { labelKey: 'nav.personal.hours', href: '/hours', icon: PhClock },
