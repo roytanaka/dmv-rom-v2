@@ -62,6 +62,16 @@ return [
         'donor' => 'Donateur·rice',
     ],
 
+    'meetings' => [
+        'empty' => 'Aucune réunion pour le moment.',
+        'video' => 'Joindre l’appel vidéo',
+        'link' => [
+            'agenda' => 'Ordre du jour',
+            'minutes' => 'Procès-verbal',
+            'report' => 'Rapport',
+        ],
+    ],
+
     'coming_soon' => 'Cette section arrive bientôt.',
 
     'role' => [

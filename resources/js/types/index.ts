@@ -85,3 +85,18 @@ export interface RosterMember {
     email?: string;
     phone?: string;
 }
+
+export interface MeetingLink {
+    kind: string;
+    url: string;
+}
+
+export interface Meeting {
+    id: number;
+    title: string;
+    description: string | null;
+    held_at: string;
+    location: string | null;
+    video_url: string | null;
+    links: MeetingLink[];
+}

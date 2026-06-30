@@ -71,7 +71,18 @@ return [
         'donor' => 'Donor',
     ],
 
-    // Section panels not yet built in this slice (Meetings #190).
+    // Meetings tab (#190) — the Group's first own-data, members-only surface.
+    'meetings' => [
+        'empty' => 'No meetings yet.',
+        'video' => 'Join video call',
+        'link' => [
+            'agenda' => 'Agenda',
+            'minutes' => 'Minutes',
+            'report' => 'Report',
+        ],
+    ],
+
+    // Section panels not yet built in this slice.
     'coming_soon' => 'This section is coming soon.',
 
     // Role labels — the Group's officers, by role (leadership at a glance).
