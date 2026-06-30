@@ -64,8 +64,8 @@ const props = defineProps<{
     };
 }>();
 
-const locale = computed(() => usePage<SharedData>().props.locale);
-const formatDate = (iso: string) => new Intl.DateTimeFormat(locale.value, { dateStyle: 'long' }).format(new Date(iso));
+const page = usePage<SharedData>();
+const formatDate = (iso: string) => new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'long' }).format(new Date(iso));
 
 // Lifecycle badge: Archived takes precedence; otherwise a time-boxed Group whose
 // window has closed reads "Ended <date>". An open or open-ended Group shows none.

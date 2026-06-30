@@ -70,8 +70,10 @@ const triggerClass = computed(() =>
         : 'border-rom-slate-300/40 text-rom-slate-300 bg-white/5 hover:bg-white/10',
 );
 
-const dropdownActiveClass = (item: NavNode) =>
-    isActive(item) ? (props.variant === 'body' ? 'text-rom-slate font-semibold' : 'text-rom-ink font-semibold') : '';
+const dropdownActiveClass = (item: NavNode): string => {
+    if (!isActive(item)) return '';
+    return props.variant === 'body' ? 'text-rom-slate font-semibold' : 'text-rom-ink font-semibold';
+};
 
 // Edge fade — the strip is horizontally scrollable, so we fade the side that has
 // content scrolled out of view (and only that side: no fade at the very start/end).

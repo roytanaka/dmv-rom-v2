@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\LifecycleState;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,7 +29,7 @@ class GroupController extends Controller
      * lands on Overview. The Group is bound by slug ({@see Group::getRouteKeyName}),
      * so an unknown slug 404s before this runs.
      */
-    public function show(Request $request, Group $group, ?string $section = null): Response
+    public function show(Group $group, ?string $section = null): Response
     {
         $group->load([
             'parent',
@@ -47,7 +47,7 @@ class GroupController extends Controller
                 'id' => $group->id,
                 'name' => $group->name,
                 'slug' => $group->slug,
-                'archived' => $group->lifecycle_state->value === 'archived',
+                'archived' => $group->lifecycle_state === LifecycleState::Archived,
                 'end_date' => $group->end_date?->toDateString(),
                 'parent' => $group->parent ? [
                     'name' => $group->parent->name,
@@ -96,7 +96,7 @@ class GroupController extends Controller
      */
     private function leadership(Group $group): array
     {
-        $order = array_flip(array_map(fn (Role $role) => $role->value, Role::cases()));
+        $order = array_flip(array_column(Role::cases(), 'value'));
 
         return $group->memberships
             ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
