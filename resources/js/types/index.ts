@@ -120,5 +120,9 @@ export interface Meeting {
     held_at: string;
     location: string | null;
     video_url: string | null;
+    is_published: boolean;
     links: MeetingLink[];
+    // UI hints from the MeetingPolicy — drive the per-meeting officer affordances;
+    // the server enforces every mutation regardless (#193).
+    can: { update: boolean; delete: boolean };
 }

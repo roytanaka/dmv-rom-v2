@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\SuperTierController;
@@ -123,6 +124,23 @@ Route::delete('news/{news}', [NewsController::class, 'destroy'])
 Route::patch('groups/{group}', [GroupController::class, 'update'])
     ->middleware(['auth'])
     ->name('groups.update');
+
+// Group officer meetings CRUD (#193, PRD #186). The Group's own-data write seam:
+// adding, editing, and deleting meetings (with their agenda / minutes / report
+// links and the published/hidden toggle), each structurally authorized in its Form
+// Request, which delegates to the MeetingPolicy — a Secretary or Chair of the Group
+// (plus the super-tier), only while the Group's meetings capability is on. Store
+// nests under the owning Group (bound by slug); edit/delete bind the meeting by id.
+// The members-only read lives on `groups.show`.
+Route::post('groups/{group}/meetings', [MeetingController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('meetings.store');
+Route::patch('meetings/{meeting}', [MeetingController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('meetings.update');
+Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('meetings.destroy');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
