@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\LifecycleState;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
+use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\Group;
 use App\Models\GroupMember;
@@ -12,6 +13,7 @@ use App\Models\GroupMemberRole;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -38,12 +40,15 @@ class GroupController extends Controller
     {
         $section ??= 'overview';
 
+        // Resolve the viewer's memberships and roles once, in memory: both the
+        // GroupPolicy (canActAs, for the `can` hint) and the MeetingPolicy (for
+        // the members-only meetings gate below) traverse them, and strict mode
+        // forbids the lazy load in either case.
+        $request->user()->loadMissing('memberships.roles');
+
         // The Meetings list is members-only (MeetingPolicy), unlike the org-open
         // Overview and Roster — a non-member visiting the section is forbidden.
-        // Load the viewer's memberships first so the gate resolves in memory
-        // (strict mode forbids the lazy load), then authorize.
         if ($section === 'meetings') {
-            $request->user()->loadMissing('memberships');
             abort_unless($request->user()->can('viewAny', [Meeting::class, $group]), 403);
         }
 
@@ -63,6 +68,9 @@ class GroupController extends Controller
                 'id' => $group->id,
                 'name' => $group->name,
                 'slug' => $group->slug,
+                // The selected banner key (null falls back to the neutral default
+                // on the client); the curated set drives the officer picker.
+                'banner_key' => $group->banner_key?->value,
                 'archived' => $group->lifecycle_state === LifecycleState::Archived,
                 'end_date' => $group->end_date?->toDateString(),
                 'parent' => $group->parent ? [
@@ -80,6 +88,11 @@ class GroupController extends Controller
                 ],
             ],
             'section' => $section,
+            // UI hint only — the server enforces in UpdateGroupRequest. Drives the
+            // Overview's inline About Us edit and banner picker affordances.
+            'can' => [
+                'update' => $request->user()->can('update', $group),
+            ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
             // the Overview never needs.
@@ -108,6 +121,18 @@ class GroupController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Officer edit to the Group's Overview (#191) — inline About Us text and the
+     * curated banner selection. Authorization and the field whitelist both live in
+     * the Form Request (the GroupPolicy → `can`-prop convention for Groups).
+     */
+    public function update(UpdateGroupRequest $request, Group $group): RedirectResponse
+    {
+        $group->update($request->validated());
+
+        return back();
     }
 
     /**

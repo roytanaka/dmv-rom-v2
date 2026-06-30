@@ -112,6 +112,15 @@ Route::delete('news/{news}', [NewsController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('news.destroy');
 
+// Group officer edits (#191, PRD #186). The first group-officer write seam:
+// inline About Us text and the curated banner selection, structurally authorized
+// in UpdateGroupRequest, which delegates to the GroupPolicy — a Secretary or Chair
+// of the Group (plus the super-tier). The localized read lives on `groups.show`.
+// The {group} param binds by slug, as everywhere.
+Route::patch('groups/{group}', [GroupController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('groups.update');
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\GroupBanner;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\Scope;
@@ -33,6 +34,7 @@ class Group extends Model
         'slug',
         'name',
         'description',
+        'banner_key',
         'kind',
         'scope',
         'lifecycle_state',
@@ -57,6 +59,7 @@ class Group extends Model
     protected function casts(): array
     {
         return [
+            'banner_key' => GroupBanner::class,
             'kind' => Kind::class,
             'scope' => Scope::class,
             'lifecycle_state' => LifecycleState::class,

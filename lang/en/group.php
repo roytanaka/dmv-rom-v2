@@ -82,6 +82,31 @@ return [
         ],
     ],
 
+    // Officer edits on the Overview (#191) — inline About Us and banner selection.
+    // Shown only to a Secretary / Chair / super-tier (server-gated via `can`).
+    'edit' => [
+        'about' => 'Edit',
+        'about_title' => 'Edit About Us',
+        'about_placeholder' => 'Describe this group…',
+        'banner' => 'Change banner',
+        'banner_title' => 'Choose a banner',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+    ],
+
+    // The curated banner set (#191). The neutral default applies when none is set.
+    'banner' => [
+        'aria' => 'Group banner',
+        'default' => 'Default',
+        'option' => [
+            'columns' => 'Columns',
+            'quill' => 'Quill',
+            'lattice' => 'Lattice',
+            'ribbon' => 'Ribbon',
+            'terrazzo' => 'Terrazzo',
+        ],
+    ],
+
     // Section panels not yet built in this slice.
     'coming_soon' => 'This section is coming soon.',
 
