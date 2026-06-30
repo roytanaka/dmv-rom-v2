@@ -4,6 +4,7 @@
 // Reflète lang/en/user.php clé pour clé.
 return [
     'profile' => 'Mon profil',
+    'renew' => "Renouveler l'adhésion",
     'language' => 'Langue',
     'logout' => 'Se déconnecter',
 ];

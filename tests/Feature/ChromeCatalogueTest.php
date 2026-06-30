@@ -13,7 +13,10 @@ it('resolves the avatar-menu (user) keys under both locales', function () {
         ->and(__('user.language', [], 'en'))->toBe('Language')
         ->and(__('user.language', [], 'fr'))->toBe('Langue')
         ->and(__('user.logout', [], 'en'))->toBe('Log out')
-        ->and(__('user.logout', [], 'fr'))->toBe('Se déconnecter');
+        ->and(__('user.logout', [], 'fr'))->toBe('Se déconnecter')
+        // Renew lives in user (account menu), not nav.personal (#196).
+        ->and(__('user.renew', [], 'en'))->toBe('Renew Membership')
+        ->and(__('user.renew', [], 'fr'))->toBe("Renouveler l'adhésion");
 });
 
 it('renders the footer copyright line with the year range and department', function () {

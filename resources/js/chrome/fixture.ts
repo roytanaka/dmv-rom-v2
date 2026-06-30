@@ -25,7 +25,6 @@
 
 import {
     PhAddressBook,
-    PhArrowSquareOut,
     PhBookOpenText,
     PhBuildings,
     PhCalendarBlank,
@@ -185,8 +184,7 @@ const allGroups: GroupNode[] = [
 // ── Top-bar section tabs (the Group Menu layer) ──────────────────────────────
 // The rail picks the *context*; these drive the top-bar tab strip that reflects it.
 
-// Zone A — personal/global. The tab set on the Dashboard (no Group selected).
-// `Renew Membership` leaves the app for the ROM renewal site (external link).
+// Zone A — personal/global. The Dashboard tab set. Renew is in the avatar menu (#196).
 export const zoneA: NavNode[] = [
     { labelKey: 'nav.personal.calendar', href: '/calendar', icon: PhCalendarBlank },
     { labelKey: 'nav.personal.hours', href: '/hours', icon: PhClock },
@@ -194,8 +192,6 @@ export const zoneA: NavNode[] = [
     { labelKey: 'nav.personal.documents', href: '/documents', icon: PhFolder },
     { labelKey: 'nav.personal.news', href: '/news', icon: PhNewspaper },
     { labelKey: 'nav.personal.profile', href: '/profile', icon: PhUserCircle },
-    // STUB renewal URL — the real ROM membership-renewal destination drops in later.
-    { labelKey: 'nav.personal.renew', href: 'https://www.rom.on.ca/en/join-give/membership', icon: PhArrowSquareOut, external: true },
 ];
 
 // Group Menus, keyed by `GroupNode.groupId`. A Group's tab strip is its capability

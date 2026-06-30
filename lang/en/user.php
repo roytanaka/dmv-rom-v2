@@ -6,6 +6,7 @@
 // literal in the component. Mirrors lang/fr/user.php key-for-key.
 return [
     'profile' => 'My Profile',
+    'renew' => 'Renew Membership', // account-menu only, not a primary nav destination (#196)
     'language' => 'Language',
     'logout' => 'Log out',
 ];

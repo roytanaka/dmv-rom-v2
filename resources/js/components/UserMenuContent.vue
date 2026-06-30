@@ -2,10 +2,11 @@
 import LocaleOptionList from '@/components/LocaleOptionList.vue';
 import UserInfo from '@/components/UserInfo.vue';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import type { SharedData, User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
+import { PhArrowSquareOut, PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
 interface Props {
@@ -15,6 +16,9 @@ interface Props {
 defineProps<Props>();
 
 const page = usePage<SharedData>();
+
+// Ziggy's route() isn't locale-aware; localizeHref maps segments per ADR-0008 (#196).
+const localizeHref = useLocalizedHref();
 
 // The language switcher's locale list (ADR-0013). On desktop this lives in the
 // top-bar globe (LanguageSwitcher); below lg the globe is hidden and the same list
@@ -35,6 +39,13 @@ const localeSwitcher = computed(() => page.props.localeSwitcher);
             <Link class="block w-full" :href="route('profile.edit')" as="button">
                 <PhUserCircle class="mr-2 h-4 w-4" />
                 {{ trans('user.profile') }}
+            </Link>
+        </DropdownMenuItem>
+        <!-- Renew Membership: account-menu action (#196), locale-aware href per ADR-0008. -->
+        <DropdownMenuItem class="py-2.5" :as-child="true">
+            <Link class="block w-full" :href="localizeHref('/renew')" as="button">
+                <PhArrowSquareOut class="mr-2 h-4 w-4" />
+                {{ trans('user.renew') }}
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>
