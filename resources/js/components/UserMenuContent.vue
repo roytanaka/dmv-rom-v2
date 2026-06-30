@@ -2,10 +2,11 @@
 import LocaleOptionList from '@/components/LocaleOptionList.vue';
 import UserInfo from '@/components/UserInfo.vue';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import type { SharedData, User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
+import { PhArrowSquareOut, PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
 interface Props {
@@ -15,6 +16,12 @@ interface Props {
 defineProps<Props>();
 
 const page = usePage<SharedData>();
+
+// Renew Membership is an account/utility action (#196), deliberately not a primary
+// top-bar destination. It points at the localized `renew` route, authored
+// English-canonical and localised here so /fr/ resolves to /fr/renouveler — Ziggy's
+// route() is not locale-aware, so we map the segments ourselves (ADR-0008).
+const localizeHref = useLocalizedHref();
 
 // The language switcher's locale list (ADR-0013). On desktop this lives in the
 // top-bar globe (LanguageSwitcher); below lg the globe is hidden and the same list
@@ -35,6 +42,15 @@ const localeSwitcher = computed(() => page.props.localeSwitcher);
             <Link class="block w-full" :href="route('profile.edit')" as="button">
                 <PhUserCircle class="mr-2 h-4 w-4" />
                 {{ trans('user.profile') }}
+            </Link>
+        </DropdownMenuItem>
+        <!-- Renew Membership — an account/utility action (#196), not a primary
+             destination. Locale-aware href (ADR-0008); the trailing icon marks it
+             as an outbound renewal action. -->
+        <DropdownMenuItem class="py-2.5" :as-child="true">
+            <Link class="block w-full" :href="localizeHref('/renew')" as="button">
+                <PhArrowSquareOut class="mr-2 h-4 w-4" />
+                {{ trans('user.renew') }}
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>

@@ -27,6 +27,9 @@ class LocaleRouteSegmentsTest extends TestCase
                 ->where('routeSegments.fr.dashboard', 'tableau-de-bord')
                 ->where('routeSegments.fr.groups', 'groupes')
                 ->where('routeSegments.fr.calendar', 'calendrier')
+                // Renew (the account-menu link, #196) localises its href via this
+                // table — /renew → /fr/renouveler (ADR-0008).
+                ->where('routeSegments.fr.renew', 'renouveler')
                 // Multi-segment officer routes translate each differing word.
                 ->where('routeSegments.fr.officer', 'officier')
                 ->where('routeSegments.fr.members', 'membres')

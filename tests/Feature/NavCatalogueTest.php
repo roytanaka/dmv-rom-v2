@@ -9,8 +9,16 @@
 it('resolves the personal (Zone A) nav keys under both locales', function () {
     expect(__('nav.personal.calendar', [], 'en'))->toBe('My Calendar')
         ->and(__('nav.personal.calendar', [], 'fr'))->toBe('Mon calendrier')
-        ->and(__('nav.personal.renew', [], 'en'))->toBe('Renew Membership')
-        ->and(__('nav.personal.renew', [], 'fr'))->toBe("Renouveler l'adhésion");
+        ->and(__('nav.personal.news', [], 'en'))->toBe('News')
+        ->and(__('nav.personal.news', [], 'fr'))->toBe('Nouvelles');
+});
+
+it('carries no Renew key in the personal nav set — it moved to the account menu (#196)', function () {
+    // Renew Membership is an account/utility action, not a primary top-bar
+    // destination: its label lives in the avatar-menu (user) catalogue. Assert the
+    // personal/Zone A set no longer carries it, in either locale.
+    expect(__('nav.personal', [], 'en'))->not->toHaveKey('renew')
+        ->and(__('nav.personal', [], 'fr'))->not->toHaveKey('renew');
 });
 
 it('resolves the officer (Zone C) nav keys under both locales', function () {

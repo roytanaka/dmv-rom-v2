@@ -13,7 +13,12 @@ it('resolves the avatar-menu (user) keys under both locales', function () {
         ->and(__('user.language', [], 'en'))->toBe('Language')
         ->and(__('user.language', [], 'fr'))->toBe('Langue')
         ->and(__('user.logout', [], 'en'))->toBe('Log out')
-        ->and(__('user.logout', [], 'fr'))->toBe('Se déconnecter');
+        ->and(__('user.logout', [], 'fr'))->toBe('Se déconnecter')
+        // Renew Membership is an account/utility action in the avatar menu (#196),
+        // deliberately NOT a primary top-bar destination — so its label sits with the
+        // account-menu (user) catalogue, not the personal/Zone A nav set.
+        ->and(__('user.renew', [], 'en'))->toBe('Renew Membership')
+        ->and(__('user.renew', [], 'fr'))->toBe("Renouveler l'adhésion");
 });
 
 it('renders the footer copyright line with the year range and department', function () {

@@ -20,7 +20,6 @@ return [
         'documents' => 'Documents',
         'news' => 'Nouvelles',
         'profile' => 'Mon profil',
-        'renew' => "Renouveler l'adhésion",
     ],
 
     // Zone C — responsables/administration (rail, épinglé en bas).

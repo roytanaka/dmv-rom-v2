@@ -14,8 +14,8 @@ return [
         'officer' => 'Officer Tools',
     ],
 
-    // Zone A — personal/global (the Dashboard top-bar tab set). `renew` leaves the
-    // app for the ROM renewal site; its label is still chrome.
+    // Zone A — personal/global (the Dashboard top-bar tab set). Renew Membership is
+    // not here: it is an account/utility action, so its label lives in user.php (#196).
     'personal' => [
         'calendar' => 'My Calendar',
         'hours' => 'My Hours',
@@ -23,7 +23,6 @@ return [
         'documents' => 'Documents',
         'news' => 'News',
         'profile' => 'My Profile',
-        'renew' => 'Renew Membership',
     ],
 
     // Zone C — officer/admin cluster (rail, pinned bottom, officer-only).
