@@ -25,6 +25,8 @@ return [
     'news' => 'news',
     'profile' => 'profile',
     'renew' => 'renew',
+    // Utility — the top bar's Help destination (#194).
+    'help' => 'help',
 
     // Zone C — officer/admin
     'officer.members' => 'officer/members',
