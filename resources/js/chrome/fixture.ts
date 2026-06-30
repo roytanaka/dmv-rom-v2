@@ -78,6 +78,14 @@ const myGroups: GroupNode[] = [
 // destinations). `groupId`s match seeder slugs; the explicit `*-training` slugs
 // mirror the seeder's disambiguation of names that recur across the tree.
 const allGroups: GroupNode[] = [
+    // The org root: the DMV at large (slug `dmv` in the seeder). Its roster is every
+    // volunteer — the one Group everyone belongs to — so it leads the browse list.
+    {
+        groupId: 'dmv',
+        name: 'DMV',
+        href: '/groups/dmv',
+        icon: PhUsersThree,
+    },
     // Docents keeps the one fully-populated Group Menu (see groupMenus below); its
     // cohorts are all archived in the seeder, so it renders flat here.
     {

@@ -10,18 +10,24 @@ use Illuminate\Support\Facades\Hash;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * Seed the application's database — the single `db:seed` entry point.
      *
-     * Created directly (not via MemberFactory) so it runs under a --no-dev
-     * install: the factory's defaults call fake(), and fakerphp/faker is a
-     * dev-only dependency absent from deployed builds. The staging deploy
-     * (migrate:fresh --seed) reinstates this known login on every run.
+     * Two parts run on every seed (local `db:seed`/`db:fresh` and the staging
+     * deploy's `migrate:fresh --seed`): the known super-tier login below, then
+     * {@see DemoSeeder} for the full curated org tree + roster. Both are
+     * faker-free so they run under a --no-dev install (fakerphp/faker is a
+     * dev-only dependency absent from deployed builds); the test-only
+     * {@see OrgTreeSeeder} stays out of this path precisely because it uses
+     * factories. Both are idempotent, so re-seeding heals rather than duplicates.
      */
     public function run(): void
     {
         // super_tier is not mass-assignable (#153) and defaults to false in the
-        // schema, so it is set by neither this seeder nor any form. email_verified_at
-        // is likewise non-fillable: forceFill marks the known login verified once.
+        // schema, so no form can set it. email_verified_at is likewise non-fillable.
+        // forceFill grants the known login both the org-wide all-DMV grant (so QA
+        // can exercise admin features on staging — no other seeded account can, and
+        // super_tier can't be granted through the UI from a fresh DB) and a verified
+        // email, idempotently.
         $member = Member::firstOrCreate(
             ['email' => 'test@example.com'],
             [
@@ -32,8 +38,11 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        if ($member->email_verified_at === null) {
-            $member->forceFill(['email_verified_at' => now()])->save();
-        }
+        $member->forceFill([
+            'super_tier' => true,
+            'email_verified_at' => $member->email_verified_at ?? now(),
+        ])->save();
+
+        $this->call(DemoSeeder::class);
     }
 }

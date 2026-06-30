@@ -50,9 +50,10 @@ use RuntimeException;
  *   transcribed once as the union of both listings (the second is a superset of
  *   the first plus "Brochure Committee").
  *
- * It is deliberately NOT wired into {@see DatabaseSeeder} and not part of any
- * deploy step — it runs only by hand. The public constants below are stable
- * handles for tests, mirroring {@see OrgTreeSeeder}.
+ * It is the curated payload of {@see DatabaseSeeder}: every `db:seed` (local
+ * `db:fresh` and the staging deploy's `migrate:fresh --seed`) runs it after the
+ * known super-tier login. The public constants below are stable handles for
+ * tests, mirroring {@see OrgTreeSeeder}.
  */
 class DemoSeeder extends Seeder
 {
@@ -83,6 +84,7 @@ class DemoSeeder extends Seeder
         $this->seenSlugs = [];
         $this->build($this->tree(), null, 0);
         $this->roster();
+        $this->bulkRoster();
     }
 
     /**
@@ -130,6 +132,141 @@ class DemoSeeder extends Seeder
         // is membership in it, not a standalone flag.
         $this->membership($records, $this->member('demo.clerk@dmv.test', 'Demo Clerk'), MembershipStatus::Full);
         $this->steward($records, StewardshipFunction::MemberAdmin);
+    }
+
+    /** How many generated volunteers populate the bulk roster. */
+    private const POOL_SIZE = 60;
+
+    /**
+     * A populated demo roster on top of the curated handful above: ~60 generated
+     * volunteers spread across every Group so each Group page shows a believable
+     * roster, plus the org-wide rule that the root DMV Group's roster is *everyone*
+     * (the top-level Group every volunteer belongs to). Like the rest of this
+     * seeder it is faker-free (a deterministic curated name pool, not fake()) so it
+     * runs under the --no-dev staging build, and idempotent (members key on email,
+     * memberships on the (Group, Member) pair), so re-seeding heals not duplicates.
+     */
+    private function bulkRoster(): void
+    {
+        $pool = $this->memberPool();
+        $this->distribute($pool);
+        $this->enrollEveryoneInRoot();
+    }
+
+    /**
+     * Create (or load) the generated volunteer pool — deterministic so re-running
+     * lands the same people. Names pair the two curated lists by offset to spread
+     * the combinations; the email carries the index so it stays unique and stable
+     * regardless of name collisions.
+     *
+     * @return list<Member>
+     */
+    private function memberPool(): array
+    {
+        $first = $this->firstNames();
+        $last = $this->lastNames();
+
+        $pool = [];
+
+        for ($i = 0; $i < self::POOL_SIZE; $i++) {
+            $name = $first[$i % count($first)].' '.$last[($i * 7) % count($last)];
+            $email = sprintf('%s.%s%02d@dmv.test', Str::lower(Str::before($name, ' ')), Str::lower(Str::after($name, ' ')), $i);
+
+            $member = $this->member($email, $name);
+
+            // A spread of DMV-wide Categories for directory/standing variety; most
+            // are Active. forceFill: phone is fillable but only ever set here for the
+            // pool, so heal it on the same idempotent pass as the category.
+            $member->forceFill([
+                'phone' => sprintf('416-555-%04d', $i),
+                'category' => $this->categoryFor($i),
+            ])->save();
+
+            $pool[] = $member;
+        }
+
+        return $pool;
+    }
+
+    /**
+     * Spread the pool across every non-root Group: each Group gets a deterministic
+     * slice of 4–7 people, the first two carrying the core Chair and Secretary roles
+     * so the Overview's "leadership at a glance" populates everywhere. Offsets are
+     * coprime-ish to the pool size so slices overlap (people sit on several Groups,
+     * as in real life) without any Group coming up empty.
+     *
+     * @param  list<Member>  $pool
+     */
+    private function distribute(array $pool): void
+    {
+        $n = count($pool);
+
+        $groups = Group::where('slug', '!=', self::ROOT)->orderBy('id')->get();
+
+        foreach ($groups as $gi => $group) {
+            $size = 4 + ($gi % 4);
+
+            for ($k = 0; $k < $size; $k++) {
+                $idx = ($gi * 5 + $k * 13) % $n;
+                $roles = match ($k) {
+                    0 => [Role::Chair],
+                    1 => [Role::Secretary],
+                    default => [],
+                };
+
+                $this->membership($group, $pool[$idx], $this->statusFor($idx), $roles);
+            }
+        }
+    }
+
+    /**
+     * Every Member belongs to the root DMV Group — its roster is the whole DMV.
+     * Heals existing memberships (e.g. the curated Chair) rather than duplicating.
+     */
+    private function enrollEveryoneInRoot(): void
+    {
+        $root = Group::where('slug', self::ROOT)->firstOrFail();
+
+        Member::query()->each(fn (Member $member) => $this->membership($root, $member, MembershipStatus::Full));
+    }
+
+    private function categoryFor(int $i): Category
+    {
+        return match ($i % 8) {
+            5 => Category::Honourary,
+            6 => Category::Sustaining,
+            7 => Category::Loa,
+            default => Category::Active,
+        };
+    }
+
+    private function statusFor(int $i): MembershipStatus
+    {
+        return match ($i % 6) {
+            2 => MembershipStatus::Trainee,
+            4 => MembershipStatus::Inactive,
+            default => MembershipStatus::Full,
+        };
+    }
+
+    /** @return list<string> */
+    private function firstNames(): array
+    {
+        return [
+            'Ava', 'Liam', 'Priya', 'Chen', 'Sofia', 'Omar', 'Maya', 'Noah', 'Aisha', 'Diego',
+            'Hannah', 'Kenji', 'Leila', 'Marcus', 'Nadia', 'Oliver', 'Fatima', 'Ravi', 'Elena', 'Jamal',
+            'Grace', 'Sven', 'Yuki', 'Tomas', 'Amara', 'Felix', 'Ingrid', 'Hassan', 'Clara', 'Mateo',
+        ];
+    }
+
+    /** @return list<string> */
+    private function lastNames(): array
+    {
+        return [
+            'Bennett', 'Okafor', 'Nguyen', 'Rossi', 'Khan', 'Andersson', 'Tremblay', 'Singh', 'Costa', 'Yamamoto',
+            'Garcia', 'Murphy', 'Patel', 'Kowalski', 'Haddad', 'Schmidt', 'Lefebvre', 'Wong', 'Ferreira', 'Novak',
+            'Reyes', 'Lindqvist', 'Abara', 'Park', 'Moreau', 'Dubois', 'Ivanova', 'Tan', 'Brar', 'Silva',
+        ];
     }
 
     /**
