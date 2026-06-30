@@ -2,6 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\MembershipStatus;
+use App\Models\Group;
+use App\Models\GroupMember;
+use App\Models\Member;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -65,6 +69,12 @@ class HandleInertiaRequests extends Middleware
             // the rail. Hrefs are localized server-side (ADR-0008); gating is
             // resolved here, never echoed from the client.
             'chromeNav' => $this->chromeNav($request),
+            // Grouping rail (PRD #209): the per-Member Group/officer navigation,
+            // built and pruned server-side and shared as a single prop. This slice
+            // (#210) wires the My Groups zone; the other zones stay fixture-fed in the
+            // client until their slices land. Hrefs are localized server-side, gating
+            // resolves here — the client renders only what it is given.
+            'rail' => $this->rail($request),
             'auth' => [
                 'user' => $request->user(),
                 // Coarse, app-wide capability map for chrome/nav (ADR-0017 §9).
@@ -111,6 +121,86 @@ class HandleInertiaRequests extends Middleware
                 ->all(),
             'help' => $this->destination(['key' => 'help', 'route' => 'help', 'labelKey' => 'nav.help']),
         ];
+    }
+
+    /**
+     * The grouping rail (PRD #209), built per signed-in Member and server-pruned —
+     * the client receives only the nodes it may see. This slice ships the My Groups
+     * zone; All Groups and Officer Tools remain fixture-fed in the client until their
+     * slices land, so only the zones built here appear on the prop.
+     *
+     * @return array{myGroups?: array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}}
+     */
+    private function rail(Request $request): array
+    {
+        $rail = [];
+
+        if ($myGroups = $this->myGroups($request->user())) {
+            $rail['myGroups'] = $myGroups;
+        }
+
+        return $rail;
+    }
+
+    /**
+     * The My Groups zone: the Groups this Member belongs to with Full or on-leave
+     * (LOA) standing, flat and alphabetical by name. Departed standings (Resigned,
+     * Deceased, and every other non-participating status) never contribute. Returns
+     * null when the Member belongs to no qualifying Group, so the whole section
+     * (heading included) is omitted from the prop.
+     *
+     * Reuses the Member's already-eager-loaded memberships (loaded for policy checks)
+     * via loadMissing, pulling in each membership's Group without a second query.
+     *
+     * @return array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}|null
+     */
+    private function myGroups(?Member $member): ?array
+    {
+        if ($member === null) {
+            return null;
+        }
+
+        $member->loadMissing('memberships.group');
+
+        $groups = $member->memberships
+            ->filter(fn (GroupMember $membership) => in_array(
+                $membership->status,
+                [MembershipStatus::Full, MembershipStatus::Loa],
+                true,
+            ))
+            ->map(fn (GroupMember $membership) => $membership->group)
+            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        if ($groups->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'labelKey' => 'nav.rail.my_groups',
+            'items' => $groups->map(fn (Group $group) => [
+                'groupId' => $group->slug,
+                'name' => $group->name,
+                'href' => $this->groupHref($group),
+            ])->all(),
+        ];
+    }
+
+    /**
+     * The active locale's localized path for a Group's page (ADR-0008): `/groups/{slug}`
+     * in English, its `/fr/groupes/{slug}` twin under French. Path-only, mirroring
+     * {@see destination()}, so Inertia navigates client-side and the active-state match
+     * against the current URL is exact.
+     */
+    private function groupHref(Group $group): string
+    {
+        $url = LaravelLocalization::getURLFromRouteNameTranslated(
+            app()->getLocale(),
+            'routes.groups.show',
+            ['group' => $group->slug],
+        );
+
+        return parse_url($url, PHP_URL_PATH) ?: $url;
     }
 
     /**
