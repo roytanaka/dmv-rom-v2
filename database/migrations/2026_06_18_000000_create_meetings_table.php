@@ -24,12 +24,12 @@ return new class extends Migration
             $table->foreignId('group_id')->constrained('groups')->cascadeOnDelete();
             $table->string('title');
             $table->text('description')->nullable();
-            $table->dateTime('held_at');
+            $table->dateTime('held_at')->index();
             $table->string('location')->nullable();
             $table->string('video_url')->nullable();
             // Drafting flag: a hidden meeting is invisible to ordinary members until
             // published. Defaults to published so a plainly-created meeting is visible.
-            $table->boolean('is_published')->default(true);
+            $table->boolean('is_published')->default(true)->index();
             $table->timestamps();
         });
     }
