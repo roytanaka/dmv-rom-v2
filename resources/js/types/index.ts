@@ -92,7 +92,10 @@ export interface SharedData {
      * the interim placeholder); hrefs are localized server-side (ADR-0008), so the
      * client renders them verbatim. Zones absent from a Member's rail are omitted. My
      * Groups is flat; All Groups carries the active org tree reshaped (Option C) with
-     * subcommittees nested at full depth. Officer Tools lands in a later slice.
+     * subcommittees nested at full depth. Officer Tools (#212) is the org-wide
+     * administration cluster: each item per-item gated by a real authority server-side,
+     * the cluster omitted whole when none survive. Its labels are i18n keys resolved
+     * client-side; its icons are fixed client config keyed by item `key`.
      */
     rail: {
         myGroups?: {
@@ -102,6 +105,10 @@ export interface SharedData {
         allGroups?: {
             labelKey: string;
             items: RailGroupNode[];
+        };
+        officer?: {
+            labelKey: string;
+            items: Array<{ key: string; labelKey: string; href: string }>;
         };
     };
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */

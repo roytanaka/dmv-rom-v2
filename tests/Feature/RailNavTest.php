@@ -1,8 +1,12 @@
 <?php
 
 use App\Enums\MembershipStatus;
+use App\Enums\Role;
+use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\GroupMemberRole;
+use App\Models\GroupStewardship;
 use App\Models\Member;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -188,5 +192,88 @@ it('emits All Groups names verbatim and hrefs as French twins under /fr/', funct
                 // A French-named program: name verbatim, href its localized twin.
                 ->where('rail.allGroups.items.2.name', 'Guides du ROM')
                 ->where('rail.allGroups.items.2.href', '/fr/groupes/guides-du-rom'));
+    });
+});
+
+/*
+ * The Officer Tools zone (#212): the org-wide administration cluster, each item gated
+ * by a real authority resolved server-side. The cluster (heading included) is emitted
+ * only when at least one item survives for the viewing Member. "Officer Tools" denotes
+ * org-wide administration — deliberately distinct from a Group's officers (Chair /
+ * Secretary / Treasurer). Asserted at the shared-prop seam, per actor authority.
+ */
+
+/** A Member who stewards Records (the member-administration Group). */
+function recordsSteward(): Member
+{
+    $records = Group::factory()->create();
+    GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
+
+    $member = Member::factory()->create();
+    GroupMember::factory()->create(['group_id' => $records->id, 'member_id' => $member->id]);
+
+    return $member;
+}
+
+/** A Member holding the news-editor role in an announcements-on Group. */
+function newsEditor(): Member
+{
+    $group = Group::factory()->create(['has_announcements' => true]);
+    $member = Member::factory()->create();
+    $membership = GroupMember::factory()->create(['group_id' => $group->id, 'member_id' => $member->id]);
+    GroupMemberRole::factory()->role(Role::NewsEditor)->create(['group_member_id' => $membership->id]);
+
+    return $member;
+}
+
+it('omits the whole Officer Tools cluster for a plain Member with no authority', function () {
+    $this->actingAs(Member::factory()->create())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->missing('rail.officer'));
+});
+
+it('gives a Records steward Officer Tools with Members only', function () {
+    $this->actingAs(recordsSteward())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.officer.labelKey', 'nav.rail.officer')
+            ->where('rail.officer.items.0', ['key' => 'members', 'labelKey' => 'nav.officer.members', 'href' => '/officer/members'])
+            ->count('rail.officer.items', 1));
+});
+
+it('gives a news-editor Officer Tools with Communications only', function () {
+    $this->actingAs(newsEditor())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.officer.items.0', ['key' => 'communications', 'labelKey' => 'nav.officer.communications', 'href' => '/officer/communications'])
+            ->count('rail.officer.items', 1));
+});
+
+it('gives a super-tier officer all five Officer Tools items', function () {
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.officer.items.0.key', 'members')
+            ->where('rail.officer.items.1.key', 'communications')
+            ->where('rail.officer.items.2.key', 'reports')
+            ->where('rail.officer.items.3.key', 'flash-messages')
+            ->where('rail.officer.items.4.key', 'settings')
+            ->count('rail.officer.items', 5));
+});
+
+it('emits Officer Tools hrefs as French twins under /fr/', function () {
+    $this->actingAs(Member::factory()->superTier()->create());
+
+    $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/tableau-de-bord')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('locale', 'fr')
+                ->where('rail.officer.items.0.href', '/fr/officier/membres')
+                ->where('rail.officer.items.2.href', '/fr/officier/rapports'));
     });
 });

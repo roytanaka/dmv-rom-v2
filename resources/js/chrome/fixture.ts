@@ -26,14 +26,11 @@
 import {
     PhAddressBook,
     PhBookOpenText,
-    PhBuildings,
     PhCalendarBlank,
     PhChartBar,
-    PhChatCircleDots,
     PhClock,
     PhFileText,
     PhFolder,
-    PhGear,
     PhGearSix,
     PhInfo,
     PhMegaphone,
@@ -231,6 +228,9 @@ export const launcherGrids: LauncherGrid[] = [
     { labelKey: 'nav.rail.all_groups', items: allGroups, requiresRole: 'super-tier' },
 ];
 
+// Zone C — Officer Tools is now server-built and server-pruned (PRD #209 / #212): the
+// shared `rail.officer` prop carries only the items the viewing Member may see, each
+// gated by a real authority server-side. It is no longer modelled here.
 export const railNav: RailNav = {
     myGroups: {
         labelKey: 'nav.rail.my_groups',
@@ -240,17 +240,5 @@ export const railNav: RailNav = {
         labelKey: 'nav.rail.all_groups',
         items: allGroups,
         defaultOpen: false,
-    },
-    // Zone C — officer/admin. Each item requires the `officer` role; the section as a
-    // whole renders only when at least one item survives gating (stubbed → all do).
-    officer: {
-        labelKey: 'nav.rail.officer',
-        items: [
-            { labelKey: 'nav.officer.members', href: '/officer/members', icon: PhBuildings, requiresRole: 'officer' },
-            { labelKey: 'nav.officer.communications', href: '/officer/communications', icon: PhMegaphone, requiresRole: 'officer' },
-            { labelKey: 'nav.officer.reports', href: '/officer/reports', icon: PhChartBar, requiresRole: 'officer' },
-            { labelKey: 'nav.officer.flash_messages', href: '/officer/flash-messages', icon: PhChatCircleDots, requiresRole: 'officer' },
-            { labelKey: 'nav.officer.dmv_settings', href: '/officer/settings', icon: PhGear, requiresRole: 'officer' },
-        ],
     },
 };
