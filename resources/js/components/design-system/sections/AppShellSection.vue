@@ -2,7 +2,7 @@
 import BrandLogo from '@/components/BrandLogo.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { groupMenus, zoneA } from '@/chrome/fixture';
+import { groupMenus } from '@/chrome/fixture';
 import { trans } from 'laravel-vue-i18n';
 import {
     PhBuildings,
@@ -19,12 +19,22 @@ import {
 // App-shell ("Chrome") documentation specimens. The Part 3 shell is stateful and
 // contextual, so it is documented here with static fragments + prose — not embedded
 // live (a live nav inside a page about the nav would be confusing and would forfeit
-// clean breakpoint/state demos). The two contextual tab sets read the REAL chrome
-// fixture through the i18n bridge (`trans()`), so the labels match the running app
-// and demonstrate that the top-bar section nav changes by context: Zone A on the
-// Dashboard, else the active Group's Menu. The active section is fixed here for the
-// static specimen.
-const shellZoneATabs = zoneA.map((node, i) => ({ label: trans(node.labelKey), active: i === 0 }));
+// clean breakpoint/state demos). The two contextual tab sets resolve their labels
+// through the i18n bridge (`trans()`), so they match the running app and demonstrate
+// that the top-bar section nav changes by context: Zone A on the Dashboard, else the
+// active Group's Menu. The active section is fixed here for the static specimen.
+//
+// The Zone A keys are a representative specimen, listed inline — the live top-bar set
+// is server-driven (chromeNav, #194), not a client fixture (ADR-0018).
+const ZONE_A_KEYS = [
+    'nav.personal.calendar',
+    'nav.personal.hours',
+    'nav.personal.directory',
+    'nav.personal.documents',
+    'nav.personal.news',
+    'nav.personal.profile',
+];
+const shellZoneATabs = ZONE_A_KEYS.map((key, i) => ({ label: trans(key), active: i === 0 }));
 const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
     label: trans(node.labelKey),
     // "Schedule" is the illustrative current section (mirrors ADR-0013's example).
