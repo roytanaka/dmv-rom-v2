@@ -60,12 +60,10 @@ class HandleInertiaRequests extends Middleware
             // registered — the option renders disabled rather than offering a link
             // that 404s (ADR-0008 / #110).
             'localeSwitcher' => $this->localeSwitcher($request),
-            // Fixed global top-bar navigation (#194, ADR-0013 amendment). The black
-            // top bar is now one strip, identical on every page; section tabs live
-            // in the page body. This carries the cross-domain destinations only —
-            // distinct from a Group's section set and the rail's grouping nav. Hrefs
-            // are localized server-side to the active locale (ADR-0008) and any
-            // declared gating is resolved here, never echoed from the client.
+            // Fixed global top-bar navigation (#194, ADR-0013 amendment): the
+            // cross-domain destinations, distinct from a Group's section set and
+            // the rail. Hrefs are localized server-side (ADR-0008); gating is
+            // resolved here, never echoed from the client.
             'chromeNav' => $this->chromeNav($request),
             'auth' => [
                 'user' => $request->user(),

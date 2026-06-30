@@ -20,7 +20,7 @@ return [
     'news' => 'nouvelles',
     'profile' => 'profil',
     'renew' => 'renouveler',
-    // Utility — la destination Aide de la barre supérieure (#194).
+    // Utility — the top bar's Help destination (#194).
     'help' => 'aide',
 
     // Zone C — officer/admin
