@@ -261,7 +261,7 @@ it('attaches agenda / minutes / report links when creating a meeting', function 
         ->and($links->pluck('kind')->all())->toContain(MeetingLinkKind::Agenda, MeetingLinkKind::Minutes);
 });
 
-it('replaces a meeting links when editing it', function () {
+it("replaces a meeting's links when editing it", function () {
     $group = meetingsGroup();
     $meeting = Meeting::factory()->create(['group_id' => $group->id]);
     $meeting->links()->create(['kind' => MeetingLinkKind::Agenda, 'url' => 'https://example.test/old']);
