@@ -32,6 +32,36 @@ return [
     'facts_starts' => 'Débute le :date',
     'facts_ends' => 'Se termine le :date',
 
+    'roster' => [
+        'search' => [
+            'label' => 'Rechercher par nom',
+            'placeholder' => 'Rechercher par nom',
+        ],
+        'column' => [
+            'name' => 'Nom',
+            'roles' => 'Rôles',
+            'contact' => 'Coordonnées',
+            'standing' => 'Statut',
+        ],
+        'no_contact' => '—',
+        'empty' => 'Aucun membre pour le moment.',
+        'no_matches' => 'Aucun membre ne correspond à votre recherche.',
+    ],
+
+    'standing' => [
+        'full' => 'Régulier·ère',
+        'loa' => 'En congé',
+        'trainee' => 'Stagiaire',
+        'transitional' => 'En transition',
+        'auxiliary' => 'Auxiliaire',
+        'projects' => 'Projets',
+        'emeritus' => 'Émérite',
+        'inactive' => 'Inactif·ve',
+        'resigned' => 'Démissionnaire',
+        'deceased' => 'Décédé·e',
+        'donor' => 'Donateur·rice',
+    ],
+
     'coming_soon' => 'Cette section arrive bientôt.',
 
     'role' => [

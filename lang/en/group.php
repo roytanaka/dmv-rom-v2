@@ -37,7 +37,41 @@ return [
     'facts_starts' => 'Starts :date',
     'facts_ends' => 'Ends :date',
 
-    // Section panels not yet built in this slice (Roster #189, Meetings #190).
+    // Roster tab (#189) — the Group-scoped Directory surface.
+    'roster' => [
+        'search' => [
+            'label' => 'Search by name',
+            'placeholder' => 'Search by name',
+        ],
+        'column' => [
+            'name' => 'Name',
+            'roles' => 'Roles',
+            'contact' => 'Contact',
+            'standing' => 'Standing',
+        ],
+        // Shown in the contact cell when the viewer may not see contact details.
+        'no_contact' => '—',
+        'empty' => 'No members yet.',
+        'no_matches' => 'No members match your search.',
+    ],
+
+    // Within-Group standing labels (App\Enums\MembershipStatus), distinct from a
+    // Member's DMV-wide standing. Shown as a roster badge only when not Full.
+    'standing' => [
+        'full' => 'Full',
+        'loa' => 'On leave',
+        'trainee' => 'Trainee',
+        'transitional' => 'Transitional',
+        'auxiliary' => 'Auxiliary',
+        'projects' => 'Projects',
+        'emeritus' => 'Emeritus',
+        'inactive' => 'Inactive',
+        'resigned' => 'Resigned',
+        'deceased' => 'Deceased',
+        'donor' => 'Donor',
+    ],
+
+    // Section panels not yet built in this slice (Meetings #190).
     'coming_soon' => 'This section is coming soon.',
 
     // Role labels — the Group's officers, by role (leadership at a glance).

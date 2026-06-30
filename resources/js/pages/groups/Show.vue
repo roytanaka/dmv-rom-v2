@@ -10,6 +10,7 @@
 // and About Us are member-authored content, rendered as-authored; everything else is
 // translated chrome (ADR-0004). All data arrives as props — no authority is computed
 // here, and there is no edit affordance (officer edits land in #191).
+import GroupRoster from '@/components/GroupRoster.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,17 @@ interface Facts {
     end_date: string | null;
 }
 
+interface RosterMember {
+    id: number;
+    first_name: string;
+    last_name: string;
+    photo: string | null;
+    group_roles: string[];
+    group_standing: string;
+    email?: string;
+    phone?: string;
+}
+
 const props = defineProps<{
     group: {
         id: number;
@@ -56,6 +68,7 @@ const props = defineProps<{
         capabilities: { meetings: boolean; documents: boolean; scheduling: boolean; content: boolean; hours: boolean };
     };
     section: string;
+    roster: RosterMember[];
     overview: {
         description: string | null;
         children: ChildGroup[];
@@ -201,7 +214,10 @@ const datesFact = computed(() => {
                     </div>
                 </div>
 
-                <!-- Roster (#189) / Meetings (#190) fill these panels in later slices. -->
+                <!-- Roster (#189) — the Group-scoped Directory surface. -->
+                <GroupRoster v-else-if="section === 'roster'" :members="roster" />
+
+                <!-- Meetings (#190) and the capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>
             </div>
         </div>

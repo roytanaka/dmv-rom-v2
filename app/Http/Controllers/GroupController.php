@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\LifecycleState;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
+use App\Http\Resources\MemberResource;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,8 +31,10 @@ class GroupController extends Controller
      * lands on Overview. The Group is bound by slug ({@see Group::getRouteKeyName}),
      * so an unknown slug 404s before this runs.
      */
-    public function show(Group $group, ?string $section = null): Response
+    public function show(Request $request, Group $group, ?string $section = null): Response
     {
+        $section ??= 'overview';
+
         $group->load([
             'parent',
             // Only active children are navigable — an archived child still renders
@@ -63,7 +67,11 @@ class GroupController extends Controller
                     'hours' => $group->has_hours_stats,
                 ],
             ],
-            'section' => $section ?? 'overview',
+            'section' => $section,
+            // The Roster tab's payload is resolved only when that tab is active —
+            // its per-row contact gating eager-loads each member's memberships, work
+            // the Overview never needs.
+            'roster' => $section === 'roster' ? $this->roster($request, $group) : [],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -107,6 +115,48 @@ class GroupController extends Controller
                     'name' => $membership->member->first_name.' '.$membership->member->last_name,
                 ]))
             ->sortBy(fn (array $entry) => $order[$entry['role']] ?? PHP_INT_MAX)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The Group's roster — the Group-scoped Directory surface (#189). Each living
+     * member, A–Z by surname, carrying their within-Group role(s) and standing on
+     * top of the centralized {@see MemberResource} payload, so contact PII stays
+     * gated behind `viewContact` (ADR-0017) per row and is never hand-built here.
+     *
+     * Default visibility hides only the departed (Resigned / Deceased); Inactive
+     * still shows. The officer "show past members" toggle that reveals Resigned
+     * lands with the roster-CRUD slice (#192) — this is the read-only default view.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function roster(Request $request, Group $group): array
+    {
+        // Eager-load what `viewContact` traverses — each member's memberships (with
+        // their Group and roles) so the gate resolves in memory — plus the viewer's
+        // roles once, mirroring MemberController::show.
+        $group->loadMissing([
+            'memberships.member.memberships.group',
+            'memberships.member.memberships.roles',
+        ]);
+        $request->user()?->loadMissing('memberships.roles');
+
+        return $group->memberships
+            ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
+            // A–Z by surname, breaking ties on given name (a space sorts ahead of
+            // any letter, so "Smith" precedes "Smithson").
+            ->sortBy(fn (GroupMember $membership) => mb_strtolower($membership->member->last_name.' '.$membership->member->first_name))
+            ->map(fn (GroupMember $membership) => [
+                ...(new MemberResource($membership->member))->resolve($request),
+                // The member's role badge(s) and standing within *this* Group — the
+                // two Group-specific additions over the shared Directory row.
+                'group_roles' => $membership->roles
+                    ->map(fn (GroupMemberRole $role) => $role->role->value)
+                    ->values()
+                    ->all(),
+                'group_standing' => $membership->status->value,
+            ])
             ->values()
             ->all();
     }
