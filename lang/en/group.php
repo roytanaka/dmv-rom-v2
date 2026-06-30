@@ -10,7 +10,7 @@ return [
     // "soon" stubs that appear only for a capability the Group actually runs.
     'tab' => [
         'overview' => 'Overview',
-        'roster' => 'Roster',
+        'directory' => 'Directory',
         'meetings' => 'Meetings',
         'documents' => 'Documents',
         'scheduling' => 'Scheduling',

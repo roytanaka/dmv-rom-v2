@@ -8,7 +8,6 @@ return [
     'about' => 'À propos',
 
     'docents' => [
-        'roster' => 'Qui est qui',
         'schedule' => 'Horaire',
         'catalog' => 'Fiches de données',
         'publications' => 'Publications',

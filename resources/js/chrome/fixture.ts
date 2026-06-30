@@ -40,7 +40,6 @@ import {
     PhNewspaper,
     PhPresentation,
     PhUserCircle,
-    PhUsers,
     PhUsersThree,
 } from '@phosphor-icons/vue';
 import type { GroupNode, LauncherGrid, NavNode, RailNav } from './types';
@@ -212,7 +211,6 @@ export const zoneA: NavNode[] = [
 export const groupMenus: Record<string, NavNode[]> = {
     docents: [
         { labelKey: 'section.about', href: '/groups/docents/about', icon: PhInfo },
-        { labelKey: 'section.docents.roster', href: '/groups/docents/roster', icon: PhUsers },
         { labelKey: 'section.docents.schedule', href: '/groups/docents/schedule', icon: PhCalendarBlank, requiresCapability: 'scheduling' },
         { labelKey: 'section.docents.catalog', href: '/groups/docents/data-sheets', icon: PhFileText, requiresCapability: 'content' },
         { labelKey: 'section.docents.publications', href: '/groups/docents/publications', icon: PhBookOpenText, requiresCapability: 'documents' },

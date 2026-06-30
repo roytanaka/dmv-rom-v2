@@ -95,7 +95,7 @@ const tabs = computed<NavNode[]>(() => {
     const href = (section?: string) => (section ? `/groups/${props.group.slug}/${section}` : `/groups/${props.group.slug}`);
     const list: NavNode[] = [
         { href: href(), labelKey: 'group.tab.overview' },
-        { href: href('roster'), labelKey: 'group.tab.roster' },
+        { href: href('roster'), labelKey: 'group.tab.directory' },
     ];
     if (props.group.capabilities.meetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents', soon: true });

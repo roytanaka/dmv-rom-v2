@@ -12,7 +12,6 @@ return [
     // Docents — the one fully-populated sample menu (docs/nav-spec.md is the eventual
     // exhaustive source). Other Groups resolve their own keyed labels as modelled.
     'docents' => [
-        'roster' => "Who's Who",
         'schedule' => 'Schedule',
         'catalog' => 'Data Sheets',
         'publications' => 'Publications',
