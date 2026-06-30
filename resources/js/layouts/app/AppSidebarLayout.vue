@@ -9,8 +9,6 @@ import type { BreadcrumbItemType } from '@/types';
 
 interface Props {
     breadcrumbs?: BreadcrumbItemType[];
-    /** Active Group context for the top-bar section tabs; undefined → Zone A. */
-    activeGroupId?: string;
 }
 
 withDefaults(defineProps<Props>(), {
@@ -23,7 +21,7 @@ withDefaults(defineProps<Props>(), {
         <!-- Full-width top bar spans above both the rail and the content. Sticky so it
              stays pinned while the page scrolls and the fixed rail (offset below it)
              remains aligned. -->
-        <TopBar :active-group-id="activeGroupId" class="sticky top-0 z-30" />
+        <TopBar class="sticky top-0 z-30" />
         <div class="flex w-full flex-1">
             <AppSidebar />
             <AppContent>

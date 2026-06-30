@@ -36,6 +36,9 @@ Route::group([
     $stubRoutes = [
         // Zone A — personal
         'calendar', 'hours', 'documents', 'profile', 'renew',
+        // Utility — the top bar's Help destination (#194); a placeholder until
+        // the help surface lands.
+        'help',
         // Zone C — officer/admin
         'officer.members', 'officer.communications', 'officer.reports',
         'officer.flash-messages', 'officer.settings',

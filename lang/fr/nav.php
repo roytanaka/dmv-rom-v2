@@ -22,6 +22,9 @@ return [
         'profile' => 'Mon profil',
     ],
 
+    // Utilitaire de la barre supérieure — la destination Aide (#194).
+    'help' => 'Aide',
+
     // Zone C — responsables/administration (rail, épinglé en bas).
     'officer' => [
         'members' => 'Membres',

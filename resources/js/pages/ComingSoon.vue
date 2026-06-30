@@ -22,7 +22,7 @@ const groupLine = computed(() => [props.group, props.section].filter(Boolean).jo
 <template>
     <Head :title="trans('placeholder.coming_soon.title')" />
 
-    <AppLayout :breadcrumbs="breadcrumbs" :active-group-id="group">
+    <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
             <h1 class="text-rom-ink text-lg font-semibold">{{ trans('placeholder.coming_soon.title') }}</h1>
             <p class="text-muted-foreground max-w-md text-sm">{{ trans('placeholder.coming_soon.body') }}</p>

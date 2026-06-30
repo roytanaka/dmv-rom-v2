@@ -1,39 +1,47 @@
 <script setup lang="ts">
-// The black top bar (Chrome) — the contextual *section* nav surface, sitting above
-// the breadcrumb strip and the white content canvas. The rail picks the context;
-// this bar reflects it.
+// The black top bar (Chrome) — ONE fixed global navigation strip, identical on every
+// page (#194, ADR-0013 amendment). It carries cross-domain navigation only; a page's
+// within-domain section tabs now live in the page body (the Group page's sticky strip),
+// not here. The bar no longer reflects the active context.
 //   Left   — the ☰ sidebar trigger + the ROM/DMV wordmark (SVG, never live text),
-//            linking Home.
-//   Centre — the section-tab strip, resolved from the active context: Zone A on the
-//            Dashboard (no Group), else the active Group's Menu.
-//   Right  — the language switcher (globe, lg+ only) + the avatar menu. Search lives
-//            in the rail. The EN/FR control is a globe dropdown here on desktop
-//            (a selectable locale list with a checkmark); below lg it would crowd the
-//            full-width section dropdown, so the same list moves into the avatar menu
-//            (UserMenuContent). No notification bell (ADR-0013). #69
+//            linking Home. The wordmark drops below sm (no square mark exists yet).
+//   Centre — the primary destinations (My Hours · My Calendar · News · Directory),
+//            persistent locale-aware links shared from the server (`chromeNav`); the
+//            active one is highlighted in heritage-blue.
+//   Right  — Help (a utility destination), the language switcher (globe, lg+ only),
+//            and the avatar menu. Search lives in the rail. Below lg the globe is
+//            hidden and the locale list moves into the avatar menu (UserMenuContent).
 //
-// On small screens (<sm) the wordmark drops — no square brand mark exists yet, and
-// the ☰ + black bar anchor home (ADR-0013); a compact mark is a flagged follow-up.
-//
-// `activeGroupId` is threaded from the page (mirroring `breadcrumbs`); URL-derived
-// context waits on bilingual routing (ADR-0008). Undefined → Zone A.
+// Destinations are resolved and gated SERVER-side and shared via `chromeNav` — their
+// hrefs are already localized to the active locale (ADR-0008), so they are used
+// verbatim and matched against the current URL for the active state.
 import BrandLogo from '@/components/BrandLogo.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
-import SectionTabs from '@/components/SectionTabs.vue';
 import TopBarUser from '@/components/TopBarUser.vue';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { resolveSections } from '@/chrome/sections';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
-import { Link } from '@inertiajs/vue3';
+import type { ChromeDestination, SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
+import { PhQuestion } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
-const props = defineProps<{ activeGroupId?: string }>();
+const page = usePage<SharedData>();
+const nav = computed(() => page.props.chromeNav);
 
-const sections = computed(() => resolveSections(props.activeGroupId));
-
-// Keep the Home wordmark in the active locale (ADR-0008) — on /fr/ it must point at
-// the French dashboard twin, not revert to the English root.
+// Hrefs arrive already localized (server-side); match the active one against the
+// current URL. The Home wordmark is authored English-canonical, so it still localizes
+// client-side to stay in-locale on /fr/ (ADR-0008).
 const localizeHref = useLocalizedHref();
+const isActive = (dest: ChromeDestination) => dest.href === page.url;
+
+// Shared destination styling — white-on-ink, heritage-blue active underline. The
+// active tab sits LOWER in contrast than the inactive ones, so the cue rides on the
+// hue and the bottom border, which must always render (ADR-0013 contrast findings).
+const destClass = (dest: ChromeDestination): string => {
+    const base = 'flex shrink-0 items-center gap-1.5 border-b-2 px-3 whitespace-nowrap transition-colors text-sm font-medium';
+    return isActive(dest) ? `${base} border-rom-slate-300 text-rom-slate-300` : `${base} border-transparent text-white/70 hover:text-white`;
+};
 </script>
 
 <template>
@@ -46,12 +54,31 @@ const localizeHref = useLocalizedHref();
             </Link>
         </div>
 
-        <SectionTabs :items="sections" class="flex-1" />
+        <!-- Primary destinations — the fixed global strip, identical on every page. -->
+        <nav class="flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto" aria-label="Primary">
+            <Link
+                v-for="dest in nav.destinations"
+                :key="dest.key"
+                :href="dest.href"
+                :aria-current="isActive(dest) ? 'page' : undefined"
+                :class="destClass(dest)"
+            >
+                {{ trans(dest.labelKey) }}
+            </Link>
+        </nav>
 
-        <!-- Right slot — language switcher (globe, lg+) + avatar menu (#69). Below lg
-             the globe is hidden and the locale list lives in the avatar menu
-             (UserMenuContent), so the bar isn't crowded next to the section dropdown. -->
+        <!-- Right utilities — Help, the language switcher (globe, lg+), the avatar
+             menu. Below lg the globe is hidden and the locale list lives in the
+             avatar menu (UserMenuContent), so the bar isn't crowded (#69). -->
         <div class="flex shrink-0 items-center gap-2">
+            <Link
+                :href="nav.help.href"
+                :aria-current="isActive(nav.help) ? 'page' : undefined"
+                class="flex items-center gap-1.5 px-2 text-sm font-medium text-white/70 transition-colors hover:text-white"
+            >
+                <PhQuestion class="size-4 opacity-80" />
+                <span class="hidden sm:inline">{{ trans(nav.help.labelKey) }}</span>
+            </Link>
             <div class="hidden items-center lg:flex">
                 <LanguageSwitcher />
             </div>

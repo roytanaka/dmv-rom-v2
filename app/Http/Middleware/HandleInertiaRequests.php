@@ -60,6 +60,11 @@ class HandleInertiaRequests extends Middleware
             // registered — the option renders disabled rather than offering a link
             // that 404s (ADR-0008 / #110).
             'localeSwitcher' => $this->localeSwitcher($request),
+            // Fixed global top-bar navigation (#194, ADR-0013 amendment): the
+            // cross-domain destinations, distinct from a Group's section set and
+            // the rail. Hrefs are localized server-side (ADR-0008); gating is
+            // resolved here, never echoed from the client.
+            'chromeNav' => $this->chromeNav($request),
             'auth' => [
                 'user' => $request->user(),
                 // Coarse, app-wide capability map for chrome/nav (ADR-0017 §9).
@@ -76,6 +81,70 @@ class HandleInertiaRequests extends Middleware
             // or collapsed on first paint without a flash. Defaults to open.
             'sidebarOpen' => $request->cookie('sidebar:state') !== 'false',
         ]);
+    }
+
+    /**
+     * The fixed global top-bar nav model (#194): the primary cross-domain
+     * destinations plus the Help utility, shared on every page. Each destination's
+     * href is localized to the active locale (ADR-0008); declared gating is resolved
+     * here against the signed-in member, so the client never echoes authority back.
+     *
+     * @return array{destinations: list<array{key: string, labelKey: string, href: string}>, help: array{key: string, labelKey: string, href: string}}
+     */
+    private function chromeNav(Request $request): array
+    {
+        // Primary destinations, in render order (My Hours · My Calendar · News ·
+        // Directory). My Hours / My Calendar are ComingSoon stubs until their slices
+        // land; News and Directory point at the live routes.
+        $primary = [
+            ['key' => 'hours', 'route' => 'hours', 'labelKey' => 'nav.personal.hours'],
+            ['key' => 'calendar', 'route' => 'calendar', 'labelKey' => 'nav.personal.calendar'],
+            ['key' => 'news', 'route' => 'news', 'labelKey' => 'nav.personal.news'],
+            ['key' => 'directory', 'route' => 'directory', 'labelKey' => 'nav.personal.directory'],
+        ];
+
+        return [
+            'destinations' => collect($primary)
+                ->filter(fn (array $spec) => $this->destinationVisible($request, $spec))
+                ->map(fn (array $spec) => $this->destination($spec))
+                ->values()
+                ->all(),
+            'help' => $this->destination(['key' => 'help', 'route' => 'help', 'labelKey' => 'nav.help']),
+        ];
+    }
+
+    /**
+     * Resolve one global destination to its shareable shape: a stable key, its chrome
+     * label key (translated client-side via the i18n bridge), and the active locale's
+     * localized path for the destination's route (ADR-0008).
+     *
+     * @param  array{key: string, route: string, labelKey: string}  $spec
+     * @return array{key: string, labelKey: string, href: string}
+     */
+    private function destination(array $spec): array
+    {
+        $url = LaravelLocalization::getURLFromRouteNameTranslated(app()->getLocale(), "routes.{$spec['route']}");
+
+        return [
+            'key' => $spec['key'],
+            'labelKey' => $spec['labelKey'],
+            // Strip the host so Inertia navigates client-side and the active-state
+            // match against the (path-only) current URL is exact.
+            'href' => parse_url($url, PHP_URL_PATH) ?: $url,
+        ];
+    }
+
+    /**
+     * Whether a global destination is visible to the current member. A destination
+     * may declare a `gate` ability; it is shown only when the member passes — the
+     * gating resolves server-side, never from client-supplied flags. Destinations
+     * with no `gate` are always shown.
+     *
+     * @param  array{gate?: string}  $spec
+     */
+    private function destinationVisible(Request $request, array $spec): bool
+    {
+        return ! isset($spec['gate']) || (bool) $request->user()?->can($spec['gate']);
     }
 
     /**

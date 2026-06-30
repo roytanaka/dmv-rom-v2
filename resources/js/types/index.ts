@@ -16,6 +16,17 @@ export interface Auth {
     };
 }
 
+/**
+ * A fixed global top-bar destination (#194). Server-shared: a stable `key`, a chrome
+ * `labelKey` resolved client-side, and an `href` already localized to the active
+ * locale (ADR-0008) — so it is used verbatim, never re-localized on the client.
+ */
+export interface ChromeDestination {
+    key: string;
+    labelKey: string;
+    href: string;
+}
+
 export interface BreadcrumbItem {
     title: string;
     href: string;
@@ -49,6 +60,17 @@ export interface SharedData {
     localeSwitcher: {
         current: string;
         options: Array<{ code: string; label: string; url: string | null }>;
+    };
+    /**
+     * Fixed global top-bar navigation (#194, ADR-0013 amendment): the cross-domain
+     * destinations rendered identically on every page, distinct from a Group's
+     * section set and the rail. `href` is localized server-side to the active locale
+     * (ADR-0008); `labelKey` is resolved client-side via the i18n bridge. `help` is
+     * the right-cluster utility destination.
+     */
+    chromeNav: {
+        destinations: ChromeDestination[];
+        help: ChromeDestination;
     };
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
     sidebarOpen: boolean;

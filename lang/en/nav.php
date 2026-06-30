@@ -25,6 +25,9 @@ return [
         'profile' => 'My Profile',
     ],
 
+    // Top-bar utility — the Help destination in the right cluster (#194).
+    'help' => 'Help',
+
     // Zone C — officer/admin cluster (rail, pinned bottom, officer-only).
     'officer' => [
         'members' => 'Members',
