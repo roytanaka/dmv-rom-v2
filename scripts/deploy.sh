@@ -40,32 +40,57 @@ echo
 echo "==> Step 2: composer install --no-dev --optimize-autoloader"
 $COMPOSER install --no-dev --optimize-autoloader --no-interaction
 
-echo "==> Step 3: detect pending migrations"
-# `migrate:status` prints a table with "Pending" rows when work is queued.
-# On a virgin DB it prints either "No migrations found" (table exists, empty)
-# or "Migration table not found." to stderr (table doesn't exist yet). Capture
-# stdout+stderr so the virgin-DB branch fires on a fresh production deploy.
-STATUS_OUTPUT=$($ARTISAN migrate:status 2>&1 || true)
-if echo "$STATUS_OUTPUT" | grep -qE '(Pending|No migrations found|Migration table not found)'; then
-    HAS_PENDING=1
-else
-    HAS_PENDING=0
-fi
-
-if [[ "$HAS_PENDING" -eq 1 ]]; then
-    echo "    Pending migrations detected — wrapping in maintenance mode."
+if [[ "$ENVIRONMENT" == "staging" ]]; then
+    # Staging is disposable: rebuild + reseed on EVERY deploy, regardless of
+    # whether migrations are pending. Seeding must NOT be gated behind pending
+    # migrations — a seeder- or demo-data-only change (no new migration) would
+    # then silently never reach staging, leaving the DB stale (the empty-org
+    # 404). migrate:fresh also heals a drifted ledger that would otherwise wedge
+    # the deploy: e.g. a renamed migration (users→members, #133) leaves the old
+    # name recorded while the new one re-creates an existing table → "1050 Table
+    # already exists". It drops everything and replays the current set cleanly;
+    # --seed then repopulates the full demo org + roster (DatabaseSeeder →
+    # DemoSeeder). No mysqldump — there is no staging data worth keeping.
+    echo "==> Step 3: php artisan migrate:fresh --seed --force (staging — disposable, always reseed)"
 
     $ARTISAN down
 
-    # Trap so an interrupted migration still flips maintenance off.
+    # Trap so an interrupted rebuild still flips maintenance off.
     trap '$ARTISAN up || true' EXIT
 
-    if [[ "$ENVIRONMENT" == "production" ]]; then
+    $ARTISAN migrate:fresh --seed --force
+
+    $ARTISAN up
+    trap - EXIT
+else
+    # Production: never fresh, never auto-seed — the data is real. Migrate only
+    # when something is pending, wrapped in maintenance mode with a snapshot;
+    # otherwise take the zero-downtime path.
+    echo "==> Step 3: detect pending migrations"
+    # `migrate:status` prints a table with "Pending" rows when work is queued.
+    # On a virgin DB it prints either "No migrations found" (table exists, empty)
+    # or "Migration table not found." to stderr (table doesn't exist yet). Capture
+    # stdout+stderr so the virgin-DB branch fires on a fresh production deploy.
+    STATUS_OUTPUT=$($ARTISAN migrate:status 2>&1 || true)
+    if echo "$STATUS_OUTPUT" | grep -qE '(Pending|No migrations found|Migration table not found)'; then
+        HAS_PENDING=1
+    else
+        HAS_PENDING=0
+    fi
+
+    if [[ "$HAS_PENDING" -eq 1 ]]; then
+        echo "    Pending migrations detected — wrapping in maintenance mode."
+
+        $ARTISAN down
+
+        # Trap so an interrupted migration still flips maintenance off.
+        trap '$ARTISAN up || true' EXIT
+
         SNAPSHOT_DIR="storage/db-snapshots"
         mkdir -p "$SNAPSHOT_DIR"
         TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
         SNAPSHOT_PATH="$SNAPSHOT_DIR/pre-migrate-$TIMESTAMP.sql"
-        echo "==> Step 3a: mysqldump → $SNAPSHOT_PATH (production only)"
+        echo "==> Step 3a: mysqldump → $SNAPSHOT_PATH"
         # Read DB creds from .env via artisan tinker — avoids parsing .env in shell.
         DB_HOST="$($ARTISAN tinker --execute='echo config("database.connections.mariadb.host");')"
         DB_PORT="$($ARTISAN tinker --execute='echo config("database.connections.mariadb.port");')"
@@ -81,30 +106,15 @@ if [[ "$HAS_PENDING" -eq 1 ]]; then
             --routines \
             --triggers \
             "$DB_DATABASE" > "$SNAPSHOT_PATH"
-    else
-        echo "    Skipping mysqldump (staging is disposable)."
-    fi
 
-    if [[ "$ENVIRONMENT" == "production" ]]; then
         echo "==> Step 3b: php artisan migrate --force"
         $ARTISAN migrate --force
-    else
-        # Staging is disposable (no data worth keeping — see the skipped
-        # mysqldump above). Rebuild from scratch so a drifted ledger can't
-        # wedge the deploy: e.g. a renamed migration (users→members, #133)
-        # leaves the old name recorded while the new one re-creates an
-        # existing table → "1050 Table already exists". migrate:fresh drops
-        # everything and replays the current migration set cleanly.
-        # --seed reinstates the known test login (DatabaseSeeder) the wipe
-        # would otherwise remove, keeping staging usable after every deploy.
-        echo "==> Step 3b: php artisan migrate:fresh --seed --force (staging — disposable DB)"
-        $ARTISAN migrate:fresh --seed --force
-    fi
 
-    $ARTISAN up
-    trap - EXIT
-else
-    echo "    No pending migrations — skipping maintenance-mode wrapping (zero-downtime path)."
+        $ARTISAN up
+        trap - EXIT
+    else
+        echo "    No pending migrations — skipping maintenance-mode wrapping (zero-downtime path)."
+    fi
 fi
 
 echo "==> Step 5: framework caches"
