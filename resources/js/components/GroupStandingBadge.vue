@@ -14,7 +14,6 @@ const props = defineProps<{ standing: string }>();
 // status never renders an untoned badge.
 const TONES: Record<string, BadgeVariants['variant']> = {
     loa: 'warning',
-    inactive: 'secondary',
     emeritus: 'info',
 };
 

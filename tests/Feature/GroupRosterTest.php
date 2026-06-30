@@ -80,8 +80,11 @@ it('exposes contact details only to a viewContact-authorized viewer', function (
     $this->actingAs($chair)
         ->get(route('groups.show', ['group' => $group, 'section' => 'roster']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('roster', fn (Collection $roster) => $roster->firstWhere('last_name', 'Target')['email'] !== null
-                && array_key_exists('email', $roster->firstWhere('last_name', 'Target'))));
+            ->where('roster', function (Collection $roster) {
+                $target = $roster->firstWhere('last_name', 'Target');
+
+                return array_key_exists('email', $target) && $target['email'] !== null;
+            }));
 });
 
 it('withholds contact details from an ordinary member', function () {

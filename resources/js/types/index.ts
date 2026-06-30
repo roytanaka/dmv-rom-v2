@@ -74,3 +74,14 @@ export interface User {
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;
+
+export interface RosterMember {
+    id: number;
+    first_name: string;
+    last_name: string;
+    photo: string | null;
+    group_roles: string[];
+    group_standing: string;
+    email?: string;
+    phone?: string;
+}

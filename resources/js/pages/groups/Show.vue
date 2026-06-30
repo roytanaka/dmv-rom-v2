@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { NavNode } from '@/chrome/types';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type SharedData } from '@/types';
+import { type RosterMember, type SharedData } from '@/types';
 import { Head, usePage } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
@@ -44,17 +44,6 @@ interface Facts {
     time_boxed: boolean;
     start_date: string | null;
     end_date: string | null;
-}
-
-interface RosterMember {
-    id: number;
-    first_name: string;
-    last_name: string;
-    photo: string | null;
-    group_roles: string[];
-    group_standing: string;
-    email?: string;
-    phone?: string;
 }
 
 const props = defineProps<{

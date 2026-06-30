@@ -18,20 +18,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { type RosterMember } from '@/types';
 import { PhMagnifyingGlass } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
-
-interface RosterMember {
-    id: number;
-    first_name: string;
-    last_name: string;
-    photo: string | null;
-    group_roles: string[];
-    group_standing: string;
-    email?: string;
-    phone?: string;
-}
 
 const props = defineProps<{ members: RosterMember[] }>();
 
