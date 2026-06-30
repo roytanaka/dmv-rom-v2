@@ -32,7 +32,7 @@ const grids = computed<LauncherGridView[]>(() => {
     const myGroups = page.props.rail.myGroups;
     if (myGroups) {
         out.push({
-            labelKey: myGroups.labelKey ?? 'nav.rail.my_groups',
+            labelKey: myGroups.labelKey,
             items: myGroups.items.map((item) => ({ ...item, icon: PhUsersThree })),
             localized: true,
         });

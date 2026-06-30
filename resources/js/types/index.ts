@@ -81,9 +81,8 @@ export interface SharedData {
      */
     rail: {
         myGroups?: {
-            labelKey?: string;
+            labelKey: string;
             items: Array<{ groupId: string; name: string; href: string }>;
-            defaultOpen?: boolean;
         };
     };
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */

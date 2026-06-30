@@ -30,9 +30,9 @@ const officerItems = computed(() => visibleNodes(railNav.officer.items));
 
 <template>
     <!-- Zone B — My Groups (lead). Omitted whole when the Member belongs to no Group. -->
-    <SidebarGroup v-if="myGroups.length" class="px-2 py-0">
+    <SidebarGroup v-if="myGroupsSection" class="px-2 py-0">
         <SidebarGroupLabel class="text-sidebar-muted text-xs font-semibold tracking-wide uppercase">{{
-            trans(myGroupsSection?.labelKey ?? '')
+            trans(myGroupsSection.labelKey)
         }}</SidebarGroupLabel>
         <SidebarMenu>
             <NavRailItem v-for="item in myGroups" :key="item.href" :item="item" :default-open="true" localized />
