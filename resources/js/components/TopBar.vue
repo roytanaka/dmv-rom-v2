@@ -35,12 +35,13 @@ const nav = computed(() => page.props.chromeNav);
 const localizeHref = useLocalizedHref();
 const isActive = (dest: ChromeDestination) => dest.href === page.url;
 
-// Shared destination styling — white-on-ink, heritage-blue active underline. The
-// active tab sits LOWER in contrast than the inactive ones, so the cue rides on the
-// hue and the bottom border, which must always render (ADR-0013 contrast findings).
+// Shared destination styling — white-on-ink. The active tab is the BRIGHTEST in the
+// strip (full-white text, semibold) with a heritage-slate underline carrying the hue,
+// so it reads as active rather than dimmer than its neighbours; inactive tabs sit back
+// at white/70 and brighten on hover. The bottom border always renders (no layout shift).
 const destClass = (dest: ChromeDestination): string => {
-    const base = 'flex shrink-0 items-center gap-1.5 border-b-2 px-3 whitespace-nowrap transition-colors text-sm font-medium';
-    return isActive(dest) ? `${base} border-rom-slate-300 text-rom-slate-300` : `${base} border-transparent text-white/70 hover:text-white`;
+    const base = 'flex shrink-0 items-center gap-1.5 border-b-[3px] px-3 whitespace-nowrap transition-colors text-sm font-medium';
+    return isActive(dest) ? `${base} border-rom-slate-300 font-semibold text-white` : `${base} border-transparent text-white/70 hover:text-white`;
 };
 </script>
 
