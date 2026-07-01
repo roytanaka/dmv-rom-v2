@@ -111,6 +111,22 @@ export interface SharedData {
             items: Array<{ key: string; labelKey: string; href: string }>;
         };
     };
+    /**
+     * The dev/QA role-switcher (PRD #220, ADR-0009 dev half): the server-computed prop
+     * the floating impersonation toolbar renders from — the grouped Persona picker and
+     * the active-impersonation state. `null` in production and whenever the visibility
+     * rule fails (`non-prod AND (super-tier OR active impersonation session)`), so the
+     * toolbar simply does not render then. The client computes no persona list,
+     * grouping, or authority — it all comes from here. English-only (a dev tool).
+     */
+    impersonation: {
+        personas: Array<{
+            key: string;
+            label: string;
+            personas: Array<{ email: string; name: string; descriptor: string }>;
+        }>;
+        active: { as: { name: string; descriptor: string }; operator: string } | null;
+    } | null;
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
     sidebarOpen: boolean;
     ziggy: {

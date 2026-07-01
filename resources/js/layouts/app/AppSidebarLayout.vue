@@ -4,6 +4,7 @@ import AppFooter from '@/components/AppFooter.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
+import ImpersonationToolbar from '@/components/ImpersonationToolbar.vue';
 import TopBar from '@/components/TopBar.vue';
 import type { BreadcrumbItemType } from '@/types';
 
@@ -30,5 +31,9 @@ withDefaults(defineProps<Props>(), {
                 <AppFooter />
             </AppContent>
         </div>
+        <!-- The floating dev/QA role-switcher. Renders only when the server ships the
+             `impersonation` prop (non-prod, super-tier or an active session); null
+             otherwise, so it is absent in production and for ordinary Members. -->
+        <ImpersonationToolbar />
     </AppShell>
 </template>
