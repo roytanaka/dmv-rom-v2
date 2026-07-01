@@ -1,14 +1,18 @@
 <?php
 
+use App\Enums\Category;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\MembershipStatus;
+use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\GroupStewardship;
 use App\Models\Member;
+use App\Personas\PersonaCatalogue;
+use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
 
 /*
@@ -134,4 +138,94 @@ it('is idempotent — re-seeding leaves row counts unchanged', function () {
     $this->seed(DemoSeeder::class);
 
     expect($counts())->toBe($before);
+});
+
+/*
+ * Persona catalogue + seeding (PRD #220 / #221, ADR-0009 dev half). The switcher
+ * stands on a code catalogue that is the single source of truth for the curated
+ * Personas; these assert the seeded outcomes the switcher and its gates depend on,
+ * through observable model/gate behaviour — not the catalogue's internals.
+ */
+
+it('seeds exactly the catalogued Personas', function () {
+    foreach (PersonaCatalogue::all() as $persona) {
+        expect(Member::where('email', $persona->email)->exists())->toBeTrue();
+    }
+});
+
+it('seeds a super-tier trio in the Executive Group', function () {
+    $executive = Group::where('slug', 'executive')->firstOrFail();
+
+    $supers = Member::where('super_tier', true)->with('memberships')->get();
+
+    expect($supers)->toHaveCount(3);
+    $supers->each(fn (Member $member) => expect($member->membershipIn($executive))->not->toBeNull());
+});
+
+it('satisfies canPostNews for the news-editor Persona on an announcements Group', function () {
+    $editor = Member::where('email', 'nadia.haddad@dmv.test')
+        ->with('memberships.roles', 'memberships.group')
+        ->firstOrFail();
+
+    $communications = Group::where('slug', 'communications')->firstOrFail();
+
+    expect($communications->has_announcements)->toBeTrue()
+        ->and($editor->canActAs(Role::NewsEditor, $communications))->toBeTrue()
+        ->and($editor->canPostNews())->toBeTrue();
+});
+
+it('excludes the departed Persona from the Directory and My-Groups sources', function () {
+    $departed = Member::where('email', 'sven.larsson@dmv.test')
+        ->with('memberships')
+        ->firstOrFail();
+
+    expect($departed->category)->toBe(Category::Resigned);
+
+    // Directory keys on DMV-wide Category — the departed Persona is not listed.
+    expect(Member::inDirectory()->whereKey($departed->id)->exists())->toBeFalse();
+
+    // My-Groups keys on per-Group standing — no Full/on-leave membership qualifies,
+    // and the root-as-Full enrolment exempts departed Members, so nothing shows.
+    $qualifying = $departed->memberships->filter(fn (GroupMember $m) => in_array(
+        $m->status,
+        [MembershipStatus::Full, MembershipStatus::Loa],
+        true,
+    ));
+    expect($qualifying)->toBeEmpty();
+});
+
+it('gives the multi-group no-office Persona Full standing in several programs', function () {
+    $member = Member::where('email', 'amara.abara@dmv.test')
+        ->with('memberships.roles', 'memberships.group')
+        ->firstOrFail();
+
+    $programs = $member->memberships
+        ->filter(fn (GroupMember $m) => $m->group->kind === Kind::Program && $m->status === MembershipStatus::Full);
+
+    expect($programs->count())->toBeGreaterThanOrEqual(2);
+    $member->memberships->each(fn (GroupMember $m) => expect($m->roles)->toBeEmpty());
+});
+
+it('demotes test@example.com to an ordinary member with no authority', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $member = Member::where('email', 'test@example.com')
+        ->with('memberships.roles', 'memberships.group')
+        ->firstOrFail();
+
+    expect($member->super_tier)->toBeFalse()
+        ->and($member->isAllDmv())->toBeFalse()
+        ->and($member->canPostNews())->toBeFalse()
+        ->and($member->hasMemberAdminAuthority())->toBeFalse();
+
+    // Only the one root-DMV membership every Member gets, carrying no roles.
+    expect($member->memberships)->toHaveCount(1)
+        ->and($member->memberships->first()->group->slug)->toBe(DemoSeeder::ROOT)
+        ->and($member->memberships->first()->roles)->toBeEmpty();
+});
+
+it('allowlists exactly the catalogued Personas', function () {
+    expect(PersonaCatalogue::has('nadia.haddad@dmv.test'))->toBeTrue()
+        ->and(PersonaCatalogue::has('test@example.com'))->toBeFalse()
+        ->and(PersonaCatalogue::emails())->toContain(PersonaCatalogue::CHAIR_EMAIL);
 });

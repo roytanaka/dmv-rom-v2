@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\AccessTier;
 use App\Enums\Category;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
@@ -13,6 +14,8 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupStewardship;
 use App\Models\Member;
+use App\Personas\Persona;
+use App\Personas\PersonaCatalogue;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -52,8 +55,9 @@ use RuntimeException;
  *
  * It is the curated payload of {@see DatabaseSeeder}: every `db:seed` (local
  * `db:fresh` and the staging deploy's `migrate:fresh --seed`) runs it after the
- * known super-tier login. The public constants below are stable handles for
- * tests, mirroring {@see OrgTreeSeeder}.
+ * ordinary-member login. The super-tier trio the role-switcher operates from
+ * lives in the {@see PersonaCatalogue} and is seeded here (#221). The public
+ * constants below are stable handles for tests, mirroring {@see OrgTreeSeeder}.
  */
 class DemoSeeder extends Seeder
 {
@@ -67,9 +71,11 @@ class DemoSeeder extends Seeder
 
     public const RECEPTION = 'reception';
 
-    public const CHAIR_EMAIL = 'demo.chair@dmv.test';
+    // Historical stable handles, now sourced from the persona catalogue (the
+    // single source of truth for persona identities) so list and seed can't drift.
+    public const CHAIR_EMAIL = PersonaCatalogue::CHAIR_EMAIL;
 
-    public const COORDINATOR_EMAIL = 'demo.coordinator@dmv.test';
+    public const COORDINATOR_EMAIL = PersonaCatalogue::SCHEDULER_EMAIL;
 
     /**
      * Slugs created so far this run — a guard so two curated nodes that slugify
@@ -88,50 +94,63 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * A curated demo roster (PRD #139, slice 3 / #142): a believable spread of
-     * people across the tree so the board demo shows the app modelling how DMV
-     * actually works. It spans varied membership statuses (Full, Trainee, an LOA
-     * with a window set, plus Emeritus and Transitional for breadth), the
-     * capability-backed roles on the scheduling/documenting/stats-tracking
-     * Docents program (Scheduler, Librarian, Statistician — each gated by a
-     * Group flag), the core Chair and Secretary roles, and the Records Group
-     * stewarding `member_admin`.
+     * The curated persona roster (PRD #220 / #221): every catalogued Persona from
+     * {@see PersonaCatalogue}, seeded into its Group placements. The catalogue is
+     * the single source of truth — this method computes no identities, standings
+     * or roles of its own, so the seeded set and the switcher's picker can never
+     * drift. It spans the super-tier trio, the core officer roles, the
+     * capability-backed roles (each on a Group whose flag is on), varied membership
+     * standings, and the no-authority negatives.
      *
      * Like the rest of this seeder it is faker-free (plain Eloquent) and
      * idempotent: members key on email, memberships on the (Group, Member) pair,
-     * and roles/stewardships heal rather than duplicate on re-run. The slice is
-     * deliberately small (~30 rows) — realistic full-roster volume is out of
-     * scope for v1.
+     * and roles/stewardships heal rather than duplicate on re-run.
      */
     private function roster(): void
     {
-        $root = Group::where('slug', self::ROOT)->firstOrFail();
-        $committee = Group::where('slug', self::COMMITTEE)->firstOrFail();
-        $records = Group::where('slug', self::RECORDS)->firstOrFail();
-        $program = Group::where('slug', self::PROGRAM)->firstOrFail();
-        $reception = Group::where('slug', self::RECEPTION)->firstOrFail();
+        foreach (PersonaCatalogue::all() as $persona) {
+            $member = $this->personaMember($persona);
 
-        // Governance — core roles, which attach to any Group regardless of flags.
-        $this->membership($root, $this->member(self::CHAIR_EMAIL, 'Demo Chair'), MembershipStatus::Full, [Role::Chair]);
-        $this->membership($committee, $this->member('demo.secretary@dmv.test', 'Demo Secretary'), MembershipStatus::Full, [Role::Secretary]);
-        $this->membership($committee, $this->member('demo.treasurer@dmv.test', 'Demo Treasurer'), MembershipStatus::Full, [Role::Treasurer]);
+            foreach ($persona->placements as $placement) {
+                $group = Group::where('slug', $placement->groupSlug)->firstOrFail();
 
-        // The Docents program — its capability flags back the roles below.
-        $this->membership($program, $this->member(self::COORDINATOR_EMAIL, 'Demo Coordinator'), MembershipStatus::Full, [Role::Scheduler]);
-        $this->membership($program, $this->member('demo.librarian@dmv.test', 'Demo Librarian'), MembershipStatus::Full, [Role::Librarian]);
-        $this->membership($program, $this->member('demo.statistician@dmv.test', 'Demo Statistician'), MembershipStatus::Full, [Role::Statistician]);
-        $this->membership($program, $this->member('demo.trainee@dmv.test', 'Demo Trainee'), MembershipStatus::Trainee);
-        $this->loaMembership($program, $this->member('demo.onleave@dmv.test', 'Demo On Leave'));
-
-        // A second program, for roster breadth and varied standings.
-        $this->membership($reception, $this->member('demo.greeter@dmv.test', 'Demo Greeter'), MembershipStatus::Full);
-        $this->membership($reception, $this->member('demo.emeritus@dmv.test', 'Demo Emeritus'), MembershipStatus::Emeritus);
-        $this->membership($reception, $this->member('demo.transitional@dmv.test', 'Demo Transitional'), MembershipStatus::Transitional);
+                if ($placement->status === MembershipStatus::Loa) {
+                    $this->loaMembership($group, $member);
+                } else {
+                    $this->membership($group, $member, $placement->status, $placement->roles);
+                }
+            }
+        }
 
         // The Records Group stewards member administration (ADR-0011): authority
-        // is membership in it, not a standalone flag.
-        $this->membership($records, $this->member('demo.clerk@dmv.test', 'Demo Clerk'), MembershipStatus::Full);
+        // is membership in it, not a standalone flag. Org structure, not a Persona.
+        $records = Group::where('slug', self::RECORDS)->firstOrFail();
         $this->steward($records, StewardshipFunction::MemberAdmin);
+    }
+
+    /**
+     * Create (or heal) the Member behind a catalogued Persona. category is fillable
+     * but re-set here so a catalogue change lands on re-seed; super_tier and
+     * email_verified_at are non-fillable (#153, ADR-0017 §1), force-filled the same
+     * way {@see DatabaseSeeder} grants them so the super-tier trio can't be set
+     * through any form.
+     */
+    private function personaMember(Persona $persona): Member
+    {
+        $member = Member::firstOrCreate(['email' => $persona->email], [
+            'first_name' => $persona->firstName,
+            'last_name' => $persona->lastName,
+            'category' => $persona->category,
+            'password' => Hash::make('password'),
+        ]);
+
+        $member->category = $persona->category;
+        $member->forceFill([
+            'super_tier' => $persona->superTier,
+            'email_verified_at' => $member->email_verified_at ?? now(),
+        ])->save();
+
+        return $member;
     }
 
     /** How many generated volunteers populate the bulk roster. */
@@ -229,7 +248,16 @@ class DemoSeeder extends Seeder
     {
         $root = Group::where('slug', self::ROOT)->firstOrFail();
 
-        Member::query()->each(fn (Member $member) => $this->membership($root, $member, MembershipStatus::Full));
+        Member::query()->each(function (Member $member) use ($root) {
+            // Departed Members (Resigned / Withdrawn / Deceased) are exempt: the
+            // departed Persona must not pick up a Full root membership, so it
+            // exercises the My-Groups standing-exclusion axis, not just Directory.
+            if ($member->category->accessTier() === AccessTier::None) {
+                return;
+            }
+
+            $this->membership($root, $member, MembershipStatus::Full);
+        });
     }
 
     private function categoryFor(int $i): Category
@@ -290,7 +318,7 @@ class DemoSeeder extends Seeder
                     $this->sc('Associated Friends'),
                     $this->sc('Awards'),
                     $this->sc("Chairs' Corner"),
-                    $this->sc('Communications'),
+                    $this->sc('Communications', capabilities: ['has_announcements' => true]),
                     $this->sc('DEI Committee'),
                     $this->sc('Endowments'),
                     $this->sc('Executive'),
@@ -387,13 +415,17 @@ class DemoSeeder extends Seeder
 
     /**
      * A standing-committee node (also used for the org-level container sections).
+     * `capabilities` overrides specific Kind-derived flags for the rare node whose
+     * capability profile differs (e.g. Communications turning on announcements so
+     * the news-editor Persona's `post-news` gate is satisfiable).
      *
      * @param  array<int, array<string, mixed>>  $children
+     * @param  array<string, bool>  $capabilities
      * @return array<string, mixed>
      */
-    private function sc(string $name, array $children = []): array
+    private function sc(string $name, array $children = [], array $capabilities = []): array
     {
-        return ['name' => $name, 'kind' => Kind::StandingCommittee, 'children' => $children];
+        return ['name' => $name, 'kind' => Kind::StandingCommittee, 'children' => $children, 'capabilities' => $capabilities];
     }
 
     /**
@@ -512,6 +544,11 @@ class DemoSeeder extends Seeder
             $attributes['time_boxed'] = true;
             $attributes['start_date'] = now()->subYears(2)->toDateString();
             $attributes['end_date'] = now()->subMonths(6)->toDateString();
+        }
+
+        // Per-node capability overrides win over the Kind-derived defaults.
+        if (! empty($node['capabilities'])) {
+            $attributes = array_merge($attributes, $node['capabilities']);
         }
 
         return $attributes;
