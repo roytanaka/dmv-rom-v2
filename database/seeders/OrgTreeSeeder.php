@@ -57,7 +57,7 @@ class OrgTreeSeeder extends Seeder
     {
         $root = $this->group(self::ROOT, fn () => Group::factory()->standingCommittee()->create([
             'slug' => self::ROOT,
-            'name' => 'Department of Museum Volunteers',
+            'name' => 'DMV',
             'description' => 'The DMV at large — the root of the org tree.',
             'display_order' => 0,
         ]));

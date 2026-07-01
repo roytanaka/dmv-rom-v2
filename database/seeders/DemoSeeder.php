@@ -155,9 +155,10 @@ class DemoSeeder extends Seeder
 
     /**
      * Create (or load) the generated volunteer pool — deterministic so re-running
-     * lands the same people. Names pair the two curated lists by offset to spread
-     * the combinations; the email carries the index so it stays unique and stable
-     * regardless of name collisions.
+     * lands the same people. Names pair the two curated lists so every full name is
+     * unique across the pool: the first name cycles each lap while the last name is
+     * bumped one step per lap, so a second lap never repeats a first-lap pairing
+     * (the pool is larger than either list). Email carries the index for stability.
      *
      * @return list<Member>
      */
@@ -169,7 +170,8 @@ class DemoSeeder extends Seeder
         $pool = [];
 
         for ($i = 0; $i < self::POOL_SIZE; $i++) {
-            $name = $first[$i % count($first)].' '.$last[($i * 7) % count($last)];
+            $lap = intdiv($i, count($first));
+            $name = $first[$i % count($first)].' '.$last[($i * 7 + $lap) % count($last)];
             $email = sprintf('%s.%s%02d@dmv.test', Str::lower(Str::before($name, ' ')), Str::lower(Str::after($name, ' ')), $i);
 
             $member = $this->member($email, $name);
@@ -278,7 +280,7 @@ class DemoSeeder extends Seeder
     private function tree(): array
     {
         return [
-            'name' => 'Department of Museum Volunteers',
+            'name' => 'DMV',
             'slug' => self::ROOT,
             'kind' => Kind::StandingCommittee,
             'description' => 'The DMV at large — the root of the org tree.',
@@ -482,7 +484,7 @@ class DemoSeeder extends Seeder
         $attributes = [
             'parent_id' => $parentId,
             'name' => $node['name'],
-            'description' => $node['description'] ?? null,
+            'description' => $node['description'] ?? $this->aboutFor($node),
             'kind' => $kind,
             'scope' => $this->scopeFor($kind),
             'display_order' => $order,
@@ -513,6 +515,54 @@ class DemoSeeder extends Seeder
         }
 
         return $attributes;
+    }
+
+    /**
+     * A deterministic fake "About Us" blurb (the Group's `description`, rendered
+     * verbatim on the Group page). A Kind-aware opening line plus two sentences drawn
+     * from rotating pools by a hash of the slug, so the ~80 demo Groups don't all read
+     * the same yet reseed identically. Real content overrides it (`description` on the
+     * node); this only fills the gap so every Group page has something to show.
+     *
+     * @param  array<string, mixed>  $node
+     */
+    private function aboutFor(array $node): string
+    {
+        $name = $node['name'];
+        $kind = $node['kind'];
+
+        $opener = match ($kind) {
+            Kind::Program => "{$name} is one of the Department of Museum Volunteers' front-line programs at the Royal Ontario Museum.",
+            Kind::StandingCommittee => "The {$name} committee is part of the Department of Museum Volunteers at the Royal Ontario Museum.",
+            Kind::WorkingGroup => "{$name} is a working group within the DMV, supporting the day-to-day work of its program.",
+            Kind::Project => "{$name} is a time-limited special project staffed by DMV volunteers.",
+            Kind::Cohort => "{$name} was a trained docent cohort supporting a past ROM exhibition.",
+        };
+
+        $mission = [
+            'Its volunteers bring the Museum\'s collections to life for visitors of all ages.',
+            'Members meet regularly to plan activities, share training, and support one another.',
+            'The group welcomes new volunteers who bring curiosity, warmth, and a love of learning.',
+            'Together its members help the ROM connect people with art, culture, and nature.',
+            'Volunteers here contribute their time, expertise, and enthusiasm throughout the season.',
+            'The team works closely with Museum staff to deliver memorable visitor experiences.',
+        ];
+
+        $activity = [
+            'Activities range from gallery tours to behind-the-scenes projects and community outreach.',
+            'New members receive mentoring and hands-on training before taking on their roles.',
+            'Reach out to the group\'s Chair to learn how to get involved.',
+            'Meeting notes, schedules, and resources are shared with members through this page.',
+            'The group takes pride in the ROM\'s mission and the community it serves.',
+        ];
+
+        $hash = crc32($node['slug'] ?? Str::slug($name));
+
+        return implode(' ', [
+            $opener,
+            $mission[$hash % count($mission)],
+            $activity[intdiv($hash, count($mission)) % count($activity)],
+        ]);
     }
 
     private function scopeFor(Kind $kind): Scope
