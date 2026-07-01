@@ -38,6 +38,22 @@ _Avoid_: treating the Directory as a member-administration or editing surface �
 **Login**:
 The act of authenticating into the app with email + password. The only authentication flow in the rebuild.
 
+**Impersonation**:
+Acting as another **Member** via `Auth::login`. Two variants, distinguished by *depth*, not just environment: **become** — full login-as, the operator *is* the other Member (the non-production dev **Role-switcher**); and **view-as** — read-mostly, consented, audited (the future production **support administration** tool, [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)). "Impersonation" is the umbrella; become / view-as is the safety axis.
+_Avoid_: using "impersonation" to mean the production tool only — it covers both; name the variant when the depth matters.
+
+**Persona**:
+A curated, seeded, catalogued identity that exists only to be impersonated for dev/QA — realistic name and email, but fictional. Personas cover every authorization gate and membership standing so the whole authorization surface can be walked from the **Role-switcher**. They live in a code **persona catalogue** (the single source for seeding them, listing them in the switcher, and the impersonation allowlist), not behind a database flag. See [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md).
+_Avoid_: calling bulk-roster filler Personas — those are ordinary seeded Members; a Persona is specifically a catalogued impersonation target.
+
+**Role-switcher**:
+The non-production dev toolbar (`local`/`staging` only) that lets a super-tier operator **become** a **Persona** to exercise role-gated behaviour and UX fast. Presentation over a server-driven prop; the environment boundary — not the toolbar's visibility — is the security control ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
+_Avoid_: "user switcher" (ADR-0009's older name) and conflating it with the production **view-as** support tool; the Role-switcher does full **become** on **Persona** data only.
+
+**Return to impersonator**:
+The Role-switcher's escape hatch back to the original operator, from any impersonated Persona. Keyed on the operator id stored in the session at the start of impersonation, so it works regardless of the impersonated Persona's tier.
+_Avoid_: "return to super" — the mechanism keys on the stored impersonator, not on tier (the operator is super-tier only incidentally, because entry is super-gated).
+
 **Group**:
 The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (roster, meetings, documents, scheduling, content, stats). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
 

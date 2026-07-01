@@ -1,9 +1,12 @@
 ---
-status: proposed
+status: accepted (dev role-switcher) / proposed (production view-as)
 date: 2026-05-28
+amended: 2026-07-01
 ---
 
 # User switching and support impersonation
+
+> **Amendment 2026-07-01 (dev role-switcher):** the dev half is now **accepted** and specified for implementation (PRD: role-switcher). Three specifics below are refined by that PRD: seeded profiles are realistic-identity **Personas** driven by a code **persona catalogue** (not the `admin@example.test` fixed logins of §1, and not a database flag); "operates on fake seed data only" is now backed by a standing policy that **staging never holds real data**, so the dev tool has no PII dimension *by construction*; and the floating widget gains a **rebase + return-to-impersonator** escape hatch (become a Persona, always get back to the operator). The production view-as half (§2) is unchanged and stays proposed. See `CONTEXT.md` for the Persona / Role-switcher / Impersonation (become vs view-as) / return-to-impersonator vocabulary.
 
 ## Context
 
@@ -32,9 +35,10 @@ A convenience for `local` and `staging` to switch between **seeded fake profiles
   - The route is only **registered** when `app()->environment('local', 'staging')` — in production the route does not exist (router returns 404 automatically).
   - The controller *also* calls `abort_unless(app()->environment('local', 'staging'), 404)` — so even if a future refactor registers the route everywhere, the handler still refuses in production.
 - UI may be a floating dev widget (Vercel-toolbar style) rather than typed URLs. **The widget is presentation only; the security boundary is the server-side route gate, never the visibility of the button.**
-- Mechanism: Laravel's `Auth::login($user)`. No package (see "Considered alternatives").
-- Seeded profiles use predictable logins (e.g. `admin@example.test`, `coordinator@example.test`) with a known dev password; Faker fills surrounding data, fixed values fill the login accounts.
-- Operates on fake seed data only, so there is no PII or consent dimension.
+- Mechanism: Laravel's `Auth::login($user)` — a full **become**. No package (see "Considered alternatives"). *(Amended: the become is single-level and rebases to the original operator rather than stacking; a session-stored operator id + a persistent, tier-independent toolbar provide **Stop** — return to impersonator — and **Switch** — rebase to another Persona.)*
+- UI is one stateful floating dev toolbar, shipped as a server-driven Inertia prop (like `chromeNav`/`rail`); the toolbar is presentation only — the security boundary is the server-side route gate + environment check, never the widget's visibility. Entry is `non-prod AND (super-tier OR active impersonation session)`; Stop needs only an active session.
+- ~~Seeded profiles use predictable logins (e.g. `admin@example.test`, `coordinator@example.test`)~~ *(Amended: seeded profiles are realistic-identity **Personas** — realistic names + `@dmv.test` emails — one per authorization gate and membership standing, defined in a code **persona catalogue** that is the single source for seeding them, listing them in the toolbar, and the impersonation allowlist. The switcher becomes only catalogued Personas.)* Known dev password on the accounts.
+- ~~Operates on fake seed data only, so there is no PII or consent dimension.~~ *(Amended: backed by policy — **staging never holds real data** — so the dev tool has no PII or consent dimension by construction, not by luck. The impersonation allowlist (catalogued Personas only) is defence-in-depth behind the environment gate, not a privacy control.)*
 
 ### 2. Production support impersonation ("view-as")
 
