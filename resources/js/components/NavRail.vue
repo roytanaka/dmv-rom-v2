@@ -10,7 +10,7 @@ import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu } fro
 import type { GroupNode, NavNode } from '@/chrome/types';
 import type { PhosphorIcon, SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
-import { PhBuildings, PhCaretDown, PhChartBar, PhChatCircleDots, PhGear, PhMegaphone, PhUsersThree } from '@phosphor-icons/vue';
+import { PhBuildings, PhCaretDown, PhChartBar, PhChatCircleDots, PhGear, PhMegaphone } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -20,12 +20,13 @@ const page = usePage<SharedData>();
 // (PRD #209): the prop carries pre-localized rows, My Groups flat and All Groups as the
 // active org tree already reshaped (Option C) with subcommittees nested. My Groups is
 // omitted when the Member belongs to no Group; All Groups, present for every Member, is
-// omitted only when no active Group exists. Each Group row gets the interim placeholder
-// Group icon (custom per-Group icons are a later slice).
+// omitted only when no active Group exists. Group rows render without an icon (every
+// Group shared one placeholder, so it carried no information); custom per-Group icons
+// are a later slice.
 const myGroupsSection = computed(() => page.props.rail.myGroups);
-const myGroups = computed<GroupNode[]>(() => (myGroupsSection.value?.items ?? []).map((item) => ({ ...item, icon: PhUsersThree })));
+const myGroups = computed<GroupNode[]>(() => myGroupsSection.value?.items ?? []);
 const allGroupsSection = computed(() => page.props.rail.allGroups);
-const allGroups = computed<GroupNode[]>(() => (allGroupsSection.value?.items ?? []).map((item) => ({ ...item, icon: PhUsersThree })));
+const allGroups = computed<GroupNode[]>(() => allGroupsSection.value?.items ?? []);
 
 // Officer Tools — the org-wide administration cluster, per-item gated server-side, so
 // the prop carries only the items this Member may see (the cluster is absent entirely
@@ -92,7 +93,7 @@ watch(allGroupsHasActive, (active) => {
 
     <!-- Zone C — Officer Tools (pinned bottom). Server-pruned: present only when at
          least one item survived gating for this Member; hrefs arrive pre-localized. -->
-    <SidebarGroup v-if="officerSection" class="mt-auto px-2 py-0">
+    <SidebarGroup v-if="officerSection" class="border-sidebar-border mt-auto border-t px-2 pt-2 pb-0">
         <SidebarGroupLabel class="text-sidebar-muted text-xs font-semibold tracking-wide uppercase">{{
             trans(officerSection.labelKey)
         }}</SidebarGroupLabel>
