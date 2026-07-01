@@ -118,6 +118,12 @@ it('rebases to the original operator instead of stacking Personas', function () 
     expect(session('impersonator_id'))->toBe($operator->id);
 });
 
+it('rejects start for a non-super-tier member with no active impersonation', function () {
+    $this->actingAs(Member::factory()->create())
+        ->post(route('impersonation.start'), ['email' => PersonaCatalogue::CHAIR_EMAIL])
+        ->assertForbidden();
+});
+
 // --- Allowlist --------------------------------------------------------------
 
 it('refuses to become an account that is not a catalogued Persona', function () {
@@ -128,6 +134,12 @@ it('refuses to become an account that is not a catalogued Persona', function () 
         ->assertNotFound();
 
     $this->assertAuthenticatedAs(operator());
+});
+
+it('rejects stop when no impersonation session is active', function () {
+    $this->actingAs(operator())
+        ->delete(route('impersonation.stop'))
+        ->assertForbidden();
 });
 
 // --- Production hard-off (two-layer environment boundary) -------------------

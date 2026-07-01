@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Member;
 use App\Personas\PersonaCatalogue;
 use Illuminate\Http\RedirectResponse;
@@ -27,8 +28,11 @@ class ImpersonationController extends Controller
      * Session key holding the original operator's id across an impersonation — the
      * thread back to the real super-tier human. Rebasing never overwrites it with an
      * intermediate Persona, so Stop always returns to the operator who started.
+     *
+     * Public so {@see HandleInertiaRequests} can read the same
+     * key without duplicating the string.
      */
-    private const OPERATOR_KEY = 'impersonator_id';
+    public const OPERATOR_KEY = 'impersonator_id';
 
     /**
      * Become a catalogued Persona. Authorized for a super-tier operator, or for an

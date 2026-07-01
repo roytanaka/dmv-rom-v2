@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\MembershipStatus;
+use App\Http\Controllers\ImpersonationController;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
@@ -171,9 +172,6 @@ class HandleInertiaRequests extends Middleware
         return $rail;
     }
 
-    /** The session key the impersonation controller threads the operator id through. */
-    private const IMPERSONATOR_KEY = 'impersonator_id';
-
     /**
      * The dev/QA role-switcher prop (PRD #220, ADR-0009 dev half). Null in production
      * and whenever the visibility rule fails; otherwise it carries the grouped Persona
@@ -195,7 +193,7 @@ class HandleInertiaRequests extends Middleware
         }
 
         $member = $request->user();
-        $operatorId = $request->session()->get(self::IMPERSONATOR_KEY);
+        $operatorId = $request->session()->get(ImpersonationController::OPERATOR_KEY);
         $active = $operatorId !== null;
 
         if ($member === null || (! $member->isAllDmv() && ! $active)) {
