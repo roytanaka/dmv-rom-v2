@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupMemberController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
@@ -159,6 +160,22 @@ Route::patch('memberships/{membership}', [GroupMemberController::class, 'update'
 Route::delete('memberships/{membership}', [GroupMemberController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('group-members.destroy');
+
+// Dev/QA role-switcher (ADR-0009 dev half, PRD #220). Layer one of the two-layer
+// environment boundary: the become/stop endpoints are registered only outside
+// production, so in production they do not exist (404) regardless of any UI state.
+// The controller re-checks the environment as layer two. Non-localized, like the
+// other write seams — this is a dev tool, not chrome, and is English-only per
+// ADR-0009. Stop needs only an active impersonation session, so both sit behind
+// plain `auth`; the tier gate lives in the controller.
+if (! app()->environment('production')) {
+    Route::post('impersonate', [ImpersonationController::class, 'start'])
+        ->middleware('auth')
+        ->name('impersonation.start');
+    Route::delete('impersonate', [ImpersonationController::class, 'stop'])
+        ->middleware('auth')
+        ->name('impersonation.stop');
+}
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
