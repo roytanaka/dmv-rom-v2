@@ -4,6 +4,7 @@ import AppFooter from '@/components/AppFooter.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
+import ImpersonationToolbar from '@/components/ImpersonationToolbar.vue';
 import TopBar from '@/components/TopBar.vue';
 import type { BreadcrumbItemType } from '@/types';
 
@@ -30,5 +31,6 @@ withDefaults(defineProps<Props>(), {
                 <AppFooter />
             </AppContent>
         </div>
+        <ImpersonationToolbar />
     </AppShell>
 </template>

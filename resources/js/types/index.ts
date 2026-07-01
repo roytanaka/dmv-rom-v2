@@ -111,6 +111,16 @@ export interface SharedData {
             items: Array<{ key: string; labelKey: string; href: string }>;
         };
     };
+    /** Dev/QA role-switcher prop (ADR-0009). Null in production and for ordinary Members.
+     *  Persona catalogue, grouping, and authority checks are entirely server-computed. */
+    impersonation: {
+        personas: Array<{
+            key: string;
+            label: string;
+            personas: Array<{ email: string; name: string; descriptor: string }>;
+        }>;
+        active: { as: { name: string; descriptor: string }; operator: string } | null;
+    } | null;
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
     sidebarOpen: boolean;
     ziggy: {
