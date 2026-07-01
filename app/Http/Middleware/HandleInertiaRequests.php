@@ -3,9 +3,12 @@
 namespace App\Http\Middleware;
 
 use App\Enums\MembershipStatus;
+use App\Http\Controllers\ImpersonationController;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
+use App\Personas\Persona;
+use App\Personas\PersonaCatalogue;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -75,6 +78,13 @@ class HandleInertiaRequests extends Middleware
             // zones (My Groups, All Groups, Officer Tools). Hrefs are localized
             // server-side, gating resolves here — the client renders only what it is given.
             'rail' => $this->rail($request),
+            // Dev/QA role-switcher (PRD #220, ADR-0009 dev half): the data the
+            // floating impersonation toolbar renders from — the grouped Persona
+            // picker and the active-impersonation state. Null in production and
+            // whenever the visibility rule fails, so an ordinary Member (and every
+            // production request) ships nothing. Built server-side like chromeNav /
+            // rail; the toolbar computes no persona list, grouping, or authority.
+            'impersonation' => $this->impersonation($request),
             'auth' => [
                 'user' => $request->user(),
                 // Coarse, app-wide capability map for chrome/nav (ADR-0017 §9).
@@ -160,6 +170,88 @@ class HandleInertiaRequests extends Middleware
         }
 
         return $rail;
+    }
+
+    /**
+     * The dev/QA role-switcher prop (PRD #220, ADR-0009 dev half). Null in production
+     * and whenever the visibility rule fails; otherwise it carries the grouped Persona
+     * picker and the active-impersonation state, both computed here so the toolbar is
+     * pure presentation.
+     *
+     * Visibility keys off the active impersonation session, not the current user's
+     * tier: `non-prod AND (super-tier OR an active impersonation session)`. So an
+     * operator idling at super-tier sees the picker, and — crucially — an impersonated
+     * no-authority Persona still sees the loud active bar (with its way back), even
+     * though it holds no tier of its own.
+     *
+     * @return array{personas: list<array{key: string, label: string, personas: list<array{email: string, name: string, descriptor: string}>}>, active: array{as: array{name: string, descriptor: string}, operator: string}|null}|null
+     */
+    private function impersonation(Request $request): ?array
+    {
+        if (app()->environment('production')) {
+            return null;
+        }
+
+        $member = $request->user();
+        $operatorId = $request->session()->get(ImpersonationController::OPERATOR_KEY);
+        $active = $operatorId !== null;
+
+        if ($member === null || (! $member->isAllDmv() && ! $active)) {
+            return null;
+        }
+
+        return [
+            'personas' => $this->personaGroups(),
+            'active' => $active ? $this->activeImpersonation($member, $operatorId) : null,
+        ];
+    }
+
+    /**
+     * The Persona picker, grouped by function (Super-tier / Officers / Stewards /
+     * Roles / Standings / Negative) in catalogue order — the single source of truth,
+     * so the list and the seeded data can never drift. Each row carries the realistic
+     * name, the `{role · group}` descriptor, and the email the toolbar posts to start.
+     *
+     * @return list<array{key: string, label: string, personas: list<array{email: string, name: string, descriptor: string}>}>
+     */
+    private function personaGroups(): array
+    {
+        return collect(PersonaCatalogue::all())
+            ->groupBy(fn (Persona $persona) => $persona->group->value)
+            ->map(fn (Collection $personas, string $key) => [
+                'key' => $key,
+                'label' => $personas->first()->group->label(),
+                'personas' => $personas->map(fn (Persona $persona) => [
+                    'email' => $persona->email,
+                    'name' => $persona->name(),
+                    'descriptor' => $persona->descriptor,
+                ])->values()->all(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The active-impersonation state: who is being impersonated (name + descriptor,
+     * resolved from the catalogue by the current Member's email) and the operator to
+     * return to. Drives the loud "⚠ IMPERSONATING {persona} · as {operator}" bar.
+     *
+     * @return array{as: array{name: string, descriptor: string}, operator: string}
+     */
+    private function activeImpersonation(Member $member, int $operatorId): array
+    {
+        $persona = collect(PersonaCatalogue::all())
+            ->first(fn (Persona $candidate) => $candidate->email === $member->email);
+
+        $operator = Member::find($operatorId);
+
+        return [
+            'as' => [
+                'name' => $persona?->name() ?? "{$member->first_name} {$member->last_name}",
+                'descriptor' => $persona?->descriptor ?? '',
+            ],
+            'operator' => $operator ? "{$operator->first_name} {$operator->last_name}" : '',
+        ];
     }
 
     /**
