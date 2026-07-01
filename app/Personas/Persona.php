@@ -3,7 +3,6 @@
 namespace App\Personas;
 
 use App\Enums\Category;
-use Illuminate\Support\Str;
 
 /**
  * A single catalogued Persona (ADR-0009 dev half, PRD #220): a realistic-identity
@@ -33,6 +32,6 @@ final class Persona
     /** The display name — "First Last" — shown in the switcher's picker row. */
     public function name(): string
     {
-        return Str::squish("{$this->firstName} {$this->lastName}");
+        return "{$this->firstName} {$this->lastName}";
     }
 }
