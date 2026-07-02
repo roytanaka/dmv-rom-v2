@@ -81,8 +81,9 @@ class MemberResource extends JsonResource
             'id' => $this->id,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
-            // null until the photo-upload feature lands.
-            'photo' => $this->photo_path,
+            // Public avatar URL (#233), or null when the member has uploaded none.
+            // Always public — a face is opt-in by uploading (contrast gated contact PII).
+            'photo' => $this->photo_url,
             // DMV-wide standing (the Member's Category, glossary-named "standing").
             // Not PII — drives the directory/profile standing badge. The raw enum
             // attribute stays absent; the frontend maps this value to a chrome label.

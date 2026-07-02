@@ -6,7 +6,7 @@
 // no edit affordance, and no field beyond name/photo/standing/Groups.
 import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -36,7 +36,8 @@ const props = defineProps<{ member: Member }>();
 
 const fullName = computed(() => `${props.member.first_name} ${props.member.last_name}`);
 
-// Two-initial fallback (no photos exist yet), matching the Directory list.
+// Two-initial fallback shown when the member has no photo (radix swaps to the sibling
+// AvatarFallback when `src` is null or fails to load), matching the Directory list.
 const initials = computed(() => `${props.member.first_name.charAt(0)}${props.member.last_name.charAt(0)}`.toUpperCase());
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
@@ -54,6 +55,7 @@ const hasContact = computed(() => props.member.email !== undefined || props.memb
         <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-6">
             <header class="flex items-center gap-4">
                 <Avatar size="base">
+                    <AvatarImage v-if="member.photo" :src="member.photo" :alt="fullName" />
                     <AvatarFallback>{{ initials }}</AvatarFallback>
                 </Avatar>
                 <div class="flex flex-col gap-1.5">

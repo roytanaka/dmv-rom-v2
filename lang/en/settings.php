@@ -33,6 +33,12 @@ return [
         'address_province' => 'Province',
         'address_postal_code' => 'Postal code',
         'address_country' => 'Country',
+        // Profile photo (#233). Public once uploaded; optional (no photo = initials).
+        'photo' => 'Profile photo',
+        'photo_hint' => 'JPG, PNG, or WebP, up to 5 MB. Cropped to a square automatically.',
+        'photo_error_heic' => 'HEIC photos (the iPhone default) aren’t supported. On your phone, re-save or export the picture as JPG and upload that.',
+        'photo_error_unsupported' => 'That file type isn’t supported. Please upload a JPG, PNG, or WebP image.',
+        'photo_error_too_large' => 'That image is too large. Please upload a photo under :max MB.',
         'current_password' => 'Current password',
         'current_password_hint' => 'Confirm your current password to change your email address.',
         'unverified' => 'Your email address is unverified.',

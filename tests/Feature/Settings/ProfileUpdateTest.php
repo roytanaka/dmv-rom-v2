@@ -4,6 +4,8 @@ namespace Tests\Feature\Settings;
 
 use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -126,6 +128,31 @@ class ProfileUpdateTest extends TestCase
         $this->assertSame('Renamed', $user->refresh()->first_name);
     }
 
+    public function test_saving_without_an_email_change_tolerates_the_empty_current_password_field()
+    {
+        // The real form always submits current_password (default ''), and
+        // ConvertEmptyStringsToNull rewrites '' to null — which a bare current_password
+        // rule treats as present-and-wrong. Guards against that regression: a non-email
+        // save carrying an empty current_password must still succeed, not silently fail
+        // on a hidden field.
+        $user = Member::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/settings/profile', [
+                'first_name' => 'Renamed',
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'current_password' => '',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/settings/profile');
+
+        $this->assertSame('Renamed', $user->refresh()->first_name);
+    }
+
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
     {
         $user = Member::factory()->create();
@@ -232,5 +259,82 @@ class ProfileUpdateTest extends TestCase
         $response
             ->assertSessionHasErrors('address_postal_code')
             ->assertRedirect('/settings/profile');
+    }
+
+    public function test_uploading_a_photo_stores_a_square_webp_and_sets_photo_path()
+    {
+        Storage::fake('public');
+        $user = Member::factory()->create();
+
+        // Mirror the browser: a File forces multipart, which PHP parses only on POST,
+        // so the form submits POST + _method spoof rather than a real PATCH.
+        $response = $this
+            ->actingAs($user)
+            ->post('/settings/profile', [
+                '_method' => 'PATCH',
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'photo' => UploadedFile::fake()->image('avatar.jpg', 800, 600),
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/settings/profile');
+
+        $path = $user->refresh()->photo_path;
+
+        $this->assertNotNull($path);
+        $this->assertStringStartsWith('profile-photos/', $path);
+        $this->assertStringEndsWith('.webp', $path);
+        Storage::disk('public')->assertExists($path);
+    }
+
+    public function test_heic_upload_is_rejected()
+    {
+        Storage::fake('public');
+        $user = Member::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/settings/profile')
+            ->post('/settings/profile', [
+                '_method' => 'PATCH',
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'photo' => UploadedFile::fake()->create('iphone.heic', 200, 'image/heic'),
+            ]);
+
+        $response
+            ->assertSessionHasErrors('photo')
+            ->assertRedirect('/settings/profile');
+
+        $this->assertNull($user->refresh()->photo_path);
+    }
+
+    public function test_oversized_upload_is_rejected()
+    {
+        Storage::fake('public');
+        $user = Member::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/settings/profile')
+            ->post('/settings/profile', [
+                '_method' => 'PATCH',
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                // A real JPEG (passes the format allowlist) reporting 6 MB — trips the
+                // size cap specifically, not the type check.
+                'photo' => UploadedFile::fake()->image('huge.jpg')->size(6 * 1024),
+            ]);
+
+        $response
+            ->assertSessionHasErrors('photo')
+            ->assertRedirect('/settings/profile');
+
+        $this->assertNull($user->refresh()->photo_path);
     }
 }

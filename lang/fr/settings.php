@@ -33,6 +33,12 @@ return [
         'address_province' => 'Province',
         'address_postal_code' => 'Code postal',
         'address_country' => 'Pays',
+        // Photo de profil (#233). Publique une fois téléversée ; facultative (aucune photo = initiales).
+        'photo' => 'Photo de profil',
+        'photo_hint' => 'JPG, PNG ou WebP, jusqu’à 5 Mo. Recadrée automatiquement en carré.',
+        'photo_error_heic' => 'Les photos HEIC (le format par défaut de l’iPhone) ne sont pas prises en charge. Sur votre téléphone, réenregistrez ou exportez l’image en JPG, puis téléversez ce fichier.',
+        'photo_error_unsupported' => 'Ce type de fichier n’est pas pris en charge. Veuillez téléverser une image JPG, PNG ou WebP.',
+        'photo_error_too_large' => 'Cette image est trop volumineuse. Veuillez téléverser une photo de moins de :max Mo.',
         'current_password' => 'Mot de passe actuel',
         'current_password_hint' => 'Confirmez votre mot de passe actuel pour changer votre adresse courriel.',
         'unverified' => "Votre adresse courriel n'est pas vérifiée.",
