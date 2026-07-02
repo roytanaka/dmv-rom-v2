@@ -19,9 +19,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * - Always public to any logged-in member: id, first/last name, photo (if
  *   uploaded), DMV-wide standing, and the member's Groups + roles — enough for a
  *   useful directory.
- * - Gated behind the `viewContact` ability: email, phone, and every other contact
- *   field. A field that is not added to the gated block below is simply absent —
- *   so a newly added column is private until someone deliberately exposes it.
+ * - Gated behind the `viewContact` ability (peer-visible tier): email and the
+ *   three phone numbers. A field not added to a gated block is simply absent —
+ *   so a newly added column is private until deliberately exposed.
+ * - Gated behind the `viewAddress` ability (Records-only tier): the home address.
+ *   Never present in a peer-visible payload, even when `viewContact` is granted
+ *   (#232, ADR-0017 §field-level visibility).
  *
  * @property Member $resource
  */
@@ -67,6 +70,13 @@ class MemberResource extends JsonResource
         $canViewContact = $this->includeContact
             && (bool) $request->user()?->can('viewContact', $this->resource);
 
+        // The home address is a stricter, Records-only tier than the peer-gated
+        // contact block: never present in a peer-visible payload, even a gated one
+        // (#232, ADR-0017). Suppressed on the directory list like the rest of
+        // contact, then gated behind `viewAddress` (self / Records / super-tier).
+        $canViewAddress = $this->includeContact
+            && (bool) $request->user()?->can('viewAddress', $this->resource);
+
         return [
             'id' => $this->id,
             'first_name' => $this->first_name,
@@ -88,9 +98,24 @@ class MemberResource extends JsonResource
                 ->values()
                 ->all()),
             // Absent (not null) when unauthorized — mergeWhen omits the key entirely.
+            // The three phones are peer-gated contact PII; primary plus the two
+            // optional secondary numbers (#232).
             $this->mergeWhen($canViewContact, fn () => [
                 'email' => $this->email,
                 'phone' => $this->phone,
+                'alternate_phone' => $this->alternate_phone,
+                'business_phone' => $this->business_phone,
+            ]),
+            // Records-only tier: the address key itself is absent for anyone but the
+            // member, Records, or super-tier — never leaked to a peer viewer (#232).
+            $this->mergeWhen($canViewAddress, fn () => [
+                'address' => [
+                    'street' => $this->address_street,
+                    'city' => $this->address_city,
+                    'province' => $this->address_province,
+                    'postal_code' => $this->address_postal_code,
+                    'country' => $this->address_country,
+                ],
             ]),
         ];
     }

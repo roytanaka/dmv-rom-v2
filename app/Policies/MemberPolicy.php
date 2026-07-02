@@ -56,4 +56,19 @@ class MemberPolicy
                 ->contains(fn (Role $role) => $viewer->canActAs($role, $membership->group))
         );
     }
+
+    /**
+     * Who may see a member's home address — a Records-only tier stricter than
+     * {@see viewContact()} (#232, ADR-0017 §field-level visibility). Granted only to
+     * the member themselves and to member-administration authority (the Records
+     * stewardship) org-wide; super-tier passes via the Gate::before short-circuit.
+     *
+     * Deliberately *not* extended to own-Group contact-need officers: the address is
+     * never present in a peer-visible payload, even a gated one. A Chair who may see
+     * a Group member's phone still may not see where they live.
+     */
+    public function viewAddress(Member $viewer, Member $target): bool
+    {
+        return $viewer->is($target) || $viewer->hasMemberAdminAuthority();
+    }
 }

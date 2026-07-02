@@ -138,6 +138,16 @@ export interface User {
     first_name: string;
     last_name: string;
     email: string;
+    // Self-service contact record (#232) — all optional. Shared on the signed-in
+    // member (auth.user), so present for self-editing on Settings → Profile.
+    phone: string | null;
+    alternate_phone: string | null;
+    business_phone: string | null;
+    address_street: string | null;
+    address_city: string | null;
+    address_province: string | null;
+    address_postal_code: string | null;
+    address_country: string | null;
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;
