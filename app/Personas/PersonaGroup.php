@@ -10,6 +10,7 @@ namespace App\Personas;
  */
 enum PersonaGroup: string
 {
+    case Operator = 'operator';
     case SuperTier = 'super_tier';
     case Officers = 'officers';
     case Stewards = 'stewards';
@@ -21,6 +22,7 @@ enum PersonaGroup: string
     public function label(): string
     {
         return match ($this) {
+            self::Operator => 'Operator',
             self::SuperTier => 'Super-tier',
             self::Officers => 'Officers',
             self::Stewards => 'Stewards',

@@ -39,6 +39,8 @@ Org-wide reach comes from exactly two places. Both are explicit; neither is inhe
 
 Technical/support administration is deliberately **not** a third org-wide tier: a maintainer who needs to administer data or impersonate a user for support sits in the Records Group plus the explicit `initiate-support-session` permission ([ADR-0009](0009-user-switching-and-support-impersonation.md)), never in super-tier — least privilege.
 
+*(Refined 2026-07-02 — this principle is now realised, and the two impersonation tools use two distinct gates, both outside super-tier: the **dev** role-switcher is gated on a dedicated `support_operator` marker on `Member`, split out of super-tier ([ADR-0009](0009-user-switching-and-support-impersonation.md) amendment); the **production** view-as tool keeps the `initiate-support-session` permission named above. The dev marker is read as a direct `Member::isSupportOperator()` predicate rather than a gate, because a gate would let super-tier's `Gate::before` short-circuit re-grant it — see [ADR-0017 §5](0017-authorization-enforcement.md).)*
+
 ### Cross-cutting rules
 
 - **Parentage carries structure, not authority.** A role grants only within its own Group. Any cross-Group reach is either the explicit org-wide grant (super-tier) or an explicit *scoped-down* role (e.g. a section head over their own section) — **never an ambient consequence of the tree.**

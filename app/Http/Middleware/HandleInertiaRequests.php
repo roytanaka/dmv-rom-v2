@@ -178,11 +178,12 @@ class HandleInertiaRequests extends Middleware
      * picker and the active-impersonation state, both computed here so the toolbar is
      * pure presentation.
      *
-     * Visibility keys off the active impersonation session, not the current user's
-     * tier: `non-prod AND (super-tier OR an active impersonation session)`. So an
-     * operator idling at super-tier sees the picker, and — crucially — an impersonated
-     * no-authority Persona still sees the loud active bar (with its way back), even
-     * though it holds no tier of its own.
+     * Visibility keys off support-operator access or the active impersonation session:
+     * `non-prod AND (support operator OR an active impersonation session)`. So an idle
+     * operator sees the picker, and — crucially — an impersonated no-authority Persona
+     * still sees the loud active bar (with its way back), even though it holds no
+     * access of its own. A super-tier executive is not an operator, so the President
+     * does not see the switcher — operating it is a maintainer power, not org authority.
      *
      * @return array{personas: list<array{key: string, label: string, personas: list<array{email: string, name: string, descriptor: string}>}>, active: array{as: array{name: string, descriptor: string}, operator: string}|null}|null
      */
@@ -196,7 +197,7 @@ class HandleInertiaRequests extends Middleware
         $operatorId = $request->session()->get(ImpersonationController::OPERATOR_KEY);
         $active = $operatorId !== null;
 
-        if ($member === null || (! $member->isAllDmv() && ! $active)) {
+        if ($member === null || (! $member->isSupportOperator() && ! $active)) {
             return null;
         }
 
@@ -207,8 +208,8 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The Persona picker, grouped by function (Super-tier / Officers / Stewards /
-     * Roles / Standings / Negative) in catalogue order — the single source of truth,
+     * The Persona picker, grouped by function (Operator / Super-tier / Officers /
+     * Stewards / Roles / Standings / Negative) in catalogue order — the single source of truth,
      * so the list and the seeded data can never drift. Each row carries the realistic
      * name, the `{role · group}` descriptor, and the email the toolbar posts to start.
      *

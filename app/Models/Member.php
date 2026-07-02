@@ -54,6 +54,7 @@ class Member extends Authenticatable
             'password' => 'hashed',
             'category' => Category::class,
             'super_tier' => 'boolean',
+            'support_operator' => 'boolean',
         ];
     }
 
@@ -85,6 +86,25 @@ class Member extends Authenticatable
     public function isAllDmv(): bool
     {
         return $this->super_tier;
+    }
+
+    /**
+     * Whether this Member holds support-operator access — the maintainer power to
+     * impersonate a volunteer for support/QA (ADR-0009). This is deliberately
+     * *separate* from {@see isAllDmv()}: org authority (President / VPs) and operator
+     * access (the engineer) are different principals, and conflating them into one
+     * `super_tier` flag is the smell this split removes. A super-tier executive is
+     * NOT an operator unless independently marked one; least privilege.
+     *
+     * Read directly, never as a Gate ability, on purpose: the `Gate::before`
+     * super-tier short-circuit (AppServiceProvider) grants super-tier every ability,
+     * so a Gate-backed check would silently hand impersonation back to the President —
+     * exactly the conflation being undone. The genuinely-above-President access
+     * (DB, migrations, deploy) lives outside the app entirely and is not modelled here.
+     */
+    public function isSupportOperator(): bool
+    {
+        return $this->support_operator;
     }
 
     /**
@@ -152,6 +172,25 @@ class Member extends Authenticatable
 
         return $role !== Role::Treasurer
             && $membership->roles->contains('role', Role::Chair);
+    }
+
+    /**
+     * Whether this Member administers the given Group — the core officer authority
+     * over its roster, Overview, and meetings, held by a Secretary or Chair (Chair
+     * folded in by {@see canActAs()}). The single predicate the Group, group-member,
+     * and meeting policies share, so "who runs this Group" is stated once here rather
+     * than re-spelled as `canActAs(Secretary) || canActAs(Chair)` at each call site.
+     *
+     * Group-scoped like every role check: administering Group A grants nothing in
+     * Group B. Capability-specific powers (e.g. meetings) still add their own guard
+     * at the policy — this answers the officer question only, not the capability one.
+     * Named `administers`, not `isOfficer`: "officer" is broader in CONTEXT.md than
+     * this Secretary-or-Chair predicate.
+     */
+    public function administers(Group $group): bool
+    {
+        return $this->canActAs(Role::Secretary, $group)
+            || $this->canActAs(Role::Chair, $group);
     }
 
     /**

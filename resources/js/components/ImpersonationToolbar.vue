@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
+import { PhDetective } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
 const page = usePage<SharedData>();
@@ -35,27 +36,30 @@ const stop = () => {
 <template>
     <div
         v-if="impersonation"
-        class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3"
-        :class="active ? 'border-2 border-red-600 bg-red-50 px-4 py-2 text-red-900 shadow-lg' : ''"
+        class="fixed right-4 bottom-4 z-50 flex items-center gap-2"
+        :class="active ? 'rounded-sm border border-black bg-white px-2 py-1.5 shadow-lg' : ''"
     >
-        <span v-if="active" class="text-sm font-semibold whitespace-nowrap">
-            ⚠ IMPERSONATING {{ active.as.name }}
-            <span v-if="active.as.descriptor" class="font-normal">· {{ active.as.descriptor }}</span>
-            · as {{ active.operator }}
+        <span v-if="active" class="text-rom-ink flex items-center gap-1.5 text-sm font-medium whitespace-nowrap">
+            <PhDetective class="h-5 w-5 shrink-0" />
+            {{ active.as.name }}
+            <span v-if="active.as.descriptor" class="text-muted-foreground font-normal">· {{ active.as.descriptor }}</span>
         </span>
 
         <DropdownMenu>
             <DropdownMenuTrigger as-child>
                 <button
                     type="button"
-                    class="shrink-0 border text-sm font-medium whitespace-nowrap transition-colors"
+                    :aria-label="active ? undefined : 'Impersonate (dev)'"
+                    :title="active ? undefined : 'Impersonate (dev)'"
+                    class="shrink-0 transition-colors"
                     :class="
                         active
-                            ? 'border-red-600 px-2 py-1 text-red-900 hover:bg-red-100'
-                            : 'border-rom-ink/20 bg-rom-ink hover:bg-rom-ink/90 px-3 py-1.5 text-white shadow-lg'
+                            ? 'text-rom-ink rounded-sm px-2 py-1 text-sm font-medium whitespace-nowrap hover:bg-neutral-300'
+                            : 'text-rom-ink flex size-10 items-center justify-center rounded-sm border border-black bg-white shadow-lg hover:bg-neutral-300'
                     "
                 >
-                    {{ active ? 'Switch ▾' : '🛠 DEV · Impersonate ▾' }}
+                    <template v-if="active">Switch ▾</template>
+                    <PhDetective v-else class="h-5 w-5" />
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" :side-offset="8" class="max-h-96 w-72 overflow-y-auto">
@@ -78,7 +82,7 @@ const stop = () => {
         <button
             v-if="active"
             type="button"
-            class="shrink-0 border border-red-600 bg-red-600 px-2 py-1 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-red-700"
+            class="shrink-0 rounded-sm px-2 py-1 text-sm font-medium whitespace-nowrap text-red-600 transition-colors hover:bg-neutral-300"
             @click="stop"
         >
             Stop

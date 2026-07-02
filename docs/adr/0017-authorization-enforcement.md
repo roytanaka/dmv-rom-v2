@@ -24,7 +24,7 @@ Enforce the model with **hand-rolled Laravel gates + policies + form requests re
 Gate::before(fn (Member $m) => $m->isAllDmv() ? true : null);
 ```
 
-`true` grants, `null` falls through (never `false`). Runs ahead of every gate and policy, so the org-wide tier is never re-checked. Accepted consequences: it bypasses the sign-up floor and any hypothetical "deny everyone" policy (both non-cases or handled outside the Gate system).
+`true` grants, `null` falls through (never `false`). Runs ahead of every gate and policy, so the org-wide tier is never re-checked. Accepted consequences: it bypasses the sign-up floor and any hypothetical "deny everyone" policy (both non-cases or handled outside the Gate system). *(Corollary, 2026-07-02: any capability that must **exclude** super-tier likewise cannot live in the Gate system — this short-circuit would re-grant it. The dev switcher's `support_operator` marker is the worked example; see §5.)*
 
 ### 2. Category → base tier (the floor)
 
@@ -57,6 +57,7 @@ Member::canActAs(Role $role, Group $group): bool
 - **"Can edit news" is a capability-scoped role**: an `announcements` Group capability ([ADR-0010](0010-group-model.md)) gates a **News-editor** role ([ADR-0011](0011-authorization-model.md)). News is one org-wide feed; the capability is multi-Group; each item carries a `posting_group_id`; the read is org-wide (the one capability not read group-scoped).
 - **Ad-hoc grants decoupled from any Group** (e.g. `initiate-support-session`, [ADR-0009](0009-user-switching-and-support-impersonation.md)) stay **standalone gates**.
 - A **generic named-permission table is not built** until a third case proves the need.
+- *(Amended 2026-07-02 — one exception to "standalone gates": a cross-cutting check that must* **exclude** *super-tier cannot be a gate at all. §1's `Gate::before` short-circuits super-tier to `true` before any gate runs, so a gate ability can never* deny *super-tier. The dev switcher's `support_operator` marker ([ADR-0009](0009-user-switching-and-support-impersonation.md)) is therefore read as a direct `Member::isSupportOperator()` predicate,* **outside the Gate system** *— the only way to stop the President's org authority from conferring the maintainer's impersonation power. Standalone* gates *remain correct for ad-hoc grants that super-tier may legitimately hold, such as the production `initiate-support-session`.)*
 
 ### 6. Field-level visibility — allowlist, least privilege
 
