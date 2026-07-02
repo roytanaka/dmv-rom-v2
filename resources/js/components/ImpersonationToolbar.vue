@@ -40,7 +40,7 @@ const stop = () => {
         :class="active ? 'rounded-sm border border-black bg-white px-2 py-1.5 shadow-lg' : ''"
     >
         <span v-if="active" class="text-rom-ink flex items-center gap-1.5 text-sm font-medium whitespace-nowrap">
-            <PhDetective :size="18" class="shrink-0" />
+            <PhDetective class="h-5 w-5 shrink-0" />
             {{ active.as.name }}
             <span v-if="active.as.descriptor" class="text-muted-foreground font-normal">· {{ active.as.descriptor }}</span>
         </span>
@@ -59,7 +59,7 @@ const stop = () => {
                     "
                 >
                     <template v-if="active">Switch ▾</template>
-                    <PhDetective v-else :size="20" />
+                    <PhDetective v-else class="h-5 w-5" />
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" :side-offset="8" class="max-h-96 w-72 overflow-y-auto">
