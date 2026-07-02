@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // The avatar menu in the top bar's right slot (#69). The user menu moved here from
 // the rail footer; it reuses UserMenuContent so the existing My Profile / Log out
-// wiring (route('profile.edit') / route('logout')) is preserved unchanged. The
+// wiring (localized /settings/profile href / route('logout')) is preserved unchanged. The
 // trigger is an avatar-only button suited to the dark bar.
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

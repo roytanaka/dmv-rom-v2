@@ -38,4 +38,13 @@ return [
     // Dynamic group route. The {group} slug is content and echoes back
     // as-authored — it is NOT resolved against a Group model (ADR-0008).
     'groups.show' => 'groups/{group}/{section?}',
+
+    // Settings → Profile / Password (#229, PRD #228). The self-service account
+    // surface, brought into the localized group so each page has a French twin.
+    // 'settings' is the bare redirect target (→ settings.profile); the two child
+    // keys carry the pages themselves. The route NAME mirrors the key suffix so the
+    // language switcher resolves the twin (HandleInertiaRequests::twinUrl).
+    'settings' => 'settings',
+    'settings.profile' => 'settings/profile',
+    'settings.password' => 'settings/password',
 ];

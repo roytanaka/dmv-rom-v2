@@ -2,17 +2,23 @@
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 
+const localizeHref = useLocalizedHref();
+
+// Hrefs are authored English-canonical and localized per ADR-0008 so a French
+// Member navigating the settings sidebar stays on the French twins.
 const sidebarNavItems: NavItem[] = [
     {
-        title: 'Profile',
-        href: '/settings/profile',
+        title: trans('settings.nav.profile'),
+        href: localizeHref('/settings/profile'),
     },
     {
-        title: 'Password',
-        href: '/settings/password',
+        title: trans('settings.nav.password'),
+        href: localizeHref('/settings/password'),
     },
 ];
 
@@ -21,7 +27,7 @@ const currentPath = window.location.pathname;
 
 <template>
     <div class="px-4 py-6">
-        <Heading title="Settings" description="Manage your profile and account settings" />
+        <Heading :title="trans('settings.title')" :description="trans('settings.description')" />
 
         <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
