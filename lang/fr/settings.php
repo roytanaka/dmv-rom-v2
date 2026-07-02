@@ -53,17 +53,4 @@ return [
         'save' => 'Enregistrer le mot de passe',
         'saved' => 'Enregistré',
     ],
-
-    // Panneau de suppression de compte (components/DeleteUser.vue).
-    'delete' => [
-        'heading' => 'Supprimer le compte',
-        'description' => 'Supprimez votre compte et toutes ses ressources',
-        'warning' => 'Avertissement',
-        'warning_detail' => 'Veuillez procéder avec prudence, cette action est irréversible.',
-        'button' => 'Supprimer le compte',
-        'confirm_title' => 'Êtes-vous sûr de vouloir supprimer votre compte ?',
-        'confirm_description' => 'Une fois votre compte supprimé, toutes ses ressources et données seront également supprimées définitivement. Veuillez saisir votre mot de passe pour confirmer que vous souhaitez supprimer définitivement votre compte.',
-        'password' => 'Mot de passe',
-        'cancel' => 'Annuler',
-    ],
 ];
