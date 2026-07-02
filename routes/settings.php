@@ -19,7 +19,6 @@ Route::group([
 
     Route::get(LaravelLocalization::transRoute('routes.settings.profile'), [ProfileController::class, 'edit'])->name('settings.profile');
     Route::patch(LaravelLocalization::transRoute('routes.settings.profile'), [ProfileController::class, 'update'])->name('settings.profile.update');
-    Route::delete(LaravelLocalization::transRoute('routes.settings.profile'), [ProfileController::class, 'destroy'])->name('settings.profile.destroy');
 
     Route::get(LaravelLocalization::transRoute('routes.settings.password'), [PasswordController::class, 'edit'])->name('settings.password');
     Route::put(LaravelLocalization::transRoute('routes.settings.password'), [PasswordController::class, 'update'])->name('settings.password.update');
