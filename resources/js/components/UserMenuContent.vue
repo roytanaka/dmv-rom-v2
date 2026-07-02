@@ -36,7 +36,7 @@ const localeSwitcher = computed(() => page.props.localeSwitcher);
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
         <DropdownMenuItem class="py-2.5" :as-child="true">
-            <Link class="block w-full" :href="route('profile.edit')" as="button">
+            <Link class="block w-full" :href="localizeHref('/settings/profile')" as="button">
                 <PhUserCircle class="mr-2 h-4 w-4" />
                 {{ trans('user.profile') }}
             </Link>

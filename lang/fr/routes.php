@@ -33,4 +33,10 @@ return [
     // Dynamic group route. The {group} slug echoes back as-authored even under
     // /fr/ (/fr/groupes/docents) — no per-record slug translation (ADR-0008).
     'groups.show' => 'groupes/{group}/{section?}',
+
+    // Paramètres → Profil / Mot de passe (#229, PRD #228). « settings » →
+    // « parametres » (sans accent dans l'URL, comme officer.settings).
+    'settings' => 'parametres',
+    'settings.profile' => 'parametres/profil',
+    'settings.password' => 'parametres/mot-de-passe',
 ];
