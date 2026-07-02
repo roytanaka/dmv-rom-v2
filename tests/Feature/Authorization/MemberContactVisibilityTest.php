@@ -192,6 +192,15 @@ it('hides the home address from a peer contact-need officer even when contact is
             ->missing('member.address'));
 });
 
+it('exposes the home address to the member themselves', function () {
+    $member = Member::factory()->create(['address_street' => '100 Queens Park']);
+
+    $this->actingAs($member)
+        ->get(route('members.show', $member))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('member.address.street', '100 Queens Park'));
+});
+
 it('hides the home address from a non-officer member', function () {
     $target = Member::factory()->create(['address_street' => '100 Queens Park']);
 

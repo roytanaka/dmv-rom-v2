@@ -19,9 +19,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * - Always public to any logged-in member: id, first/last name, photo (if
  *   uploaded), DMV-wide standing, and the member's Groups + roles — enough for a
  *   useful directory.
- * - Gated behind the `viewContact` ability: email, phone, and every other contact
- *   field. A field that is not added to the gated block below is simply absent —
- *   so a newly added column is private until someone deliberately exposes it.
+ * - Gated behind the `viewContact` ability (peer-visible tier): email and the
+ *   three phone numbers. A field not added to a gated block is simply absent —
+ *   so a newly added column is private until deliberately exposed.
+ * - Gated behind the `viewAddress` ability (Records-only tier): the home address.
+ *   Never present in a peer-visible payload, even when `viewContact` is granted
+ *   (#232, ADR-0017 §field-level visibility).
  *
  * @property Member $resource
  */
