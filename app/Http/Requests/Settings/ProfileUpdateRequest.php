@@ -38,6 +38,19 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(Member::class)->ignore($this->user()->id),
             ],
+            // Contact record (#232) — all optional. `phone` is the primary number;
+            // the two secondary numbers and the structured home address are edited
+            // from the same form. Identity (name, email) stays required above.
+            'phone' => ['nullable', 'string', 'max:255'],
+            'alternate_phone' => ['nullable', 'string', 'max:255'],
+            'business_phone' => ['nullable', 'string', 'max:255'],
+            'address_street' => ['nullable', 'string', 'max:255'],
+            'address_city' => ['nullable', 'string', 'max:255'],
+            'address_province' => ['nullable', 'string', 'max:255'],
+            // Canadian postal code (A1A 1A1), optional space — the one contact field
+            // with a format, so a typo surfaces as validation feedback.
+            'address_postal_code' => ['nullable', 'string', 'regex:/^[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d$/'],
+            'address_country' => ['nullable', 'string', 'max:255'],
             // PRD #228: re-authenticate on email change so a stray session can't hijack the account.
             'current_password' => [
                 Rule::requiredIf(fn (): bool => $this->emailIsChanging()),

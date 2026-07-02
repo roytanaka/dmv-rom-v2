@@ -94,6 +94,22 @@ it('exposes contact to an own-Group officer holding a contact-need role', functi
             ->where('member.phone', $target->phone));
 });
 
+it('exposes all three phones to a contact-need officer', function () {
+    $group = Group::factory()->create();
+    $target = targetInGroup($group);
+    $target->update([
+        'alternate_phone' => '416-555-0101',
+        'business_phone' => '416-555-0102',
+    ]);
+
+    $this->actingAs(officerOf($group, Role::Chair))
+        ->get(route('members.show', $target))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('member.phone', $target->phone)
+            ->where('member.alternate_phone', '416-555-0101')
+            ->where('member.business_phone', '416-555-0102'));
+});
+
 it('exposes contact to a Records officer org-wide', function () {
     $target = Member::factory()->create();
 
@@ -149,6 +165,40 @@ it('hides contact from an own-Group officer whose role is not contact-need', fun
         ->assertInertia(fn (Assert $page) => $page
             ->missing('member.email')
             ->missing('member.phone'));
+});
+
+// --- Home address: Records-only, never peer-visible --------------------------
+
+it('exposes the home address to a Records officer', function () {
+    $target = Member::factory()->create(['address_street' => '100 Queens Park']);
+
+    $this->actingAs(recordsContactOfficer())
+        ->get(route('members.show', $target))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('member.address.street', '100 Queens Park'));
+});
+
+it('hides the home address from a peer contact-need officer even when contact is granted', function () {
+    $group = Group::factory()->create();
+    $target = targetInGroup($group);
+    $target->update(['address_street' => '100 Queens Park']);
+
+    // A Chair passes viewContact — so the phones are present — yet the address is a
+    // stricter Records-only tier and must be wholly absent (#232, ADR-0017).
+    $this->actingAs(officerOf($group, Role::Chair))
+        ->get(route('members.show', $target))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('member.phone', $target->phone)
+            ->missing('member.address'));
+});
+
+it('hides the home address from a non-officer member', function () {
+    $target = Member::factory()->create(['address_street' => '100 Queens Park']);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('members.show', $target))
+        ->assertInertia(fn (Assert $page) => $page
+            ->missing('member.address'));
 });
 
 it('redirects an unauthenticated request to login', function () {

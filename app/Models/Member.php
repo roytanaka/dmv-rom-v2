@@ -28,6 +28,13 @@ class Member extends Authenticatable
         'last_name',
         'email',
         'phone',
+        'alternate_phone',
+        'business_phone',
+        'address_street',
+        'address_city',
+        'address_province',
+        'address_postal_code',
+        'address_country',
         'password',
         'category',
     ];
