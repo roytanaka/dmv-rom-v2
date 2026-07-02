@@ -47,12 +47,16 @@ A curated, seeded, catalogued identity that exists only to be impersonated for d
 _Avoid_: calling bulk-roster filler Personas — those are ordinary seeded Members; a Persona is specifically a catalogued impersonation target.
 
 **Role-switcher**:
-The non-production dev toolbar (`local`/`staging` only) that lets a super-tier operator **become** a **Persona** to exercise role-gated behaviour and UX fast. Presentation over a server-driven prop; the environment boundary — not the toolbar's visibility — is the security control ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
-_Avoid_: "user switcher" (ADR-0009's older name) and conflating it with the production **view-as** support tool; the Role-switcher does full **become** on **Persona** data only.
+The non-production dev toolbar (`local`/`staging` only) that lets a **Support-operator** **become** a **Persona** to exercise role-gated behaviour and UX fast. Presentation over a server-driven prop; the environment boundary — not the toolbar's visibility — is the security control ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
+_Avoid_: "user switcher" (ADR-0009's older name) and conflating it with the production **view-as** support tool; the Role-switcher does full **become** on **Persona** data only. Note the operator is a **Support-operator**, *not* super-tier (the two were split — see below).
+
+**Support-operator**:
+The maintainer capability to *operate* the **Role-switcher** — a `support_operator` marker on **Member** (`isSupportOperator()`), deliberately **separate from super-tier**: running the switcher is a maintainer power, not a President's org authority, so a super-tier executive is *not* an operator unless independently marked one. Read as a **direct predicate, never a Laravel gate** — [ADR-0017 §1](docs/adr/0017-authorization-enforcement.md)'s `Gate::before` grants super-tier every ability, so a gate-backed check would hand impersonation straight back to super-tier ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md) amendment; [ADR-0017 §5](docs/adr/0017-authorization-enforcement.md)). Distinct too from the production tool's `initiate-support-session` permission — two tools, two gates.
+_Avoid_: equating it with super-tier or bare "admin"; it confers no org authority, only operating the dev switcher.
 
 **Return to impersonator**:
 The Role-switcher's escape hatch back to the original operator, from any impersonated Persona. Keyed on the operator id stored in the session at the start of impersonation, so it works regardless of the impersonated Persona's tier.
-_Avoid_: "return to super" — the mechanism keys on the stored impersonator, not on tier (the operator is super-tier only incidentally, because entry is super-gated).
+_Avoid_: "return to super" — the mechanism keys on the stored impersonator id, not on tier; and the operator is the **Support-operator** who began the session, who is deliberately *not* super-tier (that split is the point — [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
 
 **Group**:
 The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (roster, meetings, documents, scheduling, content, stats). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
