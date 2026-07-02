@@ -38,11 +38,7 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(Member::class)->ignore($this->user()->id),
             ],
-            // A changed login email must be re-authenticated so a stray open
-            // session can't silently hijack the account (PRD #228). The password
-            // is only required when the email actually changes — name-only edits
-            // stay unguarded. Reuses the framework's `current_password` rule, the
-            // same mechanism as the Password settings page.
+            // PRD #228: re-authenticate on email change so a stray session can't hijack the account.
             'current_password' => [
                 Rule::requiredIf(fn (): bool => $this->emailIsChanging()),
                 'current_password',
@@ -50,9 +46,6 @@ class ProfileUpdateRequest extends FormRequest
         ];
     }
 
-    /**
-     * Whether the submitted email differs from the member's current login email.
-     */
     protected function emailIsChanging(): bool
     {
         return $this->input('email') !== $this->user()->email;

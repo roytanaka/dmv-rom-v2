@@ -45,9 +45,7 @@ const form = useForm({
     current_password: '',
 });
 
-// The server requires a current-password confirmation only when the login email
-// actually changes (PRD #228). Mirror that here so the password input surfaces
-// solely in the email-change flow.
+// PRD #228: mirror the server's email-change gate so the field only appears when needed.
 const emailIsChanging = computed(() => form.email !== user.email);
 
 const submit = () => {
