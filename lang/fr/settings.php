@@ -21,6 +21,8 @@ return [
         'first_name' => 'Prénom',
         'last_name' => 'Nom',
         'email' => 'Adresse courriel',
+        'current_password' => 'Mot de passe actuel',
+        'current_password_hint' => 'Confirmez votre mot de passe actuel pour changer votre adresse courriel.',
         'unverified' => "Votre adresse courriel n'est pas vérifiée.",
         'resend' => 'Cliquez ici pour renvoyer le courriel de vérification.',
         'verification_sent' => 'Un nouveau lien de vérification a été envoyé à votre adresse courriel.',

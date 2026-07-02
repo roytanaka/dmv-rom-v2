@@ -31,6 +31,7 @@ class ProfileUpdateTest extends TestCase
                 'first_name' => 'Test',
                 'last_name' => 'User',
                 'email' => 'test@example.com',
+                'current_password' => 'password',
             ]);
 
         $response
@@ -43,6 +44,86 @@ class ProfileUpdateTest extends TestCase
         $this->assertSame('User', $user->last_name);
         $this->assertSame('test@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
+    }
+
+    public function test_changing_email_is_rejected_without_a_valid_current_password()
+    {
+        $user = Member::factory()->create(['email' => 'old@example.com']);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/settings/profile')
+            ->patch('/settings/profile', [
+                'first_name' => 'Test',
+                'last_name' => 'User',
+                'email' => 'new@example.com',
+                'current_password' => 'wrong-password',
+            ]);
+
+        $response
+            ->assertSessionHasErrors('current_password')
+            ->assertRedirect('/settings/profile');
+
+        $this->assertSame('old@example.com', $user->refresh()->email);
+    }
+
+    public function test_changing_email_is_rejected_when_current_password_is_missing()
+    {
+        $user = Member::factory()->create(['email' => 'old@example.com']);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/settings/profile')
+            ->patch('/settings/profile', [
+                'first_name' => 'Test',
+                'last_name' => 'User',
+                'email' => 'new@example.com',
+            ]);
+
+        $response
+            ->assertSessionHasErrors('current_password')
+            ->assertRedirect('/settings/profile');
+
+        $this->assertSame('old@example.com', $user->refresh()->email);
+    }
+
+    public function test_changing_email_succeeds_with_a_valid_current_password()
+    {
+        $user = Member::factory()->create(['email' => 'old@example.com']);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/settings/profile', [
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => 'new@example.com',
+                'current_password' => 'password',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/settings/profile');
+
+        $this->assertSame('new@example.com', $user->refresh()->email);
+    }
+
+    public function test_changing_name_without_the_email_does_not_require_a_password()
+    {
+        $user = Member::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/settings/profile', [
+                'first_name' => 'Renamed',
+                'last_name' => 'Member',
+                'email' => $user->email,
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/settings/profile');
+
+        $this->assertSame('Renamed', $user->refresh()->first_name);
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()

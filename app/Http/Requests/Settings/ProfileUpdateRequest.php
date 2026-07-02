@@ -38,6 +38,16 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(Member::class)->ignore($this->user()->id),
             ],
+            // PRD #228: re-authenticate on email change so a stray session can't hijack the account.
+            'current_password' => [
+                Rule::requiredIf(fn (): bool => $this->emailIsChanging()),
+                'current_password',
+            ],
         ];
+    }
+
+    protected function emailIsChanging(): bool
+    {
+        return $this->input('email') !== $this->user()->email;
     }
 }

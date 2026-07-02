@@ -2,6 +2,7 @@
 import { TransitionRoot } from '@headlessui/vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
+import { computed } from 'vue';
 
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -41,11 +42,17 @@ const form = useForm({
     first_name: user.first_name,
     last_name: user.last_name,
     email: user.email,
+    current_password: '',
 });
+
+// PRD #228: mirror the server's email-change gate so the field only appears when needed.
+const emailIsChanging = computed(() => form.email !== user.email);
 
 const submit = () => {
     form.patch(route('settings.profile.update'), {
         preserveScroll: true,
+        onSuccess: () => form.reset('current_password'),
+        onError: () => form.reset('current_password'),
     });
 };
 </script>
@@ -97,6 +104,20 @@ const submit = () => {
                             :placeholder="trans('settings.profile.email')"
                         />
                         <InputError class="mt-2" :message="form.errors.email" />
+                    </div>
+
+                    <div v-if="emailIsChanging" class="grid gap-2">
+                        <Label for="current_password">{{ trans('settings.profile.current_password') }}</Label>
+                        <Input
+                            id="current_password"
+                            type="password"
+                            class="mt-1 block w-full"
+                            v-model="form.current_password"
+                            autocomplete="current-password"
+                            :placeholder="trans('settings.profile.current_password')"
+                        />
+                        <p class="text-sm text-neutral-600">{{ trans('settings.profile.current_password_hint') }}</p>
+                        <InputError class="mt-2" :message="form.errors.current_password" />
                     </div>
 
                     <div v-if="mustVerifyEmail && !user.email_verified_at">

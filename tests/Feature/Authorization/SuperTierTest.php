@@ -37,6 +37,7 @@ it('ignores super_tier submitted through the self-service profile form', functio
             'first_name' => 'New',
             'last_name' => 'Name',
             'email' => 'new-email@example.com',
+            'current_password' => 'password',
             'super_tier' => true,
         ])
         ->assertSessionHasNoErrors();
