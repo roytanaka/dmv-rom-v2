@@ -21,6 +21,8 @@ return [
         'first_name' => 'First name',
         'last_name' => 'Last name',
         'email' => 'Email address',
+        'current_password' => 'Current password',
+        'current_password_hint' => 'Confirm your current password to change your email address.',
         'unverified' => 'Your email address is unverified.',
         'resend' => 'Click here to re-send the verification email.',
         'verification_sent' => 'A new verification link has been sent to your email address.',
