@@ -82,8 +82,8 @@ const closeModal = () => {
                                 <Button variant="secondary" @click="closeModal">{{ trans('settings.delete.cancel') }}</Button>
                             </DialogClose>
 
-                            <Button variant="destructive" :disabled="form.processing">
-                                <button type="submit">{{ trans('settings.delete.button') }}</button>
+                            <Button type="submit" variant="destructive" :disabled="form.processing">
+                                {{ trans('settings.delete.button') }}
                             </Button>
                         </DialogFooter>
                     </form>
