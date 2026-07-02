@@ -98,7 +98,8 @@ class DemoSeeder extends Seeder
      * {@see PersonaCatalogue}, seeded into its Group placements. The catalogue is
      * the single source of truth — this method computes no identities, standings
      * or roles of its own, so the seeded set and the switcher's picker can never
-     * drift. It spans the super-tier trio, the core officer roles, the
+     * drift. It spans the support operator (the switcher's runner), the super-tier
+     * trio, the core officer roles, the
      * capability-backed roles (each on a Group whose flag is on), varied membership
      * standings, and the no-authority negatives.
      *
@@ -130,10 +131,10 @@ class DemoSeeder extends Seeder
 
     /**
      * Create (or heal) the Member behind a catalogued Persona. category is fillable
-     * but re-set here so a catalogue change lands on re-seed; super_tier and
-     * email_verified_at are non-fillable (#153, ADR-0017 §1), force-filled the same
-     * way {@see DatabaseSeeder} grants them so the super-tier trio can't be set
-     * through any form.
+     * but re-set here so a catalogue change lands on re-seed; super_tier,
+     * support_operator and email_verified_at are non-fillable (#153, ADR-0017 §1),
+     * force-filled the same way {@see DatabaseSeeder} grants them so neither the
+     * super-tier trio nor the operator marker can be set through any form.
      */
     private function personaMember(Persona $persona): Member
     {
@@ -147,6 +148,7 @@ class DemoSeeder extends Seeder
         $member->category = $persona->category;
         $member->forceFill([
             'super_tier' => $persona->superTier,
+            'support_operator' => $persona->operator,
             'email_verified_at' => $member->email_verified_at ?? now(),
         ])->save();
 

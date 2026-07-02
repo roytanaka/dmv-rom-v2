@@ -9,7 +9,7 @@ use App\Enums\Category;
  * seed account curated to exercise one authorization gate or membership standing.
  * The {@see PersonaCatalogue} is the single source of truth for the set of them;
  * this value object carries everything three consumers need — how the Persona is
- * seeded (identity, category, super-tier, Group placements), how it labels in the
+ * seeded (identity, category, super-tier, operator access, Group placements), how it labels in the
  * dev switcher ({@see $descriptor} + functional {@see $group}), and — via the
  * catalogue's allowlist — whether the switcher may become it.
  */
@@ -26,6 +26,7 @@ final class Persona
         public readonly string $descriptor,
         public readonly Category $category = Category::Active,
         public readonly bool $superTier = false,
+        public readonly bool $operator = false,
         public readonly array $placements = [],
     ) {}
 

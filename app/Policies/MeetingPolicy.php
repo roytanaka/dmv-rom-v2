@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\Role;
 use App\Models\Group;
 use App\Models\Meeting;
 use App\Models\Member;
@@ -59,15 +58,15 @@ class MeetingPolicy
     }
 
     /**
-     * The shared predicate: the actor can act as Secretary or Chair of the Group
-     * ({@see Member::canActAs()}, which folds in Chair-implication — a Chair without
-     * an explicit Secretary role still qualifies), and the Group's meetings
-     * capability is on.
+     * The shared predicate: the actor {@see Member::administers()} the Group (its
+     * Secretary or Chair, Chair-implication folded in) *and* the Group's meetings
+     * capability is on. The capability guard is why this stays a local predicate
+     * rather than a bare `administers()` call — a Chair of a non-meetings Group must
+     * not gain meeting powers through Chair-implication.
      */
     private function canManageMeetingsFor(Member $actor, Group $group): bool
     {
         return $group->has_meetings
-            && ($actor->canActAs(Role::Secretary, $group)
-                || $actor->canActAs(Role::Chair, $group));
+            && $actor->administers($group);
     }
 }

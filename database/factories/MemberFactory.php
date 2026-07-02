@@ -33,6 +33,7 @@ class MemberFactory extends Factory
             'email_verified_at' => now(),
             'category' => Category::Active,
             'super_tier' => false,
+            'support_operator' => false,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
@@ -55,6 +56,17 @@ class MemberFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'super_tier' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the Member holds support-operator access — the maintainer power
+     * to impersonate for support/QA, held independently of super-tier (ADR-0009).
+     */
+    public function operator(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'support_operator' => true,
         ]);
     }
 

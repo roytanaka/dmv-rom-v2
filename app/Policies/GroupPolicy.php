@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\Role;
 use App\Models\Group;
 use App\Models\Member;
 
@@ -24,15 +23,13 @@ use App\Models\Member;
 class GroupPolicy
 {
     /**
-     * Who may edit a Group's About Us and pick its banner: a Secretary or Chair of
-     * that Group. `canActAs` folds in Chair-implication (a Chair implies the
-     * Group's officer roles except Treasurer), so a Chair without an explicit
-     * Secretary role still qualifies. Authority never leaks across Groups — an
-     * officer of a different Group is denied.
+     * Who may edit a Group's About Us and pick its banner: a member who
+     * {@see Member::administers()} the Group (its Secretary or Chair, Chair-implication
+     * folded in). Authority never leaks across Groups — an officer of a different
+     * Group is denied.
      */
     public function update(Member $actor, Group $group): bool
     {
-        return $actor->canActAs(Role::Secretary, $group)
-            || $actor->canActAs(Role::Chair, $group);
+        return $actor->administers($group);
     }
 }

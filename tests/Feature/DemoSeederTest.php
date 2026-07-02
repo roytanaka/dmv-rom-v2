@@ -162,6 +162,16 @@ it('seeds a super-tier trio in the Executive Group', function () {
     $supers->each(fn (Member $member) => expect($member->membershipIn($executive))->not->toBeNull());
 });
 
+it('seeds the support operator with operator access split cleanly from super-tier', function () {
+    // The operator/authority split: exactly one support operator, holding no
+    // super-tier org authority; and none of the super-tier executives is an operator.
+    $operators = Member::where('support_operator', true)->get();
+
+    expect($operators)->toHaveCount(1);
+    expect($operators->first()->isAllDmv())->toBeFalse();
+    expect(Member::where('super_tier', true)->where('support_operator', true)->exists())->toBeFalse();
+});
+
 it('satisfies canPostNews for the news-editor Persona on an announcements Group', function () {
     $editor = Member::where('email', 'nadia.haddad@dmv.test')
         ->with('memberships.roles', 'memberships.group')

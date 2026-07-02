@@ -17,14 +17,16 @@ use Inertia\Testing\AssertableInertia as Assert;
  *
  * The catalogued Personas the switcher becomes must exist as real accounts, so the
  * suite seeds DemoSeeder (the catalogue-driven roster), then reaches Personas by the
- * catalogue's emails and the super-tier operator by its super_tier flag.
+ * catalogue's emails and the support operator by its support_operator flag — which is
+ * deliberately NOT super_tier: operating the switcher is a maintainer power, split
+ * from a President's org authority.
  */
 
 beforeEach(fn () => $this->seed(DemoSeeder::class));
 
 function operator(): Member
 {
-    return Member::where('super_tier', true)->firstOrFail();
+    return Member::where('support_operator', true)->firstOrFail();
 }
 
 function persona(string $email): Member
@@ -34,14 +36,14 @@ function persona(string $email): Member
 
 // --- Shared-prop visibility -------------------------------------------------
 
-it('shares the grouped picker and no active state for an idle super-tier operator', function () {
+it('shares the grouped picker and no active state for an idle support operator', function () {
     $this->actingAs(operator())
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('impersonation.active', null)
             ->has('impersonation.personas')
-            ->where('impersonation.personas.0.key', 'super_tier')
+            ->where('impersonation.personas.0.key', 'operator')
             ->has('impersonation.personas.0.personas.0', fn (Assert $row) => $row
                 ->hasAll(['email', 'name', 'descriptor'])));
 });
@@ -110,7 +112,7 @@ it('rebases to the original operator instead of stacking Personas', function () 
         ->post(route('impersonation.start'), ['email' => $chair->email]);
 
     // Start a second impersonation while the first is active — authorized by the
-    // active session, not by tier (the Chair is not super-tier).
+    // active session, not by operator access (the Chair is not an operator).
     $this->post(route('impersonation.start'), ['email' => $scheduler->email])
         ->assertRedirect();
 
@@ -118,10 +120,30 @@ it('rebases to the original operator instead of stacking Personas', function () 
     expect(session('impersonator_id'))->toBe($operator->id);
 });
 
-it('rejects start for a non-super-tier member with no active impersonation', function () {
+it('rejects start for a non-operator member with no active impersonation', function () {
     $this->actingAs(Member::factory()->create())
         ->post(route('impersonation.start'), ['email' => PersonaCatalogue::CHAIR_EMAIL])
         ->assertForbidden();
+});
+
+it('rejects start for a super-tier executive who is not an operator', function () {
+    // The crux of the operator/authority split: a President holds super-tier org
+    // authority but no operator access, so cannot run the switcher. Org authority
+    // must not confer the maintainer's impersonation power.
+    $president = persona('margaret.chen@dmv.test');
+    expect($president->isAllDmv())->toBeTrue()
+        ->and($president->isSupportOperator())->toBeFalse();
+
+    $this->actingAs($president)
+        ->post(route('impersonation.start'), ['email' => PersonaCatalogue::CHAIR_EMAIL])
+        ->assertForbidden();
+});
+
+it('shares no impersonation prop for a super-tier executive who is not an operator', function () {
+    $this->actingAs(persona('margaret.chen@dmv.test'))
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('impersonation', null));
 });
 
 // --- Allowlist --------------------------------------------------------------
@@ -156,7 +178,7 @@ it('aborts the start endpoint under a production environment (controller layer)'
         ->assertNotFound();
 });
 
-it('shares no impersonation prop in production even for a super-tier operator', function () {
+it('shares no impersonation prop in production even for a support operator', function () {
     $this->app->detectEnvironment(fn () => 'production');
 
     $this->actingAs(operator())

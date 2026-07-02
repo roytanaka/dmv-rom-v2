@@ -53,8 +53,16 @@ final class PersonaCatalogue
     public static function all(): array
     {
         return [
-            // Super-tier — the QA operators the switcher runs from (President is
-            // the canonical login); force-filled super_tier, in the Executive Group.
+            // Operator — the maintainer identity the switcher runs from (the canonical
+            // dev/QA login). Holds support-operator access, NOT super-tier: operating
+            // the switcher is a maintainer power, deliberately split from org authority
+            // so the President no longer doubles as the engineer. Force-filled
+            // support_operator; no Group placement — operator reach is out-of-band.
+            new Persona('operator@dmv.test', 'Support', 'Operator', PersonaGroup::Operator, 'Support Operator · Maintainer', operator: true),
+
+            // Super-tier — org authority (President / VPs). No longer the switcher's
+            // runner; these are fixtures you impersonate INTO to exercise org-wide
+            // reach. Force-filled super_tier, in the Executive Group.
             new Persona('margaret.chen@dmv.test', 'Margaret', 'Chen', PersonaGroup::SuperTier, 'President · Executive', superTier: true, placements: [
                 new PersonaPlacement(self::EXECUTIVE),
             ]),

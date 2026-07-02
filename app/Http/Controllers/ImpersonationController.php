@@ -12,21 +12,26 @@ use Illuminate\Support\Facades\Auth;
 /**
  * The dev/QA role-switcher's server half (ADR-0009 dev half, PRD #220): a hand-rolled
  * become/stop over {@see Auth::login()} — no impersonation package (rejected per
- * ADR-0009 and the rule of three). A super-tier operator becomes any catalogued
+ * ADR-0009 and the rule of three). A support operator becomes any catalogued
  * {@see PersonaCatalogue} Persona and always gets back to the original operator.
+ *
+ * Who may operate is {@see Member::isSupportOperator()} — the maintainer's
+ * support-operator access, deliberately NOT super-tier. Impersonating a volunteer
+ * is an engineer power, separate in kind from a President's org authority; a
+ * super-tier executive holds no operator access unless independently marked one.
  *
  * The environment boundary is the whole security story, in two independent layers:
  *   1. the routes are registered only outside production (routes/web.php);
  *   2. every action here re-checks {@see abortIfProduction()} — so a future refactor
  *      that registers the routes everywhere still refuses in production.
- * No permission check is ever the sole guard; the tier check below is an inner
- * refinement within the non-prod boundary (env-and-permission combine with AND).
+ * No permission check is ever the sole guard; the operator-access check below is an
+ * inner refinement within the non-prod boundary (env-and-permission combine with AND).
  */
 class ImpersonationController extends Controller
 {
     /**
      * Session key holding the original operator's id across an impersonation — the
-     * thread back to the real super-tier human. Rebasing never overwrites it with an
+     * thread back to the real support operator. Rebasing never overwrites it with an
      * intermediate Persona, so Stop always returns to the operator who started.
      *
      * Public so {@see HandleInertiaRequests} can read the same
@@ -35,7 +40,7 @@ class ImpersonationController extends Controller
     public const OPERATOR_KEY = 'impersonator_id';
 
     /**
-     * Become a catalogued Persona. Authorized for a super-tier operator, or for an
+     * Become a catalogued Persona. Authorized for a support operator, or for an
      * already-impersonating session (so a low-privilege Persona can rebase). Refuses
      * any account that is not a catalogued Persona (404).
      */
@@ -46,11 +51,13 @@ class ImpersonationController extends Controller
         $operator = $request->user();
         $originalOperatorId = $request->session()->get(self::OPERATOR_KEY);
 
-        // Start authorization (ADR-0009): super-tier OR an impersonation session is
-        // already active. The disjunction lets a currently-impersonated low-privilege
-        // Persona rebase — genuinely authorized server-side, not merely shown.
+        // Start authorization (ADR-0009): support-operator access OR an impersonation
+        // session is already active. Operator access is checked directly, not super-tier
+        // and not via a Gate — org authority must not confer the maintainer's
+        // impersonation power. The disjunction lets a currently-impersonated
+        // low-privilege Persona rebase — genuinely authorized server-side, not merely shown.
         abort_unless(
-            $operator->isAllDmv() || $originalOperatorId !== null,
+            $operator->isSupportOperator() || $originalOperatorId !== null,
             403,
         );
 
