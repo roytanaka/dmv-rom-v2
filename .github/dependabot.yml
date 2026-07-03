@@ -1,4 +1,9 @@
 version: 2
+
+# Cooldown (default-days: 3) is kept in sync with pnpm-workspace.yaml's
+# minimumReleaseAge (4320 min = 3 days) so a PR never opens before the version is
+# installable in CI. Groups cover minor+patch only, so major bumps arrive as
+# individual PRs to be reviewed one at a time; semver-major-days holds them 14 days.
 updates:
   - package-ecosystem: composer
     directory: /
@@ -6,10 +11,15 @@ updates:
       interval: weekly
     target-branch: staging
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
     groups:
-      composer:
-        patterns:
-          - '*'
+      composer-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: npm
     directory: /
@@ -17,10 +27,15 @@ updates:
       interval: weekly
     target-branch: staging
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
     groups:
-      npm:
-        patterns:
-          - '*'
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: github-actions
     directory: /
@@ -28,7 +43,11 @@ updates:
       interval: weekly
     target-branch: staging
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
     groups:
-      github-actions:
-        patterns:
-          - '*'
+      github-actions-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
