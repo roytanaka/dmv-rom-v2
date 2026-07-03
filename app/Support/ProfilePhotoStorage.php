@@ -57,13 +57,10 @@ class ProfilePhotoStorage
     /**
      * Store already-encoded WebP bytes under a random UUID name, returning the
      * public-disk-relative path — the same public-disk/UUID landing spot as
-     * {@see store()}, but for a payload that is already a square WebP and needs no
-     * decode/crop/re-encode. Used by the demo seeder (#235), whose DiceBear source
-     * returns a ready 512² WebP, so demo photos are byte-for-byte ordinary uploads
-     * downstream (no remote URLs, no special-casing).
+     * {@see store()}, but skips the decode/crop/re-encode step.
      *
-     * The caller owns the bytes' provenance: this trusts them as a valid raster and
-     * does no validation, unlike the form-request-guarded {@see store()} path.
+     * The caller owns the bytes' provenance: this does no validation, unlike the
+     * form-request-guarded {@see store()} path.
      */
     public function putWebp(string $webp): string
     {

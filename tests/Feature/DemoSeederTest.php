@@ -25,9 +25,9 @@ use Illuminate\Support\Facades\Http;
  * specific curated content, so the suite survives the org list changing.
  */
 
-// Demo seeding fetches best-effort DiceBear avatars (#235); fake the HTTP client
-// so these org-tree assertions never touch the network. An empty 200 leaves every
-// Member on the initials fallback, which these tests don't assert against.
+// Demo seeding fetches best-effort DiceBear avatars; fake the HTTP client so these
+// org-tree assertions never touch the network. An empty 200 leaves every Member on
+// the initials fallback, which these tests don't assert against.
 beforeEach(function () {
     Http::fake();
     $this->seed(DemoSeeder::class);

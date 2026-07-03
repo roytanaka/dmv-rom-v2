@@ -155,24 +155,20 @@ class DemoSeeder extends Seeder
             'email_verified_at' => $member->email_verified_at ?? now(),
         ])->save();
 
-        // Every named persona gets a stable demo face so the Directory and Roster
-        // read as people, not initials. Best-effort: a dead endpoint leaves initials.
+        // Named personas always get a photo so the Directory and Roster show faces.
         $this->seedPhoto($member);
 
         return $member;
     }
 
     /**
-     * Fetch a stable DiceBear avatar for the Member and store it through the same
-     * public-disk/UUID pipeline as a real upload (#233), setting `photo_path` — so
-     * demo photos are byte-for-byte ordinary uploads and nothing downstream (the
-     * resource, avatar rendering) special-cases a remote URL. The seed is the email,
-     * so the same persona always lands the same face across reseeds.
+     * Fetch a stable DiceBear avatar for the Member and store it via the ordinary
+     * public-disk/UUID pipeline, setting `photo_path`. The seed is the email, so the
+     * same persona always gets the same face across reseeds.
      *
-     * Best-effort by design: staging runs `migrate:fresh --seed` on every push, so a
-     * network failure, timeout, or rate-limit must fall back to no photo (initials)
-     * and never fail the seed. Idempotent — skips a Member already photographed, so a
-     * reseed neither refetches nor orphans a second file.
+     * Best-effort: a network failure, timeout, or rate-limit falls back to no photo
+     * (initials) and never fails the seed. Idempotent — skips already-photographed
+     * members so a reseed neither refetches nor orphans a second file.
      */
     private function seedPhoto(Member $member): void
     {
@@ -199,10 +195,9 @@ class DemoSeeder extends Seeder
     private const POOL_SIZE = 60;
 
     /**
-     * Photograph every Nth generated volunteer (the named personas are always
-     * photographed). A fraction, not all ~500 — a realistic mix that still shows
-     * the initials fallback, and modest request volume so the endpoint isn't
-     * hammered on each staging deploy's `migrate:fresh --seed`.
+     * Photograph 1-in-N generated volunteers: a realistic mix that shows the
+     * initials fallback, and modest request volume so the endpoint isn't hammered
+     * on each staging deploy's `migrate:fresh --seed`.
      */
     private const PHOTO_EVERY = 3;
 
@@ -265,9 +260,6 @@ class DemoSeeder extends Seeder
                 'category' => $this->categoryFor($i),
             ])->save();
 
-            // Only a fraction of the generated roster gets a demo face; the rest
-            // exercise the initials fallback (a photo is optional). Deterministic by
-            // index, and kept modest so a deploy's seed doesn't hammer the endpoint.
             if ($i % self::PHOTO_EVERY === 0) {
                 $this->seedPhoto($member);
             }
