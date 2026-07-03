@@ -8,7 +8,6 @@ use App\Models\GroupMemberRole;
 use App\Models\GroupStewardship;
 use App\Models\Member;
 use App\Models\Skill;
-use App\Models\SkillCategory;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
@@ -217,15 +216,13 @@ it('hides the home address from a non-officer member', function () {
 /** A single active catalog skill, attached to the given member. */
 function skillHeldBy(Member $member): Skill
 {
-    $skill = Skill::factory()->create([
-        'category_id' => SkillCategory::factory()->create()->id,
-    ]);
+    $skill = Skill::factory()->create();
     $member->skills()->attach($skill);
 
     return $skill;
 }
 
-it('never exposes a member skills in any peer-visible payload', function () {
+it('never exposes a member\'s skills in any peer-visible payload', function () {
     $group = Group::factory()->create();
     $target = targetInGroup($group);
     skillHeldBy($target);
@@ -245,9 +242,11 @@ it('never exposes a member skills in any peer-visible payload', function () {
     $this->actingAs($peer)
         ->get(route('directory'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('members', fn ($members) => collect($members)
-                ->firstWhere('id', $target->id) !== null
-                && ! array_key_exists('skills', collect($members)->firstWhere('id', $target->id))));
+            ->where('members', function ($members) use ($target) {
+                $row = collect($members)->firstWhere('id', $target->id);
+
+                return $row !== null && ! array_key_exists('skills', $row);
+            }));
 
     // Group roster.
     $this->actingAs($peer)
@@ -256,7 +255,7 @@ it('never exposes a member skills in any peer-visible payload', function () {
             ->where('roster', fn ($roster) => ! array_key_exists('skills', collect($roster)->firstWhere('id', $target->id))));
 });
 
-it('exposes the owner own skill selections on their Skills settings page', function () {
+it('exposes the owner\'s own skill selections on their Skills settings page', function () {
     $member = Member::factory()->create();
     $skill = skillHeldBy($member);
 
