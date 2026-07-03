@@ -51,6 +51,19 @@ class ProfilePhotoStorage
             ->cover(self::SIZE, self::SIZE)
             ->encode(new WebpEncoder(quality: 82));
 
+        return $this->putWebp($webp);
+    }
+
+    /**
+     * Store already-encoded WebP bytes under a random UUID name, returning the
+     * public-disk-relative path — the same public-disk/UUID landing spot as
+     * {@see store()}, but skips the decode/crop/re-encode step.
+     *
+     * The caller owns the bytes' provenance: this does no validation, unlike the
+     * form-request-guarded {@see store()} path.
+     */
+    public function putWebp(string $webp): string
+    {
         $path = self::DIRECTORY.'/'.Str::uuid()->toString().'.webp';
 
         Storage::disk('public')->put($path, $webp);
