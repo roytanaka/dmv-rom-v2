@@ -2,12 +2,6 @@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
-// Reusable Skills multi-select (#246, PRD #243). Renders the active catalog as
-// category-headed groups of checkboxes and edits a flat set of selected skill ids
-// through v-model. Deliberately decoupled from Settings so the future renewal flow
-// can embed the same component — it knows only about a catalog and a selection,
-// nothing about which page hosts it.
-
 interface CatalogSkill {
     id: number;
     name: string;

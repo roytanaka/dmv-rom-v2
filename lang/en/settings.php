@@ -50,8 +50,8 @@ return [
         'saved' => 'Saved.',
     ],
 
-    // Settings → Skills page (#246, PRD #243). Chrome only — category and skill names
-    // render as authored (content, single-language per the bilingual boundary).
+    // Settings → Skills page. Chrome only — category and skill names render as authored
+    // (content, single-language per the bilingual boundary).
     'skills' => [
         'title' => 'Skills',
         'heading' => 'Skills',

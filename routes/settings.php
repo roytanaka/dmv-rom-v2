@@ -27,9 +27,8 @@ Route::group([
     Route::get(LaravelLocalization::transRoute('routes.settings.password'), [PasswordController::class, 'edit'])->name('settings.password');
     Route::put(LaravelLocalization::transRoute('routes.settings.password'), [PasswordController::class, 'update'])->name('settings.password.update');
 
-    // Settings → Skills (#246, PRD #243). The self-service willing-to-use skills
-    // surface: edit renders the active catalog with the Member's selections pre-checked;
-    // update replaces the full selection set. Self-edit only, gated in the Form Request.
+    // Settings → Skills. Edit renders the active catalog with current selections
+    // pre-checked; update replaces the full set. Self-edit only, gated in the Form Request.
     Route::get(LaravelLocalization::transRoute('routes.settings.skills'), [SkillsController::class, 'edit'])->name('settings.skills');
     Route::patch(LaravelLocalization::transRoute('routes.settings.skills'), [SkillsController::class, 'update'])->name('settings.skills.update');
 });

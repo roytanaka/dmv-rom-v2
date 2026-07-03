@@ -50,9 +50,9 @@ return [
         'saved' => 'Enregistré.',
     ],
 
-    // Page Paramètres → Compétences (#246, PRD #243). Chrome seulement — les noms de
-    // catégories et de compétences s'affichent tels qu'ils sont saisis (contenu,
-    // unilingue selon la frontière bilingue).
+    // Page Paramètres → Compétences. Chrome seulement — les noms de catégories et de
+    // compétences s'affichent tels qu'ils sont saisis (contenu, unilingue selon la
+    // frontière bilingue).
     'skills' => [
         'title' => 'Compétences',
         'heading' => 'Compétences',

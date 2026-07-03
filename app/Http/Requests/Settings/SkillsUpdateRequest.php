@@ -10,9 +10,8 @@ use Illuminate\Validation\Rule;
 class SkillsUpdateRequest extends FormRequest
 {
     /**
-     * Authorize the self-service edit against the MemberPolicy (ADR-0017): the actor
-     * is editing their own skills, so this resolves to the self branch — a Member
-     * edits only their own selections (PRD #243). Explicit, not a blind `return true`.
+     * Authorize against the MemberPolicy (ADR-0017): the actor is editing their own
+     * skills, so this resolves to the self branch. Explicit, not a blind `return true`.
      */
     public function authorize(): bool
     {
