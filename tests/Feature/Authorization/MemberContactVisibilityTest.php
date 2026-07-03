@@ -7,6 +7,7 @@ use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\GroupStewardship;
 use App\Models\Member;
+use App\Models\Skill;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
@@ -208,6 +209,60 @@ it('hides the home address from a non-officer member', function () {
         ->get(route('members.show', $target))
         ->assertInertia(fn (Assert $page) => $page
             ->missing('member.address'));
+});
+
+// --- Skills: Records-only, never peer-visible --------------------------------
+
+/** A single active catalog skill, attached to the given member. */
+function skillHeldBy(Member $member): Skill
+{
+    $skill = Skill::factory()->create();
+    $member->skills()->attach($skill);
+
+    return $skill;
+}
+
+it('never exposes a member\'s skills in any peer-visible payload', function () {
+    $group = Group::factory()->create();
+    $target = targetInGroup($group);
+    skillHeldBy($target);
+
+    // A Chair passes viewContact — the phones are present — yet skills are a
+    // stricter Records-only tier and must be wholly absent, even here (#247).
+    $peer = officerOf($group, Role::Chair);
+
+    // Profile show.
+    $this->actingAs($peer)
+        ->get(route('members.show', $target))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('member.phone', $target->phone)
+            ->missing('member.skills'));
+
+    // Directory list.
+    $this->actingAs($peer)
+        ->get(route('directory'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('members', function ($members) use ($target) {
+                $row = collect($members)->firstWhere('id', $target->id);
+
+                return $row !== null && ! array_key_exists('skills', $row);
+            }));
+
+    // Group roster.
+    $this->actingAs($peer)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'roster']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('roster', fn ($roster) => ! array_key_exists('skills', collect($roster)->firstWhere('id', $target->id))));
+});
+
+it('exposes the owner\'s own skill selections on their Skills settings page', function () {
+    $member = Member::factory()->create();
+    $skill = skillHeldBy($member);
+
+    $this->actingAs($member)
+        ->get(route('settings.skills'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected', fn ($selected) => collect($selected)->contains($skill->id)));
 });
 
 it('redirects an unauthenticated request to login', function () {

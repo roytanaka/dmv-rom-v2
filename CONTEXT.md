@@ -35,6 +35,10 @@ _Avoid_: "admin" unqualified; admin-ness is a role or grant, never a membership 
 The org-wide, read-only roster of **Members** — every Member whose DMV-wide **Category** grants a listing (Active, Honourary, Sustaining, LOA), shown to any logged-in Member at `/directory`. Each row carries avatar, name, **Group** memberships, and standing — but never contact details (email/phone are a profile-only concern, gated by `viewContact`). The departed (Resigned/Withdrawn/Deceased) and the not-yet-activated (PreActive/Provisional) are excluded.
 _Avoid_: treating the Directory as a member-administration or editing surface — it is read-only; managing member records is a separate authority (see **Admin** → member administration).
 
+**Field-visibility tier**:
+Which viewers a **Member** field reaches, enforced once in `MemberResource` ([ADR-0017 §6](docs/adr/0017-authorization-enforcement.md)) as an allowlist. Three tiers: **always-public** (name, photo, standing, Groups/roles — any logged-in Member); **peer-visible** (email + the three phones, gated by `viewContact`); and **Records-only** (the Member themselves, Records/member-administration, and super-tier — never a peer, even one who passes `viewContact`). The **home address** and a Member's **skills** are Records-only: the address is gated behind `viewAddress`, while skills are simply never added to any peer-visible payload (absent from `MemberResource` entirely) and surface only on the owner's own Skills settings page (#232, #247).
+_Avoid_: calling Records-only fields "private" as if self-only — the Member's own record, Records, and super-tier all read them; only *peers* are excluded. And a blocklist framing — the tier is an allowlist, so a new field is non-public until deliberately exposed.
+
 **Login**:
 The act of authenticating into the app with email + password. The only authentication flow in the rebuild.
 
