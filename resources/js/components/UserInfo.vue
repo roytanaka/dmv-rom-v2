@@ -18,12 +18,12 @@ const { getInitials } = useInitials();
 const fullName = computed(() => `${props.user.first_name} ${props.user.last_name}`);
 
 // Compute whether we should show the avatar image
-const showAvatar = computed(() => props.user.avatar && props.user.avatar !== '');
+const showAvatar = computed(() => props.user.photo_url && props.user.photo_url !== '');
 </script>
 
 <template>
     <Avatar class="h-8 w-8">
-        <AvatarImage v-if="showAvatar" :src="user.avatar ?? ''" :alt="fullName" />
+        <AvatarImage v-if="showAvatar" :src="user.photo_url ?? ''" :alt="fullName" />
         <AvatarFallback class="text-black">
             {{ getInitials(fullName) }}
         </AvatarFallback>
