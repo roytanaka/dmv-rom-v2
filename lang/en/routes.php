@@ -48,4 +48,5 @@ return [
     'settings.profile' => 'settings/profile',
     'settings.profile.photo' => 'settings/profile/photo',
     'settings.password' => 'settings/password',
+    'settings.skills' => 'settings/skills',
 ];

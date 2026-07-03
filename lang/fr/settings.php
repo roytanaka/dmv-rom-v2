@@ -11,6 +11,7 @@ return [
     'nav' => [
         'profile' => 'Profil',
         'password' => 'Mot de passe',
+        'skills' => 'Compétences',
     ],
 
     // Page Paramètres → Profil.
@@ -45,6 +46,18 @@ return [
         'unverified' => "Votre adresse courriel n'est pas vérifiée.",
         'resend' => 'Cliquez ici pour renvoyer le courriel de vérification.',
         'verification_sent' => 'Un nouveau lien de vérification a été envoyé à votre adresse courriel.',
+        'save' => 'Enregistrer',
+        'saved' => 'Enregistré.',
+    ],
+
+    // Page Paramètres → Compétences. Chrome seulement — les noms de catégories et de
+    // compétences s'affichent tels qu'ils sont saisis (contenu, unilingue selon la
+    // frontière bilingue).
+    'skills' => [
+        'title' => 'Compétences',
+        'heading' => 'Compétences',
+        'description' => 'Choisissez toutes les compétences que vous êtes prêt à mettre au service du DMV/ROM. Vos choix sont confidentiels — visibles seulement par vous et par les Archives du DMV, jamais par les autres bénévoles.',
+        'empty' => 'Aucune compétence n’est disponible pour le moment.',
         'save' => 'Enregistrer',
         'saved' => 'Enregistré.',
     ],

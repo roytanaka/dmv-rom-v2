@@ -11,6 +11,7 @@ return [
     'nav' => [
         'profile' => 'Profile',
         'password' => 'Password',
+        'skills' => 'Skills',
     ],
 
     // Settings → Profile page.
@@ -45,6 +46,17 @@ return [
         'unverified' => 'Your email address is unverified.',
         'resend' => 'Click here to re-send the verification email.',
         'verification_sent' => 'A new verification link has been sent to your email address.',
+        'save' => 'Save',
+        'saved' => 'Saved.',
+    ],
+
+    // Settings → Skills page. Chrome only — category and skill names render as authored
+    // (content, single-language per the bilingual boundary).
+    'skills' => [
+        'title' => 'Skills',
+        'heading' => 'Skills',
+        'description' => 'Choose every skill you are willing to use for DMV/ROM. Your selections are confidential — visible only to you and DMV Records, never to other volunteers.',
+        'empty' => 'No skills are available to choose from yet.',
         'save' => 'Save',
         'saved' => 'Saved.',
     ],

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\SkillsController;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
@@ -25,4 +26,9 @@ Route::group([
 
     Route::get(LaravelLocalization::transRoute('routes.settings.password'), [PasswordController::class, 'edit'])->name('settings.password');
     Route::put(LaravelLocalization::transRoute('routes.settings.password'), [PasswordController::class, 'update'])->name('settings.password.update');
+
+    // Settings → Skills. Edit renders the active catalog with current selections
+    // pre-checked; update replaces the full set. Self-edit only, gated in the Form Request.
+    Route::get(LaravelLocalization::transRoute('routes.settings.skills'), [SkillsController::class, 'edit'])->name('settings.skills');
+    Route::patch(LaravelLocalization::transRoute('routes.settings.skills'), [SkillsController::class, 'update'])->name('settings.skills.update');
 });
