@@ -40,6 +40,15 @@ echo
 echo "==> Step 2: composer install --no-dev --optimize-autoloader"
 $COMPOSER install --no-dev --optimize-autoloader --no-interaction
 
+# Profile photos (#233) live on the public disk and are served as static files, so the
+# webroot needs the public/storage symlink. The artifact's public/ is replaced on every
+# rsync (--delete), which drops the link; recreate it here. Idempotent, and the real
+# files under storage/app/public are preserved across deploys. --force replaces a stale
+# link left pointing elsewhere. The upload lane is public by design (contrast the gated
+# Documents lane, ADR-0003 + amendment).
+echo "==> Step 2a: php artisan storage:link"
+$ARTISAN storage:link --force
+
 if [[ "$ENVIRONMENT" == "staging" ]]; then
     # Staging is disposable: rebuild + reseed on EVERY deploy, regardless of
     # whether migrations are pending. Seeding must NOT be gated behind pending

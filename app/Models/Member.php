@@ -8,10 +8,12 @@ use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use Database\Factories\MemberFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class Member extends Authenticatable
 {
@@ -50,6 +52,17 @@ class Member extends Authenticatable
     ];
 
     /**
+     * Derived attributes appended to array/JSON form. `photo_url` rides along on the
+     * shared `auth.user` prop so the frontend renders the avatar from a ready static
+     * URL and never reconstructs the public-disk path itself.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'photo_url',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -63,6 +76,29 @@ class Member extends Authenticatable
             'super_tier' => 'boolean',
             'support_operator' => 'boolean',
         ];
+    }
+
+    /**
+     * The public URL of the member's profile photo, or null when none is set. The
+     * photo lane is public (webserver-served via `storage:link`), so this is a plain
+     * static URL — no gated controller round-trip (contrast the Documents lane,
+     * ADR-0003 + amendment). Callers render it directly into an avatar image slot.
+     *
+     * @return Attribute<?string, never>
+     */
+    protected function photoUrl(): Attribute
+    {
+        return Attribute::make(
+            // Read the raw attribute rather than $this->photo_path: as an appended
+            // accessor this runs during serialization, and under strict-mode
+            // (preventAccessingMissingAttributes) a not-yet-hydrated column would throw
+            // — a freshly factory-made model has no photo_path key until it round-trips.
+            get: function (): ?string {
+                $path = $this->attributes['photo_path'] ?? null;
+
+                return $path ? Storage::disk('public')->url($path) : null;
+            },
+        );
     }
 
     /**

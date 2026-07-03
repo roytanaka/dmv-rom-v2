@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Support\ProfilePhotoStorage;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,15 +33,25 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, ProfilePhotoStorage $photos): RedirectResponse
     {
-        $request->user()->fill($request->safe()->except('current_password'));
+        $member = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // `photo` is a file, not a column — fill the text fields, then set photo_path
+        // from the processed upload separately. current_password only re-authenticates.
+        $member->fill($request->safe()->except('current_password', 'photo'));
+
+        if ($member->isDirty('email')) {
+            $member->email_verified_at = null;
         }
 
-        $request->user()->save();
+        if ($request->hasFile('photo')) {
+            // Replace semantics (delete the prior file) land in #234; here a new upload
+            // simply repoints photo_path at the freshly stored square WebP.
+            $member->photo_path = $photos->store($request->file('photo'));
+        }
+
+        $member->save();
 
         return to_route('settings.profile');
     }

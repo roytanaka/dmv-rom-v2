@@ -73,3 +73,18 @@ Stormweb's Enterprise plan is "unlimited" storage but shared-host I/O is shared-
 - `docs/architecture.md § Document storage architecture`
 - `docs/conventions.md § Documents`
 - [ADR-0002](0002-stay-on-stormweb-shared-hosting.md) — Stormweb hosting + storage trade-offs
+
+## Amendment (2026-07-02): profile photos are a separate, deliberately public lane
+
+Profile photos (#233, PRD #228) do **not** follow the document-storage decision above, and that divergence is intentional — recorded here so a later reader does not "fix" one lane to match the other.
+
+| | Documents lane (this ADR) | Profile-photo lane (#233) |
+|---|---|---|
+| Storage | `storage/app/documents`, outside the webroot | Public disk (`storage/app/public`), served via `storage:link` |
+| Access | Controller-gated per download, `DocumentPolicy` + audit log | Plain static URL, no per-fetch authorization |
+| Identifier | UUID, no extension, filename in DB | UUID `.webp` filename, no DB row beyond `members.photo_path` |
+| Default visibility | `members` (least privilege) | Public — opt-in by uploading |
+
+The rationale: a document can carry volunteer PII, so obscurity is not enough and every fetch must re-check policy. A face is different — a member publishes it deliberately by uploading, it appears in the directory to every logged-in peer regardless, and routing 500 avatars through a policy-checked controller on every page would add load for no privacy gain. Unguessable UUID filenames plus disabled directory indexing keep the lane non-enumerable without a gate.
+
+This does not weaken the Documents decision: the two lanes stay separate, and anything carrying PII (including any future document-shaped member attachment) belongs in the gated lane, not this one. The shared processing/storage mechanism for photos lives in `App\Support\ProfilePhotoStorage` (reused by the replace/remove lifecycle #234 and the demo seeder #235).

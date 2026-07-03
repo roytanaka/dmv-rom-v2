@@ -2,10 +2,11 @@
 import { TransitionRoot } from '@headlessui/vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,16 +52,58 @@ const form = useForm({
     address_province: user.address_province ?? 'ON',
     address_postal_code: user.address_postal_code ?? '',
     address_country: user.address_country ?? 'Canada',
+    // Optional photo upload (#233). A File here makes useForm submit multipart with
+    // method spoofing; null leaves photo_path untouched server-side.
+    photo: null as File | null,
     current_password: '',
 });
 
 // PRD #228: mirror the server's email-change gate so the field only appears when needed.
 const emailIsChanging = computed(() => form.email !== user.email);
 
+const initials = computed(() => `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase());
+
+// Read the saved photo reactively from the shared prop (not the one-time `user`
+// snapshot) so the avatar refreshes after a successful upload re-shares auth.user.
+const savedPhotoUrl = computed(() => (page.props.auth.user as User).photo_url ?? null);
+
+const photoInput = ref<HTMLInputElement | null>(null);
+const selectedPreview = ref<string | null>(null);
+
+// Show the just-picked file first, then the saved photo, else fall through to initials.
+const previewSrc = computed(() => selectedPreview.value ?? savedPhotoUrl.value ?? undefined);
+
+const onPhotoChange = (event: Event) => {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    form.photo = file;
+
+    if (selectedPreview.value) {
+        URL.revokeObjectURL(selectedPreview.value);
+    }
+    selectedPreview.value = file ? URL.createObjectURL(file) : null;
+};
+
+const clearSelectedPreview = () => {
+    if (selectedPreview.value) {
+        URL.revokeObjectURL(selectedPreview.value);
+        selectedPreview.value = null;
+    }
+    if (photoInput.value) {
+        photoInput.value.value = '';
+    }
+};
+
 const submit = () => {
-    form.patch(route('settings.profile.update'), {
+    // Submit as POST + _method spoof, not a real PATCH: PHP only parses
+    // multipart/form-data (the encoding a File forces) on POST, so a genuine PATCH
+    // would arrive with an empty $_FILES and the photo would silently never save.
+    // Laravel reads _method to route it to the PATCH handler all the same.
+    form.transform((data) => ({ ...data, _method: 'patch' })).post(route('settings.profile.update'), {
         preserveScroll: true,
-        onSuccess: () => form.reset('current_password'),
+        onSuccess: () => {
+            form.reset('current_password', 'photo');
+            clearSelectedPreview();
+        },
         onError: () => form.reset('current_password'),
     });
 };
@@ -75,6 +118,26 @@ const submit = () => {
                 <HeadingSmall :title="trans('settings.profile.heading')" :description="trans('settings.profile.description')" />
 
                 <form @submit.prevent="submit" class="space-y-6">
+                    <div class="flex items-center gap-4">
+                        <Avatar size="lg">
+                            <AvatarImage v-if="previewSrc" :src="previewSrc" :alt="`${user.first_name} ${user.last_name}`" />
+                            <AvatarFallback>{{ initials }}</AvatarFallback>
+                        </Avatar>
+                        <div class="grid gap-2">
+                            <Label for="photo">{{ trans('settings.profile.photo') }}</Label>
+                            <input
+                                id="photo"
+                                ref="photoInput"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="file:bg-secondary file:text-foreground hover:file:bg-secondary/80 block text-sm text-neutral-700 file:mr-4 file:rounded-md file:border-0 file:px-4 file:py-2 file:text-sm file:font-medium"
+                                @change="onPhotoChange"
+                            />
+                            <p class="text-sm text-neutral-600">{{ trans('settings.profile.photo_hint') }}</p>
+                            <InputError class="mt-2" :message="form.errors.photo" />
+                        </div>
+                    </div>
+
                     <div class="grid gap-2">
                         <Label for="first_name">{{ trans('settings.profile.first_name') }}</Label>
                         <Input

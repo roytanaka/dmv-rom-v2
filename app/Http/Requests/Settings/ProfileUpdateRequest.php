@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Models\Member;
+use App\Rules\ProfilePhoto;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -51,11 +52,20 @@ class ProfileUpdateRequest extends FormRequest
             // with a format, so a typo surfaces as validation feedback.
             'address_postal_code' => ['nullable', 'string', 'regex:/^[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d$/'],
             'address_country' => ['nullable', 'string', 'max:255'],
-            // PRD #228: re-authenticate on email change so a stray session can't hijack the account.
-            'current_password' => [
-                Rule::requiredIf(fn (): bool => $this->emailIsChanging()),
-                'current_password',
-            ],
+            // Optional profile photo (#233). Format/size are gated by ProfilePhoto so
+            // HEIC, unsupported types, and oversized files fail with actionable, tier-
+            // specific messages rather than a generic file error. Absent field = no
+            // change; the controller only touches photo_path when a file is present.
+            'photo' => ['nullable', 'file', new ProfilePhoto],
+            // PRD #228: re-authenticate on email change so a stray session can't hijack
+            // the account. Rule::when so current_password is validated ONLY on an email
+            // change — the form always sends the field (empty), and ConvertEmptyStrings-
+            // ToNull turns '' into null, which the bare `current_password` rule would
+            // otherwise treat as present-and-wrong and reject on every save.
+            'current_password' => Rule::when(
+                $this->emailIsChanging(),
+                ['required', 'current_password'],
+            ),
         ];
     }
 
