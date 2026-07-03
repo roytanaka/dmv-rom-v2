@@ -1,3 +1,15 @@
+# Supply-chain floor: refuse to install any version published less than 3 days ago,
+# for ALL dependencies including transitive ones and manual `pnpm add`. This is the
+# real defense against npm compromise-then-yank attacks (2025's chalk/debug and the
+# Shai-Hulud worm were caught within hours) — it covers what Dependabot's cooldown
+# can't. Keep .github/dependabot.yml's cooldown aligned to this so its PRs don't open
+# before a version is installable. 4320 minutes = 3 days.
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude: []
+
+# Lifecycle/build scripts are blocked by default (pnpm 10+); only packages listed here
+# may run them. Keep this minimal — it's the primary install-time attack surface.
+# Never add `dangerouslyAllowAllBuilds`.
 allowBuilds:
   esbuild: true
   vue-demi: true
