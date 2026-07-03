@@ -148,7 +148,6 @@ export interface User {
     address_province: string | null;
     address_postal_code: string | null;
     address_country: string | null;
-    avatar?: string;
     // Public URL of the uploaded profile photo (#233), or null when none is set.
     // Appended server-side (Member::photoUrl) so the avatar renders from a ready URL.
     photo_url: string | null;
