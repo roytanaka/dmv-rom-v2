@@ -181,6 +181,8 @@ const submit = () => form.put(route('committees.update', props.committee.id))
 
   **The spine fixture is test-only — do not conscript it for demo data on staging.** It's coverage-shaped (one of every Group Kind, ~6 members), the opposite of what a demo needs, and it depends on faker, which isn't installed on `--no-dev` deploys. Demo data for a staging pitch is a *separate, manual* concern: a curated, faker-free `DemoSeeder` (plain `::create` with real DMV names, idempotent) run by hand over SSH right before a presentation — never wired into the deploy pipeline (every staging push runs `migrate:fresh --seed` and wipes the DB, so seed *last*). Realistic-volume (~500 members) and scrubbed-production data are deferred: real needs, but post-cutover, not built speculatively. Don't wire `OrgTreeSeeder` into staging seeding to populate a demo — that pulls faker into the deploy build, exactly what `DatabaseSeeder` avoids.
 
+  **Demo profile photos.** `DemoSeeder` fetches per-persona avatars from the DiceBear HTTP API and stores them through the ordinary photo pipeline (public disk, UUID name — no remote URLs persisted). Every fetch is best-effort: an unreachable, slow, or rate-limited endpoint falls back to initials, never a failed seed, so `migrate:fresh --seed` always completes. Attribution: avatars by [DiceBear](https://www.dicebear.com), "Lorelei" style by Lisa Wischofsky, licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — used for internal demo seed data only.
+
 ## Code style and tooling
 
 PHP, JavaScript, TypeScript, Vue, and CSS are auto-formatted on commit. The toolchain:

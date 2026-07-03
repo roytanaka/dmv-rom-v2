@@ -14,6 +14,7 @@ use App\Models\Member;
 use App\Personas\PersonaCatalogue;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
+use Illuminate\Support\Facades\Http;
 
 /*
  * The curated demo data (PRD #139, slice 2 / #141): the faker-free, idempotent
@@ -24,7 +25,13 @@ use Database\Seeders\DemoSeeder;
  * specific curated content, so the suite survives the org list changing.
  */
 
-beforeEach(fn () => $this->seed(DemoSeeder::class));
+// Demo seeding fetches best-effort DiceBear avatars (#235); fake the HTTP client
+// so these org-tree assertions never touch the network. An empty 200 leaves every
+// Member on the initials fallback, which these tests don't assert against.
+beforeEach(function () {
+    Http::fake();
+    $this->seed(DemoSeeder::class);
+});
 
 it('builds a tree whose relationships resolve from the root', function () {
     $root = Group::where('slug', DemoSeeder::ROOT)->with(['parent', 'children.parent'])->firstOrFail();
