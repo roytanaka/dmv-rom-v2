@@ -49,7 +49,9 @@ class ProfileController extends Controller
 
         if ($request->hasFile('photo')) {
             // Stash before storing so a failed save never leaves the member without a photo.
-            $previousPath = $member->photo_path;
+            // Read the raw attribute, not $member->photo_path: under strict mode an
+            // unhydrated column (e.g. an actingAs/factory model) would throw (see photoUrl).
+            $previousPath = $member->getAttributes()['photo_path'] ?? null;
             $member->photo_path = $photos->store($request->file('photo'));
         }
 
@@ -73,7 +75,8 @@ class ProfileController extends Controller
 
         abort_unless($member->can('update', $member), 403);
 
-        $photos->delete($member->photo_path);
+        // Raw read for the same strict-mode reason as update() above.
+        $photos->delete($member->getAttributes()['photo_path'] ?? null);
         $member->photo_path = null;
         $member->save();
 
