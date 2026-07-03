@@ -20,6 +20,10 @@ const sidebarNavItems: NavItem[] = [
         title: trans('settings.nav.password'),
         href: localizeHref('/settings/password'),
     },
+    {
+        title: trans('settings.nav.skills'),
+        href: localizeHref('/settings/skills'),
+    },
 ];
 
 const currentPath = window.location.pathname;

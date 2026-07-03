@@ -40,4 +40,5 @@ return [
     'settings.profile' => 'parametres/profil',
     'settings.profile.photo' => 'parametres/profil/photo',
     'settings.password' => 'parametres/mot-de-passe',
+    'settings.skills' => 'parametres/competences',
 ];
