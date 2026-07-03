@@ -151,5 +151,6 @@ return [
         'librarian' => 'Bibliothécaire',
         'content_maintainer' => 'Responsable du contenu',
         'news_editor' => 'Responsable des nouvelles',
+        'executive' => 'Direction générale',
     ],
 ];

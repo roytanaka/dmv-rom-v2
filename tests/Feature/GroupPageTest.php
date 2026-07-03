@@ -102,6 +102,37 @@ it('surfaces the Group leadership by role, names and profile ids', function () {
             }));
 });
 
+it('surfaces the executive as the root Group leadership instead of a Chair', function () {
+    // The root DMV Group is the exception: no Chair. Its leadership is the super-tier
+    // executive, surfaced by authority. A root Group with a super-tier member and,
+    // to prove role rows are ignored there, an ordinary member carrying a Chair role.
+    $root = Group::factory()->standingCommittee()->create(['parent_id' => null, 'name' => 'DMV']);
+
+    $president = Member::factory()->superTier()->create(['first_name' => 'Margaret', 'last_name' => 'Chen']);
+    GroupMember::factory()->status(MembershipStatus::Full)->create([
+        'group_id' => $root->id,
+        'member_id' => $president->id,
+    ]);
+
+    $chair = Member::factory()->create();
+    $chairMembership = GroupMember::factory()->status(MembershipStatus::Full)->create([
+        'group_id' => $root->id,
+        'member_id' => $chair->id,
+    ]);
+    $chairMembership->roles()->create(['role' => Role::Chair]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $root))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('overview.leadership', function (Collection $leadership) use ($president, $chair) {
+                $roles = $leadership->pluck('role')->all();
+
+                return $leadership->firstWhere('member_id', $president->id)['role'] === 'executive'
+                    && ! in_array(Role::Chair->value, $roles, true)
+                    && $leadership->firstWhere('member_id', $chair->id) === null;
+            }));
+});
+
 it('counts living members in the facts card, excluding the departed', function () {
     $group = Group::factory()->create();
     GroupMember::factory()->status(MembershipStatus::Full)->create(['group_id' => $group->id]);
