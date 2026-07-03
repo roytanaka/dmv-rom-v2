@@ -26,8 +26,6 @@ use Database\Seeders\DemoSeeder;
 final class PersonaCatalogue
 {
     // Group slugs the placements target — kept in step with the curated tree.
-    private const ROOT = 'dmv';
-
     private const COMMITTEE = 'governance-operations';
 
     private const EXECUTIVE = 'executive';
@@ -39,6 +37,19 @@ final class PersonaCatalogue
     private const DOCENTS = 'docents';
 
     private const RECEPTION = 'reception';
+
+    // Program slugs the enrichment placements target — so the impersonated execs and
+    // officers read as working volunteers (a President who is also a docent), not as
+    // people who belong to a single committee. Kept in step with the curated tree.
+    private const GALLERY_INTERPRETERS = 'gallery-interpreters';
+
+    private const VISITOR_GUIDES = 'visitor-guides';
+
+    private const VISITOR_WAYFINDERS = 'visitor-wayfinders';
+
+    private const ROMWALKS = 'romwalks';
+
+    private const ROMFORYOU = 'romforyou';
 
     // Stable email handles the seeder re-exports for its historical constants.
     public const CHAIR_EMAIL = 'oliver.bennett@dmv.test';
@@ -62,32 +73,50 @@ final class PersonaCatalogue
 
             // Super-tier — org authority (President / VPs). No longer the switcher's
             // runner; these are fixtures you impersonate INTO to exercise org-wide
-            // reach. Force-filled super_tier, in the Executive Group.
+            // reach. Force-filled super_tier, in the Executive Group — plus the program
+            // memberships a real exec carries (they came up through the programs), so
+            // an impersonated President's My-Groups reads believably. These extra
+            // placements hold no roles, so they add no authority beyond super_tier.
             new Persona('margaret.chen@dmv.test', 'Margaret', 'Chen', PersonaGroup::SuperTier, 'President · Executive', superTier: true, placements: [
                 new PersonaPlacement(self::EXECUTIVE),
+                new PersonaPlacement(self::DOCENTS),
+                new PersonaPlacement(self::GALLERY_INTERPRETERS),
             ]),
             new Persona('david.okafor@dmv.test', 'David', 'Okafor', PersonaGroup::SuperTier, 'Vice-President · Executive', superTier: true, placements: [
                 new PersonaPlacement(self::EXECUTIVE),
+                new PersonaPlacement(self::VISITOR_GUIDES),
+                new PersonaPlacement(self::VISITOR_WAYFINDERS),
             ]),
             new Persona('susan.wong@dmv.test', 'Susan', 'Wong', PersonaGroup::SuperTier, 'Vice-President · Executive', superTier: true, placements: [
                 new PersonaPlacement(self::EXECUTIVE),
+                // The docents-who-also-walk overlap, carried by an exec so the pattern
+                // is guaranteed present on a named account you can impersonate.
+                new PersonaPlacement(self::DOCENTS),
+                new PersonaPlacement(self::ROMWALKS),
             ]),
 
             // Officers — the core roles that attach to any Group regardless of flags.
-            new Persona(self::CHAIR_EMAIL, 'Oliver', 'Bennett', PersonaGroup::Officers, 'Chair · DMV', placements: [
-                new PersonaPlacement(self::ROOT, roles: [Role::Chair]),
+            // The DMV root has no Chair (its leadership is the executive), so the Chair
+            // Persona chairs a real program and, like a real chair, also volunteers in
+            // another — here Docents (chaired) plus Gallery Interpreters.
+            new Persona(self::CHAIR_EMAIL, 'Oliver', 'Bennett', PersonaGroup::Officers, 'Chair · Docents', placements: [
+                new PersonaPlacement(self::DOCENTS, roles: [Role::Chair]),
+                new PersonaPlacement(self::GALLERY_INTERPRETERS),
             ]),
             new Persona('elena.rossi@dmv.test', 'Elena', 'Rossi', PersonaGroup::Officers, 'Secretary · Governance & Operations', placements: [
                 new PersonaPlacement(self::COMMITTEE, roles: [Role::Secretary]),
+                new PersonaPlacement(self::RECEPTION),
             ]),
             new Persona('marcus.patel@dmv.test', 'Marcus', 'Patel', PersonaGroup::Officers, 'Treasurer · Governance & Operations', placements: [
                 new PersonaPlacement(self::COMMITTEE, roles: [Role::Treasurer]),
+                new PersonaPlacement(self::ROMFORYOU),
             ]),
 
             // Stewards — authority via membership in the stewarding Group (ADR-0011);
             // Records stewards member administration.
             new Persona('priya.nair@dmv.test', 'Priya', 'Nair', PersonaGroup::Stewards, 'Member Admin · Records', placements: [
                 new PersonaPlacement(self::RECORDS),
+                new PersonaPlacement(self::VISITOR_GUIDES),
             ]),
 
             // Roles — capability-backed roles, each on a Group whose flag is on.

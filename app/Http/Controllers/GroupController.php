@@ -155,10 +155,25 @@ class GroupController extends Controller
      * per (role, member), ordered by the spine's role catalogue so Chair leads.
      * Names link through to profiles on the page; departed members are excluded.
      *
+     * The org root (a parentless Group) is the exception: it carries no Chair. Its
+     * leadership is the executive — the super-tier President and Vice-Presidents — so
+     * when a parentless Group has super-tier members we surface those instead
+     * {@see executiveLeadership}. (The model has a flat super_tier flag, not distinct
+     * President/VP titles, so all three read "Executive".) A parentless Group with no
+     * executives falls through to the ordinary role-based list.
+     *
      * @return list<array{role: string, member_id: int, name: string}>
      */
     private function leadership(Group $group): array
     {
+        if ($group->parent_id === null) {
+            $executive = $this->executiveLeadership($group);
+
+            if ($executive !== []) {
+                return $executive;
+            }
+        }
+
         $order = array_flip(array_column(Role::cases(), 'value'));
 
         return $group->memberships
@@ -170,6 +185,29 @@ class GroupController extends Controller
                     'name' => $membership->member->first_name.' '.$membership->member->last_name,
                 ]))
             ->sortBy(fn (array $entry) => $order[$entry['role']] ?? PHP_INT_MAX)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The root DMV Group's leadership: its super-tier executives (President / VPs),
+     * surfaced by org authority since they carry no per-Group role row. Departed
+     * members are excluded and entries are ordered by surname for a stable list.
+     * The synthetic `executive` role resolves to a label via `group.role.executive`.
+     *
+     * @return list<array{role: string, member_id: int, name: string}>
+     */
+    private function executiveLeadership(Group $group): array
+    {
+        return $group->memberships
+            ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
+            ->filter(fn (GroupMember $membership) => $membership->member->super_tier)
+            ->sortBy(fn (GroupMember $membership) => $membership->member->last_name)
+            ->map(fn (GroupMember $membership) => [
+                'role' => 'executive',
+                'member_id' => $membership->member->id,
+                'name' => $membership->member->first_name.' '.$membership->member->last_name,
+            ])
             ->values()
             ->all();
     }

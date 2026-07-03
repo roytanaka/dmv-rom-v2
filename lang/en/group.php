@@ -169,5 +169,8 @@ return [
         'librarian' => 'Librarian',
         'content_maintainer' => 'Content Maintainer',
         'news_editor' => 'News Editor',
+        // Synthetic label for the root DMV Group's executive leadership (President /
+        // VPs), which carry no per-Group role row — see GroupController::leadership.
+        'executive' => 'Executive',
     ],
 ];
