@@ -93,10 +93,8 @@ const clearSelectedPreview = () => {
     }
 };
 
-// Remove the saved photo entirely (#234): a dedicated DELETE, independent of the main
-// save, so clearing the picture never rides along with a half-edited field. The server
-// unlinks the file and nulls photo_path; the reshared auth.user then reverts the avatar
-// to initials. Any in-progress local selection is discarded too.
+// Dedicated DELETE so clearing the photo is independent of the main profile save.
+// Any in-progress local selection is also discarded.
 const removePhoto = () => {
     router.delete(route('settings.profile.photo.destroy'), {
         preserveScroll: true,

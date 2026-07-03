@@ -45,17 +45,17 @@ class ProfileController extends Controller
             $member->email_verified_at = null;
         }
 
+        $previousPath = null;
+
         if ($request->hasFile('photo')) {
-            // Replace semantics (#234): stash the prior path, repoint photo_path at the
-            // freshly stored square WebP, then unlink the old file *after* the save
-            // succeeds so a failed write never strands the member without a photo.
+            // Stash before storing so a failed save never leaves the member without a photo.
             $previousPath = $member->photo_path;
             $member->photo_path = $photos->store($request->file('photo'));
         }
 
         $member->save();
 
-        if (isset($previousPath)) {
+        if ($previousPath !== null) {
             $photos->delete($previousPath);
         }
 
@@ -71,9 +71,6 @@ class ProfileController extends Controller
     {
         $member = $request->user();
 
-        // Self-edit only; the MemberPolicy is the one place that decides who may edit a
-        // member (the actor is always editing their own record here, so this resolves
-        // to the self branch — explicit rather than a blind allow).
         abort_unless($member->can('update', $member), 403);
 
         $photos->delete($member->photo_path);
