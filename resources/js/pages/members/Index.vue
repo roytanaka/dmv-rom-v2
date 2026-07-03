@@ -17,7 +17,7 @@
 import AlphaJumpRail from '@/components/AlphaJumpRail.vue';
 import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -237,6 +237,7 @@ const groupNames = (member: DirectoryMember) =>
                             <TableRow v-for="member in sortedMembers" :id="anchorId(member)" :key="member.id" class="scroll-mt-24">
                                 <TableCell>
                                     <Avatar size="sm">
+                                        <AvatarImage v-if="member.photo" :src="member.photo" :alt="`${member.first_name} ${member.last_name}`" />
                                         <AvatarFallback>{{ initials(member) }}</AvatarFallback>
                                     </Avatar>
                                 </TableCell>

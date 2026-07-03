@@ -45,12 +45,39 @@ class ProfileController extends Controller
             $member->email_verified_at = null;
         }
 
+        $previousPath = null;
+
         if ($request->hasFile('photo')) {
-            // Replace semantics (delete the prior file) land in #234; here a new upload
-            // simply repoints photo_path at the freshly stored square WebP.
+            // Stash before storing so a failed save never leaves the member without a photo.
+            // Read the raw attribute, not $member->photo_path: under strict mode an
+            // unhydrated column (e.g. an actingAs/factory model) would throw (see photoUrl).
+            $previousPath = $member->getAttributes()['photo_path'] ?? null;
             $member->photo_path = $photos->store($request->file('photo'));
         }
 
+        $member->save();
+
+        if ($previousPath !== null) {
+            $photos->delete($previousPath);
+        }
+
+        return to_route('settings.profile');
+    }
+
+    /**
+     * Remove the member's profile photo entirely (#234): unlink the stored file — not
+     * just null the column — so no picture lingers fetchable under its UUID URL, then
+     * clear `photo_path` so rendering reverts to initials everywhere the member appears.
+     */
+    public function destroyPhoto(Request $request, ProfilePhotoStorage $photos): RedirectResponse
+    {
+        $member = $request->user();
+
+        abort_unless($member->can('update', $member), 403);
+
+        // Raw read for the same strict-mode reason as update() above.
+        $photos->delete($member->getAttributes()['photo_path'] ?? null);
+        $member->photo_path = null;
         $member->save();
 
         return to_route('settings.profile');

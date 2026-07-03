@@ -39,6 +39,7 @@ return [
         'photo_error_heic' => 'HEIC photos (the iPhone default) aren’t supported. On your phone, re-save or export the picture as JPG and upload that.',
         'photo_error_unsupported' => 'That file type isn’t supported. Please upload a JPG, PNG, or WebP image.',
         'photo_error_too_large' => 'That image is too large. Please upload a photo under :max MB.',
+        'photo_remove' => 'Remove photo',
         'current_password' => 'Current password',
         'current_password_hint' => 'Confirm your current password to change your email address.',
         'unverified' => 'Your email address is unverified.',

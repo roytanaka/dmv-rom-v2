@@ -19,6 +19,9 @@ Route::group([
 
     Route::get(LaravelLocalization::transRoute('routes.settings.profile'), [ProfileController::class, 'edit'])->name('settings.profile');
     Route::patch(LaravelLocalization::transRoute('routes.settings.profile'), [ProfileController::class, 'update'])->name('settings.profile.update');
+    // Remove the profile photo (#234) — a dedicated action so clearing the picture is
+    // independent of the main profile save (no hidden flag riding along a field edit).
+    Route::delete(LaravelLocalization::transRoute('routes.settings.profile.photo'), [ProfileController::class, 'destroyPhoto'])->name('settings.profile.photo.destroy');
 
     Route::get(LaravelLocalization::transRoute('routes.settings.password'), [PasswordController::class, 'edit'])->name('settings.password');
     Route::put(LaravelLocalization::transRoute('routes.settings.password'), [PasswordController::class, 'update'])->name('settings.password.update');

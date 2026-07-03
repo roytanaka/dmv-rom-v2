@@ -38,5 +38,6 @@ return [
     // « parametres » (sans accent dans l'URL, comme officer.settings).
     'settings' => 'parametres',
     'settings.profile' => 'parametres/profil',
+    'settings.profile.photo' => 'parametres/profil/photo',
     'settings.password' => 'parametres/mot-de-passe',
 ];

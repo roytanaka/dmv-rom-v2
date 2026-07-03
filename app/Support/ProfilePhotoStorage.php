@@ -70,4 +70,19 @@ class ProfilePhotoStorage
 
         return $path;
     }
+
+    /**
+     * Unlink a previously stored photo from the public disk.
+     *
+     * Nulling `members.photo_path` alone would strand the bytes on disk under their
+     * UUID URL; this removes them together. A null path is a no-op.
+     */
+    public function delete(?string $path): void
+    {
+        if ($path === null) {
+            return;
+        }
+
+        Storage::disk('public')->delete($path);
+    }
 }

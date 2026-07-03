@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TransitionRoot } from '@headlessui/vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
@@ -93,6 +93,18 @@ const clearSelectedPreview = () => {
     }
 };
 
+// Dedicated DELETE so clearing the photo is independent of the main profile save.
+// Any in-progress local selection is also discarded.
+const removePhoto = () => {
+    router.delete(route('settings.profile.photo.destroy'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            form.reset('photo');
+            clearSelectedPreview();
+        },
+    });
+};
+
 const submit = () => {
     // Submit as POST + _method spoof, not a real PATCH: PHP only parses
     // multipart/form-data (the encoding a File forces) on POST, so a genuine PATCH
@@ -134,6 +146,15 @@ const submit = () => {
                                 @change="onPhotoChange"
                             />
                             <p class="text-sm text-neutral-600">{{ trans('settings.profile.photo_hint') }}</p>
+                            <Button
+                                v-if="savedPhotoUrl"
+                                type="button"
+                                variant="link"
+                                class="h-auto justify-self-start p-0 text-sm"
+                                @click="removePhoto"
+                            >
+                                {{ trans('settings.profile.photo_remove') }}
+                            </Button>
                             <InputError class="mt-2" :message="form.errors.photo" />
                         </div>
                     </div>
