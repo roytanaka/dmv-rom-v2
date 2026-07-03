@@ -10,6 +10,7 @@ use Database\Factories\MemberFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -249,6 +250,23 @@ class Member extends Authenticatable
             fn (GroupMember $membership) => $membership->group->has_announcements
                 && $this->canActAs(Role::NewsEditor, $membership->group)
         );
+    }
+
+    /**
+     * The catalog skills this Member is willing to use for DMV/ROM (PRD #243). A
+     * plain `belongsToMany` over the bare `member_skill` pivot: selection is a flat
+     * multi-select with no per-skill state, so — unlike the roles/status the
+     * explicit-pivot {@see GroupMember} model carries — nothing rides on the pivot.
+     *
+     * Records-only: skills are confidential and never surface on any peer-visible
+     * payload (never added to MemberResource); they inform leadership's role and
+     * project suggestions, not peers.
+     *
+     * @return BelongsToMany<Skill, $this>
+     */
+    public function skills(): BelongsToMany
+    {
+        return $this->belongsToMany(Skill::class);
     }
 
     /**

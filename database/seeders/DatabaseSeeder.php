@@ -46,6 +46,11 @@ class DatabaseSeeder extends Seeder
             $member->forceFill(['email_verified_at' => now()])->save();
         }
 
+        // The org-owned Skills catalog (PRD #243) — reference data, faker-free and
+        // idempotent, so it belongs on the standard seed path and is present after
+        // `migrate:fresh --seed`.
+        $this->call(SkillCatalogSeeder::class);
+
         $this->call(DemoSeeder::class);
     }
 }
