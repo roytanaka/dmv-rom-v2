@@ -57,4 +57,22 @@ class ProfilePhotoStorage
 
         return $path;
     }
+
+    /**
+     * Unlink a previously stored photo from the public disk, if any.
+     *
+     * The replace/remove lifecycle (#234) calls this so a superseded or cleared photo
+     * leaves no orphaned file lingering fetchable under its (unguessable) UUID URL —
+     * nulling `members.photo_path` alone would strand the bytes on disk. A null path
+     * (member never had a photo) is a no-op, and `delete()` on the public disk is
+     * already idempotent for an already-absent file, so this is safe to call blindly.
+     */
+    public function delete(?string $path): void
+    {
+        if ($path === null) {
+            return;
+        }
+
+        Storage::disk('public')->delete($path);
+    }
 }

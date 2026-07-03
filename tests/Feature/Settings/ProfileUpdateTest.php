@@ -6,6 +6,7 @@ use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -288,6 +289,61 @@ class ProfileUpdateTest extends TestCase
         $this->assertStringStartsWith('profile-photos/', $path);
         $this->assertStringEndsWith('.webp', $path);
         Storage::disk('public')->assertExists($path);
+    }
+
+    public function test_replacing_a_photo_deletes_the_prior_file()
+    {
+        Storage::fake('public');
+        $user = Member::factory()->create();
+
+        $upload = fn () => $this
+            ->actingAs($user)
+            ->post('/settings/profile', [
+                '_method' => 'PATCH',
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'photo' => UploadedFile::fake()->image('avatar.jpg', 800, 600),
+            ]);
+
+        $upload()->assertSessionHasNoErrors();
+        $first = $user->refresh()->photo_path;
+        Storage::disk('public')->assertExists($first);
+
+        $upload()->assertSessionHasNoErrors();
+        $second = $user->refresh()->photo_path;
+
+        // The replacement is a distinct file, present on disk; the prior one is unlinked
+        // so no superseded photo lingers fetchable under its old UUID URL.
+        $this->assertNotSame($first, $second);
+        Storage::disk('public')->assertExists($second);
+        Storage::disk('public')->assertMissing($first);
+    }
+
+    public function test_removing_a_photo_unlinks_the_file_and_clears_photo_path()
+    {
+        Storage::fake('public');
+        $user = Member::factory()->create();
+
+        // Seed a stored photo directly (no image pipeline needed to prove removal):
+        // a file on the public disk plus the pointing column.
+        $path = 'profile-photos/'.Str::uuid()->toString().'.webp';
+        Storage::disk('public')->put($path, 'stored-bytes');
+        $user->photo_path = $path;
+        $user->save();
+
+        $response = $this
+            ->actingAs($user)
+            ->delete('/settings/profile/photo');
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/settings/profile');
+
+        // The column is cleared *and* the file is gone — not merely nulled with the
+        // bytes stranded on disk.
+        $this->assertNull($user->refresh()->photo_path);
+        Storage::disk('public')->assertMissing($path);
     }
 
     public function test_heic_upload_is_rejected()

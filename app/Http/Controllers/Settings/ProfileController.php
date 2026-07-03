@@ -46,11 +46,38 @@ class ProfileController extends Controller
         }
 
         if ($request->hasFile('photo')) {
-            // Replace semantics (delete the prior file) land in #234; here a new upload
-            // simply repoints photo_path at the freshly stored square WebP.
+            // Replace semantics (#234): stash the prior path, repoint photo_path at the
+            // freshly stored square WebP, then unlink the old file *after* the save
+            // succeeds so a failed write never strands the member without a photo.
+            $previousPath = $member->photo_path;
             $member->photo_path = $photos->store($request->file('photo'));
         }
 
+        $member->save();
+
+        if (isset($previousPath)) {
+            $photos->delete($previousPath);
+        }
+
+        return to_route('settings.profile');
+    }
+
+    /**
+     * Remove the member's profile photo entirely (#234): unlink the stored file — not
+     * just null the column — so no picture lingers fetchable under its UUID URL, then
+     * clear `photo_path` so rendering reverts to initials everywhere the member appears.
+     */
+    public function destroyPhoto(Request $request, ProfilePhotoStorage $photos): RedirectResponse
+    {
+        $member = $request->user();
+
+        // Self-edit only; the MemberPolicy is the one place that decides who may edit a
+        // member (the actor is always editing their own record here, so this resolves
+        // to the self branch — explicit rather than a blind allow).
+        abort_unless($member->can('update', $member), 403);
+
+        $photos->delete($member->photo_path);
+        $member->photo_path = null;
         $member->save();
 
         return to_route('settings.profile');

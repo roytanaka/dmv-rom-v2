@@ -46,5 +46,6 @@ return [
     // language switcher resolves the twin (HandleInertiaRequests::twinUrl).
     'settings' => 'settings',
     'settings.profile' => 'settings/profile',
+    'settings.profile.photo' => 'settings/profile/photo',
     'settings.password' => 'settings/password',
 ];

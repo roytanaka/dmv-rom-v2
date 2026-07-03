@@ -21,7 +21,7 @@
 import AlphaJumpRail from '@/components/AlphaJumpRail.vue';
 import GroupStandingBadge from '@/components/GroupStandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -238,6 +238,7 @@ const hardRemove = (member: RosterMember) => {
                         <TableRow v-for="member in filteredMembers" :id="anchorId(member)" :key="member.id" class="scroll-mt-24">
                             <TableCell>
                                 <Avatar size="sm">
+                                    <AvatarImage v-if="member.photo" :src="member.photo" :alt="`${member.first_name} ${member.last_name}`" />
                                     <AvatarFallback>{{ initials(member) }}</AvatarFallback>
                                 </Avatar>
                             </TableCell>
