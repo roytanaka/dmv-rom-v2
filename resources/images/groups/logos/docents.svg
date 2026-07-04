@@ -1,0 +1,11 @@
+<!-- PROVISIONAL Docents identity mark (PRD #253) — interim art, replace with final asset.
+     A single real logo, enough to exercise the has-logo path on the launcher.
+     The real legacy Docents art (docent.svg) is held for #257: it references a missing
+     embedded raster, so curating/optimizing it belongs with the full-set slice. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img">
+  <path d="M32 6 54 18v4H10v-4L32 6Z" fill="#000000"/>
+  <rect x="16" y="24" width="6" height="24" fill="#516d80"/>
+  <rect x="29" y="24" width="6" height="24" fill="#516d80"/>
+  <rect x="42" y="24" width="6" height="24" fill="#516d80"/>
+  <rect x="10" y="50" width="44" height="6" rx="1" fill="#000000"/>
+</svg>

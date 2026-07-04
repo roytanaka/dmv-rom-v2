@@ -86,6 +86,13 @@ export interface GroupNode extends NavNodeBase {
     name: string;
     /** Stable Group identifier — the top bar resolves this Group's Menu by it. */
     groupId: string;
+    /**
+     * The Group's logo key (its stored `logo_key`), or null when it has none.
+     * IDENTITY, not chrome: the launcher tile resolves it to an asset via
+     * `@/groups/logos`, falling back to the generic mark when null. Carried on
+     * every rail row but read only by the launcher grid (the rail ignores it).
+     */
+    logo?: string | null;
     /** Subcommittees — themselves Groups, so their names are content too. */
     children?: GroupNode[];
 }

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\AccessTier;
 use App\Enums\Category;
+use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\MembershipStatus;
@@ -789,7 +790,7 @@ class DemoSeeder extends Seeder
                         $this->cohort('Pompeii', archived: true),
                         $this->cohort('Ultimate Dinosaurs', archived: true),
                         $this->cohort('Forbidden City', archived: true),
-                    ]),
+                    ], GroupLogo::Docents),
                     $this->program('Guides du ROM'),
                     $this->program('Les Amis Francophiles'),
                     $this->program('DMV Hands-on Tours', [
@@ -880,14 +881,15 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * A program node.
+     * A program node. Pass a logo to give it its own identity mark on the
+     * launcher (PRD #253); most programs stay null and show the generic fallback.
      *
      * @param  array<int, array<string, mixed>>  $children
      * @return array<string, mixed>
      */
-    private function program(string $name, array $children = []): array
+    private function program(string $name, array $children = [], ?GroupLogo $logo = null): array
     {
-        return ['name' => $name, 'kind' => Kind::Program, 'children' => $children];
+        return ['name' => $name, 'kind' => Kind::Program, 'children' => $children, 'logo' => $logo];
     }
 
     /**
@@ -975,6 +977,9 @@ class DemoSeeder extends Seeder
             'time_boxed' => false,
             'start_date' => null,
             'end_date' => null,
+            // Identity mark on the launcher (PRD #253); null → generic fallback,
+            // which is the common case across the demo tree.
+            'logo_key' => $node['logo'] ?? null,
         ] + $this->capabilitiesFor($kind);
 
         // Time-boxed Kinds default to an open window (started a while ago, still open).
