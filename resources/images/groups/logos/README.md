@@ -11,6 +11,14 @@ These assets are **provisional**. The design's whole point is that a **reskin** 
 drop-in file swap (same filename, no code) and an **expand** is one enum case + one
 `logos.ts` entry + one seeder assignment. Keep it that way.
 
+> **Each mark must carry its own background.** The launcher tile is transparent — it
+> draws no card behind the mark (`GroupTile.vue`), because these marks are already
+> self-contained icons on their own colour ground and a tile chrome would just double
+> it. A mark exported with a _transparent_ background floats bare against the page and
+> breaks the grid's consistency. Bake a background into the art (a filled rounded
+> square, matching the others) as part of the optimize-on-import step below. The
+> totality test guards that a file exists, not that it has a background — this is on you.
+
 ## Adding or reskinning a mark (optimize-on-import)
 
 The source art is legacy CorelDRAW SVG exports (and one raster). Do **not** commit
