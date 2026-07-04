@@ -23,20 +23,20 @@ Embedded base64 (`href="data:..."`) images **are** the mark — keep those.
 1. **Strip dead external rasters** (SVG only): remove every self-closing `<image .../>`
    whose `href` is not a `data:` URI. (Keep base64 `data:` images.)
 2. **Optimize.**
-   - **SVG** — [SVGO](https://github.com/svg/svgo). Keep the `viewBox`, drop the fixed
-     `width`/`height` so the tile scales, strip metadata/comments/DOCTYPE:
-     ```
-     pnpm dlx svgo --multipass \
-       --enable=removeDimensions,removeXMLProcInst,removeComments,removeMetadata \
-       -i in.svg -o resources/images/groups/logos/<value>.svg
-     ```
-   - **Raster** — resize to ~256px, quantize with
-     [pngquant](https://pngquant.org), then [oxipng](https://github.com/oxipng/oxipng):
-     ```
-     magick in.png -resize 256x256 -strip <value>.png
-     pngquant --force --quality=60-85 --strip --output <value>.png <value>.png
-     oxipng -o 4 --strip safe <value>.png
-     ```
+    - **SVG** — [SVGO](https://github.com/svg/svgo). Keep the `viewBox`, drop the fixed
+      `width`/`height` so the tile scales, strip metadata/comments/DOCTYPE:
+        ```
+        pnpm dlx svgo --multipass \
+          --enable=removeDimensions,removeXMLProcInst,removeComments,removeMetadata \
+          -i in.svg -o resources/images/groups/logos/<value>.svg
+        ```
+    - **Raster** — resize to ~256px, quantize with
+      [pngquant](https://pngquant.org), then [oxipng](https://github.com/oxipng/oxipng):
+        ```
+        magick in.png -resize 256x256 -strip <value>.png
+        pngquant --force --quality=60-85 --strip --output <value>.png <value>.png
+        oxipng -o 4 --strip safe <value>.png
+        ```
 3. **Rename to the enum value.** Legacy stems don't all match the intended key
    (e.g. `docent.svg` → `docents`, and `special.svg` is actually Visitor Wayfinders),
    so name the output for the `GroupLogo` case value, not the source file.
