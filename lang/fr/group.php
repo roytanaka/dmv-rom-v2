@@ -8,7 +8,7 @@
 return [
     'tab' => [
         'overview' => 'Aperçu',
-        'directory' => 'Répertoire',
+        'members' => 'Membres',
         'meetings' => 'Réunions',
         'documents' => 'Documents',
         'scheduling' => 'Horaire',
