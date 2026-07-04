@@ -6,12 +6,17 @@ import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
+import { computed } from 'vue';
 
 const localizeHref = useLocalizedHref();
 
 // Hrefs are authored English-canonical and localized per ADR-0008 so a French
 // Member navigating the settings sidebar stays on the French twins.
-const sidebarNavItems: NavItem[] = [
+//
+// `computed`, not a plain const: after a full-page locale switch the messages load
+// async, so a `trans()` snapshot taken at setup captures the raw key before FR is
+// ready. A computed re-derives the labels reactively once the locale resolves.
+const sidebarNavItems = computed<NavItem[]>(() => [
     {
         title: trans('settings.nav.profile'),
         href: localizeHref('/settings/profile'),
@@ -24,7 +29,7 @@ const sidebarNavItems: NavItem[] = [
         title: trans('settings.nav.skills'),
         href: localizeHref('/settings/skills'),
     },
-];
+]);
 
 const currentPath = window.location.pathname;
 </script>

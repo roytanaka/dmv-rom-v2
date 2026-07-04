@@ -5,7 +5,7 @@ import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { TransitionRoot } from '@headlessui/vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import { Button } from '@/components/ui/button';
@@ -22,12 +22,15 @@ defineProps<Props>();
 
 const localizeHref = useLocalizedHref();
 
-const breadcrumbItems: BreadcrumbItem[] = [
+// `computed`, not a plain const: after a full-page locale switch the messages load
+// async, so a `trans()` snapshot taken at setup captures the raw key before the
+// locale is ready. A computed re-derives the label reactively once it resolves.
+const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
     {
         title: trans('settings.password.title'),
         href: localizeHref('/settings/password'),
     },
-];
+]);
 
 const passwordInput = ref<HTMLInputElement>();
 const currentPasswordInput = ref<HTMLInputElement>();

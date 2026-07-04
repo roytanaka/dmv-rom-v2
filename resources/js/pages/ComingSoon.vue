@@ -14,7 +14,9 @@ const props = defineProps<{
     section?: string | null;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: trans('placeholder.coming_soon.title'), href: '#' }];
+// `computed` so the label survives a full-page locale switch — the messages load
+// async, so a `trans()` snapshot taken at setup would capture the raw key.
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: trans('placeholder.coming_soon.title'), href: '#' }]);
 
 const groupLine = computed(() => [props.group, props.section].filter(Boolean).join(' / '));
 </script>
