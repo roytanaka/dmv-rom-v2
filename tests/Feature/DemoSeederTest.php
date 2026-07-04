@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Category;
+use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\MembershipStatus;
@@ -88,6 +89,20 @@ it('excludes archived and stale groups from the active scope but keeps live ones
         ->where('lifecycle_state', LifecycleState::Active)
         ->firstOrFail();
     expect($activeIds->contains($liveProgram->id))->toBeTrue();
+});
+
+it('hand-assigns curated logo keys per node, leaving groups without a mark on the fallback', function () {
+    // A representative program, a Friends-of committee, and a "filename ≠ key"
+    // rename (special.svg → Visitor Wayfinders) — the per-node assignment (#257).
+    expect(Group::where('slug', 'docents')->firstOrFail()->logo_key)->toBe(GroupLogo::Docents)
+        ->and(Group::where('slug', 'bishop-white-fea')->firstOrFail()->logo_key)->toBe(GroupLogo::BishopWhiteFea)
+        ->and(Group::where('slug', 'visitor-wayfinders')->firstOrFail()->logo_key)->toBe(GroupLogo::VisitorWayfinders);
+
+    // ROMForYou deliberately ships no mark, and the structural root never does —
+    // so the generic fallback is visibly exercised on staging (at least one null).
+    expect(Group::where('slug', 'romforyou')->firstOrFail()->logo_key)->toBeNull()
+        ->and(Group::where('slug', DemoSeeder::ROOT)->firstOrFail()->logo_key)->toBeNull()
+        ->and(Group::whereNull('logo_key')->exists())->toBeTrue();
 });
 
 it('represents varied membership statuses including Full, Trainee and LOA', function () {

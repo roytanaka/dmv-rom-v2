@@ -791,21 +791,23 @@ class DemoSeeder extends Seeder
                         $this->cohort('Ultimate Dinosaurs', archived: true),
                         $this->cohort('Forbidden City', archived: true),
                     ], GroupLogo::Docents),
-                    $this->program('Guides du ROM'),
-                    $this->program('Les Amis Francophiles'),
+                    $this->program('Guides du ROM', [], GroupLogo::GuidesDuRom),
+                    $this->program('Les Amis Francophiles', [], GroupLogo::LesAmisFrancophiles),
                     $this->program('DMV Hands-on Tours', [
                         $this->workingGroup('Social', 'hands-on-tours-social'),
                         $this->workingGroup('Training', 'hands-on-tours-training'),
                         $this->workingGroup('Vetting'),
-                    ]),
-                    $this->program('Gallery Interpreters'),
+                    ], GroupLogo::DmvHandsOnTours),
+                    $this->program('Gallery Interpreters', [], GroupLogo::GalleryInterpreters),
+                    // ROMForYou deliberately ships no mark — the visible generic
+                    // fallback the launcher exercises on a top-level program (#257).
                     $this->program('ROMForYou', [
                         $this->workingGroup('Content Development'),
                         $this->workingGroup('Team Leads — adult presentations'),
                         $this->workingGroup('Outreach'),
                         $this->workingGroup('Adapted Presentations'),
                     ]),
-                    $this->program('Visitor Guides'),
+                    $this->program('Visitor Guides', [], GroupLogo::VisitorGuides),
                     $this->program('Visitor Wayfinders', [
                         $this->workingGroup('Documentation'),
                         $this->workingGroup('Shadow Shift & Vetting Volunteers'),
@@ -814,7 +816,7 @@ class DemoSeeder extends Seeder
                         $this->cohort('TRex Spot Tours', archived: true),
                         $this->cohort('Blue Whale', archived: true),
                         $this->cohort('Zuul', archived: true),
-                    ]),
+                    ], GroupLogo::VisitorWayfinders),
                     // ROMWalks — one coherent subtree merged from the source's
                     // two differing listings (see class docblock).
                     $this->program('ROMWalks', [
@@ -825,16 +827,16 @@ class DemoSeeder extends Seeder
                         $this->workingGroup('Statistical'),
                         $this->workingGroup('Training', 'romwalks-training'),
                         $this->workingGroup('Walker Vetting'),
-                    ]),
+                    ], GroupLogo::Romwalks),
                     $this->program('Reception', [
                         $this->workingGroup('Library'),
-                    ]),
-                    $this->program('ROMBus'),
+                    ], GroupLogo::Reception),
+                    $this->program('ROMBus', [], GroupLogo::Rombus),
                     $this->program('ROMTravel', [
                         $this->workingGroup('Admin Committee'),
                         $this->workingGroup('Feasibility Committee'),
                         $this->workingGroup('Support Roles'),
-                    ]),
+                    ], GroupLogo::Romtravel),
                 ]),
                 // Special Projects — the cross-program project node.
                 $this->sc('Special Projects', [
@@ -847,20 +849,21 @@ class DemoSeeder extends Seeder
                     $this->project('ROM eBird Records'),
                     $this->project('Transcribe interview tapes'),
                 ]),
-                // Friends-of standing committees (some with their own sub-groups).
-                $this->sc('Bishop White (FEA)'),
-                $this->sc('Friends of Global South Asia (FSA)'),
+                // Friends-of standing committees (some with their own sub-groups),
+                // each with its own identity mark on the launcher (#257).
+                $this->sc('Bishop White (FEA)', logo: GroupLogo::BishopWhiteFea),
+                $this->sc('Friends of Global South Asia (FSA)', logo: GroupLogo::FriendsOfGlobalSouthAsiaFsa),
                 $this->sc('Friends of Textiles & Costume', [
                     $this->workingGroup('Adopt-a-Journal'),
                     $this->workingGroup('Donor Friends'),
                     $this->workingGroup('Education SubCommittee'),
                     $this->workingGroup('Newsletter SubCommittee'),
                     $this->workingGroup('Programs & Events'),
-                ]),
+                ], logo: GroupLogo::FriendsOfTextilesCostume),
                 $this->sc('Friends of Palaeontology (FOP)', [
                     $this->workingGroup('Vertebrate Palaeontology'),
-                ]),
-                $this->sc('Friends of Earth & Space (FES)'),
+                ], logo: GroupLogo::FriendsOfPalaeontologyFop),
+                $this->sc('Friends of Earth & Space (FES)', logo: GroupLogo::FriendsOfEarthSpaceFes),
             ],
         ];
     }
@@ -871,13 +874,16 @@ class DemoSeeder extends Seeder
      * capability profile differs (e.g. Communications turning on announcements so
      * the news-editor Persona's `post-news` gate is satisfiable).
      *
+     * `logo` gives a Friends-of committee its own identity mark on the launcher
+     * (PRD #253); the org-level section containers stay null and fall back.
+     *
      * @param  array<int, array<string, mixed>>  $children
      * @param  array<string, bool>  $capabilities
      * @return array<string, mixed>
      */
-    private function sc(string $name, array $children = [], array $capabilities = []): array
+    private function sc(string $name, array $children = [], array $capabilities = [], ?GroupLogo $logo = null): array
     {
-        return ['name' => $name, 'kind' => Kind::StandingCommittee, 'children' => $children, 'capabilities' => $capabilities];
+        return ['name' => $name, 'kind' => Kind::StandingCommittee, 'children' => $children, 'capabilities' => $capabilities, 'logo' => $logo];
     }
 
     /**
