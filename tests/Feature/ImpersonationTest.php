@@ -5,6 +5,7 @@ use App\Personas\PersonaCatalogue;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Routing\RouteCollection;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -22,7 +23,13 @@ use Inertia\Testing\AssertableInertia as Assert;
  * from a President's org authority.
  */
 
-beforeEach(fn () => $this->seed(DemoSeeder::class));
+// DemoSeeder fetches best-effort DiceBear avatars for a fraction of the roster;
+// fake the HTTP client so seeding never touches the network. These tests assert
+// impersonation props, not photos, so an empty 200 (initials fallback) is fine.
+beforeEach(function () {
+    Http::fake();
+    $this->seed(DemoSeeder::class);
+});
 
 function operator(): Member
 {
