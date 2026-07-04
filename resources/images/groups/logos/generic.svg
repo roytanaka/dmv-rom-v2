@@ -1,0 +1,7 @@
+<!-- PROVISIONAL generic fallback mark (PRD #253) — interim art, replace with final asset.
+     Shown on any launcher tile whose Group has no logo of its own. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img">
+  <rect x="4" y="4" width="56" height="56" rx="6" fill="#eef1f4" stroke="#93a6b3" stroke-width="2"/>
+  <circle cx="32" cy="25" r="9" fill="#516d80"/>
+  <path d="M15 50c0-9.4 7.6-17 17-17s17 7.6 17 17" fill="#516d80"/>
+</svg>

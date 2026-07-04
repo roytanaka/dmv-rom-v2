@@ -4,7 +4,6 @@ import GroupTile from '@/components/GroupTile.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, usePage } from '@inertiajs/vue3';
-import { PhUsersThree } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
@@ -20,9 +19,10 @@ const page = usePage<SharedData>();
 // The landing-page group-tile launcher (the legacy home grid). Both grids are
 // server-built (PRD #209) from the same `rail` prop that feeds the rail, so the
 // launcher and the rail can never disagree — pre-localized, each tile carrying the
-// interim placeholder Group icon. My Groups is omitted when the Member belongs to no
-// Group; All Groups is shown to every Member (the former super-tier gate is gone, #211),
-// its top-level rows only — subcommittees stay in the rail.
+// Group's logo key (PRD #253), which the tile resolves to its identity mark (or the
+// generic fallback). My Groups is omitted when the Member belongs to no Group; All
+// Groups is shown to every Member (the former super-tier gate is gone, #211), its
+// top-level rows only — subcommittees stay in the rail.
 type LauncherGridView = { labelKey: string; items: GroupNode[]; localized: boolean };
 
 const grids = computed<LauncherGridView[]>(() => {
@@ -30,20 +30,12 @@ const grids = computed<LauncherGridView[]>(() => {
 
     const myGroups = page.props.rail.myGroups;
     if (myGroups) {
-        out.push({
-            labelKey: myGroups.labelKey,
-            items: myGroups.items.map((item) => ({ ...item, icon: PhUsersThree })),
-            localized: true,
-        });
+        out.push({ labelKey: myGroups.labelKey, items: myGroups.items, localized: true });
     }
 
     const allGroups = page.props.rail.allGroups;
     if (allGroups) {
-        out.push({
-            labelKey: allGroups.labelKey,
-            items: allGroups.items.map((item) => ({ ...item, icon: PhUsersThree })),
-            localized: true,
-        });
+        out.push({ labelKey: allGroups.labelKey, items: allGroups.items, localized: true });
     }
 
     return out;

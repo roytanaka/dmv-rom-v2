@@ -468,10 +468,12 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * The shared, as-authored shape of one Group rail row: a stable slug id, the Group
-     * name verbatim (content — never translated, ADR-0004), and its locale-localized
-     * path. The client supplies the interim placeholder icon; the wire carries none.
+     * name verbatim (content — never translated, ADR-0004), its locale-localized path,
+     * and its logo key (identity, PRD #253). The logo rides on every rail row so the
+     * launcher and rail can't disagree, but only the launcher grid reads it — a null
+     * key resolves to the generic fallback mark client-side.
      *
-     * @return array{groupId: string, name: string, href: string}
+     * @return array{groupId: string, name: string, href: string, logo: string|null}
      */
     private function nodeAttributes(Group $group): array
     {
@@ -479,6 +481,7 @@ class HandleInertiaRequests extends Middleware
             'groupId' => $group->slug,
             'name' => $group->name,
             'href' => $this->groupHref($group),
+            'logo' => $group->logo_key?->value,
         ];
     }
 

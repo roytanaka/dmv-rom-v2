@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\GroupLogo;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
@@ -32,8 +33,8 @@ it('lists the Member\'s Full-standing Groups, flat and alphabetical by name', fu
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('rail.myGroups.labelKey', 'nav.rail.my_groups')
-            ->where('rail.myGroups.items.0', ['groupId' => 'archaeology', 'name' => 'Archaeology', 'href' => '/groups/archaeology'])
-            ->where('rail.myGroups.items.1', ['groupId' => 'zoology', 'name' => 'Zoology', 'href' => '/groups/zoology'])
+            ->where('rail.myGroups.items.0', ['groupId' => 'archaeology', 'name' => 'Archaeology', 'href' => '/groups/archaeology', 'logo' => null])
+            ->where('rail.myGroups.items.1', ['groupId' => 'zoology', 'name' => 'Zoology', 'href' => '/groups/zoology', 'logo' => null])
             ->count('rail.myGroups.items', 2));
 });
 
@@ -87,8 +88,36 @@ it('emits My Groups names verbatim and hrefs as French twins under /fr/', functi
                     'groupId' => 'guides-du-rom',
                     'name' => 'Guides du ROM',
                     'href' => '/fr/groupes/guides-du-rom',
+                    'logo' => null,
                 ]));
     });
+});
+
+/*
+ * Group logos on the launcher (PRD #253): each launcher row carries its Group's
+ * `logo_key` verbatim so the tile can resolve it to an identity mark client-side. A
+ * Group with a logo carries its key; a Group without one carries null and the tile
+ * falls back to the generic mark. Asserted at the same shared-prop seam as the rest of
+ * the launcher, alongside the banner-style curated-key assertions.
+ */
+
+it('carries a Group\'s logo key on its launcher row, and null when it has none', function () {
+    $member = Member::factory()->create();
+    // Docents has its own identity mark; Zoology has none (the common case).
+    $docents = Group::factory()->create(['slug' => 'docents', 'name' => 'Docents', 'logo_key' => GroupLogo::Docents]);
+    $zoo = Group::factory()->create(['slug' => 'zoology', 'name' => 'Zoology', 'logo_key' => null]);
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $zoo->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // Alphabetical by name: Docents (with logo) then Zoology (fallback).
+            ->where('rail.myGroups.items.0.groupId', 'docents')
+            ->where('rail.myGroups.items.0.logo', 'docents')
+            ->where('rail.myGroups.items.1.groupId', 'zoology')
+            ->where('rail.myGroups.items.1.logo', null));
 });
 
 /*
