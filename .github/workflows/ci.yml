@@ -97,5 +97,8 @@ jobs:
       - name: Build assets (Vite)
         run: pnpm run build
 
+      - name: Tune MariaDB for CI (ephemeral DB — drop per-commit fsync)
+        run: mysql -h127.0.0.1 -uroot -proot -e "SET GLOBAL innodb_flush_log_at_trx_commit=0; SET GLOBAL sync_binlog=0;"
+
       - name: Run Pest
         run: vendor/bin/pest
