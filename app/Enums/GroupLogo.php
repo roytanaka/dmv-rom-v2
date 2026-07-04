@@ -31,5 +31,27 @@ enum GroupLogo: string
      */
     public const Fallback = 'generic';
 
+    // Member-facing programs with their own mark. The case value is the asset
+    // filename stem and the stored `logo_key`; it mirrors the Group slug so the
+    // seeder assignment reads plainly, but the two are deliberately decoupled
+    // (a logo is identity, not derived from the slug). ROMForYou ships no mark
+    // and stays on the generic fallback (PRD #253 / #257).
     case Docents = 'docents';
+    case GuidesDuRom = 'guides-du-rom';
+    case LesAmisFrancophiles = 'les-amis-francophiles';
+    case DmvHandsOnTours = 'dmv-hands-on-tours';
+    case GalleryInterpreters = 'gallery-interpreters';
+    case VisitorGuides = 'visitor-guides';
+    case VisitorWayfinders = 'visitor-wayfinders';
+    case Romwalks = 'romwalks';
+    case Reception = 'reception';
+    case Rombus = 'rombus';
+    case Romtravel = 'romtravel';
+
+    // Friends-of standing committees with their own mark.
+    case BishopWhiteFea = 'bishop-white-fea';
+    case FriendsOfGlobalSouthAsiaFsa = 'friends-of-global-south-asia-fsa';
+    case FriendsOfTextilesCostume = 'friends-of-textiles-costume';
+    case FriendsOfPalaeontologyFop = 'friends-of-palaeontology-fop';
+    case FriendsOfEarthSpaceFes = 'friends-of-earth-space-fes';
 }
