@@ -36,7 +36,9 @@ const props = defineProps<{
     can: { create: boolean };
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: trans('news.title'), href: '#' }];
+// `computed` so the label survives a full-page locale switch — the messages load
+// async, so a `trans()` snapshot taken at setup would capture the raw key.
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: trans('news.title'), href: '#' }]);
 
 const locale = computed(() => usePage<SharedData>().props.locale);
 const formatDate = (iso: string) => new Intl.DateTimeFormat(locale.value, { dateStyle: 'long' }).format(new Date(iso));

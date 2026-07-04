@@ -46,8 +46,11 @@ const destClass = (dest: ChromeDestination): string => {
 </script>
 
 <template>
-    <header class="bg-rom-ink flex h-16 shrink-0 items-stretch gap-3 px-4 text-white">
-        <div class="flex shrink-0 items-center gap-2">
+    <header class="bg-rom-ink flex h-16 shrink-0 items-stretch text-white">
+        <!-- Left cluster spans exactly the sidebar's width at md+ (where the fixed rail
+             is visible), so the primary nav starts at the sidebar's right edge. Below md
+             the rail is an off-canvas sheet, so this stays auto-width. -->
+        <div class="flex shrink-0 items-center gap-2 pl-4 md:w-(--sidebar-width) md:px-4">
             <SidebarTrigger class="text-white hover:bg-white/10 hover:text-white" />
             <!-- Wordmark drops below sm — no square mark exists yet (ADR-0013). -->
             <Link :href="localizeHref('/dashboard')" class="hidden items-center sm:flex" aria-label="Home">
@@ -71,7 +74,7 @@ const destClass = (dest: ChromeDestination): string => {
         <!-- Right utilities — Help, the language switcher (globe, lg+), the avatar
              menu. Below lg the globe is hidden and the locale list lives in the
              avatar menu (UserMenuContent), so the bar isn't crowded (#69). -->
-        <div class="flex shrink-0 items-center gap-2">
+        <div class="flex shrink-0 items-center gap-2 pr-4 pl-2">
             <Link
                 :href="nav.help.href"
                 :aria-current="isActive(nav.help) ? 'page' : undefined"

@@ -46,7 +46,9 @@ interface DirectoryMember {
 
 const props = defineProps<{ members: DirectoryMember[] }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: trans('directory.title'), href: route('directory') }];
+// `computed` so the label survives a full-page locale switch — the messages load
+// async, so a `trans()` snapshot taken at setup would capture the raw key.
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: trans('directory.title'), href: route('directory') }]);
 
 // Live name search and the active Group filter ('' = all Groups). Both narrow the
 // loaded set; nothing here touches the server.

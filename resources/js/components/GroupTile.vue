@@ -33,7 +33,7 @@ const src = computed(() => logoSrc(props.item.logo));
         <span
             class="group-hover:bg-rom-slate-100 group-focus-visible:ring-rom-slate-300 flex aspect-square w-full items-center justify-center rounded-none p-1 transition-colors group-focus-visible:ring-2 group-focus-visible:outline-none"
         >
-            <img :src="src" alt="" class="size-[72%] object-contain" />
+            <img :src="src" alt="" class="object-contain" />
         </span>
         <span class="text-sm leading-tight font-medium">{{ item.name }}</span>
     </Link>

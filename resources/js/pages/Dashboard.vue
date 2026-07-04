@@ -49,7 +49,7 @@ const grids = computed<LauncherGridView[]>(() => {
         <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-6">
             <section v-for="grid in grids" :key="grid.labelKey">
                 <h2 class="text-rom-ink mb-3 text-sm font-semibold tracking-wide uppercase">{{ trans(grid.labelKey) }}</h2>
-                <div class="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-6 xl:grid-cols-7">
+                <div class="grid grid-cols-4 gap-3 sm:grid-cols-5 sm:gap-4 lg:grid-cols-6 xl:grid-cols-8">
                     <GroupTile v-for="item in grid.items" :key="item.href" :item="item" :localized="grid.localized" />
                 </div>
             </section>

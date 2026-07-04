@@ -28,12 +28,15 @@ defineProps<Props>();
 
 const localizeHref = useLocalizedHref();
 
-const breadcrumbs: BreadcrumbItem[] = [
+// `computed`, not a plain const: after a full-page locale switch the messages load
+// async, so a `trans()` snapshot taken at setup captures the raw key before the
+// locale is ready. A computed re-derives the label reactively once it resolves.
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
         title: trans('settings.profile.title'),
         href: localizeHref('/settings/profile'),
     },
-];
+]);
 
 const page = usePage<SharedData>();
 const user = page.props.auth.user as User;

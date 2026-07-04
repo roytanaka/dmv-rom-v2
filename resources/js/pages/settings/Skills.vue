@@ -10,6 +10,7 @@ import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { type BreadcrumbItem } from '@/types';
+import { computed } from 'vue';
 
 interface CatalogCategory {
     id: number;
@@ -29,12 +30,15 @@ const props = defineProps<Props>();
 
 const localizeHref = useLocalizedHref();
 
-const breadcrumbs: BreadcrumbItem[] = [
+// `computed`, not a plain const: after a full-page locale switch the messages load
+// async, so a `trans()` snapshot taken at setup captures the raw key before the
+// locale is ready. A computed re-derives the label reactively once it resolves.
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
         title: trans('settings.skills.title'),
         href: localizeHref('/settings/skills'),
     },
-];
+]);
 
 const form = useForm<{ skills: number[] }>({
     skills: [...props.selected],
