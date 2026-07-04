@@ -170,9 +170,19 @@ class Member extends Authenticatable
      * and then resolves in memory — so a gate/policy that asks repeated
      * authorization questions about one Member (or eager-loads
      * `memberships.roles`) never re-queries per call.
+     *
+     * Self-loads `memberships.roles` if absent so every downstream role check
+     * ({@see canActAs}, {@see holdsRole}, {@see administers}) is safe under strict
+     * mode's lazy-load guard, whatever the caller pre-loaded. `loadMissing` is a
+     * no-op once loaded — the read controllers still eager-load at the boundary, so
+     * this only catches the paths (e.g. a write's Form Request `authorize()`) that
+     * reach a policy before the actor's roles were hydrated. Without it a Chair /
+     * Secretary 500s where the super-tier `Gate::before` short-circuit hides the gap.
      */
     public function membershipIn(Group $group): ?GroupMember
     {
+        $this->loadMissing('memberships.roles');
+
         return $this->memberships->firstWhere('group_id', $group->getKey());
     }
 
