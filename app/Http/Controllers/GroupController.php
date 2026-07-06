@@ -48,14 +48,11 @@ class GroupController extends Controller
         // forbids the lazy load in either case.
         $request->user()->loadMissing('memberships.roles');
 
-        // Private page-gate (#270, ADR-0019): a Private Group's existence stays
-        // hidden. A viewer who is neither a member of the Group nor on the org-wide
-        // super-tier gets 404 — never 403, so the boundary does not confirm the
-        // Group exists. This holds against parentage: a parent Group's officer who
-        // is not a member of this child is a non-member here. Reuses the established
-        // membership / super-tier resolution — no new authority. Public and Group
-        // visibility stay org-open (a Group-visibility page being pruned from
-        // navigation is tidiness, not confidentiality; only Private is a boundary).
+        // Private page-gate (#270, ADR-0019): keeps a Private Group's existence hidden.
+        // 404 (not 403) so the boundary never confirms the Group exists. Parentage
+        // grants no content access: a parent officer who is not a member of this child
+        // is a non-member here. Public and Group visibility are org-open (navigation
+        // tidiness, not confidentiality; only Private is a boundary).
         if ($group->listing_visibility === ListingVisibility::Private
             && ! $request->user()->isAllDmv()
             && $request->user()->membershipIn($group) === null) {
