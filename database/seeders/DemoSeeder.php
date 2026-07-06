@@ -890,7 +890,14 @@ class DemoSeeder extends Seeder
      */
     private function sc(string $name, array $children = [], array $capabilities = [], ?GroupLogo $logo = null, ?ListingVisibility $visibility = null): array
     {
-        return ['name' => $name, 'kind' => Kind::StandingCommittee, 'children' => $children, 'capabilities' => $capabilities, 'logo' => $logo, 'visibility' => $visibility];
+        return [
+            'name' => $name,
+            'kind' => Kind::StandingCommittee,
+            'children' => $children,
+            'capabilities' => $capabilities,
+            'logo' => $logo,
+            'visibility' => $visibility,
+        ];
     }
 
     /**
