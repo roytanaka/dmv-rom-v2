@@ -42,7 +42,7 @@ There is intentionally **no "sub-purpose" attribute** — no behaviour reads one
 
 A Group **enables only the capabilities it needs**, from a **small, fixed set**: roster & roles (always on), meetings (agenda/minutes), document library, shift/tour scheduling, content catalog, vetting workflow, hours & stats, and announcements (posting to the org-wide news feed).
 
-**Physical shape: one `groups` table holding core identity plus a handful of boolean/enum capability flags.** A capability is _not_ a configuration blob and _not_ a polymorphic per-capability config table. Each capability is a feature with **its own tables, foreign-keyed to the group** — scheduling has shifts / sign-ups / repeat rules / catalog ([ADR-0012](0012-scheduling-model.md)); documents has the library ([ADR-0003](0003-document-storage-architecture.md)); meetings has agendas / minutes; hours has its records. The group row carries only the **flag** that a feature is on; the feature's data lives where data belongs, and per-capability _settings_ live on that capability's own tables. This is ADR-0003's rule applied: explicit foreign keys, no polymorphism, no premature abstraction. A `group_capabilities` pivot was considered and **deferred** — flags fit a fixed set of ~7; promote later only if settings proliferate.
+**Physical shape: one `groups` table holding core identity plus a handful of boolean/enum capability flags.** A capability is _not_ a configuration blob and _not_ a polymorphic per-capability config table. Each capability is a feature with **its own tables, foreign-keyed to the group** — scheduling has shifts / sign-ups / repeat rules / catalog ([ADR-0015](0015-scheduling-model.md)); documents has the library ([ADR-0003](0003-document-storage-architecture.md)); meetings has agendas / minutes; hours has its records. The group row carries only the **flag** that a feature is on; the feature's data lives where data belongs, and per-capability _settings_ live on that capability's own tables. This is ADR-0003's rule applied: explicit foreign keys, no polymorphism, no premature abstraction. A `group_capabilities` pivot was considered and **deferred** — flags fit a fixed set of ~7; promote later only if settings proliferate.
 
 **Amendment (2026-06-16): the `announcements` capability.** Unlike the other capabilities — whose data is read **group-scoped** (a Group's own library, its own shifts) — `announcements` writes to a **single org-wide news feed** that everyone reads; each news item carries a `posting_group_id` (which Group published it), so the capability's data is still foreign-keyed to a Group, but the **read is org-wide** — the one deliberate exception. The capability is multi-Group by design (several Groups may post to the one feed — Communications today; others as a data edit), which is what distinguishes it from a _stewardship_ (single-owner, e.g. Records → member administration). Posting is gated by a capability-scoped **news-editor role** ([ADR-0011](0011-authorization-model.md)). Per-Group _feeds_ (a Group publishing to its own members) remain a later new-feature, not this capability.
 
@@ -95,7 +95,7 @@ The scope target is **strictly less than a Group**: no roster, no capabilities, 
 
 ## Consequences
 
-- **The Group entity and its capability set anchor the rebuild's domain model.** Authorization ([ADR-0011](0011-authorization-model.md)) and scheduling ([ADR-0012](0012-scheduling-model.md)) both state their decisions in these terms.
+- **The Group entity and its capability set anchor the rebuild's domain model.** Authorization ([ADR-0011](0011-authorization-model.md)) and scheduling ([ADR-0015](0015-scheduling-model.md)) both state their decisions in these terms.
 - **The group-membership pivot is a central table** (roles + membership status), read on nearly every authorization decision — index and cache accordingly.
 - **Capabilities are built once and attached per group**, rather than reimplemented per committee.
 
@@ -104,4 +104,4 @@ The scope target is **strictly less than a Group**: no roster, no capabilities, 
 - [ADR-0001](0001-authentication-and-identity.md) — identity and the per-group role model membership builds on
 - [ADR-0003](0003-document-storage-architecture.md) — explicit FKs, no polymorphism, no premature abstraction
 - [ADR-0011](0011-authorization-model.md) — authorization (roles attach to this model's membership)
-- [ADR-0012](0012-scheduling-model.md) — scheduling (one capability a Group enables)
+- [ADR-0015](0015-scheduling-model.md) — scheduling (one capability a Group enables)
