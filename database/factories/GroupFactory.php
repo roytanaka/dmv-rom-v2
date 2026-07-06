@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
+use App\Enums\ListingVisibility;
 use App\Enums\Scope;
 use App\Models\Group;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -33,6 +34,7 @@ class GroupFactory extends Factory
             'description' => fake()->sentence(),
             'kind' => Kind::StandingCommittee,
             'scope' => Scope::Organization,
+            'listing_visibility' => ListingVisibility::Group,
             'lifecycle_state' => LifecycleState::Active,
             'time_boxed' => false,
             'start_date' => null,
@@ -111,6 +113,27 @@ class GroupFactory extends Factory
             'scope' => Scope::Program,
             'has_scheduling' => true,
         ])->timeBoxed();
+    }
+
+    /**
+     * List the Group to every logged-in Member (ADR-0019) — the org-open tier.
+     */
+    public function publicListing(): static
+    {
+        return $this->state(fn () => [
+            'listing_visibility' => ListingVisibility::Public,
+        ]);
+    }
+
+    /**
+     * List the Group only to its own members, hiding its page's existence from
+     * everyone else (ADR-0019) — the strictest tier.
+     */
+    public function privateListing(): static
+    {
+        return $this->state(fn () => [
+            'listing_visibility' => ListingVisibility::Private,
+        ]);
     }
 
     /**
