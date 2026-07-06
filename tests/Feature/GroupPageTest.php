@@ -169,3 +169,75 @@ it('omits contact details from the Overview surface', function () {
             ->missing('overview.leadership.0.email')
             ->missing('overview.leadership.0.phone'));
 });
+
+/*
+ * Private page-gate (#270, PRD #268, ADR-0019). A Private Group's page keeps its
+ * existence hidden: a viewer who is neither a member nor on the super-tier gets a
+ * 404 — deliberately not a 403, so the boundary never confirms the Group exists.
+ * The gate reuses the established membership / super-tier resolution and holds
+ * against parentage. Public / Group visibility is unchanged (org-open).
+ */
+
+it('404s a Private Group for a logged-in non-member', function () {
+    $group = Group::factory()->privateListing()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertNotFound();
+});
+
+it('404s a Private child Group for an officer of the parent Group who is not a member', function () {
+    $parent = Group::factory()->create();
+    $child = Group::factory()->privateListing()->create(['parent_id' => $parent->id]);
+
+    $chair = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create([
+        'group_id' => $parent->id,
+        'member_id' => $chair->id,
+    ])->roles()->create(['role' => Role::Chair]);
+
+    $this->actingAs($chair)
+        ->get(route('groups.show', $child))
+        ->assertNotFound();
+});
+
+it('renders a Private Group to one of its members', function () {
+    $group = Group::factory()->privateListing()->create(['name' => 'Secret Working Group']);
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create([
+        'group_id' => $group->id,
+        'member_id' => $member->id,
+    ]);
+
+    $this->actingAs($member)
+        ->get(route('groups.show', $group))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('groups/Show')
+            ->where('group.name', 'Secret Working Group'));
+});
+
+it('renders a Private Group to the super-tier without membership', function () {
+    $group = Group::factory()->privateListing()->create();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', $group))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('groups/Show'));
+});
+
+it('renders a Public Group to any logged-in Member', function () {
+    $group = Group::factory()->publicListing()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertOk();
+});
+
+it('renders a Group-visibility Group to any logged-in Member', function () {
+    $group = Group::factory()->create(); // factory default is Group visibility
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertOk();
+});
