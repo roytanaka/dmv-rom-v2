@@ -7,6 +7,7 @@ use App\Enums\Category;
 use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
+use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\Scope;
@@ -775,10 +776,10 @@ class DemoSeeder extends Seeder
                     $this->sc('Endowments'),
                     $this->sc('Executive'),
                     $this->sc('First Magnitude'),
-                    $this->sc('Governance'),
+                    $this->sc('Governance', visibility: ListingVisibility::Public),
                     $this->sc('Health & Safety'),
-                    $this->sc('Membership'),
-                    $this->sc('Nominations'),
+                    $this->sc('Membership', visibility: ListingVisibility::Public),
+                    $this->sc('Nominations', visibility: ListingVisibility::Public),
                     $this->sc('Records'),
                     $this->sc('Social'),
                     $this->sc('System Services'),
@@ -798,7 +799,11 @@ class DemoSeeder extends Seeder
                         $this->workingGroup('Training', 'hands-on-tours-training'),
                         $this->workingGroup('Vetting'),
                     ], GroupLogo::DmvHandsOnTours),
-                    $this->program('Gallery Interpreters', [], GroupLogo::GalleryInterpreters),
+                    $this->program('Gallery Interpreters', [
+                        // A Private subgroup nested in a Program — the strictest
+                        // tier, exercised on staging (PRD #268, ADR-0019).
+                        $this->workingGroup('Events', 'gallery-interpreters-events', ListingVisibility::Private),
+                    ], GroupLogo::GalleryInterpreters),
                     // ROMForYou deliberately ships no mark — the visible generic
                     // fallback the launcher exercises on a top-level program (#257).
                     $this->program('ROMForYou', [
@@ -876,14 +881,16 @@ class DemoSeeder extends Seeder
      *
      * `logo` gives a Friends-of committee its own identity mark on the launcher
      * (PRD #253); the org-level section containers stay null and fall back.
+     * `visibility` raises a node above the fail-closed `Group` default — the
+     * recruiting/governance committees are hand-set Public (ADR-0019).
      *
      * @param  array<int, array<string, mixed>>  $children
      * @param  array<string, bool>  $capabilities
      * @return array<string, mixed>
      */
-    private function sc(string $name, array $children = [], array $capabilities = [], ?GroupLogo $logo = null): array
+    private function sc(string $name, array $children = [], array $capabilities = [], ?GroupLogo $logo = null, ?ListingVisibility $visibility = null): array
     {
-        return ['name' => $name, 'kind' => Kind::StandingCommittee, 'children' => $children, 'capabilities' => $capabilities, 'logo' => $logo];
+        return ['name' => $name, 'kind' => Kind::StandingCommittee, 'children' => $children, 'capabilities' => $capabilities, 'logo' => $logo, 'visibility' => $visibility];
     }
 
     /**
@@ -900,13 +907,14 @@ class DemoSeeder extends Seeder
 
     /**
      * A working-group node. Pass an explicit slug to disambiguate names that
-     * recur across the tree (e.g. "Training" under two programs).
+     * recur across the tree (e.g. "Training" under two programs); pass
+     * `visibility` to hide it (e.g. Gallery Interpreters → Events is Private).
      *
      * @return array<string, mixed>
      */
-    private function workingGroup(string $name, ?string $slug = null): array
+    private function workingGroup(string $name, ?string $slug = null, ?ListingVisibility $visibility = null): array
     {
-        $node = ['name' => $name, 'kind' => Kind::WorkingGroup];
+        $node = ['name' => $name, 'kind' => Kind::WorkingGroup, 'visibility' => $visibility];
 
         if ($slug !== null) {
             $node['slug'] = $slug;
@@ -978,6 +986,10 @@ class DemoSeeder extends Seeder
             'description' => $node['description'] ?? $this->aboutFor($node),
             'kind' => $kind,
             'scope' => $this->scopeFor($kind),
+            // Listing visibility (PRD #268, ADR-0019); most nodes fall to the
+            // fail-closed `Group` default, a few are hand-raised to Public or
+            // hidden to Private so staging exercises all three tiers.
+            'listing_visibility' => $node['visibility'] ?? ListingVisibility::Group,
             'display_order' => $order,
             'lifecycle_state' => LifecycleState::Active,
             'time_boxed' => false,

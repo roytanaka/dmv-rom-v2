@@ -2,6 +2,7 @@
 
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
+use App\Enums\ListingVisibility;
 use App\Enums\Scope;
 use App\Models\Group;
 use Illuminate\Database\QueryException;
@@ -68,6 +69,27 @@ it('casts the capability flags and time_boxed to booleans', function () {
         ->and($fresh->has_announcements)->toBeTrue()
         ->and($fresh->time_boxed)->toBeTrue();
 });
+
+it('casts listing_visibility to its enum', function () {
+    $group = Group::factory()->create([
+        'listing_visibility' => ListingVisibility::Private,
+    ]);
+
+    expect($group->fresh()->listing_visibility)->toBe(ListingVisibility::Private);
+});
+
+it('defaults a freshly-created Group to Group listing visibility', function () {
+    expect(Group::factory()->create()->listing_visibility)->toBe(ListingVisibility::Group);
+});
+
+it('builds factory states for Public and Private listing visibility', function () {
+    expect(Group::factory()->publicListing()->create()->listing_visibility)->toBe(ListingVisibility::Public)
+        ->and(Group::factory()->privateListing()->create()->listing_visibility)->toBe(ListingVisibility::Private);
+});
+
+it('rejects an illegal listing_visibility value', function () {
+    Group::factory()->create(['listing_visibility' => 'secret']);
+})->throws(ValueError::class);
 
 it('rejects an illegal kind value', function () {
     Group::factory()->create(['kind' => 'federation']);

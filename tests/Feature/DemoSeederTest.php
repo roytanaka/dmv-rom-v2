@@ -4,6 +4,7 @@ use App\Enums\Category;
 use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
+use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
@@ -103,6 +104,20 @@ it('hand-assigns curated logo keys per node, leaving groups without a mark on th
     expect(Group::where('slug', 'romforyou')->firstOrFail()->logo_key)->toBeNull()
         ->and(Group::where('slug', DemoSeeder::ROOT)->firstOrFail()->logo_key)->toBeNull()
         ->and(Group::whereNull('logo_key')->exists())->toBeTrue();
+});
+
+it('hand-assigns listing visibility per node so staging exercises all three tiers', function () {
+    // A Private subgroup nested inside a Program, org-open recruiting/governance
+    // committees at Public, and a subcommittee at the fail-closed Group default
+    // (PRD #268, ADR-0019).
+    expect(Group::where('slug', 'gallery-interpreters-events')->firstOrFail()->listing_visibility)
+        ->toBe(ListingVisibility::Private)
+        ->and(Group::where('slug', 'membership')->firstOrFail()->listing_visibility)
+        ->toBe(ListingVisibility::Public)
+        ->and(Group::where('slug', 'governance')->firstOrFail()->listing_visibility)
+        ->toBe(ListingVisibility::Public)
+        ->and(Group::where('slug', 'donor-friends')->firstOrFail()->listing_visibility)
+        ->toBe(ListingVisibility::Group);
 });
 
 it('represents varied membership statuses including Full, Trainee and LOA', function () {

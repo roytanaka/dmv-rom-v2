@@ -6,6 +6,7 @@ use App\Enums\GroupBanner;
 use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
+use App\Enums\ListingVisibility;
 use App\Enums\Scope;
 use App\Enums\StewardshipFunction;
 use Database\Factories\GroupFactory;
@@ -39,6 +40,7 @@ class Group extends Model
         'logo_key',
         'kind',
         'scope',
+        'listing_visibility',
         'lifecycle_state',
         'time_boxed',
         'start_date',
@@ -65,6 +67,7 @@ class Group extends Model
             'logo_key' => GroupLogo::class,
             'kind' => Kind::class,
             'scope' => Scope::class,
+            'listing_visibility' => ListingVisibility::class,
             'lifecycle_state' => LifecycleState::class,
             'time_boxed' => 'boolean',
             'start_date' => 'date',
