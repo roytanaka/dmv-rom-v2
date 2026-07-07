@@ -17,6 +17,7 @@ use App\Personas\PersonaCatalogue;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 
 /*
  * The curated demo data (PRD #139, slice 2 / #141): the faker-free, idempotent
@@ -107,17 +108,34 @@ it('hand-assigns curated logo keys per node, leaving groups without a mark on th
 });
 
 it('hand-assigns listing visibility per node so staging exercises all three tiers', function () {
-    // A Private subgroup nested inside a Program, org-open recruiting/governance
-    // committees at Public, and a subcommittee at the fail-closed Group default
-    // (PRD #268, ADR-0019).
-    expect(Group::where('slug', 'gallery-interpreters-events')->firstOrFail()->listing_visibility)
-        ->toBe(ListingVisibility::Private)
+    // The recruiting/scaffold tree is Public (org root, a program, a committee), an
+    // internal working subgroup falls to the fail-closed Group default, and one
+    // subgroup is hand-set Private (PRD #268, ADR-0019).
+    expect(Group::where('slug', DemoSeeder::ROOT)->firstOrFail()->listing_visibility)
+        ->toBe(ListingVisibility::Public)
+        ->and(Group::where('slug', 'docents')->firstOrFail()->listing_visibility)
+        ->toBe(ListingVisibility::Public)
         ->and(Group::where('slug', 'membership')->firstOrFail()->listing_visibility)
         ->toBe(ListingVisibility::Public)
-        ->and(Group::where('slug', 'governance')->firstOrFail()->listing_visibility)
-        ->toBe(ListingVisibility::Public)
         ->and(Group::where('slug', 'donor-friends')->firstOrFail()->listing_visibility)
-        ->toBe(ListingVisibility::Group);
+        ->toBe(ListingVisibility::Group)
+        ->and(Group::where('slug', 'gallery-interpreters-events')->firstOrFail()->listing_visibility)
+        ->toBe(ListingVisibility::Private);
+});
+
+it('shows a non-empty All Groups to an ordinary Member with no memberships', function () {
+    // Regression (PRD #268): the visibility prune must not swallow the whole All
+    // Groups zone. A plain Member — no memberships, not super-tier — still browses
+    // the Public recruiting tree, rooted at DMV. The bug left the root and its
+    // containers at the Group default, pruning every non-member's tree to nothing.
+    $this->actingAs(Member::factory()->create())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.allGroups.items.0.groupId', DemoSeeder::ROOT)
+            // Index 1 existing proves ≥2 top-level rows survived the prune — the
+            // tree did not collapse to nothing for a non-member.
+            ->has('rail.allGroups.items.1'));
 });
 
 it('represents varied membership statuses including Full, Trainee and LOA', function () {

@@ -776,10 +776,10 @@ class DemoSeeder extends Seeder
                     $this->sc('Endowments'),
                     $this->sc('Executive'),
                     $this->sc('First Magnitude'),
-                    $this->sc('Governance', visibility: ListingVisibility::Public),
+                    $this->sc('Governance'),
                     $this->sc('Health & Safety'),
-                    $this->sc('Membership', visibility: ListingVisibility::Public),
-                    $this->sc('Nominations', visibility: ListingVisibility::Public),
+                    $this->sc('Membership'),
+                    $this->sc('Nominations'),
                     $this->sc('Records'),
                     $this->sc('Social'),
                     $this->sc('System Services'),
@@ -881,8 +881,8 @@ class DemoSeeder extends Seeder
      *
      * `logo` gives a Friends-of committee its own identity mark on the launcher
      * (PRD #253); the org-level section containers stay null and fall back.
-     * `visibility` raises a node above the fail-closed `Group` default — the
-     * recruiting/governance committees are hand-set Public (ADR-0019).
+     * `visibility` overrides the Kind-derived default ({@see defaultVisibilityFor});
+     * standing committees are Public by default, so it is rarely passed here.
      *
      * @param  array<int, array<string, mixed>>  $children
      * @param  array<string, bool>  $capabilities
@@ -993,10 +993,13 @@ class DemoSeeder extends Seeder
             'description' => $node['description'] ?? $this->aboutFor($node),
             'kind' => $kind,
             'scope' => $this->scopeFor($kind),
-            // Listing visibility (PRD #268, ADR-0019); most nodes fall to the
-            // fail-closed `Group` default, a few are hand-raised to Public or
-            // hidden to Private so staging exercises all three tiers.
-            'listing_visibility' => $node['visibility'] ?? ListingVisibility::Group,
+            // Listing visibility (PRD #268, ADR-0019). The recruiting/scaffold nodes
+            // (org root, section containers, programs, projects, cohorts, standing
+            // committees) are org-listed Public by Kind; only internal working
+            // subgroups fall to the fail-closed `Group` default. A node may still
+            // override — Gallery Interpreters → Events is hand-set Private — so
+            // staging exercises all three tiers.
+            'listing_visibility' => $node['visibility'] ?? $this->defaultVisibilityFor($kind),
             'display_order' => $order,
             'lifecycle_state' => LifecycleState::Active,
             'time_boxed' => false,
@@ -1090,6 +1093,22 @@ class DemoSeeder extends Seeder
             Kind::Program, Kind::Cohort => Scope::Program,
             Kind::WorkingGroup, Kind::Project => Scope::Subteam,
         };
+    }
+
+    /**
+     * The fail-closed listing visibility a node gets when it doesn't override one
+     * (PRD #268, ADR-0019). Internal working subgroups default to `Group` — pruned
+     * from outsiders, shown to their parent Group's members. Everything else — the
+     * org root, its section containers, programs, projects, cohorts, and standing
+     * committees — is `Public`: the recruiting/scaffold tree every Member browses,
+     * matching today's org-open behaviour. Nobody is a "member" of the structural
+     * containers, so leaving them at `Group` would prune the whole tree away.
+     */
+    private function defaultVisibilityFor(Kind $kind): ListingVisibility
+    {
+        return $kind === Kind::WorkingGroup
+            ? ListingVisibility::Group
+            : ListingVisibility::Public;
     }
 
     /**
