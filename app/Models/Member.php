@@ -113,12 +113,10 @@ class Member extends Authenticatable
      */
     public function scopeInDirectory(Builder $query): void
     {
-        $query->whereIn('category', [
-            Category::Active,
-            Category::Honourary,
-            Category::Sustaining,
-            Category::Loa,
-        ]);
+        $query->whereIn('category', array_filter(
+            Category::cases(),
+            fn (Category $category) => $category->grantsDirectoryListing(),
+        ));
     }
 
     /**

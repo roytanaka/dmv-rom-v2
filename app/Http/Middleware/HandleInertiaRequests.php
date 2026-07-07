@@ -140,7 +140,7 @@ class HandleInertiaRequests extends Middleware
      * Other Groups, and Officer Tools (each per-item gated by a real authority). A zone is
      * omitted whole when nothing in it survives for the Member. Guests get an empty rail.
      *
-     * @return array{myGroups?: array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}, otherGroups?: array{labelKey: string, items: list<array<string, mixed>>}, officer?: array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}}
+     * @return array{myGroups?: array{labelKey: string, items: list<array<string, mixed>>}, otherGroups?: array{labelKey: string, items: list<array<string, mixed>>}, officer?: array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}}
      */
     private function rail(Request $request): array
     {
@@ -296,39 +296,120 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The My Groups zone: the Groups this Member belongs to with Full or on-leave
-     * (LOA) standing, flat and alphabetical by name. Departed standings (Resigned,
-     * Deceased, and every other non-participating status) never contribute. Returns
-     * null when the Member belongs to no qualifying Group, so the whole section
-     * (heading included) is omitted from the prop.
+     * The My Groups zone (ADR-0020 §B, §F): the Groups this Member belongs to with Full
+     * or on-leave (LOA) standing, nested one level, led by the org's root DMV node. Departed
+     * standings (Resigned, Deceased, and every other non-participating status) never
+     * contribute. Returns null when nothing survives — no belonged Group and no DMV node —
+     * so the whole section (heading included) is omitted from the prop.
      *
-     * Reuses the Member's already-eager-loaded memberships (loaded for policy checks)
-     * via loadMissing, pulling in each membership's Group without a second query.
+     * **Nesting (§F).** Each belonged Group whose parent the Member does *not* also belong to
+     * heads a top-level row; a belonged Group whose parent *is* belonged nests beneath that
+     * parent instead (so it appears once, not twice). Beneath each top-level Group the Member
+     * sees the children it is entitled to: the Group's `Group`-visibility children (the Member
+     * is a parent-member) and any child it belongs to. This is where ADR-0019's *"`Group` =
+     * shown to parent-Group members in the rail"* lands — the own-Groups prune (#278) removes
+     * the parent from Other Groups, so those children surface here instead. `Public` children
+     * the Member does not belong to are *not* pulled in — they stay browsable in Other Groups,
+     * keeping the two zones a partition (ADR-0020 §A).
      *
-     * @return array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}|null
+     * **The DMV node (§B).** The root DMV Group leads My Groups for every active Member, with
+     * membership derived from `Category` (the {@see Category::grantsDirectoryListing()} standing
+     * the Directory already resolves), not a stored row. It is the sole leaf exception to
+     * nesting — it does not explode into the org tree — and is absent from Other Groups (the
+     * builder drops roots there).
+     *
+     * @return array{labelKey: string, items: list<array<string, mixed>>}|null
      */
     private function myGroups(Member $member): ?array
     {
         $member->loadMissing('memberships.group');
 
-        $groups = $member->memberships
+        $belonged = $member->memberships
             ->filter(fn (GroupMember $membership) => in_array(
                 $membership->status,
                 [MembershipStatus::Full, MembershipStatus::Loa],
                 true,
             ))
             ->map(fn (GroupMember $membership) => $membership->group)
-            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->unique('id')
             ->values();
 
-        if ($groups->isEmpty()) {
+        $belongedIds = $belonged->pluck('id')->all();
+
+        // The active children the nesting draws from, indexed by parent — one query, no N+1.
+        $childrenByParent = Group::active()
+            ->whereNotNull('parent_id')
+            ->get()
+            ->groupBy('parent_id');
+
+        // Top level = belonged Groups whose parent is not itself belonged; the rest nest
+        // beneath their belonged parent so each belonged Group appears exactly once.
+        $topLevel = $belonged->reject(
+            fn (Group $group) => in_array($group->parent_id, $belongedIds, true),
+        );
+
+        $items = $this->sortNodes($topLevel)
+            ->map(fn (Group $group) => $this->myGroupNode($group, $childrenByParent, $belongedIds))
+            ->all();
+
+        if ($dmv = $this->dmvNode($member)) {
+            array_unshift($items, $dmv);
+        }
+
+        if (empty($items)) {
             return null;
         }
 
         return [
             'labelKey' => 'nav.rail.my_groups',
-            'items' => $groups->map(fn (Group $group) => $this->nodeAttributes($group))->all(),
+            'items' => $items,
         ];
+    }
+
+    /**
+     * A top-level My Groups row: the belonged Group with its one level of entitled children
+     * (ADR-0020 §F). A child nests when it is `Group`-visibility (the Member is a parent-member)
+     * or the Member belongs to it; `Public` children the Member does not belong to are left in
+     * Other Groups so the two zones stay a partition. Nesting stops at one level.
+     *
+     * @param  Collection<int, Collection<int, Group>>  $childrenByParent
+     * @param  list<int>  $belongedIds
+     * @return array<string, mixed>
+     */
+    private function myGroupNode(Group $group, Collection $childrenByParent, array $belongedIds): array
+    {
+        $node = $this->nodeAttributes($group);
+
+        $children = $this->sortNodes($childrenByParent->get($group->id) ?? collect())
+            ->filter(fn (Group $child) => $child->listing_visibility === ListingVisibility::Group
+                || in_array($child->id, $belongedIds, true))
+            ->map(fn (Group $child) => $this->nodeAttributes($child))
+            ->all();
+
+        if (! empty($children)) {
+            $node['children'] = $children;
+        }
+
+        return $node;
+    }
+
+    /**
+     * The root DMV org node for My Groups (ADR-0020 §B), or null. Present for every Member whose
+     * `Category` grants a Directory listing — active standing, derived from the Member, never a
+     * membership row — provided the root Group exists. A leaf: it reaches the org-wide Directory
+     * and meetings but never explodes into the org tree.
+     *
+     * @return array{groupId: string, name: string, href: string, logo: string|null}|null
+     */
+    private function dmvNode(Member $member): ?array
+    {
+        if (! $member->category->grantsDirectoryListing()) {
+            return null;
+        }
+
+        $root = Group::active()->where('slug', Group::ROOT_SLUG)->first();
+
+        return $root ? $this->nodeAttributes($root) : null;
     }
 
     /**
