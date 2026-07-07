@@ -331,6 +331,8 @@ class HandleInertiaRequests extends Middleware
                 true,
             ))
             ->map(fn (GroupMember $membership) => $membership->group)
+            // The org root appears as a leaf via dmvNode(); exclude it from the membership path.
+            ->reject(fn (Group $group) => $group->slug === Group::ROOT_SLUG)
             ->unique('id')
             ->values();
 

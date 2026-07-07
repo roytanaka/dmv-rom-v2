@@ -265,6 +265,22 @@ it('gives no DMV node in My Groups to a Member whose Category is departed', func
         ->assertInertia(fn (Assert $page) => $page->missing('rail.myGroups'));
 });
 
+it('shows the DMV org node exactly once when the Member holds an explicit root membership', function () {
+    $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+
+    // The president (and any member enrolled directly in the root) must not see a
+    // duplicate: dmvNode() contributes the leaf; the membership path is excluded.
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $root->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->count('rail.myGroups.items', 1));
+});
+
 /*
  * The Other Groups zone (ADR-0020 §C): the browse view of the org, reshaped server-side
  * into the four organization-scope container peers — Governance & Operations, Programs,
