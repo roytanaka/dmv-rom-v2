@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Http\Controllers\ImpersonationController;
 use App\Models\Group;
@@ -161,7 +162,7 @@ class HandleInertiaRequests extends Middleware
             $rail['myGroups'] = $myGroups;
         }
 
-        if ($allGroups = $this->allGroups()) {
+        if ($allGroups = $this->allGroups($member)) {
             $rail['allGroups'] = $allGroups;
         }
 
@@ -343,14 +344,15 @@ class HandleInertiaRequests extends Middleware
      * client; returns null when no active Group exists, so the section is omitted whole.
      *
      * Sourced from {@see Group::scopeActive()} — archived and stale (lapsed-window)
-     * Groups never appear — and nested by parent_id at full depth. The tree is loaded
-     * in one query and assembled in PHP (no N+1).
+     * Groups never appear — and nested by parent_id at full depth, then pruned on
+     * `listing_visibility` for this Member ({@see pruneListingVisibility()}). The tree
+     * is loaded in one query and assembled in PHP (no N+1).
      *
      * @return array{labelKey: string, items: list<array<string, mixed>>}|null
      */
-    private function allGroups(): ?array
+    private function allGroups(Member $member): ?array
     {
-        $active = Group::active()->get();
+        $active = $this->pruneListingVisibility($member, Group::active()->get());
         $byParent = $active->groupBy(fn (Group $group) => $group->parent_id);
         $roots = $active->whereNull('parent_id');
 
@@ -366,6 +368,60 @@ class HandleInertiaRequests extends Middleware
             'labelKey' => 'nav.rail.all_groups',
             'items' => $items,
         ];
+    }
+
+    /**
+     * Prune the active Group set on `listing_visibility` for the viewing Member (#271,
+     * ADR-0019), composing beneath the active-tree prune — a Group already excluded
+     * stays excluded. The rule, per node:
+     *
+     * - **Public** — kept for everyone (today's org-open behaviour);
+     * - **Group** — kept only for members of the node's parent Group;
+     * - **Private** — kept only for the node's own members.
+     *
+     * Super-tier sees everything, everywhere, so it short-circuits before any filter.
+     * "Member of" resolves from current participation (Full / LOA); departed standings
+     * grant nothing — the same standing rule My Groups applies. Pruning the flat set
+     * before the tree is rebuilt from its roots drops any visible node orphaned by a
+     * pruned ancestor, so a hidden branch takes its whole subtree with it.
+     *
+     * @param  Collection<int, Group>  $active
+     * @return Collection<int, Group>
+     */
+    private function pruneListingVisibility(Member $member, Collection $active): Collection
+    {
+        if ($member->isAllDmv()) {
+            return $active;
+        }
+
+        $memberGroupIds = $this->participatingGroupIds($member);
+
+        return $active->filter(fn (Group $group) => match ($group->listing_visibility) {
+            ListingVisibility::Public => true,
+            ListingVisibility::Group => in_array($group->parent_id, $memberGroupIds, true),
+            ListingVisibility::Private => in_array($group->id, $memberGroupIds, true),
+        })->values();
+    }
+
+    /**
+     * The ids of the Groups this Member currently participates in — Full or on-leave
+     * (LOA) standing only. Departed standings (Resigned, Deceased, and every other
+     * non-participating status) contribute nothing, mirroring {@see myGroups()}.
+     *
+     * @return list<int>
+     */
+    private function participatingGroupIds(Member $member): array
+    {
+        $member->loadMissing('memberships');
+
+        return $member->memberships
+            ->filter(fn (GroupMember $membership) => in_array(
+                $membership->status,
+                [MembershipStatus::Full, MembershipStatus::Loa],
+                true,
+            ))
+            ->pluck('group_id')
+            ->all();
     }
 
     /**

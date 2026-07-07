@@ -136,23 +136,27 @@ it('carries a Group\'s logo key on its launcher row, and null when it has none',
  */
 function seedOptionCTree(): void
 {
-    $root = Group::factory()->standingCommittee()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+    // Every node is Public so these assertions isolate the Option C *shape* transform
+    // from listing-visibility pruning (its own tests below). The factory fail-closes
+    // to Group visibility (ADR-0019), so shape fixtures must opt into Public to be seen
+    // by a plain Member with no memberships.
+    $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
 
-    $governance = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'governance-operations', 'name' => 'Governance & Operations', 'display_order' => 0]);
-    Group::factory()->standingCommittee()->create(['parent_id' => $governance->id, 'slug' => 'awards', 'name' => 'Awards', 'display_order' => 0]);
-    Group::factory()->standingCommittee()->create(['parent_id' => $governance->id, 'slug' => 'communications', 'name' => 'Communications', 'display_order' => 1]);
+    $governance = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'governance-operations', 'name' => 'Governance & Operations', 'display_order' => 0]);
+    Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $governance->id, 'slug' => 'awards', 'name' => 'Awards', 'display_order' => 0]);
+    Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $governance->id, 'slug' => 'communications', 'name' => 'Communications', 'display_order' => 1]);
 
-    $programs = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 1]);
-    $docents = Group::factory()->program()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
-    Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'docents-library', 'name' => 'Library', 'display_order' => 0]);
+    $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 1]);
+    $docents = Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
+    Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-library', 'name' => 'Library', 'display_order' => 0]);
     // A French-named program — its name is content, rendered verbatim in both locales.
-    Group::factory()->program()->create(['parent_id' => $programs->id, 'slug' => 'guides-du-rom', 'name' => 'Guides du ROM', 'display_order' => 1]);
+    Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'guides-du-rom', 'name' => 'Guides du ROM', 'display_order' => 1]);
 
-    $special = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'special-projects', 'name' => 'Special Projects', 'display_order' => 2]);
-    Group::factory()->project()->create(['parent_id' => $special->id, 'slug' => 'archive-inventory', 'name' => 'DMV Archive Inventory', 'display_order' => 0]);
+    $special = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'special-projects', 'name' => 'Special Projects', 'display_order' => 2]);
+    Group::factory()->project()->publicListing()->create(['parent_id' => $special->id, 'slug' => 'archive-inventory', 'name' => 'DMV Archive Inventory', 'display_order' => 0]);
 
-    $friends = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'friends-of-palaeontology', 'name' => 'Friends of Palaeontology (FOP)', 'display_order' => 3]);
-    Group::factory()->workingGroup()->create(['parent_id' => $friends->id, 'slug' => 'vertebrate-palaeontology', 'name' => 'Vertebrate Palaeontology', 'display_order' => 0]);
+    $friends = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'friends-of-palaeontology', 'name' => 'Friends of Palaeontology (FOP)', 'display_order' => 3]);
+    Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $friends->id, 'slug' => 'vertebrate-palaeontology', 'name' => 'Vertebrate Palaeontology', 'display_order' => 0]);
 }
 
 it('reshapes the active tree with the Option C transform — DMV carries governance, programs flattened, special projects & friends top-level', function () {
@@ -185,16 +189,16 @@ it('reshapes the active tree with the Option C transform — DMV carries governa
 });
 
 it('never shows archived or stale Groups in All Groups', function () {
-    $root = Group::factory()->standingCommittee()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
-    $programs = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 0]);
+    $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+    $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 0]);
 
-    $docents = Group::factory()->program()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
+    $docents = Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
     // An archived cohort and an active-but-stale (lapsed window) cohort under Docents —
     // both excluded by Group::active(), so Docents renders as a childless leaf.
-    Group::factory()->cohort()->archived()->create(['parent_id' => $docents->id, 'slug' => 'pompeii', 'name' => 'Pompeii', 'display_order' => 0]);
-    Group::factory()->cohort()->create(['parent_id' => $docents->id, 'slug' => 'osiris', 'name' => 'Osiris', 'display_order' => 1, 'end_date' => now()->subMonth()->toDateString()]);
+    Group::factory()->cohort()->archived()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'pompeii', 'name' => 'Pompeii', 'display_order' => 0]);
+    Group::factory()->cohort()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'osiris', 'name' => 'Osiris', 'display_order' => 1, 'end_date' => now()->subMonth()->toDateString()]);
     // An archived sibling program — never promoted to the top level.
-    Group::factory()->program()->archived()->create(['parent_id' => $programs->id, 'slug' => 'retired-program', 'name' => 'Retired Program', 'display_order' => 1]);
+    Group::factory()->program()->archived()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'retired-program', 'name' => 'Retired Program', 'display_order' => 1]);
 
     $this->actingAs(Member::factory()->create())
         ->get('/dashboard')
@@ -305,4 +309,147 @@ it('emits Officer Tools hrefs as French twins under /fr/', function () {
                 ->where('rail.officer.items.0.href', '/fr/officier/membres')
                 ->where('rail.officer.items.2.href', '/fr/officier/rapports'));
     });
+});
+
+/*
+ * Listing-visibility pruning of All Groups (#271, PRD #268, ADR-0019). The
+ * server-pruned rail also prunes on `listing_visibility`, composing beneath the
+ * active-tree prune: a `Group`-visibility node is emitted only to members of its
+ * parent Group; a `Private` node only to its own members; `Public` to everyone;
+ * super-tier sees all. Visibility resolves from current participation (Full / LOA);
+ * departed standings contribute nothing — the same standing rule My Groups applies.
+ * Asserted at the shared-prop seam; the Dashboard launcher reads this same `rail`
+ * prop, so it cannot disagree.
+ */
+
+/**
+ * A Public program (Docents, promoted to the rail's top level) carrying two
+ * restricted subcommittees: a `Group`-visibility Training team (visible to Docents
+ * members) and a `Private` Events team (visible only to Events members). Returns the
+ * three Groups so tests can enrol Members precisely.
+ *
+ * @return array{docents: Group, training: Group, events: Group}
+ */
+function seedVisibilityTree(): array
+{
+    $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+    $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 0]);
+    $docents = Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
+
+    // Group-visibility: shown to members of the parent Group (Docents), pruned from
+    // outsiders. Its page stays reachable by direct link — tidiness, not confidentiality.
+    $training = Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'docents-training', 'name' => 'Training', 'display_order' => 0]);
+
+    // Private-visibility: shown only to its own members; existence hidden from everyone
+    // else, including Docents members who are not in Events (the #262 seed case).
+    $events = Group::factory()->workingGroup()->privateListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-events', 'name' => 'Events', 'display_order' => 1]);
+
+    return ['docents' => $docents, 'training' => $training, 'events' => $events];
+}
+
+it('prunes Group- and Private-visibility subcommittees from a Member who belongs to neither', function () {
+    seedVisibilityTree();
+
+    // A plain Member: sees Docents (Public), but neither restricted child.
+    $this->actingAs(Member::factory()->create())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.allGroups.items.0.groupId', 'dmv')
+            ->where('rail.allGroups.items.1.groupId', 'docents')
+            ->missing('rail.allGroups.items.1.children')
+            ->count('rail.allGroups.items', 2));
+});
+
+it('shows a Group-visibility subcommittee to a member of its parent Group, but not the Private sibling', function () {
+    ['docents' => $docents] = seedVisibilityTree();
+
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.allGroups.items.1.groupId', 'docents')
+            // Training (Group) is in; Events (Private) is not — parent membership is
+            // not membership of the Private child.
+            ->where('rail.allGroups.items.1.children.0.groupId', 'docents-training')
+            ->count('rail.allGroups.items.1.children', 1));
+});
+
+it('shows a Private subcommittee to its own member, but not the parent-Group sibling', function () {
+    ['events' => $events] = seedVisibilityTree();
+
+    // Enrolled in Events only — not in Docents.
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $events->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.allGroups.items.1.groupId', 'docents')
+            // Events (Private, own member) is in; Training (Group) needs Docents
+            // membership the Events-only member lacks.
+            ->where('rail.allGroups.items.1.children.0.groupId', 'docents-events')
+            ->count('rail.allGroups.items.1.children', 1));
+});
+
+it('shows every restricted subcommittee to a super-tier viewer', function () {
+    seedVisibilityTree();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.allGroups.items.1.groupId', 'docents')
+            ->where('rail.allGroups.items.1.children.0.groupId', 'docents-training')
+            ->where('rail.allGroups.items.1.children.1.groupId', 'docents-events')
+            ->count('rail.allGroups.items.1.children', 2));
+});
+
+it('still shows a Group-visibility subcommittee to a member on leave (LOA)', function () {
+    ['docents' => $docents] = seedVisibilityTree();
+
+    $member = Member::factory()->create();
+    GroupMember::factory()->onLoa()->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.allGroups.items.1.children.0.groupId', 'docents-training')
+            ->count('rail.allGroups.items.1.children', 1));
+});
+
+it('grants no visibility from a departed membership', function () {
+    ['docents' => $docents] = seedVisibilityTree();
+
+    // A resigned Docents membership: departed, so it grants no visibility of the
+    // Group-visibility Training team.
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Resigned)->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.allGroups.items.1.groupId', 'docents')
+            ->missing('rail.allGroups.items.1.children'));
+});
+
+it('prunes a Private top-level node — the launcher grid reads this same rail prop', function () {
+    // A Private top-level node (a launcher-eligible row, not a nested subcommittee).
+    // The launcher reads `rail.allGroups.items`, so pruning here prunes the tile too —
+    // the two cannot disagree because they share one source.
+    Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+    Group::factory()->standingCommittee()->privateListing()->create(['slug' => 'inner-circle', 'name' => 'Inner Circle', 'display_order' => 1]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.allGroups.items.0.groupId', 'dmv')
+            ->count('rail.allGroups.items', 1));
 });
