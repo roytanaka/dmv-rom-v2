@@ -375,7 +375,7 @@ it('prunes Group- and Private-visibility subcommittees from a Member who belongs
             ->count('rail.otherGroups.items', 1));
 });
 
-it('shows a Group-visibility subcommittee to a member of its parent Group, but not the Private sibling', function () {
+it('moves a belonged parent Group and its restricted subtree out of Other Groups (own-Groups prune)', function () {
     ['docents' => $docents] = seedVisibilityTree();
 
     $member = Member::factory()->create();
@@ -385,14 +385,17 @@ it('shows a Group-visibility subcommittee to a member of its parent Group, but n
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
-            // Training (Group) is in; Events (Private) is not — parent membership is
-            // not membership of the Private child.
-            ->where('rail.otherGroups.items.0.children.0.children.0.groupId', 'docents-training')
-            ->count('rail.otherGroups.items.0.children.0.children', 1));
+            // Docents (belonged) leaves Other Groups; its Group-visibility Training child —
+            // only ever visible to a Docents member — follows the parent out (ADR-0020 §F
+            // re-homes it in My Groups). The Programs peer stays, now childless.
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.programs')
+            ->missing('rail.otherGroups.items.0.children')
+            ->count('rail.otherGroups.items', 1)
+            // ...and Docents sits in My Groups instead — exactly one zone.
+            ->where('rail.myGroups.items.0.groupId', 'docents'));
 });
 
-it('shows a Private subcommittee to its own member, but not the parent-Group sibling', function () {
+it('moves a belonged Private subcommittee out of Other Groups, leaving its unbelonged parent', function () {
     ['events' => $events] = seedVisibilityTree();
 
     // Enrolled in Events only — not in Docents.
@@ -403,11 +406,13 @@ it('shows a Private subcommittee to its own member, but not the parent-Group sib
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
+            // Docents stays (Public, not belonged); its belonged Private Events child is
+            // pruned, and the Group-visibility Training child needs Docents membership the
+            // Events-only member lacks — so Docents renders childless.
             ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
-            // Events (Private, own member) is in; Training (Group) needs Docents
-            // membership the Events-only member lacks.
-            ->where('rail.otherGroups.items.0.children.0.children.0.groupId', 'docents-events')
-            ->count('rail.otherGroups.items.0.children.0.children', 1));
+            ->missing('rail.otherGroups.items.0.children.0.children')
+            // Events lands in My Groups instead.
+            ->where('rail.myGroups.items.0.groupId', 'docents-events'));
 });
 
 it('shows every restricted subcommittee to a super-tier viewer', function () {
@@ -423,7 +428,7 @@ it('shows every restricted subcommittee to a super-tier viewer', function () {
             ->count('rail.otherGroups.items.0.children.0.children', 2));
 });
 
-it('still shows a Group-visibility subcommittee to a member on leave (LOA)', function () {
+it('prunes a belonged Group from Other Groups even on leave (LOA)', function () {
     ['docents' => $docents] = seedVisibilityTree();
 
     $member = Member::factory()->create();
@@ -433,8 +438,10 @@ it('still shows a Group-visibility subcommittee to a member on leave (LOA)', fun
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.otherGroups.items.0.children.0.children.0.groupId', 'docents-training')
-            ->count('rail.otherGroups.items.0.children.0.children', 1));
+            // LOA counts as belonging: Docents leaves Other Groups and stays in My Groups.
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.programs')
+            ->missing('rail.otherGroups.items.0.children')
+            ->where('rail.myGroups.items.0.groupId', 'docents'));
 });
 
 it('grants no visibility from a departed membership', function () {
@@ -469,4 +476,128 @@ it('prunes a Private Group from Other Groups — the launcher grid reads this sa
             ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
             ->count('rail.otherGroups.items.0.children', 1)
             ->count('rail.otherGroups.items', 1));
+});
+
+/*
+ * The own-Groups prune (#278, ADR-0020 §A, §E): My Groups and Other Groups form a true
+ * partition — every visible Group the Member may see lands in exactly one zone. After the
+ * listing_visibility prune, a Group the Member belongs to (Full / LOA) is dropped from
+ * Other Groups (it lives in My Groups); a visible Group they don't belong to stays there.
+ * Container peers carry no roster, so they always remain — only the roster-bearing Groups
+ * beneath them vanish. Departed standings prune nothing; super-tier oversight browses the
+ * whole org regardless. Asserted at the shared `rail` prop the Dashboard launcher reads too.
+ */
+
+it('drops a belonged leaf Group from Other Groups — it lives in My Groups instead', function () {
+    seedFourPeerTree();
+
+    $member = Member::factory()->create();
+    $awards = Group::where('slug', 'awards')->firstOrFail();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $awards->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // Awards (belonged) is gone from the Governance & Operations peer; its sibling
+            // Communications (not belonged) stays.
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.governance_operations')
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'communications')
+            ->count('rail.otherGroups.items.0.children', 1)
+            // ...and Awards appears in My Groups — exactly one zone.
+            ->where('rail.myGroups.items.0.groupId', 'awards')
+            ->count('rail.myGroups.items', 1));
+});
+
+it('removes a belonged Program from Other Groups but keeps the Programs container peer', function () {
+    seedFourPeerTree();
+
+    $member = Member::factory()->create();
+    $docents = Group::where('slug', 'docents')->firstOrFail();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.otherGroups.items.1.labelKey', 'nav.rail.peers.programs')
+            // Docents (belonged) and its Library subtree are gone; Guides du ROM remains.
+            ->where('rail.otherGroups.items.1.children.0.groupId', 'guides-du-rom')
+            ->count('rail.otherGroups.items.1.children', 1)
+            // The four container peers all still appear — they carry no roster to prune on.
+            ->count('rail.otherGroups.items', 4));
+});
+
+it('prunes only the belonged sub-team, leaving its unbelonged parent in Other Groups', function () {
+    seedFourPeerTree();
+
+    // The Member belongs to Docents' Library working group but NOT to Docents itself.
+    $member = Member::factory()->create();
+    $library = Group::where('slug', 'docents-library')->firstOrFail();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $library->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // Docents stays (not belonged); only its belonged Library child is pruned, so
+            // Docents renders childless.
+            ->where('rail.otherGroups.items.1.children.0.groupId', 'docents')
+            ->missing('rail.otherGroups.items.1.children.0.children')
+            ->where('rail.myGroups.items.0.groupId', 'docents-library'));
+});
+
+it('leaves a Group in Other Groups when the Member only ever departed it', function () {
+    seedFourPeerTree();
+
+    $member = Member::factory()->create();
+    $awards = Group::where('slug', 'awards')->firstOrFail();
+    GroupMember::factory()->status(MembershipStatus::Resigned)->create(['member_id' => $member->id, 'group_id' => $awards->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // Departed standing prunes nothing: Awards is still browsable in Other Groups...
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'awards')
+            ->where('rail.otherGroups.items.0.children.1.groupId', 'communications')
+            ->count('rail.otherGroups.items.0.children', 2)
+            // ...and contributes nothing to My Groups either.
+            ->missing('rail.myGroups'));
+});
+
+it('still shows a belonged Group in Other Groups to a super-tier viewer (oversight not blinded)', function () {
+    seedFourPeerTree();
+
+    $member = Member::factory()->superTier()->create();
+    $awards = Group::where('slug', 'awards')->firstOrFail();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $awards->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // The own-Groups prune short-circuits for super-tier: Awards stays in Other
+            // Groups alongside its sibling, so oversight still sees the whole org.
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'awards')
+            ->where('rail.otherGroups.items.0.children.1.groupId', 'communications')
+            ->count('rail.otherGroups.items.0.children', 2));
+});
+
+it('prunes a belonged Group from the shared rail prop the launcher grid also reads', function () {
+    // Launcher and rail share `rail.otherGroups`; a Group pruned here is pruned from the
+    // launcher too — one source, so the two cannot disagree.
+    seedFourPeerTree();
+
+    $member = Member::factory()->create();
+    $comms = Group::where('slug', 'communications')->firstOrFail();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $comms->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.governance_operations')
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'awards')
+            ->count('rail.otherGroups.items.0.children', 1));
 });

@@ -348,14 +348,17 @@ class HandleInertiaRequests extends Middleware
      * `Public` working group will surface under its parent.
      *
      * Sourced from {@see Group::scopeActive()} — archived and stale (lapsed-window) Groups
-     * never appear — nested by parent_id at full depth, then pruned on `listing_visibility`.
-     * The tree is loaded in one query and assembled in PHP (no N+1).
+     * never appear — nested by parent_id at full depth, then pruned on `listing_visibility`
+     * and finally on own-membership ({@see pruneOwnGroups()}) so My Groups and Other Groups
+     * form a true partition (ADR-0020 §A, §E). The tree is loaded in one query and assembled
+     * in PHP (no N+1).
      *
      * @return array{labelKey: string, items: list<array<string, mixed>>}|null
      */
     private function otherGroups(Member $member): ?array
     {
         $active = $this->pruneListingVisibility($member, Group::active()->get());
+        $active = $this->pruneOwnGroups($member, $active);
         $byParent = $active->groupBy(fn (Group $group) => $group->parent_id);
         $roots = $active->whereNull('parent_id');
 
@@ -406,6 +409,36 @@ class HandleInertiaRequests extends Middleware
             ListingVisibility::Group => in_array($group->parent_id, $memberGroupIds, true),
             ListingVisibility::Private => in_array($group->id, $memberGroupIds, true),
         })->values();
+    }
+
+    /**
+     * The own-Groups prune (ADR-0020 §A, §E): with listing-visibility pruning done, drop
+     * from the browse set every Group the Member belongs to, so My Groups and Other Groups
+     * become a true partition — every visible Group lands in exactly one zone. Membership
+     * resolves from current participation (Full / LOA), the same standing rule My Groups and
+     * {@see pruneListingVisibility()} apply; departed standings grant nothing and so prune
+     * nothing.
+     *
+     * Removing a belonged Group from the flat set before the tree is rebuilt takes its whole
+     * subtree out of Other Groups with it; ADR-0020 §F re-homes those children under the
+     * parent in My Groups. Container peers carry no roster, so no membership ever names one —
+     * they always survive. Super-tier oversight browses the whole org, so it short-circuits
+     * before the prune, exactly as listing-visibility does.
+     *
+     * @param  Collection<int, Group>  $active
+     * @return Collection<int, Group>
+     */
+    private function pruneOwnGroups(Member $member, Collection $active): Collection
+    {
+        if ($member->isAllDmv()) {
+            return $active;
+        }
+
+        $memberGroupIds = $this->participatingGroupIds($member);
+
+        return $active
+            ->reject(fn (Group $group) => in_array($group->id, $memberGroupIds, true))
+            ->values();
     }
 
     /**
