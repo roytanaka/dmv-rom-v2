@@ -275,10 +275,10 @@ class DemoSeeder extends Seeder
 
     /**
      * The nodes that are structural containers, not real Groups anyone belongs to:
-     * the root and the three org-level sections ({@see tree()}). They get no roster
+     * the root and the four org-level sections ({@see tree()}). They get no roster
      * and no leadership — clicking one shows the sub-Groups it organises, not people.
      */
-    private const STRUCTURAL_SLUGS = [self::ROOT, 'governance-operations', 'programs', 'special-projects'];
+    private const STRUCTURAL_SLUGS = [self::ROOT, 'governance-operations', 'programs', 'special-projects', 'friends'];
 
     /**
      * Populate every real Group with a believable roster, transcribed in shape (not
@@ -854,21 +854,25 @@ class DemoSeeder extends Seeder
                     $this->project('ROM eBird Records'),
                     $this->project('Transcribe interview tapes'),
                 ]),
-                // Friends-of standing committees (some with their own sub-groups),
-                // each with its own identity mark on the launcher (#257).
-                $this->sc('Bishop White (FEA)', logo: GroupLogo::BishopWhiteFea),
-                $this->sc('Friends of Global South Asia (FSA)', logo: GroupLogo::FriendsOfGlobalSouthAsiaFsa),
-                $this->sc('Friends of Textiles & Costume', [
-                    $this->workingGroup('Adopt-a-Journal'),
-                    $this->workingGroup('Donor Friends'),
-                    $this->workingGroup('Education SubCommittee'),
-                    $this->workingGroup('Newsletter SubCommittee'),
-                    $this->workingGroup('Programs & Events'),
-                ], logo: GroupLogo::FriendsOfTextilesCostume),
-                $this->sc('Friends of Palaeontology (FOP)', [
-                    $this->workingGroup('Vertebrate Palaeontology'),
-                ], logo: GroupLogo::FriendsOfPalaeontologyFop),
-                $this->sc('Friends of Earth & Space (FES)', logo: GroupLogo::FriendsOfEarthSpaceFes),
+                // Friends — structural peer of Governance & Operations / Programs /
+                // Special Projects. Not a naming heuristic: Bishop White (FEA) doesn't
+                // begin with "Friends of". Associated Friends stays under Governance &
+                // Operations — it is a distinct coordinating committee, not this container.
+                $this->sc('Friends', [
+                    $this->sc('Bishop White (FEA)', logo: GroupLogo::BishopWhiteFea),
+                    $this->sc('Friends of Global South Asia (FSA)', logo: GroupLogo::FriendsOfGlobalSouthAsiaFsa),
+                    $this->sc('Friends of Textiles & Costume', [
+                        $this->workingGroup('Adopt-a-Journal'),
+                        $this->workingGroup('Donor Friends'),
+                        $this->workingGroup('Education SubCommittee'),
+                        $this->workingGroup('Newsletter SubCommittee'),
+                        $this->workingGroup('Programs & Events'),
+                    ], logo: GroupLogo::FriendsOfTextilesCostume),
+                    $this->sc('Friends of Palaeontology (FOP)', [
+                        $this->workingGroup('Vertebrate Palaeontology'),
+                    ], logo: GroupLogo::FriendsOfPalaeontologyFop),
+                    $this->sc('Friends of Earth & Space (FES)', logo: GroupLogo::FriendsOfEarthSpaceFes),
+                ]),
             ],
         ];
     }
