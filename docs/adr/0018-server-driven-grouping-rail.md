@@ -10,6 +10,8 @@ accepted: 2026-06-30
 > now comes from the server, already pruned to what the signed-in Member may see; the
 > client fixture/gating path that stood in during the chrome build is decommissioned.
 
+> **Amendment (2026-07-07, [ADR-0020](0020-groups-nav-partition-and-sidebar-shape.md)).** The "Option C" All-Groups shape in §Decision is **superseded** for the browse zone: the root **DMV** node is dropped (it becomes the My-Groups-only org node); **Governance & Operations** is promoted to a top-level container peer; the **programs are re-nested** under a **Programs** container (reversing the promotion decided here); and **Friends** becomes a real container peer. "All Groups" becomes **Other Groups** — a partition that **never lists a Group the Member belongs to** — and My Groups **nests one level**. A client-side rail filter is added. The `listing_visibility` prune (PR #274) is unchanged. See ADR-0020.
+
 ## Context
 
 The grouping rail (left sidebar) carries the app's primary navigation: the Groups a
@@ -61,7 +63,7 @@ and renders them verbatim.** Concretely:
    **org-wide administration cluster** (Members, Communications, Reports, Flash
    Messages, DMV Settings) — the tools a Member with org-level authority reaches. It is
    deliberately distinct from a **Group's officers** (Chair / Secretary / Treasurer),
-   who hold roles *within* a single Group. The two senses of "officer" must not be
+   who hold roles _within_ a single Group. The two senses of "officer" must not be
    conflated in code, copy, or future nav work.
 
 The client fixture/gating path is removed: `chrome/gating.ts` is deleted, and
@@ -70,10 +72,10 @@ carry `requiresCapability` / `requiresRole` (gating happened server-side).
 
 ## Scope / what stays stubbed
 
-The **Group Menu** layer — the per-Group section tabs revealed *inside* a Group
+The **Group Menu** layer — the per-Group section tabs revealed _inside_ a Group
 ([ADR-0013](0013-app-shell-section-nav.md) amendment) — is **out of scope** and stays a
 client stub (`groupMenus` in `fixture.ts`), with its per-capability / per-role gating
-fields retained on `NavNode`, until its dependent features ship. Only the *rail* is
+fields retained on `NavNode`, until its dependent features ship. Only the _rail_ is
 server-driven here, not the in-body section strip.
 
 ## Consequences

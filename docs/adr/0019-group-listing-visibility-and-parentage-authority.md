@@ -8,6 +8,8 @@ accepted: 2026-07-06
 
 From a design pass on issue [#266](https://github.com/roytanaka/dmv-rom-v2/issues/266) (subgroup display), with the concrete seed [#262](https://github.com/roytanaka/dmv-rom-v2/issues/262) (a members-only subgroup) and the sibling [#267](https://github.com/roytanaka/dmv-rom-v2/issues/267) (sidebar redesign, **split out** — see _Consequences_). This ADR adds a **listing-visibility** facet to the [ADR-0010](0010-group-model.md) Group model, and **refines [ADR-0011](0011-authorization-model.md)**: parentage carries _structural_ authority, not _operational/content_ authority. The 0010 and 0011 amendments are folded back onto those ADRs.
 
+> **Amendment (2026-07-07, [ADR-0020](0020-groups-nav-partition-and-sidebar-shape.md)).** The `Group`-visibility _"shown to parent-Group members in the rail"_ clause (§A) is now realized in **My Groups nesting**, not the browse list: #267's own-Groups prune removes a parent from the browse zone, so its `Group` children surface under it in My Groups instead. The facet and its prune (PR #274) are otherwise unchanged. See ADR-0020.
+
 ## Context
 
 Three issues, in order:

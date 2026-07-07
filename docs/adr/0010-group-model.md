@@ -8,6 +8,8 @@ accepted: 2026-06-01
 
 > **Amendment (2026-07-06, [ADR-0019](0019-group-listing-visibility-and-parentage-authority.md)).** A **`listing_visibility`** facet joins the Group (`Public` / `Group` / `Private`) — governing who sees a Group in navigation, and (for `Private` only) who may open it at all. It is a stored, explicitly-set attribute, **orthogonal to** the three axes and the capability set. The same decision refined the **Parentage** relationship kind (§Relationship kinds #2) to a structure/content split. See ADR-0019.
 
+> **Amendment (2026-07-07, [ADR-0020](0020-groups-nav-partition-and-sidebar-shape.md)).** Root-DMV membership is **derived from a Member's `Category`** (active standing), not a stored membership row: the root Group is the **My Groups org node** (its Roster _is_ the Directory) and a navigation **leaf** that does not expand into the tree. See ADR-0020.
+
 ## Context
 
 DMV's organizational structure is large and varied: governance and operations committees, volunteer-facing programs, functional sub-teams, time-boxed projects, exhibition volunteer pools, a monthly committee of chairs, and federation nodes that group other committees. The legacy app expresses all of this as flat lists with no notion of _what kind_ of thing each entry is or _whether it is still alive_, so the lists accumulate duplicates, test entries, and pools left "active" years after their event closed.
