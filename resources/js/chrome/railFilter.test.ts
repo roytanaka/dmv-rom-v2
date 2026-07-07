@@ -14,7 +14,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { filterRail, flattenRail, type FilterableRailZone } from './railFilter.ts';
+import { filterRail, flattenRail, type FilterableRailNode, type FilterableRailZone } from './railFilter.ts';
 
 // A translator that resolves structural label keys the way `trans()` would, but for a
 // fixed table — so the tests read as display strings, not raw keys.
@@ -49,7 +49,7 @@ const zones = (): FilterableRailZone[] => [
 
 const hrefsIn = (zonesArg: FilterableRailZone[]): Set<string> => {
     const acc = new Set<string>();
-    const walk = (nodes: NonNullable<FilterableRailZone>['items']) => {
+    const walk = (nodes: FilterableRailNode[]) => {
         for (const node of nodes) {
             acc.add(node.href);
             if (node.children) walk(node.children);

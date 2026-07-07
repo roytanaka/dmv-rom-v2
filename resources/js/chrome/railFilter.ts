@@ -44,7 +44,6 @@ export interface RailFilterResult {
     breadcrumb: string[];
 }
 
-/** A content Group renders `name` verbatim; a structural node translates `labelKey`. */
 function nodeLabel(node: FilterableRailNode, translate: (key: string) => string): string {
     return node.name !== undefined ? node.name : translate(node.labelKey ?? '');
 }

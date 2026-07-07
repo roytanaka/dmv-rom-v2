@@ -67,7 +67,7 @@ watch(otherGroupsHasActive, (active) => {
 // server-pruned prop — no network request, so it cannot surface a node the Member was not
 // already sent. Clearing the box (`isFiltering` false) restores the nested rail untouched.
 const isFiltering = computed(() => (props.query ?? '').trim().length > 0);
-const filteredResults = computed(() => filterRail([myGroupsSection.value, otherGroupsSection.value], props.query ?? '', (key: string) => trans(key)));
+const filteredResults = computed(() => filterRail([myGroupsSection.value, otherGroupsSection.value], props.query ?? '', trans));
 const isActive = (href: string) => currentPath.value === href;
 </script>
 
