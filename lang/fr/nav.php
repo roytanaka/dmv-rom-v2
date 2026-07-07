@@ -33,6 +33,14 @@ return [
         'profile' => 'Mon profil',
     ],
 
+    // Filtre à saisie du rail (ADR-0020 §H) — filtre le rail livré côté client.
+    // Chrome structurel, donc indexé ; les NOMS de groupe filtrés restent verbatim.
+    'filter' => [
+        'placeholder' => 'Filtrer les groupes',
+        'aria' => 'Filtrer les groupes dans la barre latérale',
+        'no_results' => 'Aucun groupe correspondant',
+    ],
+
     // Utilitaire de la barre supérieure — la destination Aide (#194).
     'help' => 'Aide',
 

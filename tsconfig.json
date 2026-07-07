@@ -39,9 +39,7 @@
         },
         // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
         // "typeRoots": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */
-        "types": [
-            "vite/client"
-        ] /* Specify type package names to be included without being referenced in a source file. */,
+        "types": ["vite/client"] /* Specify type package names to be included without being referenced in a source file. */,
         // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */
         // "moduleSuffixes": [],                             /* List of file name suffixes to search when resolving a module. */
         // "allowImportingTsExtensions": true,               /* Allow imports to include TypeScript file extensions. Requires '--moduleResolution bundler' and either '--noEmit' or '--emitDeclarationOnly' to be set. */
@@ -117,5 +115,10 @@
         // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
         "skipLibCheck": true /* Skip type checking all .d.ts files. */
     },
-    "include": ["resources/js/**/*.ts", "resources/js/**/*.d.ts", "resources/js/**/*.tsx", "resources/js/**/*.vue"]
+    "include": ["resources/js/**/*.ts", "resources/js/**/*.d.ts", "resources/js/**/*.tsx", "resources/js/**/*.vue"],
+    // Node-runner unit tests (*.test.ts) execute under Node's native TypeScript support,
+    // which requires explicit `.ts` import extensions — the opposite of this app config's
+    // bundler resolution. They're run and checked by the runner (`pnpm test:unit`), so they
+    // stay out of the app's vue-tsc pass.
+    "exclude": ["resources/js/**/*.test.ts"]
 }
