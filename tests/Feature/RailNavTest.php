@@ -360,6 +360,28 @@ it('reshapes the active tree into four container peers — Governance & Operatio
             ->count('rail.otherGroups.items', 4));
 });
 
+it('still shows the four peers to a Member holding a stored root-DMV membership row', function () {
+    seedFourPeerTree();
+
+    // Regression (Other Groups vanished for non-super Members): root-DMV membership is meant
+    // to be derived from Category, not stored (ADR-0020 §B), but seed/legacy rows exist. The
+    // own-Groups prune removes such a row's root, and the builder must not lose the peers with
+    // it — the root is dropped as a node regardless; only its children become the peers.
+    $root = Group::where('slug', 'dmv')->firstOrFail();
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $root->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.governance_operations')
+            ->where('rail.otherGroups.items.1.labelKey', 'nav.rail.peers.programs')
+            ->where('rail.otherGroups.items.2.labelKey', 'nav.rail.peers.special_projects')
+            ->where('rail.otherGroups.items.3.labelKey', 'nav.rail.peers.friends')
+            ->count('rail.otherGroups.items', 4));
+});
+
 it('never shows archived or stale Groups in Other Groups', function () {
     $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
     $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 0]);

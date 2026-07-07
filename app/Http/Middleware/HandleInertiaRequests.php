@@ -440,10 +440,19 @@ class HandleInertiaRequests extends Middleware
      */
     private function otherGroups(Member $member): ?array
     {
-        $active = $this->pruneListingVisibility($member, Group::active()->get());
-        $active = $this->pruneOwnGroups($member, $active);
-        $byParent = $active->groupBy(fn (Group $group) => $group->parent_id);
-        $roots = $active->whereNull('parent_id');
+        $visible = $this->pruneListingVisibility($member, Group::active()->get());
+
+        // Roots are identified from the listing-pruned set, BEFORE the own-Groups prune. The
+        // root is dropped as a node regardless (only its children become the container peers),
+        // but a Member with a stored root-DMV membership row would otherwise have the root
+        // pruned out from under the traversal — orphaning every peer and hiding Other Groups
+        // whole. Root-DMV membership is meant to be derived from `Category`, not stored
+        // (ADR-0020 §B; myGroups() rejects the ROOT_SLUG row and re-adds the derived node the
+        // same way), but seed/legacy rows exist, so the builder must not depend on the root
+        // surviving the own-Groups prune. The prune still shapes the browsable subtree below.
+        $roots = $visible->whereNull('parent_id');
+        $browse = $this->pruneOwnGroups($member, $visible);
+        $byParent = $browse->groupBy(fn (Group $group) => $group->parent_id);
 
         // The org root(s) are dropped; their children become the container peers.
         $items = $this->sortNodes($roots)
