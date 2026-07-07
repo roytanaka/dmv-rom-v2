@@ -36,6 +36,14 @@ return [
         'profile' => 'My Profile',
     ],
 
+    // Rail type-ahead filter (ADR-0020 §H) — filters the delivered rail client-side.
+    // Structural chrome, so these are keyed; Group NAMES matched by it stay verbatim.
+    'filter' => [
+        'placeholder' => 'Filter groups',
+        'aria' => 'Filter groups in the sidebar',
+        'no_results' => 'No matching groups',
+    ],
+
     // Top-bar utility — the Help destination in the right cluster (#194).
     'help' => 'Help',
 

@@ -15,6 +15,7 @@
         "prepare": "husky",
         "sandcastle": "npx tsx .sandcastle/main.ts",
         "sail": "sh vendor/bin/sail",
+        "test:unit": "node --test 'resources/js/**/*.test.ts'",
         "db:seed": "sh vendor/bin/sail artisan db:seed",
         "db:fresh": "sh vendor/bin/sail artisan migrate:fresh --seed",
         "sail:up": "sh vendor/bin/sail up -d",

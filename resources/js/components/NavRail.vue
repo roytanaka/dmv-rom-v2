@@ -4,15 +4,20 @@
 // Zone C (Officer Tools) is pinned to the rail bottom and rendered only when its
 // gated items survive — gating happens server-side, so the prop already carries
 // only the items this Member may see.
+import { filterRail } from '@/chrome/railFilter';
 import NavRailItem from '@/components/NavRailItem.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu } from '@/components/ui/sidebar';
+import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import type { GroupNode, NavNode, RailNode } from '@/chrome/types';
 import type { PhosphorIcon, SharedData } from '@/types';
-import { usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { PhBuildings, PhCaretDown, PhChartBar, PhChatCircleDots, PhGear, PhMegaphone } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
+
+// The type-ahead filter query, owned by the sidebar header (AppSidebar) and threaded down
+// so the flat overlay and the nested rail share one source of truth. Absent → nested rail.
+const props = defineProps<{ query?: string }>();
 
 const page = usePage<SharedData>();
 
@@ -56,11 +61,36 @@ const otherGroupsOpen = ref(otherGroupsHasActive.value);
 watch(otherGroupsHasActive, (active) => {
     if (active) otherGroupsOpen.value = true;
 });
+
+// Type-ahead filter (ADR-0020 §H). When the Member types, the Group zones (My Groups +
+// Other Groups) are flattened and substring-matched CLIENT-SIDE over the already-delivered,
+// server-pruned prop — no network request, so it cannot surface a node the Member was not
+// already sent. Clearing the box (`isFiltering` false) restores the nested rail untouched.
+const isFiltering = computed(() => (props.query ?? '').trim().length > 0);
+const filteredResults = computed(() => filterRail([myGroupsSection.value, otherGroupsSection.value], props.query ?? '', trans));
+const isActive = (href: string) => currentPath.value === href;
 </script>
 
 <template>
+    <!-- Filter overlay (ADR-0020 §H). Matches over the DELIVERED node set only — a flat list,
+         each row annotated with its ancestor breadcrumb so similarly-named Groups stay apart.
+         Replaces the nested rail while typing; clearing the box brings the nesting back. -->
+    <SidebarGroup v-if="isFiltering" class="px-2 py-0" data-testid="rail-filter-results">
+        <SidebarMenu>
+            <SidebarMenuItem v-for="result in filteredResults" :key="result.href">
+                <SidebarMenuButton as-child size="lg" :is-active="isActive(result.href)" class="h-auto flex-col items-start gap-0.5 py-2 text-sm">
+                    <Link :href="result.href">
+                        <span>{{ result.label }}</span>
+                        <span v-if="result.breadcrumb.length" class="text-sidebar-muted text-xs">{{ result.breadcrumb.join(' › ') }}</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        </SidebarMenu>
+        <p v-if="!filteredResults.length" class="text-sidebar-muted px-2 py-1.5 text-sm">{{ trans('nav.filter.no_results') }}</p>
+    </SidebarGroup>
+
     <!-- Zone B — My Groups (lead). Omitted whole when the Member belongs to no Group. -->
-    <SidebarGroup v-if="myGroupsSection" class="px-2 py-0">
+    <SidebarGroup v-if="!isFiltering && myGroupsSection" class="px-2 py-0">
         <SidebarGroupLabel class="text-sidebar-muted text-xs font-semibold tracking-wide uppercase">{{
             trans(myGroupsSection.labelKey)
         }}</SidebarGroupLabel>
@@ -71,7 +101,7 @@ watch(otherGroupsHasActive, (active) => {
 
     <!-- Zone B — Other Groups (browse, collapsible). Collapsed by default; omitted whole
          when no visible container peer survives. -->
-    <Collapsible v-if="otherGroupsSection" v-model:open="otherGroupsOpen" class="group/other-groups">
+    <Collapsible v-if="!isFiltering && otherGroupsSection" v-model:open="otherGroupsOpen" class="group/other-groups">
         <SidebarGroup class="px-2 py-0">
             <SidebarGroupLabel as-child>
                 <CollapsibleTrigger
@@ -93,7 +123,7 @@ watch(otherGroupsHasActive, (active) => {
 
     <!-- Zone C — Officer Tools (pinned bottom). Server-pruned: present only when at
          least one item survived gating for this Member; hrefs arrive pre-localized. -->
-    <SidebarGroup v-if="officerSection" class="border-sidebar-border mt-auto border-t px-2 pt-2 pb-0">
+    <SidebarGroup v-if="!isFiltering && officerSection" class="border-sidebar-border mt-auto border-t px-2 pt-2 pb-0">
         <SidebarGroupLabel class="text-sidebar-muted text-xs font-semibold tracking-wide uppercase">{{
             trans(officerSection.labelKey)
         }}</SidebarGroupLabel>
