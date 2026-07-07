@@ -357,7 +357,8 @@ class HandleInertiaRequests extends Middleware
      */
     private function otherGroups(Member $member): ?array
     {
-        $active = $this->pruneOwnGroups($member, $this->pruneListingVisibility($member, Group::active()->get()));
+        $active = $this->pruneListingVisibility($member, Group::active()->get());
+        $active = $this->pruneOwnGroups($member, $active);
         $byParent = $active->groupBy(fn (Group $group) => $group->parent_id);
         $roots = $active->whereNull('parent_id');
 
