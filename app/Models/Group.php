@@ -27,6 +27,13 @@ class Group extends Model
     use HasFactory;
 
     /**
+     * The slug of the org root — the single parentless "DMV" Group at the top of the
+     * tree (ADR-0010, ADR-0020 §B). Named so the My Groups builder can resolve the org
+     * node without hard-coding the string, and single-sourced with {@see OrgTreeSeeder}.
+     */
+    public const ROOT_SLUG = 'dmv';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>

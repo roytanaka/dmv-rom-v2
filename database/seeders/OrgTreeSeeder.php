@@ -34,7 +34,7 @@ use Illuminate\Database\Seeder;
  */
 class OrgTreeSeeder extends Seeder
 {
-    public const ROOT = 'dmv';
+    public const ROOT = Group::ROOT_SLUG;
 
     public const COMMITTEE = 'membership-committee';
 

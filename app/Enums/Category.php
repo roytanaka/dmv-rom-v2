@@ -38,6 +38,23 @@ enum Category: string
     }
 
     /**
+     * Whether this DMV-wide standing lists the Member in the org-wide Directory —
+     * the root DMV Group's Roster. Active, Honourary, Sustaining, and LOA qualify
+     * (present, full-view standing); the departed (Resigned / Withdrawn / Deceased)
+     * and the not-yet-activated (PreActive / Provisional) do not. This is the single
+     * resolution the Directory ({@see Member::scopeInDirectory()}) and the My Groups
+     * root DMV node (ADR-0020 §B) both key off — membership in the root is derived
+     * from standing, never a stored row.
+     */
+    public function grantsDirectoryListing(): bool
+    {
+        return match ($this) {
+            self::Active, self::Honourary, self::Sustaining, self::Loa => true,
+            self::PreActive, self::Provisional, self::Withdrawn, self::Resigned, self::Deceased => false,
+        };
+    }
+
+    /**
      * Whether members in this Category may sign up for shifts — the floor the
      * sign-up gate checks before any role check. Orthogonal to accessTier():
      * LOA has Full view but cannot sign up.

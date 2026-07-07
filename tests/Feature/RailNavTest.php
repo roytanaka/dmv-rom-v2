@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Category;
 use App\Enums\GroupLogo;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
@@ -118,6 +119,166 @@ it('carries a Group\'s logo key on its launcher row, and null when it has none',
             ->where('rail.myGroups.items.0.logo', 'docents')
             ->where('rail.myGroups.items.1.groupId', 'zoology')
             ->where('rail.myGroups.items.1.logo', null));
+});
+
+/*
+ * My Groups nesting (#279, ADR-0020 §F): My Groups nests one level. Beneath each belonged
+ * Group the Member sees the children it is entitled to — the Group's `Group`-visibility
+ * children (the Member is a parent-member) and any child it belongs to — the zone where
+ * ADR-0019's "`Group` = shown to parent-Group members in the rail" now lands. `Public`
+ * children the Member does not belong to are left in Other Groups so the two zones stay a
+ * partition. A belonged Group whose parent is also belonged nests beneath that parent
+ * rather than heading its own top-level row, so it appears exactly once. Asserted at the
+ * shared `rail` prop the Dashboard launcher reads too.
+ */
+
+/**
+ * A Public Docents program (under the Programs peer) carrying three children: a
+ * `Group`-visibility Training team, a `Private` Events team, and a `Public` Open House.
+ * A `dmv` root heads the tree so the My Groups org node resolves. Returns the Groups so
+ * tests can enrol Members precisely.
+ *
+ * @return array{docents: Group, training: Group, events: Group, openHouse: Group}
+ */
+function seedMyGroupsNesting(): array
+{
+    $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+    $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 0]);
+    $docents = Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
+
+    // Group-visibility: nests for a Docents member (a parent-member), never for an outsider.
+    $training = Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'docents-training', 'name' => 'Training', 'display_order' => 0]);
+    // Private: nests only when the Member belongs to it.
+    $events = Group::factory()->workingGroup()->privateListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-events', 'name' => 'Events', 'display_order' => 1]);
+    // Public: a child the Member is not in stays in Other Groups — it does not nest here.
+    $openHouse = Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-open-house', 'name' => 'Open House', 'display_order' => 2]);
+
+    return ['docents' => $docents, 'training' => $training, 'events' => $events, 'openHouse' => $openHouse];
+}
+
+it('nests a belonged Group\'s entitled children one level beneath it in My Groups', function () {
+    ['docents' => $docents, 'events' => $events] = seedMyGroupsNesting();
+
+    // The Member belongs to Docents and to its Private Events child.
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $events->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // The DMV org node leads; Docents follows with its entitled children nested.
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->where('rail.myGroups.items.1.groupId', 'docents')
+            // Group-visibility Training (parent-member) and the belonged Private Events nest;
+            // the Public Open House the Member is not in does NOT (it is not the Member's).
+            ->where('rail.myGroups.items.1.children.0.groupId', 'docents-training')
+            ->where('rail.myGroups.items.1.children.1.groupId', 'docents-events')
+            ->count('rail.myGroups.items.1.children', 2)
+            // Events nests only — it does not also head a top-level row (its parent is belonged),
+            // so it appears exactly once. Two top-level rows: DMV + Docents.
+            ->count('rail.myGroups.items', 2));
+});
+
+it('surfaces a belonged sub-team at the My Groups top level when its parent Group is not belonged', function () {
+    seedMyGroupsNesting();
+
+    // The Member belongs to the Training working group but NOT to its Docents parent.
+    $member = Member::factory()->create();
+    $training = Group::where('slug', 'docents-training')->firstOrFail();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $training->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // Reachable from My Groups: its unbelonged parent does not nest it, so it heads a
+            // top-level row after the DMV org node.
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->where('rail.myGroups.items.1.groupId', 'docents-training')
+            ->count('rail.myGroups.items', 2));
+});
+
+it('emits nested My Groups names verbatim and hrefs as French twins under /fr/', function () {
+    // A French-named Group-visibility child nested under a belonged program.
+    $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+    $docents = Group::factory()->program()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
+    Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'guides-du-rom', 'name' => 'Guides du ROM', 'display_order' => 0]);
+
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+
+    $this->actingAs($member);
+
+    $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/groupes/docents')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('locale', 'fr')
+                // The DMV org node's href is the /fr/ twin.
+                ->where('rail.myGroups.items.0.href', '/fr/groupes/dmv')
+                // The nested child: name verbatim, href its localized twin.
+                ->where('rail.myGroups.items.1.children.0', [
+                    'groupId' => 'guides-du-rom',
+                    'name' => 'Guides du ROM',
+                    'href' => '/fr/groupes/guides-du-rom',
+                    'logo' => null,
+                ]));
+    });
+});
+
+/*
+ * The root DMV org node in My Groups (#279, ADR-0020 §B): present for every active Member —
+ * membership derived from the Member's Category (the Directory's standing), not a stored row —
+ * as the sole leaf exception to nesting, and absent from Other Groups (the builder drops the
+ * root there). A departed-standing record gets no DMV node.
+ */
+
+it('leads My Groups with the DMV org node — a leaf, absent from Other Groups — for an active Member', function () {
+    seedFourPeerTree();
+
+    // A plain active Member with no memberships still gets the DMV node from their Category.
+    $this->actingAs(Member::factory()->create())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // Present, derived from Category (no membership row), and a leaf — it never explodes.
+            ->where('rail.myGroups.items.0', ['groupId' => 'dmv', 'name' => 'DMV', 'href' => '/groups/dmv', 'logo' => null])
+            ->missing('rail.myGroups.items.0.children')
+            ->count('rail.myGroups.items', 1)
+            // Never in Other Groups — the root is dropped there, its children become the peers.
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.governance_operations')
+            ->count('rail.otherGroups.items', 4));
+});
+
+it('gives no DMV node in My Groups to a Member whose Category is departed', function () {
+    seedFourPeerTree();
+
+    // Resigned standing lists in no Directory, so the root grants no node — and with no
+    // belonged Group either, the whole My Groups section is omitted.
+    $member = Member::factory()->category(Category::Resigned)->create();
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->missing('rail.myGroups'));
+});
+
+it('shows the DMV org node exactly once when the Member holds an explicit root membership', function () {
+    $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+
+    // The president (and any member enrolled directly in the root) must not see a
+    // duplicate: dmvNode() contributes the leaf; the membership path is excluded.
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $root->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->count('rail.myGroups.items', 1));
 });
 
 /*
@@ -391,8 +552,13 @@ it('moves a belonged parent Group and its restricted subtree out of Other Groups
             ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.programs')
             ->missing('rail.otherGroups.items.0.children')
             ->count('rail.otherGroups.items', 1)
-            // ...and Docents sits in My Groups instead — exactly one zone.
-            ->where('rail.myGroups.items.0.groupId', 'docents'));
+            // ...and Docents sits in My Groups instead — exactly one zone — with its
+            // Group-visibility Training child nested beneath it (ADR-0020 §F). The DMV
+            // org node leads the zone.
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->where('rail.myGroups.items.1.groupId', 'docents')
+            ->where('rail.myGroups.items.1.children.0.groupId', 'docents-training')
+            ->count('rail.myGroups.items.1.children', 1));
 });
 
 it('moves a belonged Private subcommittee out of Other Groups, leaving its unbelonged parent', function () {
@@ -411,8 +577,10 @@ it('moves a belonged Private subcommittee out of Other Groups, leaving its unbel
             // Events-only member lacks — so Docents renders childless.
             ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
             ->missing('rail.otherGroups.items.0.children.0.children')
-            // Events lands in My Groups instead.
-            ->where('rail.myGroups.items.0.groupId', 'docents-events'));
+            // Events lands in My Groups instead — top-level, since its Docents parent is not
+            // belonged (ADR-0020 §F) — after the leading DMV org node.
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->where('rail.myGroups.items.1.groupId', 'docents-events'));
 });
 
 it('shows every restricted subcommittee to a super-tier viewer', function () {
@@ -438,10 +606,12 @@ it('prunes a belonged Group from Other Groups even on leave (LOA)', function () 
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            // LOA counts as belonging: Docents leaves Other Groups and stays in My Groups.
+            // LOA counts as belonging: Docents leaves Other Groups and stays in My Groups
+            // (after the leading DMV org node).
             ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.programs')
             ->missing('rail.otherGroups.items.0.children')
-            ->where('rail.myGroups.items.0.groupId', 'docents'));
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->where('rail.myGroups.items.1.groupId', 'docents'));
 });
 
 it('grants no visibility from a departed membership', function () {
@@ -504,9 +674,11 @@ it('drops a belonged leaf Group from Other Groups — it lives in My Groups inst
             ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.governance_operations')
             ->where('rail.otherGroups.items.0.children.0.groupId', 'communications')
             ->count('rail.otherGroups.items.0.children', 1)
-            // ...and Awards appears in My Groups — exactly one zone.
-            ->where('rail.myGroups.items.0.groupId', 'awards')
-            ->count('rail.myGroups.items', 1));
+            // ...and Awards appears in My Groups, after the leading DMV org node — exactly
+            // one zone.
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->where('rail.myGroups.items.1.groupId', 'awards')
+            ->count('rail.myGroups.items', 2));
 });
 
 it('removes a belonged Program from Other Groups but keeps the Programs container peer', function () {
@@ -544,7 +716,10 @@ it('prunes only the belonged sub-team, leaving its unbelonged parent in Other Gr
             // Docents renders childless.
             ->where('rail.otherGroups.items.1.children.0.groupId', 'docents')
             ->missing('rail.otherGroups.items.1.children.0.children')
-            ->where('rail.myGroups.items.0.groupId', 'docents-library'));
+            // Library heads a top-level My Groups row (its Docents parent is not belonged),
+            // after the leading DMV org node.
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->where('rail.myGroups.items.1.groupId', 'docents-library'));
 });
 
 it('leaves a Group in Other Groups when the Member only ever departed it', function () {
@@ -562,8 +737,10 @@ it('leaves a Group in Other Groups when the Member only ever departed it', funct
             ->where('rail.otherGroups.items.0.children.0.groupId', 'awards')
             ->where('rail.otherGroups.items.0.children.1.groupId', 'communications')
             ->count('rail.otherGroups.items.0.children', 2)
-            // ...and contributes nothing to My Groups either.
-            ->missing('rail.myGroups'));
+            // ...and contributes nothing to My Groups, which holds only the DMV org node the
+            // active Member's Category grants (the departed Awards adds nothing).
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->count('rail.myGroups.items', 1));
 });
 
 it('still shows a belonged Group in Other Groups to a super-tier viewer (oversight not blinded)', function () {
