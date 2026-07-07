@@ -76,7 +76,7 @@ class HandleInertiaRequests extends Middleware
             'chromeNav' => $this->chromeNav($request),
             // Grouping rail (PRD #209): the per-Member Group/officer navigation,
             // built and pruned server-side and shared as a single prop — all three
-            // zones (My Groups, All Groups, Officer Tools). Hrefs are localized
+            // zones (My Groups, Other Groups, Officer Tools). Hrefs are localized
             // server-side, gating resolves here — the client renders only what it is given.
             'rail' => $this->rail($request),
             // Dev/QA role-switcher (PRD #220, ADR-0009 dev half): the data the
@@ -134,19 +134,13 @@ class HandleInertiaRequests extends Middleware
         ];
     }
 
-    /** The Governance & Operations container, folded into the root DMV node (Option C). */
-    private const GOVERNANCE_SLUG = 'governance-operations';
-
-    /** The Programs container, dissolved with its programs promoted to the top level (Option C). */
-    private const PROGRAMS_SLUG = 'programs';
-
     /**
      * The grouping rail (PRD #209), built per signed-in Member and server-pruned —
      * the client receives only the nodes it may see. Ships all three zones: My Groups,
-     * All Groups, and Officer Tools (each per-item gated by a real authority). A zone is
+     * Other Groups, and Officer Tools (each per-item gated by a real authority). A zone is
      * omitted whole when nothing in it survives for the Member. Guests get an empty rail.
      *
-     * @return array{myGroups?: array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}, allGroups?: array{labelKey: string, items: list<array<string, mixed>>}, officer?: array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}}
+     * @return array{myGroups?: array{labelKey: string, items: list<array{groupId: string, name: string, href: string}>}, otherGroups?: array{labelKey: string, items: list<array<string, mixed>>}, officer?: array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}}
      */
     private function rail(Request $request): array
     {
@@ -162,8 +156,8 @@ class HandleInertiaRequests extends Middleware
             $rail['myGroups'] = $myGroups;
         }
 
-        if ($allGroups = $this->allGroups($member)) {
-            $rail['allGroups'] = $allGroups;
+        if ($otherGroups = $this->otherGroups($member)) {
+            $rail['otherGroups'] = $otherGroups;
         }
 
         if ($officer = $this->officer($member)) {
@@ -338,34 +332,45 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The All Groups zone (#211): the whole active organization tree, reshaped by the
-     * curated Option C transform (below) into the shape volunteers already know from
-     * the live rail. Visible to every signed-in Member and collapsed by default in the
-     * client; returns null when no active Group exists, so the section is omitted whole.
+     * The Other Groups zone (ADR-0020 §C): the browse view of the org, reshaped into the
+     * four organization-scope container peers — Governance & Operations, Programs, Special
+     * Projects, Friends — each an expandable node that explodes one level to its
+     * members-facing Groups. Visible to every signed-in Member and collapsed by default in
+     * the client; returns null when no visible container survives, so the section is
+     * omitted whole.
      *
-     * Sourced from {@see Group::scopeActive()} — archived and stale (lapsed-window)
-     * Groups never appear — and nested by parent_id at full depth, then pruned on
-     * `listing_visibility` for this Member ({@see pruneListingVisibility()}). The tree
-     * is loaded in one query and assembled in PHP (no N+1).
+     * The reshape (ADR-0020, reversing ADR-0018's "Option C") drops the org root node and
+     * surfaces its children as the top-level peers: it neither folds Governance &
+     * Operations into a "DMV" root nor promotes the programs to the top level. Depth is
+     * flag-driven, never positional (§D): the builder emits the full pruned tree — a peer
+     * bottoms out at one level only because its working groups are `listing_visibility=Group`
+     * and already pruned for outsiders ({@see pruneListingVisibility()}); a deliberately
+     * `Public` working group will surface under its parent.
+     *
+     * Sourced from {@see Group::scopeActive()} — archived and stale (lapsed-window) Groups
+     * never appear — nested by parent_id at full depth, then pruned on `listing_visibility`.
+     * The tree is loaded in one query and assembled in PHP (no N+1).
      *
      * @return array{labelKey: string, items: list<array<string, mixed>>}|null
      */
-    private function allGroups(Member $member): ?array
+    private function otherGroups(Member $member): ?array
     {
         $active = $this->pruneListingVisibility($member, Group::active()->get());
         $byParent = $active->groupBy(fn (Group $group) => $group->parent_id);
         $roots = $active->whereNull('parent_id');
 
-        if ($roots->isEmpty()) {
+        // The org root(s) are dropped; their children become the container peers.
+        $items = $this->sortNodes($roots)
+            ->flatMap(fn (Group $root) => $this->childrenOf($root, $byParent))
+            ->map(fn (Group $peer) => $this->peerNode($peer, $byParent))
+            ->all();
+
+        if (empty($items)) {
             return null;
         }
 
-        $items = $this->sortNodes($roots)
-            ->flatMap(fn (Group $root) => $this->optionCForest($root, $byParent))
-            ->all();
-
         return [
-            'labelKey' => 'nav.rail.all_groups',
+            'labelKey' => 'nav.rail.other_groups',
             'items' => $items,
         ];
     }
@@ -425,44 +430,38 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The Option C transform (PRD #209), applied server-side to one root's subtree. It
-     * is a curated, named transform — each container is handled on purpose, not by a
-     * uniform rule:
-     *
-     * - the Governance & Operations container's children fold into the root DMV node;
-     * - the Programs container dissolves, its programs promoted to the top level (each
-     *   still carrying its own subcommittees);
-     * - Special Projects and the Friends-of committees stay as ordinary top-level
-     *   expandable nodes.
-     *
-     * The container Groups remain real rows in the data model — they keep parenting
-     * children and carrying scope; this is presentation only.
+     * A container-peer rail node (ADR-0020 §C): one of the organization-scope containers
+     * that head Other Groups. Its label is CHROME — a translation key ({@see peerLabelKey}),
+     * not the Group name — because a peer is structural scaffolding, not a member content
+     * Group; the Groups nested beneath it render their names verbatim as usual. It keeps a
+     * localized href (the container has a real page) and its logo key for the launcher, and
+     * carries its visible children (which explode one level via {@see railNode}).
      *
      * @param  Collection<int, Collection<int, Group>>  $byParent
-     * @return list<array<string, mixed>>
+     * @return array<string, mixed>
      */
-    private function optionCForest(Group $root, Collection $byParent): array
+    private function peerNode(Group $group, Collection $byParent): array
     {
-        $folded = [];   // Governance & Operations' children → the DMV node's children
-        $promoted = []; // the Programs container's children → the rail's top level
-        $others = [];   // Special Projects + Friends-of → top level, as authored
+        $node = [
+            'labelKey' => $this->peerLabelKey($group),
+            'href' => $this->groupHref($group),
+            'logo' => $group->logo_key?->value,
+        ];
 
-        foreach ($this->childrenOf($root, $byParent) as $child) {
-            if ($child->slug === self::GOVERNANCE_SLUG) {
-                $folded = $this->builtChildren($child, $byParent);
-            } elseif ($child->slug === self::PROGRAMS_SLUG) {
-                $promoted = $this->builtChildren($child, $byParent);
-            } else {
-                $others[] = $this->railNode($child, $byParent);
-            }
+        if ($children = $this->builtChildren($group, $byParent)) {
+            $node['children'] = $children;
         }
 
-        $rootNode = $this->nodeAttributes($root);
-        if ($folded) {
-            $rootNode['children'] = $folded;
-        }
+        return $node;
+    }
 
-        return array_merge([$rootNode], $promoted, $others);
+    /**
+     * The chrome label key for a container peer, derived from its slug so the keys stay
+     * single-sourced with the seed: `governance-operations` → `nav.rail.peers.governance_operations`.
+     */
+    private function peerLabelKey(Group $group): string
+    {
+        return 'nav.rail.peers.'.str_replace('-', '_', $group->slug);
     }
 
     /**

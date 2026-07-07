@@ -18,6 +18,23 @@ it('carries no Renew key in the personal nav set — it moved to the account men
         ->and(__('nav.personal', [], 'fr'))->not->toHaveKey('renew');
 });
 
+it('resolves the rail (Zone B) heading + container-peer keys under both locales', function () {
+    // Other Groups is the renamed browse zone (ADR-0020 §C — "All Groups" retired); its
+    // four container peers are chrome (i18n keys), distinct from the verbatim Group names
+    // nested beneath them.
+    expect(__('nav.rail.other_groups', [], 'en'))->toBe('Other Groups')
+        ->and(__('nav.rail.other_groups', [], 'fr'))->toBe('Autres groupes')
+        ->and(__('nav.rail.peers.governance_operations', [], 'en'))->toBe('Governance & Operations')
+        ->and(__('nav.rail.peers.programs', [], 'fr'))->toBe('Programmes')
+        ->and(__('nav.rail.peers.friends', [], 'en'))->toBe('Friends')
+        ->and(__('nav.rail.peers.special_projects', [], 'fr'))->toBe('Projets spéciaux');
+});
+
+it('retires the old All Groups rail key under both locales (ADR-0020)', function () {
+    expect(__('nav.rail', [], 'en'))->not->toHaveKey('all_groups')
+        ->and(__('nav.rail', [], 'fr'))->not->toHaveKey('all_groups');
+});
+
 it('resolves the officer (Zone C) nav keys under both locales', function () {
     expect(__('nav.officer.members', [], 'en'))->toBe('Members')
         ->and(__('nav.officer.members', [], 'fr'))->toBe('Membres')

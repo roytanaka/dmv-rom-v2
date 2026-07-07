@@ -151,19 +151,21 @@ it('hand-assigns listing visibility per node so staging exercises all three tier
         ->toBe(ListingVisibility::Private);
 });
 
-it('shows a non-empty All Groups to an ordinary Member with no memberships', function () {
-    // Regression (PRD #268): the visibility prune must not swallow the whole All
-    // Groups zone. A plain Member — no memberships, not super-tier — still browses
-    // the Public recruiting tree, rooted at DMV. The bug left the root and its
-    // containers at the Group default, pruning every non-member's tree to nothing.
+it('shows a non-empty Other Groups to an ordinary Member with no memberships', function () {
+    // Regression (PRD #268): the visibility prune must not swallow the whole Other
+    // Groups zone. A plain Member — no memberships, not super-tier — still browses the
+    // Public recruiting tree, now surfaced as the four organization-scope container
+    // peers (ADR-0020 §C). The bug left the root and its containers at the Group
+    // default, pruning every non-member's tree to nothing.
     $this->actingAs(Member::factory()->create())
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.items.0.groupId', DemoSeeder::ROOT)
-            // Index 1 existing proves ≥2 top-level rows survived the prune — the
+            // The first peer is Governance & Operations, a chrome-labelled container.
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.governance_operations')
+            // Index 1 existing proves ≥2 container peers survived the prune — the
             // tree did not collapse to nothing for a non-member.
-            ->has('rail.allGroups.items.1'));
+            ->has('rail.otherGroups.items.1'));
 });
 
 it('represents varied membership statuses including Full, Trainee and LOA', function () {

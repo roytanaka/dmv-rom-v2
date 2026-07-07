@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { GroupNode } from '@/chrome/types';
+import type { GroupNode, PeerNode } from '@/chrome/types';
 import GroupTile from '@/components/GroupTile.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -20,10 +20,10 @@ const page = usePage<SharedData>();
 // server-built (PRD #209) from the same `rail` prop that feeds the rail, so the
 // launcher and the rail can never disagree — pre-localized, each tile carrying the
 // Group's logo key (PRD #253), which the tile resolves to its identity mark (or the
-// generic fallback). My Groups is omitted when the Member belongs to no Group; All
-// Groups is shown to every Member (the former super-tier gate is gone, #211), its
-// top-level rows only — subcommittees stay in the rail.
-type LauncherGridView = { labelKey: string; items: GroupNode[]; localized: boolean };
+// generic fallback). My Groups is omitted when the Member belongs to no Group; Other
+// Groups is shown to every Member, its top-level rows only — the four container peers
+// (ADR-0020 §C), whose nested Groups stay in the rail.
+type LauncherGridView = { labelKey: string; items: Array<GroupNode | PeerNode>; localized: boolean };
 
 const grids = computed<LauncherGridView[]>(() => {
     const out: LauncherGridView[] = [];
@@ -33,9 +33,9 @@ const grids = computed<LauncherGridView[]>(() => {
         out.push({ labelKey: myGroups.labelKey, items: myGroups.items, localized: true });
     }
 
-    const allGroups = page.props.rail.allGroups;
-    if (allGroups) {
-        out.push({ labelKey: allGroups.labelKey, items: allGroups.items, localized: true });
+    const otherGroups = page.props.rail.otherGroups;
+    if (otherGroups) {
+        out.push({ labelKey: otherGroups.labelKey, items: otherGroups.items, localized: true });
     }
 
     return out;

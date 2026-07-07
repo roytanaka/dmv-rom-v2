@@ -10,8 +10,19 @@
 return [
     'rail' => [
         'my_groups' => 'My Groups',
-        'all_groups' => 'All Groups',
+        'other_groups' => 'Other Groups',
         'officer' => 'Officer Tools',
+
+        // Other Groups' four organization-scope container peers (ADR-0020 §C). These
+        // are structural scaffolding, not member content Groups, so their labels are
+        // chrome (translated keys) — distinct from the verbatim Group names nested
+        // beneath them. Keyed by the container's slug (dashes → underscores).
+        'peers' => [
+            'governance_operations' => 'Governance & Operations',
+            'programs' => 'Programs',
+            'special_projects' => 'Special Projects',
+            'friends' => 'Friends',
+        ],
     ],
 
     // Zone A — personal/global (the Dashboard top-bar tab set). Renew Membership is

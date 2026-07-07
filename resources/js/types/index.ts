@@ -41,6 +41,20 @@ export interface RailGroupNode {
     children?: RailGroupNode[];
 }
 
+/**
+ * A container-peer row heading the Other Groups zone (ADR-0020 §C): one of the four
+ * organization-scope containers. Unlike a {@link RailGroupNode}, its label is CHROME —
+ * a `labelKey` resolved client-side, not a verbatim Group name — because a peer is
+ * structural scaffolding, not a member content Group. It keeps a server-localized
+ * `href`, an optional `logo` (for the launcher), and its visible child Groups.
+ */
+export interface RailPeerNode {
+    labelKey: string;
+    href: string;
+    logo?: string | null;
+    children?: RailGroupNode[];
+}
+
 export interface BreadcrumbItem {
     title: string;
     href: string;
@@ -91,20 +105,20 @@ export interface SharedData {
      * Member. The wire format carries plain Group rows (no icon — the client supplies
      * the interim placeholder); hrefs are localized server-side (ADR-0008), so the
      * client renders them verbatim. Zones absent from a Member's rail are omitted. My
-     * Groups is flat; All Groups carries the active org tree reshaped (Option C) with
-     * subcommittees nested at full depth. Officer Tools (#212) is the org-wide
-     * administration cluster: each item per-item gated by a real authority server-side,
-     * the cluster omitted whole when none survive. Its labels are i18n keys resolved
-     * client-side; its icons are fixed client config keyed by item `key`.
+     * Groups is flat; Other Groups carries the four organization-scope container peers
+     * (ADR-0020 §C), each exploding one level to its visible Groups. Officer Tools (#212)
+     * is the org-wide administration cluster: each item per-item gated by a real authority
+     * server-side, the cluster omitted whole when none survive. Its labels are i18n keys
+     * resolved client-side; its icons are fixed client config keyed by item `key`.
      */
     rail: {
         myGroups?: {
             labelKey: string;
             items: RailGroupNode[];
         };
-        allGroups?: {
+        otherGroups?: {
             labelKey: string;
-            items: RailGroupNode[];
+            items: RailPeerNode[];
         };
         officer?: {
             labelKey: string;
