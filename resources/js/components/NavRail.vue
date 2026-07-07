@@ -44,7 +44,7 @@ const officerItems = computed<NavNode[]>(() =>
     (officerSection.value?.items ?? []).map((item) => ({ labelKey: item.labelKey, href: item.href, icon: OFFICER_ICONS[item.key] })),
 );
 
-// Force All Groups open when the active page lives inside it. The section was uncontrolled
+// Force Other Groups open when the active page lives inside it. The section was uncontrolled
 // and re-seeded closed on every Inertia navigation (#122). Hrefs arrive pre-localized
 // (ADR-0018); strip query strings to mirror NavRailItem's ancestor-aware matching.
 const currentPath = computed(() => page.url.split('?')[0]);

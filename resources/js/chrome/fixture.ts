@@ -1,7 +1,7 @@
 /**
  * Group-Menu fixture — the per-Group section-tab catalogue (STUBBED).
  *
- * The grouping rail (My Groups · All Groups · Officer Tools) is server-driven and
+ * The grouping rail (My Groups · Other Groups · Officer Tools) is server-driven and
  * server-pruned (PRD #209, ADR-0018): it arrives on the shared `rail` Inertia prop,
  * already localized and carrying only the nodes the Member may see. The rail's old
  * client fixtures (`myGroups`, `allGroups`, `railNav`, `launcherGrids`) and the

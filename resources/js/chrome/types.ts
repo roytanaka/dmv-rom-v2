@@ -13,7 +13,7 @@
  *   Menu sharing a node shape.
  *
  * ── Where the data comes from ────────────────────────────────────────────────
- *   The rail (My Groups · All Groups · Officer Tools) is server-driven and
+ *   The rail (My Groups · Other Groups · Officer Tools) is server-driven and
  *   server-pruned (PRD #209, ADR-0018): it arrives on the shared `rail` Inertia prop
  *   ({@link SharedData}), already localized and carrying only the nodes the Member may
  *   see. These rail rows map onto {@link GroupNode} / {@link NavNode} for rendering.
