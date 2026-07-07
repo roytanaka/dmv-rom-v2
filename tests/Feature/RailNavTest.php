@@ -121,74 +121,85 @@ it('carries a Group\'s logo key on its launcher row, and null when it has none',
 });
 
 /*
- * The All Groups zone (#211): the whole active organization tree, reshaped server-side
- * by the curated Option C transform that reproduces the live rail's shape — Governance
- * & Operations folded into the root DMV node, the Programs container dissolved with its
- * programs promoted to the top level, Special Projects and Friends-of committees kept
- * as ordinary top-level expandable nodes. Visible to every signed-in Member.
+ * The Other Groups zone (ADR-0020 §C): the browse view of the org, reshaped server-side
+ * into the four organization-scope container peers — Governance & Operations, Programs,
+ * Special Projects, Friends — each an expandable node that explodes one level to its
+ * members-facing Groups. This reverses ADR-0018's "Option C" (which folded Governance &
+ * Operations into a DMV root and promoted programs to the top level). Peer labels are
+ * chrome (i18n keys); the Groups nested beneath render their names verbatim. Visible to
+ * every signed-in Member.
  */
 
 /**
  * Build a small active org tree shaped like the curated DMV one: a DMV root with the
- * three named containers (Governance & Operations, Programs, Special Projects) plus a
- * Friends-of committee, each carrying children, so the Option C transform has every
- * branch to act on. Returns nothing — assertions read the rail prop, not the models.
+ * four organization-scope containers (Governance & Operations, Programs, Special
+ * Projects, Friends), each carrying children, so the four-peer reshape has every branch
+ * to act on. Returns nothing — assertions read the rail prop, not the models.
  */
-function seedOptionCTree(): void
+function seedFourPeerTree(): void
 {
-    // Every node is Public so these assertions isolate the Option C *shape* transform
+    // Every node is Public so these assertions isolate the four-peer *shape* transform
     // from listing-visibility pruning (its own tests below). The factory fail-closes
     // to Group visibility (ADR-0019), so shape fixtures must opt into Public to be seen
     // by a plain Member with no memberships.
     $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
 
+    // Governance & Operations peer — carries the governance/operations committees.
     $governance = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'governance-operations', 'name' => 'Governance & Operations', 'display_order' => 0]);
     Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $governance->id, 'slug' => 'awards', 'name' => 'Awards', 'display_order' => 0]);
     Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $governance->id, 'slug' => 'communications', 'name' => 'Communications', 'display_order' => 1]);
 
+    // Programs peer — explodes one level to its programs (no longer promoted to top level).
     $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 1]);
     $docents = Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
     Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-library', 'name' => 'Library', 'display_order' => 0]);
     // A French-named program — its name is content, rendered verbatim in both locales.
     Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'guides-du-rom', 'name' => 'Guides du ROM', 'display_order' => 1]);
 
+    // Special Projects peer.
     $special = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'special-projects', 'name' => 'Special Projects', 'display_order' => 2]);
     Group::factory()->project()->publicListing()->create(['parent_id' => $special->id, 'slug' => 'archive-inventory', 'name' => 'DMV Archive Inventory', 'display_order' => 0]);
 
-    $friends = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'friends-of-palaeontology', 'name' => 'Friends of Palaeontology (FOP)', 'display_order' => 3]);
-    Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $friends->id, 'slug' => 'vertebrate-palaeontology', 'name' => 'Vertebrate Palaeontology', 'display_order' => 0]);
+    // Friends peer — the structural container grouping the Friends-of committees (#276).
+    $friends = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'friends', 'name' => 'Friends', 'display_order' => 3]);
+    $fop = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $friends->id, 'slug' => 'friends-of-palaeontology', 'name' => 'Friends of Palaeontology (FOP)', 'display_order' => 0]);
+    Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $fop->id, 'slug' => 'vertebrate-palaeontology', 'name' => 'Vertebrate Palaeontology', 'display_order' => 0]);
 }
 
-it('reshapes the active tree with the Option C transform — DMV carries governance, programs flattened, special projects & friends top-level', function () {
-    seedOptionCTree();
+it('reshapes the active tree into four container peers — Governance & Operations / Programs / Special Projects / Friends, each exploding one level', function () {
+    seedFourPeerTree();
 
-    // A plain Member with no memberships still sees All Groups (it is for everyone).
+    // A plain Member with no memberships still sees Other Groups (it is for everyone).
     $this->actingAs(Member::factory()->create())
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.labelKey', 'nav.rail.all_groups')
-            // Root DMV node carries the Governance & Operations committees as its children.
-            ->where('rail.allGroups.items.0.groupId', 'dmv')
-            ->where('rail.allGroups.items.0.children.0.groupId', 'awards')
-            ->where('rail.allGroups.items.0.children.1.groupId', 'communications')
-            ->count('rail.allGroups.items.0.children', 2)
-            // Programs container is gone; its programs are promoted to the top level,
+            ->where('rail.otherGroups.labelKey', 'nav.rail.other_groups')
+            // Governance & Operations peer — a chrome-labelled container (no verbatim name),
+            // carrying the governance/operations committees as its children.
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.governance_operations')
+            ->missing('rail.otherGroups.items.0.name')
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'awards')
+            ->where('rail.otherGroups.items.0.children.1.groupId', 'communications')
+            ->count('rail.otherGroups.items.0.children', 2)
+            // Programs are nested UNDER the Programs peer, not promoted to the top level,
             // each retaining its own subcommittees.
-            ->where('rail.allGroups.items.1.groupId', 'docents')
-            ->where('rail.allGroups.items.1.children.0.groupId', 'docents-library')
-            ->where('rail.allGroups.items.2.groupId', 'guides-du-rom')
-            // Special Projects and Friends-of stay top-level expandable nodes.
-            ->where('rail.allGroups.items.3.groupId', 'special-projects')
-            ->where('rail.allGroups.items.3.children.0.groupId', 'archive-inventory')
-            ->where('rail.allGroups.items.4.groupId', 'friends-of-palaeontology')
-            ->where('rail.allGroups.items.4.children.0.groupId', 'vertebrate-palaeontology')
-            // Five top-level rows: DMV + the two promoted programs + Special Projects +
-            // the Friends-of committee. The Programs container itself never appears.
-            ->count('rail.allGroups.items', 5));
+            ->where('rail.otherGroups.items.1.labelKey', 'nav.rail.peers.programs')
+            ->where('rail.otherGroups.items.1.children.0.groupId', 'docents')
+            ->where('rail.otherGroups.items.1.children.0.children.0.groupId', 'docents-library')
+            ->where('rail.otherGroups.items.1.children.1.groupId', 'guides-du-rom')
+            ->count('rail.otherGroups.items.1.children', 2)
+            // Special Projects and Friends peers, each exploding one level.
+            ->where('rail.otherGroups.items.2.labelKey', 'nav.rail.peers.special_projects')
+            ->where('rail.otherGroups.items.2.children.0.groupId', 'archive-inventory')
+            ->where('rail.otherGroups.items.3.labelKey', 'nav.rail.peers.friends')
+            ->where('rail.otherGroups.items.3.children.0.groupId', 'friends-of-palaeontology')
+            ->where('rail.otherGroups.items.3.children.0.children.0.groupId', 'vertebrate-palaeontology')
+            // Exactly four peers — the old All-Groups "DMV" root node no longer renders.
+            ->count('rail.otherGroups.items', 4));
 });
 
-it('never shows archived or stale Groups in All Groups', function () {
+it('never shows archived or stale Groups in Other Groups', function () {
     $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
     $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 0]);
 
@@ -197,21 +208,22 @@ it('never shows archived or stale Groups in All Groups', function () {
     // both excluded by Group::active(), so Docents renders as a childless leaf.
     Group::factory()->cohort()->archived()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'pompeii', 'name' => 'Pompeii', 'display_order' => 0]);
     Group::factory()->cohort()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'osiris', 'name' => 'Osiris', 'display_order' => 1, 'end_date' => now()->subMonth()->toDateString()]);
-    // An archived sibling program — never promoted to the top level.
+    // An archived sibling program — never appears under the Programs peer.
     Group::factory()->program()->archived()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'retired-program', 'name' => 'Retired Program', 'display_order' => 1]);
 
     $this->actingAs(Member::factory()->create())
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.items.0.groupId', 'dmv')
-            ->where('rail.allGroups.items.1.groupId', 'docents')
-            ->missing('rail.allGroups.items.1.children')
-            ->count('rail.allGroups.items', 2));
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.programs')
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
+            ->missing('rail.otherGroups.items.0.children.0.children')
+            ->count('rail.otherGroups.items.0.children', 1)
+            ->count('rail.otherGroups.items', 1));
 });
 
-it('emits All Groups names verbatim and hrefs as French twins under /fr/', function () {
-    seedOptionCTree();
+it('emits Other Groups names verbatim and hrefs as French twins under /fr/', function () {
+    seedFourPeerTree();
 
     $this->actingAs(Member::factory()->create());
 
@@ -220,11 +232,12 @@ it('emits All Groups names verbatim and hrefs as French twins under /fr/', funct
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('locale', 'fr')
-                ->where('rail.allGroups.items.0.href', '/fr/groupes/dmv')
-                ->where('rail.allGroups.items.0.children.0.href', '/fr/groupes/awards')
+                // Peer hrefs point at the /fr/ twin; the peer label stays a chrome key.
+                ->where('rail.otherGroups.items.0.href', '/fr/groupes/governance-operations')
+                ->where('rail.otherGroups.items.0.children.0.href', '/fr/groupes/awards')
                 // A French-named program: name verbatim, href its localized twin.
-                ->where('rail.allGroups.items.2.name', 'Guides du ROM')
-                ->where('rail.allGroups.items.2.href', '/fr/groupes/guides-du-rom'));
+                ->where('rail.otherGroups.items.1.children.1.name', 'Guides du ROM')
+                ->where('rail.otherGroups.items.1.children.1.href', '/fr/groupes/guides-du-rom'));
     });
 });
 
@@ -312,21 +325,22 @@ it('emits Officer Tools hrefs as French twins under /fr/', function () {
 });
 
 /*
- * Listing-visibility pruning of All Groups (#271, PRD #268, ADR-0019). The
+ * Listing-visibility pruning of Other Groups (#271, PRD #268, ADR-0019). The
  * server-pruned rail also prunes on `listing_visibility`, composing beneath the
  * active-tree prune: a `Group`-visibility node is emitted only to members of its
  * parent Group; a `Private` node only to its own members; `Public` to everyone;
  * super-tier sees all. Visibility resolves from current participation (Full / LOA);
  * departed standings contribute nothing — the same standing rule My Groups applies.
- * Asserted at the shared-prop seam; the Dashboard launcher reads this same `rail`
- * prop, so it cannot disagree.
+ * This is the flag-driven depth of ADR-0020 §D — a peer bottoms out because its
+ * working groups are pruned, not from a positional cap. Asserted at the shared-prop
+ * seam; the Dashboard launcher reads this same `rail` prop, so it cannot disagree.
  */
 
 /**
- * A Public program (Docents, promoted to the rail's top level) carrying two
- * restricted subcommittees: a `Group`-visibility Training team (visible to Docents
- * members) and a `Private` Events team (visible only to Events members). Returns the
- * three Groups so tests can enrol Members precisely.
+ * A Public program (Docents, nested under the Programs peer) carrying two restricted
+ * subcommittees: a `Group`-visibility Training team (visible to Docents members) and a
+ * `Private` Events team (visible only to Events members). Returns the three Groups so
+ * tests can enrol Members precisely.
  *
  * @return array{docents: Group, training: Group, events: Group}
  */
@@ -355,10 +369,10 @@ it('prunes Group- and Private-visibility subcommittees from a Member who belongs
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.items.0.groupId', 'dmv')
-            ->where('rail.allGroups.items.1.groupId', 'docents')
-            ->missing('rail.allGroups.items.1.children')
-            ->count('rail.allGroups.items', 2));
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.programs')
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
+            ->missing('rail.otherGroups.items.0.children.0.children')
+            ->count('rail.otherGroups.items', 1));
 });
 
 it('shows a Group-visibility subcommittee to a member of its parent Group, but not the Private sibling', function () {
@@ -371,11 +385,11 @@ it('shows a Group-visibility subcommittee to a member of its parent Group, but n
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.items.1.groupId', 'docents')
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
             // Training (Group) is in; Events (Private) is not — parent membership is
             // not membership of the Private child.
-            ->where('rail.allGroups.items.1.children.0.groupId', 'docents-training')
-            ->count('rail.allGroups.items.1.children', 1));
+            ->where('rail.otherGroups.items.0.children.0.children.0.groupId', 'docents-training')
+            ->count('rail.otherGroups.items.0.children.0.children', 1));
 });
 
 it('shows a Private subcommittee to its own member, but not the parent-Group sibling', function () {
@@ -389,11 +403,11 @@ it('shows a Private subcommittee to its own member, but not the parent-Group sib
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.items.1.groupId', 'docents')
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
             // Events (Private, own member) is in; Training (Group) needs Docents
             // membership the Events-only member lacks.
-            ->where('rail.allGroups.items.1.children.0.groupId', 'docents-events')
-            ->count('rail.allGroups.items.1.children', 1));
+            ->where('rail.otherGroups.items.0.children.0.children.0.groupId', 'docents-events')
+            ->count('rail.otherGroups.items.0.children.0.children', 1));
 });
 
 it('shows every restricted subcommittee to a super-tier viewer', function () {
@@ -403,10 +417,10 @@ it('shows every restricted subcommittee to a super-tier viewer', function () {
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.items.1.groupId', 'docents')
-            ->where('rail.allGroups.items.1.children.0.groupId', 'docents-training')
-            ->where('rail.allGroups.items.1.children.1.groupId', 'docents-events')
-            ->count('rail.allGroups.items.1.children', 2));
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
+            ->where('rail.otherGroups.items.0.children.0.children.0.groupId', 'docents-training')
+            ->where('rail.otherGroups.items.0.children.0.children.1.groupId', 'docents-events')
+            ->count('rail.otherGroups.items.0.children.0.children', 2));
 });
 
 it('still shows a Group-visibility subcommittee to a member on leave (LOA)', function () {
@@ -419,8 +433,8 @@ it('still shows a Group-visibility subcommittee to a member on leave (LOA)', fun
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.items.1.children.0.groupId', 'docents-training')
-            ->count('rail.allGroups.items.1.children', 1));
+            ->where('rail.otherGroups.items.0.children.0.children.0.groupId', 'docents-training')
+            ->count('rail.otherGroups.items.0.children.0.children', 1));
 });
 
 it('grants no visibility from a departed membership', function () {
@@ -435,21 +449,24 @@ it('grants no visibility from a departed membership', function () {
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.items.1.groupId', 'docents')
-            ->missing('rail.allGroups.items.1.children'));
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
+            ->missing('rail.otherGroups.items.0.children.0.children'));
 });
 
-it('prunes a Private top-level node — the launcher grid reads this same rail prop', function () {
-    // A Private top-level node (a launcher-eligible row, not a nested subcommittee).
-    // The launcher reads `rail.allGroups.items`, so pruning here prunes the tile too —
-    // the two cannot disagree because they share one source.
-    Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
-    Group::factory()->standingCommittee()->privateListing()->create(['slug' => 'inner-circle', 'name' => 'Inner Circle', 'display_order' => 1]);
+it('prunes a Private Group from Other Groups — the launcher grid reads this same rail prop', function () {
+    // The launcher and the rail both read `rail.otherGroups`, so a Group pruned here is
+    // pruned from the launcher too — the two cannot disagree because they share one source.
+    $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+    $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 0]);
+    Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
+    Group::factory()->program()->privateListing()->create(['parent_id' => $programs->id, 'slug' => 'inner-circle', 'name' => 'Inner Circle', 'display_order' => 1]);
 
     $this->actingAs(Member::factory()->create())
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('rail.allGroups.items.0.groupId', 'dmv')
-            ->count('rail.allGroups.items', 1));
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.programs')
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'docents')
+            ->count('rail.otherGroups.items.0.children', 1)
+            ->count('rail.otherGroups.items', 1));
 });

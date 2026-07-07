@@ -98,8 +98,24 @@ export interface GroupNode extends NavNodeBase {
 }
 
 /**
- * Either kind of rail row: a structural {@link NavNode} (officer cluster) or a
- * content {@link GroupNode} (a Group). The rail renders both through one component,
- * so its label resolution branches on which kind a node is.
+ * A container-peer row heading the Other Groups zone (ADR-0020 §C): one of the four
+ * organization-scope containers. Its label is CHROME — a `labelKey` resolved through the
+ * i18n bridge — because a peer is structural scaffolding, not a member content Group; the
+ * Groups nested beneath it are {@link GroupNode}s and render their names verbatim. Carries
+ * an optional `logo` for the launcher tile.
  */
-export type RailNode = NavNode | GroupNode;
+export interface PeerNode extends NavNodeBase {
+    /** i18n message key resolved to display copy by `trans()`. */
+    labelKey: string;
+    /** The container's logo key, or null — resolved to a launcher-tile mark, else the fallback. */
+    logo?: string | null;
+    /** The peer's visible child Groups (content). */
+    children?: GroupNode[];
+}
+
+/**
+ * Any rail row: a structural {@link NavNode} (officer cluster), a content {@link GroupNode}
+ * (a Group), or a chrome {@link PeerNode} (an Other-Groups container peer). The rail renders
+ * all three through one component, so its label resolution branches on which kind a node is.
+ */
+export type RailNode = NavNode | GroupNode | PeerNode;

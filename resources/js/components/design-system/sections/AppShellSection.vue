@@ -154,7 +154,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Grouping rail</h3>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
             The charcoal rail carries the grouping nav in three zones: <strong>Zone B</strong> leads with <em>My Groups</em>, then a collapsible
-            <em>All Groups</em> browse list; <strong>Zone C</strong> (officer/admin) is pinned to the bottom and appears only when its gated items
+            <em>Other Groups</em> browse list; <strong>Zone C</strong> (officer/admin) is pinned to the bottom and appears only when its gated items
             survive. It is built on the restyled shadcn <code>sidebar</code> primitive as its substrate — offcanvas on desktop (the
             <code>☰</code> toggles it) and the primitive’s own mobile sheet as the M1 drawer on small screens — so the substrate is acknowledged
             here, not shown bare. The inert search lives in the rail header.
@@ -179,7 +179,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
             </div>
 
             <div class="text-sidebar-muted flex items-center justify-between px-2 text-xs font-semibold tracking-wide uppercase">
-                {{ trans('nav.rail.all_groups') }}
+                {{ trans('nav.rail.other_groups') }}
                 <PhCaretDown class="size-4" />
             </div>
 

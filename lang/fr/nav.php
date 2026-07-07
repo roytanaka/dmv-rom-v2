@@ -8,8 +8,19 @@
 return [
     'rail' => [
         'my_groups' => 'Mes groupes',
-        'all_groups' => 'Tous les groupes',
+        'other_groups' => 'Autres groupes',
         'officer' => 'Outils des responsables',
+
+        // Les quatre pairs conteneurs à l'échelle de l'organisation d'Autres groupes
+        // (ADR-0020 §C) : de l'ossature structurelle, pas des groupes de contenu, donc
+        // leurs libellés sont du chrome (clés traduites), distincts des noms de groupe
+        // rendus verbatim en dessous. Indexés par le slug du conteneur (tirets → tirets bas).
+        'peers' => [
+            'governance_operations' => 'Gouvernance et opérations',
+            'programs' => 'Programmes',
+            'special_projects' => 'Projets spéciaux',
+            'friends' => 'Amis',
+        ],
     ],
 
     // Zone A — personnel/global (les onglets du tableau de bord).
