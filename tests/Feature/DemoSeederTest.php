@@ -93,6 +93,38 @@ it('excludes archived and stale groups from the active scope but keeps live ones
     expect($activeIds->contains($liveProgram->id))->toBeTrue();
 });
 
+it('groups the five Friends-of committees under a rosterless Friends container peer', function () {
+    // The Friends container (PRD #275, ADR-0020 §G) — a structural peer of
+    // Governance & Operations / Programs / Special Projects, modelled as real
+    // structure rather than a name heuristic (one committee's name doesn't start
+    // with "Friends of"). Rosterless like the other section containers.
+    $root = Group::where('slug', DemoSeeder::ROOT)->firstOrFail();
+    $friends = Group::where('slug', 'friends')->with('children')->firstOrFail();
+
+    expect($friends->parent_id)->toBe($root->id)
+        ->and($friends->kind)->toBe(Kind::StandingCommittee);
+
+    $expected = [
+        'bishop-white-fea',
+        'friends-of-global-south-asia-fsa',
+        'friends-of-textiles-costume',
+        'friends-of-palaeontology-fop',
+        'friends-of-earth-space-fes',
+    ];
+
+    expect($friends->children->pluck('slug')->sort()->values()->all())
+        ->toBe(collect($expected)->sort()->values()->all());
+
+    // The container is rosterless — no members, the same treatment as the root
+    // and the other section containers.
+    expect(GroupMember::where('group_id', $friends->id)->count())->toBe(0);
+
+    // Associated Friends is a distinct coordinating committee and stays under
+    // Governance & Operations — it is not the container and is not re-parented.
+    $associated = Group::where('slug', 'associated-friends')->firstOrFail();
+    expect($associated->parent->slug)->toBe(DemoSeeder::COMMITTEE);
+});
+
 it('hand-assigns curated logo keys per node, leaving groups without a mark on the fallback', function () {
     // A representative program, a Friends-of committee, and a "filename ≠ key"
     // rename (special.svg → Visitor Wayfinders) — the per-node assignment (#257).
