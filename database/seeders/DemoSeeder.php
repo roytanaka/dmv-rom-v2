@@ -275,7 +275,7 @@ class DemoSeeder extends Seeder
 
     /**
      * The nodes that are structural containers, not real Groups anyone belongs to:
-     * the root and the three org-level sections ({@see tree()}). They get no roster
+     * the root and the four org-level sections ({@see tree()}). They get no roster
      * and no leadership — clicking one shows the sub-Groups it organises, not people.
      */
     private const STRUCTURAL_SLUGS = [self::ROOT, 'governance-operations', 'programs', 'special-projects', 'friends'];
@@ -854,14 +854,10 @@ class DemoSeeder extends Seeder
                     $this->project('ROM eBird Records'),
                     $this->project('Transcribe interview tapes'),
                 ]),
-                // Friends — the container section grouping the Friends-of standing
-                // committees (some with their own sub-groups), a structural peer of
-                // Governance & Operations / Programs / Special Projects (PRD #275,
-                // ADR-0020 §G). Modelled as real structure, not a name heuristic —
-                // one committee's name doesn't begin with "Friends of". Each carries
-                // its own identity mark on the launcher (#257). Note: Associated
-                // Friends is a distinct coordinating committee that stays under
-                // Governance & Operations and is not the container.
+                // Friends — structural peer of Governance & Operations / Programs /
+                // Special Projects. Not a naming heuristic: Bishop White (FEA) doesn't
+                // begin with "Friends of". Associated Friends stays under Governance &
+                // Operations — it is a distinct coordinating committee, not this container.
                 $this->sc('Friends', [
                     $this->sc('Bishop White (FEA)', logo: GroupLogo::BishopWhiteFea),
                     $this->sc('Friends of Global South Asia (FSA)', logo: GroupLogo::FriendsOfGlobalSouthAsiaFsa),

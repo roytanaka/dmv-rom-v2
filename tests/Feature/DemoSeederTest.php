@@ -94,10 +94,8 @@ it('excludes archived and stale groups from the active scope but keeps live ones
 });
 
 it('groups the five Friends-of committees under a rosterless Friends container peer', function () {
-    // The Friends container (PRD #275, ADR-0020 §G) — a structural peer of
-    // Governance & Operations / Programs / Special Projects, modelled as real
-    // structure rather than a name heuristic (one committee's name doesn't start
-    // with "Friends of"). Rosterless like the other section containers.
+    // Explicit structure, not a naming heuristic — Bishop White (FEA) wouldn't
+    // match a "Friends of …" name filter (PRD #275, ADR-0020 §G).
     $root = Group::where('slug', DemoSeeder::ROOT)->firstOrFail();
     $friends = Group::where('slug', 'friends')->with('children')->firstOrFail();
 
@@ -115,8 +113,6 @@ it('groups the five Friends-of committees under a rosterless Friends container p
     expect($friends->children->pluck('slug')->sort()->values()->all())
         ->toBe(collect($expected)->sort()->values()->all());
 
-    // The container is rosterless — no members, the same treatment as the root
-    // and the other section containers.
     expect(GroupMember::where('group_id', $friends->id)->count())->toBe(0);
 
     // Associated Friends is a distinct coordinating committee and stays under
