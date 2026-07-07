@@ -10,7 +10,7 @@
 return [
     'rail' => [
         'my_groups' => 'My Groups',
-        'other_groups' => 'Other Groups',
+        'other_groups' => 'Browse Groups',
         'officer' => 'Officer Tools',
 
         // Other Groups' four organization-scope container peers (ADR-0020 §C). These

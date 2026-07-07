@@ -20,7 +20,7 @@ import { filterRail, flattenRail, type FilterableRailNode, type FilterableRailZo
 // fixed table — so the tests read as display strings, not raw keys.
 const LABELS: Record<string, string> = {
     'nav.rail.my_groups': 'My Groups',
-    'nav.rail.other_groups': 'Other Groups',
+    'nav.rail.other_groups': 'Browse Groups',
     'nav.rail.peers.programs': 'Programs',
 };
 const translate = (key: string) => LABELS[key] ?? key;
@@ -65,9 +65,9 @@ test('matches surface as a flat list with an ancestor breadcrumb', () => {
 
     // A buried working group and both differently-parented "Docents" surface as flat rows.
     assert.deepEqual(results.map((r) => r.href).sort(), ['/groups/docents', '/groups/junior-docents']);
-    // Breadcrumb distinguishes the two: one under My Groups, one under Other Groups ▸ Programs.
+    // Breadcrumb distinguishes the two: one under My Groups, one under Browse Groups ▸ Programs.
     assert.deepEqual(byHref.get('/groups/docents')?.breadcrumb, ['My Groups']);
-    assert.deepEqual(byHref.get('/groups/junior-docents')?.breadcrumb, ['Other Groups', 'Programs']);
+    assert.deepEqual(byHref.get('/groups/junior-docents')?.breadcrumb, ['Browse Groups', 'Programs']);
 });
 
 test('a match buried in a collapsed branch surfaces immediately', () => {

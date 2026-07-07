@@ -19,11 +19,12 @@ it('carries no Renew key in the personal nav set — it moved to the account men
 });
 
 it('resolves the rail (Zone B) heading + container-peer keys under both locales', function () {
-    // Other Groups is the renamed browse zone (ADR-0020 §C — "All Groups" retired); its
-    // four container peers are chrome (i18n keys), distinct from the verbatim Group names
-    // nested beneath them.
-    expect(__('nav.rail.other_groups', [], 'en'))->toBe('Other Groups')
-        ->and(__('nav.rail.other_groups', [], 'fr'))->toBe('Autres groupes')
+    // Browse Groups is the renamed browse zone (ADR-0020 §C — "All Groups" retired; label
+    // finalized from the "Other Groups" working label to name the browse/discover function).
+    // The `other_groups` key is retained; only the display string changed. Its four container
+    // peers are chrome (i18n keys), distinct from the verbatim Group names nested beneath them.
+    expect(__('nav.rail.other_groups', [], 'en'))->toBe('Browse Groups')
+        ->and(__('nav.rail.other_groups', [], 'fr'))->toBe('Parcourir les groupes')
         ->and(__('nav.rail.peers.governance_operations', [], 'en'))->toBe('Governance & Operations')
         ->and(__('nav.rail.peers.programs', [], 'fr'))->toBe('Programmes')
         ->and(__('nav.rail.peers.friends', [], 'en'))->toBe('Friends')

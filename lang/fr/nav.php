@@ -8,7 +8,7 @@
 return [
     'rail' => [
         'my_groups' => 'Mes groupes',
-        'other_groups' => 'Autres groupes',
+        'other_groups' => 'Parcourir les groupes',
         'officer' => 'Outils des responsables',
 
         // Les quatre pairs conteneurs à l'échelle de l'organisation d'Autres groupes
