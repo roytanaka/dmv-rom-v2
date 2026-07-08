@@ -51,7 +51,7 @@ const hrefsIn = (zonesArg: FilterableRailZone[]): Set<string> => {
     const acc = new Set<string>();
     const walk = (nodes: FilterableRailNode[]) => {
         for (const node of nodes) {
-            acc.add(node.href);
+            if (node.href !== undefined) acc.add(node.href);
             if (node.children) walk(node.children);
         }
     };
@@ -90,6 +90,33 @@ test('Group names match verbatim; structural peer labels match on their translat
         filterRail(zones(), 'program', translate).map((r) => r.href),
         ['/groups/programs'],
     );
+});
+
+test('a container node is never a result, but its label trails matched descendants as a breadcrumb', () => {
+    // A page-less container peer (PRD #289): no href, so it can never itself surface as a
+    // flat result — yet its translated label still leads its children's breadcrumb.
+    const withContainer = (): FilterableRailZone[] => [
+        {
+            labelKey: 'nav.rail.other_groups',
+            items: [
+                {
+                    labelKey: 'nav.rail.peers.programs',
+                    children: [{ href: '/groups/junior-docents', name: 'Junior Docents' }],
+                },
+            ],
+        },
+    ];
+
+    // Matching the container's own label yields nothing — an href-less node cannot leak in.
+    assert.deepEqual(filterRail(withContainer(), 'programs', translate), []);
+
+    // A matched descendant still carries the container's label in its breadcrumb.
+    const results = filterRail(withContainer(), 'junior', translate);
+    assert.deepEqual(
+        results.map((r) => r.href),
+        ['/groups/junior-docents'],
+    );
+    assert.deepEqual(results[0].breadcrumb, ['Browse Groups', 'Programs']);
 });
 
 test('an empty or whitespace query yields no results (caller restores the nested rail)', () => {

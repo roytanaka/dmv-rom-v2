@@ -53,8 +53,12 @@ const officerItems = computed<NavNode[]>(() =>
 // and re-seeded closed on every Inertia navigation (#122). Hrefs arrive pre-localized
 // (ADR-0018); strip query strings to mirror NavRailItem's ancestor-aware matching.
 const currentPath = computed(() => page.url.split('?')[0]);
-const isWithin = (href: string) => currentPath.value === href || currentPath.value.startsWith(`${href}/`);
+const isWithin = (href?: string) => href !== undefined && (currentPath.value === href || currentPath.value.startsWith(`${href}/`));
 const containsCurrent = (node: RailNode): boolean => isWithin(node.href) || ((node.children ?? []) as RailNode[]).some(containsCurrent);
+
+// A stable v-for key: the localized href when the node has one, else its chrome label key
+// (an href-less container peer, PRD #289). Every rail node carries one or the other.
+const nodeKey = (node: RailNode) => node.href ?? ('labelKey' in node ? node.labelKey : node.name);
 const otherGroupsHasActive = computed(() => otherGroups.value.some(containsCurrent));
 
 const otherGroupsOpen = ref(otherGroupsHasActive.value);
@@ -119,7 +123,7 @@ const isActive = (href: string) => currentPath.value === href;
             <CollapsibleContent>
                 <SidebarGroupContent>
                     <SidebarMenu>
-                        <NavRailItem v-for="item in otherGroups" :key="item.href" :item="item" />
+                        <NavRailItem v-for="item in otherGroups" :key="nodeKey(item)" :item="item" />
                     </SidebarMenu>
                 </SidebarGroupContent>
             </CollapsibleContent>

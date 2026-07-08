@@ -54,16 +54,23 @@ const page = usePage<SharedData>();
 // section pages carry ?tab=… that rail hrefs never do.
 const currentPath = computed(() => page.url.split('?')[0]);
 
-// Strong active — only the deepest matching node earns this; ancestors get the softer contains-active state (#122).
-const isActive = (href: string) => currentPath.value === href;
+// Strong active — only the deepest matching node earns this; ancestors get the softer
+// contains-active state (#122). An href-less container peer is never the active page.
+const isActive = (href?: string) => href !== undefined && currentPath.value === href;
 
 // Ancestor-aware — the current page is this node or nested beneath it. A section page
 // (/groups/docents/data-sheets) lives under the Group's /groups/docents href, so the
-// Group still counts as "in context" even though no node matches the path exactly.
-const isWithin = (href: string) => currentPath.value === href || currentPath.value.startsWith(`${href}/`);
+// Group still counts as "in context" even though no node matches the path exactly. An
+// href-less node contains the current page only through its children.
+const isWithin = (href?: string) => href !== undefined && (currentPath.value === href || currentPath.value.startsWith(`${href}/`));
 
 // Group name (content) → verbatim; structural node → translated label (chrome).
 const label = (node: RailNode) => ('name' in node ? node.name : trans(node.labelKey));
+
+// A non-navigable node (a container peer, PRD #289) carries no href: it heads a grouping
+// but has no page. The row renders its label + chevron as a pure toggle — the same treatment
+// the Other Groups zone heading uses — never a link.
+const navigable = computed(() => props.item.href !== undefined);
 
 // Subcommittees nest under their parent. The server prunes the rail (ADR-0018), so
 // children arrive pre-filtered; widen to RailNode[] so `label()` resolves them the
@@ -97,31 +104,58 @@ watch(hasActiveDescendant, (active) => {
                     <component :is="item.icon" v-if="item.icon" />
                     <span>{{ label(item) }}</span>
                 </a>
-                <Link v-else :href="item.href">
+                <Link v-else-if="navigable" :href="item.href!">
                     <component :is="item.icon" v-if="item.icon" />
                     <span>{{ label(item) }}</span>
                 </Link>
+                <!-- A childless, non-navigable container peer: a bare label, no link (PRD #289). -->
+                <span v-else>
+                    <component :is="item.icon" v-if="item.icon" />
+                    <span>{{ label(item) }}</span>
+                </span>
             </SidebarMenuButton>
         </SidebarMenuItem>
 
         <!-- Parent — link to navigate + chevron to toggle children. -->
         <Collapsible v-else v-model:open="open" as-child class="group/collapsible">
             <SidebarMenuItem>
-                <SidebarMenuButton as-child size="lg" :is-active="isActive(item.href)" :class="['h-10 text-sm', { 'font-medium': containsActive }]">
-                    <Link :href="item.href">
-                        <component :is="item.icon" v-if="item.icon" />
-                        <span>{{ label(item) }}</span>
-                    </Link>
-                </SidebarMenuButton>
+                <!-- Navigable peer (Special Projects) or Group: the label links in; a
+                     separate chevron toggles children. -->
+                <template v-if="navigable">
+                    <SidebarMenuButton
+                        as-child
+                        size="lg"
+                        :is-active="isActive(item.href)"
+                        :class="['h-10 text-sm', { 'font-medium': containsActive }]"
+                    >
+                        <Link :href="item.href!">
+                            <component :is="item.icon" v-if="item.icon" />
+                            <span>{{ label(item) }}</span>
+                        </Link>
+                    </SidebarMenuButton>
 
-                <CollapsibleTrigger as-child>
-                    <!-- top-0! overrides the primitive's peer-data-[size=lg]/menu-button:top-2.5 variant;. -->
-                    <SidebarMenuAction class="top-0! aspect-auto h-10 w-8 translate-x-1">
+                    <CollapsibleTrigger as-child>
+                        <!-- top-0! overrides the primitive's peer-data-[size=lg]/menu-button:top-2.5 variant;. -->
+                        <SidebarMenuAction class="top-0! aspect-auto h-10 w-8 translate-x-1">
+                            <PhCaretDown class="transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                            <!-- #91: gives the chevron a distinct accessible label ("Toggle Docents subgroups")
+                                 so it reads differently from the sibling nav link in the same row. -->
+                            <span class="sr-only">{{ trans('nav.toggle', { group: label(item) }) }}</span>
+                        </SidebarMenuAction>
+                    </CollapsibleTrigger>
+                </template>
+
+                <!-- Non-navigable container peer (PRD #289): no page, so the WHOLE row is the
+                     toggle — label + chevron, no link — mirroring the Other Groups zone heading. -->
+                <CollapsibleTrigger v-else as-child>
+                    <SidebarMenuButton size="lg" :class="['h-10 justify-between text-sm', { 'font-medium': containsActive }]">
+                        <span class="flex items-center gap-2">
+                            <component :is="item.icon" v-if="item.icon" />
+                            <span>{{ label(item) }}</span>
+                        </span>
                         <PhCaretDown class="transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                        <!-- #91: gives the chevron a distinct accessible label ("Toggle Docents subgroups")
-                             so it reads differently from the sibling nav link in the same row. -->
                         <span class="sr-only">{{ trans('nav.toggle', { group: label(item) }) }}</span>
-                    </SidebarMenuAction>
+                    </SidebarMenuButton>
                 </CollapsibleTrigger>
 
                 <CollapsibleContent>
@@ -143,7 +177,7 @@ watch(hasActiveDescendant, (active) => {
                 :is-active="isActive(item.href)"
                 :class="['text-sm', { 'font-medium': isWithin(item.href) && !isActive(item.href) }]"
             >
-                <Link :href="item.href">
+                <Link :href="item.href!">
                     <span>{{ label(item) }}</span>
                 </Link>
             </SidebarMenuSubButton>
@@ -158,7 +192,7 @@ watch(hasActiveDescendant, (active) => {
             <SidebarMenuSubItem>
                 <div class="relative">
                     <SidebarMenuSubButton as-child :is-active="isActive(item.href)" :class="['pr-8 text-sm', { 'font-medium': containsActive }]">
-                        <Link :href="item.href">
+                        <Link :href="item.href!">
                             <span>{{ label(item) }}</span>
                         </Link>
                     </SidebarMenuSubButton>

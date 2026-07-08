@@ -64,6 +64,20 @@ class GroupFactory extends Factory
     }
 
     /**
+     * A container section — an org-scope grouping that heads the Other Groups zone
+     * (PRD #289): no page, no roster, no capabilities, pure scaffolding that explodes
+     * to the members-facing Groups beneath it. Modelled as {@see Kind::Container}, the
+     * stored marker the rail, launcher and page-gate read from.
+     */
+    public function container(): static
+    {
+        return $this->state(fn () => [
+            'kind' => Kind::Container,
+            'scope' => Scope::Organization,
+        ]);
+    }
+
+    /**
      * A program — the member-facing operating unit that runs scheduling, content,
      * and stats.
      */

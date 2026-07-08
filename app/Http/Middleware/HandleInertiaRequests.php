@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Kind;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Http\Controllers\ImpersonationController;
@@ -557,9 +558,15 @@ class HandleInertiaRequests extends Middleware
      * A container-peer rail node (ADR-0020 §C): one of the organization-scope containers
      * that head Other Groups. Its label is CHROME — a translation key ({@see peerLabelKey}),
      * not the Group name — because a peer is structural scaffolding, not a member content
-     * Group; the Groups nested beneath it render their names verbatim as usual. It keeps a
-     * localized href (the container has a real page) and its logo key for the launcher, and
-     * carries its visible children (which explode one level via {@see railNode}).
+     * Group; the Groups nested beneath it render their names verbatim as usual. It keeps
+     * its logo key for the launcher and carries its visible children (which explode one
+     * level via {@see railNode}).
+     *
+     * A {@see Kind::Container} peer is emitted WITHOUT an `href` (PRD #289): it has no page,
+     * so it is a breadcrumb-only grouping — the rail renders it as a label + chevron, never a
+     * link. A peer that is a real Group (Special Projects) keeps its localized href and
+     * navigates normally. Container-ness is read from the stored `Kind`, never guessed from
+     * a slug list.
      *
      * @param  Collection<int, Collection<int, Group>>  $byParent
      * @return array<string, mixed>
@@ -568,9 +575,12 @@ class HandleInertiaRequests extends Middleware
     {
         $node = [
             'labelKey' => $this->peerLabelKey($group),
-            'href' => $this->groupHref($group),
             'logo' => $group->logo_key?->value,
         ];
+
+        if ($group->kind !== Kind::Container) {
+            $node['href'] = $this->groupHref($group);
+        }
 
         if ($children = $this->builtChildren($group, $byParent)) {
             $node['children'] = $children;
