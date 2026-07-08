@@ -810,7 +810,7 @@ class DemoSeeder extends Seeder
                     $this->program('DMV Hands-on Tours', [
                         $this->workingGroup('Social', 'hands-on-tours-social'),
                         $this->workingGroup('Training', 'hands-on-tours-training'),
-                        $this->workingGroup('Vetting'),
+                        $this->workingGroup('Vetting', visibility: ListingVisibility::Public),
                     ], GroupLogo::DmvHandsOnTours),
                     $this->program('Gallery Interpreters', [
                         // A Private subgroup nested in a Program — the strictest
@@ -820,14 +820,14 @@ class DemoSeeder extends Seeder
                     // ROMForYou deliberately ships no mark — the visible generic
                     // fallback the launcher exercises on a top-level program (#257).
                     $this->program('ROMForYou', [
-                        $this->workingGroup('Content Development'),
+                        $this->workingGroup('Content Development', visibility: ListingVisibility::Public),
                         $this->workingGroup('Team Leads — adult presentations'),
                         $this->workingGroup('Outreach'),
                         $this->workingGroup('Adapted Presentations'),
                     ]),
                     $this->program('Visitor Guides', [], GroupLogo::VisitorGuides),
                     $this->program('Visitor Wayfinders', [
-                        $this->workingGroup('Documentation'),
+                        $this->workingGroup('Documentation', visibility: ListingVisibility::Public),
                         $this->workingGroup('Shadow Shift & Vetting Volunteers'),
                         $this->workingGroup('Social Committee'),
                         $this->cohort('OSIRIS REX VOLUNTEERS', stale: true),
@@ -839,21 +839,21 @@ class DemoSeeder extends Seeder
                     // two differing listings (see class docblock).
                     $this->program('ROMWalks', [
                         $this->workingGroup('Brochure Committee'),
-                        $this->workingGroup('Education'),
+                        $this->workingGroup('Education', visibility: ListingVisibility::Public),
                         $this->workingGroup('PR Committee'),
                         $this->workingGroup('Script Vetting'),
-                        $this->workingGroup('Statistical'),
+                        $this->workingGroup('Statistical', visibility: ListingVisibility::Public),
                         $this->workingGroup('Training', 'romwalks-training'),
                         $this->workingGroup('Walker Vetting'),
                     ], GroupLogo::Romwalks),
                     $this->program('Reception', [
-                        $this->workingGroup('Library'),
+                        $this->workingGroup('Library', visibility: ListingVisibility::Public),
                     ], GroupLogo::Reception),
                     $this->program('ROMBus', [], GroupLogo::Rombus),
                     $this->program('ROMTravel', [
                         $this->workingGroup('Admin Committee'),
                         $this->workingGroup('Feasibility Committee'),
-                        $this->workingGroup('Support Roles'),
+                        $this->workingGroup('Support Roles', visibility: ListingVisibility::Public),
                     ], GroupLogo::Romtravel),
                 ]),
                 // Special Projects — a real coordinating Group (not a container):
@@ -879,7 +879,7 @@ class DemoSeeder extends Seeder
                     $this->sc('Friends of Global South Asia (FSA)', logo: GroupLogo::FriendsOfGlobalSouthAsiaFsa),
                     $this->sc('Friends of Textiles & Costume', [
                         $this->workingGroup('Adopt-a-Journal'),
-                        $this->workingGroup('Donor Friends'),
+                        $this->workingGroup('Donor Friends', visibility: ListingVisibility::Public),
                         $this->workingGroup('Education SubCommittee'),
                         $this->workingGroup('Newsletter SubCommittee'),
                         $this->workingGroup('Programs & Events'),
