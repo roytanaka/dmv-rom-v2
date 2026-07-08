@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
@@ -41,6 +42,15 @@ class GroupController extends Controller
     public function show(Request $request, Group $group, ?string $section = null): Response
     {
         $section ??= 'overview';
+
+        // Container page-gate (#293, PRD #289): a Kind::Container Group is a structural
+        // section peer, not a destination — no page exists. Unconditional 404 for every
+        // viewer, super-tier included: unlike the Private gate below (a confidentiality
+        // boundary that exempts members and the super-tier), this is a fact, not an
+        // access decision. 404 (not 403) so the navigation and the addressable pages agree.
+        if ($group->kind === Kind::Container) {
+            abort(404);
+        }
 
         // Resolve the viewer's memberships and roles once, in memory: both the
         // GroupPolicy (canActAs, for the `can` hint) and the MeetingPolicy (for

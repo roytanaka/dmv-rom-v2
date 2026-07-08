@@ -241,3 +241,42 @@ it('renders a Group-visibility Group to any logged-in Member', function () {
         ->get(route('groups.show', $group))
         ->assertOk();
 });
+
+/*
+ * Container page-gate (#293, PRD #289). A Kind::Container Group has no page — it is a
+ * structural section peer, not a destination. The gate is unconditional: 404 for every
+ * viewer including the super-tier, because "no page exists" is a fact, not an access
+ * decision (contrast the Private gate, which exempts members and the super-tier). 404
+ * (not 403) so the navigation and the addressable pages agree. Special Projects — a
+ * real Group despite heading a section — renders its Overview normally.
+ */
+
+it('404s a Kind::Container Group for an ordinary Member', function () {
+    $group = Group::factory()->container()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertNotFound();
+});
+
+it('404s a Kind::Container Group for the super-tier — unconditional, no exemption', function () {
+    $group = Group::factory()->container()->create();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', $group))
+        ->assertNotFound();
+});
+
+it('renders special-projects — a real Group heading a section — like any Group', function () {
+    $group = Group::factory()->standingCommittee()->create([
+        'slug' => 'special-projects',
+        'name' => 'Special Projects',
+    ]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('groups/Show')
+            ->where('group.name', 'Special Projects'));
+});
