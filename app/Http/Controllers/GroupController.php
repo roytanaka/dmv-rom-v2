@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
@@ -47,6 +48,15 @@ class GroupController extends Controller
         // the members-only meetings gate below) traverse them, and strict mode
         // forbids the lazy load in either case.
         $request->user()->loadMissing('memberships.roles');
+
+        // Container page-gate (#293, PRD #289): a Kind::Container Group is a structural
+        // section peer, not a destination — no page exists. Unconditional 404 for every
+        // viewer, super-tier included: unlike the Private gate below (a confidentiality
+        // boundary that exempts members and the super-tier), this is a fact, not an
+        // access decision. 404 (not 403) so the navigation and the addressable pages agree.
+        if ($group->kind === Kind::Container) {
+            abort(404);
+        }
 
         // Private page-gate (#270, ADR-0019): keeps a Private Group's existence hidden.
         // 404 (not 403) so the boundary never confirms the Group exists. Parentage
