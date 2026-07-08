@@ -387,6 +387,9 @@ class HandleInertiaRequests extends Middleware
             ->filter(fn (Group $child) => $child->listing_visibility === ListingVisibility::Group
                 || in_array($child->id, $belongedIds, true))
             ->map(fn (Group $child) => $this->nodeAttributes($child))
+            // Re-index after the filter: gaps in the keys would serialize `children` as a
+            // JSON object, not an array, and the client rail expects an array.
+            ->values()
             ->all();
 
         if (! empty($children)) {
