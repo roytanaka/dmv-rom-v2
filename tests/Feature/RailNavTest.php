@@ -181,6 +181,31 @@ it('nests a belonged Group\'s entitled children one level beneath it in My Group
             ->count('rail.myGroups.items', 2));
 });
 
+it('re-indexes nested My Groups children so a leading filtered-out child leaves a real array', function () {
+    // Regression: the children of a belonged Group are filtered (only Group-visibility or
+    // belonged children nest). When the FIRST child in display order is filtered out, the
+    // surviving children must still be re-indexed from 0 — otherwise the gap keys serialize
+    // `children` as a JSON object, not an array, and the client rail throws on `.some`.
+    $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
+    $docents = Group::factory()->program()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
+    // First child (display_order 0) is Public and NOT belonged → filtered out of the nesting.
+    Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-open-house', 'name' => 'Open House', 'display_order' => 0]);
+    // Second child is Group-visibility → nests for the parent-member Docents.
+    Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'docents-training', 'name' => 'Training', 'display_order' => 1]);
+
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.myGroups.items.1.groupId', 'docents')
+            // The surviving child sits at index 0 (a real list), not key 1 (a gap → object).
+            ->where('rail.myGroups.items.1.children.0.groupId', 'docents-training')
+            ->count('rail.myGroups.items.1.children', 1));
+});
+
 it('surfaces a belonged sub-team at the My Groups top level when its parent Group is not belonged', function () {
     seedMyGroupsNesting();
 

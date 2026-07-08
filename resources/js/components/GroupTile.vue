@@ -10,22 +10,19 @@
 // Group's as-authored NAME (content — rendered verbatim in both locales, never
 // translated; ADR-0004) and supplies the link's accessible name, so the mark itself is
 // decorative (empty alt) to avoid a screen reader announcing the Group twice.
-import type { GroupNode, PeerNode } from '@/chrome/types';
+import type { GroupNode } from '@/chrome/types';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import { logoSrc } from '@/groups/logos';
 import { Link } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
-// A tile is either a content Group ({@link GroupNode} — verbatim `name`, ADR-0004) or an
-// Other-Groups container peer ({@link PeerNode} — chrome `labelKey`, ADR-0020 §C). `label`
-// branches on which kind so a Group name never enters the translation lookup.
-const props = withDefaults(defineProps<{ item: GroupNode | PeerNode; localized?: boolean }>(), { localized: false });
+// A tile is a content Group ({@link GroupNode}) — its verbatim `name` (ADR-0004) supplies
+// both the label and the link's accessible name.
+const props = withDefaults(defineProps<{ item: GroupNode; localized?: boolean }>(), { localized: false });
 
 // Tile hrefs are English-canonical in the fixture; localise to the active locale so
 // launching a Group stays in-locale (ADR-0008). Server-built grids (PRD #209, My
 // Groups) arrive pre-localized, so they pass `localized` to skip the client step.
-// Container peers (Kind::Container, PRD #289) have no `href`; href stays undefined.
 const localizeHref = useLocalizedHref();
 const href = computed<string | undefined>(() => {
     const raw = props.item.href;
@@ -36,13 +33,13 @@ const href = computed<string | undefined>(() => {
 // The Group's own logo, or the generic fallback when its key is null/unknown.
 const src = computed(() => logoSrc(props.item.logo));
 
-// Group name (content) → verbatim; container peer → translated chrome label.
-const label = computed(() => ('name' in props.item ? props.item.name : trans(props.item.labelKey)));
+// The Group's as-authored name (content) — rendered verbatim, never translated.
+const label = computed(() => props.item.name);
 </script>
 
 <template>
-    <!-- href present → Inertia <Link>; container peer (no href) → plain non-navigable div.
-         Same chrome either way: the mark square and the label read identically. -->
+    <!-- A Group tile navigates into its Group; the div fallback is defensive for a node
+         that somehow lacks an href. Same chrome either way. -->
     <component :is="href ? Link : 'div'" :href="href" class="group text-rom-ink flex flex-col items-center gap-1.5 text-center">
         <span
             class="group-hover:bg-rom-slate-100 group-focus-visible:ring-rom-slate-300 flex aspect-square w-full items-center justify-center rounded-none p-1 transition-colors group-focus-visible:ring-2 group-focus-visible:outline-none"
