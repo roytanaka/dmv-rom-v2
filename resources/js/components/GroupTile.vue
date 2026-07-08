@@ -22,6 +22,11 @@ import { computed } from 'vue';
 // branches on which kind so a Group name never enters the translation lookup.
 const props = withDefaults(defineProps<{ item: GroupNode | PeerNode; localized?: boolean }>(), { localized: false });
 
+// A container peer (Kind::Container, PRD #289) omits `href` — it is a label, not a
+// destination — so its tile is non-navigable (no <Link>), mirroring its rail row.
+// A real Group (and Special Projects, a real Group peer) keeps its href and navigates.
+const navigable = computed(() => props.item.href !== undefined);
+
 // Tile hrefs are English-canonical in the fixture; localise to the active locale so
 // launching a Group stays in-locale (ADR-0008). Server-built grids (PRD #209, My
 // Groups) arrive pre-localized, so they pass `localized` to skip the client step.
@@ -36,12 +41,18 @@ const label = computed(() => ('name' in props.item ? props.item.name : trans(pro
 </script>
 
 <template>
-    <Link :href="href" class="group text-rom-ink flex flex-col items-center gap-1.5 text-center">
+    <!-- Navigable Group → an Inertia <Link>; container peer (no href) → a plain, non-navigable
+         tile. Same chrome either way: the mark square and the label read identically. -->
+    <component
+        :is="navigable ? Link : 'div'"
+        :href="navigable ? href : undefined"
+        class="group text-rom-ink flex flex-col items-center gap-1.5 text-center"
+    >
         <span
             class="group-hover:bg-rom-slate-100 group-focus-visible:ring-rom-slate-300 flex aspect-square w-full items-center justify-center rounded-none p-1 transition-colors group-focus-visible:ring-2 group-focus-visible:outline-none"
         >
             <img :src="src" alt="" class="object-contain" />
         </span>
         <span class="text-sm leading-tight font-medium">{{ label }}</span>
-    </Link>
+    </component>
 </template>

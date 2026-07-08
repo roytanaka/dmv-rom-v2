@@ -40,6 +40,10 @@ const grids = computed<LauncherGridView[]>(() => {
 
     return out;
 });
+
+// Stable v-for key: href when the tile has one, else labelKey (container peers omit
+// href, PRD #289) or name — mirroring NavRail's nodeKey so keys never collide on undefined.
+const tileKey = (item: GroupNode | PeerNode) => item.href ?? ('name' in item ? item.name : item.labelKey);
 </script>
 
 <template>
@@ -50,7 +54,7 @@ const grids = computed<LauncherGridView[]>(() => {
             <section v-for="grid in grids" :key="grid.labelKey">
                 <h2 class="text-rom-ink mb-3 text-sm font-semibold tracking-wide uppercase">{{ trans(grid.labelKey) }}</h2>
                 <div class="grid grid-cols-4 gap-3 sm:grid-cols-5 sm:gap-4 lg:grid-cols-6 xl:grid-cols-8">
-                    <GroupTile v-for="item in grid.items" :key="item.href" :item="item" :localized="grid.localized" />
+                    <GroupTile v-for="item in grid.items" :key="tileKey(item)" :item="item" :localized="grid.localized" />
                 </div>
             </section>
         </div>
