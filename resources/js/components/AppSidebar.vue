@@ -33,7 +33,7 @@ const query = ref('');
                     type="search"
                     :placeholder="trans('nav.filter.placeholder')"
                     :aria-label="trans('nav.filter.aria')"
-                    class="bg-rom-ink border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/70 h-9 rounded-md pl-8"
+                    class="search-clear-white bg-rom-ink border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/70 h-9 rounded-md pl-8"
                 />
             </div>
         </SidebarHeader>
@@ -43,3 +43,20 @@ const query = ref('');
     </Sidebar>
     <slot />
 </template>
+
+<style scoped>
+/* WebKit's native search clear button renders in the OS accent colour (blue on macOS),
+   which clashes with the dark rail. We can't recolour the native glyph, so drop it
+   (appearance:none) and paint our own white X via a mask on the same pseudo-element.
+   The class rides down onto the <input> two components deep, so :deep() is required. */
+:deep(.search-clear-white)::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 0.8rem;
+    height: 0.8rem;
+    cursor: pointer;
+    background-color: #fff;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+</style>
