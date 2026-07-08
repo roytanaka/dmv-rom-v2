@@ -440,10 +440,19 @@ class HandleInertiaRequests extends Middleware
      */
     private function otherGroups(Member $member): ?array
     {
-        $active = $this->pruneListingVisibility($member, Group::active()->get());
-        $active = $this->pruneOwnGroups($member, $active);
-        $byParent = $active->groupBy(fn (Group $group) => $group->parent_id);
-        $roots = $active->whereNull('parent_id');
+        $visible = $this->pruneListingVisibility($member, Group::active()->get());
+
+        // Roots are identified from the listing-pruned set, BEFORE the own-Groups prune. The
+        // root is dropped as a node regardless (only its children become the container peers),
+        // but a Member with a stored root-DMV membership row would otherwise have the root
+        // pruned out from under the traversal — orphaning every peer and hiding Other Groups
+        // whole. Root-DMV membership is meant to be derived from `Category`, not stored
+        // (ADR-0020 §B; myGroups() rejects the ROOT_SLUG row and re-adds the derived node the
+        // same way), but seed/legacy rows exist, so the builder must not depend on the root
+        // surviving the own-Groups prune. The prune still shapes the browsable subtree below.
+        $roots = $visible->whereNull('parent_id');
+        $browse = $this->pruneOwnGroups($member, $visible);
+        $byParent = $browse->groupBy(fn (Group $group) => $group->parent_id);
 
         // The org root(s) are dropped; their children become the container peers.
         $items = $this->sortNodes($roots)
@@ -505,18 +514,17 @@ class HandleInertiaRequests extends Middleware
      * Removing a belonged Group from the flat set before the tree is rebuilt takes its whole
      * subtree out of Other Groups with it; ADR-0020 §F re-homes those children under the
      * parent in My Groups. Container peers carry no roster, so no membership ever names one —
-     * they always survive. Super-tier oversight browses the whole org, so it short-circuits
-     * before the prune, exactly as listing-visibility does.
+     * they always survive. This prune applies to super-tier too: it is a PARTITION concern
+     * (a belonged Group already sits in My Groups, so it must not also appear in Other Groups),
+     * distinct from the visibility concern that {@see pruneListingVisibility()} short-circuits.
+     * Super-tier oversight of Groups it does NOT belong to is unaffected — those all survive
+     * the visibility prune and remain browsable; only its own belonged Groups move to My Groups.
      *
      * @param  Collection<int, Group>  $active
      * @return Collection<int, Group>
      */
     private function pruneOwnGroups(Member $member, Collection $active): Collection
     {
-        if ($member->isAllDmv()) {
-            return $active;
-        }
-
         $memberGroupIds = $this->participatingGroupIds($member);
 
         return $active

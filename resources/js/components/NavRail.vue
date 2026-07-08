@@ -81,7 +81,12 @@ const isActive = (href: string) => currentPath.value === href;
                 <SidebarMenuButton as-child size="lg" :is-active="isActive(result.href)" class="h-auto flex-col items-start gap-0.5 py-2 text-sm">
                     <Link :href="result.href">
                         <span>{{ result.label }}</span>
-                        <span v-if="result.breadcrumb.length" class="text-sidebar-muted text-xs">{{ result.breadcrumb.join(' › ') }}</span>
+                        <!-- Override the button variant's [&>span:last-child]:truncate: the breadcrumb's
+                             tail (the immediate parent) is its most identifying crumb, so wrap instead
+                             of clipping it. whitespace-normal! beats the variant's whitespace-nowrap. -->
+                        <span v-if="result.breadcrumb.length" class="text-sidebar-muted text-xs break-words whitespace-normal!">{{
+                            result.breadcrumb.join(' › ')
+                        }}</span>
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>

@@ -164,11 +164,17 @@ watch(hasActiveDescendant, (active) => {
                     </SidebarMenuSubButton>
 
                     <CollapsibleTrigger as-child>
+                        <!-- Rotate the caret off THIS trigger's own `data-state` (radix as-child forwards it
+                             onto the button), via a direct-child selector — NOT a shared `group/collapsible`.
+                             That group name is also on the depth-0 peer <li> above, and a group-data variant
+                             matches ANY ancestor in the open state, so an open peer would rotate every closed
+                             sub-row caret beneath it. `[&[data-state=open]>svg]` is scoped to this button and
+                             its own caret alone, so each row reflects only its own open/closed state. -->
                         <button
                             type="button"
-                            class="text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground absolute top-1 right-1 flex aspect-square w-5 items-center justify-center rounded-md outline-hidden focus-visible:ring-2"
+                            class="text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground absolute top-1 right-1 flex aspect-square w-5 items-center justify-center rounded-md outline-hidden focus-visible:ring-2 [&[data-state=open]>svg]:rotate-180"
                         >
-                            <PhCaretDown class="size-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                            <PhCaretDown class="size-4 transition-transform" />
                             <span class="sr-only">{{ trans('nav.toggle', { group: label(item) }) }}</span>
                         </button>
                     </CollapsibleTrigger>

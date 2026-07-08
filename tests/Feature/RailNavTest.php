@@ -360,6 +360,28 @@ it('reshapes the active tree into four container peers — Governance & Operatio
             ->count('rail.otherGroups.items', 4));
 });
 
+it('still shows the four peers to a Member holding a stored root-DMV membership row', function () {
+    seedFourPeerTree();
+
+    // Regression (Other Groups vanished for non-super Members): root-DMV membership is meant
+    // to be derived from Category, not stored (ADR-0020 §B), but seed/legacy rows exist. The
+    // own-Groups prune removes such a row's root, and the builder must not lose the peers with
+    // it — the root is dropped as a node regardless; only its children become the peers.
+    $root = Group::where('slug', 'dmv')->firstOrFail();
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $root->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.otherGroups.items.0.labelKey', 'nav.rail.peers.governance_operations')
+            ->where('rail.otherGroups.items.1.labelKey', 'nav.rail.peers.programs')
+            ->where('rail.otherGroups.items.2.labelKey', 'nav.rail.peers.special_projects')
+            ->where('rail.otherGroups.items.3.labelKey', 'nav.rail.peers.friends')
+            ->count('rail.otherGroups.items', 4));
+});
+
 it('never shows archived or stale Groups in Other Groups', function () {
     $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
     $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 0]);
@@ -654,8 +676,9 @@ it('prunes a Private Group from Other Groups — the launcher grid reads this sa
  * listing_visibility prune, a Group the Member belongs to (Full / LOA) is dropped from
  * Other Groups (it lives in My Groups); a visible Group they don't belong to stays there.
  * Container peers carry no roster, so they always remain — only the roster-bearing Groups
- * beneath them vanish. Departed standings prune nothing; super-tier oversight browses the
- * whole org regardless. Asserted at the shared `rail` prop the Dashboard launcher reads too.
+ * beneath them vanish. Departed standings prune nothing. The prune is a partition concern, so
+ * it applies to super-tier too — a belonged Group moves to My Groups without blinding oversight
+ * of the Groups it does not belong to. Asserted at the shared `rail` prop the launcher reads too.
  */
 
 it('drops a belonged leaf Group from Other Groups — it lives in My Groups instead', function () {
@@ -743,7 +766,7 @@ it('leaves a Group in Other Groups when the Member only ever departed it', funct
             ->count('rail.myGroups.items', 1));
 });
 
-it('still shows a belonged Group in Other Groups to a super-tier viewer (oversight not blinded)', function () {
+it('partitions a super-tier viewer too: a belonged Group leaves Other Groups for My Groups', function () {
     seedFourPeerTree();
 
     $member = Member::factory()->superTier()->create();
@@ -754,11 +777,14 @@ it('still shows a belonged Group in Other Groups to a super-tier viewer (oversig
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            // The own-Groups prune short-circuits for super-tier: Awards stays in Other
-            // Groups alongside its sibling, so oversight still sees the whole org.
-            ->where('rail.otherGroups.items.0.children.0.groupId', 'awards')
-            ->where('rail.otherGroups.items.0.children.1.groupId', 'communications')
-            ->count('rail.otherGroups.items.0.children', 2));
+            // The own-Groups prune is a partition concern, so it applies to super-tier as well:
+            // Awards (belonged) drops out of Other Groups, leaving only its sibling...
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'communications')
+            ->count('rail.otherGroups.items.0.children', 1)
+            // ...and lands in My Groups instead, after the leading DMV org node. Oversight of
+            // Groups it does NOT belong to is untouched — Communications and every other peer
+            // stay browsable; only the duplicate is removed.
+            ->where('rail.myGroups.items.1.groupId', 'awards'));
 });
 
 it('prunes a belonged Group from the shared rail prop the launcher grid also reads', function () {
