@@ -7,6 +7,7 @@ use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
+use App\Enums\Scope;
 use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
@@ -100,7 +101,7 @@ it('groups the five Friends-of committees under a rosterless Friends container p
     $friends = Group::where('slug', 'friends')->with('children')->firstOrFail();
 
     expect($friends->parent_id)->toBe($root->id)
-        ->and($friends->kind)->toBe(Kind::StandingCommittee);
+        ->and($friends->kind)->toBe(Kind::Container);
 
     $expected = [
         'bishop-white-fea',
@@ -119,6 +120,38 @@ it('groups the five Friends-of committees under a rosterless Friends container p
     // Governance & Operations — it is not the container and is not re-parented.
     $associated = Group::where('slug', 'associated-friends')->firstOrFail();
     expect($associated->parent->slug)->toBe(DemoSeeder::COMMITTEE);
+});
+
+it('tags the three org-level section peers as containers with zero members', function () {
+    // The container marker (PRD #289, #292): pure scaffolding, no roster, no
+    // leadership — clicking one shows the Groups it organizes, not people.
+    foreach (['governance-operations', 'programs', 'friends'] as $slug) {
+        $container = Group::where('slug', $slug)->firstOrFail();
+
+        expect($container->kind)->toBe(Kind::Container)
+            ->and($container->scope)->toBe(Scope::Organization)
+            ->and($container->description)->toBeNull()
+            ->and($container->has_meetings)->toBeFalse()
+            ->and($container->has_documents)->toBeFalse()
+            ->and($container->has_scheduling)->toBeFalse()
+            ->and(GroupMember::where('group_id', $container->id)->count())->toBe(0)
+            ->and(GroupMemberRole::whereRelation('groupMember', 'group_id', $container->id)->count())->toBe(0);
+    }
+});
+
+it('keeps special-projects a real Group with a roster and leadership', function () {
+    // special-projects is promoted out of the structural set (PRD #289, #292): it
+    // stays a standing committee with a page, members, and a Chair + Secretary.
+    $specialProjects = Group::where('slug', 'special-projects')->firstOrFail();
+
+    expect($specialProjects->kind)->toBe(Kind::StandingCommittee)
+        ->and(GroupMember::where('group_id', $specialProjects->id)->count())->toBeGreaterThan(0);
+
+    $officerRoles = GroupMemberRole::whereRelation('groupMember', 'group_id', $specialProjects->id)
+        ->pluck('role');
+
+    expect($officerRoles)->toContain(Role::Chair)
+        ->and($officerRoles)->toContain(Role::Secretary);
 });
 
 it('hand-assigns curated logo keys per node, leaving groups without a mark on the fallback', function () {

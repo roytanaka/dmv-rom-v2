@@ -37,6 +37,9 @@ enum GroupBanner: string
             Kind::WorkingGroup => self::Crystal,
             Kind::Project => self::StainedGlass,
             Kind::Cohort => self::Mural,
+            // A container has no page and so never renders a banner; it takes the
+            // one otherwise-unused banner so every Kind keeps a distinct default.
+            Kind::Container => self::Totem,
         };
     }
 }

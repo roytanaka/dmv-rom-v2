@@ -274,11 +274,23 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * The nodes that are structural containers, not real Groups anyone belongs to:
-     * the root and the four org-level sections ({@see tree()}). They get no roster
-     * and no leadership — clicking one shows the sub-Groups it organises, not people.
+     * The slugs that get no roster and no leadership: the org root (its own bespoke
+     * handling — root enrolment is everyone, surfaced separately) and the
+     * {@see Kind::Container} section peers, which are pure scaffolding nobody belongs
+     * to — clicking one shows the sub-Groups it organises, not people. Derived from
+     * `Kind::Container` (PRD #289), not a hand-listed slug set, so a new container is
+     * skipped automatically. `special-projects`, now a real Group, is deliberately
+     * absent — it gets a roster and leadership like any coordinating committee.
+     *
+     * @return list<string>
      */
-    private const STRUCTURAL_SLUGS = [self::ROOT, 'governance-operations', 'programs', 'special-projects', 'friends'];
+    private function structuralSlugs(): array
+    {
+        return array_merge(
+            [self::ROOT],
+            Group::where('kind', Kind::Container)->pluck('slug')->all(),
+        );
+    }
 
     /**
      * Populate every real Group with a believable roster, transcribed in shape (not
@@ -444,7 +456,7 @@ class DemoSeeder extends Seeder
     private function populateCommittees(array $pool): void
     {
         $committees = Group::where('kind', Kind::StandingCommittee)
-            ->whereNotIn('slug', self::STRUCTURAL_SLUGS)
+            ->whereNotIn('slug', $this->structuralSlugs())
             ->orderBy('id')
             ->get();
 
@@ -502,7 +514,7 @@ class DemoSeeder extends Seeder
      */
     private function ensureLeadership(array $pool): void
     {
-        $groups = Group::whereNotIn('slug', self::STRUCTURAL_SLUGS)->orderBy('id')->get();
+        $groups = Group::whereNotIn('slug', $this->structuralSlugs())->orderBy('id')->get();
 
         foreach ($groups as $group) {
             $this->topUp($group, $pool, 3);
@@ -766,8 +778,9 @@ class DemoSeeder extends Seeder
             'kind' => Kind::StandingCommittee,
             'description' => 'The DMV at large — the root of the org tree.',
             'children' => [
-                // Governance & Operations — the org-level standing committees.
-                $this->sc('Governance & Operations', [
+                // Governance & Operations — a container section grouping the
+                // org-level standing committees; not itself a Group (PRD #289).
+                $this->container('Governance & Operations', [
                     $this->sc('Associated Friends'),
                     $this->sc('Awards'),
                     $this->sc("Chairs' Corner"),
@@ -784,9 +797,9 @@ class DemoSeeder extends Seeder
                     $this->sc('Social'),
                     $this->sc('System Services'),
                 ]),
-                // Programs — the member-facing operating units, with their
-                // working groups and exhibition cohorts.
-                $this->sc('Programs', [
+                // Programs — a container section grouping the member-facing
+                // operating units, with their working groups and exhibition cohorts.
+                $this->container('Programs', [
                     $this->program('Docents', [
                         $this->cohort('Pompeii', archived: true),
                         $this->cohort('Ultimate Dinosaurs', archived: true),
@@ -843,7 +856,9 @@ class DemoSeeder extends Seeder
                         $this->workingGroup('Support Roles'),
                     ], GroupLogo::Romtravel),
                 ]),
-                // Special Projects — the cross-program project node.
+                // Special Projects — a real coordinating Group (not a container):
+                // it has a page, a roster and leadership like any standing committee,
+                // and organizes the cross-program projects beneath it (PRD #289).
                 $this->sc('Special Projects', [
                     $this->project('Auschwitz: Exhibition/ Tours'),
                     $this->project('Burton Lim Fieldnotes'),
@@ -854,11 +869,12 @@ class DemoSeeder extends Seeder
                     $this->project('ROM eBird Records'),
                     $this->project('Transcribe interview tapes'),
                 ]),
-                // Friends — structural peer of Governance & Operations / Programs /
-                // Special Projects. Not a naming heuristic: Bishop White (FEA) doesn't
-                // begin with "Friends of". Associated Friends stays under Governance &
-                // Operations — it is a distinct coordinating committee, not this container.
-                $this->sc('Friends', [
+                // Friends — a container section, structural peer of Governance &
+                // Operations / Programs / Special Projects. Not a naming heuristic:
+                // Bishop White (FEA) doesn't begin with "Friends of". Associated
+                // Friends stays under Governance & Operations — it is a distinct
+                // coordinating committee, not this container.
+                $this->container('Friends', [
                     $this->sc('Bishop White (FEA)', logo: GroupLogo::BishopWhiteFea),
                     $this->sc('Friends of Global South Asia (FSA)', logo: GroupLogo::FriendsOfGlobalSouthAsiaFsa),
                     $this->sc('Friends of Textiles & Costume', [
@@ -878,13 +894,29 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * A standing-committee node (also used for the org-level container sections).
-     * `capabilities` overrides specific Kind-derived flags for the rare node whose
-     * capability profile differs (e.g. Communications turning on announcements so
-     * the news-editor Persona's `post-news` gate is satisfiable).
+     * A container section node (PRD #289): an organization-scope grouping that
+     * has no page, no roster and no capabilities — pure scaffolding that explodes
+     * to the members-facing Groups beneath it. Modelled as {@see Kind::Container},
+     * the stored, queryable marker the page-gate, rail and launcher slices read
+     * from (retiring the demo-only {@see structuralSlugs()} guessing).
+     *
+     * @param  array<int, array<string, mixed>>  $children
+     * @return array<string, mixed>
+     */
+    private function container(string $name, array $children = []): array
+    {
+        return ['name' => $name, 'kind' => Kind::Container, 'children' => $children];
+    }
+
+    /**
+     * A standing-committee node — a real coordinating Group (the org-level section
+     * containers are separate, see {@see container()}). `capabilities` overrides
+     * specific Kind-derived flags for the rare node whose capability profile differs
+     * (e.g. Communications turning on announcements so the news-editor Persona's
+     * `post-news` gate is satisfiable).
      *
      * `logo` gives a Friends-of committee its own identity mark on the launcher
-     * (PRD #253); the org-level section containers stay null and fall back.
+     * (PRD #253); most standing committees stay null and fall back.
      * `visibility` overrides the Kind-derived default ({@see defaultVisibilityFor});
      * standing committees are Public by default, so it is rarely passed here.
      *
@@ -994,7 +1026,8 @@ class DemoSeeder extends Seeder
         $attributes = [
             'parent_id' => $parentId,
             'name' => $node['name'],
-            'description' => $node['description'] ?? $this->aboutFor($node),
+            // A container has no page, so no auto-generated About blurb (PRD #289).
+            'description' => $node['description'] ?? ($kind === Kind::Container ? null : $this->aboutFor($node)),
             'kind' => $kind,
             'scope' => $this->scopeFor($kind),
             // Listing visibility (PRD #268, ADR-0019). The recruiting/scaffold nodes
@@ -1062,6 +1095,9 @@ class DemoSeeder extends Seeder
             Kind::WorkingGroup => "{$name} is a working group within the DMV, supporting the day-to-day work of its program.",
             Kind::Project => "{$name} is a time-limited special project staffed by DMV volunteers.",
             Kind::Cohort => "{$name} was a trained docent cohort supporting a past ROM exhibition.",
+            // A container has no page and so no About blurb; {@see attributesFor}
+            // gives it a null description. This arm only keeps the match exhaustive.
+            Kind::Container => '',
         };
 
         $mission = [
@@ -1093,7 +1129,7 @@ class DemoSeeder extends Seeder
     private function scopeFor(Kind $kind): Scope
     {
         return match ($kind) {
-            Kind::StandingCommittee => Scope::Organization,
+            Kind::StandingCommittee, Kind::Container => Scope::Organization,
             Kind::Program, Kind::Cohort => Scope::Program,
             Kind::WorkingGroup, Kind::Project => Scope::Subteam,
         };
@@ -1142,6 +1178,8 @@ class DemoSeeder extends Seeder
             Kind::WorkingGroup => ['has_meetings' => true] + $off,
             Kind::Project => ['has_documents' => true] + $off,
             Kind::Cohort => ['has_scheduling' => true] + $off,
+            // A container is pure scaffolding — every capability stays off.
+            Kind::Container => $off,
         };
     }
 

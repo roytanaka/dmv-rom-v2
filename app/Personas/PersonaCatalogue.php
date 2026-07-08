@@ -26,8 +26,6 @@ use Database\Seeders\DemoSeeder;
 final class PersonaCatalogue
 {
     // Group slugs the placements target — kept in step with the curated tree.
-    private const COMMITTEE = 'governance-operations';
-
     private const EXECUTIVE = 'executive';
 
     private const COMMUNICATIONS = 'communications';
@@ -103,12 +101,15 @@ final class PersonaCatalogue
                 new PersonaPlacement(self::DOCENTS, roles: [Role::Chair]),
                 new PersonaPlacement(self::GALLERY_INTERPRETERS),
             ]),
-            new Persona('elena.rossi@dmv.test', 'Elena', 'Rossi', PersonaGroup::Officers, 'Secretary · Governance & Operations', placements: [
-                new PersonaPlacement(self::COMMITTEE, roles: [Role::Secretary]),
+            // Secretary and Treasurer sit on the Executive committee — a real Group —
+            // alongside the President / VPs. Governance & Operations is now a page-less
+            // container (PRD #289), so officers no longer attach to the section itself.
+            new Persona('elena.rossi@dmv.test', 'Elena', 'Rossi', PersonaGroup::Officers, 'Secretary · Executive', placements: [
+                new PersonaPlacement(self::EXECUTIVE, roles: [Role::Secretary]),
                 new PersonaPlacement(self::RECEPTION),
             ]),
-            new Persona('marcus.patel@dmv.test', 'Marcus', 'Patel', PersonaGroup::Officers, 'Treasurer · Governance & Operations', placements: [
-                new PersonaPlacement(self::COMMITTEE, roles: [Role::Treasurer]),
+            new Persona('marcus.patel@dmv.test', 'Marcus', 'Patel', PersonaGroup::Officers, 'Treasurer · Executive', placements: [
+                new PersonaPlacement(self::EXECUTIVE, roles: [Role::Treasurer]),
                 new PersonaPlacement(self::ROMFORYOU),
             ]),
 
