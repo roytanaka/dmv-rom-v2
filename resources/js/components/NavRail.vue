@@ -84,7 +84,7 @@ const isActive = (href: string) => currentPath.value === href;
                         <!-- Override the button variant's [&>span:last-child]:truncate: the breadcrumb's
                              tail (the immediate parent) is its most identifying crumb, so wrap instead
                              of clipping it. whitespace-normal! beats the variant's whitespace-nowrap. -->
-                        <span v-if="result.breadcrumb.length" class="text-sidebar-muted text-xs whitespace-normal! break-words">{{
+                        <span v-if="result.breadcrumb.length" class="text-sidebar-muted text-xs break-words whitespace-normal!">{{
                             result.breadcrumb.join(' › ')
                         }}</span>
                     </Link>
