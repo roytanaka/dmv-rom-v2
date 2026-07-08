@@ -305,24 +305,24 @@ function seedFourPeerTree(): void
     // by a plain Member with no memberships.
     $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
 
-    // Governance & Operations peer — carries the governance/operations committees.
-    $governance = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'governance-operations', 'name' => 'Governance & Operations', 'display_order' => 0]);
+    // Governance & Operations peer — a page-less container grouping the governance/operations committees.
+    $governance = Group::factory()->container()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'governance-operations', 'name' => 'Governance & Operations', 'display_order' => 0]);
     Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $governance->id, 'slug' => 'awards', 'name' => 'Awards', 'display_order' => 0]);
     Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $governance->id, 'slug' => 'communications', 'name' => 'Communications', 'display_order' => 1]);
 
-    // Programs peer — explodes one level to its programs (no longer promoted to top level).
-    $programs = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 1]);
+    // Programs peer — a page-less container exploding one level to its programs (no longer promoted to top level).
+    $programs = Group::factory()->container()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 1]);
     $docents = Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
     Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-library', 'name' => 'Library', 'display_order' => 0]);
     // A French-named program — its name is content, rendered verbatim in both locales.
     Group::factory()->program()->publicListing()->create(['parent_id' => $programs->id, 'slug' => 'guides-du-rom', 'name' => 'Guides du ROM', 'display_order' => 1]);
 
-    // Special Projects peer.
+    // Special Projects peer — a real coordinating Group (not a container), so it keeps its href.
     $special = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'special-projects', 'name' => 'Special Projects', 'display_order' => 2]);
     Group::factory()->project()->publicListing()->create(['parent_id' => $special->id, 'slug' => 'archive-inventory', 'name' => 'DMV Archive Inventory', 'display_order' => 0]);
 
-    // Friends peer — the structural container grouping the Friends-of committees (#276).
-    $friends = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'friends', 'name' => 'Friends', 'display_order' => 3]);
+    // Friends peer — the page-less container grouping the Friends-of committees (#276).
+    $friends = Group::factory()->container()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'friends', 'name' => 'Friends', 'display_order' => 3]);
     $fop = Group::factory()->standingCommittee()->publicListing()->create(['parent_id' => $friends->id, 'slug' => 'friends-of-palaeontology', 'name' => 'Friends of Palaeontology (FOP)', 'display_order' => 0]);
     Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $fop->id, 'slug' => 'vertebrate-palaeontology', 'name' => 'Vertebrate Palaeontology', 'display_order' => 0]);
 }
@@ -358,6 +358,26 @@ it('reshapes the active tree into four container peers — Governance & Operatio
             ->where('rail.otherGroups.items.3.children.0.children.0.groupId', 'vertebrate-palaeontology')
             // Exactly four peers — the old All-Groups "DMV" root node no longer renders.
             ->count('rail.otherGroups.items', 4));
+});
+
+it('delivers the three container peers without an href but with their children, and Special Projects with an href', function () {
+    seedFourPeerTree();
+
+    // A container peer has no page (Kind::Container), so it ships breadcrumb-only — no href —
+    // yet still explodes to its children. Special Projects is a real Group, so it keeps its href.
+    $this->actingAs(Member::factory()->create())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // Governance & Operations — container, no href, children present.
+            ->missing('rail.otherGroups.items.0.href')
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'awards')
+            // Programs — container, no href.
+            ->missing('rail.otherGroups.items.1.href')
+            // Special Projects — a real Group, delivered with its localized href.
+            ->where('rail.otherGroups.items.2.href', '/groups/special-projects')
+            // Friends — container, no href.
+            ->missing('rail.otherGroups.items.3.href'));
 });
 
 it('still shows the four peers to a Member holding a stored root-DMV membership row', function () {
@@ -415,9 +435,11 @@ it('emits Other Groups names verbatim and hrefs as French twins under /fr/', fun
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('locale', 'fr')
-                // Peer hrefs point at the /fr/ twin; the peer label stays a chrome key.
-                ->where('rail.otherGroups.items.0.href', '/fr/groupes/governance-operations')
+                // A container peer carries no href (breadcrumb-only), but its child hrefs point at the /fr/ twin.
+                ->missing('rail.otherGroups.items.0.href')
                 ->where('rail.otherGroups.items.0.children.0.href', '/fr/groupes/awards')
+                // Special Projects is a real Group peer — its href is the /fr/ twin; the peer label stays a chrome key.
+                ->where('rail.otherGroups.items.2.href', '/fr/groupes/special-projects')
                 // A French-named program: name verbatim, href its localized twin.
                 ->where('rail.otherGroups.items.1.children.1.name', 'Guides du ROM')
                 ->where('rail.otherGroups.items.1.children.1.href', '/fr/groupes/guides-du-rom'));

@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<{ item: GroupNode | PeerNode; localized?:
 // launching a Group stays in-locale (ADR-0008). Server-built grids (PRD #209, My
 // Groups) arrive pre-localized, so they pass `localized` to skip the client step.
 const localizeHref = useLocalizedHref();
-const href = computed(() => (props.localized ? props.item.href : localizeHref(props.item.href)));
+const href = computed(() => (props.localized ? props.item.href! : localizeHref(props.item.href!)));
 
 // The Group's own logo, or the generic fallback when its key is null/unknown.
 const src = computed(() => logoSrc(props.item.logo));

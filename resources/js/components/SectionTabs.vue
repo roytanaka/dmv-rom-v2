@@ -38,7 +38,7 @@ const page = usePage<SharedData>();
 // in-locale (ADR-0008), and match the active tab against the localised href. A `soon`
 // stub is never active.
 const localizeHref = useLocalizedHref();
-const isActive = (item: NavNode) => !item.soon && localizeHref(item.href) === page.url;
+const isActive = (item: NavNode) => !item.soon && item.href !== undefined && localizeHref(item.href) === page.url;
 
 // The single break: at/above lg the full menu fits as tabs; below it can't.
 const isWide = useMediaQuery('(min-width: 1024px)');
@@ -109,7 +109,7 @@ const maskImage = computed(() => {
                 <component :is="item.icon" v-if="item.icon" class="size-4 opacity-80" />
             </a>
 
-            <Link v-else :href="localizeHref(item.href)" :aria-current="isActive(item) ? 'page' : undefined" :class="tabClass(item)">
+            <Link v-else :href="localizeHref(item.href!)" :aria-current="isActive(item) ? 'page' : undefined" :class="tabClass(item)">
                 <component :is="item.icon" v-if="item.icon" class="size-4 opacity-80" />
                 <span>{{ trans(item.labelKey) }}</span>
             </Link>
@@ -146,7 +146,7 @@ const maskImage = computed(() => {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem v-else :as-child="true" :class="['gap-3 py-3 text-base', dropdownActiveClass(item)]">
-                    <Link :href="localizeHref(item.href)" :aria-current="isActive(item) ? 'page' : undefined" class="flex w-full items-center gap-3">
+                    <Link :href="localizeHref(item.href!)" :aria-current="isActive(item) ? 'page' : undefined" class="flex w-full items-center gap-3">
                         <component :is="item.icon" v-if="item.icon" class="size-5 opacity-70" />
                         <span>{{ trans(item.labelKey) }}</span>
                     </Link>
