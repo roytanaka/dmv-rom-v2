@@ -178,7 +178,11 @@ it('hand-assigns listing visibility per node so staging exercises all three tier
         ->toBe(ListingVisibility::Public)
         ->and(Group::where('slug', 'membership')->firstOrFail()->listing_visibility)
         ->toBe(ListingVisibility::Public)
+        // A working group hand-flipped to Public so the Public path is exercised on a
+        // nested subgroup, not just the recruiting/scaffold tree.
         ->and(Group::where('slug', 'donor-friends')->firstOrFail()->listing_visibility)
+        ->toBe(ListingVisibility::Public)
+        ->and(Group::where('slug', 'pr-committee')->firstOrFail()->listing_visibility)
         ->toBe(ListingVisibility::Group)
         ->and(Group::where('slug', 'gallery-interpreters-events')->firstOrFail()->listing_visibility)
         ->toBe(ListingVisibility::Private);
