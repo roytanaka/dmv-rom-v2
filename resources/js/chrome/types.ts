@@ -42,12 +42,7 @@ export type Role = 'chair' | 'about-contact' | 'super-tier';
 
 /** Fields shared by every chrome nav node, structural or Group. */
 interface NavNodeBase {
-    /**
-     * Inertia path (internal) or absolute URL (when `external`). Optional: a
-     * non-navigable node (a {@link PeerNode} container section, PRD #289) carries
-     * no href — it is a breadcrumb-only grouping the rail renders as a label +
-     * chevron, never a link.
-     */
+    /** Inertia path (internal) or absolute URL (when `external`); absent on container peers (PRD #289) — rendered as label + chevron, never a link. */
     href?: string;
     /** Phosphor icon component. */
     icon?: PhosphorIcon;
@@ -109,9 +104,7 @@ export interface GroupNode extends NavNodeBase {
  * Groups nested beneath it are {@link GroupNode}s and render their names verbatim. Carries
  * an optional `logo` for the launcher tile.
  *
- * A container peer (`Kind::Container`, PRD #289) has no page, so its inherited `href` is
- * ABSENT — it is breadcrumb-only, rendered as a label + chevron. A peer that is a real Group
- * (Special Projects) carries its `href` and navigates.
+ * Container peers (`Kind::Container`, PRD #289) omit `href` — breadcrumb-only; real Group peers (Special Projects) keep it.
  */
 export interface PeerNode extends NavNodeBase {
     /** i18n message key resolved to display copy by `trans()`. */

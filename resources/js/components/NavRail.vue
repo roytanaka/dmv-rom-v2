@@ -56,8 +56,7 @@ const currentPath = computed(() => page.url.split('?')[0]);
 const isWithin = (href?: string) => href !== undefined && (currentPath.value === href || currentPath.value.startsWith(`${href}/`));
 const containsCurrent = (node: RailNode): boolean => isWithin(node.href) || ((node.children ?? []) as RailNode[]).some(containsCurrent);
 
-// A stable v-for key: the localized href when the node has one, else its chrome label key
-// (an href-less container peer, PRD #289). Every rail node carries one or the other.
+// Stable v-for key: href when the node has one, else labelKey (container peers, PRD #289).
 const nodeKey = (node: RailNode) => node.href ?? ('labelKey' in node ? node.labelKey : node.name);
 const otherGroupsHasActive = computed(() => otherGroups.value.some(containsCurrent));
 

@@ -54,22 +54,18 @@ const page = usePage<SharedData>();
 // section pages carry ?tab=… that rail hrefs never do.
 const currentPath = computed(() => page.url.split('?')[0]);
 
-// Strong active — only the deepest matching node earns this; ancestors get the softer
-// contains-active state (#122). An href-less container peer is never the active page.
+// Strong active — only the deepest matching node earns this; ancestors get the softer contains-active state (#122).
 const isActive = (href?: string) => href !== undefined && currentPath.value === href;
 
 // Ancestor-aware — the current page is this node or nested beneath it. A section page
 // (/groups/docents/data-sheets) lives under the Group's /groups/docents href, so the
-// Group still counts as "in context" even though no node matches the path exactly. An
-// href-less node contains the current page only through its children.
+// Group still counts as "in context" even though no node matches the path exactly.
 const isWithin = (href?: string) => href !== undefined && (currentPath.value === href || currentPath.value.startsWith(`${href}/`));
 
 // Group name (content) → verbatim; structural node → translated label (chrome).
 const label = (node: RailNode) => ('name' in node ? node.name : trans(node.labelKey));
 
-// A non-navigable node (a container peer, PRD #289) carries no href: it heads a grouping
-// but has no page. The row renders its label + chevron as a pure toggle — the same treatment
-// the Other Groups zone heading uses — never a link.
+// PRD #289: a container peer (Kind::Container) has no page — its row is a toggle, never a link.
 const navigable = computed(() => props.item.href !== undefined);
 
 // Subcommittees nest under their parent. The server prunes the rail (ADR-0018), so
@@ -119,8 +115,7 @@ watch(hasActiveDescendant, (active) => {
         <!-- Parent — link to navigate + chevron to toggle children. -->
         <Collapsible v-else v-model:open="open" as-child class="group/collapsible">
             <SidebarMenuItem>
-                <!-- Navigable peer (Special Projects) or Group: the label links in; a
-                     separate chevron toggles children. -->
+                <!-- Navigable peer or Group: the label links in; a separate chevron toggles children. -->
                 <template v-if="navigable">
                     <SidebarMenuButton
                         as-child
@@ -145,8 +140,7 @@ watch(hasActiveDescendant, (active) => {
                     </CollapsibleTrigger>
                 </template>
 
-                <!-- Non-navigable container peer (PRD #289): no page, so the WHOLE row is the
-                     toggle — label + chevron, no link — mirroring the Other Groups zone heading. -->
+                <!-- Container peer (PRD #289): no page, so the whole row toggles — label + chevron, no link. -->
                 <CollapsibleTrigger v-else as-child>
                     <SidebarMenuButton size="lg" :class="['h-10 justify-between text-sm', { 'font-medium': containsActive }]">
                         <span class="flex items-center gap-2">

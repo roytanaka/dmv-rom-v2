@@ -23,10 +23,7 @@
 
 /** The minimal shape this filter needs — satisfied by both a Group row and a container peer. */
 export interface FilterableRailNode {
-    /**
-     * The node's localized path. Optional: a non-navigable container peer (PRD #289) has
-     * none — it is a breadcrumb ancestor only, never itself a flat result.
-     */
+    /** Localized path; absent on container peers (PRD #289) — breadcrumb ancestry only, never a flat result. */
     href?: string;
     /** A content Group's as-authored name (rendered verbatim). */
     name?: string;
@@ -55,8 +52,7 @@ function nodeLabel(node: FilterableRailNode, translate: (key: string) => string)
 function walk(nodes: FilterableRailNode[], trail: string[], translate: (key: string) => string, out: RailFilterResult[]): void {
     for (const node of nodes) {
         const label = nodeLabel(node, translate);
-        // An href-less node (a container peer, PRD #289) is never itself a result — it has
-        // no page to navigate to — but its label still trails its descendants as a breadcrumb.
+        // Container peers (PRD #289) are never flat results but still breadcrumb their descendants.
         if (node.href !== undefined) {
             out.push({ href: node.href, label, breadcrumb: trail });
         }
