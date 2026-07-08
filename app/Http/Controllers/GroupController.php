@@ -43,12 +43,6 @@ class GroupController extends Controller
     {
         $section ??= 'overview';
 
-        // Resolve the viewer's memberships and roles once, in memory: both the
-        // GroupPolicy (canActAs, for the `can` hint) and the MeetingPolicy (for
-        // the members-only meetings gate below) traverse them, and strict mode
-        // forbids the lazy load in either case.
-        $request->user()->loadMissing('memberships.roles');
-
         // Container page-gate (#293, PRD #289): a Kind::Container Group is a structural
         // section peer, not a destination — no page exists. Unconditional 404 for every
         // viewer, super-tier included: unlike the Private gate below (a confidentiality
@@ -57,6 +51,12 @@ class GroupController extends Controller
         if ($group->kind === Kind::Container) {
             abort(404);
         }
+
+        // Resolve the viewer's memberships and roles once, in memory: both the
+        // GroupPolicy (canActAs, for the `can` hint) and the MeetingPolicy (for
+        // the members-only meetings gate below) traverse them, and strict mode
+        // forbids the lazy load in either case.
+        $request->user()->loadMissing('memberships.roles');
 
         // Private page-gate (#270, ADR-0019): keeps a Private Group's existence hidden.
         // 404 (not 403) so the boundary never confirms the Group exists. Parentage
