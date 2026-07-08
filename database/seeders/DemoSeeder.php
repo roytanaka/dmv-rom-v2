@@ -43,11 +43,11 @@ use Throwable;
  * slug, so re-running heals rather than duplicates.
  *
  * Mapping notes for the transcription:
- * - The source groups its top level into sections (Governance & Operations,
- *   Programs, Special Projects) plus the standalone Friends-of committees. The
- *   {@see Kind} taxonomy has no dedicated "section/division" case, so those
- *   org-level container sections are modelled as organization-scoped
- *   {@see Kind::StandingCommittee} nodes.
+ * - The source groups its top level into four sections: Governance &
+ *   Operations, Programs, Special Projects, and Friends. Three are page-less
+ *   container sections (Governance & Operations, Programs, Friends), modelled
+ *   as {@see Kind::Container} (PRD #289). Special Projects is a real
+ *   coordinating Group, modelled as {@see Kind::StandingCommittee}.
  * - {@see Scope} and the capability flags are derived from each node's Kind to
  *   match the conventions encoded in {@see GroupFactory}.
  * - Archived exhibition cohorts carry {@see LifecycleState::Archived}; the
