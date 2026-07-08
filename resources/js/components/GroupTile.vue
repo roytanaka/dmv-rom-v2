@@ -25,8 +25,13 @@ const props = withDefaults(defineProps<{ item: GroupNode | PeerNode; localized?:
 // Tile hrefs are English-canonical in the fixture; localise to the active locale so
 // launching a Group stays in-locale (ADR-0008). Server-built grids (PRD #209, My
 // Groups) arrive pre-localized, so they pass `localized` to skip the client step.
+// Container peers (Kind::Container, PRD #289) have no `href`; href stays undefined.
 const localizeHref = useLocalizedHref();
-const href = computed(() => (props.localized ? props.item.href! : localizeHref(props.item.href!)));
+const href = computed<string | undefined>(() => {
+    const raw = props.item.href;
+    if (raw === undefined) return undefined;
+    return props.localized ? raw : localizeHref(raw);
+});
 
 // The Group's own logo, or the generic fallback when its key is null/unknown.
 const src = computed(() => logoSrc(props.item.logo));
@@ -36,12 +41,14 @@ const label = computed(() => ('name' in props.item ? props.item.name : trans(pro
 </script>
 
 <template>
-    <Link :href="href" class="group text-rom-ink flex flex-col items-center gap-1.5 text-center">
+    <!-- href present → Inertia <Link>; container peer (no href) → plain non-navigable div.
+         Same chrome either way: the mark square and the label read identically. -->
+    <component :is="href ? Link : 'div'" :href="href" class="group text-rom-ink flex flex-col items-center gap-1.5 text-center">
         <span
             class="group-hover:bg-rom-slate-100 group-focus-visible:ring-rom-slate-300 flex aspect-square w-full items-center justify-center rounded-none p-1 transition-colors group-focus-visible:ring-2 group-focus-visible:outline-none"
         >
             <img :src="src" alt="" class="object-contain" />
         </span>
         <span class="text-sm leading-tight font-medium">{{ label }}</span>
-    </Link>
+    </component>
 </template>
