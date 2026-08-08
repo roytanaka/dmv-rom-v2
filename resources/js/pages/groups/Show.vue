@@ -12,6 +12,7 @@
 // `can.update` hint; the GroupPolicy enforces every mutation regardless.
 import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
+import SchedulePrototype from '@/prototypes/schedule/SchedulePrototype.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +81,9 @@ const props = defineProps<{
     };
 }>();
 
+// PROTOTYPE (#330) — gates the throwaway Schedule variants to dev builds.
+const isDev = import.meta.env.DEV;
+
 const page = usePage<SharedData>();
 const formatDate = (iso: string) => new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'long' }).format(new Date(iso));
 
@@ -99,7 +103,9 @@ const tabs = computed<NavNode[]>(() => {
     ];
     if (props.group.capabilities.meetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents', soon: true });
-    if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling', soon: true });
+    // PROTOTYPE (#330): in dev the Scheduling tab is navigable so the throwaway
+    // Schedule variants can be reached. In any other build it stays a `soon` stub.
+    if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling', soon: !import.meta.env.DEV });
     if (props.group.capabilities.content) list.push({ href: href('content'), labelKey: 'group.tab.content', soon: true });
     if (props.group.capabilities.hours) list.push({ href: href('hours'), labelKey: 'group.tab.hours', soon: true });
     return list;
@@ -331,6 +337,10 @@ const pickBanner = (key: string | null) => {
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
                      surface, with officer CRUD behind the `can` hints. -->
                 <GroupMeetings v-else-if="section === 'meetings'" :meetings="meetings" :can-create="can.createMeeting" :group-slug="group.slug" />
+
+                <!-- PROTOTYPE (#330) — throwaway Schedule variants, dev builds only.
+                     Renders from in-memory fixtures; nothing here touches the server. -->
+                <SchedulePrototype v-else-if="section === 'scheduling' && isDev" />
 
                 <!-- The capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>
