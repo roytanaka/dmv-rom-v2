@@ -5,7 +5,7 @@ Volunteer management for the Department of Museum Volunteers at the Royal Ontari
 ## Language
 
 **Member**:
-A person who belongs to the Department of Museum Volunteers and uses the app — the canonical identity of the system (the `members` table, model `Member`). A Member *has memberships* in Groups; "Member" is the person, never the join-row (see **Membership**).
+A person who belongs to the Department of Museum Volunteers and uses the app — the canonical identity of the system (the `members` table, model `Member`). A Member _has memberships_ in Groups; "Member" is the person, never the join-row (see **Membership**).
 _Avoid_: Volunteer (the department's name contains "Volunteers," but the person/identity term is **Member**), user (too generic; survives only as the framework concept — `Auth::user()` returns a `Member`).
 
 **Membership**:
@@ -13,7 +13,7 @@ A Member's join-row in a **Group** — carrying that Member's status within the 
 _Avoid_: reusing **Member** for this (the person is the Member; the relationship is the Membership). "Group member" is fine prose for a person in a Group, but is never the schema name for the identity.
 
 **Category** (of a Member):
-A Member's standing in DMV *as a whole* — Active, Sustaining, Honourary, Provisional, LOA, Resigned, etc. Lives once on the `members` record and sets the base access tier (Full / Limited / None). **Independent of the per-Group status a Membership carries** — a Member can be DMV-wide Active yet on leave from one Group.
+A Member's standing in DMV _as a whole_ — Active, Sustaining, Honourary, Provisional, LOA, Resigned, etc. Lives once on the `members` record and sets the base access tier (Full / Limited / None). **Independent of the per-Group status a Membership carries** — a Member can be DMV-wide Active yet on leave from one Group.
 _Avoid_: conflating with a **Membership**'s within-Group status; they are different facts set by different officers.
 
 **Officer**:
@@ -21,15 +21,16 @@ A Member who holds at least one authority-bearing **role** (Chair, Secretary, Sc
 _Avoid_: using "officer" as an org-wide rank or as a synonym for the all-DMV grant (that is the **super-tier** — see **Admin**).
 
 **DMV Executive**:
-A specific **Group** (Kind: standing committee) — DMV's top governance body, one committee under the DMV root. Its leadership offices (President, VP1, VP2) are the Members seeded into the **super-tier**, but "Executive" names the *Group*, not the grant.
+A specific **Group** (Kind: standing committee) — DMV's top governance body, one committee under the DMV root. Its leadership offices (President, VP1, VP2) are the Members seeded into the **super-tier**, but "Executive" names the _Group_, not the grant.
 _Avoid_: equating "DMV Executive" with all-DMV access (that is the super-tier), or treating it as the org root (the root Group is DMV itself).
 
 **Admin** (disambiguated — never use the bare word):
 "Admin" means three different things; use the precise one:
+
 - **Super-tier** — the single org-wide "see and do everything" grant, seeded with President / VP1 / VP2 (a flag on the Member; [ADR-0011](docs/adr/0011-authorization-model.md)).
 - **Member administration** — managing member records and all-DMV reports; authority comes from holding a **role in the Records Group** (a stewardship), not a flag.
-- **Support administration** — a maintainer administering data or impersonating for support; the explicit `initiate-support-session` permission ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)), deliberately *not* super-tier.
-_Avoid_: "admin" unqualified; admin-ness is a role or grant, never a membership standing.
+- **Support administration** — a maintainer administering data or impersonating for support; the explicit `initiate-support-session` permission ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)), deliberately _not_ super-tier.
+  _Avoid_: "admin" unqualified; admin-ness is a role or grant, never a membership standing.
 
 **Directory**:
 The org-wide, read-only roster of **Members** — every Member whose DMV-wide **Category** grants a listing (Active, Honourary, Sustaining, LOA), shown to any logged-in Member at `/directory`. Each row carries avatar, name, **Group** memberships, and standing — but never contact details (email/phone are a profile-only concern, gated by `viewContact`). The departed (Resigned/Withdrawn/Deceased) and the not-yet-activated (PreActive/Provisional) are excluded.
@@ -37,13 +38,13 @@ _Avoid_: treating the Directory as a member-administration or editing surface �
 
 **Field-visibility tier**:
 Which viewers a **Member** field reaches, enforced once in `MemberResource` ([ADR-0017 §6](docs/adr/0017-authorization-enforcement.md)) as an allowlist. Three tiers: **always-public** (name, photo, standing, Groups/roles — any logged-in Member); **peer-visible** (email + the three phones, gated by `viewContact`); and **Records-only** (the Member themselves, Records/member-administration, and super-tier — never a peer, even one who passes `viewContact`). The **home address** and a Member's **skills** are Records-only: the address is gated behind `viewAddress`, while skills are simply never added to any peer-visible payload (absent from `MemberResource` entirely) and surface only on the owner's own Skills settings page (#232, #247).
-_Avoid_: calling Records-only fields "private" as if self-only — the Member's own record, Records, and super-tier all read them; only *peers* are excluded. And a blocklist framing — the tier is an allowlist, so a new field is non-public until deliberately exposed.
+_Avoid_: calling Records-only fields "private" as if self-only — the Member's own record, Records, and super-tier all read them; only _peers_ are excluded. And a blocklist framing — the tier is an allowlist, so a new field is non-public until deliberately exposed.
 
 **Login**:
 The act of authenticating into the app with email + password. The only authentication flow in the rebuild.
 
 **Impersonation**:
-Acting as another **Member** via `Auth::login`. Two variants, distinguished by *depth*, not just environment: **become** — full login-as, the operator *is* the other Member (the non-production dev **Role-switcher**); and **view-as** — read-mostly, consented, audited (the future production **support administration** tool, [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)). "Impersonation" is the umbrella; become / view-as is the safety axis.
+Acting as another **Member** via `Auth::login`. Two variants, distinguished by _depth_, not just environment: **become** — full login-as, the operator _is_ the other Member (the non-production dev **Role-switcher**); and **view-as** — read-mostly, consented, audited (the future production **support administration** tool, [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)). "Impersonation" is the umbrella; become / view-as is the safety axis.
 _Avoid_: using "impersonation" to mean the production tool only — it covers both; name the variant when the depth matters.
 
 **Persona**:
@@ -52,15 +53,15 @@ _Avoid_: calling bulk-roster filler Personas — those are ordinary seeded Membe
 
 **Role-switcher**:
 The non-production dev toolbar (`local`/`staging` only) that lets a **Support-operator** **become** a **Persona** to exercise role-gated behaviour and UX fast. Presentation over a server-driven prop; the environment boundary — not the toolbar's visibility — is the security control ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
-_Avoid_: "user switcher" (ADR-0009's older name) and conflating it with the production **view-as** support tool; the Role-switcher does full **become** on **Persona** data only. Note the operator is a **Support-operator**, *not* super-tier (the two were split — see below).
+_Avoid_: "user switcher" (ADR-0009's older name) and conflating it with the production **view-as** support tool; the Role-switcher does full **become** on **Persona** data only. Note the operator is a **Support-operator**, _not_ super-tier (the two were split — see below).
 
 **Support-operator**:
-The maintainer capability to *operate* the **Role-switcher** — a `support_operator` marker on **Member** (`isSupportOperator()`), deliberately **separate from super-tier**: running the switcher is a maintainer power, not a President's org authority, so a super-tier executive is *not* an operator unless independently marked one. Read as a **direct predicate, never a Laravel gate** — [ADR-0017 §1](docs/adr/0017-authorization-enforcement.md)'s `Gate::before` grants super-tier every ability, so a gate-backed check would hand impersonation straight back to super-tier ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md) amendment; [ADR-0017 §5](docs/adr/0017-authorization-enforcement.md)). Distinct too from the production tool's `initiate-support-session` permission — two tools, two gates.
+The maintainer capability to _operate_ the **Role-switcher** — a `support_operator` marker on **Member** (`isSupportOperator()`), deliberately **separate from super-tier**: running the switcher is a maintainer power, not a President's org authority, so a super-tier executive is _not_ an operator unless independently marked one. Read as a **direct predicate, never a Laravel gate** — [ADR-0017 §1](docs/adr/0017-authorization-enforcement.md)'s `Gate::before` grants super-tier every ability, so a gate-backed check would hand impersonation straight back to super-tier ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md) amendment; [ADR-0017 §5](docs/adr/0017-authorization-enforcement.md)). Distinct too from the production tool's `initiate-support-session` permission — two tools, two gates.
 _Avoid_: equating it with super-tier or bare "admin"; it confers no org authority, only operating the dev switcher.
 
 **Return to impersonator**:
 The Role-switcher's escape hatch back to the original operator, from any impersonated Persona. Keyed on the operator id stored in the session at the start of impersonation, so it works regardless of the impersonated Persona's tier.
-_Avoid_: "return to super" — the mechanism keys on the stored impersonator id, not on tier; and the operator is the **Support-operator** who began the session, who is deliberately *not* super-tier (that split is the point — [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
+_Avoid_: "return to super" — the mechanism keys on the stored impersonator id, not on tier; and the operator is the **Support-operator** who began the session, who is deliberately _not_ super-tier (that split is the point — [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
 
 **Group**:
 The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (roster, meetings, documents, scheduling, content, stats). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
@@ -77,10 +78,10 @@ A dated thing a **Member** signs up to staff — a tour, a desk slot, an event r
 
 **Sign-up**:
 The record that a **Member** has taken (or been assigned) a **Shift**. Carries cancel / swap / assistant state.
-_Avoid_: confusing with **Login** (authentication) — a Sign-up is *staffing a Shift*, not authenticating.
+_Avoid_: confusing with **Login** (authentication) — a Sign-up is _staffing a Shift_, not authenticating.
 
 **Chrome**:
-The application's persistent **frame** — the top bar, side rail, breadcrumb strip, and footer that wrap every screen and stay put while the page content changes. A UI term (after [GUI chrome](https://www.nngroup.com/articles/browser-and-gui-chrome/)), unrelated to the web browser. The Part 3 app shell *is* the chrome; product screens render inside it.
+The application's persistent **frame** — the top bar, side rail, breadcrumb strip, and footer that wrap every screen and stay put while the page content changes. A UI term (after [GUI chrome](https://www.nngroup.com/articles/browser-and-gui-chrome/)), unrelated to the web browser. The Part 3 app shell _is_ the chrome; product screens render inside it.
 _Avoid_: confusing with the Google Chrome browser. Synonyms "shell" / "frame" are fine.
 
 **Locale**:
@@ -118,3 +119,67 @@ _Avoid_: epic, spec, brief, initiative — all refer to the same artifact in oth
 
 - _"Member" vs "Membership"_ — **Member** is the person (the identity record); a **Membership** is that Member's join-row in a Group. Keep them distinct in schema names: the identity table is `members`; the Group join-table is `group_member`, never `members` again. "Group member" is acceptable prose for a person in a Group.
 - _"Volunteer"_ — superseded as the person term by **Member**. Still correct only inside the proper noun "Department of Museum Volunteers." Earlier ADR prose may still say "Volunteer"; treat **Member** as canonical wherever they conflict.
+
+## Legacy vocabulary
+
+Words you will meet in the legacy app, in its database, in meeting transcripts, and in Adrian's speech — several of which collide with terms defined above. This section is **descriptive**: it records what a word means _over there_ and what we call it _here_. It commits to nothing that the glossary above has not already decided; where a decision is still open, it says so and points at the ticket.
+
+Read this before legacy archaeology or migration work. Every one of these has already caused a misunderstanding at least once.
+
+**Scheduler** — three senses, only one of which is ours:
+
+- _our_ **Scheduler** — the per-Group authority-bearing **role** (see **Officer**). This is the only correct use.
+- _legacy_ "Scheduler" — a **screen**, the authoring surface a Group's officers open to build a schedule. Never call our screen this.
+- _loose speech_ "the scheduler" — the **person** who does the work. Say who they are and what role they hold: at Visitor Wayfinders that person is the **Chair**, not a Scheduler.
+
+_Avoid_: "the scheduler" with no article of precision. Name the role, the screen, or the Member.
+
+**Role** (legacy `specialRoles`, `RoleID`):
+In legacy scheduling, a _kind of position within an event_ — "Level 2 greeter", "Plan Your Visit desk". It is a **kind of Shift**, and has nothing to do with authority.
+_Avoid_: reading legacy `RoleID` as one of our **roles**. Ours (Chair, Secretary, Scheduler, …) confer authority; legacy's describe work. Two unrelated concepts sharing a column name.
+
+**Event** — three senses:
+
+- _legacy_ `specialEvents` — the **date-range schedule container** for Visitor Wayfinders. Whether we have an equivalent, and what it is called, is open ([#324](https://github.com/roytanaka/dmv-rom-v2/issues/324)).
+- _plain English_ — a real-world happening at the ROM (an open house, an exhibit opening). Not a system concept.
+- _our_ **Group** definition — "event cohort" appears as one of the things that is a Group.
+
+_Avoid_: bare "event". Say _schedule container_, _the occasion_, or _Group_.
+
+**Program** — three senses:
+
+- _our_ **Program** — a Kind of **Group** (see above). The only correct use.
+- _Adrian's_ "special programs" — time-boxed exhibits or initiatives. In our model these are Groups too, but the phrase is not a Kind.
+- _"training program"_ — the thing a Member completes to earn a qualification. Unbuilt; see the scheduling map's out-of-scope note.
+
+**Activity** (legacy `specialActivities`, `ActivityID`):
+An entry in Visitor Wayfinders' hand-maintained list of shift kinds, chosen from a picker when authoring. In practice many entries name a **place** ("Level 1 Oslo gate", "Level 2 dinosaurs") rather than a kind of work, so activity and location are conflated at source and will not split cleanly on migration.
+Separately, "member activity" in reporting contexts means **hours and statistics rows** — an unrelated use.
+Whether we keep a per-Group list of shift kinds (ADR-0015 calls it a _Catalog_) is open ([#326](https://github.com/roytanaka/dmv-rom-v2/issues/326)).
+
+**Pattern** (legacy "daily pattern", "weekly pattern", "two-week pattern", "copy pattern from"):
+A stored template a legacy generator fans out into dated rows. It conceals **two** different ideas:
+
+- a repeating **Shift** template — the shifts that exist each week; and
+- a repeating **Sign-up** — a Member who holds the same slot every week or every second week.
+
+Reception's two-week pattern is the second wearing the clothes of the first: its shifts are weekly, and the fortnight exists only because some Members attend on alternate weeks. Which of the two we build, if either, is open ([#329](https://github.com/roytanaka/dmv-rom-v2/issues/329)).
+_Avoid_: "pattern" unqualified. Say _shift template_ or _recurring Sign-up_.
+
+**Count** (legacy column):
+Means **capacity** (how many people) in some tables and **duration in hours** in others — and the hours sense is load-bearing in a cross-table join. A name to retire, never to carry forward.
+
+**Special** (legacy table prefix and menu symbol):
+Means **Visitor Wayfinders**, the Group. Legacy names its tables `specialEvents`, `specialSchedule`, `specialActivities`, `specialRoles`.
+_Avoid_: reading "special" as an adjective. It is that one Group's short name.
+
+**Wayfinder** — two unrelated things:
+
+- **Visitor Wayfinders**, a DMV **Group** (legacy symbol `special`).
+- _Wayfinder_, the planning method used for large efforts, which produces a map issue labelled `wayfinder:map` and its decision tickets.
+
+No relationship whatsoever. Both appear in this repo's issues.
+
+**MIS** (legacy eligibility value `99`, labelled "MIS only"):
+A coarse cross-Group audience for a legacy shift. **Not** a designation stored on a Member — it is evaluated on the spot as active membership in any of six Groups: Gallery Interpreters, Docents, GDR, Visitor Guides, Outreach, Visitor Wayfinders. A hardcoded union that nobody maintains.
+_Avoid_: treating it as a qualification or a standing. Whether we model an equivalent is open ([#327](https://github.com/roytanaka/dmv-rom-v2/issues/327)).
