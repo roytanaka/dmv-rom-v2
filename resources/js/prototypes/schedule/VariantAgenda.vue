@@ -12,14 +12,19 @@
 //
 // Foreign (`open`) Shifts get their own band at the foot of each day rather than
 // being interleaved, so a Gallery Interpreter's month never fills with someone
-// else's Shifts.
+// else's Shifts. The band is always THERE but starts COLLAPSED — one summary line
+// naming the owning Group and the count (Roy, 2026-08-08). A hidden-by-default
+// global toggle was the first draw and it was undiscoverable: nobody turns on a
+// thing they don't know exists. A collapsed line advertises itself and still costs
+// one row. Per-day expand, plus a master open/close-all in the header.
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PhCaretRight, PhPencilSimple, PhPlus, PhTrash, PhUserPlus } from '@phosphor-icons/vue';
+import { PhCaretDown, PhCaretRight, PhPencilSimple, PhPlus, PhTrash, PhUserPlus } from '@phosphor-icons/vue';
 import { computed, ref } from 'vue';
 import {
     byDay,
     canAuthor,
+    canDrop,
     canSeeNames,
     canTake,
     dayLong,
@@ -37,12 +42,21 @@ import type { Schedule, Shift, Viewer } from './types';
 
 const props = defineProps<{ schedule: Schedule; viewer: Viewer; groupName: string; showForeign: boolean }>();
 
-type Filter = 'all' | 'open' | 'mine';
+// Two filters, not three. "My shifts" was dropped (Roy, 2026-08-08): answering
+// "what am I on" is My Calendar's job, and a per-Schedule copy of it would be a
+// second, worse answer to the same question — one Group at a time.
+type Filter = 'all' | 'open';
 const filter = ref<Filter>('all');
+
+// Which days have their foreign band open. A master switch drives all of them.
+const expanded = ref(new Set<string>());
+const allOpen = computed(() => foreignDays.value.length > 0 && foreignDays.value.every((d) => expanded.value.has(d)));
+const toggleDay = (date: string) => (expanded.value.has(date) ? expanded.value.delete(date) : expanded.value.add(date));
+const toggleAll = () => (expanded.value = allOpen.value ? new Set() : new Set(foreignDays.value));
 
 const visible = computed(() => props.schedule.shifts.filter((s) => (s.foreignGroup === undefined ? true : props.showForeign)));
 
-const passesFilter = (shift: Shift) => (filter.value === 'open' ? !isFull(shift) : filter.value === 'mine' ? isMine(shift) : true);
+const passesFilter = (shift: Shift) => (filter.value === 'open' ? !isFull(shift) : true);
 
 const days = computed(() =>
     byDay(visible.value.filter(passesFilter))
@@ -53,6 +67,9 @@ const days = computed(() =>
         }))
         .filter((bucket) => bucket.own.length || bucket.foreign.length),
 );
+
+const foreignDays = computed(() => days.value.filter((d) => d.foreign.length).map((d) => d.date));
+const foreignCount = computed(() => visible.value.filter((s) => s.foreignGroup !== undefined).length);
 
 const counts = computed(() => totals(props.schedule.shifts.filter((s) => s.foreignGroup === undefined)));
 
@@ -93,17 +110,30 @@ const rowTone = (shift: Shift) =>
             <span class="text-muted-foreground ml-auto text-xs">You're the Scheduler for {{ groupName }}</span>
         </div>
 
-        <!-- Filters. Three states, no dropdown — the whole set is visible at once. -->
+        <!-- Filters. Two states, no dropdown — the whole set is visible at once.
+             The master open/close-all for the foreign bands sits alongside, so the
+             existence of other Groups' Shifts is stated once at the top as well as
+             per day. -->
         <div v-if="schedule.shifts.length" class="flex flex-wrap items-center gap-2">
             <button
-                v-for="option in ['all', 'open', 'mine'] as Filter[]"
+                v-for="option in ['all', 'open'] as Filter[]"
                 :key="option"
                 type="button"
                 class="border px-3 py-1.5 text-sm transition-colors"
                 :class="filter === option ? 'border-rom-ink bg-rom-ink text-white' : 'border-input text-muted-foreground hover:text-rom-ink'"
                 @click="filter = option"
             >
-                {{ option === 'all' ? 'All shifts' : option === 'open' ? 'Open slots' : 'My shifts' }}
+                {{ option === 'all' ? 'All shifts' : 'Open slots' }}
+            </button>
+
+            <button
+                v-if="foreignCount"
+                type="button"
+                class="border-rom-slate/40 text-rom-slate hover:bg-rom-slate-50 ml-auto flex items-center gap-1.5 border border-dashed px-3 py-1.5 text-sm"
+                @click="toggleAll"
+            >
+                <component :is="allOpen ? PhCaretDown : PhCaretRight" class="size-3.5" />
+                {{ allOpen ? 'Hide' : 'Show' }} {{ foreignCount }} shifts open to you from other Groups
             </button>
         </div>
 
@@ -141,7 +171,7 @@ const rowTone = (shift: Shift) =>
 
                     <span class="min-w-0 flex-1">
                         <span class="text-rom-ink block font-medium">{{ shift.kind ?? 'Shift' }}</span>
-                        <span v-if="canSeeNames(viewer) && shift.signups.length" class="text-muted-foreground block text-sm">
+                        <span v-if="canSeeNames() && shift.signups.length" class="text-muted-foreground block text-sm">
                             <template v-for="(signup, i) in shift.signups" :key="signup.person.id">
                                 <span v-if="i">, </span>
                                 <span :class="signup.person.id === 1 ? 'text-rom-slate font-medium' : ''">{{ signup.person.name }}</span>
@@ -164,7 +194,7 @@ const rowTone = (shift: Shift) =>
                     </span>
 
                     <span class="flex shrink-0 items-center gap-1">
-                        <Button v-if="isMine(shift)" size="sm" variant="secondary" @click="drop(shift)">Drop</Button>
+                        <Button v-if="canDrop(shift, viewer)" size="sm" variant="secondary" @click="drop(shift)">Drop</Button>
                         <Button v-else-if="canTake(shift, viewer)" size="sm" @click="take(shift)">Sign up</Button>
                         <template v-if="canAuthor(shift, viewer)">
                             <Button size="sm" variant="ghost" class="px-2" title="Assign a volunteer"><PhUserPlus class="size-4" /></Button>
@@ -174,17 +204,32 @@ const rowTone = (shift: Shift) =>
                     </span>
                 </div>
 
-                <!-- Foreign band: another Group's `open` Shifts, kept out of the flow. -->
-                <div v-if="day.foreign.length" class="border-rom-slate/40 mt-2 border border-dashed p-3">
-                    <p class="text-muted-foreground mb-2 flex items-center gap-1 text-xs font-semibold tracking-wide uppercase">
-                        <PhCaretRight class="size-3" /> Open to you — {{ day.foreign[0].foreignGroup }}
-                    </p>
-                    <div v-for="shift in day.foreign" :key="shift.id" class="flex flex-wrap items-center gap-3 py-1.5">
+                <!-- Foreign band: another Group's `open` Shifts, kept out of the flow.
+                     Present but collapsed — one line that says what it is and how
+                     many, so it advertises itself instead of hiding behind a toggle
+                     nobody knows to look for. -->
+                <div v-if="day.foreign.length" class="border-rom-slate/40 mt-2 border border-dashed">
+                    <button
+                        type="button"
+                        class="text-rom-slate hover:bg-rom-slate-50 flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs font-semibold tracking-wide uppercase"
+                        :aria-expanded="expanded.has(day.date)"
+                        @click="toggleDay(day.date)"
+                    >
+                        <component :is="expanded.has(day.date) ? PhCaretDown : PhCaretRight" class="size-3 shrink-0" />
+                        {{ day.foreign.length }} more open to you — {{ day.foreign[0].foreignGroup }}
+                    </button>
+
+                    <div
+                        v-for="shift in day.foreign"
+                        v-show="expanded.has(day.date)"
+                        :key="shift.id"
+                        class="flex flex-wrap items-center gap-3 px-3 py-1.5 last:pb-3"
+                    >
                         <span class="text-rom-ink w-32 shrink-0 font-mono text-sm">{{ timeRange(shift) }}</span>
                         <span class="text-rom-ink flex-1 text-sm">{{ shift.kind }}</span>
                         <Badge variant="secondary" class="shrink-0">{{ shift.foreignGroup }}</Badge>
                         <span class="text-muted-foreground shrink-0 text-sm">{{ shift.signups.length }}/{{ shift.capacity }}</span>
-                        <Button v-if="isMine(shift)" size="sm" variant="secondary" @click="drop(shift)">Drop</Button>
+                        <Button v-if="canDrop(shift, viewer)" size="sm" variant="secondary" @click="drop(shift)">Drop</Button>
                         <Button v-else-if="canTake(shift, viewer)" size="sm" variant="secondary" @click="take(shift)">Sign up</Button>
                     </div>
                 </div>

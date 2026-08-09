@@ -18,11 +18,12 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { PhPlus } from '@phosphor-icons/vue';
+import { PhCaretDown, PhCaretRight, PhPlus } from '@phosphor-icons/vue';
 import { computed, ref } from 'vue';
 import {
     calendarWeeks,
     canAuthor,
+    canDrop,
     canSeeNames,
     canTake,
     dayLong,
@@ -46,7 +47,14 @@ const props = defineProps<{ schedule: Schedule; viewer: Viewer; groupName: strin
 const openDay = ref<string | null>(null);
 const sheetOpen = computed({ get: () => openDay.value !== null, set: (v: boolean) => (openDay.value = v ? openDay.value : null) });
 
-const visible = computed(() => props.schedule.shifts.filter((s) => (s.foreignGroup === undefined ? true : props.showForeign)));
+// A grid cell has no room for a collapsed band, so B's answer to the same problem
+// (Roy, 2026-08-08) is the master switch alone: one line above the grid stating what
+// exists and how many, chips off until it is clicked.
+const showOther = ref(false);
+
+const foreignCount = computed(() => props.schedule.shifts.filter((s) => s.foreignGroup !== undefined && props.showForeign).length);
+
+const visible = computed(() => props.schedule.shifts.filter((s) => (s.foreignGroup === undefined ? true : props.showForeign && showOther.value)));
 
 const weeks = computed(() => calendarWeeks(props.schedule.startsOn, props.schedule.endsOn));
 
@@ -94,14 +102,28 @@ const chipTone = (shift: Shift) =>
             <span class="text-muted-foreground ml-auto text-xs">Click any day to add shifts to it</span>
         </div>
 
-        <!-- Legend. A grid needs one; a list does not — worth noticing. -->
-        <div class="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-            <span class="flex items-center gap-1.5"><span class="border-success/60 size-3 border bg-white"></span> open</span>
-            <span class="flex items-center gap-1.5"><span class="bg-muted size-3"></span> full</span>
-            <span class="flex items-center gap-1.5"><span class="bg-rom-slate size-3"></span> yours</span>
-            <span v-if="showForeign" class="flex items-center gap-1.5"
-                ><span class="border-rom-slate/50 bg-rom-slate-50 size-3 border border-dashed"></span> another Group</span
+        <!-- Legend, and the master switch for other Groups' `open` Shifts. A grid needs
+             a legend; a list does not — worth noticing. -->
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div class="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                <span class="flex items-center gap-1.5"><span class="border-success/60 size-3 border bg-white"></span> open</span>
+                <span class="flex items-center gap-1.5"><span class="bg-muted size-3"></span> full</span>
+                <span class="flex items-center gap-1.5"><span class="bg-rom-slate size-3"></span> yours</span>
+                <span v-if="showOther" class="flex items-center gap-1.5"
+                    ><span class="border-rom-slate/50 bg-rom-slate-50 size-3 border border-dashed"></span> another Group</span
+                >
+            </div>
+
+            <button
+                v-if="foreignCount"
+                type="button"
+                class="border-rom-slate/40 text-rom-slate hover:bg-rom-slate-50 ml-auto flex items-center gap-1.5 border border-dashed px-3 py-1.5 text-sm"
+                :aria-pressed="showOther"
+                @click="showOther = !showOther"
             >
+                <component :is="showOther ? PhCaretDown : PhCaretRight" class="size-3.5" />
+                {{ showOther ? 'Hide' : 'Show' }} {{ foreignCount }} shifts open to you from other Groups
+            </button>
         </div>
 
         <!-- The grid. Cells keep a fixed minimum height so a bare week reads as bare. -->
@@ -179,7 +201,7 @@ const chipTone = (shift: Shift) =>
                             >
                         </p>
 
-                        <ul v-if="canSeeNames(viewer) && shift.signups.length" class="flex flex-col gap-1 text-sm">
+                        <ul v-if="canSeeNames() && shift.signups.length" class="flex flex-col gap-1 text-sm">
                             <li v-for="signup in shift.signups" :key="signup.person.id" class="flex items-center gap-2">
                                 <span :class="signup.person.id === 1 ? 'text-rom-slate font-medium' : 'text-rom-ink'">{{ signup.person.name }}</span>
                                 <span v-if="signup.assigned" class="text-muted-foreground text-xs">assigned</span>
@@ -195,7 +217,7 @@ const chipTone = (shift: Shift) =>
                         </ul>
 
                         <div class="flex flex-wrap gap-2">
-                            <Button v-if="isMine(shift)" size="sm" variant="secondary" @click="drop(shift)">Drop</Button>
+                            <Button v-if="canDrop(shift, viewer)" size="sm" variant="secondary" @click="drop(shift)">Drop</Button>
                             <Button v-else-if="canTake(shift, viewer)" size="sm" @click="take(shift)">Sign up</Button>
                             <template v-if="canAuthor(shift, viewer)">
                                 <Button size="sm" variant="ghost">Assign…</Button>

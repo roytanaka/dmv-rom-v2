@@ -67,9 +67,7 @@ const wide = computed(() => days.value.length <= 10);
 const seatTitle = (shift: Shift, index: number) => {
     const signup = shift.signups[index];
     if (!signup) return `${shift.kind ?? 'Shift'} ${timeRange(shift)} — open`;
-    return canSeeNames(props.viewer)
-        ? `${signup.person.name}${signup.assigned ? ' (assigned)' : ''}`
-        : `${shift.kind ?? 'Shift'} ${timeRange(shift)} — taken`;
+    return canSeeNames() ? `${signup.person.name}${signup.assigned ? ' (assigned)' : ''}` : `${shift.kind ?? 'Shift'} ${timeRange(shift)} — taken`;
 };
 
 const seatTone = (shift: Shift, index: number) => {

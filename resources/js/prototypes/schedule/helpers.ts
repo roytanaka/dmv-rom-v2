@@ -45,17 +45,28 @@ export function canTake(shift: Shift, viewer: Viewer): boolean {
     return true;
 }
 
+/**
+ * Whether the viewer may give this Shift back. Mirrors `canTake`'s audience rule —
+ * you can only drop a Sign-up you could have made — which also keeps the fixture
+ * honest when the audience toggle flips underneath seeded sign-ups.
+ */
+export const canDrop = (shift: Shift, viewer: Viewer) => isMine(shift) && (viewer.role !== 'nonmember' || shift.audience === 'open');
+
 /** A Scheduler authors their own Group's Shifts only — never a foreign one. */
 export const canAuthor = (shift: Shift, viewer: Viewer) => viewer.role === 'scheduler' && shift.foreignGroup === undefined;
 
 /**
  * Whether the viewer sees WHO is signed up, or only how many.
  *
- * Nothing in the map decided this. Drawing it forces the question: legacy shows
- * names to everyone who can see the schedule, and this map made the read audience
- * org-wide (#328), which is a wider audience than legacy's.
+ * Decided 2026-08-08 (Roy): **names, for every viewer who can read the Schedule**.
+ * Drawing it surfaced the question — legacy shows names to everyone who can see the
+ * schedule, but #328 made the read audience org-wide, which is wider than legacy's,
+ * so the inherited behaviour was not automatically safe. It stands: a Schedule is a
+ * roster of who is on the floor, and a name on it is no more exposing than the
+ * Directory, which is already org-open. Consequence for #331: this is a field the
+ * ADR-0017 §6 allowlist has to name explicitly rather than leave to inheritance.
  */
-export const canSeeNames = (viewer: Viewer) => viewer.role !== 'nonmember';
+export const canSeeNames = () => true;
 
 // ---------------------------------------------------------------- mutations (in-memory)
 

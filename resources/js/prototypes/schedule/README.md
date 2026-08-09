@@ -7,6 +7,32 @@ error handling beyond what makes it run.
 > Three variants of the opened Schedule, switchable via `?variant=`, mounted on the
 > existing `/groups/{slug}/scheduling` section.
 
+## Answered (Roy, 2026-08-08) — #330 is resolved
+
+All three are still here: the losers are the primary source, and the reasoning below
+only makes sense next to what was rejected.
+
+1. **A and B both ship, as two views of one Schedule.** C is out.
+2. **The viewer picks**, not the Scheduler — a Schedule setting would be legacy's
+   `DisplayStyle` again, letting one Scheduler impose a layout on 500 people.
+3. **The choice is remembered client-side** (localStorage). No member column, no
+   Schedule column, no settings screen, nothing to migrate.
+4. **Agenda is the default.** The tempting rule is "Calendar for a month, Agenda for
+   an event" — but #324 deliberately killed the monthly marker, so a shape-dependent
+   default would have to re-derive it from the date range with a magic number in it.
+   Agenda reads fine at 3 days or 30, and never breaks on a phone.
+5. **Names are visible to every viewer who can read the Schedule**, non-members
+   included. See `canSeeNames` in `helpers.ts` for the reasoning and the consequence
+   for ADR-0017 §6.
+6. **Other Groups' `open` Shifts are advertised, not hidden.** In A, a per-day band
+   that is always present but collapsed to one line naming the owning Group and the
+   count, plus a master open/close-all. In B — a grid cell has no room for a band —
+   the master switch alone, chips off until clicked. The first draw hid them behind
+   an off-by-default toggle, and that was undiscoverable: nobody turns on a thing
+   they don't know exists.
+7. **No "My shifts" filter.** Answering "what am I on" is My Calendar's job; a
+   per-Schedule copy would be a second, worse answer, one Group at a time.
+
 ## Run it
 
 ```bash
@@ -41,6 +67,10 @@ Sign up / drop mutate the fixture **in memory** — reload, or switch fixture an
 to reset.
 
 ## The three variants
+
+**A and B won. C is kept as the rejected option** — the axis swap it exists to argue
+for is genuinely the answer to legacy's `DisplayStyle`, and that argument is only
+legible next to the thing itself.
 
 |                  | bet                                                                                                                                                                                                                                                                                                      | cost                                                                                                 |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
