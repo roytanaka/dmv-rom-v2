@@ -73,12 +73,25 @@ _Avoid_: treating "committee" as the organizing entity, or "subcommittee" as a s
 **Program**:
 A **Kind** of **Group**: the member-facing operating units that run scheduling, content, and stats (docents, gallery guides, GDR, reception, special events). Distinguished from a **Committee** mainly by having the scheduling + stats capabilities turned on.
 
+**Schedule**:
+The container a **Group** publishes its **Shifts** in — a **named date range** owned by exactly one Group, in one of two states: `draft` (seen only by the Group's Scheduler/Chair and super-tier) or `published` (seen by the Group's `listing_visibility` audience). A calendar month is the common case, not a separate kind: "August 2026" and a Visitor Wayfinders occasion are the same entity with different ranges and names. Schedules may overlap, are kept indefinitely, and can be un-published or deleted only while they hold zero **Sign-ups**. Its `name` and `description` are as-authored **content** — never translated. See [ADR-0021](docs/adr/0021-scheduling-first-pass.md).
+_Avoid_: "the month" or "the event" for this (see **Event** under Legacy vocabulary); and calling the _authoring screen_ a Schedule — that is a surface, this is the row.
+
 **Shift**:
-A dated thing a **Member** signs up to staff — a tour, a desk slot, an event role. Has a date, time, capacity, location, and (depending on the **Program**) an optional reserved object or qualification requirement. The unit of scheduling. Programs name it differently — docents say "tour," Visitor Guides say "shift" — but **Shift** is the canonical umbrella term. A recurring **Shift** is spawned from a repeat rule; a Group may also create one-off Shifts directly.
+A dated thing a **Member** signs up to staff — a tour, a desk slot, an event role. The unit of scheduling. Belongs to exactly one **Schedule** (mandatory — there are no orphan Shifts) and carries a start and end time, an integer **capacity**, an optional **shift kind**, and an **audience**. Programs name it differently — docents say "tour," Visitor Guides say "shift" — but **Shift** is the canonical umbrella term.
+_Avoid_: reading a Shift as one person's seat — it is a **slot** that holds up to `capacity` **Sign-ups**. Per-seat facts (one volunteer's hours, one volunteer's visitor count) belong on the Sign-up. And note what a Shift does **not** carry: no location (kind is the only descriptive axis), no state of its own (it inherits the Schedule's), no qualification flag (a requirement hangs off the **shift kind**), and no repeat rule — recurring Shifts are **bulk-written**, never spawned from a stored pattern.
+
+**Shift kind**:
+An entry in a **Group**'s small list of the kinds of shift it runs — "Desk", "Shadow", "Level 2 greeter". Per Group, nullable on a **Shift** (Reception's Shifts carry none). Model `ShiftKind`, table `shift_kinds`. This is [ADR-0015](docs/adr/0015-scheduling-model.md)'s **Catalog**, renamed. A **qualification** requirement hangs off the kind, never off the dated Shift — decided in shape only; nothing is built.
+_Avoid_: "Catalog" (already three other things in this repo: the content catalog capability, the role catalog, the persona catalogue), and legacy's `Activity` / `Role` / `Type` (see Legacy vocabulary).
 
 **Sign-up**:
-The record that a **Member** has taken (or been assigned) a **Shift**. Carries cancel / swap / assistant state.
-_Avoid_: confusing with **Login** (authentication) — a Sign-up is _staffing a Shift_, not authenticating.
+The record that a **Member** has taken (or been assigned) a **Shift** — one Member, one Shift. Created by the Member themselves or by the Group's **Scheduler**; one entity, two actors. Carries **no state**: cancelling is deleting it, allowed for as long as the Member could have taken it (until the Shift starts — no deadline). A Member may hold Sign-ups on overlapping Shifts, but never two on the same Shift.
+_Avoid_: confusing with **Login** (authentication) — a Sign-up is _staffing a Shift_, not authenticating. And "cancel state", "swap", "assistant" — swap and assistants are not built, and cancel is a deletion, not a state.
+
+**Audience** (of a **Shift**):
+Who may take it: `group` (the default — Members of the owning Group, in a per-Group standing that permits sign-up) or `open` (any Member who can read the **Schedule**). This is what makes cross-Group participation a **read filter** rather than a relationship — there is no second row and nothing to keep in sync. A **Scheduler** placing a named volunteer is not bound by it.
+_Avoid_: reading audience as an eligibility gate. Two separate floors decide whether a person may work at all (`Category::canSignUp()` DMV-wide, `MembershipStatus::canSignUp()` per Group); audience only decides who is shown a Sign-up button.
 
 **Chrome**:
 The application's persistent **frame** — the top bar, side rail, breadcrumb strip, and footer that wrap every screen and stay put while the page content changes. A UI term (after [GUI chrome](https://www.nngroup.com/articles/browser-and-gui-chrome/)), unrelated to the web browser. The Part 3 app shell _is_ the chrome; product screens render inside it.
@@ -104,7 +117,7 @@ _Avoid_: epic, spec, brief, initiative — all refer to the same artifact in oth
 - A **Member** has exactly one identity (one unique email, one password)
 - A **Member** may belong to zero or more **Groups**; each **Membership** carries the **role(s)** that Member holds in that Group
 - A **Group** has one parent (one tree, DMV at the root); **Committee** and **Program** are Kinds of Group
-- A **Program** that runs scheduling offers **Shifts**; a **Member** takes a **Shift** via a **Sign-up**
+- A **Group** with the scheduling capability publishes **Schedules**; a **Schedule** holds **Shifts**; a **Member** takes a **Shift** via a **Sign-up**, and one Shift holds up to `capacity` Sign-ups
 - **Login** to the app grants the **Member** their session and their authorization scope
 
 ## Example dialogue
@@ -134,28 +147,32 @@ Read this before legacy archaeology or migration work. Every one of these has al
 
 _Avoid_: "the scheduler" with no article of precision. Name the role, the screen, or the Member.
 
-**Role** (legacy `specialRoles`, `RoleID`):
-In legacy scheduling, a _kind of position within an event_ — "Level 2 greeter", "Plan Your Visit desk". It is a **kind of Shift**, and has nothing to do with authority.
+**Role** (legacy `specialRoles` / `RoleID`, and `outreachRole` / `outreachgroupToORMember.Role`):
+In legacy scheduling, a _kind of position within an event_ — "Level 2 greeter", "Plan Your Visit desk", Outreach's "Leader" vs "Presenter". It is a **shift kind**, and has nothing to do with authority. Two Groups do this, not one: Wayfinders hangs it off the dated row, Outreach hangs it off the _assignment_ (the only place in ten Groups where it does), which turned out to be one booking row doing two jobs — two members with different kinds is two **Shifts** in one **Schedule**. Outreach's 2-character `Symbol` limit is a browser string-offset bug, not a domain rule; nothing carries it forward.
 _Avoid_: reading legacy `RoleID` as one of our **roles**. Ours (Chair, Secretary, Scheduler, …) confer authority; legacy's describe work. Two unrelated concepts sharing a column name.
+
+**Booking** (legacy `*groupTours`, `rombusTrip`, `walkerSchedules status='group'`):
+An outside organization engaging a **Group** for a dated engagement — a school books a tour, a community group books a presentation — which the Group then staffs. **Not** a **Sign-up**, a **Schedule**, or a **Shift**: the separable half is a _customer record with a date on it_ (client name and address, contact details, venue type, honorarium, billing class, order number, guest manifest). Five Groups have it — Outreach, ROMBus, Walker, **and Docents and GDR**, who also run ordinary shifts — so it is a **capability orthogonal to scheduling**, not a Group shape. Deferred out of the scheduling first pass ([ADR-0021](docs/adr/0021-scheduling-first-pass.md)); the _staffing_ half of a booking is expressible today as a Schedule with the Shifts it needs.
+_Avoid_: treating a booking as a kind of Shift, and treating legacy as a design to port — **there is no organization table at all**; the client is re-entered every time and auto-filled by a `LIKE` search of prior bookings.
 
 **Event** — three senses:
 
-- _legacy_ `specialEvents` — the **date-range schedule container** for Visitor Wayfinders. Whether we have an equivalent, and what it is called, is open ([#324](https://github.com/roytanaka/dmv-rom-v2/issues/324)).
-- _plain English_ — a real-world happening at the ROM (an open house, an exhibit opening). Not a system concept.
+- _legacy_ `specialEvents` — the **date-range schedule container** for Visitor Wayfinders. **We call this a `Schedule`** ([ADR-0021](docs/adr/0021-scheduling-first-pass.md)) — the same entity a monthly Group uses, with a different range and name.
+- _plain English_ — a real-world happening at the ROM (an open house, an exhibit opening). Not a system concept — and deliberately unmodelled, so two Groups both staffing Doors Open produce two Schedules of the same name with nothing joining them.
 - _our_ **Group** definition — "event cohort" appears as one of the things that is a Group.
 
-_Avoid_: bare "event". Say _schedule container_, _the occasion_, or _Group_.
+_Avoid_: bare "event". Say **Schedule**, _the occasion_, or **Group**.
 
 **Program** — three senses:
 
 - _our_ **Program** — a Kind of **Group** (see above). The only correct use.
 - _Adrian's_ "special programs" — time-boxed exhibits or initiatives. In our model these are Groups too, but the phrase is not a Kind.
-- _"training program"_ — the thing a Member completes to earn a qualification. Unbuilt; see the scheduling map's out-of-scope note.
+- _"training program"_ — the thing a Member completes to earn a qualification. Unbuilt; deliberately out of the scheduling first pass ([ADR-0021](docs/adr/0021-scheduling-first-pass.md) § _Deliberately out of the first pass_), which decides only that a requirement hangs off a **shift kind** and points at a named **Qualification**.
 
 **Activity** (legacy `specialActivities`, `ActivityID`):
 An entry in Visitor Wayfinders' hand-maintained list of shift kinds, chosen from a picker when authoring. In practice many entries name a **place** ("Level 1 Oslo gate", "Level 2 dinosaurs") rather than a kind of work, so activity and location are conflated at source and will not split cleanly on migration.
 Separately, "member activity" in reporting contexts means **hours and statistics rows** — an unrelated use.
-Whether we keep a per-Group list of shift kinds (ADR-0015 calls it a _Catalog_) is open ([#326](https://github.com/roytanaka/dmv-rom-v2/issues/326)).
+We **do** keep a per-Group list, and we call it a **shift kind** (`ShiftKind`), not ADR-0015's _Catalog_ — see the glossary above.
 
 **Pattern** (legacy "daily pattern", "weekly pattern", "two-week pattern", "copy pattern from"):
 A stored template a legacy generator fans out into dated rows. It conceals **two** different ideas:
@@ -163,11 +180,12 @@ A stored template a legacy generator fans out into dated rows. It conceals **two
 - a repeating **Shift** template — the shifts that exist each week; and
 - a repeating **Sign-up** — a Member who holds the same slot every week or every second week.
 
-Reception's two-week pattern is the second wearing the clothes of the first: its shifts are weekly, and the fortnight exists only because some Members attend on alternate weeks. Which of the two we build, if either, is open ([#329](https://github.com/roytanaka/dmv-rom-v2/issues/329)).
-_Avoid_: "pattern" unqualified. Say _shift template_ or _recurring Sign-up_.
+Reception's two-week pattern is the second wearing the clothes of the first: its shifts are weekly, and the fortnight exists only because some Members attend on alternate weeks. Confirmed by the schema, not only by testimony — `Colour` appears in exactly the two Groups that name a person on a pattern row (`receptionweeklySchedule.commID`, `vgweeklySchedule.VgID`) and nowhere else.
+**We build neither** ([ADR-0021](docs/adr/0021-scheduling-first-pass.md)). This is pure legacy vocabulary: nothing recurring is stored, and a Scheduler **bulk-writes** N ordinary rows instead — bulk-create Shifts, bulk-place a Member weekly or biweekly, each with a symmetric bulk undo. Note also that legacy's "copy pattern from" copies the previous _event's day-pattern template_, never a Schedule or its Shifts — there is no schedule-duplication feature over there to port.
+_Avoid_: "pattern" unqualified. Say _shift template_ or _recurring Sign-up_ — and expect to be describing legacy when you do.
 
 **Count** (legacy column):
-Means **capacity** (how many people) in some tables and **duration in hours** in others — and the hours sense is load-bearing in a cross-table join. A name to retire, never to carry forward.
+Two meanings, neither of them capacity: **duration in hours** (Visitor Guides, Wayfinders, Reception, Gallery Interpreters) and **quantity of tours given** (Docents, GDR, and Gallery Interpreters again — the same column, both ways). The two are reconciled outside the tables by a hardcoded per-Group multiplier (`hoursper`: every Group `1`, **Walker `2`**), so any migration that maps `Count → Count` silently corrupts a Group's hours. Capacity is always a _different_ column (`Required`, `PresentersNeeded`) or it is N identical rows. A name to retire, never to carry forward — our **Shift** derives duration from its start and end times.
 
 **Special** (legacy table prefix and menu symbol):
 Means **Visitor Wayfinders**, the Group. Legacy names its tables `specialEvents`, `specialSchedule`, `specialActivities`, `specialRoles`.
@@ -182,4 +200,5 @@ No relationship whatsoever. Both appear in this repo's issues.
 
 **MIS** (legacy eligibility value `99`, labelled "MIS only"):
 A coarse cross-Group audience for a legacy shift. **Not** a designation stored on a Member — it is evaluated on the spot as active membership in any of six Groups: Gallery Interpreters, Docents, GDR, Visitor Guides, Outreach, Visitor Wayfinders. A hardcoded union that nobody maintains.
-_Avoid_: treating it as a qualification or a standing. Whether we model an equivalent is open ([#327](https://github.com/roytanaka/dmv-rom-v2/issues/327)).
+**Not ported** ([ADR-0021](docs/adr/0021-scheduling-first-pass.md)). Our **audience** enum has two values, `group` and `open`; `MIS` and legacy's three other values (nobody, a committee id, a subcommittee id) are dropped. A proper Group-list audience covers this case when a Group needs it, and the two-value enum widens to one without reshaping **Sign-up**.
+_Avoid_: treating it as a qualification or a standing.
