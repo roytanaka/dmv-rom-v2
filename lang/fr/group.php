@@ -183,7 +183,7 @@ return [
         'bulk' => [
             'skipped_outside_range' => 'Ignoré — cette journée se situe en dehors de la plage de dates de l’horaire.',
             'skipped_has_sign_ups' => 'Ignoré — ce créneau compte des membres inscrits. Retirez-les d’abord.',
-            // Placement groupée des inscriptions d’un·e membre (#363, ADR-0021 §5) — une
+            // Placement groupé des inscriptions d’un·e membre (#363, ADR-0021 §5) — une
             // exécution respecte la capacité et la règle d’une seule place par rangée,
             // en ignorant et nommant ce qu’elle ne peut inscrire.
             'skipped_full' => 'Ignoré — ce créneau est déjà complet.',
