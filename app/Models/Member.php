@@ -7,6 +7,7 @@ use App\Enums\Category;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use Database\Factories\MemberFactory;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +17,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
-class Member extends Authenticatable
+class Member extends Authenticatable implements HasLocalePreference
 {
     /** @use HasFactory<MemberFactory> */
     use HasFactory, Notifiable;
@@ -40,6 +41,7 @@ class Member extends Authenticatable
         'address_country',
         'password',
         'category',
+        'locale',
     ];
 
     /**
@@ -117,6 +119,18 @@ class Member extends Authenticatable
             Category::cases(),
             fn (Category $category) => $category->grantsDirectoryListing(),
         ));
+    }
+
+    /**
+     * The locale system-generated messages address this Member in (Laravel's
+     * {@see HasLocalePreference}). The mailer reads it to render each recipient's copy of a
+     * notification in their own language — the Sign-up cancellation email is the first
+     * reader (#358) — so a French Scheduler and an English one are each written to correctly
+     * from one send loop. Falls back to the app locale when the column is unset.
+     */
+    public function preferredLocale(): ?string
+    {
+        return $this->locale;
     }
 
     /**
