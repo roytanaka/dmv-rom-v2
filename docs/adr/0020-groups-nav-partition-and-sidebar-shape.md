@@ -55,9 +55,11 @@ Other Groups **excludes any Group the Member belongs to** (Full / LOA — the sa
 
 ### F. My Groups nests one level (the DMV node excepted)
 
-My Groups changes from flat to **nested one level**: each Group the Member belongs to shows, beneath it, the children of that Group the Member is entitled to see (its `Group`-visibility working groups, since the Member is a parent-member; any `Private` child the Member belongs to). **The root DMV node is the sole exception** — it stays a leaf (§B).
+My Groups changes from flat to **nested one level**: each Group the Member belongs to shows, beneath it, **every child of that Group the Member is entitled to see** — the _same_ `listing_visibility` rule §D/PR #274 prunes Other Groups with, applied to the row's children: `Public` children, `Group`-visibility children (the Member is a parent-member by construction), and any `Private` child the Member belongs to. **The root DMV node is the sole exception** — it stays a leaf (§B).
 
 This is where ADR-0019's _"`Group` = shown to parent-Group members in the rail"_ now lands. Under the §E own-Groups prune, a `Group`-visibility node is shown to **nobody** in Other Groups (parent-members have the parent pruned; non-parent-members have the child pruned), so without nesting the facet would have **no rail effect at all**. Nesting My Groups restores it: a program's members see their sub-teams in the rail — in the zone that holds "their world."
+
+**Amended (fix, 2026-08-09).** This section originally enumerated only `Group`-visibility and belonged-`Private` children, excluding `Public` ones on the reasoning that they "stay browsable in Other Groups." They do not: §E removes the belonged parent from Other Groups **with its whole subtree**, so a `Public` child of a Group you belong to was visible to every Member _except_ that Group's own — reported from staging as Reception's `Public` "Library" sub-group missing from a Reception member's rail while an outsider saw it under `Programs ▸ Reception`. Entitlement here is now the shared prune, not a restatement of it, which closes the hole and keeps §A a true partition.
 
 ### G. Friends is a real container; Associated Friends is a committee
 
