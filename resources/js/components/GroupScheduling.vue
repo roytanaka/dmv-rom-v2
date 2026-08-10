@@ -15,6 +15,8 @@
 // PATCH carrying the new `state`. Every mutation is enforced by the SchedulePolicy
 // regardless of what renders. Names and descriptions are as-authored content
 // (ADR-0004); everything else is translated chrome.
+import ScheduleCalendar from '@/components/ScheduleCalendar.vue';
+import ShiftCard from '@/components/ShiftCard.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,9 +28,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { groupShiftsByDay } from '@/scheduling/agenda';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import { PhArrowLeft, PhEye, PhEyeSlash, PhPencilSimple, PhPlus, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
+import { PhArrowLeft, PhCalendarBlank, PhEye, PhEyeSlash, PhListBullets, PhPencilSimple, PhPlus, PhTrash } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{ scheduling: Scheduling; canCreate: boolean; groupSlug: string }>();
 
@@ -48,19 +50,31 @@ const dateRange = (starts: string, ends: string) => trans('group.scheduling_pane
 // runs on that same wall clock in a pure module the Calendar will share.
 const timeZone = page.props.timezone;
 
-const formatTime = (iso: string) => new Intl.DateTimeFormat(page.props.locale, { timeStyle: 'short', timeZone }).format(new Date(iso));
-
 // The opened Schedule's Shifts, bucketed into ascending days. Each day heads a block;
-// within a day the server's start order is preserved.
+// within a day the server's start order is preserved. Both views read this same grouping.
 const agenda = computed(() => (props.scheduling.open ? groupShiftsByDay(props.scheduling.open.shifts, timeZone) : []));
-
-const timeRange = (starts: string, ends: string) =>
-    trans('group.scheduling_panel.agenda.time_range', { start: formatTime(starts), end: formatTime(ends) });
 
 // The day heading is a plain calendar date (already the org-wall-clock day), formatted
 // like the range: parsed as local midnight so no zone shift lands it on the day before.
 const formatDay = (date: string) =>
     new Intl.DateTimeFormat(page.props.locale, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(`${date}T00:00:00`));
+
+// --- View preference (#360, ADR-0021 §7) — the reader chooses, not the Scheduler ------
+
+// Agenda or Calendar. The viewer picks and the choice is remembered client-side only —
+// no member column, no Schedule column, no route, no server state (ADR-0021 §7). Agenda is
+// what a reader gets before choosing: the ref starts there and is hydrated from
+// localStorage on mount, so SSR and the first paint are always the Agenda. `localStorage`
+// is touched only inside `onMounted`/`watch`, which never run during SSR.
+const VIEW_KEY = 'dmv.scheduling.view';
+const view = ref<'agenda' | 'calendar'>('agenda');
+
+onMounted(() => {
+    const saved = localStorage.getItem(VIEW_KEY);
+    if (saved === 'agenda' || saved === 'calendar') view.value = saved;
+});
+
+watch(view, (value) => localStorage.setItem(VIEW_KEY, value));
 
 // The list arrives already ordered (current & upcoming first, then past). Splitting
 // here only heads the two blocks; an empty block is dropped rather than left bare.
@@ -163,9 +177,6 @@ const drop = (shift: ShiftAgendaItem) => {
         router.delete(route('sign-ups.destroy', { signUp: shift.signup_id }), { preserveScroll: true });
     }
 };
-
-// The seated Members' display names ("First Last"), for the "who I'll be working with" line.
-const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.first_name} ${signUp.last_name}`;
 
 // --- Officer assignment and removal (#359) — the Scheduler seats and clears a named Member ---
 
@@ -307,73 +318,70 @@ const removeSeat = (signUpId: number) => {
                 </CardContent>
             </Card>
 
-            <!-- Agenda (#355) — the Schedule's Shifts, grouped by day on the org wall
-                 clock. Reads the same at 3 days or 30; each Shift shows its time range,
-                 kind (where the Group uses kinds), and how many of its seats are taken. -->
-            <section v-if="agenda.length" class="flex flex-col gap-4" :aria-label="trans('group.scheduling_panel.agenda.aria_label')">
+            <!-- View toggle (#360) — the reader chooses Agenda or Calendar; the Scheduler
+                 has no equivalent control in the authoring form. Presentation only: it hits
+                 no route and only shows once there are Shifts to lay out either way. -->
+            <div v-if="agenda.length" class="flex justify-end">
+                <div class="bg-muted inline-flex rounded-md p-0.5" role="group" :aria-label="trans('group.scheduling_panel.view.aria_label')">
+                    <Button
+                        type="button"
+                        size="sm"
+                        :variant="view === 'agenda' ? 'default' : 'ghost'"
+                        class="gap-1.5"
+                        :aria-pressed="view === 'agenda'"
+                        @click="view = 'agenda'"
+                    >
+                        <PhListBullets class="size-4" />
+                        {{ trans('group.scheduling_panel.view.agenda') }}
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        :variant="view === 'calendar' ? 'default' : 'ghost'"
+                        class="gap-1.5"
+                        :aria-pressed="view === 'calendar'"
+                        @click="view = 'calendar'"
+                    >
+                        <PhCalendarBlank class="size-4" />
+                        {{ trans('group.scheduling_panel.view.calendar') }}
+                    </Button>
+                </div>
+            </div>
+
+            <!-- Agenda (#355) — the Schedule's Shifts, grouped by day on the org wall clock.
+                 Reads the same at 3 days or 30. Each Shift is the shared ShiftCard, so the
+                 Calendar's day sheet shows the same facts and affordances. -->
+            <section
+                v-if="agenda.length && view === 'agenda'"
+                class="flex flex-col gap-4"
+                :aria-label="trans('group.scheduling_panel.agenda.aria_label')"
+            >
                 <div v-for="day in agenda" :key="day.date" class="flex flex-col gap-2">
                     <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">{{ formatDay(day.date) }}</h3>
-                    <Card v-for="shift in day.shifts" :key="shift.id">
-                        <CardContent class="flex flex-col gap-2 py-4">
-                            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                    <span class="text-rom-ink font-medium">{{ timeRange(shift.starts_at, shift.ends_at) }}</span>
-                                    <span v-if="shift.kind" class="text-muted-foreground text-sm">{{ shift.kind }}</span>
-                                </div>
-                                <span class="text-muted-foreground text-sm tabular-nums">
-                                    {{
-                                        trans('group.scheduling_panel.agenda.seats', { taken: String(shift.taken), capacity: String(shift.capacity) })
-                                    }}
-                                </span>
-                            </div>
-
-                            <!-- Who is on the floor (#357) — visible to every reader who can read
-                                 the Schedule, non-members included. Each seat is a chip; a schedule
-                                 admin gets a remove (×) on every seat (officer removal, #359). An
-                                 honest empty line otherwise. -->
-                            <div v-if="shift.signups.length" class="flex flex-wrap items-center gap-1.5">
-                                <span class="text-muted-foreground text-sm font-medium"
-                                    >{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span
-                                >
-                                <Badge v-for="signUp in shift.signups" :key="signUp.id" variant="secondary" class="gap-1 font-normal">
-                                    {{ signUpName(signUp) }}
-                                    <button
-                                        v-if="signUp.signup_id"
-                                        type="button"
-                                        class="hover:text-destructive -mr-0.5 rounded-full transition-colors"
-                                        :aria-label="trans('group.scheduling_panel.agenda.assign.remove')"
-                                        @click="removeSeat(signUp.signup_id)"
-                                    >
-                                        <PhX class="size-3" />
-                                    </button>
-                                </Badge>
-                            </div>
-                            <p v-else class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.agenda.sign_up.nobody') }}</p>
-
-                            <!-- Take / drop, from the same place. `signup_id` means "I hold a seat";
-                                 `can.signUp` means "a free seat is offered to me". A full Shift the
-                                 viewer has no seat on shows as full with neither button. The
-                                 Scheduler's assign (#359) sits beside them — the officer path onto
-                                 a Shift with a free seat, regardless of the viewer's own seat. -->
-                            <div class="flex flex-wrap items-center gap-2">
-                                <Button v-if="shift.signup_id !== null" type="button" variant="outline" size="sm" @click="drop(shift)">
-                                    {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
-                                </Button>
-                                <Button v-else-if="shift.can.signUp" type="button" size="sm" @click="take(shift)">
-                                    {{ trans('group.scheduling_panel.agenda.sign_up.take') }}
-                                </Button>
-                                <span v-else-if="shift.taken >= shift.capacity" class="text-muted-foreground text-sm font-medium">
-                                    {{ trans('group.scheduling_panel.agenda.sign_up.full') }}
-                                </span>
-                                <Button v-if="shift.can.assign" type="button" variant="outline" size="sm" class="gap-1.5" @click="openAssign(shift)">
-                                    <PhUserPlus class="size-4" />
-                                    {{ trans('group.scheduling_panel.agenda.assign.place') }}
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <ShiftCard
+                        v-for="shift in day.shifts"
+                        :key="shift.id"
+                        :shift="shift"
+                        @take="take"
+                        @drop="drop"
+                        @assign="openAssign"
+                        @remove="removeSeat"
+                    />
                 </div>
             </section>
+
+            <!-- Calendar (#360) — the same Shifts laid out as a month grid; a day opens a
+                 sheet of the same ShiftCards. -->
+            <ScheduleCalendar
+                v-else-if="agenda.length && view === 'calendar'"
+                :agenda="agenda"
+                :starts-on="scheduling.open.starts_on"
+                :ends-on="scheduling.open.ends_on"
+                @take="take"
+                @drop="drop"
+                @assign="openAssign"
+                @remove="removeSeat"
+            />
 
             <!-- Honest empty state — the Schedule is published but holds no Shifts yet. -->
             <p v-else class="text-muted-foreground py-8 text-center text-sm">{{ trans('group.scheduling_panel.agenda.empty') }}</p>

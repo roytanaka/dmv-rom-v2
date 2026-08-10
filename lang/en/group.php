@@ -222,6 +222,20 @@ return [
                 'confirm_remove' => 'Remove this member from the shift?',
             ],
         ],
+        // View toggle (#360, ADR-0021 §7) — the reader chooses Agenda or Calendar; the
+        // choice lives in localStorage, never in the authoring form. Agenda is the default.
+        'view' => [
+            'aria_label' => 'Choose a view',
+            'agenda' => 'Agenda',
+            'calendar' => 'Calendar',
+        ],
+        // Calendar (#360) — the month-grid view and its day sheet.
+        'calendar' => [
+            'aria_label' => 'Calendar',
+            'previous' => 'Previous month',
+            'next' => 'Next month',
+            'shift_count' => '{1} :count shift|[2,*] :count shifts',
+        ],
     ],
 
     // Role labels — the Group's officers, by role (leadership at a glance).

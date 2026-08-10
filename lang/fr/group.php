@@ -208,6 +208,21 @@ return [
                 'confirm_remove' => 'Retirer ce membre du quart ?',
             ],
         ],
+        // Bascule de vue (#360, ADR-0021 §7) — la ou le lecteur choisit Agenda ou
+        // Calendrier ; le choix vit dans localStorage, jamais dans le formulaire de
+        // rédaction. L’Agenda est la vue par défaut.
+        'view' => [
+            'aria_label' => 'Choisir une vue',
+            'agenda' => 'Agenda',
+            'calendar' => 'Calendrier',
+        ],
+        // Calendrier (#360) — la vue en grille mensuelle et sa fiche du jour.
+        'calendar' => [
+            'aria_label' => 'Calendrier',
+            'previous' => 'Mois précédent',
+            'next' => 'Mois suivant',
+            'shift_count' => '{1} :count créneau|[2,*] :count créneaux',
+        ],
     ],
 
     'role' => [

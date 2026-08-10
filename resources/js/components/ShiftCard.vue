@@ -1,0 +1,91 @@
+<script setup lang="ts">
+// One Shift, rendered identically wherever it appears (#360, ADR-0021 §7). The Agenda
+// lists these under day headings; the Calendar's day sheet shows the same card. Both views
+// therefore show the same Shift facts — time range, kind, taken/capacity, the seated
+// Members — and the same take / drop / assign / remove affordances, because they are this
+// one component. It owns no policy: the server-sent `can` hints and `signup_id` decide what
+// renders, and the parent handles each action (every mutation is re-checked server-side).
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { type SharedData, type ShiftAgendaItem } from '@/types';
+import { usePage } from '@inertiajs/vue3';
+import { PhUserPlus, PhX } from '@phosphor-icons/vue';
+import { trans } from 'laravel-vue-i18n';
+
+defineProps<{ shift: ShiftAgendaItem }>();
+
+const emit = defineEmits<{
+    take: [shift: ShiftAgendaItem];
+    drop: [shift: ShiftAgendaItem];
+    assign: [shift: ShiftAgendaItem];
+    remove: [signUpId: number];
+}>();
+
+const page = usePage<SharedData>();
+
+// Shift times are instants read on the org wall clock, so 10am is 10am at the museum
+// wherever the reader sits (matches the Agenda's grouping day).
+const timeZone = page.props.timezone;
+const formatTime = (iso: string) => new Intl.DateTimeFormat(page.props.locale, { timeStyle: 'short', timeZone }).format(new Date(iso));
+const timeRange = (starts: string, ends: string) =>
+    trans('group.scheduling_panel.agenda.time_range', { start: formatTime(starts), end: formatTime(ends) });
+
+const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.first_name} ${signUp.last_name}`;
+</script>
+
+<template>
+    <Card>
+        <CardContent class="flex flex-col gap-2 py-4">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span class="text-rom-ink font-medium">{{ timeRange(shift.starts_at, shift.ends_at) }}</span>
+                    <span v-if="shift.kind" class="text-muted-foreground text-sm">{{ shift.kind }}</span>
+                </div>
+                <span class="text-muted-foreground text-sm tabular-nums">
+                    {{ trans('group.scheduling_panel.agenda.seats', { taken: String(shift.taken), capacity: String(shift.capacity) }) }}
+                </span>
+            </div>
+
+            <!-- Who is on the floor (#357) — visible to every reader who can read the
+                 Schedule, non-members included. Each seat is a chip; a schedule admin gets a
+                 remove (×) on every seat (officer removal, #359). An honest empty line otherwise. -->
+            <div v-if="shift.signups.length" class="flex flex-wrap items-center gap-1.5">
+                <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span>
+                <Badge v-for="signUp in shift.signups" :key="signUp.id" variant="secondary" class="gap-1 font-normal">
+                    {{ signUpName(signUp) }}
+                    <button
+                        v-if="signUp.signup_id"
+                        type="button"
+                        class="hover:text-destructive -mr-0.5 rounded-full transition-colors"
+                        :aria-label="trans('group.scheduling_panel.agenda.assign.remove')"
+                        @click="emit('remove', signUp.signup_id)"
+                    >
+                        <PhX class="size-3" />
+                    </button>
+                </Badge>
+            </div>
+            <p v-else class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.agenda.sign_up.nobody') }}</p>
+
+            <!-- Take / drop, from the same place. `signup_id` means "I hold a seat";
+                 `can.signUp` means "a free seat is offered to me". A full Shift the viewer has
+                 no seat on shows as full with neither button. The Scheduler's assign (#359)
+                 sits beside them — the officer path onto a Shift with a free seat. -->
+            <div class="flex flex-wrap items-center gap-2">
+                <Button v-if="shift.signup_id !== null" type="button" variant="outline" size="sm" @click="emit('drop', shift)">
+                    {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
+                </Button>
+                <Button v-else-if="shift.can.signUp" type="button" size="sm" @click="emit('take', shift)">
+                    {{ trans('group.scheduling_panel.agenda.sign_up.take') }}
+                </Button>
+                <span v-else-if="shift.taken >= shift.capacity" class="text-muted-foreground text-sm font-medium">
+                    {{ trans('group.scheduling_panel.agenda.sign_up.full') }}
+                </span>
+                <Button v-if="shift.can.assign" type="button" variant="outline" size="sm" class="gap-1.5" @click="emit('assign', shift)">
+                    <PhUserPlus class="size-4" />
+                    {{ trans('group.scheduling_panel.agenda.assign.place') }}
+                </Button>
+            </div>
+        </CardContent>
+    </Card>
+</template>
