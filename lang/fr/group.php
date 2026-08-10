@@ -176,6 +176,14 @@ return [
         // excluant les créneaux qui s’y trouvent déjà.
         'shift_outside_range' => 'Ce créneau se situe en dehors de la plage de dates de l’horaire.',
         'schedule_range_conflict' => 'Les dates de l’horaire ne peuvent exclure un créneau qui s’y trouve déjà. Déplacez ou supprimez ces créneaux d’abord.',
+        // Création / suppression en lot (#362, ADR-0021 §2) — un lot est N écritures
+        // simples plus un rapport. Ces messages nomment les lignes ignorées par une
+        // exécution : ce sont des résultats utiles, non des erreurs, affichés comme un
+        // rapport sur la page plutôt qu’un échec de validation.
+        'bulk' => [
+            'skipped_outside_range' => 'Ignoré — cette journée se situe en dehors de la plage de dates de l’horaire.',
+            'skipped_has_sign_ups' => 'Ignoré — ce créneau compte des membres inscrits. Retirez-les d’abord.',
+        ],
         // Validation des inscriptions (#357, ADR-0021 §Sign-up) — affichée par le Form
         // Request lorsqu’une place ne peut être prise, et par la modification du créneau
         // lorsque la capacité laisserait un·e membre sans place.

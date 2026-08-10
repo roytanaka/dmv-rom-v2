@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
+use App\Models\SignUp;
 
 /*
  * Role-matrix HTTP harness for Shift authoring (#356, PRD #352, ADR-0021 §2).
@@ -66,6 +67,19 @@ function shiftPayload(array $overrides = []): array
     return [
         'starts_at' => '2026-08-10 10:00:00',
         'ends_at' => '2026-08-10 13:00:00',
+        ...$overrides,
+    ];
+}
+
+/** A valid bulk payload: every Monday of August 2026, 10:00–13:00. */
+function bulkShiftPayload(array $overrides = []): array
+{
+    return [
+        'starts_time' => '10:00',
+        'ends_time' => '13:00',
+        'days_of_week' => [1],
+        'from_date' => '2026-08-01',
+        'to_date' => '2026-08-31',
         ...$overrides,
     ];
 }
@@ -439,4 +453,192 @@ it('allows editing a Schedule range on a Schedule with no Shifts', function () {
         ->assertSessionHasNoErrors();
 
     expect($schedule->fresh()->ends_on->toDateString())->toBe('2026-08-15');
+});
+
+// --- Bulk-create (#362, ADR-0021 §2) ----------------------------------------
+//
+// A month of Shifts in one form run — kind, start/end time, capacity, days of week,
+// a date range — is N single writes plus a report: skip-and-report, never
+// all-or-nothing. There is no interval option, no stored pattern, no new column.
+
+it('bulk-creates a Shift on every matching weekday in the range', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload())
+        ->assertSessionHasNoErrors()
+        ->assertRedirect()
+        ->assertSessionHas('shiftsBulk', fn ($report) => $report['created'] === 5 && $report['skipped'] === []);
+
+    expect(Shift::count())->toBe(5);
+
+    $first = Shift::orderBy('starts_at')->first();
+    expect($first->starts_at->toDateTimeString())->toBe('2026-08-03 10:00:00')
+        ->and($first->ends_at->toDateTimeString())->toBe('2026-08-03 13:00:00')
+        ->and($first->capacity)->toBe(1)
+        ->and($first->shift_kind_id)->toBeNull()
+        ->and($first->audience)->toBe(ShiftAudience::Group);
+});
+
+it('bulk-creates with a capacity and one of the Group\'s kinds on every matching day', function () {
+    $schedule = augustSchedule();
+    $kind = ShiftKind::factory()->create(['group_id' => $schedule->group_id]);
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload([
+            'days_of_week' => [2],
+            'capacity' => 4,
+            'shift_kind_id' => $kind->id,
+        ]))
+        ->assertSessionHas('shiftsBulk', fn ($report) => $report['created'] === 4);
+
+    expect(Shift::count())->toBe(4)
+        ->and(Shift::first()->capacity)->toBe(4)
+        ->and(Shift::first()->shift_kind_id)->toBe($kind->id);
+});
+
+it('writes the in-range days and reports the days that fall outside the Schedule range', function () {
+    // Range runs into September; the Schedule ends 2026-08-31. The four September
+    // Tuesdays fall outside and are skipped-and-reported, not aborted.
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload([
+            'days_of_week' => [1],
+            'from_date' => '2026-08-01',
+            'to_date' => '2026-09-30',
+        ]))
+        ->assertSessionHasNoErrors()
+        ->assertSessionHas('shiftsBulk', function ($report) {
+            return $report['created'] === 5
+                && count($report['skipped']) === 4
+                && $report['skipped'][0]['date'] === '2026-09-07'
+                && $report['skipped'][0]['reason'] === 'group.scheduling_panel.bulk.skipped_outside_range';
+        });
+
+    expect(Shift::count())->toBe(5);
+});
+
+it('rejects a bulk-create with no days of week', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload(['days_of_week' => []]))
+        ->assertSessionHasErrors('days_of_week');
+
+    expect(Shift::count())->toBe(0);
+});
+
+it('rejects a bulk-create whose end time is not after its start time', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload(['ends_time' => '10:00']))
+        ->assertSessionHasErrors('ends_time');
+
+    expect(Shift::count())->toBe(0);
+});
+
+it('forbids an ordinary member from bulk-creating Shifts', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftMemberOf($schedule->group))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload())
+        ->assertForbidden();
+
+    expect(Shift::count())->toBe(0);
+});
+
+it('forbids a Scheduler of another Group from bulk-creating Shifts', function () {
+    $scheduler = shiftOfficerOf(shiftGroup(), Role::Scheduler);
+    $schedule = augustSchedule();
+
+    $this->actingAs($scheduler)
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload())
+        ->assertForbidden();
+
+    expect(Shift::count())->toBe(0);
+});
+
+// --- Bulk-delete (#362, ADR-0021 §2) ----------------------------------------
+//
+// Bulk-delete runs the same filter — legacy's skip-dates job without a field. Each row
+// honours the zero-Sign-ups rule per row: a Shift with Members on it is skipped and
+// named, and the batch writes the rest.
+
+it('bulk-deletes the Shifts matching the same filter', function () {
+    $schedule = augustSchedule();
+    $scheduler = shiftOfficerOf($schedule->group, Role::Scheduler);
+
+    $this->actingAs($scheduler)->post(route('shifts.bulk-store', $schedule), bulkShiftPayload());
+    expect(Shift::count())->toBe(5);
+
+    $this->actingAs($scheduler)
+        ->delete(route('shifts.bulk-destroy', $schedule), bulkShiftPayload())
+        ->assertSessionHasNoErrors()
+        ->assertRedirect()
+        ->assertSessionHas('shiftsBulk', fn ($report) => $report['deleted'] === 5 && $report['skipped'] === []);
+
+    expect(Shift::count())->toBe(0);
+});
+
+it('deletes the rest and names the one Shift that has Sign-ups', function () {
+    $schedule = augustSchedule();
+    $scheduler = shiftOfficerOf($schedule->group, Role::Scheduler);
+
+    $this->actingAs($scheduler)->post(route('shifts.bulk-store', $schedule), bulkShiftPayload());
+
+    // Seat a Member on the second Monday — that row must survive and be reported.
+    $taken = Shift::orderBy('starts_at')->skip(1)->first();
+    SignUp::factory()->create([
+        'shift_id' => $taken->id,
+        'member_id' => shiftMemberOf($schedule->group)->id,
+    ]);
+
+    $this->actingAs($scheduler)
+        ->delete(route('shifts.bulk-destroy', $schedule), bulkShiftPayload())
+        ->assertSessionHas('shiftsBulk', function ($report) use ($taken) {
+            return $report['deleted'] === 4
+                && count($report['skipped']) === 1
+                && $report['skipped'][0]['shift_id'] === $taken->id
+                && $report['skipped'][0]['reason'] === 'group.scheduling_panel.bulk.skipped_has_sign_ups';
+        });
+
+    expect(Shift::count())->toBe(1)
+        ->and(Shift::sole()->id)->toBe($taken->id);
+});
+
+it('bulk-delete leaves Shifts that do not match the filter untouched', function () {
+    $schedule = augustSchedule();
+    $scheduler = shiftOfficerOf($schedule->group, Role::Scheduler);
+
+    // A Monday morning batch, plus a lone Tuesday Shift that the filter must not touch.
+    $this->actingAs($scheduler)->post(route('shifts.bulk-store', $schedule), bulkShiftPayload());
+    Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'starts_at' => '2026-08-04 10:00:00',
+        'ends_at' => '2026-08-04 13:00:00',
+    ]);
+
+    $this->actingAs($scheduler)
+        ->delete(route('shifts.bulk-destroy', $schedule), bulkShiftPayload())
+        ->assertSessionHas('shiftsBulk', fn ($report) => $report['deleted'] === 5);
+
+    expect(Shift::count())->toBe(1)
+        ->and(Shift::sole()->starts_at->toDateTimeString())->toBe('2026-08-04 10:00:00');
+});
+
+it('forbids an ordinary member from bulk-deleting Shifts', function () {
+    $schedule = augustSchedule();
+    Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'starts_at' => '2026-08-03 10:00:00',
+        'ends_at' => '2026-08-03 13:00:00',
+    ]);
+
+    $this->actingAs(shiftMemberOf($schedule->group))
+        ->delete(route('shifts.bulk-destroy', $schedule), bulkShiftPayload())
+        ->assertForbidden();
+
+    expect(Shift::count())->toBe(1);
 });

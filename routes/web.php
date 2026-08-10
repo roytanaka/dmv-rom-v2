@@ -182,6 +182,17 @@ Route::delete('schedules/{schedule}', [ScheduleController::class, 'destroy'])
 Route::post('schedules/{schedule}/shifts', [ShiftController::class, 'store'])
     ->middleware(['auth'])
     ->name('shifts.store');
+// Bulk-create / bulk-delete Shifts (#362, ADR-0021 §2). A month of Shifts in one form
+// run — kind, start/end time, capacity, days of week, a date range — and the same filter
+// to take them back out (legacy's skip-dates job without a field). N single writes plus a
+// report: skip-and-report, never all-or-nothing, never a privileged path. Both nest under
+// the owning Schedule and answer to the same schedule-admin gate as a single write.
+Route::post('schedules/{schedule}/shifts/bulk', [ShiftController::class, 'bulkStore'])
+    ->middleware(['auth'])
+    ->name('shifts.bulk-store');
+Route::delete('schedules/{schedule}/shifts/bulk', [ShiftController::class, 'bulkDestroy'])
+    ->middleware(['auth'])
+    ->name('shifts.bulk-destroy');
 Route::patch('shifts/{shift}', [ShiftController::class, 'update'])
     ->middleware(['auth'])
     ->name('shifts.update');
