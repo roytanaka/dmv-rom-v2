@@ -7,13 +7,19 @@ use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
+use App\Enums\ScheduleState;
 use App\Enums\Scope;
+use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\GroupStewardship;
 use App\Models\Member;
+use App\Models\Schedule;
+use App\Models\Shift;
+use App\Models\ShiftKind;
+use App\Models\SignUp;
 use App\Personas\PersonaCatalogue;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
@@ -360,4 +366,121 @@ it('allowlists exactly the catalogued Personas', function () {
     expect(PersonaCatalogue::has('nadia.haddad@dmv.test'))->toBeTrue()
         ->and(PersonaCatalogue::has('test@example.com'))->toBeFalse()
         ->and(PersonaCatalogue::emails())->toContain(PersonaCatalogue::CHAIR_EMAIL);
+});
+
+/*
+ * Scheduling goes live (#364, PRD #352, ADR-0021). The demo org gets one published
+ * Schedule on a scheduling-capable Group so a board pitch can click through both the
+ * Agenda and the month grid. It lives on Docents — the only demo Group carrying a
+ * Scheduler Persona (so the drop-a-Shift cancellation email has a real recipient) and
+ * a kinded Group (Reception is deliberately kind-less). These assert the observable
+ * shape the two views read, not the exact curated Shifts, so the suite survives the
+ * demo month changing.
+ */
+
+it('seeds one published Schedule on the Docents Group covering the current month', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+
+    $schedule = Schedule::where('group_id', $docents->id)->firstOrFail();
+
+    expect($schedule->state)->toBe(ScheduleState::Published)
+        ->and($schedule->isCurrent(now()))->toBeTrue()
+        ->and($schedule->starts_on->lessThanOrEqualTo(now()))->toBeTrue()
+        ->and($schedule->ends_on->greaterThanOrEqualTo(now()))->toBeTrue();
+});
+
+it('spreads the Schedule across several days with a mix of capacities and an open Shift', function () {
+    $schedule = Schedule::where('group_id', Group::where('slug', DemoSeeder::PROGRAM)->value('id'))
+        ->with('shifts')
+        ->firstOrFail();
+
+    $shifts = $schedule->shifts;
+
+    // Several distinct days so the month grid is not a single stack on one square.
+    $distinctDays = $shifts->map(fn (Shift $s) => $s->starts_at->toDateString())->unique();
+    expect($distinctDays->count())->toBeGreaterThanOrEqual(4);
+
+    // Every Shift sits inside its Schedule's range (ADR-0021 §2), and durations are real.
+    $shifts->each(function (Shift $shift) use ($schedule) {
+        expect($schedule->coversInterval($shift->starts_at, $shift->ends_at))->toBeTrue()
+            ->and($shift->ends_at->greaterThan($shift->starts_at))->toBeTrue();
+    });
+
+    // A mix of capacities, not a uniform single-seat roster.
+    expect($shifts->pluck('capacity')->unique()->count())->toBeGreaterThanOrEqual(2)
+        ->and($shifts->contains(fn (Shift $s) => $s->capacity > 1))->toBeTrue();
+
+    // At least one Shift opened to the whole org (ADR-0021 §4).
+    expect($shifts->contains(fn (Shift $s) => $s->audience === ShiftAudience::Open))->toBeTrue();
+});
+
+it('seeds an active ShiftKind vocabulary for the Group and labels its Shifts', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+
+    $kinds = ShiftKind::where('group_id', $docents->id)->get();
+
+    // A small vocabulary, all offered (active) to new Shifts.
+    expect($kinds->count())->toBeGreaterThanOrEqual(2)
+        ->and($kinds->every(fn (ShiftKind $k) => $k->active))->toBeTrue();
+
+    // The kinds label real Shifts on the Group's Schedule — the Agenda shows a kind,
+    // not a bare time — while at least one Shift stays kind-less so both shapes show.
+    $shifts = Shift::whereRelation('schedule', 'group_id', $docents->id)->get();
+    expect($shifts->contains(fn (Shift $s) => $s->shift_kind_id !== null))->toBeTrue();
+
+    $kindIds = $kinds->pluck('id');
+    $shifts->whereNotNull('shift_kind_id')->each(
+        fn (Shift $s) => expect($kindIds->contains($s->shift_kind_id))->toBeTrue(),
+    );
+});
+
+it('places some Sign-ups without exceeding capacity and leaves a seat free to take', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+
+    $shifts = Shift::whereRelation('schedule', 'group_id', $docents->id)
+        ->withCount('signUps')
+        ->get();
+
+    // Some seats are already taken, so the roster does not read as an empty month …
+    expect($shifts->sum('sign_ups_count'))->toBeGreaterThan(0)
+        // … no Shift is over-subscribed (the seeder respects capacity directly) …
+        ->and($shifts->every(fn (Shift $s) => $s->sign_ups_count <= $s->capacity))->toBeTrue()
+        // … and at least one Shift still has room, so a walkthrough can take a seat.
+        ->and($shifts->contains(fn (Shift $s) => $s->sign_ups_count < $s->capacity))->toBeTrue();
+
+    // Every seated Member is a real Docents Member — a legitimate group-audience seat.
+    $rosterIds = GroupMember::where('group_id', $docents->id)->pluck('member_id');
+    SignUp::whereRelation('shift.schedule', 'group_id', $docents->id)->get()->each(
+        fn (SignUp $signUp) => expect($rosterIds->contains($signUp->member_id))->toBeTrue(),
+    );
+});
+
+it('turns scheduling on for the demo programs but off for the booking-only Groups', function () {
+    // Scheduling goes live for the programs whose shape is shift work (#364) …
+    expect(Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail()->has_scheduling)->toBeTrue()
+        ->and(Group::where('slug', 'reception')->firstOrFail()->has_scheduling)->toBeTrue()
+        // … and stays off for ROMBus and Outreach, whose only shape is group booking —
+        // the capability deferred out of the first pass (ADR-0021).
+        ->and(Group::where('slug', 'rombus')->firstOrFail()->has_scheduling)->toBeFalse()
+        ->and(Group::where('slug', 'outreach')->firstOrFail()->has_scheduling)->toBeFalse();
+});
+
+it('is idempotent across the scheduling rows — re-seeding heals rather than duplicates', function () {
+    $counts = fn () => [
+        'schedules' => Schedule::count(),
+        'shifts' => Shift::count(),
+        'shiftKinds' => ShiftKind::count(),
+        'signUps' => SignUp::count(),
+    ];
+    $before = $counts();
+
+    // A published Schedule with Shifts, kinds and Sign-ups exists after the first seed.
+    expect($before['schedules'])->toBeGreaterThan(0)
+        ->and($before['shifts'])->toBeGreaterThan(0)
+        ->and($before['shiftKinds'])->toBeGreaterThan(0)
+        ->and($before['signUps'])->toBeGreaterThan(0);
+
+    $this->seed(DemoSeeder::class);
+
+    expect($counts())->toBe($before);
 });
