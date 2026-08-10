@@ -307,11 +307,13 @@ class HandleInertiaRequests extends Middleware
      * heads a top-level row; a belonged Group whose parent *is* belonged nests beneath that
      * parent instead (so it appears once, not twice). Beneath each top-level Group the Member
      * sees the children it is entitled to: the Group's `Group`-visibility children (the Member
-     * is a parent-member) and any child it belongs to. This is where ADR-0019's *"`Group` =
-     * shown to parent-Group members in the rail"* lands — the own-Groups prune (#278) removes
-     * the parent from Other Groups, so those children surface here instead. `Public` children
-     * the Member does not belong to are *not* pulled in — they stay browsable in Other Groups,
-     * keeping the two zones a partition (ADR-0020 §A).
+     * is a parent-member), its `Public` children, and any `Private` child it belongs to. This
+     * is where ADR-0019's *"`Group` = shown to parent-Group members in the rail"* lands — the
+     * own-Groups prune (#278) removes the parent from Other Groups, taking its whole subtree
+     * with it, so those children surface here instead. `Public` children are re-homed here for
+     * the same reason: pruned out of Other Groups along with their belonged parent, they would
+     * otherwise be visible to every Member *except* the parent's own — the inversion the
+     * partition (ADR-0020 §A) exists to prevent.
      *
      * **The DMV node (§B).** The root DMV Group leads My Groups for every active Member, with
      * membership derived from `Category` (the {@see Category::grantsDirectoryListing()} standing
@@ -352,7 +354,7 @@ class HandleInertiaRequests extends Middleware
         );
 
         $items = $this->sortNodes($topLevel)
-            ->map(fn (Group $group) => $this->myGroupNode($group, $childrenByParent, $belongedIds))
+            ->map(fn (Group $group) => $this->myGroupNode($member, $group, $childrenByParent))
             ->all();
 
         if ($dmv = $this->dmvNode($member)) {
@@ -371,21 +373,22 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * A top-level My Groups row: the belonged Group with its one level of entitled children
-     * (ADR-0020 §F). A child nests when it is `Group`-visibility (the Member is a parent-member)
-     * or the Member belongs to it; `Public` children the Member does not belong to are left in
-     * Other Groups so the two zones stay a partition. Nesting stops at one level.
+     * (ADR-0020 §F). Entitlement is the *same* {@see pruneListingVisibility()} rule Other Groups
+     * applies, reused verbatim rather than restated: `Public` children nest, `Group` children
+     * nest (the Member is a parent-member — the row's Group is belonged by construction), and
+     * a `Private` child nests only when the Member belongs to it. Super-tier sees them all.
+     * Nesting stops at one level.
      *
      * @param  Collection<int, Collection<int, Group>>  $childrenByParent
-     * @param  list<int>  $belongedIds
      * @return array<string, mixed>
      */
-    private function myGroupNode(Group $group, Collection $childrenByParent, array $belongedIds): array
+    private function myGroupNode(Member $member, Group $group, Collection $childrenByParent): array
     {
         $node = $this->nodeAttributes($group);
 
-        $children = $this->sortNodes($childrenByParent->get($group->id) ?? collect())
-            ->filter(fn (Group $child) => $child->listing_visibility === ListingVisibility::Group
-                || in_array($child->id, $belongedIds, true))
+        $children = $this->sortNodes(
+            $this->pruneListingVisibility($member, $childrenByParent->get($group->id) ?? collect())
+        )
             ->map(fn (Group $child) => $this->nodeAttributes($child))
             // Re-index after the filter: gaps in the keys would serialize `children` as a
             // JSON object, not an array, and the client rail expects an array.

@@ -150,7 +150,8 @@ function seedMyGroupsNesting(): array
     $training = Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'docents-training', 'name' => 'Training', 'display_order' => 0]);
     // Private: nests only when the Member belongs to it.
     $events = Group::factory()->workingGroup()->privateListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-events', 'name' => 'Events', 'display_order' => 1]);
-    // Public: a child the Member is not in stays in Other Groups — it does not nest here.
+    // Public: nests for a Docents member too — the own-Groups prune takes it out of Other
+    // Groups with its parent, so My Groups is the only zone that can carry it.
     $openHouse = Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-open-house', 'name' => 'Open House', 'display_order' => 2]);
 
     return ['docents' => $docents, 'training' => $training, 'events' => $events, 'openHouse' => $openHouse];
@@ -171,25 +172,52 @@ it('nests a belonged Group\'s entitled children one level beneath it in My Group
             // The DMV org node leads; Docents follows with its entitled children nested.
             ->where('rail.myGroups.items.0.groupId', 'dmv')
             ->where('rail.myGroups.items.1.groupId', 'docents')
-            // Group-visibility Training (parent-member) and the belonged Private Events nest;
-            // the Public Open House the Member is not in does NOT (it is not the Member's).
+            // Group-visibility Training (parent-member), the belonged Private Events, and the
+            // Public Open House all nest — the same entitlement rule Other Groups prunes with.
             ->where('rail.myGroups.items.1.children.0.groupId', 'docents-training')
             ->where('rail.myGroups.items.1.children.1.groupId', 'docents-events')
-            ->count('rail.myGroups.items.1.children', 2)
+            ->where('rail.myGroups.items.1.children.2.groupId', 'docents-open-house')
+            ->count('rail.myGroups.items.1.children', 3)
             // Events nests only — it does not also head a top-level row (its parent is belonged),
             // so it appears exactly once. Two top-level rows: DMV + Docents.
             ->count('rail.myGroups.items', 2));
 });
 
+it('keeps a Public sub-group of a belonged Group reachable in My Groups, not lost between the zones', function () {
+    // Regression (tester report): a Member of Reception could not reach its Public "Library"
+    // sub-group anywhere in the rail. The own-Groups prune removes the belonged parent from
+    // Other Groups and takes its whole subtree with it, so a Public child that does not nest
+    // in My Groups is visible to every Member EXCEPT the parent's own — an inverted hole in
+    // the ADR-0020 §A partition. It must nest here.
+    ['docents' => $docents] = seedMyGroupsNesting();
+
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            // Training (Group-visibility) and Open House (Public) nest; the Private Events the
+            // Member does not belong to stays hidden.
+            ->where('rail.myGroups.items.1.groupId', 'docents')
+            ->where('rail.myGroups.items.1.children.0.groupId', 'docents-training')
+            ->where('rail.myGroups.items.1.children.1.groupId', 'docents-open-house')
+            ->count('rail.myGroups.items.1.children', 2)
+            // …and the partition holds: the belonged parent and its subtree are gone from
+            // Other Groups, so Open House is reachable exactly once.
+            ->missing('rail.otherGroups.items.0.children'));
+});
+
 it('re-indexes nested My Groups children so a leading filtered-out child leaves a real array', function () {
-    // Regression: the children of a belonged Group are filtered (only Group-visibility or
-    // belonged children nest). When the FIRST child in display order is filtered out, the
-    // surviving children must still be re-indexed from 0 — otherwise the gap keys serialize
-    // `children` as a JSON object, not an array, and the client rail throws on `.some`.
+    // Regression: the children of a belonged Group are filtered on entitlement. When the FIRST
+    // child in display order is filtered out, the surviving children must still be re-indexed
+    // from 0 — otherwise the gap keys serialize `children` as a JSON object, not an array, and
+    // the client rail throws on `.some`.
     $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
     $docents = Group::factory()->program()->publicListing()->create(['parent_id' => $root->id, 'slug' => 'docents', 'name' => 'Docents', 'display_order' => 0]);
-    // First child (display_order 0) is Public and NOT belonged → filtered out of the nesting.
-    Group::factory()->workingGroup()->publicListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-open-house', 'name' => 'Open House', 'display_order' => 0]);
+    // First child (display_order 0) is Private and NOT belonged → filtered out of the nesting.
+    Group::factory()->workingGroup()->privateListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-events', 'name' => 'Events', 'display_order' => 0]);
     // Second child is Group-visibility → nests for the parent-member Docents.
     Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'docents-training', 'name' => 'Training', 'display_order' => 1]);
 
