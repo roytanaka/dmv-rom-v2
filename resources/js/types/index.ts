@@ -244,11 +244,23 @@ export interface ScheduleListItem {
     can: ScheduleAbilities;
 }
 
-// A Shift on an opened Schedule — one slot the Agenda reads (#355, ADR-0021 §2).
+// One seated Member on a Shift (#357, ADR-0017 §6) — name only, routed through
+// MemberResource so contact PII stays gated. Visible to every reader who can read the
+// Schedule, non-members included: a Schedule is a roster of who is on the floor.
+export interface ShiftSignUp {
+    id: number;
+    first_name: string;
+    last_name: string;
+    photo: string | null;
+}
+
+// A Shift on an opened Schedule — one slot the Agenda reads (#355, #357, ADR-0021 §2).
 // `starts_at` / `ends_at` cross the wire as UTC instants and are read on the org wall
 // clock (grouped by day client-side). `kind` is the ShiftKind name where the Group uses
-// kinds, null for Reception's shape. `taken` is the filled-seat count (0 until Sign-ups
-// land in #357); `capacity` is the slot's integer size.
+// kinds, null for Reception's shape. `taken` is the filled-seat count and `capacity` the
+// slot's integer size; `signups` are the seated Members. `signup_id` is the viewer's own
+// seat (null if none) for a one-click drop, and `can.signUp` is the SignUpPolicy verdict
+// folded with a free seat — the button shows only when a Sign-up would take.
 export interface ShiftAgendaItem {
     id: number;
     starts_at: string;
@@ -256,6 +268,9 @@ export interface ShiftAgendaItem {
     capacity: number;
     taken: number;
     kind: string | null;
+    signups: ShiftSignUp[];
+    signup_id: number | null;
+    can: { signUp: boolean };
 }
 
 // A Schedule opened directly — its read detail: name, range, state, as-authored

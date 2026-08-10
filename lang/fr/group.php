@@ -176,14 +176,27 @@ return [
         // excluant les créneaux qui s’y trouvent déjà.
         'shift_outside_range' => 'Ce créneau se situe en dehors de la plage de dates de l’horaire.',
         'schedule_range_conflict' => 'Les dates de l’horaire ne peuvent exclure un créneau qui s’y trouve déjà. Déplacez ou supprimez ces créneaux d’abord.',
-        // Agenda (#355) — les créneaux de l’horaire ouvert, groupés par jour. « seats »
-        // indique les places occupées sur la capacité ; « taken » vaut 0 jusqu’aux
-        // inscriptions (#357).
+        // Validation des inscriptions (#357, ADR-0021 §Sign-up) — affichée par le Form
+        // Request lorsqu’une place ne peut être prise, et par la modification du créneau
+        // lorsque la capacité laisserait un·e membre sans place.
+        'shift_full' => 'Ce créneau est complet.',
+        'already_signed_up' => 'Vous êtes déjà inscrit·e à ce créneau.',
+        'capacity_below_signups' => 'La capacité ne peut être inférieure au nombre de membres déjà inscrit·es. Retirez d’abord des membres.',
+        // Agenda (#355, #357) — les créneaux de l’horaire ouvert, groupés par jour.
+        // « seats » indique les places occupées sur la capacité ; « sign_up » est
+        // l’action s’inscrire / se désister.
         'agenda' => [
             'aria_label' => 'Agenda',
             'empty' => 'Aucun créneau pour cet horaire pour l’instant.',
             'time_range' => 'De :start à :end',
             'seats' => ':taken / :capacity occupées',
+            'sign_up' => [
+                'take' => 'S’inscrire',
+                'drop' => 'Se désister',
+                'full' => 'Complet',
+                'nobody' => 'Personne inscrit·e pour l’instant',
+                'signed_up_label' => 'Inscrit·es',
+            ],
         ],
     ],
 

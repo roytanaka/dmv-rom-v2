@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { groupShiftsByDay } from '@/scheduling/agenda';
-import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData } from '@/types';
+import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { PhArrowLeft, PhEye, PhEyeSlash, PhPencilSimple, PhPlus, PhTrash } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
@@ -146,6 +146,26 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
         router.delete(route('schedules.destroy', { schedule: schedule.id }), { preserveScroll: true });
     }
 };
+
+// --- Taking and dropping a Shift (#357) — the two floors, audience, and one seat ---
+
+// Take a free seat: the server re-checks both floors, the `audience`, capacity, and the
+// one-seat rule (StoreSignUpRequest → SignUpPolicy). `can.signUp` gates the button, so it
+// only shows where a Sign-up would take; the POST carries no body — the seat is the viewer.
+const take = (shift: ShiftAgendaItem) => {
+    router.post(route('sign-ups.store', { shift: shift.id }), {}, { preserveScroll: true });
+};
+
+// Drop the seat the viewer holds — one click from where they signed up. Cancel has no
+// deadline (ADR-0021). `signup_id` is the viewer's own seat; nothing renders without it.
+const drop = (shift: ShiftAgendaItem) => {
+    if (shift.signup_id !== null) {
+        router.delete(route('sign-ups.destroy', { signUp: shift.signup_id }), { preserveScroll: true });
+    }
+};
+
+// The seated Members' display names ("First Last"), for the "who I'll be working with" line.
+const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.first_name} ${signUp.last_name}`;
 </script>
 
 <template>
@@ -237,14 +257,41 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
                 <div v-for="day in agenda" :key="day.date" class="flex flex-col gap-2">
                     <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">{{ formatDay(day.date) }}</h3>
                     <Card v-for="shift in day.shifts" :key="shift.id">
-                        <CardContent class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-4">
-                            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                <span class="text-rom-ink font-medium">{{ timeRange(shift.starts_at, shift.ends_at) }}</span>
-                                <span v-if="shift.kind" class="text-muted-foreground text-sm">{{ shift.kind }}</span>
+                        <CardContent class="flex flex-col gap-2 py-4">
+                            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                    <span class="text-rom-ink font-medium">{{ timeRange(shift.starts_at, shift.ends_at) }}</span>
+                                    <span v-if="shift.kind" class="text-muted-foreground text-sm">{{ shift.kind }}</span>
+                                </div>
+                                <span class="text-muted-foreground text-sm tabular-nums">
+                                    {{
+                                        trans('group.scheduling_panel.agenda.seats', { taken: String(shift.taken), capacity: String(shift.capacity) })
+                                    }}
+                                </span>
                             </div>
-                            <span class="text-muted-foreground text-sm tabular-nums">
-                                {{ trans('group.scheduling_panel.agenda.seats', { taken: String(shift.taken), capacity: String(shift.capacity) }) }}
-                            </span>
+
+                            <!-- Who is on the floor (#357) — visible to every reader who can read
+                                 the Schedule, non-members included. An honest empty line otherwise. -->
+                            <p v-if="shift.signups.length" class="text-muted-foreground text-sm">
+                                <span class="font-medium">{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span>
+                                {{ shift.signups.map(signUpName).join(', ') }}
+                            </p>
+                            <p v-else class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.agenda.sign_up.nobody') }}</p>
+
+                            <!-- Take / drop, from the same place. `signup_id` means "I hold a seat";
+                                 `can.signUp` means "a free seat is offered to me". A full Shift the
+                                 viewer has no seat on shows as full with neither button. -->
+                            <div class="flex items-center gap-2">
+                                <Button v-if="shift.signup_id !== null" type="button" variant="outline" size="sm" @click="drop(shift)">
+                                    {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
+                                </Button>
+                                <Button v-else-if="shift.can.signUp" type="button" size="sm" @click="take(shift)">
+                                    {{ trans('group.scheduling_panel.agenda.sign_up.take') }}
+                                </Button>
+                                <span v-else-if="shift.taken >= shift.capacity" class="text-muted-foreground text-sm font-medium">
+                                    {{ trans('group.scheduling_panel.agenda.sign_up.full') }}
+                                </span>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

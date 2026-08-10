@@ -87,23 +87,25 @@ class SchedulePolicy
 
     /**
      * Who may un-publish a Schedule (published → draft): a schedule admin of the owning
-     * Group. Un-publish is permitted only at zero Sign-ups (ADR-0021 §1) — a Chair who
-     * published early clears the Sign-ups first, visibly. Sign-ups do not exist yet, so
-     * the guard is the admin gate today; the zero-Sign-up predicate lands with #357.
+     * Group, and only at zero Sign-ups (ADR-0021 §1) — a Chair who published early clears
+     * the Sign-ups first, visibly, so a hidden Schedule never leaves live Sign-ups sitting
+     * behind it. Bad states are made unreachable rather than unwound.
      */
     public function unpublish(Member $actor, Schedule $schedule): bool
     {
-        return $this->administersSchedulingFor($actor, $schedule->group);
+        return $this->administersSchedulingFor($actor, $schedule->group)
+            && ! $schedule->signUps()->exists();
     }
 
     /**
-     * Who may delete a Schedule: a schedule admin of the owning Group. Deletion mirrors
-     * un-publish — permitted only at zero Sign-ups, so a Schedule with history is
-     * permanent (ADR-0021 §1). The zero-Sign-up predicate lands with #357.
+     * Who may delete a Schedule: a schedule admin of the owning Group, and only at zero
+     * Sign-ups — the same rule as un-publish, so a Schedule with history is permanent and
+     * safe to reference (ADR-0021 §1).
      */
     public function delete(Member $actor, Schedule $schedule): bool
     {
-        return $this->administersSchedulingFor($actor, $schedule->group);
+        return $this->administersSchedulingFor($actor, $schedule->group)
+            && ! $schedule->signUps()->exists();
     }
 
     /**

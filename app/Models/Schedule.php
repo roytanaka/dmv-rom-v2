@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 /**
  * A Group's Schedule (#353, PRD #352, ADR-0021 §1) — the scheduling container that
@@ -77,6 +78,19 @@ class Schedule extends Model
     public function shifts(): HasMany
     {
         return $this->hasMany(Shift::class);
+    }
+
+    /**
+     * Every Sign-up across this Schedule's Shifts (#357, ADR-0021) — the single predicate
+     * behind the zero-Sign-up guards: un-publishing and deleting a Schedule are both
+     * permitted only while this is empty, so a hidden or removed Schedule never strands a
+     * live Sign-up.
+     *
+     * @return HasManyThrough<SignUp, Shift, $this>
+     */
+    public function signUps(): HasManyThrough
+    {
+        return $this->hasManyThrough(SignUp::class, Shift::class);
     }
 
     /**
