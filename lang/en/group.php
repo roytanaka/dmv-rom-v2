@@ -192,6 +192,13 @@ return [
         // Schedule, and a Schedule may not shrink away from the Shifts already on it.
         'shift_outside_range' => 'This shift falls outside the schedule’s date range.',
         'schedule_range_conflict' => 'The schedule’s dates cannot leave out a shift already on it. Move or delete those shifts first.',
+        // Bulk-create / bulk-delete (#362, ADR-0021 §2) — a bulk run is N single writes
+        // plus a report. These name the rows a run skipped: they are useful output, not
+        // errors, so they surface as a report on the page rather than a validation failure.
+        'bulk' => [
+            'skipped_outside_range' => 'Skipped — this day falls outside the schedule’s date range.',
+            'skipped_has_sign_ups' => 'Skipped — this shift has members signed up. Remove them first.',
+        ],
         // Sign-up validation (#357, ADR-0021 §Sign-up) — surfaced by the Form Request when a
         // seat cannot be taken, and by the Shift edit when capacity would strand a member.
         'shift_full' => 'This shift is full.',
