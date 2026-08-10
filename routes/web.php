@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\ImpersonationController;
@@ -200,6 +201,17 @@ Route::post('shifts/{shift}/sign-ups', [SignUpController::class, 'store'])
 Route::delete('sign-ups/{signUp}', [SignUpController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('sign-ups.destroy');
+
+// Officer assignment write seam (#359, PRD #352, ADR-0021 §Sign-up). A Scheduler placing a
+// named Member on a Shift directly — Reception's whole operating model. A distinct actor
+// from the self-service Sign-up above (a Scheduler seating someone else), so a separate
+// seam, but it writes the same ordinary Sign-up row. Structurally authorized in its Form
+// Request, which delegates to SignUpPolicy::assign — the schedule-admin gate on the actor,
+// both floors on the placed Member, and (deliberately) not the `audience`. Officer removal
+// reuses `sign-ups.destroy` above, whose ownership-gated email keeps it silent.
+Route::post('shifts/{shift}/assignments', [AssignmentController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('assignments.store');
 
 // Group officer roster CRUD (#192, PRD #186). The roster write seam: adding a
 // member, changing standing (including a leave window), assigning / revoking roles,

@@ -26,7 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { groupShiftsByDay } from '@/scheduling/agenda';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import { PhArrowLeft, PhEye, PhEyeSlash, PhPencilSimple, PhPlus, PhTrash } from '@phosphor-icons/vue';
+import { PhArrowLeft, PhEye, PhEyeSlash, PhPencilSimple, PhPlus, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
@@ -166,6 +166,63 @@ const drop = (shift: ShiftAgendaItem) => {
 
 // The seated Members' display names ("First Last"), for the "who I'll be working with" line.
 const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.first_name} ${signUp.last_name}`;
+
+// --- Officer assignment and removal (#359) — the Scheduler seats and clears a named Member ---
+
+// The Shift being assigned to, driving the picker dialog; null when closed. The picker's
+// roster is the Group's placeable Members (server-filtered to both floors); the server
+// re-checks the schedule-admin gate, both floors, and capacity on POST regardless.
+const assigningShift = ref<ShiftAgendaItem | null>(null);
+const assignFilter = ref('');
+
+const assignOpen = computed({
+    get: () => assigningShift.value !== null,
+    set: (open: boolean) => {
+        if (!open) assigningShift.value = null;
+    },
+});
+
+// The roster narrows to a name match as the Scheduler types — a Reception desk has a
+// handful of regulars, but a Friends Committee's roster is longer.
+const filteredRoster = computed(() => {
+    const needle = assignFilter.value.trim().toLowerCase();
+    const roster = props.scheduling.roster;
+
+    if (!needle) return roster;
+
+    return roster.filter((candidate) => `${candidate.first_name} ${candidate.last_name}`.toLowerCase().includes(needle));
+});
+
+const openAssign = (shift: ShiftAgendaItem) => {
+    assignFilter.value = '';
+    assigningShift.value = shift;
+};
+
+// Place the chosen Member on the open Shift. The picker carries the `member_id`; the server
+// authorises (schedule-admin gate) and validates (both floors, capacity, one seat) on POST.
+const assign = (candidateId: number) => {
+    if (assigningShift.value === null) return;
+
+    router.post(
+        route('assignments.store', { shift: assigningShift.value.id }),
+        { member_id: candidateId },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                assigningShift.value = null;
+            },
+        },
+    );
+};
+
+// Remove a seat the Scheduler administers — officer removal, so a placed regular who stops
+// coming is not stranded. Reuses the drop seam, whose ownership-gated email keeps this
+// silent. A confirm guards it: unlike a self-drop, this clears someone else.
+const removeSeat = (signUpId: number) => {
+    if (window.confirm(trans('group.scheduling_panel.agenda.assign.confirm_remove'))) {
+        router.delete(route('sign-ups.destroy', { signUp: signUpId }), { preserveScroll: true });
+    }
+};
 </script>
 
 <template>
@@ -271,17 +328,34 @@ const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.fir
                             </div>
 
                             <!-- Who is on the floor (#357) — visible to every reader who can read
-                                 the Schedule, non-members included. An honest empty line otherwise. -->
-                            <p v-if="shift.signups.length" class="text-muted-foreground text-sm">
-                                <span class="font-medium">{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span>
-                                {{ shift.signups.map(signUpName).join(', ') }}
-                            </p>
+                                 the Schedule, non-members included. Each seat is a chip; a schedule
+                                 admin gets a remove (×) on every seat (officer removal, #359). An
+                                 honest empty line otherwise. -->
+                            <div v-if="shift.signups.length" class="flex flex-wrap items-center gap-1.5">
+                                <span class="text-muted-foreground text-sm font-medium"
+                                    >{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span
+                                >
+                                <Badge v-for="signUp in shift.signups" :key="signUp.id" variant="secondary" class="gap-1 font-normal">
+                                    {{ signUpName(signUp) }}
+                                    <button
+                                        v-if="signUp.signup_id"
+                                        type="button"
+                                        class="hover:text-destructive -mr-0.5 rounded-full transition-colors"
+                                        :aria-label="trans('group.scheduling_panel.agenda.assign.remove')"
+                                        @click="removeSeat(signUp.signup_id)"
+                                    >
+                                        <PhX class="size-3" />
+                                    </button>
+                                </Badge>
+                            </div>
                             <p v-else class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.agenda.sign_up.nobody') }}</p>
 
                             <!-- Take / drop, from the same place. `signup_id` means "I hold a seat";
                                  `can.signUp` means "a free seat is offered to me". A full Shift the
-                                 viewer has no seat on shows as full with neither button. -->
-                            <div class="flex items-center gap-2">
+                                 viewer has no seat on shows as full with neither button. The
+                                 Scheduler's assign (#359) sits beside them — the officer path onto
+                                 a Shift with a free seat, regardless of the viewer's own seat. -->
+                            <div class="flex flex-wrap items-center gap-2">
                                 <Button v-if="shift.signup_id !== null" type="button" variant="outline" size="sm" @click="drop(shift)">
                                     {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
                                 </Button>
@@ -291,6 +365,10 @@ const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.fir
                                 <span v-else-if="shift.taken >= shift.capacity" class="text-muted-foreground text-sm font-medium">
                                     {{ trans('group.scheduling_panel.agenda.sign_up.full') }}
                                 </span>
+                                <Button v-if="shift.can.assign" type="button" variant="outline" size="sm" class="gap-1.5" @click="openAssign(shift)">
+                                    <PhUserPlus class="size-4" />
+                                    {{ trans('group.scheduling_panel.agenda.assign.place') }}
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -400,6 +478,36 @@ const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.fir
                         </Button>
                     </div>
                 </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Officer assignment picker (#359) — opened from a Shift's "Place a member"
+             control. Draws from the Group's placeable roster (server-filtered to both
+             floors); the server re-checks the gate, floors, and capacity on POST. -->
+        <Dialog v-model:open="assignOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ trans('group.scheduling_panel.agenda.assign.title') }}</DialogTitle>
+                </DialogHeader>
+                <div class="flex flex-col gap-3">
+                    <Input v-model="assignFilter" :placeholder="trans('group.scheduling_panel.agenda.assign.search')" />
+                    <div class="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+                        <Button
+                            v-for="candidate in filteredRoster"
+                            :key="candidate.id"
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            class="justify-start"
+                            @click="assign(candidate.id)"
+                        >
+                            {{ candidate.first_name }} {{ candidate.last_name }}
+                        </Button>
+                        <p v-if="!filteredRoster.length" class="text-muted-foreground p-2 text-sm">
+                            {{ trans('group.scheduling_panel.agenda.assign.empty') }}
+                        </p>
+                    </div>
+                </div>
             </DialogContent>
         </Dialog>
     </div>

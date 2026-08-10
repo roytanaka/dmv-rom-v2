@@ -211,6 +211,16 @@ return [
                 'nobody' => 'No one signed up yet',
                 'signed_up_label' => 'Signed up',
             ],
+            // Officer assignment and removal (#359) — shown only to a schedule admin
+            // (server-gated via `can.assign` and each seat's `signup_id`).
+            'assign' => [
+                'place' => 'Place a member',
+                'title' => 'Place a member on this shift',
+                'search' => 'Search members…',
+                'empty' => 'No members to place.',
+                'remove' => 'Remove from shift',
+                'confirm_remove' => 'Remove this member from the shift?',
+            ],
         ],
     ],
 

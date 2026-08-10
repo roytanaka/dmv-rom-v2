@@ -14,8 +14,10 @@ use Illuminate\Support\Facades\Mail;
  * Sign-up write seam (#357, PRD #352, ADR-0021 §Sign-up) — a Member taking a Shift and
  * dropping it, from the same place. Both mutations are structurally authorized in their Form
  * Request, which delegates to the SignUpPolicy (the two floors and the Shift's `audience` on
- * the way in; owning the seat on the way out). A Scheduler placing or removing a named Member
- * is a separate seam that lands with officer assignment (#359).
+ * the way in; owning the seat on the way out). A Scheduler *placing* a named Member is a
+ * separate seam ({@see AssignmentController}, #359); a Scheduler *removing* one reuses
+ * {@see destroy} below — the SignUpPolicy's `delete` also admits a schedule admin — and the
+ * ownership-gated email keeps that officer removal silent.
  *
  * A self-service Sign-up records nothing about who created it — there is no provenance column
  * (point 2 of #334) — so the controller seats the authenticated user and nothing more.
@@ -43,8 +45,8 @@ class SignUpController extends Controller
      * with no threshold or proximity window (#358, ADR-0021 §Sign-up "Notification"). The mail
      * fires only for a Member dropping their *own* seat: a Scheduler removing a placed Member
      * (officer removal, #359) is a distinct actor who is already in contact with the person,
-     * and that silence is deliberate. Guarding on ownership here keeps that silence true the
-     * moment officer removal reuses this seam.
+     * and that silence is deliberate. Guarding on ownership here keeps that silence true now
+     * that officer removal reuses this seam.
      */
     public function destroy(DeleteSignUpRequest $request, SignUp $signUp): RedirectResponse
     {
