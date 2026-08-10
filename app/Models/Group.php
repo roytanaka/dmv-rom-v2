@@ -169,8 +169,9 @@ class Group extends Model
      * cancellation email (#358, ADR-0021 §Sign-up "Notification"). These are the Group's
      * `Scheduler`-role holders, with Chair-implication folded in (a Chair acts as Scheduler
      * within its own Group — ADR-0011), matching the schedule-admin gate the SchedulePolicy
-     * enforces everywhere else. Resolved in one query over the roster; empty on a Group that
-     * has no Scheduler (and, by construction, on one that runs no scheduling).
+     * enforces everywhere else. Resolved via eager-loaded memberships (three queries: roster,
+     * members, roles); empty on a Group that has no Scheduler (and, by construction, on one
+     * that runs no scheduling).
      *
      * @return Collection<int, Member>
      */
