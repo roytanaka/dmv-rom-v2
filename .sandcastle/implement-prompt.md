@@ -70,7 +70,9 @@ the same every run.
 5. **Verify** — run the full gate from `@.sandcastle/CODING_STANDARDS.md` and
    fix every failure. The gate must be green before you commit.
 
-6. **Commit** — one commit. The message must:
+6. **Commit** — one commit, on the branch you are already checked out on. The
+   loop created that branch for you and the reviewer agent reads your work from
+   it, so never create, switch, or rename a branch. The message must:
     - Start with a conventional-commit prefix (`feat:`, `fix:`, `chore:`,
       `refactor:`, `docs:`, `test:`) matching the change
     - Reference the issue (`Refs #<ID>`) and any parent PRD
@@ -80,8 +82,8 @@ the same every run.
 ## Rules
 
 - One issue per iteration. Stop after the commit.
-- The reviewer agent pushes and opens the PR, and the merge closes the issue —
-  so leave the branch local, and leave the issue open.
+- The reviewer agent pushes this branch and opens the PR, and the merge closes
+  the issue — so do not push, and leave the issue open.
 - Commit only code you would merge: dead code deleted, unfinished notes
   resolved, no commented-out blocks.
 - If you get blocked — missing context, a test you cannot make pass, an external
