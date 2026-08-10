@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { groupShiftsByDay } from '@/scheduling/agenda';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { PhArrowLeft, PhEye, PhEyeSlash, PhPencilSimple, PhPlus, PhTrash } from '@phosphor-icons/vue';
@@ -39,6 +40,27 @@ const page = usePage<SharedData>();
 const formatDate = (date: string) => new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'long' }).format(new Date(`${date}T00:00:00`));
 
 const dateRange = (starts: string, ends: string) => trans('group.scheduling_panel.date_range', { start: formatDate(starts), end: formatDate(ends) });
+
+// --- Agenda (#355) — the opened Schedule's Shifts, grouped by day -------------
+
+// Shift times are instants read on the org wall clock the server shares, so 10am is
+// 10am at the museum wherever the reader sits (prior art: GroupMeetings). Day grouping
+// runs on that same wall clock in a pure module the Calendar will share.
+const timeZone = page.props.timezone;
+
+const formatTime = (iso: string) => new Intl.DateTimeFormat(page.props.locale, { timeStyle: 'short', timeZone }).format(new Date(iso));
+
+// The opened Schedule's Shifts, bucketed into ascending days. Each day heads a block;
+// within a day the server's start order is preserved.
+const agenda = computed(() => (props.scheduling.open ? groupShiftsByDay(props.scheduling.open.shifts, timeZone) : []));
+
+const timeRange = (starts: string, ends: string) =>
+    trans('group.scheduling_panel.agenda.time_range', { start: formatTime(starts), end: formatTime(ends) });
+
+// The day heading is a plain calendar date (already the org-wall-clock day), formatted
+// like the range: parsed as local midnight so no zone shift lands it on the day before.
+const formatDay = (date: string) =>
+    new Intl.DateTimeFormat(page.props.locale, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(`${date}T00:00:00`));
 
 // The list arrives already ordered (current & upcoming first, then past). Splitting
 // here only heads the two blocks; an empty block is dropped rather than left bare.
@@ -207,6 +229,29 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
                     <p class="text-rom-ink text-base whitespace-pre-line">{{ scheduling.open.description }}</p>
                 </CardContent>
             </Card>
+
+            <!-- Agenda (#355) — the Schedule's Shifts, grouped by day on the org wall
+                 clock. Reads the same at 3 days or 30; each Shift shows its time range,
+                 kind (where the Group uses kinds), and how many of its seats are taken. -->
+            <section v-if="agenda.length" class="flex flex-col gap-4" aria-label="Agenda">
+                <div v-for="day in agenda" :key="day.date" class="flex flex-col gap-2">
+                    <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">{{ formatDay(day.date) }}</h3>
+                    <Card v-for="shift in day.shifts" :key="shift.id">
+                        <CardContent class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-4">
+                            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                <span class="text-rom-ink font-medium">{{ timeRange(shift.starts_at, shift.ends_at) }}</span>
+                                <span v-if="shift.kind" class="text-muted-foreground text-sm">{{ shift.kind }}</span>
+                            </div>
+                            <span class="text-muted-foreground text-sm tabular-nums">
+                                {{ trans('group.scheduling_panel.agenda.seats', { taken: String(shift.taken), capacity: String(shift.capacity) }) }}
+                            </span>
+                        </CardContent>
+                    </Card>
+                </div>
+            </section>
+
+            <!-- Honest empty state — the Schedule is published but holds no Shifts yet. -->
+            <p v-else class="text-muted-foreground py-8 text-center text-sm">{{ trans('group.scheduling_panel.agenda.empty') }}</p>
         </template>
 
         <!-- The list — current & upcoming first, then past, each block headed. -->

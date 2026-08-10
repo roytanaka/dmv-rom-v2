@@ -8,6 +8,8 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
 use App\Models\Schedule;
+use App\Models\Shift;
+use App\Models\ShiftKind;
 use Database\Seeders\OrgTreeSeeder;
 
 /*
@@ -91,12 +93,36 @@ it('seeds a published, current Schedule on the scheduling program', function () 
         ->and($schedule->isCurrent(now()))->toBeTrue();
 });
 
+it('seeds ShiftKinds and Shifts on the program Schedule so the Agenda has something to read', function () {
+    $program = Group::where('slug', OrgTreeSeeder::PROGRAM)->firstOrFail();
+    $schedule = $program->schedules()->where('name', OrgTreeSeeder::SCHEDULE_NAME)->firstOrFail();
+
+    // The program uses kinds, seeded per Group.
+    expect($program->shiftKinds()->count())->toBeGreaterThan(0);
+
+    // The Schedule holds Shifts, and each sits within the Schedule's range and points
+    // at one of the Group's own kinds (or null).
+    $shifts = $schedule->shifts()->with('kind')->get();
+    expect($shifts)->not->toBeEmpty();
+    $shifts->each(function (Shift $shift) use ($schedule, $program) {
+        expect($shift->starts_at->lessThanOrEqualTo($shift->ends_at))->toBeTrue()
+            ->and($shift->starts_at->toDateString())->toBeGreaterThanOrEqual($schedule->starts_on->toDateString())
+            ->and($shift->starts_at->toDateString())->toBeLessThanOrEqual($schedule->ends_on->toDateString());
+
+        if ($shift->kind !== null) {
+            expect($shift->kind->group_id)->toBe($program->id);
+        }
+    });
+});
+
 it('is idempotent when re-run against the same database', function () {
     $counts = fn () => [
         'groups' => Group::count(),
         'members' => Member::count(),
         'memberships' => GroupMember::count(),
         'schedules' => Schedule::count(),
+        'shift_kinds' => ShiftKind::count(),
+        'shifts' => Shift::count(),
     ];
     $before = $counts();
 

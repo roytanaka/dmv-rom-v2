@@ -244,8 +244,23 @@ export interface ScheduleListItem {
     can: ScheduleAbilities;
 }
 
-// A Schedule opened directly — its read detail. A Schedule holds nothing yet (Shifts
-// land in a later slice), so this is its name, range, state, and as-authored description.
+// A Shift on an opened Schedule — one slot the Agenda reads (#355, ADR-0021 §2).
+// `starts_at` / `ends_at` cross the wire as UTC instants and are read on the org wall
+// clock (grouped by day client-side). `kind` is the ShiftKind name where the Group uses
+// kinds, null for Reception's shape. `taken` is the filled-seat count (0 until Sign-ups
+// land in #357); `capacity` is the slot's integer size.
+export interface ShiftAgendaItem {
+    id: number;
+    starts_at: string;
+    ends_at: string;
+    capacity: number;
+    taken: number;
+    kind: string | null;
+}
+
+// A Schedule opened directly — its read detail: name, range, state, as-authored
+// description, and its Shifts as a flat, start-ordered list (the Agenda groups them by
+// day on the org wall clock).
 export interface ScheduleDetail {
     id: number;
     name: string;
@@ -254,6 +269,7 @@ export interface ScheduleDetail {
     state: string;
     description: string | null;
     can: ScheduleAbilities;
+    shifts: ShiftAgendaItem[];
 }
 
 // UI hints from the SchedulePolicy — drive the per-Schedule authoring affordances; the

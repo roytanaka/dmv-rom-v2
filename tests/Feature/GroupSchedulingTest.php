@@ -6,6 +6,8 @@ use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\Member;
 use App\Models\Schedule;
+use App\Models\Shift;
+use App\Models\ShiftKind;
 use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -254,4 +256,63 @@ it('resolves the French Schedule permalink twin /fr/groupes/{group}/horaire/{sch
                 ->where('locale', 'fr')
                 ->where('scheduling.open.name', 'Aout 2026'));
     });
+});
+
+// --- The Agenda read surface: a Schedule's Shifts (#355, ADR-0021 §2) --------
+
+it('lists an opened Schedule with an empty shifts array when it holds no Shifts', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.shifts', []));
+});
+
+it("exposes each Shift's date, times, capacity, taken-count and kind on the open Schedule", function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $kind = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Highlights tour']);
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'shift_kind_id' => $kind->id,
+        'capacity' => 3,
+        'starts_at' => '2026-08-05 14:00:00',
+        'ends_at' => '2026-08-05 17:00:00',
+    ]);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('scheduling.open.shifts', 1)
+            ->where('scheduling.open.shifts.0.id', $shift->id)
+            ->where('scheduling.open.shifts.0.capacity', 3)
+            // No Sign-ups exist yet (#357), so every Shift reads as empty.
+            ->where('scheduling.open.shifts.0.taken', 0)
+            ->where('scheduling.open.shifts.0.kind', 'Highlights tour')
+            ->where('scheduling.open.shifts.0.starts_at', fn (string $iso) => str_starts_with($iso, '2026-08-05'))
+            ->where('scheduling.open.shifts.0.ends_at', fn (string $iso) => str_starts_with($iso, '2026-08-05')));
+});
+
+it('reads a kind-less Shift with a null kind', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    Shift::factory()->create(['schedule_id' => $schedule->id, 'shift_kind_id' => null]);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.shifts.0.kind', null));
+});
+
+it('orders Shifts by start time within the Schedule', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    // Created out of order so the ordering cannot pass by insertion order.
+    $afternoon = Shift::factory()->create(['schedule_id' => $schedule->id, 'starts_at' => '2026-08-05 14:00:00', 'ends_at' => '2026-08-05 16:00:00']);
+    $morning = Shift::factory()->create(['schedule_id' => $schedule->id, 'starts_at' => '2026-08-05 09:00:00', 'ends_at' => '2026-08-05 11:00:00']);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open.shifts', fn (Collection $shifts) => $shifts->pluck('id')->all() === [$morning->id, $afternoon->id]));
 });

@@ -17,6 +17,7 @@ use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\Schedule;
+use App\Models\Shift;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -527,9 +528,11 @@ class GroupController extends Controller
     }
 
     /**
-     * One Schedule's detail payload — the read view. A Schedule holds nothing yet
-     * (Shifts land in a later slice), so this is its name, range, state, the
-     * as-authored description, and the viewer's per-Schedule authoring hints.
+     * One Schedule's detail payload — the read view. Its name, range, state, the
+     * as-authored description, the viewer's per-Schedule authoring hints, and the
+     * Agenda's Shifts (#355). The Agenda's day-grouping is done client-side on the org
+     * wall clock (a pure module the Calendar will share), so the payload ships a flat,
+     * start-ordered Shift list and lets the reader's view decide the shape.
      *
      * @return array<string, mixed>
      */
@@ -543,7 +546,38 @@ class GroupController extends Controller
             'state' => $schedule->state->value,
             'description' => $schedule->description,
             'can' => $this->scheduleAuthoring($request, $schedule),
+            'shifts' => $this->shifts($schedule),
         ];
+    }
+
+    /**
+     * A Schedule's Shifts for the Agenda read surface (#355, ADR-0021 §2). Each Shift
+     * reads as its instants (UTC on the wire, formatted on the org wall clock client-
+     * side), its integer capacity, how many seats are taken, and its kind name where
+     * the Group uses kinds (null for Reception's shape). `kind` is eager-loaded so the
+     * map never lazy-loads under strict mode.
+     *
+     * `taken` is 0 throughout the first pass: Sign-ups do not exist yet (#357), so
+     * every slot reads as empty. The count is surfaced now so the payload shape is
+     * settled before the Sign-up slice fills it in.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function shifts(Schedule $schedule): array
+    {
+        return $schedule->shifts()
+            ->with('kind')
+            ->orderBy('starts_at')
+            ->get()
+            ->map(fn (Shift $shift) => [
+                'id' => $shift->id,
+                'starts_at' => $shift->starts_at->toIso8601String(),
+                'ends_at' => $shift->ends_at->toIso8601String(),
+                'capacity' => $shift->capacity,
+                'taken' => 0,
+                'kind' => $shift->kind?->name,
+            ])
+            ->all();
     }
 
     /**

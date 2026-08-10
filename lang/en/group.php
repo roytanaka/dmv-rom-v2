@@ -187,6 +187,13 @@ return [
             'ends_on' => 'End date',
             'description' => 'Description',
         ],
+        // Agenda (#355) — the opened Schedule's Shifts, grouped by day. `seats` reads
+        // the filled-seat count against capacity; `taken` is 0 until Sign-ups (#357).
+        'agenda' => [
+            'empty' => 'No shifts on this schedule yet.',
+            'time_range' => ':start – :end',
+            'seats' => ':taken / :capacity taken',
+        ],
     ],
 
     // Role labels — the Group's officers, by role (leadership at a glance).

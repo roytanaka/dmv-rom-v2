@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A Group's Schedule (#353, PRD #352, ADR-0021 §1) — the scheduling container that
@@ -65,6 +66,17 @@ class Schedule extends Model
     public function group(): BelongsTo
     {
         return $this->belongsTo(Group::class);
+    }
+
+    /**
+     * The Shifts on this Schedule — the slots it holds (#355, ADR-0021 §2). A Shift has
+     * no state; it inherits its whole context from this Schedule.
+     *
+     * @return HasMany<Shift, $this>
+     */
+    public function shifts(): HasMany
+    {
+        return $this->hasMany(Shift::class);
     }
 
     /**

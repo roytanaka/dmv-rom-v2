@@ -152,6 +152,17 @@ class Group extends Model
     }
 
     /**
+     * The ShiftKinds this Group uses to label its Shifts — its small, seeded, per-Group
+     * vocabulary (#355, ADR-0021 §3). Present only when the Group runs scheduling.
+     *
+     * @return HasMany<ShiftKind, $this>
+     */
+    public function shiftKinds(): HasMany
+    {
+        return $this->hasMany(ShiftKind::class);
+    }
+
+    /**
      * The org-wide system functions this Group stewards — a Group may steward
      * several (e.g. the Records Group stewarding `member_admin`).
      *

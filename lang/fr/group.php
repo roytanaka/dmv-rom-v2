@@ -170,6 +170,14 @@ return [
             'ends_on' => 'Date de fin',
             'description' => 'Description',
         ],
+        // Agenda (#355) — les créneaux de l’horaire ouvert, groupés par jour. « seats »
+        // indique les places occupées sur la capacité ; « taken » vaut 0 jusqu’aux
+        // inscriptions (#357).
+        'agenda' => [
+            'empty' => 'Aucun créneau pour cet horaire pour l’instant.',
+            'time_range' => 'De :start à :end',
+            'seats' => ':taken / :capacity occupées',
+        ],
     ],
 
     'role' => [
