@@ -223,6 +223,18 @@ Route::delete('sign-ups/{signUp}', [SignUpController::class, 'destroy'])
 Route::post('shifts/{shift}/assignments', [AssignmentController::class, 'store'])
     ->middleware(['auth'])
     ->name('assignments.store');
+// Bulk-place / bulk-remove a Member's Sign-ups (#363, PRD #352, ADR-0021 §5). The Scheduler's
+// labour-saver that retires Reception's fortnight: a Member placed across every Shift a filter
+// names (days of week + time, a date range, an interval of weekly or biweekly), and the same
+// filter to take them back out. N single writes plus a report — skip-and-report, never
+// all-or-nothing. Both nest under the owning Schedule and answer to the schedule-admin gate;
+// the interval lives in the form, never in a row (no recurrence column, no phase anchor).
+Route::post('schedules/{schedule}/assignments/bulk', [AssignmentController::class, 'bulkStore'])
+    ->middleware(['auth'])
+    ->name('assignments.bulk-store');
+Route::delete('schedules/{schedule}/assignments/bulk', [AssignmentController::class, 'bulkDestroy'])
+    ->middleware(['auth'])
+    ->name('assignments.bulk-destroy');
 
 // Group officer roster CRUD (#192, PRD #186). The roster write seam: adding a
 // member, changing standing (including a leave window), assigning / revoking roles,

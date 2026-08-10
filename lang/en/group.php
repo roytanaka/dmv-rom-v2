@@ -198,6 +198,10 @@ return [
         'bulk' => [
             'skipped_outside_range' => 'Skipped — this day falls outside the schedule’s date range.',
             'skipped_has_sign_ups' => 'Skipped — this shift has members signed up. Remove them first.',
+            // Bulk-place a Member's Sign-ups (#363, ADR-0021 §5) — a placed run honours
+            // capacity and the one-seat rule per row, skipping and naming what it cannot write.
+            'skipped_full' => 'Skipped — this shift is already full.',
+            'skipped_already_signed_up' => 'Skipped — this member already has a seat on this shift.',
         ],
         // Sign-up validation (#357, ADR-0021 §Sign-up) — surfaced by the Form Request when a
         // seat cannot be taken, and by the Shift edit when capacity would strand a member.

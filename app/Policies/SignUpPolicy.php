@@ -6,10 +6,12 @@ use App\Enums\Category;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\ShiftAudience;
+use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SignUpController;
 use App\Http\Requests\StoreSignUpRequest;
 use App\Models\Group;
 use App\Models\Member;
+use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\SignUp;
 
@@ -101,6 +103,44 @@ class SignUpPolicy
         $membership = $member->membershipIn($shift->schedule->group);
 
         return $membership !== null && $membership->status->canSignUp();
+    }
+
+    /**
+     * Who may bulk-place a named Member across a Schedule's Shifts (#363) — the batch form
+     * of {@see assign}. The gate is identical to a single placement, resolved once for the
+     * whole run because the actor, the Group and the placed Member are constant across every
+     * row: the *actor* clears the schedule-admin gate on the Schedule's Group, and the
+     * *placed Member* clears both sign-up floors, so a person on leave or resigned cannot be
+     * placed on any Shift. The Shift's `audience` is again not consulted — a Scheduler places
+     * a person she has already spoken to. Capacity and the one-seat rule are state, applied
+     * per row in {@see AssignmentController::bulkStore}, not authority.
+     */
+    public function assignAny(Member $actor, Schedule $schedule, Member $member): bool
+    {
+        if (! $this->administersSchedulingFor($actor, $schedule->group)) {
+            return false;
+        }
+
+        if (! $member->category->canSignUp()) {
+            return false;
+        }
+
+        $membership = $member->membershipIn($schedule->group);
+
+        return $membership !== null && $membership->status->canSignUp();
+    }
+
+    /**
+     * Who may bulk-remove a Member's Sign-ups across a Schedule's Shifts (#363) — the
+     * symmetric undo of {@see assignAny}. Only the schedule-admin gate applies: removal is
+     * never held to the sign-up floors, because its whole purpose is clearing a placed
+     * regular who has stopped coming — and by then they are exactly the person a floor would
+     * bar (on leave, resigned). The per-row work is a plain delete of a seat the Member
+     * holds, so there is nothing further to authorise.
+     */
+    public function removeAny(Member $actor, Schedule $schedule): bool
+    {
+        return $this->administersSchedulingFor($actor, $schedule->group);
     }
 
     /**
