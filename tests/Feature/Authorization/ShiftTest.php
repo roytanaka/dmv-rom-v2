@@ -499,7 +499,7 @@ it('bulk-creates with a capacity and one of the Group\'s kinds on every matching
 
 it('writes the in-range days and reports the days that fall outside the Schedule range', function () {
     // Range runs into September; the Schedule ends 2026-08-31. The four September
-    // Tuesdays fall outside and are skipped-and-reported, not aborted.
+    // Mondays fall outside and are skipped-and-reported, not aborted.
     $schedule = augustSchedule();
 
     $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
