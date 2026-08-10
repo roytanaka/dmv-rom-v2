@@ -66,7 +66,7 @@ class UpdateShiftRequest extends FormRequest
         return [
             'starts_at' => ['sometimes', 'required', 'date'],
             'ends_at' => ['sometimes', 'required', 'date', 'after:starts_at', $this->withinRange()],
-            'capacity' => ['sometimes', 'integer', 'min:1'],
+            'capacity' => ['sometimes', 'integer', 'min:1', $this->coversSignUps()],
             'shift_kind_id' => [
                 'sometimes',
                 'nullable',
@@ -89,6 +89,21 @@ class UpdateShiftRequest extends FormRequest
 
             if ($startsAt === null || ! $schedule->coversInterval($startsAt, $this->date('ends_at'))) {
                 $fail('group.scheduling_panel.shift_outside_range')->translate();
+            }
+        };
+    }
+
+    /**
+     * A closure rule rejecting a capacity below the Shift's current Sign-up count (#357,
+     * ADR-0021 §2). Raising capacity is a single, harmless update; lowering it below the
+     * seats already taken would silently strand a Member, so the Scheduler must remove
+     * people first, visibly. Counts against the route-bound Shift's live Sign-ups.
+     */
+    private function coversSignUps(): callable
+    {
+        return function (string $attribute, mixed $value, callable $fail): void {
+            if ((int) $value < $this->route('shift')->signUps()->count()) {
+                $fail('group.scheduling_panel.capacity_below_signups')->translate();
             }
         };
     }

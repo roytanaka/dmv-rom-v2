@@ -18,6 +18,7 @@ use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
+use App\Models\SignUp;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -546,37 +547,74 @@ class GroupController extends Controller
             'state' => $schedule->state->value,
             'description' => $schedule->description,
             'can' => $this->scheduleAuthoring($request, $schedule),
-            'shifts' => $this->shifts($schedule),
+            'shifts' => $this->shifts($request, $schedule),
         ];
     }
 
     /**
-     * A Schedule's Shifts for the Agenda read surface (#355, ADR-0021 §2). Each Shift
-     * reads as its instants (UTC on the wire, formatted on the org wall clock client-
-     * side), its integer capacity, how many seats are taken, and its kind name where
-     * the Group uses kinds (null for Reception's shape). `kind` is eager-loaded so the
-     * map never lazy-loads under strict mode.
+     * A Schedule's Shifts for the Agenda read surface (#355, #357, ADR-0021 §2). Each Shift
+     * reads as its instants (UTC on the wire, formatted on the org wall clock client-side),
+     * its integer capacity, how many seats are taken, its kind name where the Group uses
+     * kinds (null for Reception's shape), and the Members holding its seats.
      *
-     * `taken` is 0 throughout the first pass: Sign-ups do not exist yet (#357), so
-     * every slot reads as empty. The count is surfaced now so the payload shape is
-     * settled before the Sign-up slice fills it in.
+     * **Sign-up names are visible to every viewer who can read the Schedule, non-members
+     * included** (ADR-0017 §6): the section is org-open, a Schedule is a roster of who is on
+     * the floor, no more exposing than the Directory. Each seat is routed through the
+     * centralized {@see MemberResource} so contact PII stays gated behind `viewContact` and
+     * only the name tier surfaces; nothing else about a Sign-up is exposed.
+     *
+     * The viewer's own participation drives the take/drop affordance: `can.signUp` is the
+     * SignUpPolicy's per-Shift verdict (false when the viewer is ineligible or the Shift is
+     * full), and `signup_id` is the viewer's own seat on this Shift (null when they hold
+     * none) so a drop is one click from where they signed up. Both are UI hints — the Form
+     * Requests enforce every write regardless.
+     *
+     * Eager-loads the Shifts' Sign-ups, their Members and each Member's memberships (with
+     * Group and roles) so neither the MemberResource contact gate nor the capacity/seat
+     * counts lazy-load under strict mode.
      *
      * @return list<array<string, mixed>>
      */
-    private function shifts(Schedule $schedule): array
+    private function shifts(Request $request, Schedule $schedule): array
     {
-        return $schedule->shifts()
-            ->with('kind')
+        $viewer = $request->user();
+
+        $shifts = $schedule->shifts()
+            ->with(['kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles'])
             ->orderBy('starts_at')
             ->get()
-            ->map(fn (Shift $shift) => [
-                'id' => $shift->id,
-                'starts_at' => $shift->starts_at->toIso8601String(),
-                'ends_at' => $shift->ends_at->toIso8601String(),
-                'capacity' => $shift->capacity,
-                'taken' => 0,
-                'kind' => $shift->kind?->name,
-            ])
+            // The per-Shift SignUpPolicy check reads `$shift->schedule` (and its Group); set
+            // it from the Schedule already in hand so it never lazy-loads under strict mode.
+            ->each(fn (Shift $shift) => $shift->setRelation('schedule', $schedule));
+
+        return $shifts
+            ->map(function (Shift $shift) use ($request, $viewer) {
+                $taken = $shift->signUps->count();
+                $ownSignUp = $shift->signUps->firstWhere('member_id', $viewer->getKey());
+
+                return [
+                    'id' => $shift->id,
+                    'starts_at' => $shift->starts_at->toIso8601String(),
+                    'ends_at' => $shift->ends_at->toIso8601String(),
+                    'capacity' => $shift->capacity,
+                    'taken' => $taken,
+                    'kind' => $shift->kind?->name,
+                    // The seated Members, names only (contact stays gated per MemberResource).
+                    'signups' => $shift->signUps
+                        ->map(fn (SignUp $signUp) => (new MemberResource($signUp->member))->resolve($request))
+                        ->all(),
+                    // The viewer's own seat on this Shift, for a one-click drop; null if none.
+                    'signup_id' => $ownSignUp?->id,
+                    // Whether to offer the Sign-up button: the SignUpPolicy's floors and
+                    // `audience`, plus a free seat and no seat already held. A full Shift
+                    // shows as full with no button; the write seam re-checks each on POST.
+                    'can' => [
+                        'signUp' => $ownSignUp === null
+                            && $taken < $shift->capacity
+                            && $viewer->can('create', [SignUp::class, $shift]),
+                    ],
+                ];
+            })
             ->all();
     }
 

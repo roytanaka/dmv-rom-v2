@@ -35,8 +35,8 @@ class ShiftPolicy
     /**
      * Who may edit a Shift — its times, capacity, kind or audience: a schedule admin of
      * the owning Group. Authority never leaks across Groups. Lowering capacity below the
-     * current Sign-up count is blocked once Sign-ups exist (#357); the guard is the admin
-     * gate today.
+     * current Sign-up count is a state rule enforced in {@see UpdateShiftRequest}, not an
+     * authority question; this answers only who may edit at all.
      */
     public function update(Member $actor, Shift $shift): bool
     {
@@ -44,14 +44,14 @@ class ShiftPolicy
     }
 
     /**
-     * Who may delete a Shift: a schedule admin of the owning Group. Deletion is
-     * cancelling, and is permitted only at zero Sign-ups (ADR-0021 §2) — cancelling is
-     * never silent. The zero-Sign-up predicate lands with #357; the guard is the admin
-     * gate today.
+     * Who may delete a Shift: a schedule admin of the owning Group, and only at zero
+     * Sign-ups (ADR-0021 §2) — deletion is cancelling, and cancelling is never silent, so a
+     * Shift with Members on it must be emptied first.
      */
     public function delete(Member $actor, Shift $shift): bool
     {
-        return $this->administersSchedulingFor($actor, $shift->schedule->group);
+        return $this->administersSchedulingFor($actor, $shift->schedule->group)
+            && ! $shift->signUps()->exists();
     }
 
     /**

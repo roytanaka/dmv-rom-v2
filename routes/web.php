@@ -8,6 +8,7 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\SignUpController;
 use App\Http\Controllers\SuperTierController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -186,6 +187,19 @@ Route::patch('shifts/{shift}', [ShiftController::class, 'update'])
 Route::delete('shifts/{shift}', [ShiftController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('shifts.destroy');
+
+// Sign-up write seam (#357, PRD #352, ADR-0021 §Sign-up). A Member taking a Shift and
+// dropping it, from the same place they signed up. Each is structurally authorized in its
+// Form Request, which delegates to the SignUpPolicy — the two floors and the Shift's
+// `audience` on the way in, owning the seat on the way out. Take nests under the Shift
+// (bound by id); drop binds the Sign-up by id. The read surface lives on
+// `groups.scheduling.show`; the cancellation email to the Group's Schedulers lands with #358.
+Route::post('shifts/{shift}/sign-ups', [SignUpController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('sign-ups.store');
+Route::delete('sign-ups/{signUp}', [SignUpController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('sign-ups.destroy');
 
 // Group officer roster CRUD (#192, PRD #186). The roster write seam: adding a
 // member, changing standing (including a leave window), assigning / revoking roles,

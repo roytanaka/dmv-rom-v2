@@ -192,13 +192,25 @@ return [
         // Schedule, and a Schedule may not shrink away from the Shifts already on it.
         'shift_outside_range' => 'This shift falls outside the schedule’s date range.',
         'schedule_range_conflict' => 'The schedule’s dates cannot leave out a shift already on it. Move or delete those shifts first.',
-        // Agenda (#355) — the opened Schedule's Shifts, grouped by day. `seats` reads
-        // the filled-seat count against capacity; `taken` is 0 until Sign-ups (#357).
+        // Sign-up validation (#357, ADR-0021 §Sign-up) — surfaced by the Form Request when a
+        // seat cannot be taken, and by the Shift edit when capacity would strand a member.
+        'shift_full' => 'This shift is full.',
+        'already_signed_up' => 'You are already signed up for this shift.',
+        'capacity_below_signups' => 'Capacity cannot go below the number of members already signed up. Remove members first.',
+        // Agenda (#355, #357) — the opened Schedule's Shifts, grouped by day. `seats` reads
+        // the filled-seat count against capacity; `sign_up` is the take/drop affordance.
         'agenda' => [
             'aria_label' => 'Agenda',
             'empty' => 'No shifts on this schedule yet.',
             'time_range' => ':start – :end',
             'seats' => ':taken / :capacity taken',
+            'sign_up' => [
+                'take' => 'Sign up',
+                'drop' => 'Drop',
+                'full' => 'Full',
+                'nobody' => 'No one signed up yet',
+                'signed_up_label' => 'Signed up',
+            ],
         ],
     ],
 

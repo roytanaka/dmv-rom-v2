@@ -7,6 +7,7 @@ use Database\Factories\ShiftFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A Shift (#355, PRD #352, ADR-0021 §2) — a slot on a Schedule. A Shift is a *slot, not
@@ -73,5 +74,17 @@ class Shift extends Model
     public function kind(): BelongsTo
     {
         return $this->belongsTo(ShiftKind::class, 'shift_kind_id');
+    }
+
+    /**
+     * The Sign-ups on this Shift — the Members holding its seats (#357, ADR-0021). The
+     * Shift is full when this count reaches {@see $capacity}; lowering capacity below it
+     * is blocked, and deleting the Shift is permitted only when it is empty.
+     *
+     * @return HasMany<SignUp, $this>
+     */
+    public function signUps(): HasMany
+    {
+        return $this->hasMany(SignUp::class);
     }
 }

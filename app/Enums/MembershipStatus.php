@@ -23,4 +23,22 @@ enum MembershipStatus: string
     case Resigned = 'resigned';
     case Deceased = 'deceased';
     case Donor = 'donor';
+
+    /**
+     * Whether a membership in this within-Group standing may sign up for the Group's
+     * Shifts — the per-Group floor the sign-up gate checks beside the DMV-wide
+     * {@see Category::canSignUp()} (ADR-0021). Mirrors that method's shape: the four
+     * standings that mean *gone or paused* — `loa`, `inactive`, `resigned`, `deceased`
+     * — are barred; the other seven may sign up. `donor` is permitted deliberately: a
+     * Friends Group's roster *is* donors, and excluding them would leave a Friends
+     * Committee unable to staff its own Schedule.
+     */
+    public function canSignUp(): bool
+    {
+        return match ($this) {
+            self::Full, self::Trainee, self::Transitional, self::Auxiliary,
+            self::Projects, self::Emeritus, self::Donor => true,
+            self::Loa, self::Inactive, self::Resigned, self::Deceased => false,
+        };
+    }
 }
