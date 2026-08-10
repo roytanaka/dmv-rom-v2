@@ -174,7 +174,7 @@ class GroupController extends Controller
             // visible Schedules and which one (if any) opens directly.
             'scheduling' => $section === 'scheduling'
                 ? $this->scheduling($request, $group, $schedule)
-                : ['schedules' => [], 'open' => null],
+                : ['schedules' => [], 'open' => null, 'roster' => []],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -464,7 +464,7 @@ class GroupController extends Controller
      * toward that test — a Scheduler's in-progress draft does not change where a Member
      * lands.
      *
-     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null}
+     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>}
      */
     private function scheduling(Request $request, Group $group, ?Schedule $schedule): array
     {
@@ -480,7 +480,11 @@ class GroupController extends Controller
             $schedule->setRelation('group', $group);
             abort_unless($user->can('view', $schedule), 404);
 
-            return ['schedules' => [], 'open' => $this->scheduleDetail($request, $schedule)];
+            return [
+                'schedules' => [],
+                'open' => $this->scheduleDetail($request, $schedule),
+                'roster' => $this->assignmentRoster($request, $group),
+            ];
         }
 
         // The viewer's visible Schedules — a draft only for a schedule admin, a
@@ -500,7 +504,11 @@ class GroupController extends Controller
         );
 
         if ($currentPublished->count() === 1) {
-            return ['schedules' => [], 'open' => $this->scheduleDetail($request, $currentPublished->first())];
+            return [
+                'schedules' => [],
+                'open' => $this->scheduleDetail($request, $currentPublished->first()),
+                'roster' => $this->assignmentRoster($request, $group),
+            ];
         }
 
         // The list: current and upcoming first (soonest range first), then past
@@ -525,6 +533,9 @@ class GroupController extends Controller
                 ])
                 ->all(),
             'open' => null,
+            // The picker's roster is a concern of an opened Schedule only; the list view
+            // shows no Shifts and so needs none.
+            'roster' => [],
         ];
     }
 
@@ -591,6 +602,10 @@ class GroupController extends Controller
             ->map(function (Shift $shift) use ($request, $viewer) {
                 $taken = $shift->signUps->count();
                 $ownSignUp = $shift->signUps->firstWhere('member_id', $viewer->getKey());
+                // Whether the viewer administers this Schedule (the ShiftPolicy's edit gate is
+                // the schedule-admin gate). It drives the officer affordances: the assign
+                // button, and each seat's remove target below.
+                $canManage = $viewer->can('update', $shift);
 
                 return [
                     'id' => $shift->id,
@@ -600,22 +615,69 @@ class GroupController extends Controller
                     'taken' => $taken,
                     'kind' => $shift->kind?->name,
                     // The seated Members, names only (contact stays gated per MemberResource).
+                    // A schedule admin additionally gets each seat's own Sign-up id — the
+                    // remove target for officer removal (#359), for any seat, not just their
+                    // own — so a placed regular who stops coming is one click to clear. A
+                    // plain reader never learns another seat's id.
                     'signups' => $shift->signUps
-                        ->map(fn (SignUp $signUp) => (new MemberResource($signUp->member))->resolve($request))
+                        ->map(function (SignUp $signUp) use ($request, $canManage) {
+                            $seat = (new MemberResource($signUp->member))->resolve($request);
+
+                            if ($canManage) {
+                                $seat['signup_id'] = $signUp->id;
+                            }
+
+                            return $seat;
+                        })
                         ->all(),
                     // The viewer's own seat on this Shift, for a one-click drop; null if none.
                     'signup_id' => $ownSignUp?->id,
-                    // Whether to offer the Sign-up button: the SignUpPolicy's floors and
-                    // `audience`, plus a free seat and no seat already held. A full Shift
-                    // shows as full with no button; the write seam re-checks each on POST.
+                    // The affordances this Shift offers the viewer. `signUp` is the
+                    // self-service verdict — the SignUpPolicy's floors and `audience`, plus a
+                    // free seat and no seat already held. `assign` is the officer verdict —
+                    // the schedule-admin gate plus a free seat (capacity binds the Scheduler
+                    // too, with no override). A full Shift shows as full with neither; the
+                    // write seams re-check each on POST.
                     'can' => [
                         'signUp' => $ownSignUp === null
                             && $taken < $shift->capacity
                             && $viewer->can('create', [SignUp::class, $shift]),
+                        'assign' => $canManage && $taken < $shift->capacity,
                     ],
                 ];
             })
             ->all();
+    }
+
+    /**
+     * The placement roster for the officer-assignment picker (#359, ADR-0021 §Sign-up) — the
+     * Members a schedule admin may place on this Group's Shifts. Present only for a schedule
+     * admin (the same gate that reveals a draft); an ordinary reader gets an empty list and
+     * no picker.
+     *
+     * The list is the Group's own roster narrowed to **placeable** Members — both sign-up
+     * floors satisfied ({@see Category::canSignUp()} and {@see MembershipStatus::canSignUp()})
+     * — so the picker offers no seat the write seam would reject. It routes through
+     * {@see MemberResource::directoryCollection()}, so it carries the name tier only and never
+     * asks the contact gate per row, exactly like the Directory.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function assignmentRoster(Request $request, Group $group): array
+    {
+        if (! $request->user()->can('create', [Schedule::class, $group])) {
+            return [];
+        }
+
+        $placeable = $group->memberships()
+            ->with('member')
+            ->get()
+            ->filter(fn (GroupMember $membership) => $membership->status->canSignUp()
+                && $membership->member->category->canSignUp())
+            ->map(fn (GroupMember $membership) => $membership->member)
+            ->values();
+
+        return MemberResource::directoryCollection($placeable)->resolve();
     }
 
     /**

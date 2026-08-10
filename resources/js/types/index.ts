@@ -252,6 +252,20 @@ export interface ShiftSignUp {
     first_name: string;
     last_name: string;
     photo: string | null;
+    // Officer removal (#359) — the seat's own Sign-up id, the remove target. Present only
+    // for a schedule admin (a plain reader never learns another seat's id).
+    signup_id?: number;
+}
+
+// A placeable Member in the officer-assignment picker (#359, ADR-0017 §6) — the Group's
+// roster narrowed to Members who clear both sign-up floors, routed through MemberResource
+// (name tier, contact suppressed). Withheld (empty) from a non-admin.
+export interface PlacementCandidate {
+    id: number;
+    first_name: string;
+    last_name: string;
+    photo: string | null;
+    standing: string;
 }
 
 // A Shift on an opened Schedule — one slot the Agenda reads (#355, #357, ADR-0021 §2).
@@ -270,7 +284,9 @@ export interface ShiftAgendaItem {
     kind: string | null;
     signups: ShiftSignUp[];
     signup_id: number | null;
-    can: { signUp: boolean };
+    // `signUp` is the self-service verdict; `assign` is the officer verdict — the
+    // schedule-admin gate plus a free seat (capacity binds the Scheduler too, #359).
+    can: { signUp: boolean; assign: boolean };
 }
 
 // A Schedule opened directly — its read detail: name, range, state, as-authored
@@ -302,4 +318,7 @@ export interface ScheduleAbilities {
 export interface Scheduling {
     schedules: ScheduleListItem[];
     open: ScheduleDetail | null;
+    // The officer-assignment picker's roster (#359) — placeable Members for the opened
+    // Schedule, present only for a schedule admin. Empty for a plain reader and on the list.
+    roster: PlacementCandidate[];
 }

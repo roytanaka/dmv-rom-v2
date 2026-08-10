@@ -197,6 +197,16 @@ return [
                 'nobody' => 'Personne inscrit·e pour l’instant',
                 'signed_up_label' => 'Inscrit·es',
             ],
+            // Affectation et retrait par la ou le responsable (#359) — visible
+            // uniquement pour une ou un gestionnaire d’horaire.
+            'assign' => [
+                'place' => 'Affecter un membre',
+                'title' => 'Affecter un membre à ce quart',
+                'search' => 'Rechercher des membres…',
+                'empty' => 'Aucun membre à affecter.',
+                'remove' => 'Retirer du quart',
+                'confirm_remove' => 'Retirer ce membre du quart ?',
+            ],
         ],
     ],
 

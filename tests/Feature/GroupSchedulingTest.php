@@ -72,7 +72,7 @@ it('leaves the scheduling prop empty on the Overview section', function () {
 
     $this->actingAs(schedulingMemberOf($group))
         ->get(route('groups.show', $group))
-        ->assertInertia(fn (Assert $page) => $page->where('scheduling', ['schedules' => [], 'open' => null]));
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling', ['schedules' => [], 'open' => null, 'roster' => []]));
 });
 
 // --- Navigation: list vs open-directly --------------------------------------
