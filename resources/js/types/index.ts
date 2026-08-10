@@ -230,3 +230,33 @@ export interface Meeting {
     // the server enforces every mutation regardless (#193).
     can: { update: boolean; delete: boolean };
 }
+
+// A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range;
+// `is_past` heads the two blocks (current & upcoming vs past), resolved server-side.
+export interface ScheduleListItem {
+    id: number;
+    name: string;
+    starts_on: string;
+    ends_on: string;
+    state: string;
+    is_past: boolean;
+    url: string;
+}
+
+// A Schedule opened directly — its read detail. A Schedule holds nothing yet (Shifts
+// land in a later slice), so this is its name, range, state, and as-authored description.
+export interface ScheduleDetail {
+    id: number;
+    name: string;
+    starts_on: string;
+    ends_on: string;
+    state: string;
+    description: string | null;
+}
+
+// The Scheduling tab's payload: the viewer's visible Schedules, and the one (if any)
+// that opens directly. Exactly one of `schedules` / `open` is populated at a time.
+export interface Scheduling {
+    schedules: ScheduleListItem[];
+    open: ScheduleDetail | null;
+}

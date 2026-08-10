@@ -12,6 +12,7 @@
 // `can.update` hint; the GroupPolicy enforces every mutation regardless.
 import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
+import GroupScheduling from '@/components/GroupScheduling.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { NavNode } from '@/chrome/types';
 import { bannerSources, defaultBannerKey, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type Meeting, type RosterMember, type RosterMeta, type SharedData } from '@/types';
+import { type Meeting, type RosterMember, type RosterMeta, type Scheduling, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { PhImage, PhPencilSimple } from '@phosphor-icons/vue';
@@ -72,6 +73,7 @@ const props = defineProps<{
     roster: RosterMember[];
     rosterMeta: RosterMeta;
     meetings: Meeting[];
+    scheduling: Scheduling;
     overview: {
         description: string | null;
         children: ChildGroup[];
@@ -99,7 +101,7 @@ const tabs = computed<NavNode[]>(() => {
     ];
     if (props.group.capabilities.meetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents', soon: true });
-    if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling', soon: true });
+    if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
     if (props.group.capabilities.content) list.push({ href: href('content'), labelKey: 'group.tab.content', soon: true });
     if (props.group.capabilities.hours) list.push({ href: href('hours'), labelKey: 'group.tab.hours', soon: true });
     return list;
@@ -331,6 +333,10 @@ const pickBanner = (key: string | null) => {
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
                      surface, with officer CRUD behind the `can` hints. -->
                 <GroupMeetings v-else-if="section === 'meetings'" :meetings="meetings" :can-create="can.createMeeting" :group-slug="group.slug" />
+
+                <!-- Scheduling (#353) — the Schedule read surface: a list, an empty
+                     state, or a single Schedule opened directly. Org-open. -->
+                <GroupScheduling v-else-if="section === 'scheduling'" :scheduling="scheduling" :group-slug="group.slug" />
 
                 <!-- The capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>

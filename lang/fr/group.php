@@ -143,6 +143,16 @@ return [
 
     'coming_soon' => 'Cette section arrive bientôt.',
 
+    // Onglet Horaire (#353, ADR-0021 §1) — la surface de lecture des horaires.
+    'scheduling_panel' => [
+        'empty' => 'Aucun horaire pour l’instant.',
+        'current_heading' => 'Actuels et à venir',
+        'past_heading' => 'Passés',
+        'draft_badge' => 'Brouillon',
+        'date_range' => 'Du :start au :end',
+        'back_to_list' => 'Tous les horaires',
+    ],
+
     'role' => [
         'chair' => 'Président·e',
         'secretary' => 'Secrétaire',

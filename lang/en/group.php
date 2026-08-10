@@ -161,6 +161,16 @@ return [
     // Section panels not yet built in this slice.
     'coming_soon' => 'This section is coming soon.',
 
+    // Scheduling tab (#353, ADR-0021 §1) — the Schedule read surface.
+    'scheduling_panel' => [
+        'empty' => 'No schedules yet.',
+        'current_heading' => 'Current & upcoming',
+        'past_heading' => 'Past',
+        'draft_badge' => 'Draft',
+        'date_range' => ':start – :end',
+        'back_to_list' => 'All schedules',
+    ],
+
     // Role labels — the Group's officers, by role (leadership at a glance).
     'role' => [
         'chair' => 'Chair',

@@ -2,10 +2,12 @@
 
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
+use App\Enums\ScheduleState;
 use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
+use App\Models\Schedule;
 use Database\Seeders\OrgTreeSeeder;
 
 /*
@@ -81,11 +83,20 @@ it('seeds a super-tier holder, an LOA window, and varied statuses', function () 
         );
 });
 
+it('seeds a published, current Schedule on the scheduling program', function () {
+    $program = Group::where('slug', OrgTreeSeeder::PROGRAM)->firstOrFail();
+    $schedule = $program->schedules()->where('name', OrgTreeSeeder::SCHEDULE_NAME)->firstOrFail();
+
+    expect($schedule->state)->toBe(ScheduleState::Published)
+        ->and($schedule->isCurrent(now()))->toBeTrue();
+});
+
 it('is idempotent when re-run against the same database', function () {
     $counts = fn () => [
         'groups' => Group::count(),
         'members' => Member::count(),
         'memberships' => GroupMember::count(),
+        'schedules' => Schedule::count(),
     ];
     $before = $counts();
 
