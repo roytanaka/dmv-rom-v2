@@ -32,6 +32,7 @@ class MemberFactory extends Factory
             'phone' => fake()->phoneNumber(),
             'email_verified_at' => now(),
             'category' => Category::Active,
+            'locale' => 'en',
             'super_tier' => false,
             'support_operator' => false,
             'password' => static::$password ??= Hash::make('password'),

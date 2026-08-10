@@ -7,6 +7,7 @@ use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
+use App\Enums\Role;
 use App\Enums\Scope;
 use App\Enums\StewardshipFunction;
 use Database\Factories\GroupFactory;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * The spine's organizing entity (ADR-0010): every committee, program, working
@@ -160,6 +162,28 @@ class Group extends Model
     public function shiftKinds(): HasMany
     {
         return $this->hasMany(ShiftKind::class);
+    }
+
+    /**
+     * The Members who run this Group's scheduling — the recipients of the Sign-up
+     * cancellation email (#358, ADR-0021 §Sign-up "Notification"). These are the Group's
+     * `Scheduler`-role holders, with Chair-implication folded in (a Chair acts as Scheduler
+     * within its own Group — ADR-0011), matching the schedule-admin gate the SchedulePolicy
+     * enforces everywhere else. Resolved via eager-loaded memberships (three queries: roster,
+     * members, roles); empty on a Group that has no Scheduler (and, by construction, on one
+     * that runs no scheduling).
+     *
+     * @return Collection<int, Member>
+     */
+    public function schedulers(): Collection
+    {
+        return $this->memberships()
+            ->with(['member', 'roles'])
+            ->get()
+            ->filter(fn (GroupMember $membership) => $membership->roles->contains('role', Role::Scheduler)
+                || $membership->roles->contains('role', Role::Chair))
+            ->map(fn (GroupMember $membership) => $membership->member)
+            ->values();
     }
 
     /**
