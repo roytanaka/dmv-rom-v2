@@ -24,7 +24,7 @@ import { execSync } from 'node:child_process';
 // Configuration
 // ---------------------------------------------------------------------------
 
-const MAX_ITERATIONS = 10;
+const MAX_ITERATIONS = 12;
 const TARGET_BRANCH = 'staging';
 
 // Both agents emit this when finished (implementer: nothing left to do;
