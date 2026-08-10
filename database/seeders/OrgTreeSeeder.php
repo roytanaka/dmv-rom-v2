@@ -4,10 +4,12 @@ namespace Database\Seeders;
 
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
+use App\Enums\ScheduleState;
 use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
+use App\Models\Schedule;
 use Closure;
 use Illuminate\Database\Seeder;
 
@@ -146,6 +148,33 @@ class OrgTreeSeeder extends Seeder
         $this->membership($program, $scheduler, MembershipStatus::Full, [Role::Scheduler]);
         $this->membership($program, $trainee, MembershipStatus::Trainee);
         $this->loaMembership($program, $onLeave);
+
+        // A published, current Schedule on the scheduling program (#353), so feature
+        // tests have a realistic hook. Keyed on (group, name) so the seed stays
+        // idempotent. It holds nothing yet — Shifts land in a later slice.
+        $this->schedule($program, self::SCHEDULE_NAME);
+    }
+
+    /**
+     * The current-month Schedule name on the program — a stable key so re-seeding
+     * heals rather than duplicates.
+     */
+    public const SCHEDULE_NAME = 'Current Season';
+
+    /**
+     * Ensure the Group owns a published, current Schedule with the given name, without
+     * duplicating on re-seed.
+     */
+    private function schedule(Group $group, string $name): Schedule
+    {
+        return Schedule::where('group_id', $group->id)->where('name', $name)->first()
+            ?? Schedule::factory()->create([
+                'group_id' => $group->id,
+                'name' => $name,
+                'state' => ScheduleState::Published,
+                'starts_on' => now()->startOfMonth()->toDateString(),
+                'ends_on' => now()->endOfMonth()->toDateString(),
+            ]);
     }
 
     /**

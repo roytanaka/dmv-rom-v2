@@ -7,6 +7,7 @@ use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
+use App\Enums\ScheduleState;
 use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\Group;
@@ -15,6 +16,7 @@ use App\Models\GroupMemberRole;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
+use App\Models\Schedule;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -42,8 +44,27 @@ class GroupController extends Controller
      */
     public function show(Request $request, Group $group, ?string $section = null): Response
     {
-        $section ??= 'overview';
+        return $this->render($request, $group, $section ?? 'overview', null);
+    }
 
+    /**
+     * A Schedule permalink (`groups.scheduling.show`, #353) — the Scheduling section
+     * opened on one Schedule addressed by id. A dedicated action rather than an extra
+     * optional param on {@see show()}, so each route's parameters bind by name and the
+     * {schedule} model never spills into the {section} slot. The per-Schedule read is
+     * enforced in {@see scheduling()} via the SchedulePolicy.
+     */
+    public function showSchedule(Request $request, Group $group, Schedule $schedule): Response
+    {
+        return $this->render($request, $group, 'scheduling', $schedule);
+    }
+
+    /**
+     * Render the committee shell on the given section, optionally opened on a specific
+     * Schedule. Shared by {@see show()} and {@see showSchedule()}.
+     */
+    private function render(Request $request, Group $group, string $section, ?Schedule $schedule): Response
+    {
         // Container page-gate (#293, PRD #289): a Kind::Container Group is a structural
         // section peer, not a destination — no page exists. Unconditional 404 for every
         // viewer, super-tier included: unlike the Private gate below (a confidentiality
@@ -74,6 +95,13 @@ class GroupController extends Controller
         // Overview and Roster — a non-member visiting the section is forbidden.
         if ($section === 'meetings') {
             abort_unless($request->user()->can('viewAny', [Meeting::class, $group]), 403);
+        }
+
+        // The Scheduling section exists only while the Group runs scheduling — a 404
+        // (not 403) so a non-scheduling Group's tab and its addressable URL agree. The
+        // section itself is org-open (SchedulePolicy); per-Schedule read is gated below.
+        if ($section === 'scheduling') {
+            abort_unless($request->user()->can('viewAny', [Schedule::class, $group]), 404);
         }
 
         $group->load([
@@ -138,6 +166,11 @@ class GroupController extends Controller
             // The Meetings tab's payload is resolved only when that tab is active
             // and the viewer has cleared the members-only gate above.
             'meetings' => $section === 'meetings' ? $this->meetings($request, $group) : [],
+            // The Scheduling tab's payload, resolved only on that tab: the viewer's
+            // visible Schedules and which one (if any) opens directly.
+            'scheduling' => $section === 'scheduling'
+                ? $this->scheduling($request, $group, $schedule)
+                : ['schedules' => [], 'open' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -409,5 +442,103 @@ class GroupController extends Controller
                 ],
             ])
             ->all();
+    }
+
+    /**
+     * The Group's Scheduling section (#353, PRD #352, ADR-0021 §1) — the read surface.
+     * Returns the viewer's visible Schedules and which one, if any, opens directly.
+     *
+     * Each Schedule is filtered through the SchedulePolicy's per-Schedule `view`, so a
+     * draft surfaces only to the Group's schedule admins while a published one follows
+     * the Group's listing visibility. Past Schedules stay in the list — nothing is
+     * hidden by date.
+     *
+     * Navigation has three outcomes. A permalink (`$schedule` bound) opens that
+     * Schedule after the same `view` check. Otherwise the branch is decided by the
+     * count of **current published** Schedules (`ends_on >= today`): exactly one opens
+     * directly; anything else (none, or several) shows the list. Drafts never count
+     * toward that test — a Scheduler's in-progress draft does not change where a Member
+     * lands.
+     *
+     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null}
+     */
+    private function scheduling(Request $request, Group $group, ?Schedule $schedule): array
+    {
+        $user = $request->user();
+        $today = CarbonImmutable::now()->startOfDay();
+
+        // A permalink opens the addressed Schedule — but only if it belongs to this
+        // Group and the viewer may read it. 404 (not 403) so an unreadable draft or a
+        // cross-Group id never confirms the Schedule exists. The owning Group is set on
+        // the relation so the policy's read check never lazy-loads under strict mode.
+        if ($schedule !== null) {
+            abort_unless($schedule->group_id === $group->id, 404);
+            $schedule->setRelation('group', $group);
+            abort_unless($user->can('view', $schedule), 404);
+
+            return ['schedules' => [], 'open' => $this->scheduleDetail($schedule)];
+        }
+
+        // The viewer's visible Schedules — a draft only for a schedule admin, a
+        // published one within the Group's listing audience. `group` is eager-set so
+        // the per-Schedule policy check never lazy-loads under strict mode.
+        $visible = $group->schedules()
+            ->orderBy('starts_on')
+            ->get()
+            ->each(fn (Schedule $candidate) => $candidate->setRelation('group', $group))
+            ->filter(fn (Schedule $candidate) => $user->can('view', $candidate));
+
+        // The branch is decided by current *published* Schedules only, so a draft never
+        // changes where a Member lands.
+        $currentPublished = $visible->filter(
+            fn (Schedule $candidate) => $candidate->state === ScheduleState::Published
+                && $candidate->isCurrent($today),
+        );
+
+        if ($currentPublished->count() === 1) {
+            return ['schedules' => [], 'open' => $this->scheduleDetail($currentPublished->first())];
+        }
+
+        // The list: current and upcoming first (soonest range first), then past
+        // (most recently ended first) — an archive is browsed newest-first.
+        [$current, $past] = $visible->partition(fn (Schedule $candidate) => $candidate->isCurrent($today));
+
+        return [
+            'schedules' => $current
+                ->concat($past->sortByDesc('ends_on'))
+                ->values()
+                ->map(fn (Schedule $candidate) => [
+                    'id' => $candidate->id,
+                    'name' => $candidate->name,
+                    'starts_on' => $candidate->starts_on->toDateString(),
+                    'ends_on' => $candidate->ends_on->toDateString(),
+                    'state' => $candidate->state->value,
+                    // Which block this Schedule heads under, resolved server-side
+                    // against one clock so the two blocks never overlap or gap.
+                    'is_past' => ! $candidate->isCurrent($today),
+                    'url' => route('groups.scheduling.show', ['group' => $group->slug, 'schedule' => $candidate->id]),
+                ])
+                ->all(),
+            'open' => null,
+        ];
+    }
+
+    /**
+     * One Schedule's detail payload — the read view. A Schedule holds nothing yet
+     * (Shifts land in a later slice), so this is its name, range, state, and the
+     * as-authored description.
+     *
+     * @return array<string, mixed>
+     */
+    private function scheduleDetail(Schedule $schedule): array
+    {
+        return [
+            'id' => $schedule->id,
+            'name' => $schedule->name,
+            'starts_on' => $schedule->starts_on->toDateString(),
+            'ends_on' => $schedule->ends_on->toDateString(),
+            'state' => $schedule->state->value,
+            'description' => $schedule->description,
+        ];
     }
 }

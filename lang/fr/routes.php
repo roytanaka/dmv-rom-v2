@@ -34,6 +34,10 @@ return [
     // /fr/ (/fr/groupes/docents) — no per-record slug translation (ADR-0008).
     'groups.show' => 'groupes/{group}/{section?}',
 
+    // Permalien d'un horaire (#353, ADR-0021 §1). « scheduling » → « horaire »
+    // (comme l'onglet group.tab.scheduling) ; {group} et {schedule} restent verbatim.
+    'groups.scheduling.show' => 'groupes/{group}/horaire/{schedule}',
+
     // Paramètres → Profil / Mot de passe (#229, PRD #228). « settings » →
     // « parametres » (sans accent dans l'URL, comme officer.settings).
     'settings' => 'parametres',

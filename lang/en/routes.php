@@ -39,6 +39,11 @@ return [
     // as-authored — it is NOT resolved against a Group model (ADR-0008).
     'groups.show' => 'groups/{group}/{section?}',
 
+    // A Schedule permalink (#353, ADR-0021 §1). Addresses a Schedule by id — it has
+    // no slug — under the owning Group. The 'scheduling' segment is translated in the
+    // French twin (ADR-0008); {group} and {schedule} stay verbatim.
+    'groups.scheduling.show' => 'groups/{group}/scheduling/{schedule}',
+
     // Settings → Profile / Password (#229, PRD #228). The self-service account
     // surface, brought into the localized group so each page has a French twin.
     // 'settings' is the bare redirect target (→ settings.profile); the two child

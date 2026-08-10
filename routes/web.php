@@ -79,6 +79,14 @@ Route::group([
     // the active tab; an unknown slug 404s via slug route-model binding.
     Route::get(LaravelLocalization::transRoute('routes.groups.show'), [GroupController::class, 'show'])
         ->middleware('auth')->name('groups.show');
+
+    // A Schedule permalink (#353, PRD #352, ADR-0021 §1). The Scheduling section's
+    // read surface: a Schedule addressed by id under its owning Group (bound by slug),
+    // rendered through the same committee shell as `groups.show`. The read audience —
+    // a draft is admin-only, a published Schedule follows the Group's listing
+    // visibility — is enforced in the controller via the SchedulePolicy.
+    Route::get(LaravelLocalization::transRoute('routes.groups.scheduling.show'), [GroupController::class, 'showSchedule'])
+        ->middleware('auth')->name('groups.scheduling.show');
 });
 
 // Internal design-system reference page. Login-only (auth) but available in all

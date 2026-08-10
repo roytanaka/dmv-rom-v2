@@ -141,6 +141,17 @@ class Group extends Model
     }
 
     /**
+     * The Schedules this Group runs — present only when its `has_scheduling`
+     * capability is on (#353, ADR-0021 §1).
+     *
+     * @return HasMany<Schedule, $this>
+     */
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(Schedule::class);
+    }
+
+    /**
      * The org-wide system functions this Group stewards — a Group may steward
      * several (e.g. the Records Group stewarding `member_admin`).
      *
