@@ -101,6 +101,9 @@ return [
     // Meetings tab (#190) — the Group's first own-data, members-only surface.
     'meetings' => [
         'empty' => 'No meetings yet.',
+        // Headings over the two blocks the list is split into.
+        'upcoming' => 'Upcoming',
+        'past' => 'Past',
         'video' => 'Join video call',
         'link' => [
             'agenda' => 'Agenda',

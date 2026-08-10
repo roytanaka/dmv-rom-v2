@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Group Meetings tab (#190, #193, PRD #186) — the Group's first own-data surface.
-// Lists the Group's meetings (upcoming and past, newest first), each showing its
-// date and time, location, the optional video link, and the agenda / minutes /
+// Lists the Group's meetings in two headed blocks — upcoming (soonest first), then
+// past (most recent first) — each showing its date and time on the organization's
+// wall clock, its location, the optional video link, and the agenda / minutes /
 // report links.
 //
 // Officers (a Secretary / Chair / super-tier) get inline CRUD on top of the read
@@ -28,20 +29,49 @@ import { computed, ref } from 'vue';
 
 const props = defineProps<{ meetings: Meeting[]; canCreate: boolean; groupSlug: string }>();
 
+// The list arrives already ordered — upcoming soonest-first, then past most-recent-
+// first — and each meeting carries the `is_upcoming` split the server resolved
+// against one clock. Splitting here only heads the two blocks; it never re-sorts.
+// An empty block is dropped rather than rendering a bare heading.
+const sections = computed(() =>
+    (['upcoming', 'past'] as const)
+        .map((key) => ({ key, meetings: props.meetings.filter((meeting) => meeting.is_upcoming === (key === 'upcoming')) }))
+        .filter((section) => section.meetings.length > 0),
+);
+
 const page = usePage<SharedData>();
-const formatDateTime = (iso: string) => new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'long', timeStyle: 'short' }).format(new Date(iso));
+
+// Meeting times are the organization's wall clock, not the reader's: a meeting at
+// 11am is 11am at the museum for a member reading from anywhere. `held_at` arrives
+// as a UTC instant, so every render and every edit pins the format to the org
+// timezone the server shares — leaving it to the browser's zone is what turned an
+// 11am meeting into a 7am one.
+const timeZone = page.props.timezone;
+
+const formatDateTime = (iso: string) =>
+    new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'long', timeStyle: 'short', timeZone }).format(new Date(iso));
 
 // The conventional labelled-link set a meeting hangs off itself. Each is at most one
 // URL; an empty field means the link is absent.
 const LINK_KINDS = ['agenda', 'minutes', 'report'] as const;
 type LinkKind = (typeof LINK_KINDS)[number];
 
-// Render an ISO datetime as the `YYYY-MM-DDTHH:mm` a <input type="datetime-local">
-// expects, in the viewer's local time.
+// Render a UTC ISO datetime as the `YYYY-MM-DDTHH:mm` a <input type="datetime-local">
+// expects, on the org's wall clock — so the editor opens showing the same o'clock the
+// card does, and saving it back is a no-op. The input has no timezone of its own; the
+// server reads what it sends as org-local (`App\Support\OrgTime`).
 const toDateTimeLocal = (iso: string) => {
-    const d = new Date(iso);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+    }).formatToParts(new Date(iso));
+    const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? '';
+    return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}`;
 };
 
 // The open editor: 'create', or the id of the meeting being edited, or null when
@@ -138,53 +168,60 @@ const destroy = (meeting: Meeting) => {
             </Button>
         </div>
 
-        <Card v-for="meeting in meetings" :key="meeting.id">
-            <CardHeader>
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div class="flex flex-col gap-1">
-                        <CardTitle class="text-rom-ink flex items-center gap-2 text-lg">
-                            {{ meeting.title }}
-                            <Badge v-if="!meeting.is_published" variant="secondary">{{ trans('group.meetings.draft') }}</Badge>
-                        </CardTitle>
-                        <p class="text-muted-foreground text-sm">{{ formatDateTime(meeting.held_at) }}</p>
+        <!-- Upcoming, then past — each block headed, and only when it has meetings. -->
+        <section v-for="section in sections" :key="section.key" class="flex flex-col gap-4">
+            <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">
+                {{ trans(`group.meetings.${section.key}`) }}
+            </h3>
+
+            <Card v-for="meeting in section.meetings" :key="meeting.id">
+                <CardHeader>
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div class="flex flex-col gap-1">
+                            <CardTitle class="text-rom-ink flex items-center gap-2 text-lg">
+                                {{ meeting.title }}
+                                <Badge v-if="!meeting.is_published" variant="secondary">{{ trans('group.meetings.draft') }}</Badge>
+                            </CardTitle>
+                            <p class="text-muted-foreground text-sm">{{ formatDateTime(meeting.held_at) }}</p>
+                        </div>
+                        <div v-if="meeting.can.update || meeting.can.delete" class="flex shrink-0 gap-1">
+                            <Button v-if="meeting.can.update" type="button" variant="ghost" size="sm" class="gap-1.5" @click="openEdit(meeting)">
+                                <PhPencilSimple class="size-4" />
+                                {{ trans('group.meetings.edit') }}
+                            </Button>
+                            <Button v-if="meeting.can.delete" type="button" variant="ghost" size="sm" class="gap-1.5" @click="destroy(meeting)">
+                                <PhTrash class="size-4" />
+                                {{ trans('group.meetings.delete') }}
+                            </Button>
+                        </div>
                     </div>
-                    <div v-if="meeting.can.update || meeting.can.delete" class="flex shrink-0 gap-1">
-                        <Button v-if="meeting.can.update" type="button" variant="ghost" size="sm" class="gap-1.5" @click="openEdit(meeting)">
-                            <PhPencilSimple class="size-4" />
-                            {{ trans('group.meetings.edit') }}
-                        </Button>
-                        <Button v-if="meeting.can.delete" type="button" variant="ghost" size="sm" class="gap-1.5" @click="destroy(meeting)">
-                            <PhTrash class="size-4" />
-                            {{ trans('group.meetings.delete') }}
-                        </Button>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent class="flex flex-col gap-3">
-                <p v-if="meeting.description" class="text-rom-ink text-base whitespace-pre-line">{{ meeting.description }}</p>
+                </CardHeader>
+                <CardContent class="flex flex-col gap-3">
+                    <p v-if="meeting.description" class="text-rom-ink text-base whitespace-pre-line">{{ meeting.description }}</p>
 
-                <p v-if="meeting.location" class="text-muted-foreground flex items-center gap-1.5 text-sm">
-                    <PhMapPin class="size-4 shrink-0" />
-                    {{ meeting.location }}
-                </p>
+                    <p v-if="meeting.location" class="text-muted-foreground flex items-center gap-1.5 text-sm">
+                        <PhMapPin class="size-4 shrink-0" />
+                        {{ meeting.location }}
+                    </p>
 
-                <p v-if="meeting.video_url" class="text-sm">
-                    <TextLink :href="meeting.video_url" class="inline-flex items-center gap-1.5">
-                        <PhVideoCamera class="size-4 shrink-0" />
-                        {{ trans('group.meetings.video') }}
-                    </TextLink>
-                </p>
-
-                <ul v-if="meeting.links.length" class="flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
-                    <li v-for="link in meeting.links" :key="`${link.kind}-${link.url}`">
-                        <TextLink :href="link.url" class="inline-flex items-center gap-1.5">
-                            <PhFileText class="size-4 shrink-0" />
-                            {{ trans(`group.meetings.link.${link.kind}`) }}
+                    <p v-if="meeting.video_url" class="text-sm">
+                        <TextLink :href="meeting.video_url" class="inline-flex items-center gap-1.5">
+                            <PhVideoCamera class="size-4 shrink-0" />
+                            {{ trans('group.meetings.video') }}
                         </TextLink>
-                    </li>
-                </ul>
-            </CardContent>
-        </Card>
+                    </p>
+
+                    <ul v-if="meeting.links.length" class="flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
+                        <li v-for="link in meeting.links" :key="`${link.kind}-${link.url}`">
+                            <TextLink :href="link.url" class="inline-flex items-center gap-1.5">
+                                <PhFileText class="size-4 shrink-0" />
+                                {{ trans(`group.meetings.link.${link.kind}`) }}
+                            </TextLink>
+                        </li>
+                    </ul>
+                </CardContent>
+            </Card>
+        </section>
 
         <p v-if="!meetings.length" class="text-muted-foreground py-12 text-center text-base">{{ trans('group.meetings.empty') }}</p>
 

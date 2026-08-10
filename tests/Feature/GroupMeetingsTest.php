@@ -110,3 +110,50 @@ it('leaves the meetings prop empty on the Overview section', function () {
         ->get(route('groups.show', $group))
         ->assertInertia(fn (Assert $page) => $page->where('meetings', []));
 });
+
+// --- Ordering ---------------------------------------------------------------
+//
+// The tab answers "when do we next meet" first and is an archive second, so the
+// list is upcoming soonest-first, then past most-recent-first — never the order
+// the rows happened to be entered in.
+
+it('orders meetings upcoming soonest-first, then past most-recent-first', function () {
+    $group = Group::factory()->workingGroup()->create();
+
+    // Created deliberately out of order, so entry order cannot pass by accident.
+    foreach ([
+        'Last year' => '-12 months',
+        'Furthest ahead' => '+3 months',
+        'Last week' => '-1 week',
+        'Next week' => '+1 week',
+    ] as $title => $offset) {
+        Meeting::factory()->create([
+            'group_id' => $group->id,
+            'title' => $title,
+            'held_at' => now()->modify($offset),
+        ]);
+    }
+
+    $this->actingAs(memberOf($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'meetings']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('meetings', fn (Collection $meetings) => $meetings->pluck('title')->all() === [
+                'Next week',
+                'Furthest ahead',
+                'Last week',
+                'Last year',
+            ])->etc());
+});
+
+it('marks each meeting as upcoming or past for the client to head the two blocks', function () {
+    $group = Group::factory()->workingGroup()->create();
+    Meeting::factory()->create(['group_id' => $group->id, 'title' => 'Ahead', 'held_at' => now()->addWeek()]);
+    Meeting::factory()->create(['group_id' => $group->id, 'title' => 'Behind', 'held_at' => now()->subWeek()]);
+
+    $this->actingAs(memberOf($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'meetings']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('meetings.0.is_upcoming', true)
+            ->where('meetings.1.is_upcoming', false)
+            ->etc());
+});

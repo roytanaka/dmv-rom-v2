@@ -69,6 +69,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Organization Timezone
+    |--------------------------------------------------------------------------
+    |
+    | The wall-clock timezone the organization runs on — the museum's local
+    | time. Datetimes are *stored* in UTC (the 'timezone' option above); this
+    | is the timezone every user-facing datetime is entered and displayed in,
+    | for every viewer, wherever they happen to be. A meeting "at 11am" is
+    | 11am at the ROM, not 11am on the reader's laptop.
+    |
+    */
+
+    'org_timezone' => 'America/Toronto',
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

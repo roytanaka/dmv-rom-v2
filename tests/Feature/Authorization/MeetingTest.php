@@ -317,3 +317,68 @@ it('hints meeting management on for an officer and off for an ordinary member', 
             ->where('can.createMeeting', false)
             ->where('meetings.0.can.update', false));
 });
+
+// --- Wall clock (org timezone) ----------------------------------------------
+//
+// A meeting time is the museum's wall clock. The client's <input type="datetime-local">
+// sends it with no offset and it is stored in UTC, so reading it as UTC on the way in
+// shifted every meeting back four hours on the way out — 11am entered, 7am shown.
+
+it('reads a naive held_at as the org wall clock and stores it in UTC', function () {
+    $group = meetingsGroup();
+
+    $this->actingAs(meetingOfficerOf($group, Role::Secretary))
+        ->post(route('meetings.store', $group), ['title' => 'Summer meeting', 'held_at' => '2026-07-01T11:00'])
+        ->assertSessionHasNoErrors();
+
+    // 11:00 in Toronto during EDT (UTC-4).
+    expect(Meeting::sole()->held_at->toDateTimeString())->toBe('2026-07-01 15:00:00');
+});
+
+it('follows daylight saving when reading the org wall clock', function () {
+    $group = meetingsGroup();
+
+    $this->actingAs(meetingOfficerOf($group, Role::Secretary))
+        ->post(route('meetings.store', $group), ['title' => 'Winter meeting', 'held_at' => '2026-01-15T11:00'])
+        ->assertSessionHasNoErrors();
+
+    // The same 11:00, but in EST (UTC-5) — a hardcoded offset would be an hour out.
+    expect(Meeting::sole()->held_at->toDateTimeString())->toBe('2026-01-15 16:00:00');
+});
+
+it('converts a held_at that carries its own offset rather than reinterpreting it', function () {
+    $group = meetingsGroup();
+
+    $this->actingAs(meetingOfficerOf($group, Role::Secretary))
+        ->post(route('meetings.store', $group), ['title' => 'Explicit', 'held_at' => '2026-07-01T11:00:00Z'])
+        ->assertSessionHasNoErrors();
+
+    expect(Meeting::sole()->held_at->toDateTimeString())->toBe('2026-07-01 11:00:00');
+});
+
+it('reads an edited held_at on the org wall clock too', function () {
+    $group = meetingsGroup();
+    $meeting = Meeting::factory()->create(['group_id' => $group->id]);
+
+    $this->actingAs(meetingOfficerOf($group, Role::Secretary))
+        ->patch(route('meetings.update', $meeting), ['title' => $meeting->title, 'held_at' => '2026-07-01T11:00'])
+        ->assertSessionHasNoErrors();
+
+    expect($meeting->fresh()->held_at->toDateTimeString())->toBe('2026-07-01 15:00:00');
+});
+
+it('still rejects an unparseable held_at as a validation error', function () {
+    $group = meetingsGroup();
+
+    $this->actingAs(meetingOfficerOf($group, Role::Secretary))
+        ->post(route('meetings.store', $group), ['title' => 'Bad date', 'held_at' => 'not a date'])
+        ->assertSessionHasErrors('held_at');
+});
+
+it('shares the org timezone so the client formats on the same wall clock', function () {
+    $group = meetingsGroup();
+
+    $this->actingAs(meetingMemberOf($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'meetings']))
+        ->assertInertia(fn (Assert $page) => $page->where('timezone', 'America/Toronto'));
+});

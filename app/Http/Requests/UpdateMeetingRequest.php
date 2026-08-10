@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\MeetingLinkKind;
+use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -23,6 +24,17 @@ class UpdateMeetingRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('meeting'));
+    }
+
+    /**
+     * Read `held_at` on the organization's wall clock, as creation does
+     * ({@see StoreMeetingRequest::prepareForValidation}).
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('held_at')) {
+            $this->merge(['held_at' => OrgTime::toUtc($this->input('held_at'))]);
+        }
     }
 
     /**
