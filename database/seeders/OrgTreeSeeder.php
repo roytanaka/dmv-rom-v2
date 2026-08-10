@@ -10,6 +10,8 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
 use App\Models\Schedule;
+use App\Models\Shift;
+use App\Models\ShiftKind;
 use Closure;
 use Illuminate\Database\Seeder;
 
@@ -151,8 +153,14 @@ class OrgTreeSeeder extends Seeder
 
         // A published, current Schedule on the scheduling program (#353), so feature
         // tests have a realistic hook. Keyed on (group, name) so the seed stays
-        // idempotent. It holds nothing yet — Shifts land in a later slice.
-        $this->schedule($program, self::SCHEDULE_NAME);
+        // idempotent.
+        $schedule = $this->schedule($program, self::SCHEDULE_NAME);
+
+        // The program uses kinds: a small seeded vocabulary and a handful of Shifts
+        // across the month, so the Agenda has something real to read (#355). One Shift
+        // carries no kind — the Reception ("Desk") shape — so both cases are present.
+        $this->shiftKinds($program);
+        $this->shifts($program, $schedule);
     }
 
     /**
@@ -175,6 +183,50 @@ class OrgTreeSeeder extends Seeder
                 'starts_on' => now()->startOfMonth()->toDateString(),
                 'ends_on' => now()->endOfMonth()->toDateString(),
             ]);
+    }
+
+    /**
+     * The program's seeded ShiftKind vocabulary — kept small, idempotent on (group,
+     * name). Rows are seeded because the maintenance CRUD screen is deferred
+     * (ADR-0021 §3).
+     */
+    private function shiftKinds(Group $group): void
+    {
+        foreach (['Highlights tour', 'Level 1 Oslo gate'] as $order => $name) {
+            if (! $group->shiftKinds()->where('name', $name)->exists()) {
+                ShiftKind::factory()->create([
+                    'group_id' => $group->id,
+                    'name' => $name,
+                    'sort_order' => $order,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Seed a few Shifts across the Schedule's month — two kinded, one kind-less (the
+     * Reception "Desk" shape) — so the Agenda reads at more than one day. Each Shift is
+     * placed on a distinct day inside the range and keyed on (schedule, starts_at) so
+     * re-running heals rather than duplicates.
+     */
+    private function shifts(Group $group, Schedule $schedule): void
+    {
+        $day = fn (int $offset, int $hour) => $schedule->starts_on->copy()->addDays($offset)->setTime($hour, 0);
+
+        $highlights = $group->shiftKinds()->where('name', 'Highlights tour')->first();
+        $oslo = $group->shiftKinds()->where('name', 'Level 1 Oslo gate')->first();
+
+        $plan = [
+            ['starts_at' => $day(2, 10), 'ends_at' => $day(2, 13), 'capacity' => 3, 'shift_kind_id' => $highlights?->id],
+            ['starts_at' => $day(2, 14), 'ends_at' => $day(2, 17), 'capacity' => 2, 'shift_kind_id' => $oslo?->id],
+            ['starts_at' => $day(5, 9), 'ends_at' => $day(5, 12), 'capacity' => 1, 'shift_kind_id' => null],
+        ];
+
+        foreach ($plan as $attributes) {
+            if (! $schedule->shifts()->where('starts_at', $attributes['starts_at'])->exists()) {
+                Shift::factory()->create(['schedule_id' => $schedule->id] + $attributes);
+            }
+        }
     }
 
     /**
