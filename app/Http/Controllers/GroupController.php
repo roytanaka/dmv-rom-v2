@@ -480,7 +480,11 @@ class GroupController extends Controller
             $schedule->setRelation('group', $group);
             abort_unless($user->can('view', $schedule), 404);
 
-            return ['schedules' => [], 'open' => $this->scheduleDetail($request, $schedule), 'roster' => $this->assignmentRoster($request, $group)];
+            return [
+                'schedules' => [],
+                'open' => $this->scheduleDetail($request, $schedule),
+                'roster' => $this->assignmentRoster($request, $group),
+            ];
         }
 
         // The viewer's visible Schedules — a draft only for a schedule admin, a
@@ -500,7 +504,11 @@ class GroupController extends Controller
         );
 
         if ($currentPublished->count() === 1) {
-            return ['schedules' => [], 'open' => $this->scheduleDetail($request, $currentPublished->first()), 'roster' => $this->assignmentRoster($request, $group)];
+            return [
+                'schedules' => [],
+                'open' => $this->scheduleDetail($request, $currentPublished->first()),
+                'roster' => $this->assignmentRoster($request, $group),
+            ];
         }
 
         // The list: current and upcoming first (soonest range first), then past
