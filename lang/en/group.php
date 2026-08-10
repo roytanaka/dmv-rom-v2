@@ -236,6 +236,16 @@ return [
             'next' => 'Next month',
             'shift_count' => '{1} :count shift|[2,*] :count shifts',
         ],
+        // Cross-Group open Shifts (#361, ADR-0021 §Sign-up) — other Groups' `open` Shifts the
+        // reader discovers, always present but collapsed to a one-line band, always attributed
+        // to their owning Group. `summary` heads the collapsed band; `show_all` / `hide_all` is
+        // the master open/close-all; `chip` is the Calendar cell's compact count.
+        'foreign' => [
+            'summary' => '{1} :count more open to you — :group|[2,*] :count more open to you — :group',
+            'show_all' => 'Open to me elsewhere',
+            'hide_all' => 'Hide other groups’ shifts',
+            'chip' => '+:count open',
+        ],
     ],
 
     // Role labels — the Group's officers, by role (leadership at a glance).

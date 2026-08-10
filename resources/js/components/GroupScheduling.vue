@@ -15,6 +15,7 @@
 // PATCH carrying the new `state`. Every mutation is enforced by the SchedulePolicy
 // regardless of what renders. Names and descriptions are as-authored content
 // (ADR-0004); everything else is translated chrome.
+import ForeignShiftBand from '@/components/ForeignShiftBand.vue';
 import ScheduleCalendar from '@/components/ScheduleCalendar.vue';
 import ShiftCard from '@/components/ShiftCard.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -25,10 +26,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { groupShiftsByDay } from '@/scheduling/agenda';
+import { buildAgenda } from '@/scheduling/agenda';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import { PhArrowLeft, PhCalendarBlank, PhEye, PhEyeSlash, PhListBullets, PhPencilSimple, PhPlus, PhTrash } from '@phosphor-icons/vue';
+import { PhArrowLeft, PhBinoculars, PhCalendarBlank, PhEye, PhEyeSlash, PhListBullets, PhPencilSimple, PhPlus, PhTrash } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -50,9 +51,26 @@ const dateRange = (starts: string, ends: string) => trans('group.scheduling_pane
 // runs on that same wall clock in a pure module the Calendar will share.
 const timeZone = page.props.timezone;
 
-// The opened Schedule's Shifts, bucketed into ascending days. Each day heads a block;
-// within a day the server's start order is preserved. Both views read this same grouping.
-const agenda = computed(() => (props.scheduling.open ? groupShiftsByDay(props.scheduling.open.shifts, timeZone) : []));
+// The opened Schedule's own Shifts and the foreign open Shifts other Groups advertise,
+// partitioned into ascending days by the shared pure module (#361). Each day heads a block;
+// own Shifts stay in `shifts`, foreign ones in attributed `bands`, never interleaved. Both
+// views read this same grouping.
+const agenda = computed(() => (props.scheduling.open ? buildAgenda(props.scheduling.open.shifts, props.scheduling.open.foreign, timeZone) : []));
+
+// The own Shifts as plain day groups — the Calendar's month grid lays these out; its foreign
+// chips read the foreign day groups. Both are derived from the one merged agenda so the two
+// views can never disagree on which day a Shift lands.
+const ownAgenda = computed(() => agenda.value.map((day) => ({ date: day.date, shifts: day.shifts })));
+const foreignAgenda = computed(() => agenda.value.map((day) => ({ date: day.date, shifts: day.bands.flatMap((band) => band.shifts) })));
+
+// The view toggle and Calendar are about the Schedule's own month; the empty state speaks to
+// its own emptiness. Foreign discovery is offered on top, only when there is something to find.
+const hasForeign = computed(() => (props.scheduling.open?.foreign.length ?? 0) > 0);
+
+// The master open/close-all beside the view controls (#361). Foreign discovery is always
+// *present* — the bands show collapsed to one line — but starts closed: expanding all bands in
+// Agenda, and turning on the Calendar's foreign chips. Per-band toggles still work after.
+const foreignExpanded = ref(false);
 
 // The day heading is a plain calendar date (already the org-wall-clock day), formatted
 // like the range: parsed as local midnight so no zone shift lands it on the day before.
@@ -321,7 +339,24 @@ const removeSeat = (signUpId: number) => {
             <!-- View toggle (#360) — the reader chooses Agenda or Calendar; the Scheduler
                  has no equivalent control in the authoring form. Presentation only: it hits
                  no route and only shows once there are Shifts to lay out either way. -->
-            <div v-if="agenda.length" class="flex justify-end">
+            <div v-if="agenda.length" class="flex flex-wrap items-center justify-between gap-2">
+                <!-- Master open/close-all for foreign open Shifts (#361) — expands every band in
+                     Agenda, turns the Calendar's foreign chips on. Shown only when there is
+                     something to find, so the control never promises an empty discovery. -->
+                <Button
+                    v-if="hasForeign"
+                    type="button"
+                    size="sm"
+                    :variant="foreignExpanded ? 'default' : 'outline'"
+                    class="gap-1.5"
+                    :aria-pressed="foreignExpanded"
+                    @click="foreignExpanded = !foreignExpanded"
+                >
+                    <PhBinoculars class="size-4" />
+                    {{ trans(foreignExpanded ? 'group.scheduling_panel.foreign.hide_all' : 'group.scheduling_panel.foreign.show_all') }}
+                </Button>
+                <span v-else></span>
+
                 <div class="bg-muted inline-flex rounded-md p-0.5" role="group" :aria-label="trans('group.scheduling_panel.view.aria_label')">
                     <Button
                         type="button"
@@ -367,6 +402,17 @@ const removeSeat = (signUpId: number) => {
                         @assign="openAssign"
                         @remove="removeSeat"
                     />
+                    <!-- Foreign open Shifts other Groups advertise (#361) — always present but
+                         collapsed to one line, banded and attributed by owning Group, kept apart
+                         from this Group's own Shifts above. -->
+                    <ForeignShiftBand
+                        v-for="band in day.bands"
+                        :key="`${day.date}-${band.group}`"
+                        :band="band"
+                        :expanded="foreignExpanded"
+                        @take="take"
+                        @drop="drop"
+                    />
                 </div>
             </section>
 
@@ -374,7 +420,9 @@ const removeSeat = (signUpId: number) => {
                  sheet of the same ShiftCards. -->
             <ScheduleCalendar
                 v-else-if="agenda.length && view === 'calendar'"
-                :agenda="agenda"
+                :agenda="ownAgenda"
+                :foreign="foreignAgenda"
+                :foreign-expanded="foreignExpanded"
                 :starts-on="scheduling.open.starts_on"
                 :ends-on="scheduling.open.ends_on"
                 @take="take"

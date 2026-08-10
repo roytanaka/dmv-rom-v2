@@ -223,6 +223,17 @@ return [
             'next' => 'Mois suivant',
             'shift_count' => '{1} :count créneau|[2,*] :count créneaux',
         ],
+        // Créneaux ouverts inter-groupes (#361, ADR-0021 §Inscription) — les créneaux « open »
+        // d'autres groupes que la lectrice découvre, toujours présents mais réduits à une ligne,
+        // toujours attribués à leur groupe propriétaire. `summary` coiffe la bande repliée ;
+        // `show_all` / `hide_all` est le tout ouvrir / tout fermer ; `chip` est le compte compact
+        // dans la case du calendrier.
+        'foreign' => [
+            'summary' => '{1} :count autre ouvert à vous — :group|[2,*] :count autres ouverts à vous — :group',
+            'show_all' => 'Ouverts à moi ailleurs',
+            'hide_all' => 'Masquer les créneaux des autres groupes',
+            'chip' => '+:count ouvert(s)',
+        ],
     ],
 
     'role' => [

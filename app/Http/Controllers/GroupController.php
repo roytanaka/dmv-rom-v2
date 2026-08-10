@@ -8,6 +8,7 @@ use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\ScheduleState;
+use App\Enums\ShiftAudience;
 use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\Group;
@@ -559,6 +560,9 @@ class GroupController extends Controller
             'description' => $schedule->description,
             'can' => $this->scheduleAuthoring($request, $schedule),
             'shifts' => $this->shifts($request, $schedule),
+            // Other Groups' `open` Shifts the viewer can take, in this Schedule's day range —
+            // advertised, attributed, and never mixed into the own list above (#361).
+            'foreign' => $this->foreignShifts($request, $schedule),
         ];
     }
 
@@ -599,54 +603,116 @@ class GroupController extends Controller
             ->each(fn (Shift $shift) => $shift->setRelation('schedule', $schedule));
 
         return $shifts
-            ->map(function (Shift $shift) use ($request, $viewer) {
-                $taken = $shift->signUps->count();
-                $ownSignUp = $shift->signUps->firstWhere('member_id', $viewer->getKey());
-                // Whether the viewer administers this Schedule (the ShiftPolicy's edit gate is
-                // the schedule-admin gate). It drives the officer affordances: the assign
-                // button, and each seat's remove target below.
-                $canManage = $viewer->can('update', $shift);
-
-                return [
-                    'id' => $shift->id,
-                    'starts_at' => $shift->starts_at->toIso8601String(),
-                    'ends_at' => $shift->ends_at->toIso8601String(),
-                    'capacity' => $shift->capacity,
-                    'taken' => $taken,
-                    'kind' => $shift->kind?->name,
-                    // The seated Members, names only (contact stays gated per MemberResource).
-                    // A schedule admin additionally gets each seat's own Sign-up id — the
-                    // remove target for officer removal (#359), for any seat, not just their
-                    // own — so a placed regular who stops coming is one click to clear. A
-                    // plain reader never learns another seat's id.
-                    'signups' => $shift->signUps
-                        ->map(function (SignUp $signUp) use ($request, $canManage) {
-                            $seat = (new MemberResource($signUp->member))->resolve($request);
-
-                            if ($canManage) {
-                                $seat['signup_id'] = $signUp->id;
-                            }
-
-                            return $seat;
-                        })
-                        ->all(),
-                    // The viewer's own seat on this Shift, for a one-click drop; null if none.
-                    'signup_id' => $ownSignUp?->id,
-                    // The affordances this Shift offers the viewer. `signUp` is the
-                    // self-service verdict — the SignUpPolicy's floors and `audience`, plus a
-                    // free seat and no seat already held. `assign` is the officer verdict —
-                    // the schedule-admin gate plus a free seat (capacity binds the Scheduler
-                    // too, with no override). A full Shift shows as full with neither; the
-                    // write seams re-check each on POST.
-                    'can' => [
-                        'signUp' => $ownSignUp === null
-                            && $taken < $shift->capacity
-                            && $viewer->can('create', [SignUp::class, $shift]),
-                        'assign' => $canManage && $taken < $shift->capacity,
-                    ],
-                ];
-            })
+            // A schedule admin (the ShiftPolicy's edit gate) gets the officer affordances —
+            // the assign button and each seat's remove target; a plain reader gets neither.
+            ->map(fn (Shift $shift) => $this->shiftPayload($request, $shift, $viewer->can('update', $shift)))
             ->all();
+    }
+
+    /**
+     * The other Groups' `open` Shifts a reader discovers on this Schedule (#361, ADR-0021
+     * §Sign-up) — the foreign set. Cross-Group participation is a **read concern: a query,
+     * never a relationship** (no join table, no linked-Shift row, no synchronisation). The
+     * query gathers `open` Shifts on *other* Groups' published Schedules that fall in this
+     * Schedule's day range (so a reader sees them beside the days they are already reading);
+     * the per-viewer eligibility — can-read-that-Schedule and both sign-up floors — is the
+     * SignUpPolicy's own `create` verdict, so the set is exactly "open *to you*". A Private
+     * Group's Shift stays as invisible as the Group itself, and a viewer the floors bar sees
+     * none.
+     *
+     * Foreign Shifts carry **no authoring affordances** for anyone, Scheduler included: they
+     * are mapped with `canManage: false`, so no assign button and no seat-removal target
+     * appears — a Scheduler cannot edit another Group's data from her own Group's page. Each
+     * is attributed to its owning Group by name.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function foreignShifts(Request $request, Schedule $schedule): array
+    {
+        $viewer = $request->user();
+        $rangeStart = CarbonImmutable::instance($schedule->starts_on)->startOfDay();
+        $rangeEnd = CarbonImmutable::instance($schedule->ends_on)->endOfDay();
+
+        $candidates = Shift::query()
+            ->where('audience', ShiftAudience::Open)
+            ->whereBetween('starts_at', [$rangeStart, $rangeEnd])
+            ->whereHas('schedule', fn (Builder $query) => $query
+                ->where('group_id', '!=', $schedule->group_id)
+                ->where('state', ScheduleState::Published))
+            ->with(['schedule.group', 'kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles'])
+            ->orderBy('starts_at')
+            ->get();
+
+        return $candidates
+            // "Open to you" is the SignUpPolicy's own eligibility: the viewer can read that
+            // Group's Schedule (a Private Group discloses nothing to a non-member) and clears
+            // both floors. Resolved per row against the eager-loaded Schedule and Group.
+            ->filter(fn (Shift $shift) => $viewer->can('create', [SignUp::class, $shift]))
+            // Never any authoring affordance on a foreign Shift, and attributed to its owner.
+            ->map(fn (Shift $shift) => [
+                ...$this->shiftPayload($request, $shift, canManage: false),
+                'group_name' => $shift->schedule->group->name,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * One Shift's read payload, shared by the owning-Group Agenda and the foreign set (#357,
+     * #359, #361). `$canManage` is the schedule-admin verdict for *this* Shift: it reveals the
+     * officer affordances — each seat's Sign-up id (the removal target) and the `assign`
+     * button — and is always false for a foreign Shift, which carries no authoring affordances
+     * for anyone.
+     *
+     * Sign-up names are visible to every reader who can read the Schedule (ADR-0017 §6),
+     * routed through {@see MemberResource} so contact PII stays gated. `signup_id` is the
+     * viewer's own seat for a one-click drop; `can.signUp` is the SignUpPolicy verdict folded
+     * with a free seat, so the take button shows only where a Sign-up would land.
+     *
+     * @return array<string, mixed>
+     */
+    private function shiftPayload(Request $request, Shift $shift, bool $canManage): array
+    {
+        $viewer = $request->user();
+        $taken = $shift->signUps->count();
+        $ownSignUp = $shift->signUps->firstWhere('member_id', $viewer->getKey());
+
+        return [
+            'id' => $shift->id,
+            'starts_at' => $shift->starts_at->toIso8601String(),
+            'ends_at' => $shift->ends_at->toIso8601String(),
+            'capacity' => $shift->capacity,
+            'taken' => $taken,
+            'kind' => $shift->kind?->name,
+            // The seated Members, names only (contact stays gated per MemberResource). A
+            // schedule admin additionally gets each seat's own Sign-up id — the remove target
+            // for officer removal (#359), for any seat, not just their own. A plain reader,
+            // and every reader of a foreign Shift, never learns another seat's id.
+            'signups' => $shift->signUps
+                ->map(function (SignUp $signUp) use ($request, $canManage) {
+                    $seat = (new MemberResource($signUp->member))->resolve($request);
+
+                    if ($canManage) {
+                        $seat['signup_id'] = $signUp->id;
+                    }
+
+                    return $seat;
+                })
+                ->all(),
+            // The viewer's own seat on this Shift, for a one-click drop; null if none.
+            'signup_id' => $ownSignUp?->id,
+            // The affordances this Shift offers the viewer. `signUp` is the self-service
+            // verdict — the SignUpPolicy's floors and `audience`, plus a free seat and no seat
+            // already held. `assign` is the officer verdict — the schedule-admin gate plus a
+            // free seat (capacity binds the Scheduler too, no override). A full Shift shows as
+            // full with neither; the write seams re-check each on POST.
+            'can' => [
+                'signUp' => $ownSignUp === null
+                    && $taken < $shift->capacity
+                    && $viewer->can('create', [SignUp::class, $shift]),
+                'assign' => $canManage && $taken < $shift->capacity,
+            ],
+        ];
     }
 
     /**

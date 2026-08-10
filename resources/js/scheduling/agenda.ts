@@ -71,6 +71,91 @@ export function groupShiftsByDay<T extends AgendaShift>(shifts: T[], timeZone: s
 }
 
 /**
+ * Cross-Group open Shifts (#361, ADR-0021 §Sign-up) — the foreign Shifts a reader
+ * discovers on a Group's Schedule. A foreign Shift is another Group's `open` Shift, and it
+ * carries the one thing an own Shift does not need: the name of the Group that owns it, so
+ * a reader is never left mistaking whose Shift they are taking.
+ */
+export interface ForeignAgendaShift extends AgendaShift {
+    /** The owning Group's name — a foreign Shift is always attributed to it. */
+    group_name: string;
+}
+
+/** A day's foreign Shifts for one owning Group — the collapsible "N more open to you" band. */
+export interface ForeignBand<T> {
+    /** The owning Group's name — the band heading and its attribution. */
+    group: string;
+    /** That Group's foreign Shifts on the day, in delivered (start) order. */
+    shifts: T[];
+}
+
+/**
+ * One day of the reader's Agenda: this Group's own Shifts, and — kept strictly apart — the
+ * foreign open Shifts other Groups advertise, banded by owning Group.
+ */
+export interface AgendaDay<Own, Foreign> {
+    /** The org-wall-clock day `YYYY-MM-DD` — the day heading and its stable key. */
+    date: string;
+    /** This Group's own Shifts on the day, in delivered order (never mixed with foreign). */
+    shifts: Own[];
+    /** Foreign open Shifts on the day, one band per owning Group; empty when there are none. */
+    bands: ForeignBand<Foreign>[];
+}
+
+/**
+ * Group a flat list of foreign Shifts into one band per owning Group, each band **attributed**
+ * to that Group. A Map preserves first-seen order, and the caller ships start-ordered, so the
+ * bands come out ordered by the earliest Shift each holds. Shared by {@link buildAgenda} (per
+ * day) and the Calendar's day sheet, so a foreign Shift reads the same wherever it surfaces.
+ */
+export function bandsByGroup<T extends ForeignAgendaShift>(foreign: T[]): ForeignBand<T>[] {
+    const byGroup = new Map<string, T[]>();
+    for (const shift of foreign) {
+        const bucket = byGroup.get(shift.group_name);
+        if (bucket) {
+            bucket.push(shift);
+        } else {
+            byGroup.set(shift.group_name, [shift]);
+        }
+    }
+
+    return [...byGroup.entries()].map(([group, shifts]) => ({ group, shifts }));
+}
+
+/**
+ * Partition a Schedule's own Shifts and the foreign open Shifts other Groups advertise into
+ * one ascending day list (#361, ADR-0021 §Sign-up). Both are grouped onto the org wall clock
+ * exactly as the Agenda groups its own Shifts, so a day reads the same in either. The two
+ * are **never interleaved**: a day's own Shifts stay in `shifts`, its foreign Shifts land in
+ * `bands` — one band per owning Group, each band **attributed** to that Group and ordered by
+ * the earliest foreign Shift it holds. A day carrying only foreign Shifts still surfaces (so
+ * an open Shift is discoverable even where this Group runs nothing that day); an own-only day
+ * carries no bands.
+ *
+ * Pure over the delivered Shifts and a timezone — no router, no `fetch`, no ambient clock. It
+ * can only rearrange what the server sent; it can never surface a Shift the server withheld.
+ */
+export function buildAgenda<Own extends AgendaShift, Foreign extends ForeignAgendaShift>(
+    own: Own[],
+    foreign: Foreign[],
+    timeZone: string,
+): AgendaDay<Own, Foreign>[] {
+    const ownByDate = new Map(groupShiftsByDay(own, timeZone).map((group) => [group.date, group.shifts]));
+
+    const bandsByDate = new Map<string, ForeignBand<Foreign>[]>(
+        groupShiftsByDay(foreign, timeZone).map((group) => [group.date, bandsByGroup(group.shifts)]),
+    );
+
+    const dates = [...new Set([...ownByDate.keys(), ...bandsByDate.keys()])].sort();
+
+    return dates.map((date) => ({
+        date,
+        shifts: ownByDate.get(date) ?? [],
+        bands: bandsByDate.get(date) ?? [],
+    }));
+}
+
+/**
  * The Calendar's month grid (#360, ADR-0021 §7) — the second view the reader chooses.
  * It shares the Agenda's day-grouped input: a month is a laid-out arrangement of the same
  * {@link DayGroup} buckets, so a day's Shifts read identically in either view.

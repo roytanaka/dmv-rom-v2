@@ -289,9 +289,18 @@ export interface ShiftAgendaItem {
     can: { signUp: boolean; assign: boolean };
 }
 
+// A foreign open Shift (#361, ADR-0021 §Sign-up) — another Group's `open` Shift a reader
+// discovers on this Schedule. It is an ordinary Shift plus the one thing attribution needs:
+// the owning Group's name. It never carries authoring affordances (`can.assign` is always
+// false and its seats never carry a `signup_id`), and it is kept out of the own `shifts`
+// list — never interleaved, always banded by owning Group.
+export interface ForeignShiftItem extends ShiftAgendaItem {
+    group_name: string;
+}
+
 // A Schedule opened directly — its read detail: name, range, state, as-authored
-// description, and its Shifts as a flat, start-ordered list (the Agenda groups them by
-// day on the org wall clock).
+// description, its own Shifts as a flat, start-ordered list (the Agenda groups them by day
+// on the org wall clock), and the foreign open Shifts other Groups advertise in its range.
 export interface ScheduleDetail {
     id: number;
     name: string;
@@ -301,6 +310,7 @@ export interface ScheduleDetail {
     description: string | null;
     can: ScheduleAbilities;
     shifts: ShiftAgendaItem[];
+    foreign: ForeignShiftItem[];
 }
 
 // UI hints from the SchedulePolicy — drive the per-Schedule authoring affordances; the
