@@ -113,7 +113,7 @@ class Schedule extends Model
      */
     public function coversInterval(DateTimeInterface $startsAt, DateTimeInterface $endsAt): bool
     {
-        return $this->starts_on->startOfDay()->lessThanOrEqualTo($startsAt)
-            && $this->ends_on->endOfDay()->greaterThanOrEqualTo($endsAt);
+        return CarbonImmutable::instance($this->starts_on)->startOfDay()->lessThanOrEqualTo($startsAt)
+            && CarbonImmutable::instance($this->ends_on)->endOfDay()->greaterThanOrEqualTo($endsAt);
     }
 }

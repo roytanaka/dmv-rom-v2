@@ -129,6 +129,26 @@ it('accepts two identical Shifts in one Schedule — no uniqueness constraint', 
     expect(Shift::count())->toBe(2);
 });
 
+it('lets a Chair add a Shift (Chair-implication)', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Chair))
+        ->post(route('shifts.store', $schedule), shiftPayload())
+        ->assertSessionHasNoErrors();
+
+    expect(Shift::count())->toBe(1);
+});
+
+it('lets a super-tier member add a Shift to any Schedule', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->post(route('shifts.store', $schedule), shiftPayload())
+        ->assertSessionHasNoErrors();
+
+    expect(Shift::count())->toBe(1);
+});
+
 // --- Adding (store) — validation --------------------------------------------
 
 it('requires an end time', function () {
@@ -191,26 +211,6 @@ it('rejects a kind belonging to a different Group', function () {
 });
 
 // --- Adding (store) — deny rows ---------------------------------------------
-
-it('lets a Chair add a Shift (Chair-implication)', function () {
-    $schedule = augustSchedule();
-
-    $this->actingAs(shiftOfficerOf($schedule->group, Role::Chair))
-        ->post(route('shifts.store', $schedule), shiftPayload())
-        ->assertSessionHasNoErrors();
-
-    expect(Shift::count())->toBe(1);
-});
-
-it('lets a super-tier member add a Shift to any Schedule', function () {
-    $schedule = augustSchedule();
-
-    $this->actingAs(Member::factory()->superTier()->create())
-        ->post(route('shifts.store', $schedule), shiftPayload())
-        ->assertSessionHasNoErrors();
-
-    expect(Shift::count())->toBe(1);
-});
 
 it('forbids an ordinary member from adding a Shift', function () {
     $schedule = augustSchedule();
