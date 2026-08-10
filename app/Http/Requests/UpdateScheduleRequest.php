@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\ScheduleState;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -62,5 +63,44 @@ class UpdateScheduleRequest extends FormRequest
             'ends_on' => ['sometimes', 'required', 'date', 'after_or_equal:starts_on'],
             'state' => ['sometimes', Rule::enum(ScheduleState::class)],
         ];
+    }
+
+    /**
+     * Enforce the range against its contents (#356, ADR-0021 §2): shrinking a Schedule's
+     * date range is blocked while Shifts sit outside it, so the range and its contents can
+     * never disagree. Only the boundary the payload actually moves is checked — a Shift
+     * before the new `starts_on` fails on `starts_on`, one after the new `ends_on` fails
+     * on `ends_on`. Runs only once the basic rules have passed, so the candidate dates are
+     * known to parse. Resolved in PHP so the comparison never depends on the DB engine.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $movesStart = $this->has('starts_on');
+            $movesEnd = $this->has('ends_on');
+
+            if (! $movesStart && ! $movesEnd) {
+                return;
+            }
+
+            $schedule = $this->route('schedule');
+            $rangeStart = ($this->date('starts_on') ?? $schedule->starts_on)->copy()->startOfDay();
+            $rangeEnd = ($this->date('ends_on') ?? $schedule->ends_on)->copy()->endOfDay();
+            $conflict = 'group.scheduling_panel.schedule_range_conflict';
+
+            foreach ($schedule->shifts as $shift) {
+                if ($movesStart && $shift->starts_at->lessThan($rangeStart) && ! $validator->errors()->has('starts_on')) {
+                    $validator->errors()->add('starts_on', trans($conflict));
+                }
+
+                if ($movesEnd && $shift->ends_at->greaterThan($rangeEnd) && ! $validator->errors()->has('ends_on')) {
+                    $validator->errors()->add('ends_on', trans($conflict));
+                }
+            }
+        });
     }
 }
