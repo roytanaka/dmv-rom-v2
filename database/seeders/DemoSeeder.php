@@ -782,7 +782,7 @@ class DemoSeeder extends Seeder
      * email (#373) has a real recipient, and a kinded Group, so seeded {@see ShiftKind}
      * rows have Shifts to label (Reception is deliberately kind-less). The Schedule
      * covers the current month with Shifts across several days — a mix of capacities,
-     * one opened to the whole org — so both the Agenda and the month grid read well.
+     * two opened to the whole org — so both the Agenda and the month grid read well.
      *
      * Faker-free (fixed kinds, deterministic day offsets, now()-anchored month) and
      * idempotent: the Schedule keys on (Group, name), Shifts on (Schedule, start),
