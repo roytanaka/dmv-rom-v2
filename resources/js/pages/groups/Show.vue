@@ -68,8 +68,9 @@ const props = defineProps<{
     // UI hints from the policies — drive the officer affordances only; the server
     // enforces every mutation regardless. `update` gates the Overview edits (#191);
     // `createMeeting` gates the Meetings tab's "New meeting" control (#193);
-    // `manageRoster` gates the Roster tab's officer CRUD (#192).
-    can: { update: boolean; createMeeting: boolean; manageRoster: boolean };
+    // `manageRoster` gates the Roster tab's officer CRUD (#192);
+    // `createSchedule` gates the Scheduling tab's "New schedule" control (#354).
+    can: { update: boolean; createMeeting: boolean; manageRoster: boolean; createSchedule: boolean };
     roster: RosterMember[];
     rosterMeta: RosterMeta;
     meetings: Meeting[];
@@ -334,9 +335,15 @@ const pickBanner = (key: string | null) => {
                      surface, with officer CRUD behind the `can` hints. -->
                 <GroupMeetings v-else-if="section === 'meetings'" :meetings="meetings" :can-create="can.createMeeting" :group-slug="group.slug" />
 
-                <!-- Scheduling (#353) — the Schedule read surface: a list, an empty
-                     state, or a single Schedule opened directly. Org-open. -->
-                <GroupScheduling v-else-if="section === 'scheduling'" :scheduling="scheduling" :group-slug="group.slug" />
+                <!-- Scheduling (#353, #354) — the Schedule read surface (a list, an
+                     empty state, or a single Schedule opened directly, org-open) with
+                     the Scheduler's inline authoring gated by `can.createSchedule`. -->
+                <GroupScheduling
+                    v-else-if="section === 'scheduling'"
+                    :scheduling="scheduling"
+                    :can-create="can.createSchedule"
+                    :group-slug="group.slug"
+                />
 
                 <!-- The capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>

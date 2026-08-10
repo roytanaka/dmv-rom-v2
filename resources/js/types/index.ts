@@ -241,6 +241,7 @@ export interface ScheduleListItem {
     state: string;
     is_past: boolean;
     url: string;
+    can: ScheduleAbilities;
 }
 
 // A Schedule opened directly — its read detail. A Schedule holds nothing yet (Shifts
@@ -252,6 +253,17 @@ export interface ScheduleDetail {
     ends_on: string;
     state: string;
     description: string | null;
+    can: ScheduleAbilities;
+}
+
+// UI hints from the SchedulePolicy — drive the per-Schedule authoring affordances; the
+// server enforces every mutation regardless (#354). `publish` / `unpublish` are the two
+// `state` transitions, only one applicable at a time by the Schedule's current state.
+export interface ScheduleAbilities {
+    update: boolean;
+    publish: boolean;
+    unpublish: boolean;
+    delete: boolean;
 }
 
 // The Scheduling tab's payload: the viewer's visible Schedules, and the one (if any)

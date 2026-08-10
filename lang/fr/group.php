@@ -151,6 +151,25 @@ return [
         'draft_badge' => 'Brouillon',
         'date_range' => 'Du :start au :end',
         'back_to_list' => 'Tous les horaires',
+        // Rédaction (#354) — visible seulement pour un·e responsable horaire /
+        // président·e / super-palier (contrôlé côté serveur via `can`). Publier /
+        // dépublier sont les deux transitions d’état.
+        'new' => 'Nouvel horaire',
+        'edit' => 'Modifier',
+        'publish' => 'Publier',
+        'unpublish' => 'Dépublier',
+        'delete' => 'Supprimer',
+        'create_title' => 'Nouvel horaire',
+        'edit_title' => 'Modifier l’horaire',
+        'confirm_delete' => 'Supprimer cet horaire ? Cette action est irréversible.',
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
+        'field' => [
+            'name' => 'Nom',
+            'starts_on' => 'Date de début',
+            'ends_on' => 'Date de fin',
+            'description' => 'Description',
+        ],
     ],
 
     'role' => [
