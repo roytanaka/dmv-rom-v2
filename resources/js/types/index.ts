@@ -74,6 +74,12 @@ export interface SharedData {
     /** Active locale, resolved server-side from the URL (ADR-0008). */
     locale: string;
     /**
+     * The organization's wall-clock timezone (an IANA name, e.g. `America/Toronto`).
+     * Datetimes arrive as UTC instants and are formatted in *this* zone, never the
+     * browser's, so a meeting reads at the same o'clock for every viewer.
+     */
+    timezone: string;
+    /**
      * Per-locale URI-segment translation table (non-default locales only), used by
      * `useLocalizedHref` to keep English-canonical nav hrefs in the active locale
      * (ADR-0008). Keyed locale → { englishSegment: localisedSegment }.
@@ -212,7 +218,10 @@ export interface Meeting {
     id: number;
     title: string;
     description: string | null;
+    /** A UTC instant; format it in `SharedData['timezone']`, never the browser's. */
     held_at: string;
+    /** Which block this meeting heads under — resolved server-side against one clock. */
+    is_upcoming: boolean;
     location: string | null;
     video_url: string | null;
     is_published: boolean;

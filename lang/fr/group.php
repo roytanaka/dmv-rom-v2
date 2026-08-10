@@ -91,6 +91,8 @@ return [
 
     'meetings' => [
         'empty' => 'Aucune réunion pour le moment.',
+        'upcoming' => 'À venir',
+        'past' => 'Passées',
         'video' => 'Joindre l’appel vidéo',
         'link' => [
             'agenda' => 'Ordre du jour',

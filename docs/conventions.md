@@ -171,6 +171,15 @@ const submit = () => form.put(route('committees.update', props.committee.id))
 - Indexes on every foreign key, every column used in `where`, every column used in `order by`.
 - All text columns are utf8mb4. Default collation `utf8mb4_unicode_ci`.
 
+## Dates and times
+
+The org runs on one wall clock — the museum's. A meeting "at 11am" is 11am at the ROM for every reader, wherever their device is.
+
+- **Store UTC, display org-local.** `config('app.timezone')` stays `UTC` (storage); `config('app.org_timezone')` (`America/Toronto`) is the zone every user-facing datetime is entered and read in. Never format a datetime in the browser's zone — the offset is 4–5 hours depending on the season, and a hardcoded offset is wrong for half the year.
+- **On the way in.** A `<input type="datetime-local">` sends a bare `Y-m-d\TH:i` with **no offset**. Pin it to the org zone in the Form Request's `prepareForValidation()` via `App\Support\OrgTime::toUtc()` before it reaches the validator — anything else silently reads the wall clock as UTC.
+- **On the way out.** Serialize the UTC instant (`toIso8601String()`) and format it client-side with `timeZone: page.props.timezone` (the shared Inertia prop). The same zone drives the value put back into a `datetime-local` for editing, so opening and re-saving an unedited record is a no-op.
+- **Test both sides of DST.** A summer date and a winter date, asserting the stored UTC — that pair is what catches a fixed-offset shortcut. See `tests/Feature/Authorization/MeetingTest.php` § Wall clock.
+
 ## Testing
 
 - Feature tests for controller actions. Hit the route, check the response, check the DB.

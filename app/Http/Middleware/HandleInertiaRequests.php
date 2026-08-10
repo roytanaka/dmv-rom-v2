@@ -59,6 +59,11 @@ class HandleInertiaRequests extends Middleware
             // (ADR-0008). Surfaced so the laravel-vue-i18n bridge boots in the right
             // locale on first paint (the prop is in the initial Inertia payload).
             'locale' => app()->getLocale(),
+            // The organization's wall-clock timezone. Datetimes cross the wire as
+            // UTC instants; the client formats every one of them in *this* zone, so
+            // a meeting reads at the same o'clock for every viewer regardless of
+            // where their device thinks it is.
+            'timezone' => config('app.org_timezone'),
             // Per-locale URI-segment translation table, for localising the static
             // nav hrefs (the fixture authors them English-canonical) so in-app
             // navigation stays in the active locale instead of reverting to English

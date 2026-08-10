@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\MeetingLinkKind;
 use App\Models\Group;
 use App\Models\Meeting;
+use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,20 @@ class StoreMeetingRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()->can('create', [Meeting::class, $this->route('group')]);
+    }
+
+    /**
+     * Read `held_at` as the organization's wall clock and hand the validator the
+     * equivalent UTC instant, which is how it is stored ({@see OrgTime}). The
+     * client's `<input type="datetime-local">` sends a bare `Y-m-d\TH:i` with no
+     * offset, so without this the app timezone (UTC) would be assumed and 11am at
+     * the museum would be stored — and read back — as 7am.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('held_at')) {
+            $this->merge(['held_at' => OrgTime::toUtc($this->input('held_at'))]);
+        }
     }
 
     /**

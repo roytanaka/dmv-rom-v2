@@ -15,6 +15,7 @@ use App\Models\GroupMemberRole;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -340,9 +341,15 @@ class GroupController extends Controller
     }
 
     /**
-     * The Group's meetings (#190, #193) — upcoming and past, newest first, each
-     * carrying its location, optional video link, the agenda / minutes / report
-     * links, its published/hidden state, and per-meeting `can` management hints.
+     * The Group's meetings (#190, #193) — each carrying its location, optional
+     * video link, the agenda / minutes / report links, its published/hidden state,
+     * and per-meeting `can` management hints.
+     *
+     * Ordered the way the page is read, not the way the rows were written:
+     * **upcoming first, soonest at the top** — the "when do we next meet" answer a
+     * member opens the tab for — then the **past, most recent first**, which is
+     * how an archive is browsed. `is_upcoming` marks the split so the client can
+     * head the two blocks; the boundary is the request's own clock.
      *
      * The published/hidden flag is respected: an ordinary member sees published
      * meetings only, while an officer (Secretary / Chair / super-tier) sees drafts
@@ -354,20 +361,37 @@ class GroupController extends Controller
     private function meetings(Request $request, Group $group): array
     {
         $canManage = $request->user()->can('create', [Meeting::class, $group]);
+        $now = CarbonImmutable::now();
 
-        return $group->meetings()
+        $meetings = $group->meetings()
             ->unless(
                 $canManage,
                 fn (Builder $query) => $query->published(),
             )
             ->with('links')
-            ->orderByDesc('held_at')
-            ->get()
+            ->orderBy('held_at')
+            ->get();
+
+        // Chronological out of the database, then split: the upcoming block keeps
+        // that ascending order (next meeting first), the past block is reversed
+        // (most recent first).
+        [$upcoming, $past] = $meetings->partition(
+            fn (Meeting $meeting) => $meeting->held_at->greaterThanOrEqualTo($now),
+        );
+
+        // `values()` before mapping: partition and concat both carry the original
+        // keys through, and a non-zero-indexed array would serialize as a JSON
+        // object instead of the list the client iterates.
+        return $upcoming->concat($past->reverse())
+            ->values()
             ->map(fn (Meeting $meeting) => [
                 'id' => $meeting->id,
                 'title' => $meeting->title,
                 'description' => $meeting->description,
                 'held_at' => $meeting->held_at->toIso8601String(),
+                // Which block this meeting belongs to. Resolved server-side against
+                // one clock, so the two blocks can never overlap or leave a gap.
+                'is_upcoming' => $meeting->held_at->greaterThanOrEqualTo($now),
                 'location' => $meeting->location,
                 'video_url' => $meeting->video_url,
                 'is_published' => $meeting->is_published,
