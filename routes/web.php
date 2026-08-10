@@ -6,6 +6,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SuperTierController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -151,6 +152,23 @@ Route::patch('meetings/{meeting}', [MeetingController::class, 'update'])
 Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('meetings.destroy');
+
+// Group scheduling authoring (#354, PRD #352, ADR-0021 §1). The Scheduler's write
+// seam for a Group's Schedules: create a draft, edit its fields, publish / un-publish
+// it (a `state` transition on the edit path), and delete it. Each is structurally
+// authorized in its Form Request, which delegates to the SchedulePolicy — a Scheduler
+// or Chair of the Group (plus the super-tier), only while the Group's scheduling
+// capability is on. Store nests under the owning Group (bound by slug); edit/delete
+// bind the Schedule by id. The read surface lives on `groups.scheduling.show`.
+Route::post('groups/{group}/schedules', [ScheduleController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('schedules.store');
+Route::patch('schedules/{schedule}', [ScheduleController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('schedules.update');
+Route::delete('schedules/{schedule}', [ScheduleController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('schedules.destroy');
 
 // Group officer roster CRUD (#192, PRD #186). The roster write seam: adding a
 // member, changing standing (including a leave window), assigning / revoking roles,

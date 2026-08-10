@@ -169,6 +169,24 @@ return [
         'draft_badge' => 'Draft',
         'date_range' => ':start – :end',
         'back_to_list' => 'All schedules',
+        // Authoring (#354) — shown only to a Scheduler / Chair / super-tier
+        // (server-gated via `can`). Publish / un-publish are the two state transitions.
+        'new' => 'New schedule',
+        'edit' => 'Edit',
+        'publish' => 'Publish',
+        'unpublish' => 'Un-publish',
+        'delete' => 'Delete',
+        'create_title' => 'New schedule',
+        'edit_title' => 'Edit schedule',
+        'confirm_delete' => 'Delete this schedule? This cannot be undone.',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+        'field' => [
+            'name' => 'Name',
+            'starts_on' => 'Start date',
+            'ends_on' => 'End date',
+            'description' => 'Description',
+        ],
     ],
 
     // Role labels — the Group's officers, by role (leadership at a glance).

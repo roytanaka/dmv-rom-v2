@@ -53,11 +53,61 @@ class SchedulePolicy
     }
 
     /**
+     * Who may add a Schedule to a Group: a Scheduler or Chair of that Group, and only
+     * while its scheduling capability is on. A new Schedule starts as a draft.
+     */
+    public function create(Member $actor, Group $group): bool
+    {
+        return $this->administersSchedulingFor($actor, $group);
+    }
+
+    /**
+     * Who may edit a Schedule's authored fields: a schedule admin of the owning Group.
+     * Authority never leaks across Groups — an admin of a different Group is denied.
+     */
+    public function update(Member $actor, Schedule $schedule): bool
+    {
+        return $this->administersSchedulingFor($actor, $schedule->group);
+    }
+
+    /**
+     * Who may publish a draft Schedule (draft → published): a schedule admin of the
+     * owning Group. Publishing is purely additive — nothing already read becomes wrong
+     * and no Sign-up is disturbed (ADR-0021 §1) — so it carries no further guard.
+     */
+    public function publish(Member $actor, Schedule $schedule): bool
+    {
+        return $this->administersSchedulingFor($actor, $schedule->group);
+    }
+
+    /**
+     * Who may un-publish a Schedule (published → draft): a schedule admin of the owning
+     * Group. Un-publish is permitted only at zero Sign-ups (ADR-0021 §1) — a Chair who
+     * published early clears the Sign-ups first, visibly. Sign-ups do not exist yet, so
+     * the guard is the admin gate today; the zero-Sign-up predicate lands with #357.
+     */
+    public function unpublish(Member $actor, Schedule $schedule): bool
+    {
+        return $this->administersSchedulingFor($actor, $schedule->group);
+    }
+
+    /**
+     * Who may delete a Schedule: a schedule admin of the owning Group. Deletion mirrors
+     * un-publish — permitted only at zero Sign-ups, so a Schedule with history is
+     * permanent (ADR-0021 §1). The zero-Sign-up predicate lands with #357.
+     */
+    public function delete(Member $actor, Schedule $schedule): bool
+    {
+        return $this->administersSchedulingFor($actor, $schedule->group);
+    }
+
+    /**
      * The schedule-admin gate: the Group runs scheduling *and* the actor can act as
      * its Scheduler (Chair-implication folded in by {@see Member::canActAs()}). The
      * capability guard matters because Chair-implication would otherwise grant schedule
      * powers on a non-scheduling Group the member chairs. The read side uses this to
-     * reveal drafts; the authoring slice will reuse the same predicate.
+     * reveal drafts; every authoring ability (create / update / publish / unpublish /
+     * delete) reuses the same predicate.
      */
     private function administersSchedulingFor(Member $actor, Group $group): bool
     {

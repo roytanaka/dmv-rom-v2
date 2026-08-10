@@ -143,11 +143,13 @@ class GroupController extends Controller
             // UI hints only — the server enforces in the Form Requests. `update`
             // drives the Overview's inline About Us edit and banner picker;
             // `createMeeting` drives the Meetings tab's "New meeting" affordance;
-            // `manageRoster` drives the Roster tab's officer CRUD (#192).
+            // `manageRoster` drives the Roster tab's officer CRUD (#192);
+            // `createSchedule` drives the Scheduling tab's "New schedule" affordance (#354).
             'can' => [
                 'update' => $request->user()->can('update', $group),
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $request->user()->can('create', [GroupMember::class, $group]),
+                'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
             ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
@@ -476,7 +478,7 @@ class GroupController extends Controller
             $schedule->setRelation('group', $group);
             abort_unless($user->can('view', $schedule), 404);
 
-            return ['schedules' => [], 'open' => $this->scheduleDetail($schedule)];
+            return ['schedules' => [], 'open' => $this->scheduleDetail($request, $schedule)];
         }
 
         // The viewer's visible Schedules — a draft only for a schedule admin, a
@@ -496,7 +498,7 @@ class GroupController extends Controller
         );
 
         if ($currentPublished->count() === 1) {
-            return ['schedules' => [], 'open' => $this->scheduleDetail($currentPublished->first())];
+            return ['schedules' => [], 'open' => $this->scheduleDetail($request, $currentPublished->first())];
         }
 
         // The list: current and upcoming first (soonest range first), then past
@@ -517,6 +519,7 @@ class GroupController extends Controller
                     // against one clock so the two blocks never overlap or gap.
                     'is_past' => ! $candidate->isCurrent($today),
                     'url' => route('groups.scheduling.show', ['group' => $group->slug, 'schedule' => $candidate->id]),
+                    'can' => $this->scheduleAuthoring($request, $candidate),
                 ])
                 ->all(),
             'open' => null,
@@ -525,12 +528,12 @@ class GroupController extends Controller
 
     /**
      * One Schedule's detail payload — the read view. A Schedule holds nothing yet
-     * (Shifts land in a later slice), so this is its name, range, state, and the
-     * as-authored description.
+     * (Shifts land in a later slice), so this is its name, range, state, the
+     * as-authored description, and the viewer's per-Schedule authoring hints.
      *
      * @return array<string, mixed>
      */
-    private function scheduleDetail(Schedule $schedule): array
+    private function scheduleDetail(Request $request, Schedule $schedule): array
     {
         return [
             'id' => $schedule->id,
@@ -539,6 +542,28 @@ class GroupController extends Controller
             'ends_on' => $schedule->ends_on->toDateString(),
             'state' => $schedule->state->value,
             'description' => $schedule->description,
+            'can' => $this->scheduleAuthoring($request, $schedule),
+        ];
+    }
+
+    /**
+     * The viewer's per-Schedule authoring hints (#354) — UI cues only, the server
+     * enforces every mutation in the Form Requests regardless. `update` gates the
+     * inline edit; `publish` / `unpublish` gate the two `state` transitions (only one
+     * applies at a time, by current state); `delete` gates removal. A non-admin gets
+     * all four false.
+     *
+     * @return array<string, bool>
+     */
+    private function scheduleAuthoring(Request $request, Schedule $schedule): array
+    {
+        $user = $request->user();
+
+        return [
+            'update' => $user->can('update', $schedule),
+            'publish' => $user->can('publish', $schedule),
+            'unpublish' => $user->can('unpublish', $schedule),
+            'delete' => $user->can('delete', $schedule),
         ];
     }
 }
