@@ -102,4 +102,18 @@ class Schedule extends Model
             CarbonImmutable::instance($asOf)->startOfDay(),
         );
     }
+
+    /**
+     * Whether an instant-pair — a Shift's `starts_at` / `ends_at` — falls inside this
+     * Schedule's date range (ADR-0021 §2). Day-resolution and both ends inclusive: the
+     * range runs from the first day's start to the last day's end. This is the single
+     * comparison behind both directions of range enforcement — a Shift may not sit
+     * outside its Schedule, and a Schedule may not shrink away from its Shifts. Resolved
+     * in PHP so the comparison never depends on the DB engine.
+     */
+    public function coversInterval(DateTimeInterface $startsAt, DateTimeInterface $endsAt): bool
+    {
+        return CarbonImmutable::instance($this->starts_on)->startOfDay()->lessThanOrEqualTo($startsAt)
+            && CarbonImmutable::instance($this->ends_on)->endOfDay()->greaterThanOrEqualTo($endsAt);
+    }
 }

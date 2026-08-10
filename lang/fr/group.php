@@ -170,6 +170,12 @@ return [
             'ends_on' => 'Date de fin',
             'description' => 'Description',
         ],
+        // Création de créneaux (#356, ADR-0021 §2) — messages de validation affichés par
+        // les Form Requests lorsque la plage de dates est appliquée dans les deux sens :
+        // un créneau ne peut sortir de son horaire, et un horaire ne peut se resserrer en
+        // excluant les créneaux qui s’y trouvent déjà.
+        'shift_outside_range' => 'Ce créneau se situe en dehors de la plage de dates de l’horaire.',
+        'schedule_range_conflict' => 'Les dates de l’horaire ne peuvent exclure un créneau qui s’y trouve déjà. Déplacez ou supprimez ces créneaux d’abord.',
         // Agenda (#355) — les créneaux de l’horaire ouvert, groupés par jour. « seats »
         // indique les places occupées sur la capacité ; « taken » vaut 0 jusqu’aux
         // inscriptions (#357).

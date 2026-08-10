@@ -187,6 +187,11 @@ return [
             'ends_on' => 'End date',
             'description' => 'Description',
         ],
+        // Shift authoring (#356, ADR-0021 §2) — validation surfaced by the Form Requests
+        // when the date range is enforced both ways: a Shift may not sit outside its
+        // Schedule, and a Schedule may not shrink away from the Shifts already on it.
+        'shift_outside_range' => 'This shift falls outside the schedule’s date range.',
+        'schedule_range_conflict' => 'The schedule’s dates cannot leave out a shift already on it. Move or delete those shifts first.',
         // Agenda (#355) — the opened Schedule's Shifts, grouped by day. `seats` reads
         // the filled-seat count against capacity; `taken` is 0 until Sign-ups (#357).
         'agenda' => [

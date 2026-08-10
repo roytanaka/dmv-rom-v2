@@ -7,6 +7,7 @@ use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SuperTierController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -169,6 +170,22 @@ Route::patch('schedules/{schedule}', [ScheduleController::class, 'update'])
 Route::delete('schedules/{schedule}', [ScheduleController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('schedules.destroy');
+
+// Shift authoring (#356, PRD #352, ADR-0021 §2). The Scheduler's write seam for the
+// Shifts on a Schedule: add a Shift (times, capacity, optional kind, audience), edit it
+// (raise capacity, adjust times within range), and delete it (cancelling, never silent).
+// Each is structurally authorized in its Form Request, which delegates to the
+// ShiftPolicy — the same schedule-admin gate the SchedulePolicy uses. Store nests under
+// the owning Schedule (bound by id); edit/delete bind the Shift by id.
+Route::post('schedules/{schedule}/shifts', [ShiftController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('shifts.store');
+Route::patch('shifts/{shift}', [ShiftController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('shifts.update');
+Route::delete('shifts/{shift}', [ShiftController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('shifts.destroy');
 
 // Group officer roster CRUD (#192, PRD #186). The roster write seam: adding a
 // member, changing standing (including a leave window), assigning / revoking roles,
