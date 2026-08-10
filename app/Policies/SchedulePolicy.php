@@ -10,8 +10,8 @@ use App\Models\Member;
 use App\Models\Schedule;
 
 /**
- * Authorization for a Group's Schedules (#353, PRD #352, ADR-0021 §1). The read side
- * only — authoring lands in the next slice.
+ * Authorization for a Group's Schedules (#353, #354, PRD #352, ADR-0021 §1) — the read
+ * surface and the authoring write seam.
  *
  * The Scheduling section is org-open, deliberately *not* Meetings' members-only gate:
  * the tab renders whenever the Group runs scheduling. The per-Schedule read splits by
@@ -20,6 +20,11 @@ use App\Models\Schedule;
  * cannot read the Schedule of a Group you cannot see, and a parent Group's Chair who is
  * not a member here reads nothing (parentage is structural authority, never content
  * read — ADR-0019).
+ *
+ * Every authoring ability (create / update / publish / unpublish / delete) delegates to
+ * the same schedule-admin predicate ({@see administersSchedulingFor}): the Group must
+ * run scheduling, and the actor must be able to act as Scheduler (Chair-implication
+ * folded in by {@see Member::canActAs()}).
  *
  * The super-tier short-circuit lives in a single `Gate::before` (AppServiceProvider)
  * and is never re-checked here.
