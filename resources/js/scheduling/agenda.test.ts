@@ -13,7 +13,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildMonthGrid, groupShiftsByDay, monthsInRange, orgDayKey } from './agenda.ts';
+import { buildAgenda, buildMonthGrid, groupShiftsByDay, monthsInRange, orgDayKey } from './agenda.ts';
 
 const TORONTO = 'America/Toronto';
 
@@ -145,6 +145,76 @@ test('buildMonthGrid honours a Monday week start', () => {
         [null, null, null, null, null],
     );
     assert.equal(flat[5].date, '2026-08-01');
+});
+
+// ── Own-vs-foreign partition (#361, ADR-0021 §Sign-up) — cross-Group open Shifts ──
+
+test('buildAgenda keeps own Shifts and foreign open Shifts on the same day, never interleaved', () => {
+    const days = buildAgenda(
+        [{ id: 1, starts_at: '2026-08-05T14:00:00Z' }],
+        [{ id: 9, starts_at: '2026-08-05T18:00:00Z', group_name: 'Visitor Wayfinders' }],
+        TORONTO,
+    );
+
+    assert.equal(days.length, 1);
+    assert.equal(days[0].date, '2026-08-05');
+    // Own Shifts stay in `shifts`; the foreign one is never mixed in.
+    assert.deepEqual(
+        days[0].shifts.map((s) => s.id),
+        [1],
+    );
+    // The foreign Shift lives in an attributed band, out of the own list.
+    assert.equal(days[0].bands.length, 1);
+    assert.equal(days[0].bands[0].group, 'Visitor Wayfinders');
+    assert.deepEqual(
+        days[0].bands[0].shifts.map((s) => s.id),
+        [9],
+    );
+});
+
+test('buildAgenda groups a day’s foreign Shifts into one band per owning Group', () => {
+    const days = buildAgenda(
+        [],
+        [
+            { id: 9, starts_at: '2026-08-05T14:00:00Z', group_name: 'Visitor Wayfinders' },
+            { id: 10, starts_at: '2026-08-05T15:00:00Z', group_name: 'Visitor Guides' },
+            { id: 11, starts_at: '2026-08-05T16:00:00Z', group_name: 'Visitor Wayfinders' },
+        ],
+        TORONTO,
+    );
+
+    assert.equal(days.length, 1);
+    // One band per owning Group, in first-seen (start) order; each attributed.
+    assert.deepEqual(
+        days[0].bands.map((b) => b.group),
+        ['Visitor Wayfinders', 'Visitor Guides'],
+    );
+    assert.deepEqual(
+        days[0].bands[0].shifts.map((s) => s.id),
+        [9, 11],
+    );
+});
+
+test('buildAgenda surfaces a foreign-only day and orders all days ascending', () => {
+    const days = buildAgenda(
+        [{ id: 1, starts_at: '2026-08-07T14:00:00Z' }],
+        [{ id: 9, starts_at: '2026-08-05T14:00:00Z', group_name: 'Visitor Wayfinders' }],
+        TORONTO,
+    );
+
+    assert.deepEqual(
+        days.map((d) => d.date),
+        ['2026-08-05', '2026-08-07'],
+    );
+    // The foreign-only day carries no own Shifts but still its band.
+    assert.deepEqual(days[0].shifts, []);
+    assert.equal(days[0].bands[0].group, 'Visitor Wayfinders');
+    // The own-only day carries no bands.
+    assert.deepEqual(days[1].bands, []);
+});
+
+test('buildAgenda returns no days when there is nothing to show', () => {
+    assert.deepEqual(buildAgenda([], [], TORONTO), []);
 });
 
 test('monthsInRange yields the single month a within-month range sits in', () => {
