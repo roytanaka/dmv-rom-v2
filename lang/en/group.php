@@ -190,6 +190,7 @@ return [
         // Agenda (#355) — the opened Schedule's Shifts, grouped by day. `seats` reads
         // the filled-seat count against capacity; `taken` is 0 until Sign-ups (#357).
         'agenda' => [
+            'aria_label' => 'Agenda',
             'empty' => 'No shifts on this schedule yet.',
             'time_range' => ':start – :end',
             'seats' => ':taken / :capacity taken',

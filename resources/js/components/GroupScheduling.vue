@@ -158,7 +158,7 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
         </div>
 
         <!-- One Schedule, opened directly (the single current published one, or a
-             permalink). It holds nothing yet, so this is its name, range, and text. -->
+             permalink): its header card, then the Agenda's day-grouped Shifts. -->
         <template v-if="scheduling.open">
             <TextLink :href="listHref" class="inline-flex items-center gap-1.5 text-sm">
                 <PhArrowLeft class="size-4 shrink-0" />
@@ -233,7 +233,7 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
             <!-- Agenda (#355) — the Schedule's Shifts, grouped by day on the org wall
                  clock. Reads the same at 3 days or 30; each Shift shows its time range,
                  kind (where the Group uses kinds), and how many of its seats are taken. -->
-            <section v-if="agenda.length" class="flex flex-col gap-4" aria-label="Agenda">
+            <section v-if="agenda.length" class="flex flex-col gap-4" :aria-label="trans('group.scheduling_panel.agenda.aria_label')">
                 <div v-for="day in agenda" :key="day.date" class="flex flex-col gap-2">
                     <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">{{ formatDay(day.date) }}</h3>
                     <Card v-for="shift in day.shifts" :key="shift.id">

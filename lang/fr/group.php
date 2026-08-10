@@ -174,6 +174,7 @@ return [
         // indique les places occupées sur la capacité ; « taken » vaut 0 jusqu’aux
         // inscriptions (#357).
         'agenda' => [
+            'aria_label' => 'Agenda',
             'empty' => 'Aucun créneau pour cet horaire pour l’instant.',
             'time_range' => 'De :start à :end',
             'seats' => ':taken / :capacity occupées',

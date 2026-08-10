@@ -33,7 +33,7 @@ return new class extends Migration
             $table->foreignId('schedule_id')->constrained('schedules')->cascadeOnDelete();
             // Instants, stored in UTC and read on the org wall clock (OrgTime). "Has this
             // passed?" and "do these overlap?" are each one comparison over the pair.
-            $table->dateTime('starts_at');
+            $table->dateTime('starts_at')->index();
             $table->dateTime('ends_at');
             // A slot's seat count, not a row count. Full is when the Sign-up count reaches
             // it; lowering it below the current count is blocked (both land with #357).

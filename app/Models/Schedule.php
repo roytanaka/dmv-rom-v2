@@ -17,8 +17,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A Group's Schedule (#353, PRD #352, ADR-0021 §1) — the scheduling container that
  * ADR-0015 was missing. Belongs to exactly one Group (which has-many schedules) and
  * exists only when the Group's `has_scheduling` capability is on. A Schedule is a
- * name, a date range, a `state`, and an optional description; it holds nothing yet
- * (Shifts land in a later slice).
+ * name, a date range, a `state`, and an optional description; it holds Shifts
+ * (#355, ADR-0021 §2).
  *
  * A `draft` is visible only to the Group's schedule admins; a `published` one follows
  * the Group's listing visibility ({@see SchedulePolicy}). `name` / `description` are
