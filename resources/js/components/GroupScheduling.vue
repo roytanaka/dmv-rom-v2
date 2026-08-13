@@ -102,9 +102,12 @@ const sections = computed(() =>
         .filter((section) => section.schedules.length > 0),
 );
 
-// The link back to the list from an opened Schedule — the bare section URL, which
-// re-runs the navigation branch. Localised by the section-tab machinery on the page.
-const listHref = computed(() => `/groups/${props.groupSlug}/scheduling`);
+// The link back to the list from an opened Schedule. `all=1` asks for the list
+// explicitly: the bare section URL re-runs the navigation branch, so from a Schedule
+// that opened directly it would land right back on the same Schedule. Built through
+// the route helper so the French twin comes out right, as the Roster's show-past
+// toggle already does with its own `past` flag.
+const listHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling', all: 1 }));
 
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
 

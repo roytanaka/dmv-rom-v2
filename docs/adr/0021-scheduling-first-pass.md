@@ -172,6 +172,7 @@ This is application of [ADR-0013](0013-app-shell-section-nav.md) plus [ADR-0017 
 - **Exactly one current _published_ Schedule → open it directly.** Otherwise show the list, current and upcoming first.
 - **Drafts never count toward the "exactly one" test** — a Scheduler's in-progress draft must not change where a Member lands.
 - **URL `/groups/{slug}/scheduling/{id}`** — the Schedule has no slug, so the id addresses it. Needs a French segment per [ADR-0008](0008-bilingual-url-routing.md).
+- **`?all=1` on the section URL opts out of open-directly and shows the list.** Without it the list has no reachable URL in the single-current-published case, so an opened Schedule is a dead end: past Schedules cannot be browsed, a Scheduler cannot reach the draft that deliberately does not count toward the test above, and the "New schedule" control (which renders only on the list) never appears. A query flag rather than a route or stored state, mirroring the Roster's `?past=1` reveal.
 
 Legacy's dropdown assumed one-per-month and no overlap; both premises are gone.
 

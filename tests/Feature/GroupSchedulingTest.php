@@ -102,6 +102,52 @@ it('shows the list when two or more current published Schedules exist', function
                 && $s->pluck('name')->contains('September 2026')));
 });
 
+it('shows the list anyway when the reader asks for all schedules', function () {
+    // The escape from an auto-opened Schedule: `?all=1` opts out of the open-directly
+    // branch, so the one current published Schedule and everything past it are listed
+    // rather than one of them being opened on top of an unreachable list.
+    $group = schedulingGroup();
+    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'August 2026']);
+    Schedule::factory()->published()->create([
+        'group_id' => $group->id,
+        'name' => 'Last spring',
+        'starts_on' => now()->subMonths(2)->startOfMonth(),
+        'ends_on' => now()->subMonths(2)->endOfMonth(),
+    ]);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling', 'all' => 1]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open', null)
+            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->contains('August 2026')
+                && $s->pluck('name')->contains('Last spring')));
+});
+
+it('reaches a draft through the list when a published Schedule would otherwise open directly', function () {
+    // A Scheduler's draft never changes where a Member lands, which left the draft
+    // itself unreachable without knowing its id. Asking for the list gets there.
+    $group = schedulingGroup();
+    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Published August']);
+    Schedule::factory()->draft()->create(['group_id' => $group->id, 'name' => 'Draft September']);
+
+    $this->actingAs(schedulingMemberOf($group, Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling', 'all' => 1]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open', null)
+            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->contains('Draft September')));
+});
+
+it('still opens an addressed Schedule when the permalink carries the all flag', function () {
+    // `all=1` opts out of open-*directly*; it never overrides an explicitly addressed
+    // Schedule, so a link that picked up the flag still lands where it points.
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'August 2026']);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]).'?all=1')
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.id', $schedule->id));
+});
+
 it('does not let a draft change where a Member lands', function () {
     // One current published + a draft: still exactly one *published* current, so it
     // opens directly, and the draft is nowhere in the ordinary Member's payload.
