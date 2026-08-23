@@ -251,6 +251,45 @@ return [
                 'dismiss' => 'Dismiss',
             ],
         ],
+        // Bulk-place / bulk-remove a Member's Sign-ups (#363 front end, ADR-0021 §5) — the
+        // Member-in-Schedule labour-saver that retires Reception's fortnight: one regular
+        // placed across every Shift a filter names, weekly or biweekly, in one run — and
+        // unwound the same way. Deliberately distinct from bulk-creating Shifts (#362): a
+        // different actor's different moment, so it names its own entry point, form, and
+        // report. The interval and its anchor live only in the form; no pattern is stored.
+        'bulk_assign' => [
+            'open' => 'Bulk sign-ups',
+            'title' => 'Bulk-place a member’s sign-ups',
+            'description' => 'Place one member on every shift matching this filter across a date range — weekly or biweekly. Remove clears that member from every matching shift.',
+            'place' => 'Place member',
+            'remove' => 'Remove matching',
+            'confirm_remove' => 'Remove this member from every shift matching this filter? This clears their seats. This cannot be undone.',
+            'field' => [
+                'member' => 'Member',
+                'member_none' => 'Choose a member…',
+                'member_empty' => 'No placeable members in this group.',
+                'weekdays' => 'Days of the week',
+                'starts_time' => 'Start time',
+                'ends_time' => 'End time',
+                'from_date' => 'From date',
+                'to_date' => 'To date',
+                'interval' => 'Interval',
+                'anchor_date' => 'Anchor date',
+                'anchor_hint' => 'Biweekly weeks are counted from this date.',
+            ],
+            'interval' => [
+                'weekly' => 'Every week',
+                'biweekly' => 'Every other week',
+            ],
+            // The run report — useful output, not an error: the seats filled or cleared, and
+            // every skipped row with its reason (a full shift, or a seat already held).
+            'report' => [
+                'placed' => '{0} No seats filled.|{1} :count seat filled.|[2,*] :count seats filled.',
+                'removed' => '{0} No seats cleared.|{1} :count seat cleared.|[2,*] :count seats cleared.',
+                'skipped_heading' => '{1} :count skipped:|[2,*] :count skipped:',
+                'dismiss' => 'Dismiss',
+            ],
+        ],
         // Sign-up validation (#357, ADR-0021 §Sign-up) — surfaced by the Form Request when a
         // seat cannot be taken, and by the Shift edit when capacity would strand a member.
         'shift_full' => 'This shift is full.',

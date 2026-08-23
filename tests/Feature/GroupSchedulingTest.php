@@ -484,3 +484,84 @@ it('leaves the flash prop empty when no bulk run has happened', function () {
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page->where('flash.shiftsBulk', null));
 });
+
+// --- Bulk-place / bulk-remove a Member's Sign-ups report reaches the page (#363 front end) ---
+//
+// The Member-in-Schedule labour-saver is N single writes plus a report:
+// `AssignmentController::bulkStore` / `bulkDestroy` flash the counts and every skipped row
+// with `back()->with('assignmentsBulk', …)`. The write seam itself is covered by
+// tests/Feature/BulkAssignmentTest.php; this asserts only that the report survives the
+// Inertia redirect via the shared `flash` prop and reaches the opened Schedule's page props.
+
+it('carries the bulk-place report into the page props via the shared flash prop', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create([
+        'group_id' => $group->id,
+        'starts_on' => '2026-08-01',
+        'ends_on' => '2026-08-31',
+    ]);
+    $scheduler = schedulingMemberOf($group, Role::Scheduler);
+    $regular = schedulingMemberOf($group);
+
+    // The five August Mondays, 10:00–13:00. The regular already holds the first seat, so a
+    // weekly place fills the other four and skips the one they already hold.
+    $shifts = collect(['2026-08-03', '2026-08-10', '2026-08-17', '2026-08-24', '2026-08-31'])
+        ->map(fn (string $date) => Shift::factory()->create([
+            'schedule_id' => $schedule->id,
+            'starts_at' => "{$date} 10:00:00",
+            'ends_at' => "{$date} 13:00:00",
+        ]));
+    SignUp::factory()->create(['shift_id' => $shifts->first()->id, 'member_id' => $regular->id]);
+
+    $this->actingAs($scheduler)->post(route('assignments.bulk-store', $schedule), [
+        'member_id' => $regular->id,
+        'starts_time' => '10:00',
+        'ends_time' => '13:00',
+        'days_of_week' => [1],
+        'from_date' => '2026-08-01',
+        'to_date' => '2026-08-31',
+        'interval' => 'weekly',
+        'anchor_date' => '2026-08-03',
+    ]);
+
+    // The report rides the redirect into the opened Schedule's props as a flash prop.
+    $this->actingAs($scheduler)
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('flash.assignmentsBulk.created', 4)
+            ->has('flash.assignmentsBulk.skipped', 1)
+            ->where('flash.assignmentsBulk.skipped.0.reason', 'group.scheduling_panel.bulk.skipped_already_signed_up'));
+});
+
+it('carries the bulk-remove count into the page props via the shared flash prop', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create([
+        'group_id' => $group->id,
+        'starts_on' => '2026-08-01',
+        'ends_on' => '2026-08-31',
+    ]);
+    $scheduler = schedulingMemberOf($group, Role::Scheduler);
+    $regular = schedulingMemberOf($group);
+
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'starts_at' => '2026-08-03 10:00:00',
+        'ends_at' => '2026-08-03 13:00:00',
+    ]);
+    SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => $regular->id]);
+
+    $this->actingAs($scheduler)->delete(route('assignments.bulk-destroy', $schedule), [
+        'member_id' => $regular->id,
+        'starts_time' => '10:00',
+        'ends_time' => '13:00',
+        'days_of_week' => [1],
+        'from_date' => '2026-08-01',
+        'to_date' => '2026-08-31',
+        'interval' => 'weekly',
+        'anchor_date' => '2026-08-03',
+    ]);
+
+    $this->actingAs($scheduler)
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('flash.assignmentsBulk.removed', 1));
+});
