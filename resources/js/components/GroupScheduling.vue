@@ -279,6 +279,12 @@ const removeSeat = (signUpId: number) => {
 // offers, labelled from the lang file. `group` is the default; `open` invites the whole org.
 const AUDIENCES = ['group', 'open'] as const;
 
+// The granularity every Shift time is entered at, in seconds. Shifts are scheduled to the
+// five minutes, never to the minute, so the native picker steps in fives rather than making
+// the Scheduler scroll sixty entries to reach half past. Browsers also validate against it,
+// so a time off the grid is rejected before it reaches the form.
+const TIME_STEP_SECONDS = 300;
+
 // The native-select styling, matching the Roster's pickers (no shadcn Select in the repo yet).
 const SELECT_CLASS =
     'border-input bg-background focus-visible:border-rom-slate focus-visible:ring-rom-slate-50 flex h-11 w-full rounded-none border px-3 py-2 text-base focus-visible:ring-2 focus-visible:outline-hidden';
@@ -929,12 +935,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 <form class="flex flex-col gap-4" @submit.prevent="submitShift">
                     <div class="grid gap-2">
                         <Label for="shift-starts-at">{{ trans('group.scheduling_panel.shift_field.starts_at') }}</Label>
-                        <Input id="shift-starts-at" v-model="shiftForm.starts_at" type="datetime-local" required />
+                        <Input id="shift-starts-at" v-model="shiftForm.starts_at" type="datetime-local" :step="TIME_STEP_SECONDS" required />
                         <InputError :message="shiftForm.errors.starts_at" />
                     </div>
                     <div class="grid gap-2">
                         <Label for="shift-ends-at">{{ trans('group.scheduling_panel.shift_field.ends_at') }}</Label>
-                        <Input id="shift-ends-at" v-model="shiftForm.ends_at" type="datetime-local" required />
+                        <Input id="shift-ends-at" v-model="shiftForm.ends_at" type="datetime-local" :step="TIME_STEP_SECONDS" required />
                         <InputError :message="shiftForm.errors.ends_at" />
                     </div>
                     <div class="grid gap-2">
@@ -996,12 +1002,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="grid gap-2">
                             <Label for="bulk-starts-time">{{ trans('group.scheduling_panel.bulk.field.starts_time') }}</Label>
-                            <Input id="bulk-starts-time" v-model="bulkForm.starts_time" type="time" required />
+                            <Input id="bulk-starts-time" v-model="bulkForm.starts_time" type="time" :step="TIME_STEP_SECONDS" required />
                             <InputError :message="bulkForm.errors.starts_time" />
                         </div>
                         <div class="grid gap-2">
                             <Label for="bulk-ends-time">{{ trans('group.scheduling_panel.bulk.field.ends_time') }}</Label>
-                            <Input id="bulk-ends-time" v-model="bulkForm.ends_time" type="time" required />
+                            <Input id="bulk-ends-time" v-model="bulkForm.ends_time" type="time" :step="TIME_STEP_SECONDS" required />
                             <InputError :message="bulkForm.errors.ends_time" />
                         </div>
                         <div class="grid gap-2">
@@ -1084,12 +1090,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="grid gap-2">
                             <Label for="bulk-assign-starts-time">{{ trans('group.scheduling_panel.bulk_assign.field.starts_time') }}</Label>
-                            <Input id="bulk-assign-starts-time" v-model="bulkAssignForm.starts_time" type="time" required />
+                            <Input id="bulk-assign-starts-time" v-model="bulkAssignForm.starts_time" type="time" :step="TIME_STEP_SECONDS" required />
                             <InputError :message="bulkAssignForm.errors.starts_time" />
                         </div>
                         <div class="grid gap-2">
                             <Label for="bulk-assign-ends-time">{{ trans('group.scheduling_panel.bulk_assign.field.ends_time') }}</Label>
-                            <Input id="bulk-assign-ends-time" v-model="bulkAssignForm.ends_time" type="time" required />
+                            <Input id="bulk-assign-ends-time" v-model="bulkAssignForm.ends_time" type="time" :step="TIME_STEP_SECONDS" required />
                             <InputError :message="bulkAssignForm.errors.ends_time" />
                         </div>
                         <div class="grid gap-2">
