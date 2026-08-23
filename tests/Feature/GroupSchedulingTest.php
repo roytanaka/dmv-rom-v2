@@ -15,8 +15,8 @@ use Inertia\Testing\AssertableInertia as Assert;
  * Group Scheduling tab — the Schedule read surface (#353, PRD #352, ADR-0021 §1).
  * Asserted at the Inertia prop seam (prior art: GroupMeetingsTest). The section is
  * org-open, present only when the Group runs scheduling. A draft is admin-only; a
- * published Schedule follows the Group's listing visibility. Navigation branches on
- * the count of current published Schedules — exactly one opens directly, else a list.
+ * published Schedule follows the Group's listing visibility. The section always shows
+ * the list; only a permalink opens one Schedule.
  */
 
 /**
@@ -75,18 +75,21 @@ it('leaves the scheduling prop empty on the Overview section', function () {
         ->assertInertia(fn (Assert $page) => $page->where('scheduling', ['schedules' => [], 'open' => null, 'roster' => []]));
 });
 
-// --- Navigation: list vs open-directly --------------------------------------
+// --- Navigation: always the list, whatever the Group holds -------------------
 
-it('opens the single current published Schedule directly', function () {
+it('lists a single current published Schedule rather than opening it', function () {
+    // The section is an index, like every other section tab. One current published
+    // Schedule used to open directly; it is now simply the only row in the list.
     $group = schedulingGroup();
     $schedule = Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'August 2026']);
 
     $this->actingAs(schedulingMemberOf($group))
         ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scheduling.open.name', 'August 2026')
-            ->where('scheduling.open.id', $schedule->id)
-            ->where('scheduling.schedules', []));
+            ->where('scheduling.open', null)
+            ->has('scheduling.schedules', 1)
+            ->where('scheduling.schedules.0.name', 'August 2026')
+            ->where('scheduling.schedules.0.id', $schedule->id));
 });
 
 it('shows the list when two or more current published Schedules exist', function () {
@@ -102,10 +105,8 @@ it('shows the list when two or more current published Schedules exist', function
                 && $s->pluck('name')->contains('September 2026')));
 });
 
-it('shows the list anyway when the reader asks for all schedules', function () {
-    // The escape from an auto-opened Schedule: `?all=1` opts out of the open-directly
-    // branch, so the one current published Schedule and everything past it are listed
-    // rather than one of them being opened on top of an unreachable list.
+it('lists a past Schedule beside the current one', function () {
+    // Nothing is hidden by date, and no Schedule is skipped over on the way in.
     $group = schedulingGroup();
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'August 2026']);
     Schedule::factory()->published()->create([
@@ -116,41 +117,29 @@ it('shows the list anyway when the reader asks for all schedules', function () {
     ]);
 
     $this->actingAs(schedulingMemberOf($group))
-        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling', 'all' => 1]))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('scheduling.open', null)
             ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->contains('August 2026')
                 && $s->pluck('name')->contains('Last spring')));
 });
 
-it('reaches a draft through the list when a published Schedule would otherwise open directly', function () {
-    // A Scheduler's draft never changes where a Member lands, which left the draft
-    // itself unreachable without knowing its id. Asking for the list gets there.
+it('shows a Scheduler their draft beside a current published Schedule', function () {
+    // The case that used to branch: one current published Schedule plus a draft. The
+    // draft is in the Scheduler's list, and nothing opens over the top of it.
     $group = schedulingGroup();
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Published August']);
     Schedule::factory()->draft()->create(['group_id' => $group->id, 'name' => 'Draft September']);
 
     $this->actingAs(schedulingMemberOf($group, Role::Scheduler))
-        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling', 'all' => 1]))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('scheduling.open', null)
-            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->contains('Draft September')));
+            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->contains('Draft September')
+                && $s->pluck('name')->contains('Published August')));
 });
 
-it('still opens an addressed Schedule when the permalink carries the all flag', function () {
-    // `all=1` opts out of open-*directly*; it never overrides an explicitly addressed
-    // Schedule, so a link that picked up the flag still lands where it points.
-    $group = schedulingGroup();
-    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'August 2026']);
-
-    $this->actingAs(schedulingMemberOf($group))
-        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]).'?all=1')
-        ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.id', $schedule->id));
-});
-
-it('does not let a draft change where a Member lands', function () {
-    // One current published + a draft: still exactly one *published* current, so it
-    // opens directly, and the draft is nowhere in the ordinary Member's payload.
+it('keeps a draft out of an ordinary Member\'s list beside a current published Schedule', function () {
     $group = schedulingGroup();
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Published August']);
     Schedule::factory()->draft()->create(['group_id' => $group->id, 'name' => 'Draft September']);
@@ -158,14 +147,15 @@ it('does not let a draft change where a Member lands', function () {
     $this->actingAs(schedulingMemberOf($group))
         ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scheduling.open.name', 'Published August')
-            ->where('scheduling.schedules', []));
+            ->where('scheduling.open', null)
+            ->has('scheduling.schedules', 1)
+            ->where('scheduling.schedules.0.name', 'Published August'));
 });
 
 // --- Draft audience ---------------------------------------------------------
 
 it('hides a draft from an ordinary Member but shows it to a Scheduler in the list', function () {
-    // Two published (so the list branch is taken) plus a draft.
+    // Two published plus a draft: the draft is the only row that differs by viewer.
     $group = schedulingGroup();
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Pub A']);
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Pub B', 'starts_on' => now()->addMonth()->startOfMonth(), 'ends_on' => now()->addMonth()->endOfMonth()]);
@@ -269,8 +259,7 @@ it('lets a member read a Private Group published Schedule', function () {
 
 it('orders the list current-first then past most-recently-ended-first', function () {
     $group = schedulingGroup();
-    // Two published current would open-directly; three keeps the list branch and lets
-    // ordering be asserted. Created out of order so entry order cannot pass by accident.
+    // Created out of order so entry order cannot pass the assertion by accident.
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Older past', 'starts_on' => now()->subMonths(4)->startOfMonth(), 'ends_on' => now()->subMonths(4)->endOfMonth()]);
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Current', 'starts_on' => now()->startOfMonth(), 'ends_on' => now()->endOfMonth()]);
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Recent past', 'starts_on' => now()->subMonth()->startOfMonth(), 'ends_on' => now()->subMonth()->endOfMonth()]);

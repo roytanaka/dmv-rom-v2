@@ -3,11 +3,11 @@
 // with the Scheduler's inline authoring on top. The section is org-open (deliberately
 // not Meetings' members-only gate) and renders whenever the Group runs scheduling.
 //
-// Two states, resolved server-side: `open` is a single Schedule shown directly (the
-// one current published Schedule, or a Schedule reached by permalink), and `schedules`
-// is the list shown otherwise — current & upcoming first, then past — with an honest
-// empty state when there are none. Drafts appear only for the Group's schedule admins;
-// the server has already filtered the list to the viewer's audience.
+// Two states, resolved server-side: `open` is the Schedule a permalink addressed, and
+// `schedules` is the list every other visit gets — current & upcoming first, then past —
+// with an honest empty state when there are none. The section always lists first, like
+// every other section tab. Drafts appear only for the Group's schedule admins; the
+// server has already filtered the list to the viewer's audience.
 //
 // Authoring (a Scheduler / Chair / super-tier) is gated entirely by the server's `can`
 // hints: a "New schedule" control, and per-Schedule edit / publish-or-unpublish /
@@ -102,12 +102,10 @@ const sections = computed(() =>
         .filter((section) => section.schedules.length > 0),
 );
 
-// The link back to the list from an opened Schedule. `all=1` asks for the list
-// explicitly: the bare section URL re-runs the navigation branch, so from a Schedule
-// that opened directly it would land right back on the same Schedule. Built through
-// the route helper so the French twin comes out right, as the Roster's show-past
-// toggle already does with its own `past` flag.
-const listHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling', all: 1 }));
+// The link back to the list from a Schedule opened by permalink — the bare section
+// URL, which always lists. Built through the route helper so the French twin comes
+// out right, as the Roster's show-past toggle already does.
+const listHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling' }));
 
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
 
@@ -266,8 +264,8 @@ const removeSeat = (signUpId: number) => {
             </Button>
         </div>
 
-        <!-- One Schedule, opened directly (the single current published one, or a
-             permalink): its header card, then the Agenda's day-grouped Shifts. -->
+        <!-- One Schedule, addressed by permalink: its header card, then the Agenda's
+             day-grouped Shifts. -->
         <template v-if="scheduling.open">
             <TextLink :href="listHref" class="inline-flex items-center gap-1.5 text-sm">
                 <PhArrowLeft class="size-4 shrink-0" />
