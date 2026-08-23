@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { type SharedData, type ShiftAgendaItem } from '@/types';
 import { usePage } from '@inertiajs/vue3';
-import { PhUserPlus, PhX } from '@phosphor-icons/vue';
+import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 
 defineProps<{ shift: ShiftAgendaItem }>();
@@ -20,6 +20,8 @@ const emit = defineEmits<{
     drop: [shift: ShiftAgendaItem];
     assign: [shift: ShiftAgendaItem];
     remove: [signUpId: number];
+    edit: [shift: ShiftAgendaItem];
+    delete: [shift: ShiftAgendaItem];
 }>();
 
 const page = usePage<SharedData>();
@@ -84,6 +86,17 @@ const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.fir
                 <Button v-if="shift.can.assign" type="button" variant="outline" size="sm" class="gap-1.5" @click="emit('assign', shift)">
                     <PhUserPlus class="size-4" />
                     {{ trans('group.scheduling_panel.agenda.assign.place') }}
+                </Button>
+                <!-- Shift authoring (#356 front end) — a schedule admin edits and, at zero
+                     Sign-ups, deletes the Shift. Server-gated via `can.update` / `can.delete`,
+                     so a foreign Shift and an ordinary reader see neither. -->
+                <Button v-if="shift.can.update" type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('edit', shift)">
+                    <PhPencilSimple class="size-4" />
+                    {{ trans('group.scheduling_panel.edit') }}
+                </Button>
+                <Button v-if="shift.can.delete" type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('delete', shift)">
+                    <PhTrash class="size-4" />
+                    {{ trans('group.scheduling_panel.delete') }}
                 </Button>
             </div>
         </CardContent>

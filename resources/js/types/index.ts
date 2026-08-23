@@ -282,11 +282,19 @@ export interface ShiftAgendaItem {
     capacity: number;
     taken: number;
     kind: string | null;
+    // The Shift's own authored fields the edit form round-trips (#356 front end): its
+    // `audience` (the discovery filter) and the id of its chosen kind (null for a kind-less
+    // Shift), so the form pre-selects both rather than guessing from the display name.
+    audience: string;
+    shift_kind_id: number | null;
     signups: ShiftSignUp[];
     signup_id: number | null;
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
     // schedule-admin gate plus a free seat (capacity binds the Scheduler too, #359).
-    can: { signUp: boolean; assign: boolean };
+    // `update` / `delete` are the Shift authoring hints (#356 front end): `update` is the
+    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. All false on a foreign
+    // Shift, which carries no authoring affordances.
+    can: { signUp: boolean; assign: boolean; update: boolean; delete: boolean };
 }
 
 // A foreign open Shift (#361, ADR-0021 §Sign-up) — another Group's `open` Shift a reader
@@ -331,4 +339,16 @@ export interface Scheduling {
     // The officer-assignment picker's roster (#359) — placeable Members for the opened
     // Schedule, present only for a schedule admin. Empty for a plain reader and on the list.
     roster: PlacementCandidate[];
+    // The Group's kind vocabulary for the Shift authoring form's kind picker (#356 front
+    // end) — id and name of each active ShiftKind. Present only for a schedule admin on an
+    // opened Schedule; empty for a plain reader and on the list.
+    shift_kinds: ShiftKind[];
+}
+
+// One option in the Shift form's kind picker (#356 front end, ADR-0021 §3) — a Group's
+// ShiftKind by id and as-authored name. Names are officer-authored content, never
+// translated (ADR-0004).
+export interface ShiftKind {
+    id: number;
+    name: string;
 }

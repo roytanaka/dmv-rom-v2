@@ -32,6 +32,8 @@ const emit = defineEmits<{
     drop: [shift: ShiftAgendaItem];
     assign: [shift: ShiftAgendaItem];
     remove: [signUpId: number];
+    edit: [shift: ShiftAgendaItem];
+    delete: [shift: ShiftAgendaItem];
 }>();
 
 const page = usePage<SharedData>();
@@ -176,6 +178,8 @@ const formatDay = (date: string) =>
                         @drop="emit('drop', $event)"
                         @assign="emit('assign', $event)"
                         @remove="emit('remove', $event)"
+                        @edit="emit('edit', $event)"
+                        @delete="emit('delete', $event)"
                     />
                     <!-- Foreign open Shifts on the day, banded and attributed — the same band the
                          Agenda shows, surfaced here where the grid cell had no room. -->

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Enums\ShiftAudience;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -8,6 +9,7 @@ use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
+use App\Models\SignUp;
 use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -72,7 +74,7 @@ it('leaves the scheduling prop empty on the Overview section', function () {
 
     $this->actingAs(schedulingMemberOf($group))
         ->get(route('groups.show', $group))
-        ->assertInertia(fn (Assert $page) => $page->where('scheduling', ['schedules' => [], 'open' => null, 'roster' => []]));
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling', ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => []]));
 });
 
 // --- Navigation: always the list, whatever the Group holds -------------------
@@ -350,4 +352,89 @@ it('orders Shifts by start time within the Schedule', function () {
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page
             ->where('scheduling.open.shifts', fn (Collection $shifts) => $shifts->pluck('id')->all() === [$morning->id, $afternoon->id]));
+});
+
+// --- Shift authoring hints and fields (#356 front end, #381) ------------------
+//
+// The Shift authoring UI reads three additions to the payload: the per-Shift `can.update`
+// / `can.delete` hints (mirroring the officer `can.assign`), each Shift's `audience` and
+// `shift_kind_id` (so an edit round-trips the discovery filter and pre-selects the kind),
+// and the Group's `shift_kinds` for the kind picker. The write seam itself is covered by
+// tests/Feature/Authorization/ShiftTest.php; these assert only the read-side seam.
+
+it('gives a schedule admin the per-Shift update and delete hints and the audience / kind fields', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $kind = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Highlights tour']);
+    Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'shift_kind_id' => $kind->id,
+        'audience' => ShiftAudience::Open,
+    ]);
+
+    $this->actingAs(schedulingMemberOf($group, Role::Scheduler))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            // A schedule admin may edit and — at zero Sign-ups — delete this Shift.
+            ->where('scheduling.open.shifts.0.can.update', true)
+            ->where('scheduling.open.shifts.0.can.delete', true)
+            // The audience and the chosen kind's id round-trip so an edit pre-fills both.
+            ->where('scheduling.open.shifts.0.audience', 'open')
+            ->where('scheduling.open.shifts.0.shift_kind_id', $kind->id));
+});
+
+it('withholds the update and delete hints from an ordinary reader', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    Shift::factory()->create(['schedule_id' => $schedule->id]);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open.shifts.0.can.update', false)
+            ->where('scheduling.open.shifts.0.can.delete', false));
+});
+
+it('withholds the delete hint once a Shift has Sign-ups, keeping the edit hint', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = Shift::factory()->create(['schedule_id' => $schedule->id, 'capacity' => 2]);
+    SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => schedulingMemberOf($group)->id]);
+
+    $this->actingAs(schedulingMemberOf($group, Role::Scheduler))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            // Deletion is cancelling and cancelling is never silent — a seated Shift must be
+            // emptied first (ADR-0021 §2), so the delete affordance hides while edit stays.
+            ->where('scheduling.open.shifts.0.can.update', true)
+            ->where('scheduling.open.shifts.0.can.delete', false));
+});
+
+it('ships the Group’s shift kinds to a schedule admin on an opened Schedule', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $kind = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Highlights tour']);
+
+    $this->actingAs(schedulingMemberOf($group, Role::Scheduler))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('scheduling.shift_kinds', 1)
+            ->where('scheduling.shift_kinds.0.id', $kind->id)
+            ->where('scheduling.shift_kinds.0.name', 'Highlights tour'));
+});
+
+it('withholds the shift kinds from an ordinary reader and on the list view', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    ShiftKind::factory()->create(['group_id' => $group->id]);
+
+    // An ordinary reader on the opened Schedule authors nothing, so gets no kinds.
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling.shift_kinds', []));
+
+    // The list view offers no shift form, so it carries no kinds even for an admin.
+    $this->actingAs(schedulingMemberOf($group, Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling.shift_kinds', []));
 });
