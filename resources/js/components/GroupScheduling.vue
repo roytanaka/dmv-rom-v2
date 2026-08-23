@@ -30,8 +30,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { buildAgenda } from '@/scheduling/agenda';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import { PhArrowLeft, PhBinoculars, PhCalendarBlank, PhEye, PhEyeSlash, PhListBullets, PhPencilSimple, PhPlus, PhTrash } from '@phosphor-icons/vue';
-import { trans } from 'laravel-vue-i18n';
+import {
+    PhArrowLeft,
+    PhBinoculars,
+    PhCalendarBlank,
+    PhEye,
+    PhEyeSlash,
+    PhListBullets,
+    PhPencilSimple,
+    PhPlus,
+    PhStack,
+    PhTrash,
+    PhX,
+} from '@phosphor-icons/vue';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{ scheduling: Scheduling; canCreate: boolean; groupSlug: string }>();
@@ -348,6 +360,92 @@ const destroyShift = (shift: ShiftAgendaItem) => {
         router.delete(route('shifts.destroy', { shift: shift.id }), { preserveScroll: true });
     }
 };
+
+// --- Bulk-create / bulk-delete Shifts (#362 front end, PRD #352, ADR-0021 §2) ---
+
+// The labour-saver that makes a month one form run: one Shift on every chosen weekday
+// across a date range, and its symmetric undo on the same filter. It adds no interval and
+// no stored pattern — the weekdays and range live only in this form (ADR-0021 §2). Gated by
+// the same schedule-admin verdict as single-Shift authoring (`can.update`).
+
+// The seven weekdays, labelled in the active locale. Index is the Carbon day number
+// (0 = Sunday … 6 = Saturday) the server fans out on; a fixed reference week formatted in
+// UTC keeps each label on its own day regardless of the viewer's device zone. The stamped
+// wall-clock times are read org-local server-side, matching the Agenda's day grouping.
+const WEEKDAYS = computed(() =>
+    Array.from({ length: 7 }, (_, index) => ({
+        value: index,
+        label: new Intl.DateTimeFormat(page.props.locale, { weekday: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2023, 0, 1 + index))),
+    })),
+);
+
+const bulkOpen = ref(false);
+
+const bulkForm = useForm<{
+    starts_time: string;
+    ends_time: string;
+    capacity: number;
+    shift_kind_id: number | null;
+    days_of_week: number[];
+    from_date: string;
+    to_date: string;
+}>({
+    starts_time: '',
+    ends_time: '',
+    capacity: 1,
+    shift_kind_id: null,
+    days_of_week: [],
+    from_date: '',
+    to_date: '',
+});
+
+const openBulk = () => {
+    bulkForm.reset();
+    bulkForm.clearErrors();
+    // Seed the range from the opened Schedule so a full-month run is a few clicks, not typing.
+    if (props.scheduling.open) {
+        bulkForm.from_date = props.scheduling.open.starts_on;
+        bulkForm.to_date = props.scheduling.open.ends_on;
+    }
+    bulkOpen.value = true;
+};
+
+const bulkDialogOpen = computed({
+    get: () => bulkOpen.value,
+    set: (open: boolean) => {
+        if (!open) closeBulk();
+    },
+});
+
+const closeBulk = () => {
+    bulkOpen.value = false;
+    bulkForm.reset();
+};
+
+// The run report rides back in the shared `flash` prop (HandleInertiaRequests). It is
+// output, not an error — so it renders on the page, dismissable, until the next run or a
+// manual dismiss. A fresh run clears the dismissal so its own report shows.
+const reportDismissed = ref(false);
+const shiftsReport = computed(() => (reportDismissed.value ? null : (page.props.flash?.shiftsBulk ?? null)));
+
+// Both actions post the same filter; only the verb differs. On success the dialog closes,
+// the dismissal resets so the fresh report shows, and the run's own errors surface per field.
+const runBulk = (action: 'create' | 'delete') => {
+    const onSuccess = () => {
+        reportDismissed.value = false;
+        closeBulk();
+    };
+    if (props.scheduling.open === null) return;
+    const schedule = props.scheduling.open.id;
+
+    if (action === 'create') {
+        bulkForm.post(route('shifts.bulk-store', { schedule }), { preserveScroll: true, onSuccess });
+    } else if (window.confirm(trans('group.scheduling_panel.bulk.confirm_delete'))) {
+        // Bulk-delete removes many rows at once, so it confirms first. It carries the same
+        // filter the create form holds (delete via useForm sends the form's fields).
+        bulkForm.delete(route('shifts.bulk-destroy', { schedule }), { preserveScroll: true, onSuccess });
+    }
+};
 </script>
 
 <template>
@@ -432,14 +530,56 @@ const destroyShift = (shift: ShiftAgendaItem) => {
                 </CardContent>
             </Card>
 
-            <!-- Shift authoring (#356 front end) — the "New shift" control on an opened
-                 Schedule, gated by the same schedule-admin verdict as Schedule editing
-                 (`can.update`). Shown even on an empty Schedule so the first Shift can be added. -->
-            <div v-if="scheduling.open.can.update" class="flex justify-end">
+            <!-- Shift authoring (#356 / #362 front end) — the "New shift" and "Bulk shifts"
+                 controls on an opened Schedule, gated by the same schedule-admin verdict as
+                 Schedule editing (`can.update`). Shown even on an empty Schedule so the first
+                 Shift, single or in bulk, can be added. -->
+            <div v-if="scheduling.open.can.update" class="flex justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" class="gap-1.5" @click="openBulk">
+                    <PhStack class="size-4" />
+                    {{ trans('group.scheduling_panel.bulk.open') }}
+                </Button>
                 <Button type="button" size="sm" class="gap-1.5" @click="openShiftCreate">
                     <PhPlus class="size-4" />
                     {{ trans('group.scheduling_panel.new_shift') }}
                 </Button>
+            </div>
+
+            <!-- Bulk run report (#362 front end) — a run is N single writes plus this report:
+                 how many were written or removed, and every skipped row with its reason, as
+                 output rather than an error. Rides back in the shared `flash` prop; dismissable. -->
+            <div v-if="shiftsReport" class="bg-muted/40 flex flex-col gap-2 rounded-md border p-4" role="status" aria-live="polite">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-rom-ink text-sm font-medium">
+                        <template v-if="shiftsReport.created !== undefined">
+                            {{ transChoice('group.scheduling_panel.bulk.report.created', shiftsReport.created) }}
+                        </template>
+                        <template v-else-if="shiftsReport.deleted !== undefined">
+                            {{ transChoice('group.scheduling_panel.bulk.report.deleted', shiftsReport.deleted) }}
+                        </template>
+                    </p>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        class="size-6 shrink-0"
+                        :aria-label="trans('group.scheduling_panel.bulk.report.dismiss')"
+                        @click="reportDismissed = true"
+                    >
+                        <PhX class="size-4" />
+                    </Button>
+                </div>
+                <div v-if="shiftsReport.skipped.length" class="flex flex-col gap-1">
+                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                        {{ transChoice('group.scheduling_panel.bulk.report.skipped_heading', shiftsReport.skipped.length) }}
+                    </p>
+                    <ul class="text-muted-foreground flex flex-col gap-0.5 text-sm">
+                        <li v-for="(row, index) in shiftsReport.skipped" :key="index">
+                            <span v-if="row.date" class="text-rom-ink font-medium">{{ formatDate(row.date) }} — </span>
+                            {{ trans(row.reason) }}
+                        </li>
+                    </ul>
+                </div>
             </div>
 
             <!-- View toggle (#360) — the reader chooses Agenda or Calendar; the Scheduler
@@ -694,6 +834,78 @@ const destroyShift = (shift: ShiftAgendaItem) => {
                     <div class="flex gap-2">
                         <Button type="submit" size="sm" :disabled="shiftForm.processing">{{ trans('group.scheduling_panel.save') }}</Button>
                         <Button type="button" variant="ghost" size="sm" :disabled="shiftForm.processing" @click="closeShift">
+                            {{ trans('group.scheduling_panel.cancel') }}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Bulk-create / bulk-delete dialog (#362 front end) — one filter, two verbs. It
+             takes a kind, a start and end time, a capacity, a set of weekdays and a date
+             range — no interval (ADR-0021 §2): a Shift lands on every matching weekday.
+             "Create shifts" fans out; "Delete matching" removes every Shift on the same
+             filter and confirms first, since it clears many rows at once. Server rejections
+             surface per field; the run's report renders on the page above, not here. -->
+        <Dialog v-model:open="bulkDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ trans('group.scheduling_panel.bulk.title') }}</DialogTitle>
+                </DialogHeader>
+                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.bulk.description') }}</p>
+                <form class="flex flex-col gap-4" @submit.prevent="runBulk('create')">
+                    <fieldset class="grid gap-2">
+                        <legend class="mb-1 text-sm leading-none font-medium">{{ trans('group.scheduling_panel.bulk.field.weekdays') }}</legend>
+                        <div class="flex flex-wrap gap-x-4 gap-y-2">
+                            <label v-for="day in WEEKDAYS" :key="day.value" class="flex items-center gap-2 text-sm">
+                                <input v-model="bulkForm.days_of_week" type="checkbox" :value="day.value" class="accent-rom-slate size-4" />
+                                {{ day.label }}
+                            </label>
+                        </div>
+                        <InputError :message="bulkForm.errors.days_of_week" />
+                    </fieldset>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="grid gap-2">
+                            <Label for="bulk-starts-time">{{ trans('group.scheduling_panel.bulk.field.starts_time') }}</Label>
+                            <Input id="bulk-starts-time" v-model="bulkForm.starts_time" type="time" required />
+                            <InputError :message="bulkForm.errors.starts_time" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="bulk-ends-time">{{ trans('group.scheduling_panel.bulk.field.ends_time') }}</Label>
+                            <Input id="bulk-ends-time" v-model="bulkForm.ends_time" type="time" required />
+                            <InputError :message="bulkForm.errors.ends_time" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="bulk-from-date">{{ trans('group.scheduling_panel.bulk.field.from_date') }}</Label>
+                            <Input id="bulk-from-date" v-model="bulkForm.from_date" type="date" required />
+                            <InputError :message="bulkForm.errors.from_date" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="bulk-to-date">{{ trans('group.scheduling_panel.bulk.field.to_date') }}</Label>
+                            <Input id="bulk-to-date" v-model="bulkForm.to_date" type="date" required />
+                            <InputError :message="bulkForm.errors.to_date" />
+                        </div>
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="bulk-capacity">{{ trans('group.scheduling_panel.bulk.field.capacity') }}</Label>
+                        <Input id="bulk-capacity" v-model.number="bulkForm.capacity" type="number" min="1" required />
+                        <InputError :message="bulkForm.errors.capacity" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="bulk-kind">{{ trans('group.scheduling_panel.bulk.field.kind') }}</Label>
+                        <select id="bulk-kind" v-model="bulkForm.shift_kind_id" :class="SELECT_CLASS">
+                            <option :value="null">{{ trans('group.scheduling_panel.bulk.field.kind_none') }}</option>
+                            <option v-for="kind in scheduling.shift_kinds" :key="kind.id" :value="kind.id">{{ kind.name }}</option>
+                        </select>
+                        <InputError :message="bulkForm.errors.shift_kind_id" />
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <Button type="submit" size="sm" :disabled="bulkForm.processing">{{ trans('group.scheduling_panel.bulk.create') }}</Button>
+                        <Button type="button" variant="destructive" size="sm" :disabled="bulkForm.processing" @click="runBulk('delete')">
+                            {{ trans('group.scheduling_panel.bulk.delete') }}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="bulkForm.processing" @click="closeBulk">
                             {{ trans('group.scheduling_panel.cancel') }}
                         </Button>
                     </div>

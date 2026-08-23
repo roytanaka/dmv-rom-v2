@@ -209,6 +209,34 @@ return [
             // en ignorant et nommant ce qu’elle ne peut inscrire.
             'skipped_full' => 'Ignoré — ce créneau est déjà complet.',
             'skipped_already_signed_up' => 'Ignoré — cette·ce membre a déjà une place sur ce créneau.',
+            // Formulaire de création / suppression en lot des créneaux (#362 front end,
+            // ADR-0021 §2) — l’outil qui fait d’un mois une seule exécution. Aucun
+            // intervalle : un créneau tombe sur chaque jour de semaine correspondant de la
+            // plage. La suppression cible le même filtre et se confirme avant de s’exécuter.
+            'open' => 'Créneaux en lot',
+            'title' => 'Créer des créneaux en lot',
+            'description' => 'Créez un créneau sur chaque jour de semaine choisi d’une plage de dates. La suppression retire tous les créneaux correspondant au même filtre.',
+            'create' => 'Créer les créneaux',
+            'delete' => 'Supprimer les correspondants',
+            'confirm_delete' => 'Supprimer tous les créneaux correspondant à ce filtre ? Les créneaux comptant des membres inscrits sont conservés. Cette action est irréversible.',
+            'field' => [
+                'starts_time' => 'Heure de début',
+                'ends_time' => 'Heure de fin',
+                'capacity' => 'Capacité',
+                'kind' => 'Type',
+                'kind_none' => 'Aucun type',
+                'weekdays' => 'Jours de la semaine',
+                'from_date' => 'Date de début',
+                'to_date' => 'Date de fin',
+            ],
+            // Le rapport d’exécution (#362 front end) — un résultat utile, non une erreur :
+            // le nombre créé ou retiré, et chaque ligne ignorée avec sa raison.
+            'report' => [
+                'created' => '{0} Aucun créneau créé.|{1} :count créneau créé.|[2,*] :count créneaux créés.',
+                'deleted' => '{0} Aucun créneau retiré.|{1} :count créneau retiré.|[2,*] :count créneaux retirés.',
+                'skipped_heading' => '{1} :count ignoré :|[2,*] :count ignorés :',
+                'dismiss' => 'Fermer',
+            ],
         ],
         // Validation des inscriptions (#357, ADR-0021 §Sign-up) — affichée par le Form
         // Request lorsqu’une place ne peut être prise, et par la modification du créneau

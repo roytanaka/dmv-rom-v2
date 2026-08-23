@@ -222,6 +222,34 @@ return [
             // capacity and the one-seat rule per row, skipping and naming what it cannot write.
             'skipped_full' => 'Skipped — this shift is already full.',
             'skipped_already_signed_up' => 'Skipped — this member already has a seat on this shift.',
+            // Bulk-create / bulk-delete Shifts form (#362 front end, ADR-0021 §2) — the
+            // labour-saver that makes a month one form run. No interval: a Shift lands on
+            // every matching weekday in the range. Delete matches the same filter and
+            // confirms before firing, since it removes many rows at once.
+            'open' => 'Bulk shifts',
+            'title' => 'Bulk-create shifts',
+            'description' => 'Create one shift on every chosen weekday across a date range. Delete removes every shift matching the same filter.',
+            'create' => 'Create shifts',
+            'delete' => 'Delete matching',
+            'confirm_delete' => 'Delete every shift matching this filter? Shifts with members signed up are kept. This cannot be undone.',
+            'field' => [
+                'starts_time' => 'Start time',
+                'ends_time' => 'End time',
+                'capacity' => 'Capacity',
+                'kind' => 'Kind',
+                'kind_none' => 'No kind',
+                'weekdays' => 'Days of the week',
+                'from_date' => 'From date',
+                'to_date' => 'To date',
+            ],
+            // The run report (#362 front end) — useful output, not an error: the counts
+            // written or removed, and every skipped row with its reason.
+            'report' => [
+                'created' => '{0} No shifts created.|{1} :count shift created.|[2,*] :count shifts created.',
+                'deleted' => '{0} No shifts removed.|{1} :count shift removed.|[2,*] :count shifts removed.',
+                'skipped_heading' => '{1} :count skipped:|[2,*] :count skipped:',
+                'dismiss' => 'Dismiss',
+            ],
         ],
         // Sign-up validation (#357, ADR-0021 §Sign-up) — surfaced by the Form Request when a
         // seat cannot be taken, and by the Shift edit when capacity would strand a member.
