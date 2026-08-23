@@ -463,7 +463,8 @@ class GroupController extends Controller
      * count of **current published** Schedules (`ends_on >= today`): exactly one opens
      * directly; anything else (none, or several) shows the list. Drafts never count
      * toward that test — a Scheduler's in-progress draft does not change where a Member
-     * lands.
+     * lands. `?all=1` opts out of the open-directly branch and shows the list anyway,
+     * which is what the opened Schedule's "All schedules" link asks for.
      *
      * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>}
      */
@@ -504,7 +505,15 @@ class GroupController extends Controller
                 && $candidate->isCurrent($today),
         );
 
-        if ($currentPublished->count() === 1) {
+        // `?all=1` is the reader asking for the list explicitly — the way back out of an
+        // auto-opened Schedule. Without it the single-current-published case opens
+        // directly and the list has no reachable URL at all: a past Schedule cannot be
+        // browsed, a Scheduler cannot reach the draft that deliberately does not count
+        // toward this test, and "New schedule" (which renders only on the list) has
+        // nowhere to appear. A query flag, no route and no stored state, mirroring the
+        // Roster's `?past=1` reveal above. The permalink branch is unaffected — an
+        // addressed Schedule always opens.
+        if (! $request->boolean('all') && $currentPublished->count() === 1) {
             return [
                 'schedules' => [],
                 'open' => $this->scheduleDetail($request, $currentPublished->first()),
