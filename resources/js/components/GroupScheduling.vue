@@ -41,6 +41,7 @@ import {
     PhPlus,
     PhStack,
     PhTrash,
+    PhUserPlus,
     PhX,
 } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
@@ -446,6 +447,93 @@ const runBulk = (action: 'create' | 'delete') => {
         bulkForm.delete(route('shifts.bulk-destroy', { schedule }), { preserveScroll: true, onSuccess });
     }
 };
+
+// --- Bulk-place / bulk-remove a Member's Sign-ups (#363 front end, PRD #352, ADR-0021 §5) ---
+
+// The Member-in-Schedule labour-saver that retires Reception's fortnight: one regular placed
+// across every Shift a filter names — weekly or biweekly — in a single run, and unwound the
+// same way. Deliberately distinct from bulk-creating Shifts (#362): a different actor's
+// different moment, so it is its own entry point and form. The interval and its anchor live
+// only in this form; no pattern is stored (ADR-0021 §5). Gated by the same schedule-admin
+// verdict (`can.update`) that reveals the placeable roster; the server re-checks the gate,
+// both sign-up floors, capacity and the one-seat rule on write regardless.
+
+// The two intervals the form offers — every week, or alternating weeks phased from an anchor.
+const INTERVALS = ['weekly', 'biweekly'] as const;
+
+const bulkAssignOpen = ref(false);
+
+const bulkAssignForm = useForm<{
+    member_id: number | null;
+    starts_time: string;
+    ends_time: string;
+    days_of_week: number[];
+    from_date: string;
+    to_date: string;
+    interval: 'weekly' | 'biweekly';
+    anchor_date: string;
+}>({
+    member_id: null,
+    starts_time: '',
+    ends_time: '',
+    days_of_week: [],
+    from_date: '',
+    to_date: '',
+    interval: 'weekly',
+    anchor_date: '',
+});
+
+const openBulkAssign = () => {
+    bulkAssignForm.reset();
+    bulkAssignForm.clearErrors();
+    // Seed the range and the biweekly anchor from the opened Schedule so a full run is a few
+    // clicks, not typing; the anchor defaults to the range start and only matters biweekly.
+    if (props.scheduling.open) {
+        bulkAssignForm.from_date = props.scheduling.open.starts_on;
+        bulkAssignForm.to_date = props.scheduling.open.ends_on;
+        bulkAssignForm.anchor_date = props.scheduling.open.starts_on;
+    }
+    bulkAssignOpen.value = true;
+};
+
+const bulkAssignDialogOpen = computed({
+    get: () => bulkAssignOpen.value,
+    set: (open: boolean) => {
+        if (!open) closeBulkAssign();
+    },
+});
+
+const closeBulkAssign = () => {
+    bulkAssignOpen.value = false;
+    bulkAssignForm.reset();
+};
+
+// The run report rides back in the shared `flash` prop, like the bulk-Shift report — output,
+// not an error, so it renders on the page, dismissable, until the next run or a manual
+// dismiss. Kept apart from the Shift report: distinct counts (seats filled / cleared) and its
+// own flash key, so a placement run and a Shift run never overwrite each other's report.
+const assignReportDismissed = ref(false);
+const assignmentsReport = computed(() => (assignReportDismissed.value ? null : (page.props.flash?.assignmentsBulk ?? null)));
+
+// Both actions post the same filter; only the verb differs. Remove confirms first — it clears
+// someone else's seats, plural. On success the dialog closes, the dismissal resets so the
+// fresh report shows, and the run's own errors surface per field.
+const runBulkAssign = (action: 'place' | 'remove') => {
+    const onSuccess = () => {
+        assignReportDismissed.value = false;
+        closeBulkAssign();
+    };
+    if (props.scheduling.open === null) return;
+    const schedule = props.scheduling.open.id;
+
+    if (action === 'place') {
+        bulkAssignForm.post(route('assignments.bulk-store', { schedule }), { preserveScroll: true, onSuccess });
+    } else if (window.confirm(trans('group.scheduling_panel.bulk_assign.confirm_remove'))) {
+        // Bulk-remove clears many seats at once — someone else's — so it confirms first. It
+        // carries the same filter the place form holds (delete via useForm sends its fields).
+        bulkAssignForm.delete(route('assignments.bulk-destroy', { schedule }), { preserveScroll: true, onSuccess });
+    }
+};
 </script>
 
 <template>
@@ -534,7 +622,11 @@ const runBulk = (action: 'create' | 'delete') => {
                  controls on an opened Schedule, gated by the same schedule-admin verdict as
                  Schedule editing (`can.update`). Shown even on an empty Schedule so the first
                  Shift, single or in bulk, can be added. -->
-            <div v-if="scheduling.open.can.update" class="flex justify-end gap-2">
+            <div v-if="scheduling.open.can.update" class="flex flex-wrap justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" class="gap-1.5" @click="openBulkAssign">
+                    <PhUserPlus class="size-4" />
+                    {{ trans('group.scheduling_panel.bulk_assign.open') }}
+                </Button>
                 <Button type="button" variant="outline" size="sm" class="gap-1.5" @click="openBulk">
                     <PhStack class="size-4" />
                     {{ trans('group.scheduling_panel.bulk.open') }}
@@ -576,6 +668,43 @@ const runBulk = (action: 'create' | 'delete') => {
                     <ul class="text-muted-foreground flex flex-col gap-0.5 text-sm">
                         <li v-for="(row, index) in shiftsReport.skipped" :key="index">
                             <span v-if="row.date" class="text-rom-ink font-medium">{{ formatDate(row.date) }} — </span>
+                            {{ trans(row.reason) }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Bulk-assignment run report (#363 front end) — a placement run is N single writes
+                 plus this report: how many seats were filled or cleared, and every skipped row
+                 with its reason, as output rather than an error. Rides back in the shared `flash`
+                 prop; dismissable. Kept distinct from the Shift report above. -->
+            <div v-if="assignmentsReport" class="bg-muted/40 flex flex-col gap-2 rounded-md border p-4" role="status" aria-live="polite">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-rom-ink text-sm font-medium">
+                        <template v-if="assignmentsReport.created !== undefined">
+                            {{ transChoice('group.scheduling_panel.bulk_assign.report.placed', assignmentsReport.created) }}
+                        </template>
+                        <template v-else-if="assignmentsReport.removed !== undefined">
+                            {{ transChoice('group.scheduling_panel.bulk_assign.report.removed', assignmentsReport.removed) }}
+                        </template>
+                    </p>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        class="size-6 shrink-0"
+                        :aria-label="trans('group.scheduling_panel.bulk_assign.report.dismiss')"
+                        @click="assignReportDismissed = true"
+                    >
+                        <PhX class="size-4" />
+                    </Button>
+                </div>
+                <div v-if="assignmentsReport.skipped.length" class="flex flex-col gap-1">
+                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                        {{ transChoice('group.scheduling_panel.bulk_assign.report.skipped_heading', assignmentsReport.skipped.length) }}
+                    </p>
+                    <ul class="text-muted-foreground flex flex-col gap-0.5 text-sm">
+                        <li v-for="(row, index) in assignmentsReport.skipped" :key="index">
                             {{ trans(row.reason) }}
                         </li>
                     </ul>
@@ -906,6 +1035,100 @@ const runBulk = (action: 'create' | 'delete') => {
                             {{ trans('group.scheduling_panel.bulk.delete') }}
                         </Button>
                         <Button type="button" variant="ghost" size="sm" :disabled="bulkForm.processing" @click="closeBulk">
+                            {{ trans('group.scheduling_panel.cancel') }}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Bulk-place / bulk-remove a Member's Sign-ups dialog (#363 front end, ADR-0021 §5) —
+             the Member-in-Schedule form: a member from the placeable roster, a set of weekdays,
+             a start and end time, a date range, an interval (weekly / biweekly) and the anchor
+             its biweekly phase counts from. "Place member" fans out; "Remove matching" unwinds
+             the same filter and confirms first, since it clears someone else's seats, plural.
+             The interval lives only here — no stored pattern (ADR-0021 §5). Server rejections
+             surface per field; the run's report renders on the page above, not here. -->
+        <Dialog v-model:open="bulkAssignDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ trans('group.scheduling_panel.bulk_assign.title') }}</DialogTitle>
+                </DialogHeader>
+                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.bulk_assign.description') }}</p>
+                <form class="flex flex-col gap-4" @submit.prevent="runBulkAssign('place')">
+                    <div class="grid gap-2">
+                        <Label for="bulk-assign-member">{{ trans('group.scheduling_panel.bulk_assign.field.member') }}</Label>
+                        <select id="bulk-assign-member" v-model="bulkAssignForm.member_id" :class="SELECT_CLASS">
+                            <option :value="null" disabled>{{ trans('group.scheduling_panel.bulk_assign.field.member_none') }}</option>
+                            <option v-for="candidate in scheduling.roster" :key="candidate.id" :value="candidate.id">
+                                {{ candidate.first_name }} {{ candidate.last_name }}
+                            </option>
+                        </select>
+                        <p v-if="!scheduling.roster.length" class="text-muted-foreground text-sm">
+                            {{ trans('group.scheduling_panel.bulk_assign.field.member_empty') }}
+                        </p>
+                        <InputError :message="bulkAssignForm.errors.member_id" />
+                    </div>
+                    <fieldset class="grid gap-2">
+                        <legend class="mb-1 text-sm leading-none font-medium">
+                            {{ trans('group.scheduling_panel.bulk_assign.field.weekdays') }}
+                        </legend>
+                        <div class="flex flex-wrap gap-x-4 gap-y-2">
+                            <label v-for="day in WEEKDAYS" :key="day.value" class="flex items-center gap-2 text-sm">
+                                <input v-model="bulkAssignForm.days_of_week" type="checkbox" :value="day.value" class="accent-rom-slate size-4" />
+                                {{ day.label }}
+                            </label>
+                        </div>
+                        <InputError :message="bulkAssignForm.errors.days_of_week" />
+                    </fieldset>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="grid gap-2">
+                            <Label for="bulk-assign-starts-time">{{ trans('group.scheduling_panel.bulk_assign.field.starts_time') }}</Label>
+                            <Input id="bulk-assign-starts-time" v-model="bulkAssignForm.starts_time" type="time" required />
+                            <InputError :message="bulkAssignForm.errors.starts_time" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="bulk-assign-ends-time">{{ trans('group.scheduling_panel.bulk_assign.field.ends_time') }}</Label>
+                            <Input id="bulk-assign-ends-time" v-model="bulkAssignForm.ends_time" type="time" required />
+                            <InputError :message="bulkAssignForm.errors.ends_time" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="bulk-assign-from-date">{{ trans('group.scheduling_panel.bulk_assign.field.from_date') }}</Label>
+                            <Input id="bulk-assign-from-date" v-model="bulkAssignForm.from_date" type="date" required />
+                            <InputError :message="bulkAssignForm.errors.from_date" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="bulk-assign-to-date">{{ trans('group.scheduling_panel.bulk_assign.field.to_date') }}</Label>
+                            <Input id="bulk-assign-to-date" v-model="bulkAssignForm.to_date" type="date" required />
+                            <InputError :message="bulkAssignForm.errors.to_date" />
+                        </div>
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="bulk-assign-interval">{{ trans('group.scheduling_panel.bulk_assign.field.interval') }}</Label>
+                        <select id="bulk-assign-interval" v-model="bulkAssignForm.interval" :class="SELECT_CLASS">
+                            <option v-for="value in INTERVALS" :key="value" :value="value">
+                                {{ trans(`group.scheduling_panel.bulk_assign.interval.${value}`) }}
+                            </option>
+                        </select>
+                        <InputError :message="bulkAssignForm.errors.interval" />
+                    </div>
+                    <!-- The anchor only phases the biweekly cadence, so it shows only then; it is
+                         seeded to the range start on open, kept valid for a weekly run too. -->
+                    <div v-if="bulkAssignForm.interval === 'biweekly'" class="grid gap-2">
+                        <Label for="bulk-assign-anchor-date">{{ trans('group.scheduling_panel.bulk_assign.field.anchor_date') }}</Label>
+                        <Input id="bulk-assign-anchor-date" v-model="bulkAssignForm.anchor_date" type="date" required />
+                        <p class="text-muted-foreground text-xs">{{ trans('group.scheduling_panel.bulk_assign.field.anchor_hint') }}</p>
+                        <InputError :message="bulkAssignForm.errors.anchor_date" />
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <Button type="submit" size="sm" :disabled="bulkAssignForm.processing">
+                            {{ trans('group.scheduling_panel.bulk_assign.place') }}
+                        </Button>
+                        <Button type="button" variant="destructive" size="sm" :disabled="bulkAssignForm.processing" @click="runBulkAssign('remove')">
+                            {{ trans('group.scheduling_panel.bulk_assign.remove') }}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="bulkAssignForm.processing" @click="closeBulkAssign">
                             {{ trans('group.scheduling_panel.cancel') }}
                         </Button>
                     </div>

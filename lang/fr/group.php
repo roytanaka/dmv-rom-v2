@@ -238,6 +238,47 @@ return [
                 'dismiss' => 'Fermer',
             ],
         ],
+        // Placement / retrait groupé des inscriptions d’un·e membre (#363 front end,
+        // ADR-0021 §5) — l’outil « membre dans l’horaire » qui retire la quinzaine de la
+        // Réception : un·e habitué·e placé·e sur chaque créneau que nomme un filtre, chaque
+        // semaine ou aux deux semaines, en une exécution — et défait de la même façon.
+        // Volontairement distinct de la création de créneaux en lot (#362) : un autre acteur,
+        // un autre moment. L’intervalle et son point d’ancrage vivent uniquement dans le
+        // formulaire ; aucun motif n’est stocké.
+        'bulk_assign' => [
+            'open' => 'Inscriptions en lot',
+            'title' => 'Placer en lot les inscriptions d’un·e membre',
+            'description' => 'Placez un·e membre sur chaque créneau correspondant à ce filtre d’une plage de dates — chaque semaine ou aux deux semaines. Le retrait libère ce·tte membre de chaque créneau correspondant.',
+            'place' => 'Placer le·la membre',
+            'remove' => 'Retirer les correspondants',
+            'confirm_remove' => 'Retirer ce·tte membre de chaque créneau correspondant à ce filtre ? Cela libère ses places. Cette action est irréversible.',
+            'field' => [
+                'member' => 'Membre',
+                'member_none' => 'Choisir un·e membre…',
+                'member_empty' => 'Aucun·e membre plaçable dans ce groupe.',
+                'weekdays' => 'Jours de la semaine',
+                'starts_time' => 'Heure de début',
+                'ends_time' => 'Heure de fin',
+                'from_date' => 'Date de début',
+                'to_date' => 'Date de fin',
+                'interval' => 'Intervalle',
+                'anchor_date' => 'Date d’ancrage',
+                'anchor_hint' => 'Les semaines aux deux semaines sont comptées à partir de cette date.',
+            ],
+            'interval' => [
+                'weekly' => 'Chaque semaine',
+                'biweekly' => 'Une semaine sur deux',
+            ],
+            // Le rapport d’exécution — un résultat utile, non une erreur : les places
+            // occupées ou libérées, et chaque ligne ignorée avec sa raison (un créneau
+            // complet, ou une place déjà détenue).
+            'report' => [
+                'placed' => '{0} Aucune place occupée.|{1} :count place occupée.|[2,*] :count places occupées.',
+                'removed' => '{0} Aucune place libérée.|{1} :count place libérée.|[2,*] :count places libérées.',
+                'skipped_heading' => '{1} :count ignoré :|[2,*] :count ignorés :',
+                'dismiss' => 'Fermer',
+            ],
+        ],
         // Validation des inscriptions (#357, ADR-0021 §Sign-up) — affichée par le Form
         // Request lorsqu’une place ne peut être prise, et par la modification du créneau
         // lorsque la capacité laisserait un·e membre sans place.
