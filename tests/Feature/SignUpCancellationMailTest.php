@@ -21,10 +21,16 @@ use Illuminate\Support\Facades\Mail;
  * not merely absent. Prior art: GroupSignUpsTest for the write seams.
  */
 
-/** A Group that runs scheduling and is listed org-wide. */
+/**
+ * A Group that runs scheduling and is listed org-wide. The name is fixed, not faker's:
+ * a generated company name can hold an apostrophe (O'Conner-Kihn), and the two sides of
+ * assertSeeInHtml then disagree about it — the assertion escapes what it looks for
+ * (O&#039;…) while the Markdown mail emits the apostrophe raw, so the test failed on the
+ * runs faker happened to pick such a name (#394).
+ */
 function mailGroup(): Group
 {
-    return Group::factory()->program()->publicListing()->create();
+    return Group::factory()->program()->publicListing()->create(['name' => 'Visitor Wayfinders']);
 }
 
 /** Make a Member of the given Group, optionally carrying a role and a locale preference. */
