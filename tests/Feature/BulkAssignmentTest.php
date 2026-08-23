@@ -11,6 +11,7 @@ use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\SignUp;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Mail;
 
 /*
@@ -71,13 +72,23 @@ function bulkSchedule(?Group $group = null): Schedule
     ]);
 }
 
-/** A 10:00–13:00 Shift on the given date, on the given Schedule. */
+/**
+ * The UTC instant of a wall-clock time on the given museum day. Shifts are stored in UTC
+ * and filtered on the organization's wall clock, so a fixture written as a bare
+ * "10:00:00" would be six in the morning at the museum and no 10:00 filter would find it.
+ */
+function bulkInstant(string $date, string $time): CarbonImmutable
+{
+    return CarbonImmutable::parse("{$date} {$time}", config('app.org_timezone'))->utc();
+}
+
+/** A 10:00–13:00 Shift on the given date, on the given Schedule — museum wall clock. */
 function bulkShiftOn(Schedule $schedule, string $date, array $overrides = []): Shift
 {
     return Shift::factory()->create([
         'schedule_id' => $schedule->id,
-        'starts_at' => "{$date} 10:00:00",
-        'ends_at' => "{$date} 13:00:00",
+        'starts_at' => bulkInstant($date, '10:00'),
+        'ends_at' => bulkInstant($date, '13:00'),
         ...$overrides,
     ]);
 }
@@ -141,7 +152,7 @@ it('places on alternating weeks only when the interval is biweekly', function ()
         ->assertSessionHas('assignmentsBulk', fn ($report) => $report['created'] === 3 && $report['skipped'] === []);
 
     $placed = SignUp::where('member_id', $regular->id)->with('shift')->get()
-        ->map(fn (SignUp $signUp) => $signUp->shift->starts_at->toDateString())
+        ->map(fn (SignUp $signUp) => $signUp->shift->starts_at->setTimezone(config('app.org_timezone'))->toDateString())
         ->sort()->values()->all();
 
     expect($placed)->toBe(['2026-08-03', '2026-08-17', '2026-08-31']);
@@ -157,7 +168,7 @@ it('writes the rest and reports the full Shift when one is at capacity', functio
 
     // The second Monday is a capacity-1 Shift already taken by someone else — full, so the
     // run skips it and names it, and still writes the other four.
-    $full = Shift::where('starts_at', '2026-08-10 10:00:00')->sole();
+    $full = Shift::where('starts_at', bulkInstant('2026-08-10', '10:00'))->sole();
     SignUp::factory()->create(['shift_id' => $full->id, 'member_id' => bulkMemberOf($schedule->group)->id]);
 
     $this->actingAs($scheduler)
@@ -181,7 +192,7 @@ it('writes the rest and reports a Shift the Member already holds a seat on', fun
     $regular = bulkMemberOf($schedule->group);
 
     // The Member already holds the third Monday — the one-seat rule skips it and names it.
-    $held = Shift::where('starts_at', '2026-08-17 10:00:00')->sole();
+    $held = Shift::where('starts_at', bulkInstant('2026-08-17', '10:00'))->sole();
     SignUp::factory()->create(['shift_id' => $held->id, 'member_id' => $regular->id]);
 
     $this->actingAs($scheduler)
@@ -288,7 +299,7 @@ it('bulk-remove leaves other Members’ seats and non-matching Shifts untouched'
     $this->actingAs($scheduler)->post(route('assignments.bulk-store', $schedule), bulkPayload(['member_id' => $regular->id]));
     $tuesday = bulkShiftOn($schedule, '2026-08-04');
     SignUp::factory()->create(['shift_id' => $tuesday->id, 'member_id' => $regular->id]);
-    $firstMonday = Shift::where('starts_at', '2026-08-03 10:00:00')->sole();
+    $firstMonday = Shift::where('starts_at', bulkInstant('2026-08-03', '10:00'))->sole();
     SignUp::factory()->create(['shift_id' => $firstMonday->id, 'member_id' => $other->id]);
 
     $this->actingAs($scheduler)
@@ -325,7 +336,7 @@ it('forbids an ordinary Member from bulk-removing Sign-ups', function () {
     bulkAugustMondays($schedule);
     $ordinary = bulkMemberOf($schedule->group);
     $regular = bulkMemberOf($schedule->group);
-    $firstMonday = Shift::where('starts_at', '2026-08-03 10:00:00')->sole();
+    $firstMonday = Shift::where('starts_at', bulkInstant('2026-08-03', '10:00'))->sole();
     SignUp::factory()->create(['shift_id' => $firstMonday->id, 'member_id' => $regular->id]);
 
     $this->actingAs($ordinary)
@@ -366,4 +377,69 @@ it('rejects a run without a valid interval', function () {
         ->assertSessionHasErrors('interval');
 
     expect(SignUp::where('member_id', $regular->id)->count())->toBe(0);
+});
+
+// --- The organization's wall clock -------------------------------------------
+//
+// A bulk filter names museum times: "Mondays, 8pm". Shifts are stored in UTC, where a
+// Monday evening is already Tuesday, so the matcher reads each candidate back on the org
+// wall clock before comparing its weekday, time and week. Matching the stored UTC
+// representation instead loses the museum's whole evening and reports a quiet zero.
+
+it('places a Member on evening Shifts, which fall on the next day in UTC', function () {
+    $schedule = bulkSchedule();
+    $scheduler = bulkSchedulerOf($schedule->group);
+    $regular = bulkMemberOf($schedule->group);
+
+    foreach (['2026-08-03', '2026-08-10', '2026-08-17'] as $date) {
+        Shift::factory()->create([
+            'schedule_id' => $schedule->id,
+            'starts_at' => bulkInstant($date, '20:00'),
+            'ends_at' => bulkInstant($date, '23:00'),
+        ]);
+    }
+
+    $this->actingAs($scheduler)
+        ->post(route('assignments.bulk-store', $schedule), bulkPayload([
+            'member_id' => $regular->id,
+            'starts_time' => '20:00',
+            'ends_time' => '23:00',
+        ]))
+        ->assertSessionHasNoErrors()
+        ->assertSessionHas('assignmentsBulk', fn ($report) => $report['created'] === 3);
+
+    expect(SignUp::where('member_id', $regular->id)->count())->toBe(3);
+});
+
+it('counts a biweekly evening run in the week the museum ran it', function () {
+    $schedule = bulkSchedule();
+    $scheduler = bulkSchedulerOf($schedule->group);
+    $regular = bulkMemberOf($schedule->group);
+
+    foreach (['2026-08-03', '2026-08-10', '2026-08-17'] as $date) {
+        Shift::factory()->create([
+            'schedule_id' => $schedule->id,
+            'starts_at' => bulkInstant($date, '20:00'),
+            'ends_at' => bulkInstant($date, '23:00'),
+        ]);
+    }
+
+    // Anchored on the first Monday: weeks 0 and 2 are on, week 1 is off. In UTC each
+    // Shift sits on the Tuesday, which for a late-Sunday-start week is a different week.
+    $this->actingAs($scheduler)
+        ->post(route('assignments.bulk-store', $schedule), bulkPayload([
+            'member_id' => $regular->id,
+            'starts_time' => '20:00',
+            'ends_time' => '23:00',
+            'interval' => 'biweekly',
+            'anchor_date' => '2026-08-03',
+        ]))
+        ->assertSessionHas('assignmentsBulk', fn ($report) => $report['created'] === 2);
+
+    $zone = config('app.org_timezone');
+    $placed = SignUp::where('member_id', $regular->id)->with('shift')->get()
+        ->map(fn (SignUp $signUp) => $signUp->shift->starts_at->setTimezone($zone)->toDateString())
+        ->sort()->values()->all();
+
+    expect($placed)->toBe(['2026-08-03', '2026-08-17']);
 });

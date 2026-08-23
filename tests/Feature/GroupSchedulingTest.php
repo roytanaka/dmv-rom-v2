@@ -10,6 +10,7 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -485,6 +486,16 @@ it('leaves the flash prop empty when no bulk run has happened', function () {
         ->assertInertia(fn (Assert $page) => $page->where('flash.shiftsBulk', null));
 });
 
+/**
+ * The UTC instant a wall-clock time on the given museum day is stored as. A bulk filter
+ * names museum times ("Mondays at 10:00"), so a fixture written as a bare "10:00:00"
+ * would sit at six in the morning at the museum and the filter would pass it by.
+ */
+function schedulingInstant(string $date, string $time): CarbonImmutable
+{
+    return CarbonImmutable::parse("{$date} {$time}", config('app.org_timezone'))->utc();
+}
+
 // --- Bulk-place / bulk-remove a Member's Sign-ups report reaches the page (#363 front end) ---
 //
 // The Member-in-Schedule labour-saver is N single writes plus a report:
@@ -508,8 +519,8 @@ it('carries the bulk-place report into the page props via the shared flash prop'
     $shifts = collect(['2026-08-03', '2026-08-10', '2026-08-17', '2026-08-24', '2026-08-31'])
         ->map(fn (string $date) => Shift::factory()->create([
             'schedule_id' => $schedule->id,
-            'starts_at' => "{$date} 10:00:00",
-            'ends_at' => "{$date} 13:00:00",
+            'starts_at' => schedulingInstant($date, '10:00'),
+            'ends_at' => schedulingInstant($date, '13:00'),
         ]));
     SignUp::factory()->create(['shift_id' => $shifts->first()->id, 'member_id' => $regular->id]);
 
@@ -545,8 +556,8 @@ it('carries the bulk-remove count into the page props via the shared flash prop'
 
     $shift = Shift::factory()->create([
         'schedule_id' => $schedule->id,
-        'starts_at' => '2026-08-03 10:00:00',
-        'ends_at' => '2026-08-03 13:00:00',
+        'starts_at' => schedulingInstant('2026-08-03', '10:00'),
+        'ends_at' => schedulingInstant('2026-08-03', '13:00'),
     ]);
     SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => $regular->id]);
 

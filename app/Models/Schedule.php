@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ScheduleState;
 use App\Policies\SchedulePolicy;
+use App\Support\OrgTime;
 use Carbon\CarbonImmutable;
 use Database\Factories\ScheduleFactory;
 use DateTimeInterface;
@@ -124,10 +125,22 @@ class Schedule extends Model
      * comparison behind both directions of range enforcement — a Shift may not sit
      * outside its Schedule, and a Schedule may not shrink away from its Shifts. Resolved
      * in PHP so the comparison never depends on the DB engine.
+     *
+     * `starts_on` / `ends_on` are calendar days on the organization's wall clock, so the
+     * bounds are built in that zone ({@see OrgTime}) and the incoming UTC
+     * instants are compared against them. Building them in UTC instead would clip the
+     * museum's evening: a Shift ending 8pm on the range's last day is already the next
+     * day in UTC, and would be rejected as outside a range it plainly sits inside.
      */
     public function coversInterval(DateTimeInterface $startsAt, DateTimeInterface $endsAt): bool
     {
-        return CarbonImmutable::instance($this->starts_on)->startOfDay()->lessThanOrEqualTo($startsAt)
-            && CarbonImmutable::instance($this->ends_on)->endOfDay()->greaterThanOrEqualTo($endsAt);
+        $zone = config('app.org_timezone');
+
+        return CarbonImmutable::parse($this->starts_on->toDateString(), $zone)
+            ->startOfDay()
+            ->lessThanOrEqualTo($startsAt)
+            && CarbonImmutable::parse($this->ends_on->toDateString(), $zone)
+                ->endOfDay()
+                ->greaterThanOrEqualTo($endsAt);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\ShiftAudience;
+use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -35,6 +36,13 @@ class UpdateShiftRequest extends FormRequest
      * either endpoint is edited, so the ordering (`after`) and range rules below always
      * validate a complete pair — a partial time edit is still checked against the fixed
      * endpoint it did not send.
+     *
+     * The two sources carry different zones and must not be treated alike. An endpoint the
+     * client sent is a bare `Y-m-d\TH:i` on the organization's wall clock, so it is
+     * converted to its UTC instant ({@see OrgTime}); an endpoint backfilled from the stored
+     * Shift is already UTC and is taken as-is. Running the stored value through the
+     * conversion as well would reinterpret UTC as museum time and walk the Shift five
+     * hours earlier on every capacity edit.
      */
     protected function prepareForValidation(): void
     {
@@ -45,8 +53,12 @@ class UpdateShiftRequest extends FormRequest
         $shift = $this->route('shift');
 
         $this->merge([
-            'starts_at' => $this->input('starts_at', $shift->starts_at->toDateTimeString()),
-            'ends_at' => $this->input('ends_at', $shift->ends_at->toDateTimeString()),
+            'starts_at' => $this->has('starts_at')
+                ? OrgTime::toUtc($this->input('starts_at'))
+                : $shift->starts_at->toDateTimeString(),
+            'ends_at' => $this->has('ends_at')
+                ? OrgTime::toUtc($this->input('ends_at'))
+                : $shift->ends_at->toDateTimeString(),
         ]);
     }
 
