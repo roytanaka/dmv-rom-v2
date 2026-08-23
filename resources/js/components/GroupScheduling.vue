@@ -410,6 +410,18 @@ const openBulk = () => {
     bulkOpen.value = true;
 };
 
+const bulkDialogOpen = computed({
+    get: () => bulkOpen.value,
+    set: (open: boolean) => {
+        if (!open) closeBulk();
+    },
+});
+
+const closeBulk = () => {
+    bulkOpen.value = false;
+    bulkForm.reset();
+};
+
 // The run report rides back in the shared `flash` prop (HandleInertiaRequests). It is
 // output, not an error — so it renders on the page, dismissable, until the next run or a
 // manual dismiss. A fresh run clears the dismissal so its own report shows.
@@ -421,7 +433,7 @@ const shiftsReport = computed(() => (reportDismissed.value ? null : (page.props.
 const runBulk = (action: 'create' | 'delete') => {
     const onSuccess = () => {
         reportDismissed.value = false;
-        bulkOpen.value = false;
+        closeBulk();
     };
     if (props.scheduling.open === null) return;
     const schedule = props.scheduling.open.id;
@@ -536,12 +548,7 @@ const runBulk = (action: 'create' | 'delete') => {
             <!-- Bulk run report (#362 front end) — a run is N single writes plus this report:
                  how many were written or removed, and every skipped row with its reason, as
                  output rather than an error. Rides back in the shared `flash` prop; dismissable. -->
-            <div
-                v-if="shiftsReport"
-                class="border-rom-slate-50 bg-muted/40 flex flex-col gap-2 rounded-md border p-4"
-                role="status"
-                aria-live="polite"
-            >
+            <div v-if="shiftsReport" class="bg-muted/40 flex flex-col gap-2 rounded-md border p-4" role="status" aria-live="polite">
                 <div class="flex items-start justify-between gap-2">
                     <p class="text-rom-ink text-sm font-medium">
                         <template v-if="shiftsReport.created !== undefined">
@@ -840,7 +847,7 @@ const runBulk = (action: 'create' | 'delete') => {
              "Create shifts" fans out; "Delete matching" removes every Shift on the same
              filter and confirms first, since it clears many rows at once. Server rejections
              surface per field; the run's report renders on the page above, not here. -->
-        <Dialog v-model:open="bulkOpen">
+        <Dialog v-model:open="bulkDialogOpen">
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{{ trans('group.scheduling_panel.bulk.title') }}</DialogTitle>
@@ -898,7 +905,7 @@ const runBulk = (action: 'create' | 'delete') => {
                         <Button type="button" variant="destructive" size="sm" :disabled="bulkForm.processing" @click="runBulk('delete')">
                             {{ trans('group.scheduling_panel.bulk.delete') }}
                         </Button>
-                        <Button type="button" variant="ghost" size="sm" :disabled="bulkForm.processing" @click="bulkOpen = false">
+                        <Button type="button" variant="ghost" size="sm" :disabled="bulkForm.processing" @click="closeBulk">
                             {{ trans('group.scheduling_panel.cancel') }}
                         </Button>
                     </div>
