@@ -187,6 +187,26 @@ return [
             'ends_on' => 'End date',
             'description' => 'Description',
         ],
+        // Shift authoring form (#356 front end, ADR-0021 §2) — the Scheduler's add / edit /
+        // delete controls on an opened Schedule, gated by the server's `can` hints. `edit` /
+        // `delete` above are reused; these name the form and its fields. The kind picker draws
+        // from the Group's `shift_kinds`; the audience picker offers the two ShiftAudience cases.
+        'new_shift' => 'New shift',
+        'create_shift_title' => 'New shift',
+        'edit_shift_title' => 'Edit shift',
+        'confirm_delete_shift' => 'Delete this shift? This cannot be undone.',
+        'shift_field' => [
+            'starts_at' => 'Start',
+            'ends_at' => 'End',
+            'capacity' => 'Capacity',
+            'kind' => 'Kind',
+            'kind_none' => 'No kind',
+            'audience' => 'Audience',
+        ],
+        'audience' => [
+            'group' => 'Group members',
+            'open' => 'Open to all',
+        ],
         // Shift authoring (#356, ADR-0021 §2) — validation surfaced by the Form Requests
         // when the date range is enforced both ways: a Shift may not sit outside its
         // Schedule, and a Schedule may not shrink away from the Shifts already on it.

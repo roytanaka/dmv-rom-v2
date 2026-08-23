@@ -112,6 +112,10 @@ it('carries no authoring affordances on a foreign Shift, for anyone', function (
 
     readSchedule($super, $home, $homeSchedule)
         ->where('scheduling.open.foreign.0.can.assign', false)
+        // Nor the Shift authoring affordances (#356 front end) — a foreign Shift is never
+        // editable or deletable from a reader's own Group page.
+        ->where('scheduling.open.foreign.0.can.update', false)
+        ->where('scheduling.open.foreign.0.can.delete', false)
         ->missing('scheduling.open.foreign.0.signups.0.signup_id');
 });
 

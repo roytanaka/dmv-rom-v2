@@ -16,6 +16,7 @@
 // regardless of what renders. Names and descriptions are as-authored content
 // (ADR-0004); everything else is translated chrome.
 import ForeignShiftBand from '@/components/ForeignShiftBand.vue';
+import InputError from '@/components/InputError.vue';
 import ScheduleCalendar from '@/components/ScheduleCalendar.vue';
 import ShiftCard from '@/components/ShiftCard.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -253,6 +254,100 @@ const removeSeat = (signUpId: number) => {
         router.delete(route('sign-ups.destroy', { signUp: signUpId }), { preserveScroll: true });
     }
 };
+
+// --- Shift authoring (#356 front end, PRD #352, ADR-0021 §2) — add / edit / delete ---
+
+// The Scheduler's inline authoring on an opened Schedule, mirroring Schedule authoring above
+// and gated the same way: the "New shift" control and each Shift's edit / delete answer to the
+// server's `can` hints (the schedule-admin gate; `can.delete` folds in the zero-Sign-ups rule).
+// Every mutation is re-checked by the Shift Form Requests regardless of what renders.
+
+// The two audience cases a Shift can carry (ShiftAudience) — the discovery filter the picker
+// offers, labelled from the lang file. `group` is the default; `open` invites the whole org.
+const AUDIENCES = ['group', 'open'] as const;
+
+// The native-select styling, matching the Roster's pickers (no shadcn Select in the repo yet).
+const SELECT_CLASS =
+    'border-input bg-background focus-visible:border-rom-slate focus-visible:ring-rom-slate-50 flex h-11 w-full rounded-none border px-3 py-2 text-base focus-visible:ring-2 focus-visible:outline-hidden';
+
+// A Shift's times are instants on the org wall clock, like a Meeting's. A datetime-local input
+// has no zone of its own, so pre-fill renders the UTC instant on the org wall clock and the
+// server reads what it sends back as org-local (App\Support\OrgTime) — saving an unedited Shift
+// is a no-op. (Prior art: GroupMeetings' held_at.)
+const toDateTimeLocal = (iso: string) => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+    }).formatToParts(new Date(iso));
+    const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? '';
+    return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}`;
+};
+
+// The open Shift editor: 'create', the id of the Shift being edited, or null when closed.
+const shiftMode = ref<'create' | number | null>(null);
+
+const shiftForm = useForm<{ starts_at: string; ends_at: string; capacity: number; shift_kind_id: number | null; audience: string }>({
+    starts_at: '',
+    ends_at: '',
+    capacity: 1,
+    shift_kind_id: null,
+    audience: 'group',
+});
+
+const shiftDialogOpen = computed({
+    get: () => shiftMode.value !== null,
+    set: (open: boolean) => {
+        if (!open) closeShift();
+    },
+});
+
+const shiftDialogTitle = computed(() =>
+    trans(shiftMode.value === 'create' ? 'group.scheduling_panel.create_shift_title' : 'group.scheduling_panel.edit_shift_title'),
+);
+
+const openShiftCreate = () => {
+    shiftForm.reset();
+    shiftForm.clearErrors();
+    shiftMode.value = 'create';
+};
+
+const openShiftEdit = (shift: ShiftAgendaItem) => {
+    shiftForm.starts_at = toDateTimeLocal(shift.starts_at);
+    shiftForm.ends_at = toDateTimeLocal(shift.ends_at);
+    shiftForm.capacity = shift.capacity;
+    shiftForm.shift_kind_id = shift.shift_kind_id;
+    shiftForm.audience = shift.audience;
+    shiftForm.clearErrors();
+    shiftMode.value = shift.id;
+};
+
+const closeShift = () => {
+    shiftMode.value = null;
+    shiftForm.reset();
+};
+
+const submitShift = () => {
+    const onSuccess = () => closeShift();
+    if (shiftMode.value === 'create') {
+        if (props.scheduling.open === null) return;
+        shiftForm.post(route('shifts.store', { schedule: props.scheduling.open.id }), { preserveScroll: true, onSuccess });
+    } else if (shiftMode.value !== null) {
+        shiftForm.patch(route('shifts.update', { shift: shiftMode.value }), { preserveScroll: true, onSuccess });
+    }
+};
+
+// Delete confirms before firing, matching the Schedule delete's shape. The button only
+// renders where `can.delete` holds — a schedule admin, and the Shift at zero Sign-ups.
+const destroyShift = (shift: ShiftAgendaItem) => {
+    if (window.confirm(trans('group.scheduling_panel.confirm_delete_shift'))) {
+        router.delete(route('shifts.destroy', { shift: shift.id }), { preserveScroll: true });
+    }
+};
 </script>
 
 <template>
@@ -337,6 +432,16 @@ const removeSeat = (signUpId: number) => {
                 </CardContent>
             </Card>
 
+            <!-- Shift authoring (#356 front end) — the "New shift" control on an opened
+                 Schedule, gated by the same schedule-admin verdict as Schedule editing
+                 (`can.update`). Shown even on an empty Schedule so the first Shift can be added. -->
+            <div v-if="scheduling.open.can.update" class="flex justify-end">
+                <Button type="button" size="sm" class="gap-1.5" @click="openShiftCreate">
+                    <PhPlus class="size-4" />
+                    {{ trans('group.scheduling_panel.new_shift') }}
+                </Button>
+            </div>
+
             <!-- View toggle (#360) — the reader chooses Agenda or Calendar; the Scheduler
                  has no equivalent control in the authoring form. Presentation only: it hits
                  no route and only shows once there are Shifts to lay out either way. -->
@@ -402,6 +507,8 @@ const removeSeat = (signUpId: number) => {
                         @drop="drop"
                         @assign="openAssign"
                         @remove="removeSeat"
+                        @edit="openShiftEdit"
+                        @delete="destroyShift"
                     />
                     <!-- Foreign open Shifts other Groups advertise (#361) — always present but
                          collapsed to one line, banded and attributed by owning Group, kept apart
@@ -430,6 +537,8 @@ const removeSeat = (signUpId: number) => {
                 @drop="drop"
                 @assign="openAssign"
                 @remove="removeSeat"
+                @edit="openShiftEdit"
+                @delete="destroyShift"
             />
 
             <!-- Honest empty state — the Schedule is published but holds no Shifts yet. -->
@@ -531,6 +640,60 @@ const removeSeat = (signUpId: number) => {
                     <div class="flex gap-2">
                         <Button type="submit" size="sm" :disabled="form.processing">{{ trans('group.scheduling_panel.save') }}</Button>
                         <Button type="button" variant="ghost" size="sm" :disabled="form.processing" @click="close">
+                            {{ trans('group.scheduling_panel.cancel') }}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Shift authoring create/edit dialog (#356 front end) — one form, reused; opened by
+             the "New shift" control or a per-Shift edit. Start / required end are org-wall-clock
+             instants; capacity defaults to 1; kind is optional (from the Group's shift_kinds) and
+             audience defaults to `group`. Server rejections — a Shift outside the Schedule's
+             range, a capacity below the current Sign-up count — surface per field. -->
+        <Dialog v-model:open="shiftDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ shiftDialogTitle }}</DialogTitle>
+                </DialogHeader>
+                <form class="flex flex-col gap-4" @submit.prevent="submitShift">
+                    <div class="grid gap-2">
+                        <Label for="shift-starts-at">{{ trans('group.scheduling_panel.shift_field.starts_at') }}</Label>
+                        <Input id="shift-starts-at" v-model="shiftForm.starts_at" type="datetime-local" required />
+                        <InputError :message="shiftForm.errors.starts_at" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="shift-ends-at">{{ trans('group.scheduling_panel.shift_field.ends_at') }}</Label>
+                        <Input id="shift-ends-at" v-model="shiftForm.ends_at" type="datetime-local" required />
+                        <InputError :message="shiftForm.errors.ends_at" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="shift-capacity">{{ trans('group.scheduling_panel.shift_field.capacity') }}</Label>
+                        <Input id="shift-capacity" v-model.number="shiftForm.capacity" type="number" min="1" required />
+                        <InputError :message="shiftForm.errors.capacity" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="shift-kind">{{ trans('group.scheduling_panel.shift_field.kind') }}</Label>
+                        <select id="shift-kind" v-model="shiftForm.shift_kind_id" :class="SELECT_CLASS">
+                            <option :value="null">{{ trans('group.scheduling_panel.shift_field.kind_none') }}</option>
+                            <option v-for="kind in scheduling.shift_kinds" :key="kind.id" :value="kind.id">{{ kind.name }}</option>
+                        </select>
+                        <InputError :message="shiftForm.errors.shift_kind_id" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="shift-audience">{{ trans('group.scheduling_panel.shift_field.audience') }}</Label>
+                        <select id="shift-audience" v-model="shiftForm.audience" :class="SELECT_CLASS">
+                            <option v-for="value in AUDIENCES" :key="value" :value="value">
+                                {{ trans(`group.scheduling_panel.audience.${value}`) }}
+                            </option>
+                        </select>
+                        <InputError :message="shiftForm.errors.audience" />
+                    </div>
+
+                    <div class="flex gap-2">
+                        <Button type="submit" size="sm" :disabled="shiftForm.processing">{{ trans('group.scheduling_panel.save') }}</Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="shiftForm.processing" @click="closeShift">
                             {{ trans('group.scheduling_panel.cancel') }}
                         </Button>
                     </div>

@@ -170,6 +170,27 @@ return [
             'ends_on' => 'Date de fin',
             'description' => 'Description',
         ],
+        // Formulaire de rédaction des créneaux (#356 front end, ADR-0021 §2) — les commandes
+        // ajouter / modifier / supprimer de la ou du responsable horaire sur un horaire ouvert,
+        // contrôlées par les indices `can` du serveur. « edit » / « delete » ci-dessus sont
+        // réutilisés ; ces clés nomment le formulaire et ses champs. Le sélecteur de type puise
+        // dans les `shift_kinds` du groupe ; le sélecteur d’audience offre les deux cas ShiftAudience.
+        'new_shift' => 'Nouveau créneau',
+        'create_shift_title' => 'Nouveau créneau',
+        'edit_shift_title' => 'Modifier le créneau',
+        'confirm_delete_shift' => 'Supprimer ce créneau ? Cette action est irréversible.',
+        'shift_field' => [
+            'starts_at' => 'Début',
+            'ends_at' => 'Fin',
+            'capacity' => 'Capacité',
+            'kind' => 'Type',
+            'kind_none' => 'Aucun type',
+            'audience' => 'Audience',
+        ],
+        'audience' => [
+            'group' => 'Membres du groupe',
+            'open' => 'Ouvert à tous',
+        ],
         // Création de créneaux (#356, ADR-0021 §2) — messages de validation affichés par
         // les Form Requests lorsque la plage de dates est appliquée dans les deux sens :
         // un créneau ne peut sortir de son horaire, et un horaire ne peut se resserrer en

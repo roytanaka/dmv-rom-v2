@@ -19,6 +19,7 @@ use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
+use App\Models\ShiftKind;
 use App\Models\SignUp;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -175,7 +176,7 @@ class GroupController extends Controller
             // visible Schedules and which one (if any) opens directly.
             'scheduling' => $section === 'scheduling'
                 ? $this->scheduling($request, $group, $schedule)
-                : ['schedules' => [], 'open' => null, 'roster' => []],
+                : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => []],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -463,7 +464,7 @@ class GroupController extends Controller
      * section URL always shows the list, current and upcoming first. The section
      * behaves like every other section tab — an index, from which a reader picks.
      *
-     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>}
+     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>, shift_kinds: list<array<string, mixed>>}
      */
     private function scheduling(Request $request, Group $group, ?Schedule $schedule): array
     {
@@ -483,6 +484,7 @@ class GroupController extends Controller
                 'schedules' => [],
                 'open' => $this->scheduleDetail($request, $schedule),
                 'roster' => $this->assignmentRoster($request, $group),
+                'shift_kinds' => $this->shiftKinds($request, $group, $schedule),
             ];
         }
 
@@ -517,9 +519,11 @@ class GroupController extends Controller
                 ])
                 ->all(),
             'open' => null,
-            // The picker's roster is a concern of an opened Schedule only; the list view
-            // shows no Shifts and so needs none.
+            // The picker's roster and the kind vocabulary are concerns of an opened
+            // Schedule's authoring only; the list view shows no Shift form and so needs
+            // neither.
             'roster' => [],
+            'shift_kinds' => [],
         ];
     }
 
@@ -667,6 +671,12 @@ class GroupController extends Controller
             'capacity' => $shift->capacity,
             'taken' => $taken,
             'kind' => $shift->kind?->name,
+            // The Shift's own authored fields the edit form round-trips: its `audience`
+            // (the discovery filter) and the id of its chosen kind (null for Reception's
+            // kind-less shape), so the form pre-selects both rather than guessing from the
+            // display name. UI hints only — the Form Requests re-validate every write.
+            'audience' => $shift->audience->value,
+            'shift_kind_id' => $shift->shift_kind_id,
             // The seated Members, names only (contact stays gated per MemberResource). A
             // schedule admin additionally gets each seat's own Sign-up id — the remove target
             // for officer removal (#359), for any seat, not just their own. A plain reader,
@@ -694,6 +704,13 @@ class GroupController extends Controller
                     && $taken < $shift->capacity
                     && $viewer->can('create', [SignUp::class, $shift]),
                 'assign' => $canManage && $taken < $shift->capacity,
+                // The Shift authoring affordances (#356 front end). `update` is the
+                // schedule-admin gate, already resolved as `$canManage`; `delete` folds in
+                // the zero-Sign-ups rule (ADR-0021 §2) — a seated Shift must be emptied
+                // before it can be cancelled — read from the seats already counted above.
+                // Always false for a foreign Shift, which carries no authoring affordances.
+                'update' => $canManage,
+                'delete' => $canManage && $taken === 0,
             ],
         ];
     }
@@ -727,6 +744,30 @@ class GroupController extends Controller
             ->values();
 
         return MemberResource::directoryCollection($placeable)->resolve();
+    }
+
+    /**
+     * The kind vocabulary for the Shift authoring form (#356 front end, ADR-0021 §3) — the
+     * Group's active {@see ShiftKind} rows, id and name, the options the kind picker offers a
+     * new or edited Shift. Present only for someone who may add a Shift to the opened Schedule
+     * (the same schedule-admin gate that reveals the form); a plain reader gets an empty list
+     * and no picker. Only *active* kinds are offered — an inactive kind still labels the Shifts
+     * already carrying it, but is no longer put on new ones ({@see ShiftKind::scopeActive}).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function shiftKinds(Request $request, Group $group, Schedule $schedule): array
+    {
+        if (! $request->user()->can('create', [Shift::class, $schedule])) {
+            return [];
+        }
+
+        return $group->shiftKinds()
+            ->active()
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (ShiftKind $kind) => ['id' => $kind->id, 'name' => $kind->name])
+            ->all();
     }
 
     /**
