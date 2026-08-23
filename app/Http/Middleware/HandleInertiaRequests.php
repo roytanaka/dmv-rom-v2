@@ -107,6 +107,16 @@ class HandleInertiaRequests extends Middleware
             // bootstrap/app.php); seeding it here lets the rail render expanded
             // or collapsed on first paint without a flash. Defaults to open.
             'sidebarOpen' => $request->cookie('sidebar:state') !== 'false',
+            // Flashed one-shot output that must survive a redirect into the next page's
+            // props (#362 / #363, PRD #352). A bulk Shift or Sign-up run is N single writes
+            // plus a report: the controller flashes `shiftsBulk` / `assignmentsBulk` — how
+            // many were written or removed, and every skipped row with its reason — and this
+            // seam carries that report across the `back()` redirect so the Scheduler reads it
+            // as output, not an error. Null when no run flashed it (the common case).
+            'flash' => [
+                'shiftsBulk' => $request->session()->get('shiftsBulk'),
+                'assignmentsBulk' => $request->session()->get('assignmentsBulk'),
+            ],
         ]);
     }
 

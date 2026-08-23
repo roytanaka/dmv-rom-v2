@@ -438,3 +438,49 @@ it('withholds the shift kinds from an ordinary reader and on the list view', fun
         ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page->where('scheduling.shift_kinds', []));
 });
+
+// --- Bulk-create / bulk-delete report reaches the page (#362 front end) --------
+//
+// A bulk run is N single writes plus a report: `ShiftController::bulkStore` / `bulkDestroy`
+// flash the counts and every skipped row with `back()->with('shiftsBulk', …)`. For the
+// Scheduler to read that report it has to survive the Inertia redirect, so
+// `HandleInertiaRequests` shares a `flash` prop and the report rides into the next page's
+// props. The write seam itself is covered by tests/Feature/Authorization/ShiftTest.php;
+// this asserts only that the report reaches the page.
+
+it('carries the bulk-create report into the page props via the shared flash prop', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create([
+        'group_id' => $group->id,
+        'starts_on' => '2026-08-01',
+        'ends_on' => '2026-08-31',
+    ]);
+    $scheduler = schedulingMemberOf($group, Role::Scheduler);
+
+    // Every Monday from August into the first week of September: the five August Mondays
+    // are written, and the September Monday (Sept 7) falls outside the range and is skipped.
+    $this->actingAs($scheduler)->post(route('shifts.bulk-store', $schedule), [
+        'starts_time' => '10:00',
+        'ends_time' => '13:00',
+        'days_of_week' => [1],
+        'from_date' => '2026-08-01',
+        'to_date' => '2026-09-07',
+    ]);
+
+    // The report rides the redirect into the opened Schedule's props as a flash prop.
+    $this->actingAs($scheduler)
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('flash.shiftsBulk.created', 5)
+            ->has('flash.shiftsBulk.skipped', 1)
+            ->where('flash.shiftsBulk.skipped.0.reason', 'group.scheduling_panel.bulk.skipped_outside_range'));
+});
+
+it('leaves the flash prop empty when no bulk run has happened', function () {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+
+    $this->actingAs(schedulingMemberOf($group, Role::Scheduler))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('flash.shiftsBulk', null));
+});

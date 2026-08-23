@@ -143,6 +143,16 @@ export interface SharedData {
     } | null;
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
     sidebarOpen: boolean;
+    /**
+     * Flashed one-shot output that survives a redirect (#362 / #363, PRD #352). A bulk
+     * Shift or Sign-up run is N single writes plus a report; the controller flashes it and
+     * this prop carries it into the next page's props so the Scheduler reads it as output,
+     * not an error. Each report is null when no run flashed it (the common case).
+     */
+    flash: {
+        shiftsBulk: BulkReport | null;
+        assignmentsBulk: BulkReport | null;
+    };
     ziggy: {
         location: string;
         url: string;
@@ -351,4 +361,23 @@ export interface Scheduling {
 export interface ShiftKind {
     id: number;
     name: string;
+}
+
+// A bulk run's report (#362 / #363 front end, PRD #352) — flashed by the controller and
+// carried to the page in `SharedData['flash']`. A run is N single writes plus this report:
+// the count written or removed (exactly one of `created` / `deleted` / `removed`, by
+// action) and every row it skipped. Each skip carries its own translated `reason` lang key
+// and the identifier the row was skipped on — a `date` for a bulk-create day outside the
+// range, a `shift_id` for a bulk-delete match that could not be removed.
+export interface BulkReport {
+    created?: number;
+    deleted?: number;
+    removed?: number;
+    skipped: BulkSkip[];
+}
+
+export interface BulkSkip {
+    date?: string;
+    shift_id?: number;
+    reason: string;
 }
