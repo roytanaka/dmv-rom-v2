@@ -11,6 +11,8 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Support\OrgTime;
+use Carbon\CarbonImmutable;
 
 /*
  * Role-matrix HTTP harness for Shift authoring (#356, PRD #352, ADR-0021 §2).
@@ -69,6 +71,18 @@ function shiftPayload(array $overrides = []): array
         'ends_at' => '2026-08-10 13:00:00',
         ...$overrides,
     ];
+}
+
+/**
+ * The UTC instant a wall-clock time on the given museum day is stored as. A Shift is
+ * entered and read on the organization's wall clock but stored in UTC, so a request
+ * carrying "10:00" lands four hours later in the row ({@see OrgTime}).
+ */
+function shiftInstant(string $date, string $time): string
+{
+    return CarbonImmutable::parse("{$date} {$time}", config('app.org_timezone'))
+        ->utc()
+        ->toDateTimeString();
 }
 
 /** A valid bulk payload: every Monday of August 2026, 10:00–13:00. */
@@ -300,7 +314,8 @@ it('lets a Scheduler move a Shift within the Schedule range', function () {
         ->patch(route('shifts.update', $shift), ['starts_at' => '2026-08-12 14:00:00', 'ends_at' => '2026-08-12 16:00:00'])
         ->assertSessionHasNoErrors();
 
-    expect($shift->fresh()->starts_at->toDateTimeString())->toBe('2026-08-12 14:00:00');
+    // Entered as 2pm at the museum; stored as the matching UTC instant.
+    expect($shift->fresh()->starts_at->toDateTimeString())->toBe(shiftInstant('2026-08-12', '14:00'));
 });
 
 it('rejects moving a Shift outside the Schedule range', function () {
@@ -473,8 +488,9 @@ it('bulk-creates a Shift on every matching weekday in the range', function () {
     expect(Shift::count())->toBe(5);
 
     $first = Shift::orderBy('starts_at')->first();
-    expect($first->starts_at->toDateTimeString())->toBe('2026-08-03 10:00:00')
-        ->and($first->ends_at->toDateTimeString())->toBe('2026-08-03 13:00:00')
+    // The filter's 10:00–13:00 is museum wall clock, stored as the matching UTC instants.
+    expect($first->starts_at->toDateTimeString())->toBe(shiftInstant('2026-08-03', '10:00'))
+        ->and($first->ends_at->toDateTimeString())->toBe(shiftInstant('2026-08-03', '13:00'))
         ->and($first->capacity)->toBe(1)
         ->and($first->shift_kind_id)->toBeNull()
         ->and($first->audience)->toBe(ShiftAudience::Group);
@@ -641,4 +657,127 @@ it('forbids an ordinary member from bulk-deleting Shifts', function () {
         ->assertForbidden();
 
     expect(Shift::count())->toBe(1);
+});
+
+// --- The organization's wall clock -------------------------------------------
+//
+// A Shift is entered and read in the museum's local time and stored in UTC (ADR-0021 §2,
+// docs/conventions.md § Dates and times). The two zones sit four or five hours apart
+// depending on the season, so every seam that reads a time off a form must pin it to the
+// org zone: a Shift the Scheduler enters at 9am is 9am at the museum, not 9am UTC. These
+// rows guard that contract on each authoring seam — it fails quietly and looks like
+// working software, because a bulk run still round-trips against itself.
+
+it('stores a Shift at the museum wall clock, not the app zone', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.store', $schedule), shiftPayload())
+        ->assertSessionHasNoErrors();
+
+    $shift = Shift::sole();
+    expect($shift->starts_at->toDateTimeString())->toBe(shiftInstant('2026-08-10', '10:00'))
+        ->and($shift->starts_at->setTimezone(config('app.org_timezone'))->format('H:i'))->toBe('10:00');
+});
+
+it('accepts an evening Shift on the range\'s last day — the UTC day has already turned', function () {
+    $schedule = augustSchedule();
+
+    // 8–11pm on August 31 at the museum is September 1 in UTC. The Schedule plainly
+    // covers it; a range check built in UTC would reject it as a day past the end.
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.store', $schedule), [
+            'starts_at' => '2026-08-31 20:00:00',
+            'ends_at' => '2026-08-31 23:00:00',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Shift::sole()->starts_at->toDateTimeString())->toBe(shiftInstant('2026-08-31', '20:00'));
+});
+
+it('keeps a Shift\'s time put when only its capacity is edited', function () {
+    $schedule = augustSchedule();
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'starts_at' => shiftInstant('2026-08-10', '10:00'),
+        'ends_at' => shiftInstant('2026-08-10', '13:00'),
+    ]);
+
+    // The untouched endpoints are backfilled from the stored row, which is already UTC.
+    // Reading those as museum time would walk the Shift earlier on every capacity edit.
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->patch(route('shifts.update', $shift), ['capacity' => 5])
+        ->assertSessionHasNoErrors();
+
+    expect($shift->fresh()->starts_at->toDateTimeString())->toBe(shiftInstant('2026-08-10', '10:00'));
+});
+
+it('bulk-creates evening Shifts on the weekday the museum ran them', function () {
+    $schedule = augustSchedule();
+
+    // Monday evenings. In UTC each one lands on the Tuesday, so a fan-out that counted
+    // weekdays in UTC would write them on the wrong day.
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload([
+            'starts_time' => '20:00',
+            'ends_time' => '23:00',
+        ]))
+        ->assertSessionHas('shiftsBulk', fn ($report) => $report['created'] === 5 && $report['skipped'] === []);
+
+    $zone = config('app.org_timezone');
+    $stamped = Shift::orderBy('starts_at')->get()
+        ->map(fn (Shift $shift) => $shift->starts_at->setTimezone($zone)->format('Y-m-d H:i'))
+        ->all();
+
+    expect($stamped)->toBe([
+        '2026-08-03 20:00',
+        '2026-08-10 20:00',
+        '2026-08-17 20:00',
+        '2026-08-24 20:00',
+        '2026-08-31 20:00',
+    ]);
+});
+
+it('bulk-deletes the evening Shifts a matching filter created', function () {
+    $schedule = augustSchedule();
+    $scheduler = shiftOfficerOf($schedule->group, Role::Scheduler);
+    $filter = bulkShiftPayload(['starts_time' => '20:00', 'ends_time' => '23:00']);
+
+    $this->actingAs($scheduler)->post(route('shifts.bulk-store', $schedule), $filter);
+    expect(Shift::count())->toBe(5);
+
+    // The undo reads the same wall clock the run wrote. Matching on the stored UTC
+    // representation would find none of them and report a silent zero.
+    $this->actingAs($scheduler)
+        ->delete(route('shifts.bulk-destroy', $schedule), $filter)
+        ->assertSessionHas('shiftsBulk', fn ($report) => $report['deleted'] === 5);
+
+    expect(Shift::count())->toBe(0);
+});
+
+it('bulk-creates on the winter wall clock too — the offset is not fixed', function () {
+    // The DST pair the convention asks for (docs/conventions.md § Dates and times). August
+    // runs at UTC-4, January at UTC-5; a hardcoded offset is right for half the year and
+    // wrong for the other half, so the same 20:00 filter must land 20:00 in both seasons.
+    $schedule = Schedule::factory()->published()->create([
+        'group_id' => shiftGroup()->id,
+        'starts_on' => '2027-01-01',
+        'ends_on' => '2027-01-31',
+    ]);
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), [
+            'starts_time' => '20:00',
+            'ends_time' => '23:00',
+            'days_of_week' => [1],
+            'from_date' => '2027-01-01',
+            'to_date' => '2027-01-31',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $zone = config('app.org_timezone');
+    $first = Shift::orderBy('starts_at')->first();
+
+    expect($first->starts_at->setTimezone($zone)->format('Y-m-d H:i'))->toBe('2027-01-04 20:00')
+        ->and($first->starts_at->toDateTimeString())->toBe('2027-01-05 01:00:00');
 });

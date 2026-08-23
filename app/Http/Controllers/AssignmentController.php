@@ -124,18 +124,30 @@ class AssignmentController extends Controller
     private function matchingShifts(Schedule $schedule, array $data): Collection
     {
         $days = $data['days_of_week'];
-        $from = CarbonImmutable::parse($data['from_date'])->startOfDay();
-        $to = CarbonImmutable::parse($data['to_date'])->endOfDay();
-        $anchorWeek = CarbonImmutable::parse($data['anchor_date'])->startOfWeek();
+        $zone = config('app.org_timezone');
+
+        // Every date in this filter is a museum wall-clock date: the Scheduler picked
+        // Tuesdays at 9am, not Tuesdays at 9am UTC. The range bounds are built org-local
+        // and converted for the query; each candidate is read back org-local before its
+        // weekday, time and week are compared. Matching on the stored UTC representation
+        // would silently miss every evening Shift, which is a different day in UTC.
+        $from = CarbonImmutable::parse($data['from_date'], $zone)->startOfDay()->utc();
+        $to = CarbonImmutable::parse($data['to_date'], $zone)->endOfDay()->utc();
+        $anchorWeek = CarbonImmutable::parse($data['anchor_date'], $zone)->startOfWeek();
 
         return $schedule->shifts()
             ->whereBetween('starts_at', [$from, $to])
             ->orderBy('starts_at')
             ->get()
-            ->filter(fn (Shift $shift): bool => in_array($shift->starts_at->dayOfWeek, $days, true)
-                && $shift->starts_at->format('H:i') === $data['starts_time']
-                && $shift->ends_at->format('H:i') === $data['ends_time']
-                && $this->onInterval($shift->starts_at, $data['interval'], $anchorWeek));
+            ->filter(function (Shift $shift) use ($days, $data, $anchorWeek, $zone): bool {
+                $startsAt = $shift->starts_at->setTimezone($zone);
+                $endsAt = $shift->ends_at->setTimezone($zone);
+
+                return in_array($startsAt->dayOfWeek, $days, true)
+                    && $startsAt->format('H:i') === $data['starts_time']
+                    && $endsAt->format('H:i') === $data['ends_time']
+                    && $this->onInterval($startsAt, $data['interval'], $anchorWeek);
+            });
     }
 
     /**
@@ -143,7 +155,8 @@ class AssignmentController extends Controller
      * takes alternating weeks, counting whole weeks from the anchor's week — an even count is
      * on, an odd count is off. The anchor is a form input, never stored (ADR-0021 §5). The
      * Shift's `starts_at` is reduced to its date before taking the week, so the count never
-     * depends on the time of day.
+     * depends on the time of day. It arrives already on the organization's wall clock, so
+     * an evening Shift is counted in the week the museum ran it, not the next one.
      */
     private function onInterval(DateTimeInterface $startsAt, string $interval, CarbonImmutable $anchorWeek): bool
     {

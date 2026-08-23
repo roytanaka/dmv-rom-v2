@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\ShiftAudience;
 use App\Models\Shift;
+use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,6 +31,23 @@ class StoreShiftRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()->can('create', [Shift::class, $this->route('schedule')]);
+    }
+
+    /**
+     * Read `starts_at` / `ends_at` as the organization's wall clock and hand the validator
+     * the equivalent UTC instants, which is how they are stored ({@see OrgTime}). The
+     * client's `<input type="datetime-local">` sends a bare `Y-m-d\TH:i` with no offset,
+     * so without this the app timezone (UTC) would be assumed and a 9am Shift at the
+     * museum would be stored — and read back — as 5am. (Prior art: `held_at` on
+     * {@see StoreMeetingRequest}.)
+     */
+    protected function prepareForValidation(): void
+    {
+        foreach (['starts_at', 'ends_at'] as $field) {
+            if ($this->has($field)) {
+                $this->merge([$field => OrgTime::toUtc($this->input($field))]);
+            }
+        }
     }
 
     /**
