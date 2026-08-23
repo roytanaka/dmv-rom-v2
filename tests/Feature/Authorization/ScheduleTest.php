@@ -304,6 +304,7 @@ it('redirects an unauthenticated delete to login', function () {
 // --- `can` UI hints ---------------------------------------------------------
 
 it('hints schedule authoring on for a Scheduler and off for an ordinary member', function () {
+    // The section lists, so the per-Schedule hints ride on the list row.
     $group = authoringGroup();
     Schedule::factory()->published()->create(['group_id' => $group->id]);
     $section = ['group' => $group, 'section' => 'scheduling'];
@@ -312,14 +313,14 @@ it('hints schedule authoring on for a Scheduler and off for an ordinary member',
         ->get(route('groups.show', $section))
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.createSchedule', true)
-            ->where('scheduling.open.can.update', true)
-            ->where('scheduling.open.can.unpublish', true)
-            ->where('scheduling.open.can.delete', true));
+            ->where('scheduling.schedules.0.can.update', true)
+            ->where('scheduling.schedules.0.can.unpublish', true)
+            ->where('scheduling.schedules.0.can.delete', true));
 
     $this->actingAs(scheduleMemberOf($group))
         ->get(route('groups.show', $section))
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.createSchedule', false)
-            ->where('scheduling.open.can.update', false)
-            ->where('scheduling.open.can.delete', false));
+            ->where('scheduling.schedules.0.can.update', false)
+            ->where('scheduling.schedules.0.can.delete', false));
 });

@@ -8,6 +8,8 @@ accepted: 2026-08-09
 
 From the wayfinder map [#323](https://github.com/roytanaka/dmv-rom-v2/issues/323) (_scheduling — Schedule, Sign-up, and the Scheduler_), which the requirement [#306](https://github.com/roytanaka/dmv-rom-v2/issues/306) was deferred to. Eight decision tickets over 2026-08-07 → 2026-08-09 settled the model; this ADR is where their answers land. It **refines [ADR-0015](0015-scheduling-model.md)** — supplying the container ADR-0015 never named, renaming its **Catalog** to **ShiftKind**, retiring its **Repeat rule**, and marking its _group booking_ / _guest manifest_ strategies deferred — and **amends [ADR-0011](0011-authorization-model.md)** (membership is the only path to a per-Group role) and **[ADR-0017 §6](0017-authorization-enforcement.md)** (Sign-up names are readable by anyone who can read the Schedule). Amendment notes are folded back onto those ADRs.
 
+> **Amendment (2026-08-23, [#388](https://github.com/roytanaka/dmv-rom-v2/pull/388)).** The **"exactly one current published Schedule opens directly"** rule in §1 is **withdrawn**: the bare section URL now always shows the list. Four reasons, in order of weight. (a) Every other section tab — Overview, Roster, Meetings — is an index; Scheduling landing on a detail view broke the pattern a reader had just learned. (b) The rule made one URL render two different pages depending on data, so publishing a second Schedule silently changed what the entry point did. (c) It hid drafts: a Scheduler with this month published and next month in progress was taken to the published one and had no way to reach the draft, and the "New schedule" control renders only on the list. (d) It leaned on the one-per-month assumption this ADR rejects two paragraphs later when it drops legacy's dropdown. The cost is one click for a Member reading the current month, which is the trade taken. The `?all=1` escape flag added in [#380](https://github.com/roytanaka/dmv-rom-v2/pull/380) to work around (c) is removed with the branch it escaped.
+
 ## Context
 
 [ADR-0015](0015-scheduling-model.md) fixed the _architecture_ of scheduling — one capability attached per Group, with per-Group strategies — but it was written before anyone had read the legacy schema end to end. It named four core entities (Shift, Sign-up, Repeat rule, Catalog) and **no container**, which is the gap that made "what is a schedule, exactly?" unanswerable in every downstream discussion.
@@ -166,15 +168,15 @@ This is application of [ADR-0013](0013-app-shell-section-nav.md) plus [ADR-0017 
 
 **The section is org-open.** It follows `listing_visibility` for published Schedules with the schedule-admin gate over drafts — explicitly _not_ Meetings' members-only gate, which is documented as the exception ("unlike the org-open Overview and Roster"). **The tab renders whenever `has_scheduling` is on, empty state included** — a tab that appears and disappears with content teaches Members the section is unreliable, and a Scheduler needs it visible precisely when it is empty.
 
-**Navigation: list, then open.**
+**Navigation: the list is the section; a permalink opens one.**
 
 - **Current** = `ends_on >= today`.
-- **Exactly one current _published_ Schedule → open it directly.** Otherwise show the list, current and upcoming first.
-- **Drafts never count toward the "exactly one" test** — a Scheduler's in-progress draft must not change where a Member lands.
+- **The section URL always shows the list**, current and upcoming first, then past. One Schedule, five, or none: the same page, so the entry point never changes behaviour with the data behind it. _(Amended 2026-08-23; see the note at the top. This previously read "exactly one current published Schedule → open it directly".)_
+- **Only a permalink opens a single Schedule.** A reader picks from the list; a Scheduler links straight to one.
+- **A draft is a row in the list like any other**, visible to whoever passes the schedule-admin gate.
 - **URL `/groups/{slug}/scheduling/{id}`** — the Schedule has no slug, so the id addresses it. Needs a French segment per [ADR-0008](0008-bilingual-url-routing.md).
-- **`?all=1` on the section URL opts out of open-directly and shows the list.** Without it the list has no reachable URL in the single-current-published case, so an opened Schedule is a dead end: past Schedules cannot be browsed, a Scheduler cannot reach the draft that deliberately does not count toward the test above, and the "New schedule" control (which renders only on the list) never appears. A query flag rather than a route or stored state, mirroring the Roster's `?past=1` reveal.
 
-Legacy's dropdown assumed one-per-month and no overlap; both premises are gone.
+Legacy's dropdown assumed one-per-month and no overlap; both premises are gone, which is also why no count of Schedules earns a special case on the way in.
 
 **A per-Group role requires a membership; grant one.** A non-member role grant is not merely unbuilt, it is **unrepresentable** — a role is a row on the _membership_ (`GroupMemberRole` belongs to `GroupMember`), and `canActAs` returns false the moment `membershipIn($group)` is null. So the Visitor Wayfinders Chair, who currently builds schedules for seven Friends Committees, takes **a plain membership on each Friends Group carrying the `Scheduler` role**, granted by _that_ Group's own Chair through the existing roster CRUD (super-tier as fallback). Requiring the receiving Group to grant it is a feature: it makes the arrangement consensual and visible, which legacy's cross-Group authoring never was, and it gives the cutover conversation a concrete ask. **She appears on that Group's roster like any other member** — accepted cost, see _Consequences_.
 

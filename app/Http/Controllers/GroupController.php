@@ -451,20 +451,17 @@ class GroupController extends Controller
 
     /**
      * The Group's Scheduling section (#353, PRD #352, ADR-0021 §1) — the read surface.
-     * Returns the viewer's visible Schedules and which one, if any, opens directly.
+     * Returns the viewer's visible Schedules, plus the one opened by permalink if any.
      *
      * Each Schedule is filtered through the SchedulePolicy's per-Schedule `view`, so a
      * draft surfaces only to the Group's schedule admins while a published one follows
      * the Group's listing visibility. Past Schedules stay in the list — nothing is
      * hidden by date.
      *
-     * Navigation has three outcomes. A permalink (`$schedule` bound) opens that
-     * Schedule after the same `view` check. Otherwise the branch is decided by the
-     * count of **current published** Schedules (`ends_on >= today`): exactly one opens
-     * directly; anything else (none, or several) shows the list. Drafts never count
-     * toward that test — a Scheduler's in-progress draft does not change where a Member
-     * lands. `?all=1` opts out of the open-directly branch and shows the list anyway,
-     * which is what the opened Schedule's "All schedules" link asks for.
+     * Navigation has two outcomes and no data-dependent branch. A permalink
+     * (`$schedule` bound) opens that Schedule after the same `view` check; the bare
+     * section URL always shows the list, current and upcoming first. The section
+     * behaves like every other section tab — an index, from which a reader picks.
      *
      * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>}
      */
@@ -497,29 +494,6 @@ class GroupController extends Controller
             ->get()
             ->each(fn (Schedule $candidate) => $candidate->setRelation('group', $group))
             ->filter(fn (Schedule $candidate) => $user->can('view', $candidate));
-
-        // The branch is decided by current *published* Schedules only, so a draft never
-        // changes where a Member lands.
-        $currentPublished = $visible->filter(
-            fn (Schedule $candidate) => $candidate->state === ScheduleState::Published
-                && $candidate->isCurrent($today),
-        );
-
-        // `?all=1` is the reader asking for the list explicitly — the way back out of an
-        // auto-opened Schedule. Without it the single-current-published case opens
-        // directly and the list has no reachable URL at all: a past Schedule cannot be
-        // browsed, a Scheduler cannot reach the draft that deliberately does not count
-        // toward this test, and "New schedule" (which renders only on the list) has
-        // nowhere to appear. A query flag, no route and no stored state, mirroring the
-        // Roster's `?past=1` reveal above. The permalink branch is unaffected — an
-        // addressed Schedule always opens.
-        if (! $request->boolean('all') && $currentPublished->count() === 1) {
-            return [
-                'schedules' => [],
-                'open' => $this->scheduleDetail($request, $currentPublished->first()),
-                'roster' => $this->assignmentRoster($request, $group),
-            ];
-        }
 
         // The list: current and upcoming first (soonest range first), then past
         // (most recently ended first) — an archive is browsed newest-first.
