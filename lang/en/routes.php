@@ -59,6 +59,17 @@ return [
     'groups.hours.extra' => 'groups/{group}/hours/extra',
     'groups.hours.meetings' => 'groups/{group}/hours/meetings',
 
+    // The six DMV-wide fiscal-year reports (#413, ADR-0022 §8). Org-wide, not scoped to a
+    // {group} — always rooted at the DMV root Group. Flat dotted keys (like groups.hours.*);
+    // Arr::get matches the literal key first, so they never collide with the bare 'hours' key.
+    // The words are translated in the French twin.
+    'hours.committee-summary' => 'hours/committee-summary',
+    'hours.committee-detailed' => 'hours/committee-detailed',
+    'hours.ranked' => 'hours/ranked',
+    'hours.zero-hours' => 'hours/zero-hours',
+    'hours.zero-shift-hours' => 'hours/zero-shift-hours',
+    'hours.zero-extra-hours' => 'hours/zero-extra-hours',
+
     // Settings → Profile / Password (#229, PRD #228). The self-service account
     // surface, brought into the localized group so each page has a French twin.
     // 'settings' is the bare redirect target (→ settings.profile); the two child

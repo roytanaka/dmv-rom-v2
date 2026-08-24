@@ -51,6 +51,16 @@ return [
     'groups.hours.extra' => 'groupes/{group}/heures/supplementaires',
     'groups.hours.meetings' => 'groupes/{group}/heures/reunions',
 
+    // Les six rapports annuels à l'échelle du DMV (#413, ADR-0022 §8). À l'échelle de
+    // l'organisation, sans {group} — toujours enracinés au groupe racine DMV. Les mots sont
+    // traduits ; « hours » → « heures ».
+    'hours.committee-summary' => 'heures/statistiques-sommaire',
+    'hours.committee-detailed' => 'heures/statistiques-detaillees',
+    'hours.ranked' => 'heures/classement',
+    'hours.zero-hours' => 'heures/zero-heure',
+    'hours.zero-shift-hours' => 'heures/zero-heure-quart',
+    'hours.zero-extra-hours' => 'heures/zero-heure-supplementaire',
+
     // Paramètres → Profil / Mot de passe (#229, PRD #228). « settings » →
     // « parametres » (sans accent dans l'URL, comme officer.settings).
     'settings' => 'parametres',

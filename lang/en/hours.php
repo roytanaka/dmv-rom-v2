@@ -143,4 +143,81 @@ return [
             'empty' => 'No hours recorded for this group in this fiscal year.',
         ],
     ],
+
+    // The six DMV-wide fiscal-year reports (#413, ADR-0022 §8) — the fiscal-year statistics the
+    // ROM asks the DMV for. Org-wide, gated to the DMV officers, Records, or the super-tier.
+    'dmv' => [
+        // The nav that links the six reports to one another.
+        'nav_label' => 'DMV hours reports',
+        'nav' => [
+            'summary' => 'Summary',
+            'detailed' => 'Detailed',
+            'ranked' => 'Ranked hours',
+            'zero_hours' => 'Zero hours',
+            'zero_shift' => 'Zero shift hours',
+            'zero_extra' => 'Zero extra hours',
+        ],
+        'pick_year' => 'Fiscal year',
+        'fiscal_year' => 'Fiscal :year',
+
+        // Summary Committee Statistics — scheduled hours by committee, then org-wide rows.
+        'summary' => [
+            'title' => 'Summary Committee Statistics',
+            'lead' => 'Scheduled hours by committee across the fiscal year, with org-wide totals below.',
+            'scheduled' => 'Scheduled hours',
+            'meetings' => 'Meeting hours',
+            'extra' => 'Extra hours',
+            'total' => 'Grand total',
+            'column' => [
+                'committee' => 'Committee',
+                'ytd' => 'Year to date',
+            ],
+            'empty' => 'No committee runs scheduling yet.',
+        ],
+
+        // Detailed Committee Statistics — each committee broken into shifts, meetings, and extra.
+        'detailed' => [
+            'title' => 'Detailed Committee Statistics',
+            'lead' => 'Each committee\'s shifts, meetings, and extra hours across the fiscal year.',
+            'kind' => [
+                'shifts' => 'Shifts',
+                'meetings' => 'Meetings',
+                'extra' => 'Extra',
+            ],
+            'total' => 'DMV total — including every sub-group',
+            'column' => [
+                'committee' => 'Committee',
+                'kind' => 'Kind',
+                'ytd' => 'Year to date',
+            ],
+            'empty' => 'No hours recorded across the DMV in this fiscal year.',
+        ],
+
+        // Active Members Ranked Hours — every active and provisional Member by total, most first.
+        'ranked' => [
+            'title' => 'Active Members Ranked Hours',
+            'lead' => 'Active and provisional members ordered by their total hours this fiscal year.',
+            'no_hours' => 'Members with no hours recorded at all',
+            'none_missing' => 'Every active and provisional member has hours this fiscal year.',
+            'empty' => 'No active or provisional member has hours in this fiscal year.',
+            'column' => [
+                'member' => 'Member',
+                'scheduled' => 'Scheduled',
+                'extra' => 'Extra',
+                'total' => 'Total',
+            ],
+        ],
+
+        // The three zero-hours reports — one shared page, the variant naming the list.
+        'zero' => [
+            'lead' => 'Active and provisional members with none this fiscal year.',
+            'empty' => 'No one — every active and provisional member has some this fiscal year.',
+            'column' => [
+                'member' => 'Member',
+            ],
+            'hours' => ['title' => 'Members with Zero Hours'],
+            'shift' => ['title' => 'Members with Zero Shift Hours'],
+            'extra' => ['title' => 'Members with Zero Extra Hours'],
+        ],
+    ],
 ];

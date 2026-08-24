@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Category;
 use App\Http\Requests\RecalculateHoursRequest;
 use App\Http\Requests\StoreHoursRecordRequest;
 use App\Models\Group;
 use App\Models\HoursRecord;
+use App\Models\Member;
+use App\Support\CommitteeHoursStatistics;
 use App\Support\GroupHoursMatrix;
 use App\Support\OrgTime;
 use Carbon\CarbonImmutable;
@@ -299,6 +302,180 @@ class HoursController extends Controller
     }
 
     /**
+     * Summary Committee Statistics (#413, PRD #406, ADR-0022 §8) — the first of the six
+     * DMV-wide reports, and the single output the whole Hours feature exists to produce.
+     * Groups × twelve months of **scheduled hours**, then org-wide rows underneath for meeting
+     * hours, extra hours, and the grand total.
+     *
+     * The scheduled section lists only the committees that run scheduling ({@see
+     * Group::$has_scheduling}) — a Group with no schedule can never carry a number there, so an
+     * empty row would be noise. The three org-wide rows read the DMV root's whole subtree (the
+     * complete org total) from {@see CommitteeHoursStatistics}.
+     *
+     * Gated to the DMV root Group's Chair, Secretary, or Statistician, the Records stewardship,
+     * or the super-tier (§4) via `viewOrgReports` — an ordinary Member reaches none of the six.
+     */
+    public function committeeSummary(Request $request): Response
+    {
+        $this->authorizeOrgReports($request);
+
+        [$fiscalYear, $stats] = $this->orgStatistics($request);
+
+        return Inertia::render('hours/CommitteeSummary', [
+            'fiscalYear' => $fiscalYear,
+            'fiscalYears' => $this->orgFiscalYears(),
+            'months' => $this->monthColumns($stats->months),
+            // Only committees that run scheduling; their scheduled hours across the subtree.
+            'scheduled' => collect($stats->committees)
+                ->where('has_scheduling', true)
+                ->map(fn (array $committee): array => [
+                    'id' => $committee['id'],
+                    'name' => $committee['name'],
+                    'months' => array_column($committee['months'], 'shifts'),
+                    'ytd' => $committee['ytd']['shifts'],
+                ])
+                ->values()
+                ->all(),
+            'orgRows' => [
+                'meetings' => $this->orgRow($stats->org, 'meetings'),
+                'extra' => $this->orgRow($stats->org, 'extra'),
+                'total' => $this->orgRow($stats->org, 'total'),
+            ],
+        ]);
+    }
+
+    /**
+     * Detailed Committee Statistics (#413, PRD #406, ADR-0022 §8) — the same twelve months, but
+     * each committee broken into shifts, meetings, and extra hours, so a reader can see where a
+     * committee's hours came from. Each committee row rolls up its whole subtree.
+     *
+     * The DMV's own row includes its sub-Groups — the root's subtree is the whole department —
+     * so the org total is complete: nothing logged against the root or a Group outside a listed
+     * committee is orphaned. Gated identically to the summary (§4) via `viewOrgReports`.
+     */
+    public function committeeDetailed(Request $request): Response
+    {
+        $this->authorizeOrgReports($request);
+
+        [$fiscalYear, $stats] = $this->orgStatistics($request);
+
+        return Inertia::render('hours/CommitteeDetailed', [
+            'fiscalYear' => $fiscalYear,
+            'fiscalYears' => $this->orgFiscalYears(),
+            'months' => $this->monthColumns($stats->months),
+            'committees' => $stats->committees,
+            'org' => $stats->org,
+        ]);
+    }
+
+    /**
+     * Active Members Ranked Hours (#413, PRD #406, ADR-0022 §8) — every active and provisional
+     * Member ordered by their total hours across the whole org this fiscal year, most first.
+     * Underneath, the Members with no hours rows at all this year, so absence is visible rather
+     * than merely missing from the list.
+     *
+     * Gated identically to the summary (§4). The org's per-Member numbers are not open reading,
+     * so this — like every DMV-wide report — reaches only the DMV officers, Records, or super-tier.
+     */
+    public function rankedHours(Request $request): Response
+    {
+        $this->authorizeOrgReports($request);
+
+        $fiscalYear = $this->fiscalYear($request);
+        $months = OrgTime::fiscalYearMonths($fiscalYear);
+        $totals = $this->memberFiscalTotals($months);
+
+        $ranked = [];
+        $noHours = [];
+        foreach ($this->rankableMembers() as $member) {
+            $sums = $totals->get($member->getKey());
+            $row = ['id' => $member->getKey(), 'name' => trim("{$member->first_name} {$member->last_name}")];
+
+            if ($sums === null) {
+                $noHours[] = $row;
+
+                continue;
+            }
+
+            $ranked[] = $row + $sums;
+        }
+
+        // Most hours first; ties broken by name so the order is stable across runs.
+        usort($ranked, fn (array $a, array $b): int => $b['total_hours'] <=> $a['total_hours'] ?: strcmp($a['name'], $b['name']));
+
+        return Inertia::render('hours/RankedHours', [
+            'fiscalYear' => $fiscalYear,
+            'fiscalYears' => $this->orgFiscalYears(),
+            'ranked' => $ranked,
+            'noHours' => $noHours,
+        ]);
+    }
+
+    /**
+     * Members with Zero Hours (#413, PRD #406, ADR-0022 §8) — active and provisional Members
+     * whose total hours this fiscal year are zero, including those with no records at all. The
+     * renewal conversation that opens with "who has done nothing" reads this list.
+     */
+    public function zeroHours(Request $request): Response
+    {
+        return $this->zeroReport($request, 'hours', fn (array $sums): bool => $sums['total_hours'] === 0);
+    }
+
+    /**
+     * Members with Zero Shift Hours (#413, PRD #406, ADR-0022 §8) — the same roster shape, but
+     * keyed on scheduled hours: active and provisional Members who worked no Shifts this fiscal
+     * year, whatever extra hours they self-entered. Kept separate because the renewal question
+     * "who is not turning up for shifts" is a different one.
+     */
+    public function zeroShiftHours(Request $request): Response
+    {
+        return $this->zeroReport($request, 'shift', fn (array $sums): bool => $sums['scheduled_hours'] === 0);
+    }
+
+    /**
+     * Members with Zero Extra Hours (#413, PRD #406, ADR-0022 §8) — active and provisional
+     * Members who self-entered no extra hours this fiscal year, whatever Shifts they worked. The
+     * third of the three zero lists, kept apart so the renewal conversation has the right one.
+     */
+    public function zeroExtraHours(Request $request): Response
+    {
+        return $this->zeroReport($request, 'extra', fn (array $sums): bool => $sums['extra_hours'] === 0);
+    }
+
+    /**
+     * The shared body of the three zero-hours reports — identical but for the variant name (for
+     * the page's title and lead) and which sum the predicate tests. Every active or provisional
+     * Member whose relevant fiscal-year sum is zero appears, name-ordered; a Member with no
+     * records at all reads as all zeros, so they land in every list they qualify for.
+     *
+     * @param  callable(array{scheduled_hours: int, extra_hours: int, total_hours: int}): bool  $isZero
+     */
+    private function zeroReport(Request $request, string $variant, callable $isZero): Response
+    {
+        $this->authorizeOrgReports($request);
+
+        $fiscalYear = $this->fiscalYear($request);
+        $totals = $this->memberFiscalTotals(OrgTime::fiscalYearMonths($fiscalYear));
+        $zero = ['scheduled_hours' => 0, 'extra_hours' => 0, 'total_hours' => 0];
+
+        $members = collect($this->rankableMembers())
+            ->filter(fn (Member $member): bool => $isZero($totals->get($member->getKey(), $zero)))
+            ->map(fn (Member $member): array => [
+                'id' => $member->getKey(),
+                'name' => trim("{$member->first_name} {$member->last_name}"),
+            ])
+            ->values()
+            ->all();
+
+        return Inertia::render('hours/ZeroHours', [
+            'variant' => $variant,
+            'fiscalYear' => $fiscalYear,
+            'fiscalYears' => $this->orgFiscalYears(),
+            'members' => $members,
+        ]);
+    }
+
+    /**
      * The shared body of the two Member × twelve-month summaries — identical but for which
      * records they read (`$withMeeting` selects the meeting rows or the no-meeting ones) and
      * the page they render. Both sum `extra_hours` into one cell per bucket; scheduled hours
@@ -529,6 +706,129 @@ class HoursController extends Controller
             ->sortBy('name')
             ->values()
             ->all();
+    }
+
+    /**
+     * The DMV-wide report gate (ADR-0022 §4): a Chair, Secretary, or Statistician of the DMV
+     * root Group, the Records stewardship, or the super-tier. Refused with a 403 for everyone
+     * else — the same outcome the CSV export (#414) will give, so the export is never a way
+     * around the gate.
+     */
+    private function authorizeOrgReports(Request $request): void
+    {
+        abort_unless($request->user()->can('viewOrgReports', HoursRecord::class), 403);
+    }
+
+    /**
+     * The fiscal year a report is viewed for — the `?fy=` query param, defaulting to the
+     * current fiscal year on the org wall clock so an unqualified link lands on this year.
+     */
+    private function fiscalYear(Request $request): int
+    {
+        return $request->integer('fy') ?: OrgTime::currentFiscalYear();
+    }
+
+    /**
+     * The committee-statistics matrix for the DMV root and the fiscal year in view — shared by
+     * the Summary and Detailed reports, which shape the same object differently. The root is
+     * resolved by its single reserved slug; a 404 if the org is unseeded.
+     *
+     * @return array{0: int, 1: CommitteeHoursStatistics}
+     */
+    private function orgStatistics(Request $request): array
+    {
+        $fiscalYear = $this->fiscalYear($request);
+        $root = Group::where('slug', Group::ROOT_SLUG)->firstOrFail();
+
+        return [$fiscalYear, CommitteeHoursStatistics::for($root, $fiscalYear)];
+    }
+
+    /**
+     * The twelve month columns as the page reads them — a `YYYYMM` bucket paired with its
+     * first-of-month ISO date, for a localized month name that never slides a day.
+     *
+     * @param  array<int, string>  $months
+     * @return list<array{year_month: string, month: string}>
+     */
+    private function monthColumns(array $months): array
+    {
+        return array_map(fn (string $yearMonth): array => [
+            'year_month' => $yearMonth,
+            'month' => $this->monthStart($yearMonth),
+        ], $months);
+    }
+
+    /**
+     * One org-wide summary row — the twelve buckets of a named part (`meetings`, `extra`, or
+     * `total`) of the root's subtree breakdown, and its year-to-date.
+     *
+     * @param  array<string, mixed>  $org
+     * @return array{months: list<int>, ytd: int}
+     */
+    private function orgRow(array $org, string $part): array
+    {
+        return [
+            'months' => array_column($org['months'], $part),
+            'ytd' => $org['ytd'][$part],
+        ];
+    }
+
+    /**
+     * The fiscal years the org-wide reports may be viewed for — every year any record exists
+     * in across the whole org, plus the current fiscal year so the picker always has somewhere
+     * to land, newest first.
+     *
+     * @return list<int>
+     */
+    private function orgFiscalYears(): array
+    {
+        return HoursRecord::query()
+            ->distinct()
+            ->pluck('year_month')
+            ->map(fn (string $yearMonth): int => OrgTime::fiscalYearOf($yearMonth))
+            ->push(OrgTime::currentFiscalYear())
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The roster the ranked and zero-hours reports draw from: every active and provisional
+     * Member (ADR-0022 §8 story 53), name-ordered so the lists are stable across runs. The
+     * departed and the not-yet-activated are out of scope — a renewal conversation is about
+     * present Members.
+     *
+     * @return Collection<int, Member>
+     */
+    private function rankableMembers(): Collection
+    {
+        return Member::query()
+            ->whereIn('category', [Category::Active, Category::Provisional])
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+    }
+
+    /**
+     * Each Member's summed hours across the whole org for the given months, keyed by Member id.
+     * A Member with no records this fiscal year is simply absent from the map, so callers can
+     * tell "no rows at all" from "rows that sum to zero".
+     *
+     * @param  array<int, string>  $months
+     * @return Collection<int, array{scheduled_hours: int, extra_hours: int, total_hours: int}>
+     */
+    private function memberFiscalTotals(array $months): Collection
+    {
+        return HoursRecord::query()
+            ->whereIn('year_month', $months)
+            ->get()
+            ->groupBy('member_id')
+            ->map(fn (Collection $records): array => [
+                'scheduled_hours' => (int) $records->sum('scheduled_hours'),
+                'extra_hours' => (int) $records->sum('extra_hours'),
+                'total_hours' => (int) $records->sum('total_hours'),
+            ]);
     }
 
     /**

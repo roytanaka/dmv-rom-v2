@@ -126,6 +126,27 @@ Route::group([
         ->middleware('auth')->name('groups.hours.extra');
     Route::get(LaravelLocalization::transRoute('routes.groups.hours.meetings'), [HoursController::class, 'meetingSummary'])
         ->middleware('auth')->name('groups.hours.meetings');
+
+    // The six DMV-wide fiscal-year reports (#413, PRD #406, ADR-0022 §8) — the single output the
+    // whole Hours feature exists to produce, the fiscal-year statistics the ROM asks the DMV for.
+    // Org-wide, not scoped to any {group}: they are always rooted at the DMV root Group. The read
+    // audience — a Chair, Secretary, or Statistician of the DMV root, the Records stewardship, or
+    // the super-tier — is enforced in the controller via the HoursRecordPolicy's viewOrgReports
+    // gate; an ordinary Member, and a Chair of any other Group, reach none of them. Each is a
+    // separate addressable route so the CSV export (#414) can be its sibling; the words are
+    // translated in the French twin.
+    Route::get(LaravelLocalization::transRoute('routes.hours.committee-summary'), [HoursController::class, 'committeeSummary'])
+        ->middleware('auth')->name('hours.committee-summary');
+    Route::get(LaravelLocalization::transRoute('routes.hours.committee-detailed'), [HoursController::class, 'committeeDetailed'])
+        ->middleware('auth')->name('hours.committee-detailed');
+    Route::get(LaravelLocalization::transRoute('routes.hours.ranked'), [HoursController::class, 'rankedHours'])
+        ->middleware('auth')->name('hours.ranked');
+    Route::get(LaravelLocalization::transRoute('routes.hours.zero-hours'), [HoursController::class, 'zeroHours'])
+        ->middleware('auth')->name('hours.zero-hours');
+    Route::get(LaravelLocalization::transRoute('routes.hours.zero-shift-hours'), [HoursController::class, 'zeroShiftHours'])
+        ->middleware('auth')->name('hours.zero-shift-hours');
+    Route::get(LaravelLocalization::transRoute('routes.hours.zero-extra-hours'), [HoursController::class, 'zeroExtraHours'])
+        ->middleware('auth')->name('hours.zero-extra-hours');
 });
 
 // Internal design-system reference page. Login-only (auth) but available in all

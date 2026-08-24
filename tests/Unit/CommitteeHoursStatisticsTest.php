@@ -1,0 +1,163 @@
+<?php
+
+use App\Models\Group;
+use App\Models\HoursRecord;
+use App\Models\Member;
+use App\Support\CommitteeHoursStatistics;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+/*
+ * The DMV-wide committee-statistics matrix (#413, PRD #406, ADR-0022 §8) — the arithmetic
+ * behind Summary and Detailed Committee Statistics. Given the DMV root Group and a fiscal
+ * year it returns, for the root and each direct-child committee, a twelve-month breakdown of
+ * shifts / meetings / extra / total over that Group's whole subtree, plus the year-to-date.
+ * The root's row is the complete org total: its subtree is everything, so nothing is orphaned.
+ *
+ * This is the "service class with non-trivial logic" the conventions reserve a unit test for,
+ * so it is exercised directly here — rows built by factory, no HTTP. Bucketing runs in PHP
+ * against the `year_month` string, so the result does not depend on the engine's date handling.
+ */
+uses(TestCase::class, RefreshDatabase::class);
+
+/** A record carrying the given scheduled/extra hours, at the no-meeting or a meeting grain. */
+function committeeRecord(Group $group, string $yearMonth, int $scheduled = 0, int $extra = 0, int $meetingId = HoursRecord::NO_MEETING): HoursRecord
+{
+    return HoursRecord::factory()->create([
+        'member_id' => Member::factory()->create()->id,
+        'group_id' => $group->id,
+        'year_month' => $yearMonth,
+        'meeting_id' => $meetingId,
+        'scheduled_hours' => $scheduled,
+        'extra_hours' => $extra,
+        'total_hours' => $scheduled + $extra,
+    ]);
+}
+
+it('labels twelve buckets in April-to-March order for the fiscal year', function () {
+    $stats = CommitteeHoursStatistics::for(Group::factory()->create(), 2026);
+
+    expect($stats->months)->toHaveCount(12)
+        ->and($stats->months[0])->toBe('202504')
+        ->and($stats->months[11])->toBe('202603');
+});
+
+it('lists one committee row per direct child of the root, ordered by name', function () {
+    $root = Group::factory()->create();
+    Group::factory()->create(['parent_id' => $root->id, 'name' => 'Zebra Committee']);
+    Group::factory()->create(['parent_id' => $root->id, 'name' => 'Alpha Committee']);
+    // A grandchild is folded into its parent committee, never its own row.
+    $child = Group::factory()->create(['parent_id' => $root->id, 'name' => 'Beta Committee']);
+    Group::factory()->create(['parent_id' => $child->id, 'name' => 'Deep Sub-Group']);
+
+    $stats = CommitteeHoursStatistics::for($root, 2026);
+
+    expect(array_column($stats->committees, 'name'))->toBe(['Alpha Committee', 'Beta Committee', 'Zebra Committee']);
+});
+
+it('splits a month into shifts, meetings, and extra, and totals them', function () {
+    $root = Group::factory()->create();
+    $committee = Group::factory()->create(['parent_id' => $root->id]);
+    committeeRecord($committee, '202504', scheduled: 5);                 // shifts
+    committeeRecord($committee, '202504', extra: 3, meetingId: 99);      // meeting hours
+    committeeRecord($committee, '202504', extra: 2);                     // extra (no meeting)
+
+    $april = CommitteeHoursStatistics::for($root, 2026)->committees[0]['months'][0];
+
+    expect($april)->toMatchArray([
+        'year_month' => '202504',
+        'shifts' => 5,
+        'meetings' => 3,
+        'extra' => 2,
+        'total' => 10,
+    ]);
+});
+
+it('rolls a grandchild three levels down into its committee row and the org total', function () {
+    $root = Group::factory()->create();
+    $committee = Group::factory()->create(['parent_id' => $root->id]);
+    $child = Group::factory()->create(['parent_id' => $committee->id]);
+    $grandchild = Group::factory()->create(['parent_id' => $child->id]);
+
+    committeeRecord($committee, '202504', extra: 1);
+    committeeRecord($child, '202504', extra: 2);
+    committeeRecord($grandchild, '202504', extra: 4);
+
+    $stats = CommitteeHoursStatistics::for($root, 2026);
+
+    // The committee row reaches its whole subtree, three deep.
+    expect($stats->committees[0]['months'][0]['extra'])->toBe(7)
+        // The org row is the complete total — the whole subtree of the root.
+        ->and($stats->org['months'][0]['extra'])->toBe(7);
+});
+
+it('makes the org row include hours logged directly against the root, so the total is complete', function () {
+    $root = Group::factory()->create();
+    $committee = Group::factory()->create(['parent_id' => $root->id]);
+    committeeRecord($root, '202504', extra: 6);      // logged on the DMV itself
+    committeeRecord($committee, '202504', extra: 4);
+
+    $stats = CommitteeHoursStatistics::for($root, 2026);
+
+    // The org total includes the root's own hours and every committee's.
+    expect($stats->org['months'][0]['extra'])->toBe(10)
+        ->and($stats->org['ytd']['extra'])->toBe(10);
+});
+
+it('returns twelve zero buckets for a committee with no records, never a short list', function () {
+    $root = Group::factory()->create();
+    Group::factory()->create(['parent_id' => $root->id]);
+
+    $months = CommitteeHoursStatistics::for($root, 2026)->committees[0]['months'];
+
+    expect($months)->toHaveCount(12)
+        ->and(array_column($months, 'total'))->toBe(array_fill(0, 12, 0));
+});
+
+it('files a March record in the year ending that March and an April record in the next', function () {
+    $root = Group::factory()->create();
+    $committee = Group::factory()->create(['parent_id' => $root->id]);
+    committeeRecord($committee, '202603', extra: 3); // last month of Fiscal 2026
+    committeeRecord($committee, '202604', extra: 4); // first month of Fiscal 2027
+
+    expect(CommitteeHoursStatistics::for($root, 2026)->committees[0]['ytd']['extra'])->toBe(3)
+        ->and(CommitteeHoursStatistics::for($root, 2027)->committees[0]['ytd']['extra'])->toBe(4);
+});
+
+it('makes year-to-date the sum of the twelve buckets for each grain', function () {
+    $root = Group::factory()->create();
+    $committee = Group::factory()->create(['parent_id' => $root->id]);
+    committeeRecord($committee, '202504', scheduled: 2);
+    committeeRecord($committee, '202510', extra: 5);
+    committeeRecord($committee, '202603', extra: 3, meetingId: 7);
+
+    $row = CommitteeHoursStatistics::for($root, 2026)->committees[0];
+
+    expect($row['ytd'])->toMatchArray([
+        'shifts' => 2,
+        'extra' => 5,
+        'meetings' => 3,
+        'total' => 10,
+    ]);
+});
+
+it('does not re-apply the Group hours multiplier — it is already baked into the stored hours', function () {
+    // ROMWalks stores its walks already doubled (ADR-0022 §7): the multiplier is applied once
+    // at recalculation, so the matrix reflects the stored numbers as-is and never doubles again.
+    $root = Group::factory()->create();
+    $walker = Group::factory()->create(['parent_id' => $root->id, 'hours_multiplier' => 2]);
+    committeeRecord($walker, '202504', scheduled: 10); // 5 raw hours, already ×2 on store
+
+    expect(CommitteeHoursStatistics::for($root, 2026)->committees[0]['months'][0]['shifts'])->toBe(10);
+});
+
+it('reports whether each committee runs scheduling, for the summary scheduled section', function () {
+    $root = Group::factory()->create();
+    Group::factory()->create(['parent_id' => $root->id, 'name' => 'Runs Schedule', 'has_scheduling' => true]);
+    Group::factory()->create(['parent_id' => $root->id, 'name' => 'No Schedule', 'has_scheduling' => false]);
+
+    $byName = collect(CommitteeHoursStatistics::for($root, 2026)->committees)->keyBy('name');
+
+    expect($byName['Runs Schedule']['has_scheduling'])->toBeTrue()
+        ->and($byName['No Schedule']['has_scheduling'])->toBeFalse();
+});

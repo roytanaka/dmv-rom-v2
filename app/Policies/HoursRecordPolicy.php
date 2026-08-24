@@ -24,9 +24,10 @@ use App\Models\Member;
  *   discloses nothing to a non-member, so its Hours surface (and its write seam) is closed
  *   to one, mirroring the Group page's Private gate.
  *
- * The reports half (viewReports / viewOrgReports) is deliberately *not* here yet — it lands
- * with the reporting slices. The super-tier short-circuit lives in the single `Gate::before`
- * (AppServiceProvider) and is never re-checked here.
+ * The reports half — {@see viewReports()} for a Group's own reports and {@see viewOrgReports()}
+ * for the DMV-wide ones — is the closed counterpart, gated to officers. The super-tier
+ * short-circuit lives in the single `Gate::before` (AppServiceProvider) and is never re-checked
+ * here.
  *
  * The writing Member always comes from the authenticated session (ADR-0022 §4, the named
  * security deviation from legacy): this policy answers "may *this actor* write on this
@@ -69,6 +70,37 @@ class HoursRecordPolicy
         }
 
         return false;
+    }
+
+    /**
+     * Who may read the DMV-wide reports (ADR-0022 §4, §8): a Chair, Secretary, or Statistician
+     * of the **DMV root Group**, a Member holding the **Records** stewardship (member-admin
+     * authority), or the super-tier (via the single `Gate::before`). These are the six org-wide
+     * fiscal-year reports — the single output the whole Hours feature exists to produce.
+     *
+     * This is a wider gate than {@see viewReports()}: the DMV Secretary reaches it (no Group
+     * report gate admits a Secretary), and so does the Records stewardship, because member
+     * administration answers standing questions across the whole roster. An ordinary Member —
+     * and a Chair of any other Group, however senior in their own — reaches none of it, because
+     * the org's per-Member numbers are not open reading.
+     *
+     * Takes no Group: the reports are always rooted at the DMV root, resolved here by its
+     * single reserved slug so callers ask the plain question "may this actor read the org
+     * reports". Returns false when no root Group exists (an unseeded install), never erroring.
+     */
+    public function viewOrgReports(Member $actor): bool
+    {
+        if ($actor->hasMemberAdminAuthority()) {
+            return true;
+        }
+
+        $root = Group::where('slug', Group::ROOT_SLUG)->first();
+
+        return $root !== null && (
+            $actor->canActAs(Role::Chair, $root)
+            || $actor->canActAs(Role::Secretary, $root)
+            || $actor->canActAs(Role::Statistician, $root)
+        );
     }
 
     /**
