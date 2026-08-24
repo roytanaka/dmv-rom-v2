@@ -76,4 +76,64 @@ return [
         'subtree' => 'Sous-groupes compris',
         'empty' => 'Aucune heure enregistrée pour ce groupe durant cette année financière.',
     ],
+
+    // Les trois surfaces d'officier après la matrice annuelle (#412, ADR-0022 §8) : un
+    // sélecteur de mois, un historique par membre, et les deux sommaires Membre × douze mois.
+    'detail' => [
+        // La navigation reliant les rapports d'officier entre eux.
+        'nav' => [
+            'report' => 'Année financière',
+            'month' => 'Par mois',
+            'member' => 'Historique du membre',
+            'extra' => 'Heures supplémentaires',
+            'meetings' => 'Heures de réunion',
+        ],
+        // Le sélecteur de mois — les entrées d'un mois pour tout le groupe, par membre.
+        'month' => [
+            'title' => 'Heures par mois',
+            'lead' => 'Les entrées d\'un mois pour tout le groupe, membre par membre.',
+            'pick' => 'Mois',
+            'column' => [
+                'member' => 'Membre',
+                'scheduled' => 'Planifiées',
+                'extra' => 'Supplémentaires',
+                'total' => 'Total',
+            ],
+            'empty' => 'Aucune heure enregistrée pour ce groupe durant ce mois.',
+        ],
+        // Historique du membre — les heures d'une personne dans ce groupe au fil du temps.
+        'member' => [
+            'title' => 'Historique du membre',
+            'lead' => 'Les heures d\'un membre dans ce groupe au fil du temps.',
+            'pick' => 'Membre',
+            'none' => 'Choisissez un membre pour voir son historique.',
+            'column' => [
+                'month' => 'Mois',
+                'scheduled' => 'Planifiées',
+                'extra' => 'Supplémentaires',
+                'total' => 'Total',
+            ],
+            'empty' => 'Ce membre n\'a aucune heure enregistrée dans ce groupe.',
+        ],
+        // Heures supplémentaires des membres — ce que les gens nous ont déclaré avoir fait.
+        'extra' => [
+            'title' => 'Heures supplémentaires des membres',
+            'lead' => 'Les heures supplémentaires enregistrées par chaque membre cette année financière — le travail hors quart.',
+        ],
+        // Heures de réunion des membres — ce à quoi les gens ont assisté.
+        'meetings' => [
+            'title' => 'Heures de réunion des membres',
+            'lead' => 'Les heures de réunion auxquelles chaque membre a assisté cette année financière.',
+        ],
+        // Partagé par les deux sommaires.
+        'summary' => [
+            'pick_year' => 'Année financière',
+            'fiscal_year' => 'Exercice :year',
+            'column' => [
+                'member' => 'Membre',
+                'ytd' => 'Cumul annuel',
+            ],
+            'empty' => 'Aucune heure enregistrée pour ce groupe durant cette année financière.',
+        ],
+    ],
 ];

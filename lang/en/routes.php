@@ -50,6 +50,15 @@ return [
     // stays verbatim.
     'groups.hours.report' => 'groups/{group}/hours/report',
 
+    // The three officer surfaces after the fiscal-year matrix (#412, ADR-0022 §8): a month
+    // picker, a Member History, and the two Member × twelve-month summaries. Each is its own
+    // addressable route so a Chair can link it in an email. The words are translated in the
+    // French twin; {group} stays verbatim.
+    'groups.hours.month' => 'groups/{group}/hours/month',
+    'groups.hours.member' => 'groups/{group}/hours/member',
+    'groups.hours.extra' => 'groups/{group}/hours/extra',
+    'groups.hours.meetings' => 'groups/{group}/hours/meetings',
+
     // Settings → Profile / Password (#229, PRD #228). The self-service account
     // surface, brought into the localized group so each page has a French twin.
     // 'settings' is the bare redirect target (→ settings.profile); the two child

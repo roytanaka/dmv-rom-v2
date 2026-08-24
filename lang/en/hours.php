@@ -83,4 +83,64 @@ return [
         // A fiscal year in which the group recorded nothing.
         'empty' => 'No hours recorded for this group in this fiscal year.',
     ],
+
+    // The three officer surfaces after the fiscal-year matrix (#412, ADR-0022 §8): a month
+    // picker, a Member History, and the two Member × twelve-month summaries.
+    'detail' => [
+        // The nav that links the sibling officer reports to one another.
+        'nav' => [
+            'report' => 'Fiscal year',
+            'month' => 'By month',
+            'member' => 'Member history',
+            'extra' => 'Extra hours',
+            'meetings' => 'Meeting hours',
+        ],
+        // The month picker — one month's entries across the group, by Member.
+        'month' => [
+            'title' => 'Hours by month',
+            'lead' => 'One month\'s entries across the group, member by member.',
+            'pick' => 'Month',
+            'column' => [
+                'member' => 'Member',
+                'scheduled' => 'Scheduled',
+                'extra' => 'Extra',
+                'total' => 'Total',
+            ],
+            'empty' => 'No hours recorded for this group in this month.',
+        ],
+        // Member History — one person's hours in this group over time.
+        'member' => [
+            'title' => 'Member history',
+            'lead' => 'One member\'s hours in this group over time.',
+            'pick' => 'Member',
+            'none' => 'Pick a member to see their history.',
+            'column' => [
+                'month' => 'Month',
+                'scheduled' => 'Scheduled',
+                'extra' => 'Extra',
+                'total' => 'Total',
+            ],
+            'empty' => 'This member has no hours recorded in this group.',
+        ],
+        // Member Extra Hours — what people told us they did (rows carrying no meeting).
+        'extra' => [
+            'title' => 'Member extra hours',
+            'lead' => 'Extra hours each member recorded this fiscal year — the work outside a shift.',
+        ],
+        // Member Meeting Hours — what people showed up to (rows carrying a meeting).
+        'meetings' => [
+            'title' => 'Member meeting hours',
+            'lead' => 'Meeting hours each member attended this fiscal year.',
+        ],
+        // Shared by both summaries.
+        'summary' => [
+            'pick_year' => 'Fiscal year',
+            'fiscal_year' => 'Fiscal :year',
+            'column' => [
+                'member' => 'Member',
+                'ytd' => 'Year to date',
+            ],
+            'empty' => 'No hours recorded for this group in this fiscal year.',
+        ],
+    ],
 ];
