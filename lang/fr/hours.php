@@ -142,6 +142,7 @@ return [
     // du DMV, aux Archives (Records), ou à l'accès tout-DMV.
     'dmv' => [
         // La navigation qui relie les six rapports entre eux.
+        'nav_label' => 'Rapports d\'heures du DMV',
         'nav' => [
             'summary' => 'Sommaire',
             'detailed' => 'Détaillé',

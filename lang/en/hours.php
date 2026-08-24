@@ -148,6 +148,7 @@ return [
     // ROM asks the DMV for. Org-wide, gated to the DMV officers, Records, or the super-tier.
     'dmv' => [
         // The nav that links the six reports to one another.
+        'nav_label' => 'DMV hours reports',
         'nav' => [
             'summary' => 'Summary',
             'detailed' => 'Detailed',

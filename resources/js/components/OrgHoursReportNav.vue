@@ -24,7 +24,7 @@ const links = [
 </script>
 
 <template>
-    <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.dmv.summary.title')">
+    <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.dmv.nav_label')">
         <Link
             v-for="link in links"
             :key="link.key"
