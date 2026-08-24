@@ -87,7 +87,11 @@ _Avoid_: "Catalog" (already three other things in this repo: the content catalog
 
 **Sign-up**:
 The record that a **Member** has taken (or been assigned) a **Shift** — one Member, one Shift. Created by the Member themselves or by the Group's **Scheduler**; one entity, two actors. Carries **no state**: cancelling is deleting it, allowed for as long as the Member could have taken it (until the Shift starts — no deadline). A Member may hold Sign-ups on overlapping Shifts, but never two on the same Shift.
-_Avoid_: confusing with **Login** (authentication) — a Sign-up is _staffing a Shift_, not authenticating. And "cancel state", "swap", "assistant" — swap and assistants are not built, and cancel is a deletion, not a state.
+_Avoid_: confusing with **Login** (authentication) — a Sign-up is _staffing a Shift_, not authenticating. And "cancel state", "swap", "assistant" — swap and assistants are not built, and cancel is a deletion, not a state. And "attended" — see **Attendance**.
+
+**Attendance**:
+**Not recorded.** A **Sign-up** says a **Member** took a **Shift**; nothing says they turned up. This is a decision, not an omission ([#401](https://github.com/roytanaka/dmv-rom-v2/issues/401)). **Scheduled hours** are already written from the Sign-up alone, so attendance makes no reported number more correct; no Group runs a no-show workflow the app could serve; and the correction already exists — a **Scheduler** may remove a Sign-up at any time, including after the Shift has passed. A no-show is fixed by removing the Sign-up, which drops the credit with it.
+_Avoid_: legacy's `Confirmed`, which means _signed out at the end of a shift_ rather than _was present_, is live in only six of ten Groups, and gates credit in only four of those. Legacy's `Attended` is a column no live code reads or writes. And do not read a Sign-up on a past Shift as proof anyone was there — it is proof of a booking nobody corrected.
 
 **Audience** (of a **Shift**):
 Who may take it: `group` (the default — Members of the owning Group, in a per-Group standing that permits sign-up) or `open` (any Member who can read the **Schedule**). This is what makes cross-Group participation a **read filter** rather than a relationship — there is no second row and nothing to keep in sync. A **Scheduler** placing a named volunteer is not bound by it.
@@ -212,6 +216,20 @@ _Avoid_: "pattern" unqualified. Say _shift template_ or _recurring Sign-up_ — 
 **Count** (legacy column):
 Two meanings, neither of them capacity: **duration in hours** (Visitor Guides, Wayfinders, Reception, Gallery Interpreters) and **quantity of tours given** (Docents, GDR, and Gallery Interpreters again — the same column, both ways). The two are reconciled outside the tables by a hardcoded per-Group multiplier (`hoursper`: every Group `1`, **Walker `2`**), so any migration that maps `Count → Count` silently corrupts a Group's hours. The multiplier survives, as data rather than code: [ADR-0022](docs/adr/0022-hours-and-statistics-model.md) puts an `hours_multiplier` on the Group (default `1`, ROMWalks `2`), replacing the `2*$total` hardcoded in `walker.php`. Capacity is always a _different_ column (`Required`, `PresentersNeeded`) or it is N identical rows. A name to retire, never to carry forward — our **Shift** derives duration from its start and end times.
 
+**`Visitors`** / **`Interactions`** (legacy columns — four of them, and one is live):
+
+The two words name four different columns across two kinds of table, and both words are spoiled. Separated by research ([#399](https://github.com/roytanaka/dmv-rom-v2/issues/399), [#400](https://github.com/roytanaka/dmv-rom-v2/issues/400)) after ADR-0022 ruled one out and the map read it as another.
+
+- **`Visitors` on the dated scheduling rows** — the live one, in nine of ten Groups. Reception has no such column; ROM Travel has one nothing writes. Three write moments: the Member at sign-out (six Groups), a Statistician after the fact (five), and — in Outreach alone — the **Scheduler before the event, as a forecast**. It **never feeds credit**: no Group's credit query reads it. Read by Summary Visitor Interactions and Detailed Committee Statistics.
+- **`Interactions` on the dated scheduling rows** — Docents and GDR only, labelled _"Visitor interactions excluding tour"_ at sign-out. **Nothing reads it.** Volunteers in two Groups have typed a second number for years into a column no report touches.
+- **`MemberActivity.Interactions`** — zero on all 74,248 rows, and that is a **bug, not disuse**: `and Interactions>0` sits inside the row-matching `$where` (`servicesp.php:9769`), so the UPDATE can never fire.
+- **`MemberActivity.Visitors`** (carrying the comment `Click Count`) — genuinely dead. No reader, no writer, no reference anywhere in live PHP. Do not import it.
+
+Two more distortions live in the org-level report: it adds the _booked_ group size from a second table for Docents and GDR, and it sums Walker's two `Visitors` columns with no guard against counting one walk twice. GDR also carries five provenance subtotals beside its own.
+
+**We call the live one a visitor count.** If it ships it is a `visitor_count` on the **Sign-up**, per volunteer, and no new entity ([#402](https://github.com/roytanaka/dmv-rom-v2/issues/402)) — a name chosen precisely because both legacy words are already spent. Whether it ships, and whether a Group counts one thing or several, is [#404](https://github.com/roytanaka/dmv-rom-v2/issues/404).
+_Avoid_: the bare words "visitors" and "interactions" — each names a live column and a dead one. Say _visitor count_, and name the table when you mean a legacy column.
+
 **Special** (legacy table prefix and menu symbol):
 Means **Visitor Wayfinders**, the Group. Legacy names its tables `specialEvents`, `specialSchedule`, `specialActivities`, `specialRoles`.
 _Avoid_: reading "special" as an adjective. It is that one Group's short name.
@@ -229,7 +247,7 @@ The whole legacy hours feature in one table — 74,248 rows, current through 202
 - `committee` is a **symbol string**, not a foreign key, and a **sub-committee's row stores its parent's symbol**. That is why legacy's rollup needs no code, and why our port needs some.
 - `Total_Hours` is not written by any PHP. Two **database triggers** maintain it as `Total_Scheduled + Extra_Hours`. We keep the identity and drop the triggers.
 - **Meeting hours hide inside `Extra_Hours`**, distinguished only by a non-zero `MeetingID`.
-- `Interactions` and `Visitors` are **dead columns** — `Interactions` is zero on all 74,248 rows despite having its own entry dialog.
+- `Interactions` and `Visitors` are both zero, for **different reasons** — `Interactions` because of a bug in its own update query, `Visitors` because nothing has ever touched it. See the `Visitors` / `Interactions` entry above, which separates all four columns wearing these two names.
 
 _Avoid_: the name **Activity** for our model (already three things — see above), and mapping `subCommitteeID=0` as a real value; it is a sentinel meaning _the committee itself_.
 
