@@ -53,7 +53,6 @@ it('casts the capability flags and time_boxed to booleans', function () {
         'has_scheduling' => true,
         'has_content_catalog' => true,
         'has_vetting' => true,
-        'has_hours_stats' => true,
         'has_announcements' => true,
         'time_boxed' => true,
     ]);
@@ -65,9 +64,20 @@ it('casts the capability flags and time_boxed to booleans', function () {
         ->and($fresh->has_scheduling)->toBeTrue()
         ->and($fresh->has_content_catalog)->toBeTrue()
         ->and($fresh->has_vetting)->toBeTrue()
-        ->and($fresh->has_hours_stats)->toBeTrue()
         ->and($fresh->has_announcements)->toBeTrue()
         ->and($fresh->time_boxed)->toBeTrue();
+});
+
+it('defaults the hours multiplier to 1 and casts it to an integer (ADR-0022 §7)', function () {
+    $group = Group::factory()->create();
+
+    expect($group->fresh()->hours_multiplier)->toBe(1);
+});
+
+it('stores a per-Group hours multiplier other than the default', function () {
+    $group = Group::factory()->create(['hours_multiplier' => 2]);
+
+    expect($group->fresh()->hours_multiplier)->toBe(2);
 });
 
 it('casts listing_visibility to its enum', function () {

@@ -109,6 +109,24 @@ it('rejects the news-editor role when the Group lacks announcements', function (
     ]);
 })->throws(DomainException::class);
 
+it('treats Statistician as a core role with no required capability (ADR-0022 §3)', function () {
+    expect(Role::Statistician->requiredCapability())->toBeNull();
+});
+
+it('attaches the Statistician role to a Group that runs no scheduling and no hours flag', function () {
+    // No capability flags on. Since ADR-0022 withdraws the hours capability,
+    // Statistician joins the core roles and attaches anywhere.
+    $group = Group::factory()->create();
+    $membership = GroupMember::factory()->create(['group_id' => $group->id]);
+
+    $role = GroupMemberRole::factory()->create([
+        'group_member_id' => $membership->id,
+        'role' => Role::Statistician,
+    ]);
+
+    expect($role->fresh()->role)->toBe(Role::Statistician);
+});
+
 it('attaches core roles regardless of capability flags', function () {
     $group = Group::factory()->create();
     $membership = GroupMember::factory()->create(['group_id' => $group->id]);

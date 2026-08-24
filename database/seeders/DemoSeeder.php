@@ -1005,7 +1005,7 @@ class DemoSeeder extends Seeder
                         $this->workingGroup('Statistical', visibility: ListingVisibility::Public),
                         $this->workingGroup('Training', 'romwalks-training'),
                         $this->workingGroup('Walker Vetting'),
-                    ], GroupLogo::Romwalks),
+                    ], GroupLogo::Romwalks, hoursMultiplier: 2),
                     $this->program('Reception', [
                         $this->workingGroup('Library', visibility: ListingVisibility::Public),
                     ], GroupLogo::Reception),
@@ -1103,14 +1103,16 @@ class DemoSeeder extends Seeder
      * launcher (PRD #253); most programs stay null and show the generic fallback.
      * `capabilities` overrides specific Kind-derived flags — ROMBus turns scheduling
      * off, since its only shape is group booking, deferred out of the first pass (#364).
+     * `hoursMultiplier` sets the walks-to-hours ratio (ADR-0022 §7); only ROMWalks
+     * passes a value other than the default 1.
      *
      * @param  array<int, array<string, mixed>>  $children
      * @param  array<string, bool>  $capabilities
      * @return array<string, mixed>
      */
-    private function program(string $name, array $children = [], ?GroupLogo $logo = null, array $capabilities = []): array
+    private function program(string $name, array $children = [], ?GroupLogo $logo = null, array $capabilities = [], int $hoursMultiplier = 1): array
     {
-        return ['name' => $name, 'kind' => Kind::Program, 'children' => $children, 'logo' => $logo, 'capabilities' => $capabilities];
+        return ['name' => $name, 'kind' => Kind::Program, 'children' => $children, 'logo' => $logo, 'capabilities' => $capabilities, 'hours_multiplier' => $hoursMultiplier];
     }
 
     /**
@@ -1210,6 +1212,9 @@ class DemoSeeder extends Seeder
             // Identity mark on the launcher (PRD #253); null → generic fallback,
             // which is the common case across the demo tree.
             'logo_key' => $node['logo'] ?? null,
+            // Walks-to-hours ratio (ADR-0022 §7): 1 everywhere but the walking tours,
+            // which count each walk as two hours.
+            'hours_multiplier' => $node['hours_multiplier'] ?? 1,
         ] + $this->capabilitiesFor($kind);
 
         // Time-boxed Kinds default to an open window (started a while ago, still open).
@@ -1329,7 +1334,6 @@ class DemoSeeder extends Seeder
             'has_scheduling' => false,
             'has_content_catalog' => false,
             'has_vetting' => false,
-            'has_hours_stats' => false,
         ];
 
         return match ($kind) {
@@ -1338,7 +1342,6 @@ class DemoSeeder extends Seeder
                 'has_documents' => true,
                 'has_scheduling' => true,
                 'has_content_catalog' => true,
-                'has_hours_stats' => true,
             ] + $off,
             Kind::WorkingGroup => ['has_meetings' => true] + $off,
             Kind::Project => ['has_documents' => true] + $off,
