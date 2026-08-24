@@ -247,7 +247,7 @@ The whole legacy hours feature in one table — 74,248 rows, current through 202
 - `committee` is a **symbol string**, not a foreign key, and a **sub-committee's row stores its parent's symbol**. That is why legacy's rollup needs no code, and why our port needs some.
 - `Total_Hours` is not written by any PHP. Two **database triggers** maintain it as `Total_Scheduled + Extra_Hours`. We keep the identity and drop the triggers.
 - **Meeting hours hide inside `Extra_Hours`**, distinguished only by a non-zero `MeetingID`.
-- `Interactions` and `Visitors` are both zero, for **different reasons** — `Interactions` because of a bug in its own update query, `Visitors` because nothing has ever touched it. See the `Visitors` / `Interactions` entry below, which separates all four columns wearing these two names.
+- `Interactions` and `Visitors` are both zero, for **different reasons** — `Interactions` because of a bug in its own update query, `Visitors` because nothing has ever touched it. See the `Visitors` / `Interactions` entry above, which separates all four columns wearing these two names.
 
 _Avoid_: the name **Activity** for our model (already three things — see above), and mapping `subCommitteeID=0` as a real value; it is a sentinel meaning _the committee itself_.
 
