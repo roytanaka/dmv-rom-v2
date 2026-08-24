@@ -210,7 +210,7 @@ class HoursRecord extends Model
 
             foreach ($memberIds as $memberId) {
                 // The multiplier applies once, to the summed minutes, before the whole-hour
-                // conversion — Walker's `2 *` moved from PHP into data (§7).
+                // conversion — the factor lives in data, not hardcoded in PHP (ADR-0022 §7).
                 $hours = (int) round((($minutesByMember[$memberId] ?? 0) * $group->hours_multiplier) / 60);
                 $record = $existing->get($memberId);
 
