@@ -10,7 +10,7 @@
 // as-authored.
 import HoursReportActions from '@/components/HoursReportActions.vue';
 import HoursReportNav from '@/components/HoursReportNav.vue';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type GroupHoursMonth, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
@@ -66,7 +66,12 @@ const csvHref = computed(() => route('groups.hours.month.csv', { group: props.gr
             </nav>
 
             <Card>
-                <CardContent class="pt-6">
+                <!-- Names the month in view. The picker above does not print, so without
+                     this the printout does not say which month it covers. -->
+                <CardHeader>
+                    <CardTitle class="text-base">{{ formatMonth(month.month) }}</CardTitle>
+                </CardHeader>
+                <CardContent>
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">

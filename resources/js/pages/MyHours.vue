@@ -38,12 +38,18 @@ const formatMonth = (iso: string) =>
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6">
             <header class="flex flex-col gap-1">
-                <h1 class="text-rom-ink text-lg font-semibold">{{ title }}</h1>
+                <!-- The heading names the fiscal year, because the picker below is the only
+                     other place it appears and the picker does not print. A filed printout
+                     has to say which year it covers. -->
+                <h1 class="text-rom-ink text-lg font-semibold">{{ title }} — {{ trans('hours.mine.fiscal_year', { year: String(fiscalYear) }) }}</h1>
                 <p class="text-muted-foreground text-sm">{{ trans('hours.mine.lead') }}</p>
             </header>
 
-            <!-- Fiscal-year picker — one link per pickable year, the year in view marked. -->
-            <nav class="flex flex-wrap items-center gap-2" :aria-label="trans('hours.mine.pick_year')">
+            <!-- Fiscal-year picker — one link per pickable year, the year in view marked.
+                 `print:hidden` because the marked year reads as unmarked on paper: the
+                 selected chip is a dark fill the browser drops when printing, which leaves
+                 white text on white and makes an unselected year look like the chosen one. -->
+            <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.mine.pick_year')">
                 <span class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">{{ trans('hours.mine.pick_year') }}</span>
                 <Link
                     v-for="year in fiscalYears"
