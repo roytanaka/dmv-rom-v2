@@ -313,6 +313,36 @@ export interface MyHours {
     groups: MyHoursGroupRow[];
 }
 
+// The Group fiscal-year report payload (#411, ADR-0022 §5). A Member × twelve-month matrix
+// with a year-to-date column, plus the Group's own hours next to its hours including every
+// descendant. Reports are officer-only (§4), so this payload never reaches an ordinary peer.
+export interface GroupHoursReportMember {
+    id: number;
+    /** The Member's name, as-authored — never a translation key. */
+    name: string;
+    /** Twelve cells in April-to-March order, aligned to the page's `months`. */
+    months: MyHoursCell[];
+    ytd: MyHoursTotals;
+}
+
+// One of the two side-by-side rollups: the Group's own hours, or its hours including every
+// descendant. Twelve total-hour buckets aligned to `months`, and their sum.
+export interface GroupHoursReportRollup {
+    months: number[];
+    ytd: number;
+}
+
+export interface GroupHoursReport {
+    group: { id: number; name: string; slug: string };
+    /** The fiscal year in view, named for the year it ends in (ADR-0022 §8). */
+    fiscalYear: number;
+    /** The fiscal years the viewer may pick, newest first. */
+    fiscalYears: number[];
+    months: MyHoursMonthColumn[];
+    members: GroupHoursReportMember[];
+    totals: { own: GroupHoursReportRollup; subtree: GroupHoursReportRollup };
+}
+
 // A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range;
 // `is_past` heads the two blocks (current & upcoming vs past), resolved server-side.
 export interface ScheduleListItem {

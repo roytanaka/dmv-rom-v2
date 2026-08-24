@@ -100,6 +100,15 @@ Route::group([
     // visibility — is enforced in the controller via the SchedulePolicy.
     Route::get(LaravelLocalization::transRoute('routes.groups.scheduling.show'), [GroupController::class, 'showSchedule'])
         ->middleware('auth')->name('groups.scheduling.show');
+
+    // A Group's fiscal-year hours report (#411, PRD #406, ADR-0022 §5). A Member × twelve-month
+    // matrix with the Group's own hours and its subtree hours side by side. A separate
+    // addressable route rather than a mode of the Hours tab, so it is linkable and the CSV
+    // export can be its sibling. The read audience — Chair or Statistician of the Group or any
+    // ancestor, or super-tier — is enforced in the controller via the HoursRecordPolicy's
+    // viewReports gate.
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.report'), [HoursController::class, 'report'])
+        ->middleware('auth')->name('groups.hours.report');
 });
 
 // Internal design-system reference page. Login-only (auth) but available in all

@@ -15,11 +15,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { type GroupHours, type SharedData } from '@/types';
-import { useForm, usePage } from '@inertiajs/vue3';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhClock } from '@phosphor-icons/vue';
+import { PhChartBar, PhClock } from '@phosphor-icons/vue';
 
-const props = defineProps<{ hours: GroupHours; canEnter: boolean; groupSlug: string }>();
+const props = defineProps<{ hours: GroupHours; canEnter: boolean; canViewReports: boolean; groupSlug: string }>();
 
 const page = usePage<SharedData>();
 const timeZone = page.props.timezone;
@@ -56,6 +56,17 @@ const submit = (yearMonth: string) => {
 
 <template>
     <div class="flex max-w-3xl flex-col gap-6">
+        <!-- Officer link to the Group's fiscal-year report — shown only to a Chair or
+             Statistician (of this Group or an ancestor) the server says may read it. -->
+        <Link
+            v-if="canViewReports"
+            :href="route('groups.hours.report', { group: groupSlug })"
+            class="text-rom-ink hover:bg-muted border-border inline-flex w-fit items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium"
+        >
+            <PhChartBar class="h-4 w-4" />
+            {{ trans('hours.report.view') }}
+        </Link>
+
         <!-- Entry form — shown only to a Member the server says may enter (a departed
              Category gets no form at all). -->
         <Card v-if="canEnter">

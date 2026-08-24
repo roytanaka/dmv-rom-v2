@@ -44,6 +44,12 @@ return [
     // French twin (ADR-0008); {group} and {schedule} stay verbatim.
     'groups.scheduling.show' => 'groups/{group}/scheduling/{schedule}',
 
+    // A Group's fiscal-year hours report (#411, ADR-0022 §5). A separate addressable route
+    // rather than a mode of the Hours tab, so it is linkable and the CSV export can be its
+    // sibling (#414). The 'hours/report' segments are translated in the French twin; {group}
+    // stays verbatim.
+    'groups.hours.report' => 'groups/{group}/hours/report',
+
     // Settings → Profile / Password (#229, PRD #228). The self-service account
     // surface, brought into the localized group so each page has a French twin.
     // 'settings' is the bare redirect target (→ settings.profile); the two child

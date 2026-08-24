@@ -6,6 +6,7 @@ use App\Http\Requests\RecalculateHoursRequest;
 use App\Http\Requests\StoreHoursRecordRequest;
 use App\Models\Group;
 use App\Models\HoursRecord;
+use App\Support\GroupHoursMatrix;
 use App\Support\OrgTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -98,6 +99,129 @@ class HoursController extends Controller
             ], $months),
             'groups' => $this->groupsMatrix($records, $months),
         ]);
+    }
+
+    /**
+     * A Group's fiscal-year hours report (#411, PRD #406, ADR-0022 §5) — a Member × twelve-month
+     * matrix with a year-to-date column, and the Group's own hours next to its hours including
+     * every descendant. This is the surface a Chair or Statistician uses to see who on their
+     * roster has done what.
+     *
+     * Reports are not open reading (§4): the read is gated to a Chair or Statistician of the
+     * Group or any ancestor, or the super-tier, via the HoursRecordPolicy's `viewReports` — an
+     * ordinary Member and a sibling-Group Member are both refused with a 403, so no per-Member
+     * hours and not even a Group total leak to a peer.
+     *
+     * The own-versus-subtree rollup and its year-to-date totals come from the {@see
+     * GroupHoursMatrix} query object, the feature's one seam (§5); the per-Member rows are the
+     * Group's own records folded by Member. The fiscal-year window is the `?fy=` query param,
+     * defaulting to the current fiscal year on the org wall clock, and its boundaries come from
+     * {@see OrgTime} — shared with My Hours so the columns line up everywhere.
+     */
+    public function report(Request $request, Group $group): Response
+    {
+        abort_unless($request->user()->can('viewReports', [HoursRecord::class, $group]), 403);
+
+        $fiscalYear = $request->integer('fy') ?: OrgTime::currentFiscalYear();
+        $months = OrgTime::fiscalYearMonths($fiscalYear);
+        $matrix = GroupHoursMatrix::for($group, $fiscalYear);
+
+        $records = HoursRecord::query()
+            ->where('group_id', $group->getKey())
+            ->whereIn('year_month', $months)
+            ->with('member')
+            ->get();
+
+        return Inertia::render('groups/HoursReport', [
+            'group' => [
+                'id' => $group->id,
+                'name' => $group->name,
+                'slug' => $group->slug,
+            ],
+            'fiscalYear' => $fiscalYear,
+            'fiscalYears' => $this->reportFiscalYears($group),
+            'months' => array_map(fn (string $yearMonth): array => [
+                'year_month' => $yearMonth,
+                'month' => $this->monthStart($yearMonth),
+            ], $months),
+            'members' => $this->membersMatrix($records, $months),
+            'totals' => [
+                'own' => ['months' => $matrix->own, 'ytd' => $matrix->ownYtd],
+                'subtree' => ['months' => $matrix->subtree, 'ytd' => $matrix->subtreeYtd],
+            ],
+        ]);
+    }
+
+    /**
+     * The fiscal years the report may be viewed for — every year the Group itself has any
+     * record in, plus the current fiscal year so the picker always has somewhere to land,
+     * newest first. Read across the Group's own records (the subtree can only add years the
+     * own set already implies for the picker's purpose), so a Chair can reach a year two back.
+     *
+     * @return list<int>
+     */
+    private function reportFiscalYears(Group $group): array
+    {
+        return HoursRecord::query()
+            ->where('group_id', $group->getKey())
+            ->distinct()
+            ->pluck('year_month')
+            ->map(fn (string $yearMonth): int => OrgTime::fiscalYearOf($yearMonth))
+            ->push(OrgTime::currentFiscalYear())
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The Group's records folded into one row per Member, each a twelve-month matrix in
+     * April-to-March order with a year-to-date total. A Member appears iff they have hours in
+     * the Group within the window; a month with nothing on file reads zero, not a gap, so the
+     * twelve columns always line up. Ordered by name for a stable display.
+     *
+     * Scheduled and extra stay apart as well as totalled, matching the My Hours breakdown. All
+     * rows for a (Member, month) are summed — the no-meeting bucket and any meeting rows — so a
+     * row is the Member's whole contribution to this Group.
+     *
+     * @param  Collection<int, HoursRecord>  $records
+     * @param  array<int, string>  $months
+     * @return list<array<string, mixed>>
+     */
+    private function membersMatrix(Collection $records, array $months): array
+    {
+        return $records
+            ->groupBy('member_id')
+            ->map(function (Collection $memberRecords) use ($months): array {
+                $member = $memberRecords->first()->member;
+
+                $cells = collect(array_map(function (string $yearMonth) use ($memberRecords): array {
+                    $forMonth = $memberRecords->where('year_month', $yearMonth);
+                    $scheduled = (int) $forMonth->sum('scheduled_hours');
+                    $extra = (int) $forMonth->sum('extra_hours');
+
+                    return [
+                        'year_month' => $yearMonth,
+                        'scheduled_hours' => $scheduled,
+                        'extra_hours' => $extra,
+                        'total_hours' => $scheduled + $extra,
+                    ];
+                }, $months));
+
+                return [
+                    'id' => $member->getKey(),
+                    'name' => trim("{$member->first_name} {$member->last_name}"),
+                    'months' => $cells->all(),
+                    'ytd' => [
+                        'scheduled_hours' => (int) $cells->sum('scheduled_hours'),
+                        'extra_hours' => (int) $cells->sum('extra_hours'),
+                        'total_hours' => (int) $cells->sum('total_hours'),
+                    ],
+                ];
+            })
+            ->sortBy('name')
+            ->values()
+            ->all();
     }
 
     /**
