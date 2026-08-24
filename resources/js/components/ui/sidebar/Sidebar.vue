@@ -29,7 +29,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 <template>
     <div
         v-if="collapsible === 'none'"
-        :class="cn('flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground', props.class)"
+        :class="cn('flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground print:hidden', props.class)"
         v-bind="$attrs"
     >
         <slot />
@@ -53,7 +53,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
     <div
         v-else
-        class="group peer hidden md:block"
+        class="group peer hidden md:block print:hidden"
         :data-state="state"
         :data-collapsible="state === 'collapsed' ? collapsible : ''"
         :data-variant="variant"

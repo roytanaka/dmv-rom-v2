@@ -109,6 +109,10 @@ Route::group([
     // viewReports gate.
     Route::get(LaravelLocalization::transRoute('routes.groups.hours.report'), [HoursController::class, 'report'])
         ->middleware('auth')->name('groups.hours.report');
+    // The CSV sibling (#414, ADR-0022 §8). Same numbers, same `viewReports` gate — the export is
+    // never a way around the gate that keeps per-Member hours from ordinary Members.
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.report.csv'), [HoursController::class, 'reportCsv'])
+        ->middleware('auth')->name('groups.hours.report.csv');
 
     // The three officer surfaces a Chair or Statistician reaches for after the fiscal-year
     // matrix (#412, PRD #406, ADR-0022 §8): a month picker (one month's entries across the
@@ -126,6 +130,15 @@ Route::group([
         ->middleware('auth')->name('groups.hours.extra');
     Route::get(LaravelLocalization::transRoute('routes.groups.hours.meetings'), [HoursController::class, 'meetingSummary'])
         ->middleware('auth')->name('groups.hours.meetings');
+    // Their CSV siblings (#414, ADR-0022 §8), each behind the same viewReports gate as its page.
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.month.csv'), [HoursController::class, 'monthCsv'])
+        ->middleware('auth')->name('groups.hours.month.csv');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.member.csv'), [HoursController::class, 'memberHistoryCsv'])
+        ->middleware('auth')->name('groups.hours.member.csv');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.extra.csv'), [HoursController::class, 'extraSummaryCsv'])
+        ->middleware('auth')->name('groups.hours.extra.csv');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.meetings.csv'), [HoursController::class, 'meetingSummaryCsv'])
+        ->middleware('auth')->name('groups.hours.meetings.csv');
 
     // The six DMV-wide fiscal-year reports (#413, PRD #406, ADR-0022 §8) — the single output the
     // whole Hours feature exists to produce, the fiscal-year statistics the ROM asks the DMV for.
@@ -147,6 +160,19 @@ Route::group([
         ->middleware('auth')->name('hours.zero-shift-hours');
     Route::get(LaravelLocalization::transRoute('routes.hours.zero-extra-hours'), [HoursController::class, 'zeroExtraHours'])
         ->middleware('auth')->name('hours.zero-extra-hours');
+    // The six CSV siblings (#414, ADR-0022 §8), each behind the same viewOrgReports gate as its page.
+    Route::get(LaravelLocalization::transRoute('routes.hours.committee-summary.csv'), [HoursController::class, 'committeeSummaryCsv'])
+        ->middleware('auth')->name('hours.committee-summary.csv');
+    Route::get(LaravelLocalization::transRoute('routes.hours.committee-detailed.csv'), [HoursController::class, 'committeeDetailedCsv'])
+        ->middleware('auth')->name('hours.committee-detailed.csv');
+    Route::get(LaravelLocalization::transRoute('routes.hours.ranked.csv'), [HoursController::class, 'rankedCsv'])
+        ->middleware('auth')->name('hours.ranked.csv');
+    Route::get(LaravelLocalization::transRoute('routes.hours.zero-hours.csv'), [HoursController::class, 'zeroHoursCsv'])
+        ->middleware('auth')->name('hours.zero-hours.csv');
+    Route::get(LaravelLocalization::transRoute('routes.hours.zero-shift-hours.csv'), [HoursController::class, 'zeroShiftHoursCsv'])
+        ->middleware('auth')->name('hours.zero-shift-hours.csv');
+    Route::get(LaravelLocalization::transRoute('routes.hours.zero-extra-hours.csv'), [HoursController::class, 'zeroExtraHoursCsv'])
+        ->middleware('auth')->name('hours.zero-extra-hours.csv');
 });
 
 // Internal design-system reference page. Login-only (auth) but available in all

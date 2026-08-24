@@ -8,6 +8,7 @@
 // defaulting to the current month; the picker offers the months the group has records in plus
 // the current one. All chrome is translated (ADR-0004); the group and member names render
 // as-authored.
+import HoursReportActions from '@/components/HoursReportActions.vue';
 import HoursReportNav from '@/components/HoursReportNav.vue';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -31,6 +32,8 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 // so format it in UTC to name the month it is, never sliding a day into the one before.
 const formatMonth = (iso: string) =>
     new Intl.DateTimeFormat(page.props.locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso));
+
+const csvHref = computed(() => route('groups.hours.month.csv', { group: props.group.slug, month: props.month.year_month }));
 </script>
 
 <template>
@@ -44,6 +47,8 @@ const formatMonth = (iso: string) =>
             </header>
 
             <HoursReportNav :group-slug="group.slug" active="month" />
+
+            <HoursReportActions :csv-href="csvHref" />
 
             <!-- Month picker — one link per month the group has records in, plus the current. -->
             <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.detail.month.pick')">

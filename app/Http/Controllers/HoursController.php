@@ -9,6 +9,7 @@ use App\Models\Group;
 use App\Models\HoursRecord;
 use App\Models\Member;
 use App\Support\CommitteeHoursStatistics;
+use App\Support\CsvExport;
 use App\Support\GroupHoursMatrix;
 use App\Support\OrgTime;
 use Carbon\CarbonImmutable;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Extra-hours entry (#408, PRD #406, ADR-0022 §2) — the write seam parallel to the Hours
@@ -124,6 +126,39 @@ class HoursController extends Controller
      */
     public function report(Request $request, Group $group): Response
     {
+        return Inertia::render('groups/HoursReport', $this->reportPayload($request, $group));
+    }
+
+    /**
+     * The Group fiscal-year report as a CSV download (#414, ADR-0022 §8) — the same numbers the
+     * screen shows, from the same payload, behind the same `viewReports` gate: an ordinary Member
+     * is refused here exactly as at the HTML route. The file carries a Member × twelve-month matrix
+     * in April-to-March order with a year-to-date column, then the own and subtree rollup rows.
+     */
+    public function reportCsv(Request $request, Group $group): StreamedResponse
+    {
+        $payload = $this->reportPayload($request, $group);
+
+        $rows = [
+            [__('hours.report.column.member'), ...$this->monthHeadings($payload['months']), __('hours.report.column.ytd')],
+        ];
+        foreach ($payload['members'] as $member) {
+            $rows[] = [$member['name'], ...array_column($member['months'], 'total_hours'), $member['ytd']['total_hours']];
+        }
+        $rows[] = [__('hours.report.own'), ...$payload['totals']['own']['months'], $payload['totals']['own']['ytd']];
+        $rows[] = [__('hours.report.subtree'), ...$payload['totals']['subtree']['months'], $payload['totals']['subtree']['ytd']];
+
+        return CsvExport::download($this->csvName($group->slug, 'hours-report', "fiscal-{$payload['fiscalYear']}"), $rows);
+    }
+
+    /**
+     * The Group fiscal-year report's payload — the `viewReports` gate and the numbers, shared by
+     * the HTML page and its CSV twin so the two can never diverge (ADR-0022 §8).
+     *
+     * @return array<string, mixed>
+     */
+    private function reportPayload(Request $request, Group $group): array
+    {
         abort_unless($request->user()->can('viewReports', [HoursRecord::class, $group]), 403);
 
         $fiscalYear = $request->integer('fy') ?: OrgTime::currentFiscalYear();
@@ -136,20 +171,17 @@ class HoursController extends Controller
             ->with('member')
             ->get();
 
-        return Inertia::render('groups/HoursReport', [
+        return [
             'group' => $this->groupPayload($group),
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->reportFiscalYears($group),
-            'months' => array_map(fn (string $yearMonth): array => [
-                'year_month' => $yearMonth,
-                'month' => $this->monthStart($yearMonth),
-            ], $months),
+            'months' => $this->monthColumns($months),
             'members' => $this->membersMatrix($records, $months),
             'totals' => [
                 'own' => ['months' => $matrix->own, 'ytd' => $matrix->ownYtd],
                 'subtree' => ['months' => $matrix->subtree, 'ytd' => $matrix->subtreeYtd],
             ],
-        ]);
+        ];
     }
 
     /**
@@ -167,6 +199,39 @@ class HoursController extends Controller
      */
     public function month(Request $request, Group $group): Response
     {
+        return Inertia::render('groups/HoursMonth', $this->monthPayload($request, $group));
+    }
+
+    /**
+     * The month picker as a CSV download (#414, ADR-0022 §8) — one month's entries across the
+     * Group, a row per Member with scheduled, extra, and total, from the same payload and behind
+     * the same `viewReports` gate as the screen.
+     */
+    public function monthCsv(Request $request, Group $group): StreamedResponse
+    {
+        $payload = $this->monthPayload($request, $group);
+
+        $rows = [[
+            __('hours.detail.month.column.member'),
+            __('hours.detail.month.column.scheduled'),
+            __('hours.detail.month.column.extra'),
+            __('hours.detail.month.column.total'),
+        ]];
+        foreach ($payload['members'] as $member) {
+            $rows[] = [$member['name'], $member['scheduled_hours'], $member['extra_hours'], $member['total_hours']];
+        }
+
+        return CsvExport::download($this->csvName($group->slug, 'hours-month', $payload['month']['year_month']), $rows);
+    }
+
+    /**
+     * The month picker's payload — the `viewReports` gate and the numbers, shared by the HTML page
+     * and its CSV twin.
+     *
+     * @return array<string, mixed>
+     */
+    private function monthPayload(Request $request, Group $group): array
+    {
         abort_unless($request->user()->can('viewReports', [HoursRecord::class, $group]), 403);
 
         $pickable = $this->pickableMonths($group);
@@ -178,7 +243,7 @@ class HoursController extends Controller
             ->with('member')
             ->get();
 
-        return Inertia::render('groups/HoursMonth', [
+        return [
             'group' => $this->groupPayload($group),
             'month' => ['year_month' => $yearMonth, 'month' => $this->monthStart($yearMonth)],
             'months' => array_map(fn (string $ym): array => [
@@ -203,7 +268,7 @@ class HoursController extends Controller
                 ->sortBy('name')
                 ->values()
                 ->all(),
-        ]);
+        ];
     }
 
     /**
@@ -218,6 +283,43 @@ class HoursController extends Controller
      * (all grains summed) and returned newest first — legible history, not a raw row dump.
      */
     public function memberHistory(Request $request, Group $group): Response
+    {
+        return Inertia::render('groups/HoursMemberHistory', $this->memberHistoryPayload($request, $group));
+    }
+
+    /**
+     * Member History as a CSV download (#414, ADR-0022 §8) — one Member's hours in this Group over
+     * time, newest first, from the same payload and behind the same `viewReports` gate. With no
+     * Member picked the file is the header alone, disclosing nothing, exactly as the screen shows
+     * a prompt rather than a list.
+     */
+    public function memberHistoryCsv(Request $request, Group $group): StreamedResponse
+    {
+        $payload = $this->memberHistoryPayload($request, $group);
+
+        $rows = [[
+            __('hours.detail.member.column.month'),
+            __('hours.detail.member.column.scheduled'),
+            __('hours.detail.member.column.extra'),
+            __('hours.detail.member.column.total'),
+        ]];
+        foreach ($payload['rows'] as $row) {
+            $month = CarbonImmutable::parse($row['month'])->locale(app()->getLocale())->isoFormat('MMMM YYYY');
+            $rows[] = [$month, $row['scheduled_hours'], $row['extra_hours'], $row['total_hours']];
+        }
+
+        $suffix = $payload['member'] !== null ? "member-{$payload['member']['id']}" : 'member';
+
+        return CsvExport::download($this->csvName($group->slug, 'hours-history', $suffix), $rows);
+    }
+
+    /**
+     * Member History's payload — the `viewReports` gate and the numbers, shared by the HTML page
+     * and its CSV twin.
+     *
+     * @return array<string, mixed>
+     */
+    private function memberHistoryPayload(Request $request, Group $group): array
     {
         abort_unless($request->user()->can('viewReports', [HoursRecord::class, $group]), 403);
 
@@ -244,7 +346,7 @@ class HoursController extends Controller
         $pickedId = $request->integer('member') ?: null;
         $picked = $pickedId !== null ? $records->firstWhere('member_id', $pickedId) : null;
 
-        return Inertia::render('groups/HoursMemberHistory', [
+        return [
             'group' => $this->groupPayload($group),
             'members' => $members->all(),
             'member' => $picked !== null
@@ -268,7 +370,7 @@ class HoursController extends Controller
                 ->sortByDesc('year_month')
                 ->values()
                 ->all(),
-        ]);
+        ];
     }
 
     /**
@@ -283,7 +385,17 @@ class HoursController extends Controller
      */
     public function extraSummary(Request $request, Group $group): Response
     {
-        return $this->summary($request, $group, 'groups/HoursExtraSummary', withMeeting: false);
+        return Inertia::render('groups/HoursExtraSummary', $this->summaryPayload($request, $group, withMeeting: false));
+    }
+
+    /**
+     * The Member Extra Hours summary as a CSV download (#414, ADR-0022 §8) — the same Member ×
+     * twelve-month matrix the screen shows, from the same payload, behind the same `viewReports`
+     * gate.
+     */
+    public function extraSummaryCsv(Request $request, Group $group): StreamedResponse
+    {
+        return $this->summaryCsv($this->summaryPayload($request, $group, withMeeting: false), $group, 'extra-hours');
     }
 
     /**
@@ -298,7 +410,16 @@ class HoursController extends Controller
      */
     public function meetingSummary(Request $request, Group $group): Response
     {
-        return $this->summary($request, $group, 'groups/HoursMeetingSummary', withMeeting: true);
+        return Inertia::render('groups/HoursMeetingSummary', $this->summaryPayload($request, $group, withMeeting: true));
+    }
+
+    /**
+     * The Member Meeting Hours summary as a CSV download (#414, ADR-0022 §8) — the twin of
+     * {@see extraSummaryCsv()}, read instead from the Group's records carrying a Meeting.
+     */
+    public function meetingSummaryCsv(Request $request, Group $group): StreamedResponse
+    {
+        return $this->summaryCsv($this->summaryPayload($request, $group, withMeeting: true), $group, 'meeting-hours');
     }
 
     /**
@@ -317,11 +438,44 @@ class HoursController extends Controller
      */
     public function committeeSummary(Request $request): Response
     {
+        return Inertia::render('hours/CommitteeSummary', $this->committeeSummaryPayload($request));
+    }
+
+    /**
+     * Summary Committee Statistics as a CSV download (#414, ADR-0022 §8) — the same scheduled-hours
+     * matrix and the same three org-wide rows the screen shows, from the same payload and behind
+     * the same `viewOrgReports` gate an ordinary Member never passes.
+     */
+    public function committeeSummaryCsv(Request $request): StreamedResponse
+    {
+        $payload = $this->committeeSummaryPayload($request);
+        $headings = $this->monthHeadings($payload['months']);
+
+        $rows = [[__('hours.dmv.summary.column.committee'), ...$headings, __('hours.dmv.summary.column.ytd')]];
+        $rows[] = [__('hours.dmv.summary.scheduled')];
+        foreach ($payload['scheduled'] as $committee) {
+            $rows[] = [$committee['name'], ...$committee['months'], $committee['ytd']];
+        }
+        foreach (['meetings', 'extra', 'total'] as $part) {
+            $rows[] = [__("hours.dmv.summary.{$part}"), ...$payload['orgRows'][$part]['months'], $payload['orgRows'][$part]['ytd']];
+        }
+
+        return CsvExport::download($this->csvName(null, 'committee-summary', "fiscal-{$payload['fiscalYear']}"), $rows);
+    }
+
+    /**
+     * Summary Committee Statistics' payload — the `viewOrgReports` gate and the numbers, shared by
+     * the HTML page and its CSV twin.
+     *
+     * @return array<string, mixed>
+     */
+    private function committeeSummaryPayload(Request $request): array
+    {
         $this->authorizeOrgReports($request);
 
         [$fiscalYear, $stats] = $this->orgStatistics($request);
 
-        return Inertia::render('hours/CommitteeSummary', [
+        return [
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->orgFiscalYears(),
             'months' => $this->monthColumns($stats->months),
@@ -341,7 +495,7 @@ class HoursController extends Controller
                 'extra' => $this->orgRow($stats->org, 'extra'),
                 'total' => $this->orgRow($stats->org, 'total'),
             ],
-        ]);
+        ];
     }
 
     /**
@@ -355,17 +509,71 @@ class HoursController extends Controller
      */
     public function committeeDetailed(Request $request): Response
     {
+        return Inertia::render('hours/CommitteeDetailed', $this->committeeDetailedPayload($request));
+    }
+
+    /**
+     * Detailed Committee Statistics as a CSV download (#414, ADR-0022 §8) — each committee's
+     * shifts, meetings, and extra broken out across the twelve months, then the DMV total's three
+     * rows, from the same payload and behind the same `viewOrgReports` gate.
+     */
+    public function committeeDetailedCsv(Request $request): StreamedResponse
+    {
+        $payload = $this->committeeDetailedPayload($request);
+        $headings = $this->monthHeadings($payload['months']);
+
+        $rows = [[
+            __('hours.dmv.detailed.column.committee'),
+            __('hours.dmv.detailed.column.kind'),
+            ...$headings,
+            __('hours.dmv.detailed.column.ytd'),
+        ]];
+        foreach ($payload['committees'] as $committee) {
+            array_push($rows, ...$this->detailedRows($committee['name'], $committee));
+        }
+        array_push($rows, ...$this->detailedRows(__('hours.dmv.detailed.total'), $payload['org']));
+
+        return CsvExport::download($this->csvName(null, 'committee-detailed', "fiscal-{$payload['fiscalYear']}"), $rows);
+    }
+
+    /**
+     * The three CSV rows for one committee (or the DMV total) in the Detailed report — one per kind
+     * (shifts, meetings, extra), each the twelve monthly figures for that kind and its
+     * year-to-date. The name repeats on each row so a spreadsheet reads a row on its own, where the
+     * screen leans on a rowspan.
+     *
+     * @param  array{months: list<array<string, int>>, ytd: array<string, int>}  $breakdown
+     * @return list<list<string|int>>
+     */
+    private function detailedRows(string $name, array $breakdown): array
+    {
+        return array_map(fn (string $kind): array => [
+            $name,
+            __("hours.dmv.detailed.kind.{$kind}"),
+            ...array_column($breakdown['months'], $kind),
+            $breakdown['ytd'][$kind],
+        ], ['shifts', 'meetings', 'extra']);
+    }
+
+    /**
+     * Detailed Committee Statistics' payload — the `viewOrgReports` gate and the numbers, shared by
+     * the HTML page and its CSV twin.
+     *
+     * @return array<string, mixed>
+     */
+    private function committeeDetailedPayload(Request $request): array
+    {
         $this->authorizeOrgReports($request);
 
         [$fiscalYear, $stats] = $this->orgStatistics($request);
 
-        return Inertia::render('hours/CommitteeDetailed', [
+        return [
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->orgFiscalYears(),
             'months' => $this->monthColumns($stats->months),
             'committees' => $stats->committees,
             'org' => $stats->org,
-        ]);
+        ];
     }
 
     /**
@@ -378,6 +586,45 @@ class HoursController extends Controller
      * so this — like every DMV-wide report — reaches only the DMV officers, Records, or super-tier.
      */
     public function rankedHours(Request $request): Response
+    {
+        return Inertia::render('hours/RankedHours', $this->rankedPayload($request));
+    }
+
+    /**
+     * Active Members Ranked Hours as a CSV download (#414, ADR-0022 §8) — every ranked Member with
+     * their scheduled, extra, and total, then the Members with no hours at all named below, from
+     * the same payload and behind the same `viewOrgReports` gate.
+     */
+    public function rankedCsv(Request $request): StreamedResponse
+    {
+        $payload = $this->rankedPayload($request);
+
+        $rows = [[
+            __('hours.dmv.ranked.column.member'),
+            __('hours.dmv.ranked.column.scheduled'),
+            __('hours.dmv.ranked.column.extra'),
+            __('hours.dmv.ranked.column.total'),
+        ]];
+        foreach ($payload['ranked'] as $member) {
+            $rows[] = [$member['name'], $member['scheduled_hours'], $member['extra_hours'], $member['total_hours']];
+        }
+        // The Members with no hours rows at all — named below, as the screen names them in its
+        // second card, so absence stays visible in the export too.
+        $rows[] = [__('hours.dmv.ranked.no_hours')];
+        foreach ($payload['noHours'] as $member) {
+            $rows[] = [$member['name']];
+        }
+
+        return CsvExport::download($this->csvName(null, 'ranked-hours', "fiscal-{$payload['fiscalYear']}"), $rows);
+    }
+
+    /**
+     * Active Members Ranked Hours' payload — the `viewOrgReports` gate and the numbers, shared by
+     * the HTML page and its CSV twin.
+     *
+     * @return array<string, mixed>
+     */
+    private function rankedPayload(Request $request): array
     {
         $this->authorizeOrgReports($request);
 
@@ -403,12 +650,12 @@ class HoursController extends Controller
         // Most hours first; ties broken by name so the order is stable across runs.
         usort($ranked, fn (array $a, array $b): int => $b['total_hours'] <=> $a['total_hours'] ?: strcmp($a['name'], $b['name']));
 
-        return Inertia::render('hours/RankedHours', [
+        return [
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->orgFiscalYears(),
             'ranked' => $ranked,
             'noHours' => $noHours,
-        ]);
+        ];
     }
 
     /**
@@ -419,6 +666,12 @@ class HoursController extends Controller
     public function zeroHours(Request $request): Response
     {
         return $this->zeroReport($request, 'hours', fn (array $sums): bool => $sums['total_hours'] === 0);
+    }
+
+    /** Members with Zero Hours as a CSV download (#414, ADR-0022 §8). */
+    public function zeroHoursCsv(Request $request): StreamedResponse
+    {
+        return $this->zeroCsv($request, 'hours', fn (array $sums): bool => $sums['total_hours'] === 0);
     }
 
     /**
@@ -432,6 +685,12 @@ class HoursController extends Controller
         return $this->zeroReport($request, 'shift', fn (array $sums): bool => $sums['scheduled_hours'] === 0);
     }
 
+    /** Members with Zero Shift Hours as a CSV download (#414, ADR-0022 §8). */
+    public function zeroShiftHoursCsv(Request $request): StreamedResponse
+    {
+        return $this->zeroCsv($request, 'shift', fn (array $sums): bool => $sums['scheduled_hours'] === 0);
+    }
+
     /**
      * Members with Zero Extra Hours (#413, PRD #406, ADR-0022 §8) — active and provisional
      * Members who self-entered no extra hours this fiscal year, whatever Shifts they worked. The
@@ -440,6 +699,12 @@ class HoursController extends Controller
     public function zeroExtraHours(Request $request): Response
     {
         return $this->zeroReport($request, 'extra', fn (array $sums): bool => $sums['extra_hours'] === 0);
+    }
+
+    /** Members with Zero Extra Hours as a CSV download (#414, ADR-0022 §8). */
+    public function zeroExtraHoursCsv(Request $request): StreamedResponse
+    {
+        return $this->zeroCsv($request, 'extra', fn (array $sums): bool => $sums['extra_hours'] === 0);
     }
 
     /**
@@ -451,6 +716,36 @@ class HoursController extends Controller
      * @param  callable(array{scheduled_hours: int, extra_hours: int, total_hours: int}): bool  $isZero
      */
     private function zeroReport(Request $request, string $variant, callable $isZero): Response
+    {
+        return Inertia::render('hours/ZeroHours', $this->zeroPayload($request, $variant, $isZero));
+    }
+
+    /**
+     * The shared CSV body of the three zero-hours reports — a header and one row per Member on the
+     * list, from the same payload and behind the same `viewOrgReports` gate as the screen.
+     *
+     * @param  callable(array{scheduled_hours: int, extra_hours: int, total_hours: int}): bool  $isZero
+     */
+    private function zeroCsv(Request $request, string $variant, callable $isZero): StreamedResponse
+    {
+        $payload = $this->zeroPayload($request, $variant, $isZero);
+
+        $rows = [[__('hours.dmv.zero.column.member')]];
+        foreach ($payload['members'] as $member) {
+            $rows[] = [$member['name']];
+        }
+
+        return CsvExport::download($this->csvName(null, "zero-{$variant}-hours", "fiscal-{$payload['fiscalYear']}"), $rows);
+    }
+
+    /**
+     * The shared payload of the three zero-hours reports — the `viewOrgReports` gate and the list,
+     * shared by the HTML page and its CSV twin.
+     *
+     * @param  callable(array{scheduled_hours: int, extra_hours: int, total_hours: int}): bool  $isZero
+     * @return array<string, mixed>
+     */
+    private function zeroPayload(Request $request, string $variant, callable $isZero): array
     {
         $this->authorizeOrgReports($request);
 
@@ -467,12 +762,12 @@ class HoursController extends Controller
             ->values()
             ->all();
 
-        return Inertia::render('hours/ZeroHours', [
+        return [
             'variant' => $variant,
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->orgFiscalYears(),
             'members' => $members,
-        ]);
+        ];
     }
 
     /**
@@ -481,7 +776,7 @@ class HoursController extends Controller
      * the page they render. Both sum `extra_hours` into one cell per bucket; scheduled hours
      * never appear here, matching legacy's two extra-hours reports.
      */
-    private function summary(Request $request, Group $group, string $component, bool $withMeeting): Response
+    private function summaryPayload(Request $request, Group $group, bool $withMeeting): array
     {
         abort_unless($request->user()->can('viewReports', [HoursRecord::class, $group]), 403);
 
@@ -499,14 +794,11 @@ class HoursController extends Controller
             ->with('member')
             ->get();
 
-        return Inertia::render($component, [
+        return [
             'group' => $this->groupPayload($group),
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->reportFiscalYears($group),
-            'months' => array_map(fn (string $yearMonth): array => [
-                'year_month' => $yearMonth,
-                'month' => $this->monthStart($yearMonth),
-            ], $months),
+            'months' => $this->monthColumns($months),
             'members' => $records
                 ->groupBy('member_id')
                 ->map(function (Collection $memberRecords) use ($months): array {
@@ -526,7 +818,26 @@ class HoursController extends Controller
                 ->sortBy('name')
                 ->values()
                 ->all(),
-        ]);
+        ];
+    }
+
+    /**
+     * Serialize a Member × twelve-month summary payload as CSV rows — the header, then one row per
+     * Member with the twelve monthly hours in April-to-March order and the year-to-date. Shared by
+     * the Extra and Meeting summaries, which differ only in which records feed the payload.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function summaryCsv(array $payload, Group $group, string $report): StreamedResponse
+    {
+        $rows = [
+            [__('hours.detail.summary.column.member'), ...$this->monthHeadings($payload['months']), __('hours.detail.summary.column.ytd')],
+        ];
+        foreach ($payload['members'] as $member) {
+            $rows[] = [$member['name'], ...array_column($member['months'], 'hours'), $member['ytd']];
+        }
+
+        return CsvExport::download($this->csvName($group->slug, $report, "fiscal-{$payload['fiscalYear']}"), $rows);
     }
 
     /**
@@ -756,6 +1067,33 @@ class HoursController extends Controller
             'year_month' => $yearMonth,
             'month' => $this->monthStart($yearMonth),
         ], $months);
+    }
+
+    /**
+     * The twelve month columns as CSV headings — each bucket's first-of-month date, localized to
+     * the request locale so the export's chrome is translated like the screen's (ADR-0022 §8).
+     * The day is always the first, so the abbreviated month never slides into the one before.
+     *
+     * @param  list<array{year_month: string, month: string}>  $months
+     * @return list<string>
+     */
+    private function monthHeadings(array $months): array
+    {
+        return array_map(
+            fn (array $column): string => CarbonImmutable::parse($column['month'])->locale(app()->getLocale())->isoFormat('MMM YYYY'),
+            $months,
+        );
+    }
+
+    /**
+     * A stable, ASCII-safe CSV filename — the report slug and a suffix (the fiscal year, the
+     * month, or the picked Member), prefixed with the Group slug where the report is scoped to
+     * one. Names render as-authored inside the file; the filename stays a slug so it survives any
+     * spreadsheet and any filesystem.
+     */
+    private function csvName(?string $groupSlug, string $report, string $suffix): string
+    {
+        return ($groupSlug !== null ? "{$groupSlug}-" : '')."{$report}-{$suffix}.csv";
     }
 
     /**

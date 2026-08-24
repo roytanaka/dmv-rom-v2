@@ -36,7 +36,7 @@ const stop = () => {
 <template>
     <div
         v-if="impersonation"
-        class="fixed right-4 bottom-4 z-50 flex items-center gap-2"
+        class="fixed right-4 bottom-4 z-50 flex items-center gap-2 print:hidden"
         :class="active ? 'rounded-sm border border-black bg-white px-2 py-1.5 shadow-lg' : ''"
     >
         <span v-if="active" class="text-rom-ink flex items-center gap-1.5 text-sm font-medium whitespace-nowrap">

@@ -23,7 +23,7 @@ withDefaults(
 </script>
 
 <template>
-    <header v-if="breadcrumbs.length > 0" class="bg-rom-slate-50 border-border flex h-12 shrink-0 items-center border-b px-6 md:px-4">
+    <header v-if="breadcrumbs.length > 0" class="bg-rom-slate-50 border-border flex h-12 shrink-0 items-center border-b px-6 md:px-4 print:hidden">
         <Breadcrumb>
             <BreadcrumbList>
                 <template v-for="(item, index) in breadcrumbs" :key="index">

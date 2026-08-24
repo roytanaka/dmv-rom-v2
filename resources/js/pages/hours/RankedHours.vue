@@ -6,6 +6,7 @@
 //
 // Reports are officer-only (§4): the org's per-member numbers are not open reading. All chrome
 // is translated (ADR-0004); member names render as-authored.
+import HoursReportActions from '@/components/HoursReportActions.vue';
 import OrgHoursReportNav from '@/components/OrgHoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -14,11 +15,13 @@ import { Head, Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
-defineProps<DmvRankedHours>();
+const props = defineProps<DmvRankedHours>();
 
 const title = computed(() => trans('hours.dmv.ranked.title'));
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href: route('hours.ranked') }]);
+
+const csvHref = computed(() => route('hours.ranked.csv', { fy: props.fiscalYear }));
 </script>
 
 <template>
@@ -32,6 +35,8 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href
             </header>
 
             <OrgHoursReportNav active="ranked" />
+
+            <HoursReportActions :csv-href="csvHref" />
 
             <!-- Fiscal-year picker — one link per pickable year, the year in view marked. -->
             <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.dmv.pick_year')">

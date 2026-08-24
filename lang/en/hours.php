@@ -64,6 +64,13 @@ return [
         ],
     ],
 
+    // The print-and-export toolbar shared by every report (#414, ADR-0022 §8) — Print hands the
+    // page to the browser's print-to-PDF, Export CSV downloads the report's `.csv` sibling.
+    'export' => [
+        'print' => 'Print',
+        'csv' => 'Export CSV',
+    ],
+
     // The Group fiscal-year report (#411, ADR-0022 §5) — a Member × twelve-month matrix with
     // the Group's own hours and its subtree hours side by side, for a Chair or Statistician.
     'report' => [

@@ -8,6 +8,7 @@
 // can never carry a number there. Reports are officer-only (§4): the server gates this page to
 // the DMV officers, Records, or the super-tier. All chrome is translated (ADR-0004); committee
 // names render as-authored.
+import HoursReportActions from '@/components/HoursReportActions.vue';
 import OrgHoursReportNav from '@/components/OrgHoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -33,6 +34,8 @@ const orgRows = computed(() => [
 
 const formatMonth = (iso: string) =>
     new Intl.DateTimeFormat(page.props.locale, { month: 'short', year: '2-digit', timeZone: 'UTC' }).format(new Date(iso));
+
+const csvHref = computed(() => route('hours.committee-summary.csv', { fy: props.fiscalYear }));
 </script>
 
 <template>
@@ -46,6 +49,8 @@ const formatMonth = (iso: string) =>
             </header>
 
             <OrgHoursReportNav active="summary" />
+
+            <HoursReportActions :csv-href="csvHref" />
 
             <!-- Fiscal-year picker — one link per pickable year, the year in view marked. -->
             <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.dmv.pick_year')">

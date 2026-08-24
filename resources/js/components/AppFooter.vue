@@ -14,7 +14,7 @@ const currentYear = String(new Date().getFullYear());
 </script>
 
 <template>
-    <footer class="bg-rom-ink mt-auto px-6 py-8 text-white/70">
+    <footer class="bg-rom-ink mt-auto px-6 py-8 text-white/70 print:hidden">
         <div class="mx-auto flex max-w-5xl flex-col gap-4 text-sm">
             <p>{{ trans('institutional.land_acknowledgement') }}</p>
             <p>{{ trans('institutional.inclusion') }}</p>

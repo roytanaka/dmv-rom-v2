@@ -49,6 +49,10 @@ return [
     // sibling (#414). The 'hours/report' segments are translated in the French twin; {group}
     // stays verbatim.
     'groups.hours.report' => 'groups/{group}/hours/report',
+    // The CSV export sibling of each report (#414, ADR-0022 §8). A '.csv' suffix on the report's
+    // own path, so the export sits beside the page it exports; the extension is universal and
+    // stays verbatim in the French twin.
+    'groups.hours.report.csv' => 'groups/{group}/hours/report.csv',
 
     // The three officer surfaces after the fiscal-year matrix (#412, ADR-0022 §8): a month
     // picker, a Member History, and the two Member × twelve-month summaries. Each is its own
@@ -58,6 +62,11 @@ return [
     'groups.hours.member' => 'groups/{group}/hours/member',
     'groups.hours.extra' => 'groups/{group}/hours/extra',
     'groups.hours.meetings' => 'groups/{group}/hours/meetings',
+    // Their CSV export siblings (#414) — a '.csv' suffix on each report's own path.
+    'groups.hours.month.csv' => 'groups/{group}/hours/month.csv',
+    'groups.hours.member.csv' => 'groups/{group}/hours/member.csv',
+    'groups.hours.extra.csv' => 'groups/{group}/hours/extra.csv',
+    'groups.hours.meetings.csv' => 'groups/{group}/hours/meetings.csv',
 
     // The six DMV-wide fiscal-year reports (#413, ADR-0022 §8). Org-wide, not scoped to a
     // {group} — always rooted at the DMV root Group. Flat dotted keys (like groups.hours.*);
@@ -69,6 +78,13 @@ return [
     'hours.zero-hours' => 'hours/zero-hours',
     'hours.zero-shift-hours' => 'hours/zero-shift-hours',
     'hours.zero-extra-hours' => 'hours/zero-extra-hours',
+    // Their CSV export siblings (#414) — a '.csv' suffix on each report's own path.
+    'hours.committee-summary.csv' => 'hours/committee-summary.csv',
+    'hours.committee-detailed.csv' => 'hours/committee-detailed.csv',
+    'hours.ranked.csv' => 'hours/ranked.csv',
+    'hours.zero-hours.csv' => 'hours/zero-hours.csv',
+    'hours.zero-shift-hours.csv' => 'hours/zero-shift-hours.csv',
+    'hours.zero-extra-hours.csv' => 'hours/zero-extra-hours.csv',
 
     // Settings → Profile / Password (#229, PRD #228). The self-service account
     // surface, brought into the localized group so each page has a French twin.

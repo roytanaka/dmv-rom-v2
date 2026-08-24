@@ -58,6 +58,12 @@ return [
         ],
     ],
 
+    // La barre d'impression et d'export partagée par chaque rapport (#414, ADR-0022 §8).
+    'export' => [
+        'print' => 'Imprimer',
+        'csv' => 'Exporter en CSV',
+    ],
+
     // Le rapport annuel du groupe (#411, ADR-0022 §5) — une matrice Membre × douze mois avec
     // les heures propres du groupe et celles de son sous-arbre côte à côte, pour un président
     // ou un statisticien.

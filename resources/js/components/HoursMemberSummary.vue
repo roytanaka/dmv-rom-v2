@@ -6,6 +6,7 @@
 // this year reads zero across the row, never a gap.
 //
 // All chrome is translated (ADR-0004); the group and member names render as-authored.
+import HoursReportActions from '@/components/HoursReportActions.vue';
 import HoursReportNav from '@/components/HoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -37,6 +38,8 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 // so format it in UTC to name the month it is, never sliding a day into the one before.
 const formatMonth = (iso: string) =>
     new Intl.DateTimeFormat(page.props.locale, { month: 'short', year: '2-digit', timeZone: 'UTC' }).format(new Date(iso));
+
+const csvHref = computed(() => route(`${routeName.value}.csv`, { group: props.group.slug, fy: props.fiscalYear }));
 </script>
 
 <template>
@@ -50,6 +53,8 @@ const formatMonth = (iso: string) =>
             </header>
 
             <HoursReportNav :group-slug="group.slug" :active="active" />
+
+            <HoursReportActions :csv-href="csvHref" />
 
             <!-- Fiscal-year picker — one link per pickable year, the year in view marked. -->
             <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.detail.summary.pick_year')">
