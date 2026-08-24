@@ -87,7 +87,11 @@ _Avoid_: "Catalog" (already three other things in this repo: the content catalog
 
 **Sign-up**:
 The record that a **Member** has taken (or been assigned) a **Shift** — one Member, one Shift. Created by the Member themselves or by the Group's **Scheduler**; one entity, two actors. Carries **no state**: cancelling is deleting it, allowed for as long as the Member could have taken it (until the Shift starts — no deadline). A Member may hold Sign-ups on overlapping Shifts, but never two on the same Shift.
-_Avoid_: confusing with **Login** (authentication) — a Sign-up is _staffing a Shift_, not authenticating. And "cancel state", "swap", "assistant" — swap and assistants are not built, and cancel is a deletion, not a state.
+_Avoid_: confusing with **Login** (authentication) — a Sign-up is _staffing a Shift_, not authenticating. And "cancel state", "swap", "assistant" — swap and assistants are not built, and cancel is a deletion, not a state. And "attended" — see **Attendance**.
+
+**Attendance**:
+**Not recorded.** A **Sign-up** says a **Member** took a **Shift**; nothing says they turned up. This is a decision, not an omission ([#401](https://github.com/roytanaka/dmv-rom-v2/issues/401)). **Scheduled hours** are already written from the Sign-up alone, so attendance makes no reported number more correct; no Group runs a no-show workflow the app could serve; and the correction already exists — a **Scheduler** may remove a Sign-up at any time, including after the Shift has passed. A no-show is fixed by removing the Sign-up, which drops the credit with it.
+_Avoid_: legacy's `Confirmed`, which means _signed out at the end of a shift_ rather than _was present_, is live in only six of ten Groups, and gates credit in only four of those. Legacy's `Attended` is a column no live code reads or writes. And do not read a Sign-up on a past Shift as proof anyone was there — it is proof of a booking nobody corrected.
 
 **Audience** (of a **Shift**):
 Who may take it: `group` (the default — Members of the owning Group, in a per-Group standing that permits sign-up) or `open` (any Member who can read the **Schedule**). This is what makes cross-Group participation a **read filter** rather than a relationship — there is no second row and nothing to keep in sync. A **Scheduler** placing a named volunteer is not bound by it.
