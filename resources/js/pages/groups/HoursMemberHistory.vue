@@ -7,6 +7,7 @@
 // the group or any ancestor, or the super-tier, and only a Member with hours here can be
 // picked. The Member in view is the `?member=` query param. All chrome is translated
 // (ADR-0004); the group and member names render as-authored.
+import HoursReportActions from '@/components/HoursReportActions.vue';
 import HoursReportNav from '@/components/HoursReportNav.vue';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -37,6 +38,9 @@ const pick = (event: Event) => {
     const value = (event.target as HTMLSelectElement).value;
     router.get(route('groups.hours.member', { group: props.group.slug, ...(value ? { member: value } : {}) }));
 };
+
+// The export follows the picked Member, so the file is the history the Chair is looking at.
+const csvHref = computed(() => route('groups.hours.member.csv', { group: props.group.slug, ...(props.member ? { member: props.member.id } : {}) }));
 </script>
 
 <template>
@@ -50,6 +54,8 @@ const pick = (event: Event) => {
             </header>
 
             <HoursReportNav :group-slug="group.slug" active="member" />
+
+            <HoursReportActions :csv-href="csvHref" />
 
             <!-- Member picker — a plain select over the Members with hours in this group. -->
             <div class="flex flex-wrap items-center gap-2 print:hidden">

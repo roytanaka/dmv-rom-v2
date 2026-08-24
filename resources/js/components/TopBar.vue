@@ -46,7 +46,7 @@ const destClass = (dest: ChromeDestination): string => {
 </script>
 
 <template>
-    <header class="bg-rom-ink flex h-16 shrink-0 items-stretch text-white">
+    <header class="bg-rom-ink flex h-16 shrink-0 items-stretch text-white print:hidden">
         <!-- Left cluster spans exactly the sidebar's width at md+ (where the fixed rail
              is visible), so the primary nav starts at the sidebar's right edge. Below md
              the rail is an off-canvas sheet, so this stays auto-width. -->

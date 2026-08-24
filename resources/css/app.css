@@ -268,3 +268,23 @@
         @apply text-muted-foreground text-sm;
     }
 }
+
+/* Print (#414, PRD #406, ADR-0022 §8). The one mechanism deviation of the Hours port —
+   HTML styled for print, and the browser makes the PDF. The app chrome (top bar, rail,
+   breadcrumb, footer, impersonation toolbar) and each report's own toolbar and pickers
+   all carry `print:hidden`, so a report prints as its heading and table alone. These
+   rules keep a long matrix legible across pages: the month headings repeat on every
+   page and a row never splits down the middle. */
+@media print {
+    body {
+        background: #fff;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tr {
+        break-inside: avoid;
+    }
+}
