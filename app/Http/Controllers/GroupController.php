@@ -161,6 +161,12 @@ class GroupController extends Controller
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.
                 'enterHours' => $request->user()->can('create', [HoursRecord::class, $group]),
+                // `recalculateHours` drives the scheduling screen's "recalculate this month"
+                // control (#410, ADR-0022 §2). It hangs off the scheduling gate, not the
+                // hours-entry one — a Chair or Scheduler of a scheduling Group — so an ordinary
+                // Member and a non-scheduling Group both get no control. UI hint only;
+                // RecalculateHoursRequest re-checks on POST.
+                'recalculateHours' => $request->user()->can('recalculate', [HoursRecord::class, $group]),
             ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work

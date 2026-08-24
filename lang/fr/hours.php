@@ -18,6 +18,14 @@ return [
         'whole_hours' => 'Saisissez des heures entières — les minutes ne nous intéressent pas.',
     ],
 
+    // Recalcul des heures planifiées d’un groupe à partir des inscriptions (#410, ADR-0022 §2)
+    // — la commande d’officier sur un groupe qui planifie et son refus des exercices clos.
+    'recalc' => [
+        'button' => 'Recalculer les heures planifiées',
+        // Renvoyé par la requête de formulaire lorsqu’un mois hors de l’exercice courant est demandé.
+        'closed_year' => 'Les heures planifiées ne peuvent être recalculées que pour l’exercice courant.',
+    ],
+
     // La liste des enregistrements du membre, sous le formulaire.
     'records' => [
         'heading' => 'Vos heures dans ce groupe',

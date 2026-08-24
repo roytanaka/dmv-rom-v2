@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RecalculateHoursRequest;
 use App\Http\Requests\StoreHoursRecordRequest;
 use App\Models\Group;
 use App\Models\HoursRecord;
@@ -42,6 +43,21 @@ class HoursController extends Controller
             (int) $request->validated('hours'),
             $actor,
         );
+
+        return back();
+    }
+
+    /**
+     * Recalculate a Group's scheduled hours for a month from its Sign-ups (#410, PRD #406,
+     * ADR-0022 §2) — the derived-half write, parallel to the extra-hours entry above. A Chair
+     * or Scheduler of a scheduling Group runs it; {@see RecalculateHoursRequest} authorizes
+     * against the scheduling gate and bounds the month to the current fiscal year, and the
+     * model method replaces (never adds) the scheduled hours, leaving extra hours and the
+     * adjustment log untouched.
+     */
+    public function recalculate(RecalculateHoursRequest $request, Group $group): RedirectResponse
+    {
+        HoursRecord::recalculateScheduled($group, $request->validated('year_month'));
 
         return back();
     }
