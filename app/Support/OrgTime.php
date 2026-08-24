@@ -55,6 +55,50 @@ class OrgTime
     }
 
     /**
+     * The fiscal year a `YYYYMM` bucket falls in (ADR-0022 §8). The fiscal year runs 1 April
+     * to 31 March and is named for the year it *ends* in — so "Fiscal 2026" runs 2025-04
+     * through 2026-03. A month in April or later opens the fiscal year named for the next
+     * March; January through March close the one named for this year. This is the single
+     * definition the My Hours destination and every report share, so the boundary is decided
+     * once rather than in each caller.
+     */
+    public static function fiscalYearOf(string $yearMonth): int
+    {
+        $year = (int) substr($yearMonth, 0, 4);
+        $month = (int) substr($yearMonth, 4, 2);
+
+        return $month >= 4 ? $year + 1 : $year;
+    }
+
+    /**
+     * The current fiscal year, read on the org wall clock (ADR-0022 §8) — so a My Hours view
+     * opened late on 31 March is still the closing fiscal year, not the next one the server's
+     * UTC day has already rolled into.
+     */
+    public static function currentFiscalYear(): int
+    {
+        return self::fiscalYearOf(self::now()->format('Ym'));
+    }
+
+    /**
+     * A fiscal year expanded into its twelve `YYYYMM` buckets in reporting order — April
+     * first through the following March (ADR-0022 §8). The one place a fiscal year becomes
+     * its month columns, shared by My Hours and the fiscal-year reports so the twelve buckets
+     * are ordered identically everywhere.
+     *
+     * @return array<int, string>
+     */
+    public static function fiscalYearMonths(int $fiscalYear): array
+    {
+        $april = CarbonImmutable::create($fiscalYear - 1, 4, 1, 0, 0, 0, config('app.org_timezone'));
+
+        return array_map(
+            fn (int $offset): string => $april->addMonths($offset)->format('Ym'),
+            range(0, 11),
+        );
+    }
+
+    /**
      * The two `YYYYMM` month buckets a Member may enter extra hours in (ADR-0022 §2): the
      * current month and the one before it, on the org wall clock, newest first. This is the
      * reporting window the department agreed — nothing older is reachable — and the single

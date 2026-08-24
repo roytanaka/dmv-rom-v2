@@ -271,6 +271,48 @@ export interface GroupHours {
     months: HoursMonth[];
 }
 
+// The My Hours destination payload (#409, ADR-0022 §8). The authenticated Member's own
+// hours across every Group they have hours in, broken out by month across a fiscal year.
+// The `scheduled`/`extra`/`total` split holds on every cell and on the year-to-date total.
+export interface MyHoursTotals {
+    scheduled_hours: number;
+    extra_hours: number;
+    total_hours: number;
+}
+
+// One month cell in a Group's twelve-month row. `scheduled_hours` reads zero until
+// recalculation ships — honest, not broken (ADR-0022 §8).
+export interface MyHoursCell extends MyHoursTotals {
+    /** The YYYYMM bucket — the row key. */
+    year_month: string;
+}
+
+export interface MyHoursGroupRow {
+    id: number;
+    /** The Group name, as-authored content — never a translation key. */
+    name: string;
+    /** Twelve cells in April-to-March order, aligned to the page's `months`. */
+    months: MyHoursCell[];
+    /** The sum of the twelve months — the renewal-question figure. */
+    ytd: MyHoursTotals;
+}
+
+// A fiscal-year month column header. `month` is a first-of-month ISO date, formatted in
+// UTC into a localized month name so it never slides a day into the month before.
+export interface MyHoursMonthColumn {
+    year_month: string;
+    month: string;
+}
+
+export interface MyHours {
+    /** The fiscal year in view, named for the year it ends in (ADR-0022 §8). */
+    fiscalYear: number;
+    /** The fiscal years the Member may pick, newest first. */
+    fiscalYears: number[];
+    months: MyHoursMonthColumn[];
+    groups: MyHoursGroupRow[];
+}
+
 // A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range;
 // `is_past` heads the two blocks (current & upcoming vs past), resolved server-side.
 export interface ScheduleListItem {

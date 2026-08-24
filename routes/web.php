@@ -43,7 +43,7 @@ Route::group([
     // exist. They all render one shared "coming soon" placeholder.
     $stubRoutes = [
         // Zone A — personal
-        'calendar', 'hours', 'documents', 'profile', 'renew',
+        'calendar', 'documents', 'profile', 'renew',
         // Utility — the top bar's Help destination (#194); a placeholder until
         // the help surface lands.
         'help',
@@ -57,6 +57,14 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // My Hours (#409, PRD #406, ADR-0022 §8). A Member's own hours, gathered from every
+    // Group they have hours in, broken out by month across a fiscal year with a year-to-date
+    // total — the one home for the renewal question that is not inside any Group. Reads the
+    // authenticated Member alone (§4); the fiscal-year window is a `?fy=` query param that
+    // defaults to the current fiscal year. Replaces the earlier ComingSoon stub.
+    Route::get(LaravelLocalization::transRoute('routes.hours'), [HoursController::class, 'mine'])
+        ->middleware('auth')->name('hours');
 
     // Member directory (#169, PRD #167). The living roster, readable by every
     // logged-in member; the payload routes through MemberResource::directoryCollection
