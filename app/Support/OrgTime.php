@@ -43,4 +43,32 @@ class OrgTime
             return $value;
         }
     }
+
+    /**
+     * The current instant on the organization's wall clock. The one place "now" is read
+     * for month-bucket work, so a Member's entry window is decided against the museum's day
+     * — not the server's UTC day, which after 8pm is already tomorrow.
+     */
+    public static function now(): CarbonImmutable
+    {
+        return CarbonImmutable::now(config('app.org_timezone'));
+    }
+
+    /**
+     * The two `YYYYMM` month buckets a Member may enter extra hours in (ADR-0022 §2): the
+     * current month and the one before it, on the org wall clock, newest first. This is the
+     * reporting window the department agreed — nothing older is reachable — and the single
+     * source the entry form offers and the Form Request validates against.
+     *
+     * @return array<int, string>
+     */
+    public static function entryMonths(): array
+    {
+        $now = self::now();
+
+        return [
+            $now->format('Ym'),
+            $now->subMonthWithoutOverflow()->format('Ym'),
+        ];
+    }
 }

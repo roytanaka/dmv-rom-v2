@@ -14,6 +14,7 @@ use App\Http\Resources\MemberResource;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
+use App\Models\HoursRecord;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
@@ -21,6 +22,7 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Support\OrgTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -155,6 +157,10 @@ class GroupController extends Controller
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $request->user()->can('create', [GroupMember::class, $group]),
                 'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
+                // `enterHours` drives the Hours tab's entry form — any participating
+                // Member on any Group they can open (ADR-0022 §4); a departed Category
+                // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.
+                'enterHours' => $request->user()->can('create', [HoursRecord::class, $group]),
             ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
@@ -178,6 +184,12 @@ class GroupController extends Controller
             'scheduling' => $section === 'scheduling'
                 ? $this->scheduling($request, $group, $schedule)
                 : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => []],
+            // The Hours tab's payload, resolved only on that tab: the viewer's own records
+            // for this Group and the two-month entry state (ADR-0022 §2). Never another
+            // Member's hours — the roster is not a leaderboard (§4).
+            'hours' => $section === 'hours'
+                ? $this->hours($request, $group)
+                : ['records' => [], 'months' => []],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -449,6 +461,70 @@ class GroupController extends Controller
                 ],
             ])
             ->all();
+    }
+
+    /**
+     * The Group's Hours tab (#408, PRD #406, ADR-0022 §2) — the read surface of the entry
+     * pass. Two parts, both scoped to the viewer alone: their own records for this Group,
+     * and the two-month entry state.
+     *
+     * The tab shows the viewer **their own** hours and nobody else's, here or anywhere —
+     * per-Member hours feed service awards and legacy has never shown them to a peer
+     * (ADR-0022 §4). The records list carries the scheduled / extra / total split (what the
+     * app counted vs. what they told it) newest month first. The two entry months (current
+     * and previous, on the org wall clock) each carry the extra hours already on file and
+     * when they were last touched, so a Member does not double-count. Whether the entry form
+     * renders at all is the separate `can.enterHours` hint.
+     *
+     * @return array{records: list<array<string, mixed>>, months: list<array<string, mixed>>}
+     */
+    private function hours(Request $request, Group $group): array
+    {
+        $records = HoursRecord::query()
+            ->where('member_id', $request->user()->getKey())
+            ->where('group_id', $group->getKey())
+            ->orderByDesc('year_month')
+            ->get();
+
+        return [
+            'records' => $records
+                ->map(fn (HoursRecord $record) => [
+                    'year_month' => $record->year_month,
+                    'month' => $this->monthStart($record->year_month),
+                    'scheduled_hours' => $record->scheduled_hours,
+                    'extra_hours' => $record->extra_hours,
+                    'total_hours' => $record->total_hours,
+                    'updated_at' => $record->updated_at?->toIso8601String(),
+                ])
+                ->all(),
+            'months' => collect(OrgTime::entryMonths())
+                ->map(function (string $yearMonth) use ($records) {
+                    // The additive base is the no-meeting row (the sentinel) — meeting-hours
+                    // rows, when the importer lands them, do not feed the entry form.
+                    $onFile = $records->first(fn (HoursRecord $record) => $record->year_month === $yearMonth
+                        && $record->meeting_id === HoursRecord::NO_MEETING);
+
+                    return [
+                        'year_month' => $yearMonth,
+                        'month' => $this->monthStart($yearMonth),
+                        'extra_hours' => $onFile?->extra_hours ?? 0,
+                        'updated_at' => $onFile?->updated_at?->toIso8601String(),
+                    ];
+                })
+                ->all(),
+        ];
+    }
+
+    /**
+     * The first day of a `YYYYMM` bucket as an ISO date, on the org wall clock — the value
+     * the Hours tab formats into a localized month name. Resolved in the org zone so the
+     * month never slips a day across the UTC boundary.
+     */
+    private function monthStart(string $yearMonth): string
+    {
+        return CarbonImmutable::createFromFormat('Ym', $yearMonth, config('app.org_timezone'))
+            ->startOfMonth()
+            ->toDateString();
     }
 
     /**

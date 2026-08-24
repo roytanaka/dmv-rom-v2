@@ -241,6 +241,36 @@ export interface Meeting {
     can: { update: boolean; delete: boolean };
 }
 
+// The Group Hours tab payload (#408, ADR-0022 §2). The viewer's own records for this
+// Group and the two-month entry state — never another Member's hours (§4).
+export interface HoursRecordRow {
+    /** The YYYYMM bucket — the form value and the row key. */
+    year_month: string;
+    /** The first of the month as an ISO date, for formatting a localized month name. */
+    month: string;
+    scheduled_hours: number;
+    extra_hours: number;
+    total_hours: number;
+    /** A UTC instant; format it in `SharedData['timezone']`. Null before first write. */
+    updated_at: string | null;
+}
+
+export interface HoursMonth {
+    /** The YYYYMM bucket entry writes against. */
+    year_month: string;
+    /** The first of the month as an ISO date, for the localized month label. */
+    month: string;
+    /** The extra hours already on file for this month — the additive base. */
+    extra_hours: number;
+    /** When the month's row was last touched; null when nothing is recorded yet. */
+    updated_at: string | null;
+}
+
+export interface GroupHours {
+    records: HoursRecordRow[];
+    months: HoursMonth[];
+}
+
 // A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range;
 // `is_past` heads the two blocks (current & upcoming vs past), resolved server-side.
 export interface ScheduleListItem {

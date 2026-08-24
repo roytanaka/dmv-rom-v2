@@ -10,6 +10,7 @@
 // everything else is translated chrome (ADR-0004). Officer edits to the Overview
 // (#191) — inline About Us and banner selection — render only behind the server's
 // `can.update` hint; the GroupPolicy enforces every mutation regardless.
+import GroupHours from '@/components/GroupHours.vue';
 import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
 import GroupScheduling from '@/components/GroupScheduling.vue';
@@ -23,7 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { NavNode } from '@/chrome/types';
 import { bannerSources, defaultBannerKey, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type Meeting, type RosterMember, type RosterMeta, type Scheduling, type SharedData } from '@/types';
+import { type GroupHours as GroupHoursData, type Meeting, type RosterMember, type RosterMeta, type Scheduling, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { PhImage, PhPencilSimple } from '@phosphor-icons/vue';
@@ -70,11 +71,12 @@ const props = defineProps<{
     // `createMeeting` gates the Meetings tab's "New meeting" control (#193);
     // `manageRoster` gates the Roster tab's officer CRUD (#192);
     // `createSchedule` gates the Scheduling tab's "New schedule" control (#354).
-    can: { update: boolean; createMeeting: boolean; manageRoster: boolean; createSchedule: boolean };
+    can: { update: boolean; createMeeting: boolean; manageRoster: boolean; createSchedule: boolean; enterHours: boolean };
     roster: RosterMember[];
     rosterMeta: RosterMeta;
     meetings: Meeting[];
     scheduling: Scheduling;
+    hours: GroupHoursData;
     overview: {
         description: string | null;
         children: ChildGroup[];
@@ -93,8 +95,8 @@ const ended = computed(() => !props.group.archived && props.group.end_date !== n
 // The in-body section tabs. Overview · Roster are always present; Meetings is a real
 // tab when the Group runs meetings. The remaining capabilities render as muted "soon"
 // stubs only when their flag is on — the feature itself lands in a later slice. Hours
-// is always-on (ADR-0022 §3): its tab renders on every Group and sub-Group, still a
-// muted "soon" stub until the entry surface lands. Hrefs are English-canonical;
+// is always-on (ADR-0022 §3): its tab renders on every Group and sub-Group, now a real
+// tab carrying the extra-hours entry surface (#408). Hrefs are English-canonical;
 // SectionTabs localises them to the active locale (ADR-0008).
 const tabs = computed<NavNode[]>(() => {
     const href = (section?: string) => (section ? `/groups/${props.group.slug}/${section}` : `/groups/${props.group.slug}`);
@@ -106,7 +108,7 @@ const tabs = computed<NavNode[]>(() => {
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents', soon: true });
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
     if (props.group.capabilities.content) list.push({ href: href('content'), labelKey: 'group.tab.content', soon: true });
-    list.push({ href: href('hours'), labelKey: 'group.tab.hours', soon: true });
+    list.push({ href: href('hours'), labelKey: 'group.tab.hours' });
     return list;
 });
 
@@ -346,6 +348,10 @@ const pickBanner = (key: string | null) => {
                     :can-create="can.createSchedule"
                     :group-slug="group.slug"
                 />
+
+                <!-- Hours (#408, ADR-0022 §2) — always-on on every Group. The extra-hours
+                     entry form (gated by `can.enterHours`) and the viewer's own records. -->
+                <GroupHours v-else-if="section === 'hours'" :hours="hours" :can-enter="can.enterHours" :group-slug="group.slug" />
 
                 <!-- The capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>
