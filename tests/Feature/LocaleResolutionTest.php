@@ -31,7 +31,7 @@ class LocaleResolutionTest extends TestCase
 
             // Zone A — personal
             'calendar' => ['en' => '/calendar', 'fr' => '/fr/calendrier', 'component' => 'ComingSoon'],
-            'hours' => ['en' => '/hours', 'fr' => '/fr/heures', 'component' => 'ComingSoon'],
+            'hours' => ['en' => '/hours', 'fr' => '/fr/heures', 'component' => 'MyHours'],
             'directory' => ['en' => '/directory', 'fr' => '/fr/annuaire', 'component' => 'members/Index'],
             'documents' => ['en' => '/documents', 'fr' => '/fr/documents', 'component' => 'ComingSoon'],
             'news' => ['en' => '/news', 'fr' => '/fr/nouvelles', 'component' => 'news/Index'],

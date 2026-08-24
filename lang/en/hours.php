@@ -34,4 +34,25 @@ return [
             'updated' => 'Last updated',
         ],
     ],
+
+    // The My Hours destination (#409, ADR-0022 §8) — the Member's own hours across every
+    // Group, by month across a fiscal year, with a year-to-date total.
+    'mine' => [
+        // The renewal question this surface answers.
+        'lead' => 'Every group you have hours in this fiscal year.',
+        // The fiscal-year picker. The label names the year the fiscal year ends in.
+        'pick_year' => 'Fiscal year',
+        'fiscal_year' => 'Fiscal :year',
+        'column' => [
+            'month' => 'Month',
+            'scheduled' => 'Scheduled',
+            'extra' => 'Extra',
+            'total' => 'Total',
+        ],
+        'ytd' => 'Year to date',
+        'empty' => [
+            'heading' => 'No hours recorded yet',
+            'body' => 'When you record hours on a group, they will appear here.',
+        ],
+    ],
 ];

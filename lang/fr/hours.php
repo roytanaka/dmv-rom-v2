@@ -30,4 +30,23 @@ return [
             'updated' => 'Dernière mise à jour',
         ],
     ],
+
+    // La destination Mes heures (#409, ADR-0022 §8) — les heures du membre dans chaque
+    // groupe, par mois sur une année financière, avec un cumul annuel.
+    'mine' => [
+        'lead' => 'Chaque groupe où vous avez des heures pour cette année financière.',
+        'pick_year' => 'Année financière',
+        'fiscal_year' => 'Exercice :year',
+        'column' => [
+            'month' => 'Mois',
+            'scheduled' => 'Planifiées',
+            'extra' => 'Supplémentaires',
+            'total' => 'Total',
+        ],
+        'ytd' => 'Cumul annuel',
+        'empty' => [
+            'heading' => 'Aucune heure enregistrée pour l’instant',
+            'body' => 'Lorsque vous enregistrez des heures dans un groupe, elles apparaissent ici.',
+        ],
+    ],
 ];
