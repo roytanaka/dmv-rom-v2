@@ -114,9 +114,9 @@ it('treats Statistician as a core role with no required capability (ADR-0022 §3
 });
 
 it('attaches the Statistician role to a Group that runs no scheduling and no hours flag', function () {
-    // A plain standing committee — no capability flags on. Since ADR-0022 withdraws
-    // the hours capability, Statistician joins the core roles and attaches anywhere.
-    $group = Group::factory()->standingCommittee()->create();
+    // No capability flags on. Since ADR-0022 withdraws the hours capability,
+    // Statistician joins the core roles and attaches anywhere.
+    $group = Group::factory()->create();
     $membership = GroupMember::factory()->create(['group_id' => $group->id]);
 
     $role = GroupMemberRole::factory()->create([
