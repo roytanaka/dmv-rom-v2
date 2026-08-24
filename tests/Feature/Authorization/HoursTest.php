@@ -197,7 +197,7 @@ it('records the applied delta after the floor, so adjustments sum to extra hours
     $this->actingAs($member)
         ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'hours' => -9]);
 
-    $deltas = HoursAdjustment::query()->pluck('delta');
+    $deltas = HoursAdjustment::query()->orderBy('id')->pluck('delta');
     expect($deltas->all())->toBe([5, -5])
         ->and($deltas->sum())->toBe(HoursRecord::sole()->extra_hours);
 });

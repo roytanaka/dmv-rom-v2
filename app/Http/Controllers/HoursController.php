@@ -33,7 +33,7 @@ class HoursController extends Controller
             $actor,
             $group,
             $request->validated('year_month'),
-            (int) $request->validated('hours', 0),
+            (int) $request->validated('hours'),
             $actor,
         );
 
