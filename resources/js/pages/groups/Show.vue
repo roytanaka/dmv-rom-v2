@@ -62,7 +62,7 @@ const props = defineProps<{
         end_date: string | null;
         parent: Parent | null;
         banner_key: string | null;
-        capabilities: { meetings: boolean; documents: boolean; scheduling: boolean; content: boolean; hours: boolean };
+        capabilities: { meetings: boolean; documents: boolean; scheduling: boolean; content: boolean };
     };
     section: string;
     // UI hints from the policies — drive the officer affordances only; the server
@@ -92,8 +92,10 @@ const ended = computed(() => !props.group.archived && props.group.end_date !== n
 
 // The in-body section tabs. Overview · Roster are always present; Meetings is a real
 // tab when the Group runs meetings. The remaining capabilities render as muted "soon"
-// stubs only when their flag is on — the feature itself lands in a later slice. Hrefs
-// are English-canonical; SectionTabs localises them to the active locale (ADR-0008).
+// stubs only when their flag is on — the feature itself lands in a later slice. Hours
+// is always-on (ADR-0022 §3): its tab renders on every Group and sub-Group, still a
+// muted "soon" stub until the entry surface lands. Hrefs are English-canonical;
+// SectionTabs localises them to the active locale (ADR-0008).
 const tabs = computed<NavNode[]>(() => {
     const href = (section?: string) => (section ? `/groups/${props.group.slug}/${section}` : `/groups/${props.group.slug}`);
     const list: NavNode[] = [
@@ -104,7 +106,7 @@ const tabs = computed<NavNode[]>(() => {
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents', soon: true });
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
     if (props.group.capabilities.content) list.push({ href: href('content'), labelKey: 'group.tab.content', soon: true });
-    if (props.group.capabilities.hours) list.push({ href: href('hours'), labelKey: 'group.tab.hours', soon: true });
+    list.push({ href: href('hours'), labelKey: 'group.tab.hours', soon: true });
     return list;
 });
 

@@ -60,8 +60,8 @@ class Group extends Model
         'has_scheduling',
         'has_content_catalog',
         'has_vetting',
-        'has_hours_stats',
         'has_announcements',
+        'hours_multiplier',
     ];
 
     /**
@@ -86,8 +86,8 @@ class Group extends Model
             'has_scheduling' => 'boolean',
             'has_content_catalog' => 'boolean',
             'has_vetting' => 'boolean',
-            'has_hours_stats' => 'boolean',
             'has_announcements' => 'boolean',
+            'hours_multiplier' => 'integer',
         ];
     }
 

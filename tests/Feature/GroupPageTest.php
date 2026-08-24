@@ -56,6 +56,59 @@ it('404s an unknown slug', function () {
         ->assertNotFound();
 });
 
+/*
+ * Hours section (ADR-0022 §3). Hours is always-on: every Group and sub-Group carries
+ * the Hours menu, at any depth, whether or not anyone has recorded hours there — with
+ * no capability flag to switch it off. The section resolves for any viewer who can
+ * open the Group's page, and is withheld only where the whole page is (a Private Group).
+ */
+
+it('resolves the Hours section on a sub-Group at depth, with no capability flag', function () {
+    // A plain standing committee two levels down — no hours flag exists to switch on.
+    $root = Group::factory()->create();
+    $parent = Group::factory()->create(['parent_id' => $root->id]);
+    $child = Group::factory()->standingCommittee()->create(['parent_id' => $parent->id]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', ['group' => $child, 'section' => 'hours']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('groups/Show')
+            ->where('section', 'hours'));
+});
+
+it('resolves the Hours section on an archived Group that can still be opened', function () {
+    $group = Group::factory()->archived()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'hours']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('group.archived', true)
+            ->where('section', 'hours'));
+});
+
+it('404s the Hours section on a Private Group a viewer cannot open, so it is not leaked', function () {
+    $group = Group::factory()->privateListing()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'hours']))
+        ->assertNotFound();
+});
+
+it('resolves the Hours section under its French path segment /fr/groupes/{group}/heures', function () {
+    $group = Group::factory()->create(['slug' => 'docents-program']);
+    $this->actingAs(Member::factory()->create());
+
+    $this->withLocaleRoutes('fr', function () use ($group) {
+        $this->get("/fr/groupes/{$group->slug}/heures")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('groups/Show')
+                ->where('locale', 'fr'));
+    });
+});
+
 it('renders an archived Group directly but flags it archived', function () {
     $group = Group::factory()->archived()->create();
 

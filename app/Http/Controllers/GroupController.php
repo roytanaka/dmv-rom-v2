@@ -134,13 +134,14 @@ class GroupController extends Controller
                     'slug' => $group->parent->slug,
                 ] : null,
                 // Capability flags drive which section tabs render (the base triad
-                // plus the muted "soon" stubs for a capability the Group runs).
+                // plus the muted "soon" stubs for a capability the Group runs). Hours
+                // is not among them — it is always-on (ADR-0022 §3), so its tab renders
+                // on every Group and needs no flag.
                 'capabilities' => [
                     'meetings' => $group->has_meetings,
                     'documents' => $group->has_documents,
                     'scheduling' => $group->has_scheduling,
                     'content' => $group->has_content_catalog,
-                    'hours' => $group->has_hours_stats,
                 ],
             ],
             'section' => $section,

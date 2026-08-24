@@ -465,6 +465,14 @@ it('turns scheduling on for the demo programs but off for the booking-only Group
         ->and(Group::where('slug', 'outreach')->firstOrFail()->has_scheduling)->toBeFalse();
 });
 
+it('seeds the ROMWalks walks-to-hours multiplier at 2, every other Group at the default 1', function () {
+    // ROMWalks counts each walk as two hours (ADR-0022 §7) — the one Group whose
+    // multiplier differs; the Docents program keeps the org-wide default.
+    expect(Group::where('slug', 'romwalks')->firstOrFail()->hours_multiplier)->toBe(2)
+        ->and(Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail()->hours_multiplier)->toBe(1)
+        ->and(Group::where('slug', 'reception')->firstOrFail()->hours_multiplier)->toBe(1);
+});
+
 it('is idempotent across the scheduling rows — re-seeding heals rather than duplicates', function () {
     $counts = fn () => [
         'schedules' => Schedule::count(),

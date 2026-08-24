@@ -45,8 +45,11 @@ class GroupFactory extends Factory
             'has_scheduling' => false,
             'has_content_catalog' => false,
             'has_vetting' => false,
-            'has_hours_stats' => false,
             'has_announcements' => false,
+            // Hours is always-on (ADR-0022 §3); the multiplier defaults to 1 and is
+            // raised only for a Group that converts activity to hours at a ratio
+            // (ROMWalks → 2).
+            'hours_multiplier' => 1,
         ];
     }
 
@@ -89,7 +92,6 @@ class GroupFactory extends Factory
             'has_documents' => true,
             'has_scheduling' => true,
             'has_content_catalog' => true,
-            'has_hours_stats' => true,
         ]);
     }
 
