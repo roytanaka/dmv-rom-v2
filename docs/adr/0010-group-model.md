@@ -6,6 +6,8 @@ accepted: 2026-06-01
 
 # Group model: one entity for every committee, program, team, and cohort
 
+> **Amendment (2026-08-23, [ADR-0022](0022-hours-and-statistics-model.md)).** The **hours & stats capability is withdrawn**. Every Group and sub-Group carries Hours, so `has_hours_stats` is dropped from `groups` and hours joins **roster** as an always-on capability — the fixed set is now **six** flags, not seven. Consequence: `Role::Statistician` loses its `requiredCapability()` gate and attaches to any Group, like the core roles. The Group row also gains an `hours_multiplier` (default `1`, ROMWalks `2`), moving legacy's hardcoded per-Group conversion out of code and into data. See ADR-0022 §3 and §7.
+
 > **Amendment (2026-07-06, [ADR-0019](0019-group-listing-visibility-and-parentage-authority.md)).** A **`listing_visibility`** facet joins the Group (`Public` / `Group` / `Private`) — governing who sees a Group in navigation, and (for `Private` only) who may open it at all. It is a stored, explicitly-set attribute, **orthogonal to** the three axes and the capability set. The same decision refined the **Parentage** relationship kind (§Relationship kinds #2) to a structure/content split. See ADR-0019.
 
 > **Amendment (2026-07-07, [ADR-0020](0020-groups-nav-partition-and-sidebar-shape.md)).** Root-DMV membership is **derived from a Member's `Category`** (active standing), not a stored membership row: the root Group is the **My Groups org node** (its Roster _is_ the Directory) and a navigation **leaf** that does not expand into the tree. See ADR-0020.

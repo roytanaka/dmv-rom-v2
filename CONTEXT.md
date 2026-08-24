@@ -64,7 +64,7 @@ The Role-switcher's escape hatch back to the original operator, from any imperso
 _Avoid_: "return to super" — the mechanism keys on the stored impersonator id, not on tier; and the operator is the **Support-operator** who began the session, who is deliberately _not_ super-tier (that split is the point — [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
 
 **Group**:
-The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (roster, meetings, documents, scheduling, content, stats). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
+The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, content, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
 
 **Committee**:
 A **Kind** of **Group**: a standing, org-scoped group that meets and holds documents but runs no shift scheduling (governance, operations, social). One Kind among several — not the central entity.
@@ -93,6 +93,30 @@ _Avoid_: confusing with **Login** (authentication) — a Sign-up is _staffing a 
 Who may take it: `group` (the default — Members of the owning Group, in a per-Group standing that permits sign-up) or `open` (any Member who can read the **Schedule**). This is what makes cross-Group participation a **read filter** rather than a relationship — there is no second row and nothing to keep in sync. A **Scheduler** placing a named volunteer is not bound by it.
 _Avoid_: reading audience as an eligibility gate. Two separate floors decide whether a person may work at all (`Category::canSignUp()` DMV-wide, `MembershipStatus::canSignUp()` per Group); audience only decides who is shown a Sign-up button.
 
+**Hours record**:
+One Member's hours in one **Group** for one **calendar month** — the unit the department has reported in since 2013, ported unchanged from legacy's `MemberActivity` ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). Model `HoursRecord`, table `hours_records`; the grain is (Member, Group, month, optional **Meeting**). It carries **scheduled hours** and **extra hours** as whole integers, and a derived `total_hours` that is their sum. Every Group has hours; there is no capability flag to switch off.
+_Avoid_: "activity" and legacy's `MemberActivity` (see **Activity** under Legacy vocabulary — the word is already taken); and reading the record as a timesheet entry — it is a **monthly bucket**, not a dated row, so it has no start time, no duration, and no description.
+
+**Extra hours**:
+The half of an **Hours record** a Member **enters for themselves**: work done outside a **Shift** and outside a meeting. Any logged-in Member may enter them on any Group whose page they can open, for the current month or the previous one, because anyone is free to help any Group. Entry is **additive** — the number typed is added to what is on file, negatives correct a mistake, and the result floors at zero.
+_Avoid_: reading "extra" as _overtime_ or _bonus_. It means _not already counted_ — the entry form says so out loud, telling Members to exclude scheduled shifts and meetings because those arrive by other routes.
+
+**Scheduled hours**:
+The half of an **Hours record** derived from what a Member was scheduled to work, **stored rather than computed on read**. A Group officer runs _recalculate this month_ and the month's total is overwritten from that Group's **Sign-ups**. Storing is deliberate: deriving at report time would let a **Shift** edited years later silently restate a closed **fiscal year**. Recalculation is permitted for the current fiscal year only.
+_Avoid_: assuming the number tracks Sign-ups live. It tracks them **as of the last recalculation**.
+
+**Meeting hours**:
+Hours credited for attending a **Group**'s meeting. Stored on an **Hours record** that names the Meeting, and counted inside **extra hours** rather than as a third column — legacy's shape, kept. **No entry path is built** in the first pass: recording them needs a meeting attendance roster, which is a Meetings feature, not an Hours one. Historical rows import and their reports run.
+_Avoid_: treating them as a separate stored total; the only thing distinguishing them is the Meeting on the record.
+
+**Hours adjustment**:
+One append-only row recording a single change to an **Hours record**: the delta, and who made it. Model `HoursAdjustment`, table `hours_adjustments`. It exists because the monthly bucket is overwritten in place, so without it a mistyped number is unattributable and fixable only by another delta. Behind an unchanged entry screen; nobody sees it but the people who have to answer "who put 200 hours on this Member."
+_Avoid_: calling it an audit _log_ in the sense of a system-wide trail — it covers hours writes and nothing else.
+
+**Fiscal year**:
+DMV's reporting year: **1 April to 31 March**, named for the year it ends in. "Fiscal 2026" runs 2025-04 through 2026-03. Every hours report is a twelve-month matrix over one fiscal year with a year-to-date column.
+_Avoid_: the calendar year, and "FY26"-style shorthand; the reports say _Fiscal year ending March 31, 2026_.
+
 **Chrome**:
 The application's persistent **frame** — the top bar, side rail, breadcrumb strip, and footer that wrap every screen and stay put while the page content changes. A UI term (after [GUI chrome](https://www.nngroup.com/articles/browser-and-gui-chrome/)), unrelated to the web browser. The Part 3 app shell _is_ the chrome; product screens render inside it.
 _Avoid_: confusing with the Google Chrome browser. Synonyms "shell" / "frame" are fine.
@@ -118,6 +142,7 @@ _Avoid_: epic, spec, brief, initiative — all refer to the same artifact in oth
 - A **Member** may belong to zero or more **Groups**; each **Membership** carries the **role(s)** that Member holds in that Group
 - A **Group** has one parent (one tree, DMV at the root); **Committee** and **Program** are Kinds of Group
 - A **Group** with the scheduling capability publishes **Schedules**; a **Schedule** holds **Shifts**; a **Member** takes a **Shift** via a **Sign-up**, and one Shift holds up to `capacity` Sign-ups
+- Every **Group** holds **Hours records**, one per **Member** per month; a Group's report totals its own and every descendant's, to any depth
 - **Login** to the app grants the **Member** their session and their authorization scope
 
 ## Example dialogue
@@ -171,7 +196,7 @@ _Avoid_: bare "event". Say **Schedule**, _the occasion_, or **Group**.
 
 **Activity** (legacy `specialActivities`, `ActivityID`):
 An entry in Visitor Wayfinders' hand-maintained list of shift kinds, chosen from a picker when authoring. In practice many entries name a **place** ("Level 1 Oslo gate", "Level 2 dinosaurs") rather than a kind of work, so activity and location are conflated at source and will not split cleanly on migration.
-Separately, "member activity" in reporting contexts means **hours and statistics rows** — an unrelated use.
+Separately, "member activity" in reporting contexts means **hours and statistics rows** — an unrelated use, and the one that named the table (see **MemberActivity** below).
 We **do** keep a per-Group list, and we call it a **shift kind** (`ShiftKind`), not ADR-0015's _Catalog_ — see the glossary above.
 
 **Pattern** (legacy "daily pattern", "weekly pattern", "two-week pattern", "copy pattern from"):
@@ -185,7 +210,7 @@ Reception's two-week pattern is the second wearing the clothes of the first: its
 _Avoid_: "pattern" unqualified. Say _shift template_ or _recurring Sign-up_ — and expect to be describing legacy when you do.
 
 **Count** (legacy column):
-Two meanings, neither of them capacity: **duration in hours** (Visitor Guides, Wayfinders, Reception, Gallery Interpreters) and **quantity of tours given** (Docents, GDR, and Gallery Interpreters again — the same column, both ways). The two are reconciled outside the tables by a hardcoded per-Group multiplier (`hoursper`: every Group `1`, **Walker `2`**), so any migration that maps `Count → Count` silently corrupts a Group's hours. Capacity is always a _different_ column (`Required`, `PresentersNeeded`) or it is N identical rows. A name to retire, never to carry forward — our **Shift** derives duration from its start and end times.
+Two meanings, neither of them capacity: **duration in hours** (Visitor Guides, Wayfinders, Reception, Gallery Interpreters) and **quantity of tours given** (Docents, GDR, and Gallery Interpreters again — the same column, both ways). The two are reconciled outside the tables by a hardcoded per-Group multiplier (`hoursper`: every Group `1`, **Walker `2`**), so any migration that maps `Count → Count` silently corrupts a Group's hours. The multiplier survives, as data rather than code: [ADR-0022](docs/adr/0022-hours-and-statistics-model.md) puts an `hours_multiplier` on the Group (default `1`, ROMWalks `2`), replacing the `2*$total` hardcoded in `walker.php`. Capacity is always a _different_ column (`Required`, `PresentersNeeded`) or it is N identical rows. A name to retire, never to carry forward — our **Shift** derives duration from its start and end times.
 
 **Special** (legacy table prefix and menu symbol):
 Means **Visitor Wayfinders**, the Group. Legacy names its tables `specialEvents`, `specialSchedule`, `specialActivities`, `specialRoles`.
@@ -197,6 +222,16 @@ _Avoid_: reading "special" as an adjective. It is that one Group's short name.
 - _Wayfinder_, the planning method used for large efforts, which produces a map issue labelled `wayfinder:map` and its decision tickets.
 
 No relationship whatsoever. Both appear in this repo's issues.
+
+**MemberActivity** (legacy table `dmv_MemberActivity`):
+The whole legacy hours feature in one table — 74,248 rows, current through 2026-05. **We call this an Hours record** (see the glossary above), and unlike the scheduling tables it is ported almost unchanged ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). Four things to know before touching it:
+
+- `committee` is a **symbol string**, not a foreign key, and a **sub-committee's row stores its parent's symbol**. That is why legacy's rollup needs no code, and why our port needs some.
+- `Total_Hours` is not written by any PHP. Two **database triggers** maintain it as `Total_Scheduled + Extra_Hours`. We keep the identity and drop the triggers.
+- **Meeting hours hide inside `Extra_Hours`**, distinguished only by a non-zero `MeetingID`.
+- `Interactions` and `Visitors` are **dead columns** — `Interactions` is zero on all 74,248 rows despite having its own entry dialog.
+
+_Avoid_: the name **Activity** for our model (already three things — see above), and mapping `subCommitteeID=0` as a real value; it is a sentinel meaning _the committee itself_.
 
 **MIS** (legacy eligibility value `99`, labelled "MIS only"):
 A coarse cross-Group audience for a legacy shift. **Not** a designation stored on a Member — it is evaluated on the spot as active membership in any of six Groups: Gallery Interpreters, Docents, GDR, Visitor Guides, Outreach, Visitor Wayfinders. A hardcoded union that nobody maintains.
