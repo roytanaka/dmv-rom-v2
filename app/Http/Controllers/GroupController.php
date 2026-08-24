@@ -167,6 +167,11 @@ class GroupController extends Controller
                 // Member and a non-scheduling Group both get no control. UI hint only;
                 // RecalculateHoursRequest re-checks on POST.
                 'recalculateHours' => $request->user()->can('recalculate', [HoursRecord::class, $group]),
+                // `viewReports` drives the Hours tab's officer link to the Group's fiscal-year
+                // report (#411, ADR-0022 §5) — a Chair or Statistician of the Group or any
+                // ancestor, or the super-tier. UI hint only; the report route re-checks the
+                // viewReports gate on the way in.
+                'viewReports' => $request->user()->can('viewReports', [HoursRecord::class, $group]),
             ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work

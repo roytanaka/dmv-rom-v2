@@ -38,6 +38,10 @@ return [
     // (comme l'onglet group.tab.scheduling) ; {group} et {schedule} restent verbatim.
     'groups.scheduling.show' => 'groupes/{group}/horaire/{schedule}',
 
+    // Rapport annuel des heures d'un groupe (#411, ADR-0022 §5). « hours/report » →
+    // « heures/rapport » ; {group} reste verbatim.
+    'groups.hours.report' => 'groupes/{group}/heures/rapport',
+
     // Paramètres → Profil / Mot de passe (#229, PRD #228). « settings » →
     // « parametres » (sans accent dans l'URL, comme officer.settings).
     'settings' => 'parametres',

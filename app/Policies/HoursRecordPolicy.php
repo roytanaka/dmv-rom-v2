@@ -45,6 +45,31 @@ class HoursRecordPolicy
     }
 
     /**
+     * Who may read a Group's fiscal-year reports (ADR-0022 §4, §5): a Chair or Statistician
+     * **of that Group**, a Chair or Statistician of **any ancestor** Group however far up the
+     * tree, or the super-tier (via the single `Gate::before`). The ancestor clause is legacy's
+     * parent-chair test, kept and generalized past two levels — it is the one place a read
+     * crosses the parentage boundary ADR-0019 draws for content, because hours are a statistic
+     * that aggregates, not content (§5).
+     *
+     * Reports are deliberately **not** open reading: an ordinary Member of the Group gets
+     * nothing, not even a Group total, and a Member of a sibling Group gets nothing either —
+     * only the parent relationship widens a report. This is stricter than the open create half.
+     */
+    public function viewReports(Member $actor, Group $group): bool
+    {
+        // Walk to the root by explicit query — reading the `parent` relation lazily would trip
+        // strict mode's lazy-load guard, and the tree is only tens of Groups deep.
+        for ($node = $group; $node !== null; $node = $node->parent_id === null ? null : Group::find($node->parent_id)) {
+            if ($actor->canActAs(Role::Chair, $node) || $actor->canActAs(Role::Statistician, $node)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Who may recalculate a Group's scheduled hours from its Sign-ups (ADR-0022 §2): a
      * Scheduler or Chair (Chair-implication folded in by {@see Member::canActAs()}) of a Group
      * that runs scheduling. This hangs off the **scheduling** capability, not the hours one —

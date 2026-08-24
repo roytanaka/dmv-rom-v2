@@ -122,6 +122,26 @@ class Group extends Model
     }
 
     /**
+     * Every Group below this one in the tree, to any depth — the subtree rollup for hours
+     * reporting (ADR-0022 §5). Not a relation: the fiscal-year matrix crosses the parentage
+     * boundary that ADR-0019 draws for content precisely because hours are a statistic, not
+     * content, so a parent's total matches the sum of its children.
+     *
+     * A recursive load, one query per node, deliberately: the tree is tens of Groups (§ model
+     * layer), so a materialized path is not warranted. Queries rather than walking the
+     * `children` relation so strict mode's lazy-load guard never bites.
+     *
+     * @return Collection<int, Group>
+     */
+    public function descendants(): Collection
+    {
+        return static::query()
+            ->where('parent_id', $this->getKey())
+            ->get()
+            ->flatMap(fn (Group $child): Collection => collect([$child])->concat($child->descendants()));
+    }
+
+    /**
      * Every membership in this Group — the roster source.
      *
      * @return HasMany<GroupMember, $this>

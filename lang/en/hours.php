@@ -63,4 +63,24 @@ return [
             'body' => 'When you record hours on a group, they will appear here.',
         ],
     ],
+
+    // The Group fiscal-year report (#411, ADR-0022 §5) — a Member × twelve-month matrix with
+    // the Group's own hours and its subtree hours side by side, for a Chair or Statistician.
+    'report' => [
+        'title' => 'Hours report',
+        // The officer-only link from the Group Hours tab to this report.
+        'view' => 'View the group hours report',
+        'lead' => 'Every member\'s hours this fiscal year, and how the group totals up.',
+        'pick_year' => 'Fiscal year',
+        'fiscal_year' => 'Fiscal :year',
+        'column' => [
+            'member' => 'Member',
+            'ytd' => 'Year to date',
+        ],
+        // The two side-by-side rollups below the matrix.
+        'own' => 'This group',
+        'subtree' => 'Including sub-groups',
+        // A fiscal year in which the group recorded nothing.
+        'empty' => 'No hours recorded for this group in this fiscal year.',
+    ],
 ];

@@ -57,4 +57,23 @@ return [
             'body' => 'Lorsque vous enregistrez des heures dans un groupe, elles apparaissent ici.',
         ],
     ],
+
+    // Le rapport annuel du groupe (#411, ADR-0022 §5) — une matrice Membre × douze mois avec
+    // les heures propres du groupe et celles de son sous-arbre côte à côte, pour un président
+    // ou un statisticien.
+    'report' => [
+        'title' => 'Rapport des heures',
+        // Le lien réservé aux officiers depuis l'onglet Heures du groupe vers ce rapport.
+        'view' => 'Voir le rapport des heures du groupe',
+        'lead' => 'Les heures de chaque membre pour cette année financière, et le total du groupe.',
+        'pick_year' => 'Année financière',
+        'fiscal_year' => 'Exercice :year',
+        'column' => [
+            'member' => 'Membre',
+            'ytd' => 'Cumul annuel',
+        ],
+        'own' => 'Ce groupe',
+        'subtree' => 'Sous-groupes compris',
+        'empty' => 'Aucune heure enregistrée pour ce groupe durant cette année financière.',
+    ],
 ];

@@ -71,7 +71,14 @@ const props = defineProps<{
     // `createMeeting` gates the Meetings tab's "New meeting" control (#193);
     // `manageRoster` gates the Roster tab's officer CRUD (#192);
     // `createSchedule` gates the Scheduling tab's "New schedule" control (#354).
-    can: { update: boolean; createMeeting: boolean; manageRoster: boolean; createSchedule: boolean; enterHours: boolean };
+    can: {
+        update: boolean;
+        createMeeting: boolean;
+        manageRoster: boolean;
+        createSchedule: boolean;
+        enterHours: boolean;
+        viewReports: boolean;
+    };
     roster: RosterMember[];
     rosterMeta: RosterMeta;
     meetings: Meeting[];
@@ -351,7 +358,13 @@ const pickBanner = (key: string | null) => {
 
                 <!-- Hours (#408, ADR-0022 §2) — always-on on every Group. The extra-hours
                      entry form (gated by `can.enterHours`) and the viewer's own records. -->
-                <GroupHours v-else-if="section === 'hours'" :hours="hours" :can-enter="can.enterHours" :group-slug="group.slug" />
+                <GroupHours
+                    v-else-if="section === 'hours'"
+                    :hours="hours"
+                    :can-enter="can.enterHours"
+                    :can-view-reports="can.viewReports"
+                    :group-slug="group.slug"
+                />
 
                 <!-- The capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>
