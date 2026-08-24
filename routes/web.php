@@ -273,6 +273,17 @@ Route::post('groups/{group}/hours', [HoursController::class, 'store'])
     ->middleware(['auth'])
     ->name('hours.store');
 
+// Recalculate scheduled hours from Sign-ups (#410, PRD #406, ADR-0022 §2). A Chair or
+// Scheduler of a scheduling Group runs "recalculate this month": every Member's scheduled
+// hours for the month are replaced (never added) with the summed durations of the past Shifts
+// they hold a Sign-up on, the Group's `hours_multiplier` applied once. Structurally authorized
+// in RecalculateHoursRequest, which delegates to the HoursRecordPolicy's `recalculate` gate —
+// the scheduling gate, not the hours-entry one — and bounds the month to the current fiscal
+// year. Nests under the owning Group (bound by slug); the read surface lives on `groups.show`.
+Route::post('groups/{group}/hours/recalculate', [HoursController::class, 'recalculate'])
+    ->middleware(['auth'])
+    ->name('hours.recalculate');
+
 // Dev/QA role-switcher (ADR-0009 dev half, PRD #220). Layer one of the two-layer
 // environment boundary: the become/stop endpoints are registered only outside
 // production, so in production they do not exist (404) regardless of any UI state.

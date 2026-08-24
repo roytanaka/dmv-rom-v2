@@ -22,6 +22,14 @@ return [
         'whole_hours' => 'Enter whole hours — we are not concerned with minutes.',
     ],
 
+    // Recalculating a Group's scheduled hours from its Sign-ups (#410, ADR-0022 §2) — the
+    // officer control on a scheduling Group and its closed-year refusal.
+    'recalc' => [
+        'button' => 'Recalculate scheduled hours',
+        // Surfaced from the Form Request when a month outside the current fiscal year is asked.
+        'closed_year' => 'Scheduled hours can only be recalculated for the current fiscal year.',
+    ],
+
     // The Member's own record list below the form.
     'records' => [
         'heading' => 'Your hours in this group',

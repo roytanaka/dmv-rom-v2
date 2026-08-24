@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Enums\AccessTier;
 use App\Enums\ListingVisibility;
+use App\Enums\Role;
 use App\Models\Group;
 use App\Models\Member;
 
@@ -41,6 +42,21 @@ class HoursRecordPolicy
     {
         return $actor->category->accessTier() !== AccessTier::None
             && $this->canOpen($actor, $group);
+    }
+
+    /**
+     * Who may recalculate a Group's scheduled hours from its Sign-ups (ADR-0022 §2): a
+     * Scheduler or Chair (Chair-implication folded in by {@see Member::canActAs()}) of a Group
+     * that runs scheduling. This hangs off the **scheduling** capability, not the hours one —
+     * the derived half of the record is a scheduling action, so it does not appear on a Group
+     * that runs no scheduling (the control would have nothing to do), and an ordinary Member
+     * cannot rewrite the derived half of a peer's record. The same gate the SchedulePolicy
+     * uses for every authoring ability.
+     */
+    public function recalculate(Member $actor, Group $group): bool
+    {
+        return $group->has_scheduling
+            && $actor->canActAs(Role::Scheduler, $group);
     }
 
     /**

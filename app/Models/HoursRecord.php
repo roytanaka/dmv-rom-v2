@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\OrgTime;
 use Database\Factories\HoursRecordFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -141,6 +143,94 @@ class HoursRecord extends Model
             ]);
 
             return $record;
+        });
+    }
+
+    /**
+     * Recalculate a Group's scheduled hours for one month from its Sign-ups (ADR-0022 §2) —
+     * the derived half of the record, the opposite of {@see enterExtra()}. For every Member
+     * holding a Sign-up on a **past** Shift on one of this Group's own Schedules in the given
+     * month, the Shift durations are summed, the Group's `hours_multiplier` is applied once,
+     * and the result **replaces** that Member's scheduled hours for the month. It never adds:
+     * re-running is idempotent, so a closed month reads the same numbers twice.
+     *
+     * "Past" is ended-before-now on the org wall clock — a month still in progress counts only
+     * the Shifts already worked, never the ones yet to come. Replace-not-add is honoured to its
+     * conclusion: an existing row whose Sign-ups have since been removed is restated to zero,
+     * not left stale.
+     *
+     * Two things it deliberately does not touch. **Extra hours** are a Member's own testimony
+     * and survive every recalculation — only `scheduled_hours` is rewritten, and `total_hours`
+     * is recomputed from the pair. And it appends **no Hours adjustment** (§6): the adjustment
+     * log records human testimony, not derivation, so a derived write leaves no entry.
+     *
+     * Only the no-meeting bucket ({@see NO_MEETING}) carries scheduled hours, exactly as
+     * legacy writes them at `subCommitteeID=0`; meeting rows carry extra hours only and are
+     * left alone. The fiscal-year bound (§2, current year only) is enforced upstream at the
+     * Form Request, not here — this method restates whatever month it is handed.
+     *
+     * Shift membership and past-ness are resolved in PHP against the org zone so neither the
+     * month bucket nor the boundary depends on the database engine (date and zone handling
+     * differ across engines — the sandbox note).
+     */
+    public static function recalculateScheduled(Group $group, string $yearMonth): void
+    {
+        $zone = config('app.org_timezone');
+        $asOf = OrgTime::now();
+
+        $shifts = Shift::query()
+            ->whereHas('schedule', fn (Builder $query) => $query->where('group_id', $group->getKey()))
+            ->where('ends_at', '<=', $asOf)
+            ->with('signUps')
+            ->get()
+            ->filter(fn (Shift $shift) => $shift->starts_at->setTimezone($zone)->format('Ym') === $yearMonth);
+
+        // Sum each Member's worked minutes across those Shifts, keyed by member id.
+        $minutesByMember = [];
+        foreach ($shifts as $shift) {
+            $minutes = (int) $shift->starts_at->diffInMinutes($shift->ends_at);
+            foreach ($shift->signUps as $signUp) {
+                $minutesByMember[$signUp->member_id] = ($minutesByMember[$signUp->member_id] ?? 0) + $minutes;
+            }
+        }
+
+        DB::transaction(function () use ($minutesByMember, $group, $yearMonth): void {
+            // Every existing no-meeting row for the month, so replace-not-add can restate a
+            // Member whose Sign-ups were removed down to zero rather than leaving it stale.
+            $existing = self::query()
+                ->where('group_id', $group->getKey())
+                ->where('year_month', $yearMonth)
+                ->where('meeting_id', self::NO_MEETING)
+                ->get()
+                ->keyBy('member_id');
+
+            $memberIds = collect($minutesByMember)->keys()
+                ->merge($existing->keys())
+                ->unique();
+
+            foreach ($memberIds as $memberId) {
+                // The multiplier applies once, to the summed minutes, before the whole-hour
+                // conversion — Walker's `2 *` moved from PHP into data (§7).
+                $hours = (int) round((($minutesByMember[$memberId] ?? 0) * $group->hours_multiplier) / 60);
+                $record = $existing->get($memberId);
+
+                // A Member with neither an existing row nor any derived hours needs no row.
+                if ($record === null && $hours === 0) {
+                    continue;
+                }
+
+                $record ??= self::make([
+                    'member_id' => $memberId,
+                    'group_id' => $group->getKey(),
+                    'year_month' => $yearMonth,
+                    'meeting_id' => self::NO_MEETING,
+                    'extra_hours' => 0,
+                ]);
+
+                $record->scheduled_hours = $hours;
+                $record->recomputeTotal();
+                $record->save();
+            }
         });
     }
 
