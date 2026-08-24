@@ -1,0 +1,7 @@
+/* PROTOTYPE HARNESS (#405) — throwaway.
+   The app's real stylesheet, plus the source globs Tailwind needs: the harness's
+   Vite root is prototype-harness/, so automatic content detection never reaches
+   resources/js and every utility class would be tree-shaken away. */
+@import '../resources/css/app.css';
+
+@source '../resources/js';
