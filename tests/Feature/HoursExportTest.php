@@ -64,12 +64,15 @@ function exportRoot(): Group
 }
 
 /**
- * Parse a streamed CSV body into rows of string cells, dropping the trailing blank line.
+ * Parse a streamed CSV body into rows of string cells, stripping the UTF-8 BOM that
+ * CsvExport::download writes and dropping the trailing blank line.
  *
  * @return list<list<string>>
  */
 function csvRows(string $csv): array
 {
+    $csv = str_starts_with($csv, "\xEF\xBB\xBF") ? substr($csv, 3) : $csv;
+
     return collect(explode("\n", trim($csv)))
         ->map(fn (string $line) => str_getcsv($line, ',', '"', ''))
         ->all();
