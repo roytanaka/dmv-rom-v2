@@ -17,6 +17,7 @@ use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupStewardship;
+use App\Models\HoursRecord;
 use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
@@ -91,6 +92,14 @@ class DemoSeeder extends Seeder
     public const COORDINATOR_EMAIL = PersonaCatalogue::SCHEDULER_EMAIL;
 
     /**
+     * The base for the synthetic `meeting_id` on a seeded meeting-hours row. High enough
+     * that it can never collide with a real `meetings` id, and non-zero so the row reads
+     * as a meeting row rather than the no-meeting sentinel
+     * ({@see HoursRecord::NO_MEETING}). Nothing joins to it — see {@see meetingHours()}.
+     */
+    private const MEETING_ID_BASE = 900000;
+
+    /**
      * Slugs created so far this run — a guard so two curated nodes that slugify
      * to the same value fail loudly instead of silently merging via firstOrCreate.
      *
@@ -105,6 +114,7 @@ class DemoSeeder extends Seeder
         $this->roster();
         $this->bulkRoster();
         $this->scheduling();
+        $this->hours();
     }
 
     /**
@@ -922,6 +932,208 @@ class DemoSeeder extends Seeder
                 'shift_kind_id' => $kind?->id,
             ],
         );
+    }
+
+    /**
+     * Hours go live (PRD #406, ADR-0022). Seeded last — after every Group, Member,
+     * membership and Sign-up exists — so a record can hang off a real roster.
+     *
+     * The reports are the point of the feature, and a report with no rows prints as an
+     * empty page, so this fills two fiscal years across the tree: the one that closed,
+     * in full, and the one under way, up to the current month (nobody logs hours they
+     * have not worked yet). Two years so the fiscal-year picker has somewhere to go.
+     *
+     * The spread is chosen so each report has something to show:
+     * - **Scheduled hours** land only on Groups that run scheduling, so the Summary
+     *   Committee Statistics scheduled section has rows and the non-scheduling Groups
+     *   are correctly absent from it (story 50).
+     * - **Extra hours** land on every Group, scheduling or not, so a committee that
+     *   runs no roster still reports work.
+     * - **Meeting hours** land on Groups that hold meetings, as rows carrying a
+     *   non-zero `meeting_id`, so the Member Meeting Hours summary and the detailed
+     *   report's meetings column are not blank (stories 46, 51).
+     * - Rows land on the **DMV root itself** and on Groups three levels down, so the
+     *   own-versus-subtree rollup shows two different numbers (stories 41, 42, 52).
+     * - Every fifth Member records nothing anywhere, so Members with Zero Hours,
+     *   Zero Shift Hours and Zero Extra Hours all have names to list (stories 54, 55).
+     *
+     * Faker-free and idempotent, like the rest of this seeder. Numbers come from
+     * {@see spread()} — a deterministic step on the ids, not `fake()`, which is absent
+     * from the `--no-dev` staging build — and every row is written to an **absolute**
+     * value rather than added to what is on file, so a reseed heals instead of doubling.
+     * That is why this does not call {@see HoursRecord::enterExtra()}: the real entry
+     * path is deliberately additive (ADR-0022 §2), which is the one thing a re-runnable
+     * seeder cannot be.
+     *
+     * The seeded `scheduled_hours` are final numbers with the Group's `hours_multiplier`
+     * already baked in, exactly as the legacy importer's rows are (ADR-0022 §7) —
+     * nothing here re-applies it.
+     */
+    private function hours(): void
+    {
+        $author = Member::where('email', self::CHAIR_EMAIL)->firstOrFail();
+
+        // Never a month still to come: the current fiscal year stops at this month, and
+        // the closed one runs its full twelve. Lexical comparison is safe on YYYYMM.
+        $thisMonth = OrgTime::now()->format('Ym');
+        $currentFiscalYear = OrgTime::currentFiscalYear();
+
+        $months = [];
+        foreach ([$currentFiscalYear - 1, $currentFiscalYear] as $fiscalYear) {
+            foreach (OrgTime::fiscalYearMonths($fiscalYear) as $yearMonth) {
+                if ($yearMonth <= $thisMonth) {
+                    $months[] = $yearMonth;
+                }
+            }
+        }
+
+        // Container sections are page-less (PRD #289) and carry no roster, so they carry
+        // no hours; every other Group in the tree does, the root included.
+        $groups = Group::where('kind', '!=', Kind::Container)->orderBy('id')->get();
+
+        foreach ($groups as $group) {
+            $this->groupHours($group, $months, $author);
+        }
+    }
+
+    /**
+     * Fill one Group's hours across the seeded months. Recorders are drawn from the
+     * Group's living roster — never a departed Member, who cannot accrue hours
+     * (ADR-0022 §4) — capped at a handful so the fiscal-year matrix prints on a page
+     * rather than running to twenty rows a Group.
+     *
+     * Every fifth Member by id is held back entirely, so the zero-hours reports have a
+     * stable set of names rather than an empty list.
+     *
+     * @param  list<string>  $months
+     */
+    private function groupHours(Group $group, array $months, Member $author): void
+    {
+        $members = Member::whereHas('memberships', function ($query) use ($group) {
+            $query->where('group_id', $group->id)
+                ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased]);
+        })
+            ->orderBy('id')
+            ->take(6)
+            ->get()
+            ->reject(fn (Member $member): bool => $member->id % 5 === 0);
+
+        foreach ($members as $member) {
+            foreach ($months as $index => $yearMonth) {
+                $this->memberMonthHours($group, $member, $yearMonth, $index, $author);
+            }
+        }
+    }
+
+    /**
+     * One Member's hours in one Group for one month — the grain (ADR-0022 §1). Roughly
+     * two months in three carry a row, so the twelve-month matrix has the gaps a real
+     * year has rather than reading as a solid block.
+     *
+     * `total_hours` is never written directly: the pair is set and
+     * {@see HoursRecord::recomputeTotal()} derives it, so the seeded rows satisfy the
+     * same identity every write path does (§1).
+     */
+    private function memberMonthHours(Group $group, Member $member, string $yearMonth, int $index, Member $author): void
+    {
+        $seed = $member->id * 977 + $group->id * 31 + $index;
+
+        if ($this->spread($seed, 0, 2) === 0) {
+            return;
+        }
+
+        $scheduled = $group->has_scheduling ? $this->spread($seed + 1, 0, 12) : 0;
+        $extra = $this->spread($seed + 2, 0, 6);
+
+        if ($scheduled === 0 && $extra === 0) {
+            return;
+        }
+
+        $record = HoursRecord::firstOrNew([
+            'member_id' => $member->id,
+            'group_id' => $group->id,
+            'year_month' => $yearMonth,
+            'meeting_id' => HoursRecord::NO_MEETING,
+        ]);
+
+        $record->scheduled_hours = $scheduled;
+        $record->extra_hours = $extra;
+        $record->recomputeTotal();
+        $record->save();
+
+        $this->hoursAdjustments($record, $extra, $author);
+
+        if ($group->has_meetings && $this->spread($seed + 3, 0, 3) === 0) {
+            $this->meetingHours($group, $member, $yearMonth, $seed);
+        }
+    }
+
+    /**
+     * The append-only trail behind one record's extra hours (ADR-0022 §6). Written only
+     * on first seed — an existing trail is left alone, because the log is append-only
+     * and a reseed must not lengthen it.
+     *
+     * Every seventh record carries a correction as well as its original entry, so the
+     * log shows the shape it has in life: an overstatement and its negative fix, the two
+     * deltas still summing to the record's `extra_hours`.
+     */
+    private function hoursAdjustments(HoursRecord $record, int $extra, Member $author): void
+    {
+        if ($extra === 0 || $record->adjustments()->exists()) {
+            return;
+        }
+
+        $deltas = $record->id % 7 === 0 ? [$extra + 2, -2] : [$extra];
+
+        foreach ($deltas as $delta) {
+            $record->adjustments()->create(['delta' => $delta, 'created_by' => $author->id]);
+        }
+    }
+
+    /**
+     * A month's meeting hours for one Member — a row carrying a non-zero `meeting_id`,
+     * which is how meeting hours are distinguished from ordinary extra hours (ADR-0022
+     * §1, the importer's note).
+     *
+     * The id is synthetic. This seeder creates no Meetings and meeting-hours entry is
+     * out of the first pass (§2), so the row carries exactly the shape the legacy
+     * importer produces for a meeting with no v2 counterpart: a non-zero id nothing
+     * joins to. The reports only ask whether it is the no-meeting sentinel, so they read
+     * correctly. Derived from the month, so it is stable and a reseed heals the same row
+     * instead of adding a second.
+     *
+     * No adjustment is appended: the trail records a Member's own testimony, and meeting
+     * hours come from an attendance roster, not from the entry form.
+     */
+    private function meetingHours(Group $group, Member $member, string $yearMonth, int $seed): void
+    {
+        $record = HoursRecord::firstOrNew([
+            'member_id' => $member->id,
+            'group_id' => $group->id,
+            'year_month' => $yearMonth,
+            'meeting_id' => self::MEETING_ID_BASE + (int) $yearMonth % 100,
+        ]);
+
+        $record->scheduled_hours = 0;
+        $record->extra_hours = $this->spread($seed + 4, 1, 3);
+        $record->recomputeTotal();
+        $record->save();
+    }
+
+    /**
+     * A deterministic number in `[$min, $max]` from a seed — this seeder's stand-in for
+     * `fake()`, which is a dev-only dependency absent from the `--no-dev` staging build.
+     * The same seed always gives the same number, so a local reseed and a staging deploy
+     * read identically, and a screenshot taken today still matches next week.
+     *
+     * `crc32` rather than a linear step, because a linear step is not mixed enough for
+     * this. A classic LCG multiplier shares small factors with the ranges here, so
+     * consecutive seeds walk a short repeating cycle — which in a twelve-month matrix
+     * shows up as whole columns of zeros, exactly the thing a demo report must not have.
+     */
+    private function spread(int $seed, int $min, int $max): int
+    {
+        return $min + crc32((string) $seed) % ($max - $min + 1);
     }
 
     /**
