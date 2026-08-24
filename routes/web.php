@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupMemberController;
+use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
@@ -252,6 +253,17 @@ Route::patch('memberships/{membership}', [GroupMemberController::class, 'update'
 Route::delete('memberships/{membership}', [GroupMemberController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('group-members.destroy');
+
+// Extra-hours entry (#408, PRD #406, ADR-0022 §2). A Member records the hours they spent
+// helping a Group, on that Group's Hours tab — additive, floored at zero, current or
+// previous month only. Structurally authorized in StoreHoursRecordRequest, which delegates
+// to the HoursRecordPolicy (any participating Member, on any Group they can open). The
+// hours are always written for the authenticated session, never a member id in the body —
+// the security deviation from legacy (ADR-0022 §4). Nests under the owning Group (bound by
+// slug); the read surface lives on `groups.show`.
+Route::post('groups/{group}/hours', [HoursController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('hours.store');
 
 // Dev/QA role-switcher (ADR-0009 dev half, PRD #220). Layer one of the two-layer
 // environment boundary: the become/stop endpoints are registered only outside
