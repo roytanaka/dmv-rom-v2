@@ -134,11 +134,7 @@ class HoursController extends Controller
             ->get();
 
         return Inertia::render('groups/HoursReport', [
-            'group' => [
-                'id' => $group->id,
-                'name' => $group->name,
-                'slug' => $group->slug,
-            ],
+            'group' => $this->groupPayload($group),
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->reportFiscalYears($group),
             'months' => array_map(fn (string $yearMonth): array => [
@@ -230,10 +226,14 @@ class HoursController extends Controller
         // The Members with any hours in this Group, name-ordered, for the picker dropdown.
         $members = $records
             ->groupBy('member_id')
-            ->map(fn (Collection $memberRecords): array => [
-                'id' => $memberRecords->first()->member->getKey(),
-                'name' => trim("{$memberRecords->first()->member->first_name} {$memberRecords->first()->member->last_name}"),
-            ])
+            ->map(function (Collection $memberRecords): array {
+                $member = $memberRecords->first()->member;
+
+                return [
+                    'id' => $member->getKey(),
+                    'name' => trim("{$member->first_name} {$member->last_name}"),
+                ];
+            })
             ->sortBy('name')
             ->values();
 
