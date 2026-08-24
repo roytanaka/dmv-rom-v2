@@ -407,6 +407,95 @@ export interface GroupHoursSummary {
     members: GroupHoursSummaryRow[];
 }
 
+// The six DMV-wide fiscal-year reports (#413, ADR-0022 §8) — org-wide, gated to the DMV
+// officers, Records, or super-tier. Group and Member names render as-authored; chrome is
+// translated. Each report is its own addressable page so the CSV export (#414) can be a sibling.
+
+// Summary Committee Statistics — scheduled hours by committee, then org-wide rows.
+export interface DmvScheduledRow {
+    id: number;
+    /** The committee name, as-authored content — never a translation key. */
+    name: string;
+    /** Twelve scheduled-hours buckets in April-to-March order, aligned to `months`. */
+    months: number[];
+    ytd: number;
+}
+
+// One org-wide row (meeting hours, extra hours, or the grand total): twelve buckets and a sum.
+export interface DmvOrgRow {
+    months: number[];
+    ytd: number;
+}
+
+export interface DmvCommitteeSummary {
+    fiscalYear: number;
+    fiscalYears: number[];
+    months: MyHoursMonthColumn[];
+    /** Committees that run scheduling, each with their subtree scheduled hours. */
+    scheduled: DmvScheduledRow[];
+    orgRows: { meetings: DmvOrgRow; extra: DmvOrgRow; total: DmvOrgRow };
+}
+
+// Detailed Committee Statistics — each committee broken into shifts, meetings, and extra.
+export interface DmvDetailedCell {
+    year_month: string;
+    shifts: number;
+    meetings: number;
+    extra: number;
+    total: number;
+}
+
+export interface DmvDetailedYtd {
+    shifts: number;
+    meetings: number;
+    extra: number;
+    total: number;
+}
+
+export interface DmvCommitteeRow {
+    id: number;
+    /** The committee name, as-authored — never a translation key. */
+    name: string;
+    has_scheduling: boolean;
+    months: DmvDetailedCell[];
+    ytd: DmvDetailedYtd;
+}
+
+export interface DmvCommitteeDetailed {
+    fiscalYear: number;
+    fiscalYears: number[];
+    months: MyHoursMonthColumn[];
+    committees: DmvCommitteeRow[];
+    /** The DMV total row — the root's whole subtree, so the org total is complete. */
+    org: DmvCommitteeRow;
+}
+
+// Active Members Ranked Hours — active and provisional Members by total, most first.
+export interface DmvRankedRow {
+    id: number;
+    /** The Member name, as-authored — never a translation key. */
+    name: string;
+    scheduled_hours: number;
+    extra_hours: number;
+    total_hours: number;
+}
+
+export interface DmvRankedHours {
+    fiscalYear: number;
+    fiscalYears: number[];
+    ranked: DmvRankedRow[];
+    /** Active/provisional Members with no hours rows at all this fiscal year. */
+    noHours: { id: number; name: string }[];
+}
+
+// The three zero-hours reports, one shared page — the variant names which list it is.
+export interface DmvZeroHours {
+    variant: 'hours' | 'shift' | 'extra';
+    fiscalYear: number;
+    fiscalYears: number[];
+    members: { id: number; name: string }[];
+}
+
 // A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range;
 // `is_past` heads the two blocks (current & upcoming vs past), resolved server-side.
 export interface ScheduleListItem {

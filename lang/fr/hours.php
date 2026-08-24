@@ -136,4 +136,81 @@ return [
             'empty' => 'Aucune heure enregistrée pour ce groupe durant cette année financière.',
         ],
     ],
+
+    // Les six rapports annuels à l'échelle du DMV (#413, ADR-0022 §8) — les statistiques
+    // annuelles que le ROM demande au DMV. À l'échelle de l'organisation, réservés aux officiers
+    // du DMV, aux Archives (Records), ou à l'accès tout-DMV.
+    'dmv' => [
+        // La navigation qui relie les six rapports entre eux.
+        'nav' => [
+            'summary' => 'Sommaire',
+            'detailed' => 'Détaillé',
+            'ranked' => 'Classement des heures',
+            'zero_hours' => 'Zéro heure',
+            'zero_shift' => 'Zéro heure de quart',
+            'zero_extra' => 'Zéro heure supplémentaire',
+        ],
+        'pick_year' => 'Année financière',
+        'fiscal_year' => 'Exercice :year',
+
+        // Statistiques sommaires des comités — heures planifiées par comité, puis rangées globales.
+        'summary' => [
+            'title' => 'Statistiques sommaires des comités',
+            'lead' => 'Les heures planifiées par comité durant l\'année financière, avec les totaux globaux dessous.',
+            'scheduled' => 'Heures planifiées',
+            'meetings' => 'Heures de réunion',
+            'extra' => 'Heures supplémentaires',
+            'total' => 'Grand total',
+            'column' => [
+                'committee' => 'Comité',
+                'ytd' => 'Cumul annuel',
+            ],
+            'empty' => 'Aucun comité ne gère d\'horaire pour l\'instant.',
+        ],
+
+        // Statistiques détaillées des comités — chaque comité ventilé en quarts, réunions, supplémentaires.
+        'detailed' => [
+            'title' => 'Statistiques détaillées des comités',
+            'lead' => 'Les quarts, réunions et heures supplémentaires de chaque comité durant l\'année financière.',
+            'kind' => [
+                'shifts' => 'Quarts',
+                'meetings' => 'Réunions',
+                'extra' => 'Supplémentaires',
+            ],
+            'total' => 'Total du DMV — incluant chaque sous-groupe',
+            'column' => [
+                'committee' => 'Comité',
+                'kind' => 'Type',
+                'ytd' => 'Cumul annuel',
+            ],
+            'empty' => 'Aucune heure enregistrée dans tout le DMV durant cette année financière.',
+        ],
+
+        // Classement des heures des membres actifs — chaque membre actif et provisoire par total.
+        'ranked' => [
+            'title' => 'Classement des heures des membres actifs',
+            'lead' => 'Les membres actifs et provisoires classés par total d\'heures cette année financière.',
+            'no_hours' => 'Membres sans aucune heure enregistrée',
+            'none_missing' => 'Chaque membre actif et provisoire a des heures cette année financière.',
+            'empty' => 'Aucun membre actif ou provisoire n\'a d\'heures durant cette année financière.',
+            'column' => [
+                'member' => 'Membre',
+                'scheduled' => 'Planifiées',
+                'extra' => 'Supplémentaires',
+                'total' => 'Total',
+            ],
+        ],
+
+        // Les trois rapports « zéro heure » — une page partagée, la variante nomme la liste.
+        'zero' => [
+            'lead' => 'Les membres actifs et provisoires qui n\'en ont aucune cette année financière.',
+            'empty' => 'Personne — chaque membre actif et provisoire en a durant cette année financière.',
+            'column' => [
+                'member' => 'Membre',
+            ],
+            'hours' => ['title' => 'Membres avec zéro heure'],
+            'shift' => ['title' => 'Membres avec zéro heure de quart'],
+            'extra' => ['title' => 'Membres avec zéro heure supplémentaire'],
+        ],
+    ],
 ];
