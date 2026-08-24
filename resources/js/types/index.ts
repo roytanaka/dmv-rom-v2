@@ -343,6 +343,70 @@ export interface GroupHoursReport {
     totals: { own: GroupHoursReportRollup; subtree: GroupHoursReportRollup };
 }
 
+// The month picker payload (#412, ADR-0022 §8). One month's entries across the whole Group,
+// a row per Member — what a Statistician opens to find which month moved. Officer-only (§4).
+export interface GroupHoursMonthRow extends MyHoursTotals {
+    id: number;
+    /** The Member's name, as-authored — never a translation key. */
+    name: string;
+}
+
+export interface GroupHoursMonth {
+    group: { id: number; name: string; slug: string };
+    /** The month in view — a YYYYMM bucket and its first-of-month ISO date. */
+    month: MyHoursMonthColumn;
+    /** The months the Group has records in plus the current one, newest first. */
+    months: MyHoursMonthColumn[];
+    members: GroupHoursMonthRow[];
+}
+
+// Member History payload (#412, ADR-0022 §8). One Member's hours in this Group over time —
+// the only place one Member's record is legible to an officer. Officer-only (§4).
+export interface GroupHoursMemberRow extends MyHoursTotals {
+    /** The YYYYMM bucket. */
+    year_month: string;
+    /** The first-of-month ISO date, for a localized month name. */
+    month: string;
+}
+
+export interface GroupHoursMemberHistory {
+    group: { id: number; name: string; slug: string };
+    /** The Members with hours in this Group, for the picker dropdown. */
+    members: { id: number; name: string }[];
+    /** The Member in view, or null when none is picked yet. */
+    member: { id: number; name: string } | null;
+    /** The picked Member's records over time, newest month first. */
+    rows: GroupHoursMemberRow[];
+}
+
+// The two Member × twelve-month summaries (#412, ADR-0022 §8), kept apart: Member Extra Hours
+// (rows carrying no Meeting) and Member Meeting Hours (rows carrying one). Each cell is a
+// single hours figure — what people told us they did, or what they showed up to. Officer-only.
+export interface GroupHoursSummaryCell {
+    /** The YYYYMM bucket — the cell key. */
+    year_month: string;
+    hours: number;
+}
+
+export interface GroupHoursSummaryRow {
+    id: number;
+    /** The Member's name, as-authored — never a translation key. */
+    name: string;
+    /** Twelve cells in April-to-March order, aligned to the page's `months`. */
+    months: GroupHoursSummaryCell[];
+    ytd: number;
+}
+
+export interface GroupHoursSummary {
+    group: { id: number; name: string; slug: string };
+    /** The fiscal year in view, named for the year it ends in (ADR-0022 §8). */
+    fiscalYear: number;
+    /** The fiscal years the viewer may pick, newest first. */
+    fiscalYears: number[];
+    months: MyHoursMonthColumn[];
+    members: GroupHoursSummaryRow[];
+}
+
 // A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range;
 // `is_past` heads the two blocks (current & upcoming vs past), resolved server-side.
 export interface ScheduleListItem {

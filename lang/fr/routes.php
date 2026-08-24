@@ -42,6 +42,15 @@ return [
     // « heures/rapport » ; {group} reste verbatim.
     'groups.hours.report' => 'groupes/{group}/heures/rapport',
 
+    // Les trois surfaces d'officier après la matrice annuelle (#412, ADR-0022 §8) : un
+    // sélecteur de mois, un historique par membre, et les deux sommaires Membre × douze
+    // mois. « month/member/extra/meetings » → « mois/membre/supplementaires/reunions » ;
+    // {group} reste verbatim.
+    'groups.hours.month' => 'groupes/{group}/heures/mois',
+    'groups.hours.member' => 'groupes/{group}/heures/membre',
+    'groups.hours.extra' => 'groupes/{group}/heures/supplementaires',
+    'groups.hours.meetings' => 'groupes/{group}/heures/reunions',
+
     // Paramètres → Profil / Mot de passe (#229, PRD #228). « settings » →
     // « parametres » (sans accent dans l'URL, comme officer.settings).
     'settings' => 'parametres',

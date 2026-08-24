@@ -6,6 +6,7 @@
 // Reports are not open reading (§4): the server gates this page to a Chair or Statistician of
 // the group or any ancestor, or the super-tier — an ordinary member never reaches it. All
 // chrome is translated (ADR-0004); the group and member names render as-authored.
+import HoursReportNav from '@/components/HoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type GroupHoursReport, type SharedData } from '@/types';
@@ -41,6 +42,8 @@ const formatMonth = (iso: string) =>
                 <h1 class="text-rom-ink text-lg font-semibold">{{ group.name }} — {{ title }}</h1>
                 <p class="text-muted-foreground text-sm">{{ trans('hours.report.lead') }}</p>
             </header>
+
+            <HoursReportNav :group-slug="group.slug" active="report" />
 
             <!-- Fiscal-year picker — one link per pickable year, the year in view marked. -->
             <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.report.pick_year')">

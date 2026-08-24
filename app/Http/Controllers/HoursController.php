@@ -9,6 +9,7 @@ use App\Models\HoursRecord;
 use App\Support\GroupHoursMatrix;
 use App\Support\OrgTime;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -133,11 +134,7 @@ class HoursController extends Controller
             ->get();
 
         return Inertia::render('groups/HoursReport', [
-            'group' => [
-                'id' => $group->id,
-                'name' => $group->name,
-                'slug' => $group->slug,
-            ],
+            'group' => $this->groupPayload($group),
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->reportFiscalYears($group),
             'months' => array_map(fn (string $yearMonth): array => [
@@ -150,6 +147,244 @@ class HoursController extends Controller
                 'subtree' => ['months' => $matrix->subtree, 'ytd' => $matrix->subtreeYtd],
             ],
         ]);
+    }
+
+    /**
+     * The month picker (#412, PRD #406, ADR-0022 §8) — one month's entries across the whole
+     * Group, a row per Member. This is what a Statistician opens when the fiscal-year numbers
+     * look wrong and they want to know which month moved: a single month, every Member's
+     * scheduled/extra/total side by side.
+     *
+     * Gated identically to the fiscal-year report (§4) via `viewReports`. The month in view is
+     * the `?month=YYYYMM` query param, defaulting to the current month on the org wall clock;
+     * the picker offers every month the Group has a record in plus the current one, newest
+     * first, so an out-of-band value simply lands on a month with no rows rather than erroring.
+     * The rows are the Group's own records for that month folded by Member (all grains summed),
+     * name-ordered for a stable display.
+     */
+    public function month(Request $request, Group $group): Response
+    {
+        abort_unless($request->user()->can('viewReports', [HoursRecord::class, $group]), 403);
+
+        $pickable = $this->pickableMonths($group);
+        $yearMonth = $request->string('month')->toString() ?: OrgTime::now()->format('Ym');
+
+        $records = HoursRecord::query()
+            ->where('group_id', $group->getKey())
+            ->where('year_month', $yearMonth)
+            ->with('member')
+            ->get();
+
+        return Inertia::render('groups/HoursMonth', [
+            'group' => $this->groupPayload($group),
+            'month' => ['year_month' => $yearMonth, 'month' => $this->monthStart($yearMonth)],
+            'months' => array_map(fn (string $ym): array => [
+                'year_month' => $ym,
+                'month' => $this->monthStart($ym),
+            ], $pickable),
+            'members' => $records
+                ->groupBy('member_id')
+                ->map(function (Collection $memberRecords): array {
+                    $member = $memberRecords->first()->member;
+                    $scheduled = (int) $memberRecords->sum('scheduled_hours');
+                    $extra = (int) $memberRecords->sum('extra_hours');
+
+                    return [
+                        'id' => $member->getKey(),
+                        'name' => trim("{$member->first_name} {$member->last_name}"),
+                        'scheduled_hours' => $scheduled,
+                        'extra_hours' => $extra,
+                        'total_hours' => $scheduled + $extra,
+                    ];
+                })
+                ->sortBy('name')
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    /**
+     * Member History (#412, PRD #406, ADR-0022 §8) — one Member's hours in this Group over time.
+     * This is what a Chair opens before a standing conversation, and it is the only place one
+     * Member's record is legible to someone else — so it lives behind the same `viewReports`
+     * gate as every other report (§4), never open reading.
+     *
+     * The Member in view is the `?member=<id>` query param, but only a Member who actually has
+     * hours in this Group can be picked: an id outside that set resolves to no selection, so the
+     * page never discloses whether an arbitrary Member exists. Their records are folded by month
+     * (all grains summed) and returned newest first — legible history, not a raw row dump.
+     */
+    public function memberHistory(Request $request, Group $group): Response
+    {
+        abort_unless($request->user()->can('viewReports', [HoursRecord::class, $group]), 403);
+
+        $records = HoursRecord::query()
+            ->where('group_id', $group->getKey())
+            ->with('member')
+            ->get();
+
+        // The Members with any hours in this Group, name-ordered, for the picker dropdown.
+        $members = $records
+            ->groupBy('member_id')
+            ->map(function (Collection $memberRecords): array {
+                $member = $memberRecords->first()->member;
+
+                return [
+                    'id' => $member->getKey(),
+                    'name' => trim("{$member->first_name} {$member->last_name}"),
+                ];
+            })
+            ->sortBy('name')
+            ->values();
+
+        // Only a Member with hours here may be picked — an id outside the set discloses nothing.
+        $pickedId = $request->integer('member') ?: null;
+        $picked = $pickedId !== null ? $records->firstWhere('member_id', $pickedId) : null;
+
+        return Inertia::render('groups/HoursMemberHistory', [
+            'group' => $this->groupPayload($group),
+            'members' => $members->all(),
+            'member' => $picked !== null
+                ? ['id' => $picked->member->getKey(), 'name' => trim("{$picked->member->first_name} {$picked->member->last_name}")]
+                : null,
+            'rows' => $picked === null ? [] : $records
+                ->where('member_id', $picked->member_id)
+                ->groupBy('year_month')
+                ->map(function (Collection $monthRecords, string $yearMonth): array {
+                    $scheduled = (int) $monthRecords->sum('scheduled_hours');
+                    $extra = (int) $monthRecords->sum('extra_hours');
+
+                    return [
+                        'year_month' => $yearMonth,
+                        'month' => $this->monthStart($yearMonth),
+                        'scheduled_hours' => $scheduled,
+                        'extra_hours' => $extra,
+                        'total_hours' => $scheduled + $extra,
+                    ];
+                })
+                ->sortByDesc('year_month')
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    /**
+     * The Member Extra Hours summary (#412, PRD #406, ADR-0022 §8) — a Member × twelve-month
+     * matrix of the extra hours each Member self-entered this fiscal year, read from the Group's
+     * records carrying **no** Meeting ({@see HoursRecord::NO_MEETING}). This is "what people told
+     * us they did", and legacy keeps it apart from meeting attendance deliberately.
+     *
+     * Gated identically to the fiscal-year report (§4). The window is the `?fy=` query param,
+     * defaulting to the current fiscal year; its twelve April-to-March buckets come from
+     * {@see OrgTime}, so the columns line up with every other report.
+     */
+    public function extraSummary(Request $request, Group $group): Response
+    {
+        return $this->summary($request, $group, 'groups/HoursExtraSummary', withMeeting: false);
+    }
+
+    /**
+     * The Member Meeting Hours summary (#412, PRD #406, ADR-0022 §8) — the twin of
+     * {@see extraSummary()}, read instead from the Group's records **carrying** a Meeting
+     * (`meeting_id` other than {@see HoursRecord::NO_MEETING}). This is "what people showed up
+     * to", stored in `extra_hours` on meeting rows exactly as legacy imports them.
+     *
+     * Meeting-hours entry is out of this pass (§2) — legacy rows import and this reads them, but
+     * nothing records new ones after cutover, so a recent fiscal year renders empty rather than
+     * erroring: the honest answer, not a bug.
+     */
+    public function meetingSummary(Request $request, Group $group): Response
+    {
+        return $this->summary($request, $group, 'groups/HoursMeetingSummary', withMeeting: true);
+    }
+
+    /**
+     * The shared body of the two Member × twelve-month summaries — identical but for which
+     * records they read (`$withMeeting` selects the meeting rows or the no-meeting ones) and
+     * the page they render. Both sum `extra_hours` into one cell per bucket; scheduled hours
+     * never appear here, matching legacy's two extra-hours reports.
+     */
+    private function summary(Request $request, Group $group, string $component, bool $withMeeting): Response
+    {
+        abort_unless($request->user()->can('viewReports', [HoursRecord::class, $group]), 403);
+
+        $fiscalYear = $request->integer('fy') ?: OrgTime::currentFiscalYear();
+        $months = OrgTime::fiscalYearMonths($fiscalYear);
+
+        $records = HoursRecord::query()
+            ->where('group_id', $group->getKey())
+            ->whereIn('year_month', $months)
+            ->when(
+                $withMeeting,
+                fn (Builder $query) => $query->where('meeting_id', '!=', HoursRecord::NO_MEETING),
+                fn (Builder $query) => $query->where('meeting_id', HoursRecord::NO_MEETING),
+            )
+            ->with('member')
+            ->get();
+
+        return Inertia::render($component, [
+            'group' => $this->groupPayload($group),
+            'fiscalYear' => $fiscalYear,
+            'fiscalYears' => $this->reportFiscalYears($group),
+            'months' => array_map(fn (string $yearMonth): array => [
+                'year_month' => $yearMonth,
+                'month' => $this->monthStart($yearMonth),
+            ], $months),
+            'members' => $records
+                ->groupBy('member_id')
+                ->map(function (Collection $memberRecords) use ($months): array {
+                    $member = $memberRecords->first()->member;
+                    $cells = collect(array_map(fn (string $yearMonth): array => [
+                        'year_month' => $yearMonth,
+                        'hours' => (int) $memberRecords->where('year_month', $yearMonth)->sum('extra_hours'),
+                    ], $months));
+
+                    return [
+                        'id' => $member->getKey(),
+                        'name' => trim("{$member->first_name} {$member->last_name}"),
+                        'months' => $cells->all(),
+                        'ytd' => (int) $cells->sum('hours'),
+                    ];
+                })
+                ->sortBy('name')
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    /**
+     * The `YYYYMM` months a Group's month picker may land on — every month the Group itself
+     * has any record in, plus the current month so the picker always has somewhere to start,
+     * newest first.
+     *
+     * @return list<string>
+     */
+    private function pickableMonths(Group $group): array
+    {
+        return HoursRecord::query()
+            ->where('group_id', $group->getKey())
+            ->distinct()
+            ->pluck('year_month')
+            ->push(OrgTime::now()->format('Ym'))
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The Group identity every officer surface carries — id, as-authored name, and slug for
+     * the links between the sibling reports.
+     *
+     * @return array<string, mixed>
+     */
+    private function groupPayload(Group $group): array
+    {
+        return [
+            'id' => $group->id,
+            'name' => $group->name,
+            'slug' => $group->slug,
+        ];
     }
 
     /**

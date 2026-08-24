@@ -109,6 +109,23 @@ Route::group([
     // viewReports gate.
     Route::get(LaravelLocalization::transRoute('routes.groups.hours.report'), [HoursController::class, 'report'])
         ->middleware('auth')->name('groups.hours.report');
+
+    // The three officer surfaces a Chair or Statistician reaches for after the fiscal-year
+    // matrix (#412, PRD #406, ADR-0022 §8): a month picker (one month's entries across the
+    // Group), a Member History (one person's hours in this Group over time), and the two
+    // Member × twelve-month summaries kept apart — Member Extra Hours (rows carrying no
+    // Meeting) and Member Meeting Hours (rows carrying one). Each is a separate addressable
+    // route so it can be linked in an email, and each is gated identically to the fiscal-year
+    // report — Chair or Statistician of the Group or any ancestor, or super-tier — via the
+    // HoursRecordPolicy's viewReports gate, enforced in the controller.
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.month'), [HoursController::class, 'month'])
+        ->middleware('auth')->name('groups.hours.month');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.member'), [HoursController::class, 'memberHistory'])
+        ->middleware('auth')->name('groups.hours.member');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.extra'), [HoursController::class, 'extraSummary'])
+        ->middleware('auth')->name('groups.hours.extra');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.meetings'), [HoursController::class, 'meetingSummary'])
+        ->middleware('auth')->name('groups.hours.meetings');
 });
 
 // Internal design-system reference page. Login-only (auth) but available in all
