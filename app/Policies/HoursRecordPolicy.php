@@ -60,10 +60,12 @@ class HoursRecordPolicy
     {
         // Walk to the root by explicit query — reading the `parent` relation lazily would trip
         // strict mode's lazy-load guard, and the tree is only tens of Groups deep.
-        for ($node = $group; $node !== null; $node = $node->parent_id === null ? null : Group::find($node->parent_id)) {
+        $node = $group;
+        while ($node !== null) {
             if ($actor->canActAs(Role::Chair, $node) || $actor->canActAs(Role::Statistician, $node)) {
                 return true;
             }
+            $node = $node->parent_id !== null ? Group::find($node->parent_id) : null;
         }
 
         return false;

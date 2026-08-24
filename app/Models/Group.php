@@ -138,7 +138,7 @@ class Group extends Model
         return static::query()
             ->where('parent_id', $this->getKey())
             ->get()
-            ->flatMap(fn (Group $child): Collection => collect([$child])->concat($child->descendants()));
+            ->flatMap(fn (Group $child): Collection => $child->descendants()->prepend($child));
     }
 
     /**
