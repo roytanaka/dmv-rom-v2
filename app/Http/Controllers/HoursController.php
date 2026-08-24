@@ -96,6 +96,7 @@ class HoursController extends Controller
     {
         return HoursRecord::query()
             ->where('member_id', $memberId)
+            ->distinct()
             ->pluck('year_month')
             ->map(fn (string $yearMonth): int => OrgTime::fiscalYearOf($yearMonth))
             ->push(OrgTime::currentFiscalYear())
@@ -126,7 +127,7 @@ class HoursController extends Controller
             ->map(function (Collection $groupRecords) use ($months): array {
                 $group = $groupRecords->first()->group;
 
-                $cells = array_map(function (string $yearMonth) use ($groupRecords): array {
+                $cells = collect(array_map(function (string $yearMonth) use ($groupRecords): array {
                     $forMonth = $groupRecords->where('year_month', $yearMonth);
                     $scheduled = (int) $forMonth->sum('scheduled_hours');
                     $extra = (int) $forMonth->sum('extra_hours');
@@ -137,9 +138,7 @@ class HoursController extends Controller
                         'extra_hours' => $extra,
                         'total_hours' => $scheduled + $extra,
                     ];
-                }, $months);
-
-                $cells = collect($cells);
+                }, $months));
 
                 return [
                     'id' => $group->getKey(),
