@@ -17,6 +17,7 @@ use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupStewardship;
+use App\Models\HoursAdjustment;
 use App\Models\HoursRecord;
 use App\Models\Member;
 use App\Models\Schedule;
@@ -29,6 +30,7 @@ use App\Support\OrgTime;
 use App\Support\ProfilePhotoStorage;
 use Carbon\CarbonImmutable;
 use Database\Factories\GroupFactory;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -98,6 +100,18 @@ class DemoSeeder extends Seeder
      * ({@see HoursRecord::NO_MEETING}). Nothing joins to it — see {@see meetingHours()}.
      */
     private const MEETING_ID_BASE = 900000;
+
+    /**
+     * How many of a Group's living roster record hours. A handful, so the fiscal-year
+     * matrix prints on a page rather than running to twenty rows a Group.
+     */
+    private const HOURS_RECORDERS = 6;
+
+    /**
+     * Rows an Hours insert statement. Large enough that the whole seed is a handful of
+     * statements, small enough to stay well inside the placeholder limit.
+     */
+    private const HOURS_CHUNK = 500;
 
     /**
      * Slugs created so far this run — a guard so two curated nodes that slugify
@@ -968,6 +982,14 @@ class DemoSeeder extends Seeder
      * The seeded `scheduled_hours` are final numbers with the Group's `hours_multiplier`
      * already baked in, exactly as the legacy importer's rows are (ADR-0022 §7) —
      * nothing here re-applies it.
+     *
+     * Unlike the rest of the seeder, this phase writes in bulk rather than a row at a
+     * time. Two fiscal years across the tree is a few thousand records, and a
+     * `firstOrNew`/`save`/`exists` cycle for each cost about eleven thousand queries a
+     * run. A staging deploy seeds once and never notices; the test suite seeds this class
+     * dozens of times and paid it every time, which was enough to quadruple CI. The rows
+     * built here are the ones the per-row version produced, in the same order, so the ids
+     * and the demo data are unchanged.
      */
     private function hours(): void
     {
@@ -991,133 +1013,208 @@ class DemoSeeder extends Seeder
         // no hours; every other Group in the tree does, the root included.
         $groups = Group::where('kind', '!=', Kind::Container)->orderBy('id')->get();
 
+        $rosters = $this->hoursRecorders($groups);
+
+        $rows = [];
         foreach ($groups as $group) {
-            $this->groupHours($group, $months, $author);
+            foreach ($rosters[$group->id] ?? [] as $memberId) {
+                foreach ($months as $index => $yearMonth) {
+                    foreach ($this->memberMonthHours($group, $memberId, $yearMonth, $index) as $row) {
+                        $rows[] = $row;
+                    }
+                }
+            }
         }
+
+        $this->writeHours($rows, $author);
     }
 
     /**
-     * Fill one Group's hours across the seeded months. Recorders are drawn from the
-     * Group's living roster — never a departed Member, who cannot accrue hours
-     * (ADR-0022 §4) — capped at a handful so the fiscal-year matrix prints on a page
-     * rather than running to twenty rows a Group.
+     * Who records hours in each Group, resolved for the whole tree in one query rather
+     * than one a Group.
      *
-     * Every fifth Member by id is held back entirely, so the zero-hours reports have a
-     * stable set of names rather than an empty list.
+     * Recorders are drawn from the Group's living roster — never a departed Member, who
+     * cannot accrue hours (ADR-0022 §4) — capped at a handful so the fiscal-year matrix
+     * prints on a page rather than running to twenty rows a Group. Every fifth Member by
+     * id is then held back entirely, so the zero-hours reports have a stable set of names
+     * rather than an empty list.
      *
-     * @param  list<string>  $months
+     * @param  EloquentCollection<int, Group>  $groups
+     * @return array<int, list<int>> member ids, keyed by Group id
      */
-    private function groupHours(Group $group, array $months, Member $author): void
+    private function hoursRecorders(EloquentCollection $groups): array
     {
-        $members = Member::whereHas('memberships', function ($query) use ($group) {
-            $query->where('group_id', $group->id)
-                ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased]);
-        })
-            ->orderBy('id')
-            ->take(6)
-            ->get()
-            ->reject(fn (Member $member): bool => $member->id % 5 === 0);
+        $memberships = GroupMember::query()
+            ->whereIn('group_id', $groups->modelKeys())
+            ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
+            ->orderBy('member_id')
+            ->get(['group_id', 'member_id'])
+            ->groupBy('group_id');
 
-        foreach ($members as $member) {
-            foreach ($months as $index => $yearMonth) {
-                $this->memberMonthHours($group, $member, $yearMonth, $index, $author);
-            }
+        $recorders = [];
+        foreach ($memberships as $groupId => $rows) {
+            $recorders[(int) $groupId] = $rows
+                ->pluck('member_id')
+                ->take(self::HOURS_RECORDERS)
+                ->reject(fn (int $memberId): bool => $memberId % 5 === 0)
+                ->values()
+                ->all();
         }
+
+        return $recorders;
     }
 
     /**
      * One Member's hours in one Group for one month — the grain (ADR-0022 §1). Roughly
      * two months in three carry a row, so the twelve-month matrix has the gaps a real
-     * year has rather than reading as a solid block.
+     * year has rather than reading as a solid block. A month that also falls to a meeting
+     * yields a second row carrying a non-zero `meeting_id`, which is how meeting hours are
+     * told apart from ordinary extra hours (§1, the importer's note).
      *
-     * `total_hours` is never written directly: the pair is set and
-     * {@see HoursRecord::recomputeTotal()} derives it, so the seeded rows satisfy the
-     * same identity every write path does (§1).
+     * The meeting id is synthetic. This seeder creates no Meetings and meeting-hours entry
+     * is out of the first pass (§2), so the row carries exactly the shape the legacy
+     * importer produces for a meeting with no v2 counterpart: a non-zero id nothing joins
+     * to. The reports only ask whether it is the no-meeting sentinel, so they read
+     * correctly. It is derived from the month, so a reseed heals the same row rather than
+     * adding a second.
+     *
+     * `total_hours` is not a free field: it is written as the sum of the pair, so the
+     * seeded rows satisfy the same identity every write path does (§1).
+     *
+     * @return list<array<string, int|string>>
      */
-    private function memberMonthHours(Group $group, Member $member, string $yearMonth, int $index, Member $author): void
+    private function memberMonthHours(Group $group, int $memberId, string $yearMonth, int $index): array
     {
-        $seed = $member->id * 977 + $group->id * 31 + $index;
+        $seed = $memberId * 977 + $group->id * 31 + $index;
 
         if ($this->spread($seed, 0, 2) === 0) {
-            return;
+            return [];
         }
 
         $scheduled = $group->has_scheduling ? $this->spread($seed + 1, 0, 12) : 0;
         $extra = $this->spread($seed + 2, 0, 6);
 
         if ($scheduled === 0 && $extra === 0) {
-            return;
+            return [];
         }
 
-        $record = HoursRecord::firstOrNew([
-            'member_id' => $member->id,
+        $rows = [[
+            'member_id' => $memberId,
             'group_id' => $group->id,
             'year_month' => $yearMonth,
             'meeting_id' => HoursRecord::NO_MEETING,
-        ]);
+            'scheduled_hours' => $scheduled,
+            'extra_hours' => $extra,
+            'total_hours' => $scheduled + $extra,
+        ]];
 
-        $record->scheduled_hours = $scheduled;
-        $record->extra_hours = $extra;
-        $record->recomputeTotal();
-        $record->save();
-
-        $this->hoursAdjustments($record, $extra, $author);
-
+        // The meeting row gets no adjustment: the trail records a Member's own testimony,
+        // and meeting hours come from an attendance roster, not from the entry form.
         if ($group->has_meetings && $this->spread($seed + 3, 0, 3) === 0) {
-            $this->meetingHours($group, $member, $yearMonth, $seed);
+            $meetingExtra = $this->spread($seed + 4, 1, 3);
+
+            $rows[] = [
+                'member_id' => $memberId,
+                'group_id' => $group->id,
+                'year_month' => $yearMonth,
+                'meeting_id' => self::MEETING_ID_BASE + (int) $yearMonth % 100,
+                'scheduled_hours' => 0,
+                'extra_hours' => $meetingExtra,
+                'total_hours' => $meetingExtra,
+            ];
         }
+
+        return $rows;
     }
 
     /**
-     * The append-only trail behind one record's extra hours (ADR-0022 §6). Written only
-     * on first seed — an existing trail is left alone, because the log is append-only
-     * and a reseed must not lengthen it.
+     * Write the built rows, then the append-only trail behind their extra hours
+     * (ADR-0022 §6).
      *
-     * Every seventh record carries a correction as well as its original entry, so the
-     * log shows the shape it has in life: an overstatement and its negative fix, the two
-     * deltas still summing to the record's `extra_hours`.
+     * The records go in as an upsert on the uniqueness grain, so a reseed restates a row
+     * to its absolute value rather than doubling it — the same healing `firstOrNew` gave,
+     * at one statement a chunk instead of two queries a row. They are written in build
+     * order, so a first seed hands out the ids the per-row version did.
+     *
+     * Adjustments are written only where a record has none, because the log is
+     * append-only and a reseed must not lengthen it. Every seventh record carries a
+     * correction as well as its original entry, so the log shows the shape it has in
+     * life: an overstatement and its negative fix, the two deltas still summing to the
+     * record's `extra_hours`.
+     *
+     * Both passes are scoped to the rows built above rather than to the whole table, so
+     * this reaches exactly as far as the per-row version did and never rewrites a record
+     * some other seeder or test put there.
+     *
+     * @param  list<array<string, int|string>>  $rows
      */
-    private function hoursAdjustments(HoursRecord $record, int $extra, Member $author): void
+    private function writeHours(array $rows, Member $author): void
     {
-        if ($extra === 0 || $record->adjustments()->exists()) {
+        if ($rows === []) {
             return;
         }
 
-        $deltas = $record->id % 7 === 0 ? [$extra + 2, -2] : [$extra];
+        $now = now();
 
-        foreach ($deltas as $delta) {
-            $record->adjustments()->create(['delta' => $delta, 'created_by' => $author->id]);
+        foreach (array_chunk($rows, self::HOURS_CHUNK) as $chunk) {
+            HoursRecord::upsert(
+                array_map(
+                    fn (array $row): array => $row + ['created_at' => $now, 'updated_at' => $now],
+                    $chunk,
+                ),
+                ['member_id', 'group_id', 'year_month', 'meeting_id'],
+                ['scheduled_hours', 'extra_hours', 'total_hours', 'updated_at'],
+            );
         }
-    }
 
-    /**
-     * A month's meeting hours for one Member — a row carrying a non-zero `meeting_id`,
-     * which is how meeting hours are distinguished from ordinary extra hours (ADR-0022
-     * §1, the importer's note).
-     *
-     * The id is synthetic. This seeder creates no Meetings and meeting-hours entry is
-     * out of the first pass (§2), so the row carries exactly the shape the legacy
-     * importer produces for a meeting with no v2 counterpart: a non-zero id nothing
-     * joins to. The reports only ask whether it is the no-meeting sentinel, so they read
-     * correctly. Derived from the month, so it is stable and a reseed heals the same row
-     * instead of adding a second.
-     *
-     * No adjustment is appended: the trail records a Member's own testimony, and meeting
-     * hours come from an attendance roster, not from the entry form.
-     */
-    private function meetingHours(Group $group, Member $member, string $yearMonth, int $seed): void
-    {
-        $record = HoursRecord::firstOrNew([
-            'member_id' => $member->id,
-            'group_id' => $group->id,
-            'year_month' => $yearMonth,
-            'meeting_id' => self::MEETING_ID_BASE + (int) $yearMonth % 100,
-        ]);
+        // The rows whose extra hours need a trail, as a lookup on the grain: an upsert
+        // hands back no ids, and on a reseed the rows already carried ids of their own,
+        // so the ids are read back rather than tracked through the write.
+        $owed = [];
+        foreach ($rows as $row) {
+            if ($row['meeting_id'] === HoursRecord::NO_MEETING && $row['extra_hours'] > 0) {
+                $owed[$row['member_id'].':'.$row['group_id'].':'.$row['year_month']] = true;
+            }
+        }
 
-        $record->scheduled_hours = 0;
-        $record->extra_hours = $this->spread($seed + 4, 1, 3);
-        $record->recomputeTotal();
-        $record->save();
+        $records = HoursRecord::query()
+            ->where('meeting_id', HoursRecord::NO_MEETING)
+            ->whereIn('group_id', array_unique(array_column($rows, 'group_id')))
+            ->get(['id', 'member_id', 'group_id', 'year_month', 'extra_hours'])
+            ->filter(fn (HoursRecord $record): bool => isset(
+                $owed[$record->member_id.':'.$record->group_id.':'.$record->year_month]
+            ));
+
+        $logged = HoursAdjustment::query()
+            ->whereIn('hours_record_id', $records->modelKeys())
+            ->distinct()
+            ->pluck('hours_record_id')
+            ->flip();
+
+        $adjustments = [];
+        foreach ($records as $record) {
+            if ($logged->has($record->id)) {
+                continue;
+            }
+
+            $deltas = $record->id % 7 === 0
+                ? [$record->extra_hours + 2, -2]
+                : [$record->extra_hours];
+
+            foreach ($deltas as $delta) {
+                $adjustments[] = [
+                    'hours_record_id' => $record->id,
+                    'delta' => $delta,
+                    'created_by' => $author->id,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        }
+
+        foreach (array_chunk($adjustments, self::HOURS_CHUNK) as $chunk) {
+            HoursAdjustment::insert($chunk);
+        }
     }
 
     /**
