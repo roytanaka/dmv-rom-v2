@@ -151,13 +151,30 @@ it('does not re-apply the Group hours multiplier — it is already baked into th
     expect(CommitteeHoursStatistics::for($root, 2026)->committees[0]['months'][0]['shifts'])->toBe(10);
 });
 
-it('reports whether each committee runs scheduling, for the summary scheduled section', function () {
+it('lists every scheduling Group for the summary scheduled section, at any depth', function () {
+    // The scheduled section reads this list, not the committee rows. The DMV's top level is
+    // page-less Container sections that run no scheduling (PRD #289), so a capability filter
+    // over the root's children finds nothing while the programs beneath hold every shift hour.
     $root = Group::factory()->create();
-    Group::factory()->create(['parent_id' => $root->id, 'name' => 'Runs Schedule', 'has_scheduling' => true]);
-    Group::factory()->create(['parent_id' => $root->id, 'name' => 'No Schedule', 'has_scheduling' => false]);
+    $section = Group::factory()->create(['parent_id' => $root->id, 'name' => 'Programs', 'has_scheduling' => false]);
+    Group::factory()->create(['parent_id' => $section->id, 'name' => 'Docents', 'has_scheduling' => true]);
+    Group::factory()->create(['parent_id' => $section->id, 'name' => 'Office', 'has_scheduling' => false]);
 
-    $byName = collect(CommitteeHoursStatistics::for($root, 2026)->committees)->keyBy('name');
+    $names = collect(CommitteeHoursStatistics::for($root, 2026)->scheduling)->pluck('name')->all();
 
-    expect($byName['Runs Schedule']['has_scheduling'])->toBeTrue()
-        ->and($byName['No Schedule']['has_scheduling'])->toBeFalse();
+    expect($names)->toEqualCanonicalizing(['Docents']);
+});
+
+it('gives each scheduling Group its own hours, never a nested one twice', function () {
+    $root = Group::factory()->create();
+    $guides = Group::factory()->create(['parent_id' => $root->id, 'name' => 'Guides', 'has_scheduling' => true]);
+    $evening = Group::factory()->create(['parent_id' => $guides->id, 'name' => 'Guides Evening', 'has_scheduling' => true]);
+    committeeRecord($guides, '202504', scheduled: 5);
+    committeeRecord($evening, '202504', scheduled: 3);
+
+    $byName = collect(CommitteeHoursStatistics::for($root, 2026)->scheduling)->keyBy('name');
+
+    // The parent carries 5, not 8 — otherwise the section stops summing to the org total.
+    expect($byName['Guides']['ytd']['shifts'])->toBe(5)
+        ->and($byName['Guides Evening']['ytd']['shifts'])->toBe(3);
 });
