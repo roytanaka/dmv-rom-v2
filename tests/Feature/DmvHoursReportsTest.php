@@ -145,6 +145,45 @@ it('lists only scheduling committees in the summary scheduled section, with org-
             ->where('orgRows.total.months.0', 16)); // 8 scheduled + 3 extra + 5 meeting
 });
 
+it('lists a scheduling Group nested below a non-scheduling section, not just the root children', function () {
+    // The real org shape (PRD #289): the DMV's top level is page-less Container sections that
+    // run no scheduling, and the programs that do sit beneath them. Reading the capability off
+    // the root's direct children therefore matched nothing, and the section printed empty while
+    // the programs below carried every shift hour in the department.
+    $section = Group::factory()->create(['parent_id' => $this->root->id, 'name' => 'Programs', 'has_scheduling' => false]);
+    $docents = Group::factory()->create(['parent_id' => $section->id, 'name' => 'Docents', 'has_scheduling' => true]);
+    hoursRow($docents, '202504', scheduled: 7);
+
+    $this->actingAs(orgOfficer($this->root, Role::Chair))
+        ->get(route('hours.committee-summary'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('scheduled', 1)
+            ->where('scheduled.0.name', 'Docents')
+            ->where('scheduled.0.months.0', 7)
+            ->where('scheduled.0.ytd', 7));
+});
+
+it('credits each scheduling Group its own hours, so a nested pair never double-counts', function () {
+    // Two scheduling Groups on one branch. Rolling the subtree into the parent's row would
+    // count the child's hours twice and the column would stop summing to the org total.
+    $guides = Group::factory()->create(['parent_id' => $this->root->id, 'name' => 'Guides', 'has_scheduling' => true]);
+    $evening = Group::factory()->create(['parent_id' => $guides->id, 'name' => 'Guides Evening', 'has_scheduling' => true]);
+    hoursRow($guides, '202504', scheduled: 5);
+    hoursRow($evening, '202504', scheduled: 3);
+
+    $this->actingAs(orgOfficer($this->root, Role::Chair))
+        ->get(route('hours.committee-summary'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('scheduled', 2)
+            // Name-ordered. The parent carries its own 5, never the child's 3 as well.
+            ->where('scheduled.0.name', 'Guides')
+            ->where('scheduled.0.ytd', 5)
+            ->where('scheduled.1.name', 'Guides Evening')
+            ->where('scheduled.1.ytd', 3)
+            // The org total still sees both, through the root's subtree row.
+            ->where('orgRows.total.months.0', 8));
+});
+
 // --- Detailed Committee Statistics ------------------------------------------
 
 it('breaks each committee into shifts, meetings and extra, and completes the org total with sub-groups', function () {

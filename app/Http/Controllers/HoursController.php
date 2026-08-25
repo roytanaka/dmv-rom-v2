@@ -428,10 +428,13 @@ class HoursController extends Controller
      * Groups × twelve months of **scheduled hours**, then org-wide rows underneath for meeting
      * hours, extra hours, and the grand total.
      *
-     * The scheduled section lists only the committees that run scheduling ({@see
-     * Group::$has_scheduling}) — a Group with no schedule can never carry a number there, so an
-     * empty row would be noise. The three org-wide rows read the DMV root's whole subtree (the
-     * complete org total) from {@see CommitteeHoursStatistics}.
+     * The scheduled section lists every Group that runs scheduling ({@see Group::$has_scheduling}),
+     * wherever it sits in the tree — a Group with no schedule can never carry a number there, so
+     * an empty row would be noise. It reads the flat scheduling list rather than the committee
+     * rows: the DMV's top level is page-less Container sections (PRD #289) that run no scheduling,
+     * so filtering the committees by the capability listed nothing at all while the programs below
+     * them held every shift hour in the department. The three org-wide rows read the DMV root's
+     * whole subtree (the complete org total) from {@see CommitteeHoursStatistics}.
      *
      * Gated to the DMV root Group's Chair, Secretary, or Statistician, the Records stewardship,
      * or the super-tier (§4) via `viewOrgReports` — an ordinary Member reaches none of the six.
@@ -479,14 +482,15 @@ class HoursController extends Controller
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->orgFiscalYears(),
             'months' => $this->monthColumns($stats->months),
-            // Only committees that run scheduling; their scheduled hours across the subtree.
-            'scheduled' => collect($stats->committees)
-                ->where('has_scheduling', true)
-                ->map(fn (array $committee): array => [
-                    'id' => $committee['id'],
-                    'name' => $committee['name'],
-                    'months' => array_column($committee['months'], 'shifts'),
-                    'ytd' => $committee['ytd']['shifts'],
+            // Every Group that runs scheduling, at any depth, carrying its own scheduled hours
+            // — not the root's direct children, which are page-less Container sections that
+            // run no scheduling and so matched nothing.
+            'scheduled' => collect($stats->scheduling)
+                ->map(fn (array $group): array => [
+                    'id' => $group['id'],
+                    'name' => $group['name'],
+                    'months' => array_column($group['months'], 'shifts'),
+                    'ytd' => $group['ytd']['shifts'],
                 ])
                 ->values()
                 ->all(),
