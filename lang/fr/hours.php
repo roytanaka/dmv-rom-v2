@@ -167,7 +167,7 @@ return [
             'scheduled' => 'Heures planifiées',
             'meetings' => 'Heures de réunion',
             'extra' => 'Heures supplémentaires',
-            'total' => 'Grand total',
+            'total' => 'Total général',
             'column' => [
                 'committee' => 'Comité',
                 'ytd' => 'Cumul annuel',
