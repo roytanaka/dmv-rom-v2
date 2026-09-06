@@ -12,6 +12,7 @@ use App\Support\CommitteeHoursStatistics;
 use App\Support\CsvExport;
 use App\Support\GroupHoursMatrix;
 use App\Support\OrgTime;
+use App\Support\VisitorInteractionStatistics;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -504,6 +505,37 @@ class HoursController extends Controller
                 'total' => $this->orgRow($stats->org, 'total'),
             ],
         ];
+    }
+
+    /**
+     * Summary Visitor Interactions (#451, PRD #443, ADR-0023 §6) — the department's headline
+     * visitor number, returned as Groups × twelve months over a fiscal year with a year-to-date
+     * column. Each Group's figure is its Sign-ups' two counts plus its extra interactions, rolled
+     * up through the whole sub-Group subtree; the composition rule lives in exactly one place,
+     * {@see VisitorInteractionStatistics}. The month window is {@see OrgTime}'s, shared with the
+     * hours reports, so two numbers on one screen cover the same period.
+     *
+     * The one DMV-wide report that is **not** officer-gated (ADR-0023 §6): open to any signed-in
+     * Member via the named `viewVisitorSummary` exception. Ordinary Members reach it from My Hours;
+     * officers additionally see it in the org report nav, so the page is told whether the viewer
+     * may reach that nav (`canViewOrgReports`) rather than linking a family of reports an ordinary
+     * Member is forbidden. The root is resolved by its single reserved slug; a 404 if unseeded.
+     */
+    public function visitorSummary(Request $request): Response
+    {
+        abort_unless($request->user()->can('viewVisitorSummary', HoursRecord::class), 403);
+
+        $fiscalYear = $this->fiscalYear($request);
+        $root = Group::where('slug', Group::ROOT_SLUG)->firstOrFail();
+        $stats = VisitorInteractionStatistics::for($root, $fiscalYear);
+
+        return Inertia::render('hours/VisitorSummary', [
+            'fiscalYear' => $fiscalYear,
+            'fiscalYears' => $this->orgFiscalYears(),
+            'months' => $this->monthColumns($stats->months),
+            'groups' => $stats->groups,
+            'canViewOrgReports' => $request->user()->can('viewOrgReports', HoursRecord::class),
+        ]);
     }
 
     /**

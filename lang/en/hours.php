@@ -71,6 +71,9 @@ return [
             'heading' => 'No hours recorded yet',
             'body' => 'When you record hours on a group, they will appear here.',
         ],
+        // The link every Member reaches Summary Visitor Interactions through (#451, ADR-0023 §6) —
+        // the report is open to all, so it hangs here rather than only in the officer report nav.
+        'visitor_summary' => 'Summary Visitor Interactions across the DMV',
     ],
 
     // The print-and-export toolbar shared by every report (#414, ADR-0022 §8) — Print hands the
@@ -168,6 +171,7 @@ return [
         'nav' => [
             'summary' => 'Summary',
             'detailed' => 'Detailed',
+            'visitors' => 'Visitor interactions',
             'ranked' => 'Ranked hours',
             'zero_hours' => 'Zero hours',
             'zero_shift' => 'Zero shift hours',
@@ -207,6 +211,21 @@ return [
                 'ytd' => 'Year to date',
             ],
             'empty' => 'No hours recorded across the DMV in this fiscal year.',
+        ],
+
+        // Summary Visitor Interactions (#451, ADR-0023 §6) — the department's headline visitor
+        // number, Groups × twelve months. Open to any signed-in Member, not just the DMV officers.
+        'visitors' => [
+            'title' => 'Summary Visitor Interactions',
+            'lead' => 'The visitor interactions each group recorded across the fiscal year.',
+            'column' => [
+                'group' => 'Group',
+                'ytd' => 'Year to date',
+            ],
+            // The per-Group marker for figures that are knowingly incomplete (§6).
+            'incomplete' => 'Incomplete',
+            'incomplete_note' => 'Group bookings are not counted yet, so this figure reads low.',
+            'empty' => 'No visitor interactions recorded across the DMV in this fiscal year.',
         ],
 
         // Active Members Ranked Hours — every active and provisional Member by total, most first.

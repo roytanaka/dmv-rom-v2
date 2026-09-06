@@ -64,6 +64,7 @@ class Group extends Model
         'collects_visitor_count',
         'collects_extra_interactions',
         'collects_visitor_provenance',
+        'visitor_figures_await_booking',
         'hours_multiplier',
     ];
 
@@ -93,6 +94,7 @@ class Group extends Model
             'collects_visitor_count' => 'boolean',
             'collects_extra_interactions' => 'boolean',
             'collects_visitor_provenance' => 'boolean',
+            'visitor_figures_await_booking' => 'boolean',
             'hours_multiplier' => 'integer',
         ];
     }

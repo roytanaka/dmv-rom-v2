@@ -152,6 +152,12 @@ Route::group([
         ->middleware('auth')->name('hours.committee-summary');
     Route::get(LaravelLocalization::transRoute('routes.hours.committee-detailed'), [HoursController::class, 'committeeDetailed'])
         ->middleware('auth')->name('hours.committee-detailed');
+    // Summary Visitor Interactions (#451, PRD #443, ADR-0023 §6) — the department's headline
+    // visitor number, Groups × twelve months over a fiscal year. Org-wide like the six above, but
+    // the named exception to their officer gate: open to any signed-in Member (viewVisitorSummary),
+    // enforced in the controller. The words are translated in the French twin.
+    Route::get(LaravelLocalization::transRoute('routes.hours.visitor-summary'), [HoursController::class, 'visitorSummary'])
+        ->middleware('auth')->name('hours.visitor-summary');
     Route::get(LaravelLocalization::transRoute('routes.hours.ranked'), [HoursController::class, 'rankedHours'])
         ->middleware('auth')->name('hours.ranked');
     Route::get(LaravelLocalization::transRoute('routes.hours.zero-hours'), [HoursController::class, 'zeroHours'])

@@ -500,6 +500,37 @@ export interface DmvZeroHours {
     members: { id: number; name: string }[];
 }
 
+// Summary Visitor Interactions (#451, ADR-0023 §6) — the department's headline visitor number,
+// Groups × twelve months over a fiscal year. Unlike the six reports above it is open to any
+// signed-in Member; `canViewOrgReports` tells the page whether the viewer may also reach the
+// officer report nav. Group names render as-authored; chrome is translated.
+export interface DmvVisitorInteractionCell {
+    /** The YYYYMM bucket — the cell key. */
+    year_month: string;
+    /** Sign-up counts plus extra interactions, rolled up over the Group's whole subtree. */
+    interactions: number;
+}
+
+export interface DmvVisitorInteractionRow {
+    id: number;
+    /** The Group name, as-authored content — never a translation key. */
+    name: string;
+    /** Whether this Group's figures are knowingly incomplete, pending a booking audience. */
+    incomplete: boolean;
+    /** Twelve cells in April-to-March order, aligned to `months`. */
+    months: DmvVisitorInteractionCell[];
+    ytd: number;
+}
+
+export interface DmvVisitorSummary {
+    fiscalYear: number;
+    fiscalYears: number[];
+    months: MyHoursMonthColumn[];
+    groups: DmvVisitorInteractionRow[];
+    /** Whether the viewer may reach the officer-gated org report nav (they are a DMV officer). */
+    canViewOrgReports: boolean;
+}
+
 // A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range;
 // `is_past` heads the two blocks (current & upcoming vs past), resolved server-side.
 export interface ScheduleListItem {
