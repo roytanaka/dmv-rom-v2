@@ -90,7 +90,7 @@ const csvHref = computed(() => route('hours.committee-detailed.csv', { fy: props
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- One three-row block per committee: shifts, meetings, extra. -->
+                            <!-- One four-row block per committee: shifts, meetings, extra, interactions. -->
                             <template v-for="committee in committees" :key="committee.id">
                                 <tr
                                     v-for="(kind, kindIndex) in kinds"

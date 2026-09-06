@@ -31,7 +31,6 @@ const formatMonth = (iso: string) =>
 // A Group's figures are marked incomplete when a booking audience it depends on is not counted yet.
 const hasIncomplete = computed(() => props.groups.some((group) => group.incomplete));
 
-// The CSV export carries the fiscal year in view, so it holds the same numbers as the screen.
 const csvHref = computed(() => route('hours.visitor-summary.csv', { fy: props.fiscalYear }));
 </script>
 

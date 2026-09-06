@@ -592,8 +592,8 @@ class HoursController extends Controller
 
     /**
      * Detailed Committee Statistics as a CSV download (#414, ADR-0022 §8) — each committee's
-     * shifts, meetings, and extra broken out across the twelve months, then the DMV total's three
-     * rows, from the same payload and behind the same `viewOrgReports` gate.
+     * shifts, meetings, extra, and visitor interactions broken out across the twelve months, then
+     * the DMV total's four rows, from the same payload and behind the same `viewOrgReports` gate.
      */
     public function committeeDetailedCsv(Request $request): StreamedResponse
     {
