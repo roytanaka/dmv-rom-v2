@@ -86,13 +86,12 @@ const provenanceFields = [
     { key: 'visitors_other_countries', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_other_countries' },
 ] as const;
 
-const provenanceDrafts = ref<Record<keyof VisitorProvenance, string>>({
-    visitors_france_europe: props.shift.visitors_france_europe === null ? '' : String(props.shift.visitors_france_europe),
-    visitors_quebec: props.shift.visitors_quebec === null ? '' : String(props.shift.visitors_quebec),
-    visitors_toronto: props.shift.visitors_toronto === null ? '' : String(props.shift.visitors_toronto),
-    visitors_rest_of_canada: props.shift.visitors_rest_of_canada === null ? '' : String(props.shift.visitors_rest_of_canada),
-    visitors_other_countries: props.shift.visitors_other_countries === null ? '' : String(props.shift.visitors_other_countries),
-});
+const provenanceDrafts = ref(
+    Object.fromEntries(provenanceFields.map((f) => [f.key, props.shift[f.key] === null ? '' : String(props.shift[f.key])])) as Record<
+        keyof VisitorProvenance,
+        string
+    >,
+);
 
 // All five origins filled and summing to the count typed above — the client's copy of the server
 // rule, so the button never offers a write the server would refuse. Only consulted on GDR.
@@ -115,13 +114,7 @@ const submitSignOut = () => {
     // GDR's five origins ride only where the Group collects them; `canSubmit` has already checked
     // all five are filled and add up, so each parses cleanly to a whole number.
     const provenance: VisitorProvenance | null = props.collectsVisitorProvenance
-        ? {
-              visitors_france_europe: Number(provenanceDrafts.value.visitors_france_europe),
-              visitors_quebec: Number(provenanceDrafts.value.visitors_quebec),
-              visitors_toronto: Number(provenanceDrafts.value.visitors_toronto),
-              visitors_rest_of_canada: Number(provenanceDrafts.value.visitors_rest_of_canada),
-              visitors_other_countries: Number(provenanceDrafts.value.visitors_other_countries),
-          }
+        ? (Object.fromEntries(provenanceFields.map((f) => [f.key, Number(provenanceDrafts.value[f.key])])) as unknown as VisitorProvenance)
         : null;
 
     emit('record', { shift: props.shift, count: Number(draft.value), extra, provenance });
