@@ -109,6 +109,18 @@ class GroupFactory extends Factory
     }
 
     /**
+     * A tour-leading Group that also collects the extra-interaction split (#447, ADR-0023 §2) —
+     * the sign-out panel's second box. Implies the visitor count (the box sits beside it, and a
+     * tour's visitor number is the tour), so it layers on {@see collectsVisitorCount}.
+     */
+    public function collectsExtraInteractions(): static
+    {
+        return $this->collectsVisitorCount()->state(fn () => [
+            'collects_extra_interactions' => true,
+        ]);
+    }
+
+    /**
      * A working group — a functional sub-team that meets.
      */
     public function workingGroup(): static

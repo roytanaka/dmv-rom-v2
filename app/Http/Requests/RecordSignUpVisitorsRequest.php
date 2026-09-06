@@ -22,6 +22,13 @@ use Illuminate\Foundation\Http\FormRequest;
  * that says so, not silently truncated) and at or above zero (a negative can never make a
  * Group's total go down). A Group that collects nothing has the field **rejected**, not ignored,
  * so a stray value never lands in a column nobody reads.
+ *
+ * `extra_interaction_count` is the tour-leading second box (#447, ADR-0023 §2) — visitors served
+ * outside the tour. It is **optional where the visitor count is required**: a tour with no extra
+ * interactions is a real zero the volunteer may leave blank, and the Sign Out button does not
+ * wait for it. Same whole-number, non-negative shape. Only a Group that collects the split accepts
+ * it; every other Group — including one that collects the count but not the split — **rejects** a
+ * value rather than folding it into the count or dropping it silently.
  */
 class RecordSignUpVisitorsRequest extends FormRequest
 {
@@ -36,18 +43,25 @@ class RecordSignUpVisitorsRequest extends FormRequest
 
     /**
      * The whitelist of fields a sign-out records. `visitor_count` is required where the Group
-     * collects it and prohibited where it does not; either way it is a whole number at or above
-     * zero. No member id and no sign-up id — the seat comes from the route, never the body.
+     * collects it and prohibited where it does not; `extra_interaction_count` is optional where
+     * the Group collects the split and prohibited where it does not. Either way each is a whole
+     * number at or above zero. No member id and no sign-up id — the seat comes from the route,
+     * never the body.
      *
      * @return array<string, array<int, ValidationRule|string>>
      */
     public function rules(): array
     {
-        $collects = $this->route('signUp')->shift->schedule->group->collects_visitor_count;
+        $group = $this->route('signUp')->shift->schedule->group;
 
         return [
-            'visitor_count' => $collects
+            'visitor_count' => $group->collects_visitor_count
                 ? ['required', 'integer', 'min:0']
+                : ['prohibited'],
+            // The tour-leading second box: optional where the count is required, and refused
+            // outright on any Group that does not collect the split — a count-only Group included.
+            'extra_interaction_count' => $group->collects_extra_interactions
+                ? ['nullable', 'integer', 'min:0']
                 : ['prohibited'],
         ];
     }
@@ -63,6 +77,8 @@ class RecordSignUpVisitorsRequest extends FormRequest
         return [
             'visitor_count.integer' => trans('group.scheduling_panel.agenda.sign_out.whole_number'),
             'visitor_count.min' => trans('group.scheduling_panel.agenda.sign_out.not_negative'),
+            'extra_interaction_count.integer' => trans('group.scheduling_panel.agenda.sign_out.extra_whole_number'),
+            'extra_interaction_count.min' => trans('group.scheduling_panel.agenda.sign_out.extra_not_negative'),
         ];
     }
 }

@@ -62,6 +62,7 @@ class Group extends Model
         'has_vetting',
         'has_announcements',
         'collects_visitor_count',
+        'collects_extra_interactions',
         'hours_multiplier',
     ];
 
@@ -89,6 +90,7 @@ class Group extends Model
             'has_vetting' => 'boolean',
             'has_announcements' => 'boolean',
             'collects_visitor_count' => 'boolean',
+            'collects_extra_interactions' => 'boolean',
             'hours_multiplier' => 'integer',
         ];
     }

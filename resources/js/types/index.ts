@@ -562,6 +562,10 @@ export interface ShiftAgendaItem {
     // unrecorded, distinct from a recorded zero. Sent only to the seat-holder; a reader holding
     // no seat gets null.
     visitor_count: number | null;
+    // The extra-interaction count the viewer recorded on their own seat (#447, ADR-0023 §2) —
+    // visitors served outside the tour they led, on a tour-leading Group. Stored apart from the
+    // count, never folded in. Same null/zero/seat-holder-only rules as `visitor_count`.
+    extra_interaction_count: number | null;
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
     // schedule-admin gate plus a free seat (capacity binds the Scheduler too, #359).
     // `update` / `delete` are the Shift authoring hints (#356 front end): `update` is the
