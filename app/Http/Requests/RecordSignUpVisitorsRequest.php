@@ -61,8 +61,8 @@ class RecordSignUpVisitorsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'visitor_count.integer' => trans('group.scheduling_panel.sign_out.whole_number'),
-            'visitor_count.min' => trans('group.scheduling_panel.sign_out.not_negative'),
+            'visitor_count.integer' => trans('group.scheduling_panel.agenda.sign_out.whole_number'),
+            'visitor_count.min' => trans('group.scheduling_panel.agenda.sign_out.not_negative'),
         ];
     }
 }

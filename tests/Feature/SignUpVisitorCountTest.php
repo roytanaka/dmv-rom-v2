@@ -145,7 +145,7 @@ it('refuses a decimal with a whole-number message', function () {
 
     $this->actingAs($member)
         ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 3.5])
-        ->assertSessionHasErrors(['visitor_count' => trans('group.scheduling_panel.sign_out.whole_number')]);
+        ->assertSessionHasErrors(['visitor_count' => trans('group.scheduling_panel.agenda.sign_out.whole_number')]);
 
     expect($signUp->fresh()->visitor_count)->toBeNull();
 });
