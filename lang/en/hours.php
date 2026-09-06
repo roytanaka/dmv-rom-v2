@@ -198,11 +198,12 @@ return [
         // Detailed Committee Statistics — each committee broken into shifts, meetings, and extra.
         'detailed' => [
             'title' => 'Detailed Committee Statistics',
-            'lead' => 'Each committee\'s shifts, meetings, and extra hours across the fiscal year.',
+            'lead' => 'Each committee\'s shifts, meetings, extra hours, and visitor interactions across the fiscal year.',
             'kind' => [
                 'shifts' => 'Shifts',
                 'meetings' => 'Meetings',
                 'extra' => 'Extra',
+                'interactions' => 'Visitor interactions',
             ],
             'total' => 'DMV total — including every sub-group',
             'column' => [

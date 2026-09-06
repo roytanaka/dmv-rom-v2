@@ -84,6 +84,7 @@ return [
     // Their CSV export siblings (#414) — a '.csv' suffix on each report's own path.
     'hours.committee-summary.csv' => 'hours/committee-summary.csv',
     'hours.committee-detailed.csv' => 'hours/committee-detailed.csv',
+    'hours.visitor-summary.csv' => 'hours/visitor-interactions.csv',
     'hours.ranked.csv' => 'hours/ranked.csv',
     'hours.zero-hours.csv' => 'hours/zero-hours.csv',
     'hours.zero-shift-hours.csv' => 'hours/zero-shift-hours.csv',

@@ -523,19 +523,57 @@ class HoursController extends Controller
      */
     public function visitorSummary(Request $request): Response
     {
+        return Inertia::render('hours/VisitorSummary', $this->visitorSummaryPayload($request));
+    }
+
+    /**
+     * Summary Visitor Interactions as a CSV download (#452, PRD #443, ADR-0023 §6) — the same
+     * Groups × twelve months and year-to-date the screen shows, from the same payload, behind the
+     * same `viewVisitorSummary` gate: open to any signed-in Member, exactly as the screen is, so
+     * the CSV is never a way around a gate — and here there is no gate to get around. A Group whose
+     * figures are knowingly incomplete carries the screen's marker on its name cell, so the export
+     * reads low for the same reason and says so.
+     */
+    public function visitorSummaryCsv(Request $request): StreamedResponse
+    {
+        $payload = $this->visitorSummaryPayload($request);
+
+        $rows = [
+            [__('hours.dmv.visitors.column.group'), ...$this->monthHeadings($payload['months']), __('hours.dmv.visitors.column.ytd')],
+        ];
+        foreach ($payload['groups'] as $group) {
+            $name = $group['incomplete']
+                ? "{$group['name']} (".__('hours.dmv.visitors.incomplete').')'
+                : $group['name'];
+            $rows[] = [$name, ...array_column($group['months'], 'interactions'), $group['ytd']];
+        }
+
+        return CsvExport::download($this->csvName(null, 'visitor-interactions', "fiscal-{$payload['fiscalYear']}"), $rows);
+    }
+
+    /**
+     * Summary Visitor Interactions' payload — the `viewVisitorSummary` gate and the numbers, shared
+     * by the HTML page and its CSV twin so the two can never diverge (ADR-0023 §6). The composition
+     * rule lives in exactly one place, {@see VisitorInteractionStatistics}. The root is resolved by
+     * its single reserved slug; a 404 if unseeded.
+     *
+     * @return array<string, mixed>
+     */
+    private function visitorSummaryPayload(Request $request): array
+    {
         abort_unless($request->user()->can('viewVisitorSummary', HoursRecord::class), 403);
 
         $fiscalYear = $this->fiscalYear($request);
         $root = Group::where('slug', Group::ROOT_SLUG)->firstOrFail();
         $stats = VisitorInteractionStatistics::for($root, $fiscalYear);
 
-        return Inertia::render('hours/VisitorSummary', [
+        return [
             'fiscalYear' => $fiscalYear,
             'fiscalYears' => $this->orgFiscalYears(),
             'months' => $this->monthColumns($stats->months),
             'groups' => $stats->groups,
             'canViewOrgReports' => $request->user()->can('viewOrgReports', HoursRecord::class),
-        ]);
+        ];
     }
 
     /**
@@ -554,8 +592,8 @@ class HoursController extends Controller
 
     /**
      * Detailed Committee Statistics as a CSV download (#414, ADR-0022 §8) — each committee's
-     * shifts, meetings, and extra broken out across the twelve months, then the DMV total's three
-     * rows, from the same payload and behind the same `viewOrgReports` gate.
+     * shifts, meetings, extra, and visitor interactions broken out across the twelve months, then
+     * the DMV total's four rows, from the same payload and behind the same `viewOrgReports` gate.
      */
     public function committeeDetailedCsv(Request $request): StreamedResponse
     {
@@ -577,10 +615,11 @@ class HoursController extends Controller
     }
 
     /**
-     * The three CSV rows for one committee (or the DMV total) in the Detailed report — one per kind
-     * (shifts, meetings, extra), each the twelve monthly figures for that kind and its
-     * year-to-date. The name repeats on each row so a spreadsheet reads a row on its own, where the
-     * screen leans on a rowspan.
+     * The four CSV rows for one committee (or the DMV total) in the Detailed report — one per kind
+     * (shifts, meetings, extra, visitor interactions), each the twelve monthly figures for that
+     * kind and its year-to-date. The name repeats on each row so a spreadsheet reads a row on its
+     * own, where the screen leans on a rowspan. Visitor interactions (ADR-0023 §6) is the fourth
+     * kind, read from the same composition rule as the summary.
      *
      * @param  array{months: list<array<string, int>>, ytd: array<string, int>}  $breakdown
      * @return list<list<string|int>>
@@ -592,7 +631,7 @@ class HoursController extends Controller
             __("hours.dmv.detailed.kind.{$kind}"),
             ...array_column($breakdown['months'], $kind),
             $breakdown['ytd'][$kind],
-        ], ['shifts', 'meetings', 'extra']);
+        ], ['shifts', 'meetings', 'extra', 'interactions']);
     }
 
     /**
