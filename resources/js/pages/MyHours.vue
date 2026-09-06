@@ -13,7 +13,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type MyHours, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhClock } from '@phosphor-icons/vue';
+import { PhArrowRight, PhClock } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
 defineProps<MyHours>();
@@ -62,6 +62,17 @@ const formatMonth = (iso: string) =>
                     {{ trans('hours.mine.fiscal_year', { year: String(year) }) }}
                 </Link>
             </nav>
+
+            <!-- Every Member reaches Summary Visitor Interactions from here (#451, ADR-0023 §6):
+                 the report is open to all, so it hangs off My Hours rather than only the officer
+                 report nav an ordinary Member never sees. -->
+            <Link
+                :href="route('hours.visitor-summary')"
+                class="text-rom-ink hover:bg-muted border-border inline-flex w-fit items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium"
+            >
+                {{ trans('hours.mine.visitor_summary') }}
+                <PhArrowRight class="h-4 w-4" />
+            </Link>
 
             <!-- One card per Group the Member has hours in this fiscal year. -->
             <Card v-for="group in groups" :key="group.id">

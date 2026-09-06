@@ -64,6 +64,10 @@ return [
             'heading' => 'Aucune heure enregistrée pour l’instant',
             'body' => 'Lorsque vous enregistrez des heures dans un groupe, elles apparaissent ici.',
         ],
+        // Le lien par lequel chaque membre atteint le Sommaire des interactions avec les visiteurs
+        // (#451, ADR-0023 §6) — le rapport est ouvert à tous, il figure donc ici et pas seulement
+        // dans la navigation des rapports d'officier.
+        'visitor_summary' => 'Sommaire des interactions avec les visiteurs du DMV',
     ],
 
     // La barre d'impression et d'export partagée par chaque rapport (#414, ADR-0022 §8).
@@ -160,6 +164,7 @@ return [
         'nav' => [
             'summary' => 'Sommaire',
             'detailed' => 'Détaillé',
+            'visitors' => 'Interactions visiteurs',
             'ranked' => 'Classement des heures',
             'zero_hours' => 'Zéro heure',
             'zero_shift' => 'Zéro heure de quart',
@@ -199,6 +204,21 @@ return [
                 'ytd' => 'Cumul annuel',
             ],
             'empty' => 'Aucune heure enregistrée dans tout le DMV durant cette année financière.',
+        ],
+
+        // Sommaire des interactions avec les visiteurs (#451, ADR-0023 §6) — le chiffre phare du
+        // département, groupes × douze mois. Ouvert à tout membre connecté, pas seulement aux officiers.
+        'visitors' => [
+            'title' => 'Sommaire des interactions avec les visiteurs',
+            'lead' => 'Les interactions avec les visiteurs enregistrées par chaque groupe durant l\'année financière.',
+            'column' => [
+                'group' => 'Groupe',
+                'ytd' => 'Cumul annuel',
+            ],
+            // Le marqueur par groupe pour les chiffres sciemment incomplets (§6).
+            'incomplete' => 'Incomplet',
+            'incomplete_note' => 'Les réservations de groupe ne sont pas encore comptées, ce chiffre est donc sous-évalué.',
+            'empty' => 'Aucune interaction avec les visiteurs enregistrée dans tout le DMV durant cette année financière.',
         ],
 
         // Classement des heures des membres actifs — chaque membre actif et provisoire par total.

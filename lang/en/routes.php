@@ -74,6 +74,9 @@ return [
     // The words are translated in the French twin.
     'hours.committee-summary' => 'hours/committee-summary',
     'hours.committee-detailed' => 'hours/committee-detailed',
+    // Summary Visitor Interactions (#451, ADR-0023 §6). Org-wide like its siblings, but open to
+    // any signed-in Member rather than officer-gated. The words are translated in the French twin.
+    'hours.visitor-summary' => 'hours/visitor-interactions',
     'hours.ranked' => 'hours/ranked',
     'hours.zero-hours' => 'hours/zero-hours',
     'hours.zero-shift-hours' => 'hours/zero-shift-hours',

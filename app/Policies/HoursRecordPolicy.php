@@ -104,6 +104,22 @@ class HoursRecordPolicy
     }
 
     /**
+     * Who may read Summary Visitor Interactions (ADR-0023 §6): **any signed-in Member**. This is
+     * the one DMV-wide report that is not officer-gated, and that is deliberate — it is an
+     * aggregate with no personal data in it, and it is legacy's own choice, the sole item in the
+     * branch offered to members who fail the officer test that gates {@see viewOrgReports()}.
+     *
+     * Written as a real method beside the gate it is the exception to, rather than left as an
+     * ungated route, so the exception to #406 story 59 (DMV-wide reports are officer-only) is
+     * named in code and cannot be mistaken for a hole in that rule. The route's `auth` middleware
+     * supplies the "signed-in" half; this returns true for every authenticated actor.
+     */
+    public function viewVisitorSummary(Member $actor): bool
+    {
+        return true;
+    }
+
+    /**
      * Who may recalculate a Group's scheduled hours from its Sign-ups (ADR-0022 §2): a
      * Scheduler or Chair (Chair-implication folded in by {@see Member::canActAs()}) of a Group
      * that runs scheduling. This hangs off the **scheduling** capability, not the hours one —

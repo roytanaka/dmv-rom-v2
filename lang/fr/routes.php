@@ -64,6 +64,9 @@ return [
     // traduits ; « hours » → « heures ».
     'hours.committee-summary' => 'heures/statistiques-sommaire',
     'hours.committee-detailed' => 'heures/statistiques-detaillees',
+    // Sommaire des interactions avec les visiteurs (#451, ADR-0023 §6). À l'échelle de
+    // l'organisation, mais ouvert à tout membre connecté plutôt que réservé aux officiers.
+    'hours.visitor-summary' => 'heures/interactions-visiteurs',
     'hours.ranked' => 'heures/classement',
     'hours.zero-hours' => 'heures/zero-heure',
     'hours.zero-shift-hours' => 'heures/zero-heure-quart',

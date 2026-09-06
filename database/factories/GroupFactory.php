@@ -134,6 +134,18 @@ class GroupFactory extends Factory
     }
 
     /**
+     * A Group whose visitor figures are knowingly incomplete (#451, ADR-0023 §6) — part of its
+     * visitor number comes from a group-booking table the booking map has not delivered, so
+     * Summary Visitor Interactions marks the row and says why. ROMForYou is the sharpest case.
+     */
+    public function awaitingBookingAudiences(): static
+    {
+        return $this->state(fn () => [
+            'visitor_figures_await_booking' => true,
+        ]);
+    }
+
+    /**
      * A working group — a functional sub-team that meets.
      */
     public function workingGroup(): static

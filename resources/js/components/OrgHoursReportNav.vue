@@ -10,12 +10,13 @@ import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 
 defineProps<{
-    active: 'summary' | 'detailed' | 'ranked' | 'zero_hours' | 'zero_shift' | 'zero_extra';
+    active: 'summary' | 'detailed' | 'visitors' | 'ranked' | 'zero_hours' | 'zero_shift' | 'zero_extra';
 }>();
 
 const links = [
     { key: 'summary', route: 'hours.committee-summary' },
     { key: 'detailed', route: 'hours.committee-detailed' },
+    { key: 'visitors', route: 'hours.visitor-summary' },
     { key: 'ranked', route: 'hours.ranked' },
     { key: 'zero_hours', route: 'hours.zero-hours' },
     { key: 'zero_shift', route: 'hours.zero-shift-hours' },
