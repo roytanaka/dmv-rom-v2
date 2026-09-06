@@ -63,7 +63,14 @@ const props = defineProps<{
         end_date: string | null;
         parent: Parent | null;
         banner_key: string | null;
-        capabilities: { meetings: boolean; documents: boolean; scheduling: boolean; content: boolean; collectsVisitorCount: boolean };
+        capabilities: {
+            meetings: boolean;
+            documents: boolean;
+            scheduling: boolean;
+            content: boolean;
+            collectsVisitorCount: boolean;
+            collectsExtraInteractions: boolean;
+        };
     };
     section: string;
     // UI hints from the policies — drive the officer affordances only; the server
@@ -354,6 +361,7 @@ const pickBanner = (key: string | null) => {
                     :scheduling="scheduling"
                     :can-create="can.createSchedule"
                     :collects-visitor-count="group.capabilities.collectsVisitorCount"
+                    :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
                     :group-slug="group.slug"
                 />
 

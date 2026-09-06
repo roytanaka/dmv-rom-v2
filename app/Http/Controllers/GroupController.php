@@ -149,6 +149,10 @@ class GroupController extends Controller
                     // on inside the Scheduling section — but it rides here as the one Group-level
                     // boolean the Scheduling tab reads to decide the feature is on at all.
                     'collectsVisitorCount' => $group->collects_visitor_count,
+                    // Whether the Group collects the tour-leading second box (#447, ADR-0023 §2) —
+                    // the extra-interaction split beside the count. A separate switch: a count-only
+                    // Group leaves it off and shows one box, a tour-leading Group shows two.
+                    'collectsExtraInteractions' => $group->collects_extra_interactions,
                 ],
             ],
             'section' => $section,
@@ -792,10 +796,12 @@ class GroupController extends Controller
                 ->all(),
             // The viewer's own seat on this Shift, for a one-click drop; null if none.
             'signup_id' => $ownSignUp?->id,
-            // The after-the-shift record on the viewer's own seat (#445, ADR-0023 §5): the count
-            // they recorded (null when unrecorded — distinct from a recorded zero). Sent only to
-            // the seat-holder, for their own Shift; a reader holding no seat here gets null.
+            // The after-the-shift record on the viewer's own seat (#445, #447, ADR-0023 §2, §5):
+            // the count they recorded and, on a tour-leading Group, the extra-interaction count
+            // beside it (null when unrecorded — distinct from a recorded zero). Sent only to the
+            // seat-holder, for their own Shift; a reader holding no seat here gets null.
             'visitor_count' => $ownSignUp?->visitor_count,
+            'extra_interaction_count' => $ownSignUp?->extra_interaction_count,
             // The affordances this Shift offers the viewer. `signUp` is the self-service
             // verdict — the SignUpPolicy's floors and `audience`, plus a free seat and no seat
             // already held. `assign` is the officer verdict — the schedule-admin gate plus a

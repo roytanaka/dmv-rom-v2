@@ -15,10 +15,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * The (`shift_id`, `member_id`) pair is unique: a Member holds at most one seat on a Shift.
  * Beyond its two foreign keys and timestamps the Sign-up carries the per-seat record made
- * after the shift (#445, PRD #443, ADR-0023 §2): `visitor_count`, how many visitors this
- * Member served. **Null means nobody recorded a value; zero means someone recorded zero** —
- * the two never collapse. The Member's name is exposed to any viewer who can read the
- * Schedule ({@see MemberResource}, ADR-0017 §6); the count only to the seat-holder and a
+ * after the shift (#445, #447, PRD #443, ADR-0023 §2): `visitor_count`, how many visitors this
+ * Member served, and — on a tour-leading Group — `extra_interaction_count`, how many they served
+ * outside the tour they led. **Null means nobody recorded a value; zero means someone recorded
+ * zero** — the two never collapse, and the two columns are stored apart, folded only where a
+ * report asks for total interactions. The Member's name is exposed to any viewer who can read the
+ * Schedule ({@see MemberResource}, ADR-0017 §6); the counts only to the seat-holder and a
  * schedule admin.
  */
 class SignUp extends Model
@@ -35,6 +37,7 @@ class SignUp extends Model
         'shift_id',
         'member_id',
         'visitor_count',
+        'extra_interaction_count',
     ];
 
     /**
@@ -46,6 +49,7 @@ class SignUp extends Model
     {
         return [
             'visitor_count' => 'integer',
+            'extra_interaction_count' => 'integer',
         ];
     }
 

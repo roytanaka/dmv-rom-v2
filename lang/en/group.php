@@ -330,6 +330,14 @@ return [
                 'recorded' => ':count visitors',
                 'whole_number' => 'Enter a whole number of visitors.',
                 'not_negative' => 'The number of visitors cannot be negative.',
+                // The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
+                // tour, optional. The label says "outside the tour" so it is never confused with
+                // the count beside it; `extra_recorded` reads on the chip where both are recorded.
+                'extra_label' => 'Visitors served outside the tour',
+                'extra_placeholder' => 'Optional',
+                'extra_recorded' => ':count outside the tour',
+                'extra_whole_number' => 'Enter a whole number of extra interactions.',
+                'extra_not_negative' => 'The number of extra interactions cannot be negative.',
             ],
         ],
         // View toggle (#360, ADR-0021 §7) — the reader chooses Agenda or Calendar; the

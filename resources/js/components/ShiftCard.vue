@@ -16,8 +16,9 @@ import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
-const props = withDefaults(defineProps<{ shift: ShiftAgendaItem; collectsVisitorCount?: boolean }>(), {
+const props = withDefaults(defineProps<{ shift: ShiftAgendaItem; collectsVisitorCount?: boolean; collectsExtraInteractions?: boolean }>(), {
     collectsVisitorCount: false,
+    collectsExtraInteractions: false,
 });
 
 const emit = defineEmits<{
@@ -27,7 +28,7 @@ const emit = defineEmits<{
     remove: [signUpId: number];
     edit: [shift: ShiftAgendaItem];
     delete: [shift: ShiftAgendaItem];
-    record: [payload: { shift: ShiftAgendaItem; count: number }];
+    record: [payload: { shift: ShiftAgendaItem; count: number; extra: number | null }];
 }>();
 
 const page = usePage<SharedData>();
@@ -60,12 +61,19 @@ const showSignOut = computed(
 // the count on 96-98% of shifts. Kept as a string so an empty box is distinct from a typed zero.
 const draft = ref(props.shift.visitor_count === null ? '' : String(props.shift.visitor_count));
 
+// The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the tour. Optional:
+// it never gates the Sign Out button, and a blank box files null (distinct from a recorded zero).
+const extraDraft = ref(props.shift.extra_interaction_count === null ? '' : String(props.shift.extra_interaction_count));
+
 const canSubmit = computed(() => draft.value.trim() !== '');
 
 const submitSignOut = () => {
     if (!canSubmit.value) return;
 
-    emit('record', { shift: props.shift, count: Number(draft.value) });
+    // The count is required and always sent; the extra is optional — a blank box files null.
+    const extra = props.collectsExtraInteractions && extraDraft.value.trim() !== '' ? Number(extraDraft.value) : null;
+
+    emit('record', { shift: props.shift, count: Number(draft.value), extra });
 };
 </script>
 
@@ -90,9 +98,13 @@ const submitSignOut = () => {
                 <Badge v-for="signUp in shift.signups" :key="signUp.id" variant="secondary" class="gap-1 font-normal">
                     {{ signUpName(signUp) }}
                     <!-- The viewer's own recorded count reads on their own chip (#445). Null (no
-                         value yet) shows nothing; a recorded zero shows "0 visitors". -->
+                         value yet) shows nothing; a recorded zero shows "0 visitors". The
+                         tour-leading extra count reads beside it where both are recorded (#447). -->
                     <span v-if="isOwnSeat(signUp) && shift.visitor_count !== null" class="text-muted-foreground tabular-nums">
                         · {{ trans('group.scheduling_panel.agenda.sign_out.recorded', { count: String(shift.visitor_count) }) }}
+                    </span>
+                    <span v-if="isOwnSeat(signUp) && shift.extra_interaction_count !== null" class="text-muted-foreground tabular-nums">
+                        · {{ trans('group.scheduling_panel.agenda.sign_out.extra_recorded', { count: String(shift.extra_interaction_count) }) }}
                     </span>
                     <button
                         v-if="signUp.signup_id"
@@ -153,6 +165,21 @@ const submitSignOut = () => {
                         step="1"
                         class="w-40"
                         :placeholder="trans('group.scheduling_panel.agenda.sign_out.placeholder')"
+                    />
+                </label>
+                <!-- The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
+                     tour. Optional: it never gates the Sign Out button below. Shown only where the
+                     Group collects the split; a count-only Group renders one box. -->
+                <label v-if="collectsExtraInteractions" class="flex flex-col gap-1">
+                    <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_out.extra_label') }}</span>
+                    <Input
+                        v-model="extraDraft"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        class="w-40"
+                        :placeholder="trans('group.scheduling_panel.agenda.sign_out.extra_placeholder')"
                     />
                 </label>
                 <Button type="submit" size="sm" :disabled="!canSubmit">

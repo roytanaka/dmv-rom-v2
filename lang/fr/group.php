@@ -321,6 +321,13 @@ return [
                 'recorded' => ':count visiteur·euses',
                 'whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
                 'not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
+                // La seconde case des groupes qui mènent des circuits (#447, ADR-0023 §2) —
+                // visiteur·euses servi·es en dehors du circuit, facultatif.
+                'extra_label' => 'Visiteur·euses servi·es hors du circuit',
+                'extra_placeholder' => 'Facultatif',
+                'extra_recorded' => ':count hors du circuit',
+                'extra_whole_number' => 'Saisissez un nombre entier d’interactions supplémentaires.',
+                'extra_not_negative' => 'Le nombre d’interactions supplémentaires ne peut pas être négatif.',
             ],
         ],
         // Bascule de vue (#360, ADR-0021 §7) — la ou le lecteur choisit Agenda ou
