@@ -144,6 +144,11 @@ class GroupController extends Controller
                     'documents' => $group->has_documents,
                     'scheduling' => $group->has_scheduling,
                     'content' => $group->has_content_catalog,
+                    // Whether the Group collects a per-shift visitor count (#445, ADR-0023 §5).
+                    // Unlike the flags above it opens no tab — it switches the sign-out panel
+                    // on inside the Scheduling section — but it rides here as the one Group-level
+                    // boolean the Scheduling tab reads to decide the feature is on at all.
+                    'collectsVisitorCount' => $group->collects_visitor_count,
                 ],
             ],
             'section' => $section,
@@ -782,6 +787,10 @@ class GroupController extends Controller
                 ->all(),
             // The viewer's own seat on this Shift, for a one-click drop; null if none.
             'signup_id' => $ownSignUp?->id,
+            // The after-the-shift record on the viewer's own seat (#445, ADR-0023 §5): the count
+            // they recorded (null when unrecorded — distinct from a recorded zero). Sent only to
+            // the seat-holder, for their own Shift; a reader holding no seat here gets null.
+            'visitor_count' => $ownSignUp?->visitor_count,
             // The affordances this Shift offers the viewer. `signUp` is the self-service
             // verdict — the SignUpPolicy's floors and `audience`, plus a free seat and no seat
             // already held. `assign` is the officer verdict — the schedule-admin gate plus a
@@ -799,6 +808,13 @@ class GroupController extends Controller
                 // Always false for a foreign Shift, which carries no authoring affordances.
                 'update' => $canManage,
                 'delete' => $canManage && $taken === 0,
+                // The sign-out affordance (#445, ADR-0023 §5) — the SignUpPolicy's own verdict on
+                // the viewer's seat: their own seat, from five minutes before the Shift ends, no
+                // upper bound. False when the viewer holds no seat here. The panel's live show/hide
+                // is the client's window pure function; this is the server's matching gate for the
+                // Sign Out button, re-checked on PATCH regardless.
+                'record' => $ownSignUp !== null
+                    && $viewer->can('record', $ownSignUp->setRelation('shift', $shift)),
             ],
         ];
     }

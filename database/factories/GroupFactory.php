@@ -96,6 +96,19 @@ class GroupFactory extends Factory
     }
 
     /**
+     * A Group that collects a per-shift visitor count (#445, ADR-0023 §5) — the sign-out
+     * panel's box. Implies scheduling: a Group with no Sign-ups has nothing to hang a count
+     * on. Layer over another program-shaped state when the surrounding shape matters.
+     */
+    public function collectsVisitorCount(): static
+    {
+        return $this->state(fn () => [
+            'has_scheduling' => true,
+            'collects_visitor_count' => true,
+        ]);
+    }
+
+    /**
      * A working group — a functional sub-team that meets.
      */
     public function workingGroup(): static

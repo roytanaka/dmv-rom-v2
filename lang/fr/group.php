@@ -310,6 +310,18 @@ return [
                 'remove' => 'Retirer du quart',
                 'confirm_remove' => 'Retirer ce membre du quart ?',
             ],
+            // Fin de quart (#445, PRD #443, ADR-0023 §5) — la ou le titulaire du quart
+            // enregistre le nombre de visiteur·euses servi·es, sur son propre quart, à partir
+            // de cinq minutes avant la fin. Le bouton reste désactivé tant qu’aucun nombre
+            // n’est saisi ; le serveur applique le reste.
+            'sign_out' => [
+                'count_label' => 'Visiteur·euses servi·es',
+                'submit' => 'Terminer le quart',
+                'placeholder' => 'Nombre de visiteur·euses',
+                'recorded' => ':count visiteur·euses',
+                'whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
+                'not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
+            ],
         ],
         // Bascule de vue (#360, ADR-0021 §7) — la ou le lecteur choisit Agenda ou
         // Calendrier ; le choix vit dans localStorage, jamais dans le formulaire de

@@ -8,12 +8,17 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { withinSignOutWindow } from '@/scheduling/signOut';
 import { type SharedData, type ShiftAgendaItem } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
+import { computed, ref } from 'vue';
 
-defineProps<{ shift: ShiftAgendaItem }>();
+const props = withDefaults(defineProps<{ shift: ShiftAgendaItem; collectsVisitorCount?: boolean }>(), {
+    collectsVisitorCount: false,
+});
 
 const emit = defineEmits<{
     take: [shift: ShiftAgendaItem];
@@ -22,6 +27,7 @@ const emit = defineEmits<{
     remove: [signUpId: number];
     edit: [shift: ShiftAgendaItem];
     delete: [shift: ShiftAgendaItem];
+    record: [payload: { shift: ShiftAgendaItem; count: number }];
 }>();
 
 const page = usePage<SharedData>();
@@ -34,6 +40,33 @@ const timeRange = (starts: string, ends: string) =>
     trans('group.scheduling_panel.agenda.time_range', { start: formatTime(starts), end: formatTime(ends) });
 
 const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.first_name} ${signUp.last_name}`;
+
+// The viewer's own seat, so their recorded count reads on their own chip (#445, ADR-0023 §5).
+// Seats carry the member id; the signed-in Member is auth.user.
+const isOwnSeat = (signUp: ShiftAgendaItem['signups'][number]) => signUp.id === page.props.auth.user.id;
+
+// --- Sign-out (#445, ADR-0023 §5) — record the visitors served, from the panel below --------
+
+// The panel shows only where a write would land: the Group collects a count, the viewer holds a
+// seat here, and the five-minute window has opened. The window is the client's copy of the
+// server rule ({@see withinSignOutWindow}); the server's `can.record` and the Form Request
+// enforce every write regardless.
+const showSignOut = computed(
+    () => props.collectsVisitorCount && props.shift.signup_id !== null && withinSignOutWindow(props.shift.ends_at, new Date()),
+);
+
+// The box, seeded with any number already recorded so a correction edits rather than retypes.
+// The Sign Out button stays disabled until a number is typed — the forcing function that carries
+// the count on 96-98% of shifts. Kept as a string so an empty box is distinct from a typed zero.
+const draft = ref(props.shift.visitor_count === null ? '' : String(props.shift.visitor_count));
+
+const canSubmit = computed(() => draft.value.trim() !== '');
+
+const submitSignOut = () => {
+    if (!canSubmit.value) return;
+
+    emit('record', { shift: props.shift, count: Number(draft.value) });
+};
 </script>
 
 <template>
@@ -56,6 +89,11 @@ const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.fir
                 <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span>
                 <Badge v-for="signUp in shift.signups" :key="signUp.id" variant="secondary" class="gap-1 font-normal">
                     {{ signUpName(signUp) }}
+                    <!-- The viewer's own recorded count reads on their own chip (#445). Null (no
+                         value yet) shows nothing; a recorded zero shows "0 visitors". -->
+                    <span v-if="isOwnSeat(signUp) && shift.visitor_count !== null" class="text-muted-foreground tabular-nums">
+                        · {{ trans('group.scheduling_panel.agenda.sign_out.recorded', { count: String(shift.visitor_count) }) }}
+                    </span>
                     <button
                         v-if="signUp.signup_id"
                         type="button"
@@ -99,6 +137,28 @@ const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.fir
                     {{ trans('group.scheduling_panel.delete') }}
                 </Button>
             </div>
+
+            <!-- Sign-out (#445, ADR-0023 §5) — the seat-holder records how many visitors they
+                 served, on their own Shift, from five minutes before it ends. One box and a Sign
+                 Out button, disabled until a number is typed (the forcing function). The server
+                 requires, whole-checks and bounds the number regardless. -->
+            <form v-if="showSignOut" class="flex flex-wrap items-end gap-2 border-t pt-3" @submit.prevent="submitSignOut">
+                <label class="flex flex-col gap-1">
+                    <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_out.count_label') }}</span>
+                    <Input
+                        v-model="draft"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        class="w-40"
+                        :placeholder="trans('group.scheduling_panel.agenda.sign_out.placeholder')"
+                    />
+                </label>
+                <Button type="submit" size="sm" :disabled="!canSubmit">
+                    {{ trans('group.scheduling_panel.agenda.sign_out.submit') }}
+                </Button>
+            </form>
         </CardContent>
     </Card>
 </template>

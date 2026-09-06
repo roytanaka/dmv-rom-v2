@@ -319,6 +319,18 @@ return [
                 'remove' => 'Remove from shift',
                 'confirm_remove' => 'Remove this member from the shift?',
             ],
+            // Sign-out (#445, PRD #443, ADR-0023 §5) — the seat-holder records how many
+            // visitors they served, on their own Shift, from five minutes before it ends. The
+            // Sign Out button stays disabled until a number is typed; the server enforces the
+            // rest. `count` labels the box and its chip; the messages carry the server's refusals.
+            'sign_out' => [
+                'count_label' => 'Visitors served',
+                'submit' => 'Sign out',
+                'placeholder' => 'Number of visitors',
+                'recorded' => ':count visitors',
+                'whole_number' => 'Enter a whole number of visitors.',
+                'not_negative' => 'The number of visitors cannot be negative.',
+            ],
         ],
         // View toggle (#360, ADR-0021 §7) — the reader chooses Agenda or Calendar; the
         // choice lives in localStorage, never in the authoring form. Agenda is the default.

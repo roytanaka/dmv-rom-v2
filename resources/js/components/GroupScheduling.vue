@@ -47,7 +47,7 @@ import {
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, onMounted, ref, watch } from 'vue';
 
-const props = defineProps<{ scheduling: Scheduling; canCreate: boolean; groupSlug: string }>();
+const props = defineProps<{ scheduling: Scheduling; canCreate: boolean; collectsVisitorCount: boolean; groupSlug: string }>();
 
 const page = usePage<SharedData>();
 
@@ -209,6 +209,18 @@ const drop = (shift: ShiftAgendaItem) => {
     if (shift.signup_id !== null) {
         router.delete(route('sign-ups.destroy', { signUp: shift.signup_id }), { preserveScroll: true });
     }
+};
+
+// --- Sign-out (#445, ADR-0023 §5) — record the visitors served on the seat you hold ---
+
+// File the count on the viewer's own Sign-up. `signup_id` is that seat (the panel never renders
+// without it); the server re-checks the policy (own seat, inside the window) and the whole rule
+// (required, whole, non-negative) on PATCH. Whose seat is written is the route binding, never
+// the body — the count is the only field sent.
+const record = (payload: { shift: ShiftAgendaItem; count: number }) => {
+    if (payload.shift.signup_id === null) return;
+
+    router.patch(route('sign-ups.record', { signUp: payload.shift.signup_id }), { visitor_count: payload.count }, { preserveScroll: true });
 };
 
 // --- Officer assignment and removal (#359) — the Scheduler seats and clears a named Member ---
@@ -778,12 +790,14 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         v-for="shift in day.shifts"
                         :key="shift.id"
                         :shift="shift"
+                        :collects-visitor-count="collectsVisitorCount"
                         @take="take"
                         @drop="drop"
                         @assign="openAssign"
                         @remove="removeSeat"
                         @edit="openShiftEdit"
                         @delete="destroyShift"
+                        @record="record"
                     />
                     <!-- Foreign open Shifts other Groups advertise (#361) — always present but
                          collapsed to one line, banded and attributed by owning Group, kept apart
