@@ -161,18 +161,30 @@ class SignUpPolicy
     }
 
     /**
-     * Who may record the after-the-shift numbers on a seat (#445, PRD #443, ADR-0023 §5). The
-     * seat-holder, and only their own seat, **from `ends_at` minus five minutes onward with no
-     * upper bound** — they file the number as they pack up, or a month later from the same
-     * panel. The lower bound is a server rule, not the disabled button's: without it any Member
-     * could file a count for a Shift next month. Legacy has no such check (any logged-in Member
-     * can post any row's id); this is a named deviation.
+     * Who may record or correct the after-the-shift numbers on a seat (#445, #450, PRD #443,
+     * ADR-0023 §5). Two actors, one verdict:
      *
-     * A schedule admin's correction of *another* seat has no time bound and is a separate
-     * verdict (officer correction, #450); this method is the seat-holder's own write.
+     * - A **schedule admin** of the owning Group (the existing gate that already drives seat
+     *   removal and Shift authoring) may correct **any** seat, **with no time bound at all** — a
+     *   number found wrong in March is fixable in March, and a volunteer who left without filing
+     *   is not a permanent hole in the Group's total (officer correction, #450). Chair-implication
+     *   folds in through {@see administersSchedulingFor}, so a Chair needs no second rule.
+     * - The **seat-holder**, and only their own seat, **from `ends_at` minus five minutes onward
+     *   with no upper bound** — they file the number as they pack up, or a month later from the
+     *   same panel (#445). The lower bound is a server rule, not the disabled button's: without it
+     *   any Member could file a count for a Shift next month.
+     *
+     * This is the security point the ticket turns on: legacy has no check at all — its endpoint
+     * takes a row id from the request and updates it, so any logged-in Member can write any other
+     * Member's seat. Here the affordance (the pencil) is a hint and this verdict is the rule; an
+     * ordinary Member's write against a peer's seat is refused whether or not they saw a control.
      */
     public function record(Member $actor, SignUp $signUp): bool
     {
+        if ($this->administersSchedulingFor($actor, $signUp->shift->schedule->group)) {
+            return true;
+        }
+
         if ($signUp->member_id !== $actor->getKey()) {
             return false;
         }

@@ -524,6 +524,18 @@ export interface ShiftSignUp {
     // Officer removal (#359) — the seat's own Sign-up id, the remove target. Present only
     // for a schedule admin (a plain reader never learns another seat's id).
     signup_id?: number;
+    // Officer correction (#450, ADR-0023 §5) — a schedule admin gets, on every seat: the
+    // verdict that they may correct it (the schedule-admin gate, no time bound), and the numbers
+    // already recorded so the pencil pre-fills. Null throughout for a seat with nothing filed
+    // yet, distinct from a recorded zero. All absent for a plain reader, who sees no pencil.
+    can_record?: boolean;
+    visitor_count?: number | null;
+    extra_interaction_count?: number | null;
+    visitors_france_europe?: number | null;
+    visitors_quebec?: number | null;
+    visitors_toronto?: number | null;
+    visitors_rest_of_canada?: number | null;
+    visitors_other_countries?: number | null;
 }
 
 // A placeable Member in the officer-assignment picker (#359, ADR-0017 §6) — the Group's
@@ -588,9 +600,10 @@ export interface ShiftAgendaItem {
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
     // schedule-admin gate plus a free seat (capacity binds the Scheduler too, #359).
     // `update` / `delete` are the Shift authoring hints (#356 front end): `update` is the
-    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. `record` is the sign-out
-    // verdict (#445) — the viewer's own seat, from five minutes before the Shift ends. All false
-    // on a foreign Shift, which carries no authoring affordances.
+    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. `record` is the
+    // sign-out verdict (#445, #450) — the viewer's own seat; a schedule admin may record
+    // at any time, the seat-holder's own window opens five minutes before the Shift ends.
+    // All false on a foreign Shift, which carries no authoring affordances.
     can: { signUp: boolean; assign: boolean; update: boolean; delete: boolean; record: boolean };
 }
 

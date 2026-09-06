@@ -230,19 +230,19 @@ const drop = (shift: ShiftAgendaItem) => {
     }
 };
 
-// --- Sign-out (#445, ADR-0023 §5) — record the visitors served on the seat you hold ---
+// --- Recording the numbers (#445, #450, ADR-0023 §5) — one seam, three surfaces ---
 
-// File the numbers on the viewer's own Sign-up. `signup_id` is that seat (the panel never renders
-// without it); the server re-checks the policy (own seat, inside the window) and the whole rule
-// (required count, optional extra, both whole and non-negative, GDR's five origins summing to the
-// count) on PATCH. Whose seat is written is the route binding, never the body. The extra-interaction
-// field rides only where the Group collects the split — a count-only Group refuses it server-side,
-// so it is never sent there — and carries null when its box is blank, distinct from a recorded zero
-// (#447, ADR-0023 §2). GDR's five origins ride only where the Group collects provenance (#448,
-// ADR-0023 §3); everywhere else the server refuses them, so they are never sent.
-const record = (payload: { shift: ShiftAgendaItem; count: number; extra: number | null; provenance: VisitorProvenance | null }) => {
-    if (payload.shift.signup_id === null) return;
-
+// File the numbers on the named Sign-up: the viewer's own seat from the sign-out panel or the
+// outstanding list (#445), or any seat an Officer corrects with the pencil (#450). `signUpId` is
+// that seat — the card resolves it — and the write always names it in the route, never the body.
+// The server re-checks the policy (the seat-holder inside the window, or a schedule admin with no
+// deadline) and the whole rule (required count, optional extra, both whole and non-negative, GDR's
+// five origins summing to the count) on PATCH. The extra-interaction field rides only where the
+// Group collects the split — a count-only Group refuses it server-side, so it is never sent there —
+// and carries null when its box is blank, distinct from a recorded zero (#447, ADR-0023 §2). GDR's
+// five origins ride only where the Group collects provenance (#448, ADR-0023 §3); everywhere else
+// the server refuses them, so they are never sent.
+const record = (payload: { signUpId: number; count: number; extra: number | null; provenance: VisitorProvenance | null }) => {
     const body: { visitor_count: number; extra_interaction_count?: number | null } & Partial<VisitorProvenance> = {
         visitor_count: payload.count,
     };
@@ -255,7 +255,7 @@ const record = (payload: { shift: ShiftAgendaItem; count: number; extra: number 
         Object.assign(body, payload.provenance);
     }
 
-    router.patch(route('sign-ups.record', { signUp: payload.shift.signup_id }), body, { preserveScroll: true });
+    router.patch(route('sign-ups.record', { signUp: payload.signUpId }), body, { preserveScroll: true });
 };
 
 // --- Officer assignment and removal (#359) — the Scheduler seats and clears a named Member ---

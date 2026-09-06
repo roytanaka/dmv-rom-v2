@@ -330,6 +330,14 @@ return [
                 'recorded' => ':count visitors',
                 'whole_number' => 'Enter a whole number of visitors.',
                 'not_negative' => 'The number of visitors cannot be negative.',
+                // The Officer's correction (#450, ADR-0023 §5) — the pencil on every seat, with no
+                // deadline. `correct` labels the pencil; `correcting` names whose seat is open so a
+                // correction is never mistaken for a self sign-out; `save` and `cancel` are its
+                // buttons (the own-seat sign-out keeps `submit` and has no cancel).
+                'correct' => 'Correct visitor count',
+                'correcting' => 'Correcting :name’s visitors',
+                'save' => 'Save',
+                'cancel' => 'Cancel',
                 // The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
                 // tour, optional. The label says "outside the tour" so it is never confused with
                 // the count beside it; `extra_recorded` reads on the chip where both are recorded.
