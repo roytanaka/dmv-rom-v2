@@ -570,7 +570,7 @@ class GroupController extends Controller
      * section URL always shows the list, current and upcoming first. The section
      * behaves like every other section tab — an index, from which a reader picks.
      *
-     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>, shift_kinds: list<array<string, mixed>>}
+     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>, shift_kinds: list<array<string, mixed>>, mine: list<array<string, mixed>>}
      */
     private function scheduling(Request $request, Group $group, ?Schedule $schedule): array
     {
