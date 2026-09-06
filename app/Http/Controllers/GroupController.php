@@ -845,8 +845,24 @@ class GroupController extends Controller
                 ->map(function (SignUp $signUp) use ($request, $canManage) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
 
+                    // Officer correction (#450, ADR-0023 §5) — a schedule admin gets, on *every*
+                    // seat, the pencil's read side: the seat's Sign-up id (the write target, and
+                    // the removal target #359), the verdict that they may correct it (the
+                    // schedule-admin gate, no time bound — the same `$canManage` that reveals the
+                    // affordance and the SignUpPolicy re-checks on PATCH), and the numbers already
+                    // recorded so the pencil pre-fills rather than making the Officer retype. Null
+                    // throughout for a seat with nothing filed yet, distinct from a recorded zero.
+                    // A plain reader gets none of this and sees no pencil on anyone's seat.
                     if ($canManage) {
                         $seat['signup_id'] = $signUp->id;
+                        $seat['can_record'] = true;
+                        $seat['visitor_count'] = $signUp->visitor_count;
+                        $seat['extra_interaction_count'] = $signUp->extra_interaction_count;
+                        $seat['visitors_france_europe'] = $signUp->visitors_france_europe;
+                        $seat['visitors_quebec'] = $signUp->visitors_quebec;
+                        $seat['visitors_toronto'] = $signUp->visitors_toronto;
+                        $seat['visitors_rest_of_canada'] = $signUp->visitors_rest_of_canada;
+                        $seat['visitors_other_countries'] = $signUp->visitors_other_countries;
                     }
 
                     return $seat;

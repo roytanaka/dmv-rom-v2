@@ -321,6 +321,14 @@ return [
                 'recorded' => ':count visiteur·euses',
                 'whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
                 'not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
+                // La correction de l’officier·ère (#450, ADR-0023 §5) — le crayon sur chaque
+                // siège, sans échéance. `correct` étiquette le crayon ; `correcting` nomme le
+                // siège ouvert pour ne pas confondre une correction avec un sign-out ; `save` et
+                // `cancel` sont ses boutons (le sign-out garde `submit` et n’a pas d’annulation).
+                'correct' => 'Corriger le nombre de visiteur·euses',
+                'correcting' => 'Correction des visiteur·euses de :name',
+                'save' => 'Enregistrer',
+                'cancel' => 'Annuler',
                 // La seconde case des groupes qui mènent des circuits (#447, ADR-0023 §2) —
                 // visiteur·euses servi·es en dehors du circuit, facultatif.
                 'extra_label' => 'Visiteur·euses servi·es hors du circuit',

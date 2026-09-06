@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { withinSignOutWindow } from '@/scheduling/signOut';
-import { type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
+import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = withDefaults(
     defineProps<{
@@ -37,7 +37,7 @@ const emit = defineEmits<{
     remove: [signUpId: number];
     edit: [shift: ShiftAgendaItem];
     delete: [shift: ShiftAgendaItem];
-    record: [payload: { shift: ShiftAgendaItem; count: number; extra: number | null; provenance: VisitorProvenance | null }];
+    record: [payload: { signUpId: number; count: number; extra: number | null; provenance: VisitorProvenance | null }];
 }>();
 
 const page = usePage<SharedData>();
@@ -49,35 +49,28 @@ const formatTime = (iso: string) => new Intl.DateTimeFormat(page.props.locale, {
 const timeRange = (starts: string, ends: string) =>
     trans('group.scheduling_panel.agenda.time_range', { start: formatTime(starts), end: formatTime(ends) });
 
-const signUpName = (signUp: ShiftAgendaItem['signups'][number]) => `${signUp.first_name} ${signUp.last_name}`;
+const signUpName = (signUp: ShiftSignUp) => `${signUp.first_name} ${signUp.last_name}`;
 
 // The viewer's own seat, so their recorded count reads on their own chip (#445, ADR-0023 §5).
 // Seats carry the member id; the signed-in Member is auth.user.
-const isOwnSeat = (signUp: ShiftAgendaItem['signups'][number]) => signUp.id === page.props.auth.user.id;
+const isOwnSeat = (signUp: ShiftSignUp) => signUp.id === page.props.auth.user.id;
 
-// --- Sign-out (#445, ADR-0023 §5) — record the visitors served, from the panel below --------
+// --- Recording the numbers (#445, #450, ADR-0023 §5) — one form, two ways in ----------------
 
-// The panel shows only where a write would land: the Group collects a count, the viewer holds a
-// seat here, and the five-minute window has opened. The window is the client's copy of the
-// server rule ({@see withinSignOutWindow}); the server's `can.record` and the Form Request
-// enforce every write regardless.
+// The seat-holder's own sign-out window: the Group collects a count, the viewer holds a seat
+// here, and the five-minute window has opened. The window is the client's copy of the server
+// rule ({@see withinSignOutWindow}); the server's `can.record` and the Form Request enforce
+// every write regardless.
 const showSignOut = computed(
     () => props.collectsVisitorCount && props.shift.signup_id !== null && withinSignOutWindow(props.shift.ends_at, new Date()),
 );
 
-// The box, seeded with any number already recorded so a correction edits rather than retypes.
-// The Sign Out button stays disabled until a number is typed — the forcing function that carries
-// the count on 96-98% of shifts. Kept as a string so an empty box is distinct from a typed zero.
-const draft = ref(props.shift.visitor_count === null ? '' : String(props.shift.visitor_count));
+// The seat an Officer is correcting (#450) — a schedule admin's pencil, no time bound, on any
+// seat. Null unless the Officer has opened a correction; it takes precedence over the own-seat
+// window below, so one form is ever open at a time.
+const correctingSeat = ref<ShiftSignUp | null>(null);
 
-// The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the tour. Optional:
-// it never gates the Sign Out button, and a blank box files null (distinct from a recorded zero).
-const extraDraft = ref(props.shift.extra_interaction_count === null ? '' : String(props.shift.extra_interaction_count));
-
-// GDR's five origin boxes (#448, ADR-0023 §3), each seeded with any recorded value so a correction
-// edits rather than retypes. The five are required together and must sum to the count — the server
-// enforces both; the button below waits until they are filled and add up, the client's copy of the
-// rule legacy kept in a JavaScript alert.
+// GDR's five origin fields, in the order the sign-out panel lists them.
 const provenanceFields = [
     { key: 'visitors_france_europe', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_france_europe' },
     { key: 'visitors_quebec', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_quebec' },
@@ -86,11 +79,63 @@ const provenanceFields = [
     { key: 'visitors_other_countries', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_other_countries' },
 ] as const;
 
-const provenanceDrafts = ref(
-    Object.fromEntries(provenanceFields.map((f) => [f.key, props.shift[f.key] === null ? '' : String(props.shift[f.key])])) as Record<
-        keyof VisitorProvenance,
-        string
-    >,
+// The five origins already recorded on a seat (own or a corrected one), null-safe, so the form
+// pre-fills a correction rather than making anyone retype.
+const provenanceOf = (source: ShiftAgendaItem | ShiftSignUp): VisitorProvenance => ({
+    visitors_france_europe: source.visitors_france_europe ?? null,
+    visitors_quebec: source.visitors_quebec ?? null,
+    visitors_toronto: source.visitors_toronto ?? null,
+    visitors_rest_of_canada: source.visitors_rest_of_canada ?? null,
+    visitors_other_countries: source.visitors_other_countries ?? null,
+});
+
+type RecordTarget = { signUpId: number; visitor_count: number | null; extra_interaction_count: number | null } & VisitorProvenance;
+
+// The seat the form is writing, normalised to one shape. An Officer's chosen seat wins; otherwise
+// the viewer's own seat inside the sign-out window. Null → no form. The write always names this
+// seat's id, so an Officer's correction and a self sign-out post through the one PATCH seam.
+const recordTarget = computed<RecordTarget | null>(() => {
+    const seat = correctingSeat.value;
+    if (seat && seat.signup_id !== undefined) {
+        return {
+            signUpId: seat.signup_id,
+            visitor_count: seat.visitor_count ?? null,
+            extra_interaction_count: seat.extra_interaction_count ?? null,
+            ...provenanceOf(seat),
+        };
+    }
+
+    if (showSignOut.value && props.shift.signup_id !== null) {
+        return {
+            signUpId: props.shift.signup_id,
+            visitor_count: props.shift.visitor_count,
+            extra_interaction_count: props.shift.extra_interaction_count,
+            ...provenanceOf(props.shift),
+        };
+    }
+
+    return null;
+});
+
+// The boxes, seeded from whichever seat the form now targets so a correction edits rather than
+// retypes. The count box stays required (the Sign Out button waits for it — the forcing function
+// that carries the count on 96-98% of shifts); the extra box is optional; the five origins are
+// seeded too. Kept as strings so an empty box is distinct from a typed zero.
+const draft = ref('');
+const extraDraft = ref('');
+const provenanceDrafts = ref(Object.fromEntries(provenanceFields.map((f) => [f.key, ''])) as Record<keyof VisitorProvenance, string>);
+
+watch(
+    recordTarget,
+    (target) => {
+        draft.value = target && target.visitor_count !== null ? String(target.visitor_count) : '';
+        extraDraft.value = target && target.extra_interaction_count !== null ? String(target.extra_interaction_count) : '';
+        provenanceFields.forEach((field) => {
+            const value = target ? target[field.key] : null;
+            provenanceDrafts.value[field.key] = value !== null ? String(value) : '';
+        });
+    },
+    { immediate: true },
 );
 
 // All five origins filled and summing to the count typed above — the client's copy of the server
@@ -105,8 +150,19 @@ const provenanceComplete = computed(() => {
 
 const canSubmit = computed(() => draft.value.trim() !== '' && (!props.collectsVisitorProvenance || provenanceComplete.value));
 
-const submitSignOut = () => {
-    if (!canSubmit.value) return;
+// Open the pencil on a seat (#450) — a schedule admin corrects any seat; `can_record` gates the
+// affordance and the SignUpPolicy re-checks the write. Cancel closes it and returns the form to
+// the own-seat window if one is open.
+const openCorrection = (signUp: ShiftSignUp) => {
+    correctingSeat.value = signUp;
+};
+
+const cancelCorrection = () => {
+    correctingSeat.value = null;
+};
+
+const submitRecord = () => {
+    if (!canSubmit.value || recordTarget.value === null) return;
 
     // The count is required and always sent; the extra is optional — a blank box files null.
     const extra = props.collectsExtraInteractions && extraDraft.value.trim() !== '' ? Number(extraDraft.value) : null;
@@ -117,8 +173,17 @@ const submitSignOut = () => {
         ? (Object.fromEntries(provenanceFields.map((f) => [f.key, Number(provenanceDrafts.value[f.key])])) as unknown as VisitorProvenance)
         : null;
 
-    emit('record', { shift: props.shift, count: Number(draft.value), extra, provenance });
+    emit('record', { signUpId: recordTarget.value.signUpId, count: Number(draft.value), extra, provenance });
+    correctingSeat.value = null;
 };
+
+// The recorded count and extra shown on a seat's chip: an Officer reads every seat's own numbers
+// (#450), everyone else only their own (#445). Null shows nothing; a recorded zero shows "0".
+const seatCount = (signUp: ShiftSignUp): number | null =>
+    signUp.can_record ? (signUp.visitor_count ?? null) : isOwnSeat(signUp) ? props.shift.visitor_count : null;
+
+const seatExtra = (signUp: ShiftSignUp): number | null =>
+    signUp.can_record ? (signUp.extra_interaction_count ?? null) : isOwnSeat(signUp) ? props.shift.extra_interaction_count : null;
 </script>
 
 <template>
@@ -141,15 +206,29 @@ const submitSignOut = () => {
                 <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span>
                 <Badge v-for="signUp in shift.signups" :key="signUp.id" variant="secondary" class="gap-1 font-normal">
                     {{ signUpName(signUp) }}
-                    <!-- The viewer's own recorded count reads on their own chip (#445). Null (no
-                         value yet) shows nothing; a recorded zero shows "0 visitors". The
-                         tour-leading extra count reads beside it where both are recorded (#447). -->
-                    <span v-if="isOwnSeat(signUp) && shift.visitor_count !== null" class="text-muted-foreground tabular-nums">
-                        · {{ trans('group.scheduling_panel.agenda.sign_out.recorded', { count: String(shift.visitor_count) }) }}
+                    <!-- The recorded numbers read on the chip: the viewer's own seat (#445), and
+                         every seat for an Officer (#450). Null (no value yet) shows nothing; a
+                         recorded zero shows "0 visitors". The tour-leading extra count reads
+                         beside it where both are recorded (#447). -->
+                    <span v-if="seatCount(signUp) !== null" class="text-muted-foreground tabular-nums">
+                        · {{ trans('group.scheduling_panel.agenda.sign_out.recorded', { count: String(seatCount(signUp)) }) }}
                     </span>
-                    <span v-if="isOwnSeat(signUp) && shift.extra_interaction_count !== null" class="text-muted-foreground tabular-nums">
-                        · {{ trans('group.scheduling_panel.agenda.sign_out.extra_recorded', { count: String(shift.extra_interaction_count) }) }}
+                    <span v-if="seatExtra(signUp) !== null" class="text-muted-foreground tabular-nums">
+                        · {{ trans('group.scheduling_panel.agenda.sign_out.extra_recorded', { count: String(seatExtra(signUp)) }) }}
                     </span>
+                    <!-- The Officer's pencil (#450) — corrects any seat, no deadline. Shown only
+                         where the server sent `can_record` (the schedule-admin gate); an ordinary
+                         Member sees no pencil on anyone's seat, and the SignUpPolicy refuses the
+                         write regardless. -->
+                    <button
+                        v-if="signUp.can_record"
+                        type="button"
+                        class="hover:text-rom-ink -mr-0.5 rounded-full transition-colors"
+                        :aria-label="trans('group.scheduling_panel.agenda.sign_out.correct')"
+                        @click="openCorrection(signUp)"
+                    >
+                        <PhPencilSimple class="size-3" />
+                    </button>
                     <button
                         v-if="signUp.signup_id"
                         type="button"
@@ -194,11 +273,17 @@ const submitSignOut = () => {
                 </Button>
             </div>
 
-            <!-- Sign-out (#445, ADR-0023 §5) — the seat-holder records how many visitors they
-                 served, on their own Shift, from five minutes before it ends. One box and a Sign
-                 Out button, disabled until a number is typed (the forcing function). The server
-                 requires, whole-checks and bounds the number regardless. -->
-            <form v-if="showSignOut" class="flex flex-wrap items-end gap-2 border-t pt-3" @submit.prevent="submitSignOut">
+            <!-- Recording the numbers (#445, #450, ADR-0023 §5) — one form, two ways in: the
+                 seat-holder's own sign-out from five minutes before the Shift ends, and the
+                 Officer's correction of any seat with no deadline. One box and a submit button,
+                 disabled until a number is typed (the forcing function). The server requires,
+                 whole-checks, bounds and re-authorises every write regardless. -->
+            <form v-if="recordTarget" class="flex flex-wrap items-end gap-2 border-t pt-3" @submit.prevent="submitRecord">
+                <!-- When an Officer is correcting a seat, name whose seat it is, so the correction
+                     is never mistaken for a self sign-out. -->
+                <p v-if="correctingSeat" class="text-muted-foreground w-full text-sm font-medium">
+                    {{ trans('group.scheduling_panel.agenda.sign_out.correcting', { name: signUpName(correctingSeat) }) }}
+                </p>
                 <label class="flex flex-col gap-1">
                     <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_out.count_label') }}</span>
                     <Input
@@ -237,7 +322,12 @@ const submitSignOut = () => {
                     </label>
                 </template>
                 <Button type="submit" size="sm" :disabled="!canSubmit">
-                    {{ trans('group.scheduling_panel.agenda.sign_out.submit') }}
+                    {{ trans(correctingSeat ? 'group.scheduling_panel.agenda.sign_out.save' : 'group.scheduling_panel.agenda.sign_out.submit') }}
+                </Button>
+                <!-- An Officer's correction can be closed without writing; the own-seat sign-out
+                     has no cancel — it is simply the window being open. -->
+                <Button v-if="correctingSeat" type="button" variant="ghost" size="sm" @click="cancelCorrection">
+                    {{ trans('group.scheduling_panel.agenda.sign_out.cancel') }}
                 </Button>
             </form>
         </CardContent>
