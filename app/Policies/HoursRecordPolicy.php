@@ -24,8 +24,9 @@ use App\Models\Member;
  *   discloses nothing to a non-member, so its Hours surface (and its write seam) is closed
  *   to one, mirroring the Group page's Private gate.
  *
- * The reports half — {@see viewReports()} for a Group's own reports and {@see viewOrgReports()}
- * for the DMV-wide ones — is the closed counterpart, gated to officers. The super-tier
+ * The reports half — {@see viewReports()} for a Group's own reports, {@see viewOrgReports()} for
+ * the officer-gated DMV-wide ones, and {@see viewVisitorSummary()} for the one DMV-wide report
+ * open to any signed-in Member — is the closed counterpart to the open create half. The super-tier
  * short-circuit lives in the single `Gate::before` (AppServiceProvider) and is never re-checked
  * here.
  *
