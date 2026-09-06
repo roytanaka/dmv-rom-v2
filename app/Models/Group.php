@@ -63,6 +63,7 @@ class Group extends Model
         'has_announcements',
         'collects_visitor_count',
         'collects_extra_interactions',
+        'collects_visitor_provenance',
         'hours_multiplier',
     ];
 
@@ -91,6 +92,7 @@ class Group extends Model
             'has_announcements' => 'boolean',
             'collects_visitor_count' => 'boolean',
             'collects_extra_interactions' => 'boolean',
+            'collects_visitor_provenance' => 'boolean',
             'hours_multiplier' => 'integer',
         ];
     }

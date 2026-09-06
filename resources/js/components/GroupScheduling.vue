@@ -28,7 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { buildAgenda } from '@/scheduling/agenda';
-import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem } from '@/types';
+import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import {
     PhArrowLeft,
@@ -52,6 +52,7 @@ const props = defineProps<{
     canCreate: boolean;
     collectsVisitorCount: boolean;
     collectsExtraInteractions: boolean;
+    collectsVisitorProvenance: boolean;
     groupSlug: string;
 }>();
 
@@ -221,17 +222,25 @@ const drop = (shift: ShiftAgendaItem) => {
 
 // File the numbers on the viewer's own Sign-up. `signup_id` is that seat (the panel never renders
 // without it); the server re-checks the policy (own seat, inside the window) and the whole rule
-// (required count, optional extra, both whole and non-negative) on PATCH. Whose seat is written is
-// the route binding, never the body. The extra-interaction field rides only where the Group
-// collects the split — a count-only Group refuses it server-side, so it is never sent there — and
-// carries null when its box is blank, distinct from a recorded zero (#447, ADR-0023 §2).
-const record = (payload: { shift: ShiftAgendaItem; count: number; extra: number | null }) => {
+// (required count, optional extra, both whole and non-negative, GDR's five origins summing to the
+// count) on PATCH. Whose seat is written is the route binding, never the body. The extra-interaction
+// field rides only where the Group collects the split — a count-only Group refuses it server-side,
+// so it is never sent there — and carries null when its box is blank, distinct from a recorded zero
+// (#447, ADR-0023 §2). GDR's five origins ride only where the Group collects provenance (#448,
+// ADR-0023 §3); everywhere else the server refuses them, so they are never sent.
+const record = (payload: { shift: ShiftAgendaItem; count: number; extra: number | null; provenance: VisitorProvenance | null }) => {
     if (payload.shift.signup_id === null) return;
 
-    const body: { visitor_count: number; extra_interaction_count?: number | null } = { visitor_count: payload.count };
+    const body: { visitor_count: number; extra_interaction_count?: number | null } & Partial<VisitorProvenance> = {
+        visitor_count: payload.count,
+    };
 
     if (props.collectsExtraInteractions) {
         body.extra_interaction_count = payload.extra;
+    }
+
+    if (props.collectsVisitorProvenance && payload.provenance !== null) {
+        Object.assign(body, payload.provenance);
     }
 
     router.patch(route('sign-ups.record', { signUp: payload.shift.signup_id }), body, { preserveScroll: true });
@@ -806,6 +815,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         :shift="shift"
                         :collects-visitor-count="collectsVisitorCount"
                         :collects-extra-interactions="collectsExtraInteractions"
+                        :collects-visitor-provenance="collectsVisitorProvenance"
                         @take="take"
                         @drop="drop"
                         @assign="openAssign"

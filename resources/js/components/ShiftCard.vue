@@ -10,16 +10,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { withinSignOutWindow } from '@/scheduling/signOut';
-import { type SharedData, type ShiftAgendaItem } from '@/types';
+import { type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
-const props = withDefaults(defineProps<{ shift: ShiftAgendaItem; collectsVisitorCount?: boolean; collectsExtraInteractions?: boolean }>(), {
-    collectsVisitorCount: false,
-    collectsExtraInteractions: false,
-});
+const props = withDefaults(
+    defineProps<{
+        shift: ShiftAgendaItem;
+        collectsVisitorCount?: boolean;
+        collectsExtraInteractions?: boolean;
+        collectsVisitorProvenance?: boolean;
+    }>(),
+    {
+        collectsVisitorCount: false,
+        collectsExtraInteractions: false,
+        collectsVisitorProvenance: false,
+    },
+);
 
 const emit = defineEmits<{
     take: [shift: ShiftAgendaItem];
@@ -28,7 +37,7 @@ const emit = defineEmits<{
     remove: [signUpId: number];
     edit: [shift: ShiftAgendaItem];
     delete: [shift: ShiftAgendaItem];
-    record: [payload: { shift: ShiftAgendaItem; count: number; extra: number | null }];
+    record: [payload: { shift: ShiftAgendaItem; count: number; extra: number | null; provenance: VisitorProvenance | null }];
 }>();
 
 const page = usePage<SharedData>();
@@ -65,7 +74,37 @@ const draft = ref(props.shift.visitor_count === null ? '' : String(props.shift.v
 // it never gates the Sign Out button, and a blank box files null (distinct from a recorded zero).
 const extraDraft = ref(props.shift.extra_interaction_count === null ? '' : String(props.shift.extra_interaction_count));
 
-const canSubmit = computed(() => draft.value.trim() !== '');
+// GDR's five origin boxes (#448, ADR-0023 §3), each seeded with any recorded value so a correction
+// edits rather than retypes. The five are required together and must sum to the count — the server
+// enforces both; the button below waits until they are filled and add up, the client's copy of the
+// rule legacy kept in a JavaScript alert.
+const provenanceFields = [
+    { key: 'visitors_france_europe', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_france_europe' },
+    { key: 'visitors_quebec', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_quebec' },
+    { key: 'visitors_toronto', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_toronto' },
+    { key: 'visitors_rest_of_canada', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_rest_of_canada' },
+    { key: 'visitors_other_countries', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_other_countries' },
+] as const;
+
+const provenanceDrafts = ref<Record<keyof VisitorProvenance, string>>({
+    visitors_france_europe: props.shift.visitors_france_europe === null ? '' : String(props.shift.visitors_france_europe),
+    visitors_quebec: props.shift.visitors_quebec === null ? '' : String(props.shift.visitors_quebec),
+    visitors_toronto: props.shift.visitors_toronto === null ? '' : String(props.shift.visitors_toronto),
+    visitors_rest_of_canada: props.shift.visitors_rest_of_canada === null ? '' : String(props.shift.visitors_rest_of_canada),
+    visitors_other_countries: props.shift.visitors_other_countries === null ? '' : String(props.shift.visitors_other_countries),
+});
+
+// All five origins filled and summing to the count typed above — the client's copy of the server
+// rule, so the button never offers a write the server would refuse. Only consulted on GDR.
+const provenanceComplete = computed(() => {
+    const values = provenanceFields.map((field) => provenanceDrafts.value[field.key].trim());
+
+    if (values.some((value) => value === '')) return false;
+
+    return values.reduce((sum, value) => sum + Number(value), 0) === Number(draft.value);
+});
+
+const canSubmit = computed(() => draft.value.trim() !== '' && (!props.collectsVisitorProvenance || provenanceComplete.value));
 
 const submitSignOut = () => {
     if (!canSubmit.value) return;
@@ -73,7 +112,19 @@ const submitSignOut = () => {
     // The count is required and always sent; the extra is optional — a blank box files null.
     const extra = props.collectsExtraInteractions && extraDraft.value.trim() !== '' ? Number(extraDraft.value) : null;
 
-    emit('record', { shift: props.shift, count: Number(draft.value), extra });
+    // GDR's five origins ride only where the Group collects them; `canSubmit` has already checked
+    // all five are filled and add up, so each parses cleanly to a whole number.
+    const provenance: VisitorProvenance | null = props.collectsVisitorProvenance
+        ? {
+              visitors_france_europe: Number(provenanceDrafts.value.visitors_france_europe),
+              visitors_quebec: Number(provenanceDrafts.value.visitors_quebec),
+              visitors_toronto: Number(provenanceDrafts.value.visitors_toronto),
+              visitors_rest_of_canada: Number(provenanceDrafts.value.visitors_rest_of_canada),
+              visitors_other_countries: Number(provenanceDrafts.value.visitors_other_countries),
+          }
+        : null;
+
+    emit('record', { shift: props.shift, count: Number(draft.value), extra, provenance });
 };
 </script>
 
@@ -182,6 +233,16 @@ const submitSignOut = () => {
                         :placeholder="trans('group.scheduling_panel.agenda.sign_out.extra_placeholder')"
                     />
                 </label>
+                <!-- GDR's five visitor origins (#448, ADR-0023 §3) — where the tour's visitors came
+                     from, one box each. Shown only where the Group collects provenance; the five are
+                     required together and must sum to the count, which the button below enforces as
+                     the client's copy of the server rule. -->
+                <template v-if="collectsVisitorProvenance">
+                    <label v-for="field in provenanceFields" :key="field.key" class="flex flex-col gap-1">
+                        <span class="text-muted-foreground text-sm font-medium">{{ trans(field.labelKey) }}</span>
+                        <Input v-model="provenanceDrafts[field.key]" type="number" inputmode="numeric" min="0" step="1" class="w-40" />
+                    </label>
+                </template>
                 <Button type="submit" size="sm" :disabled="!canSubmit">
                     {{ trans('group.scheduling_panel.agenda.sign_out.submit') }}
                 </Button>

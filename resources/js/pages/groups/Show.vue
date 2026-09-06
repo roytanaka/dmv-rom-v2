@@ -70,6 +70,7 @@ const props = defineProps<{
             content: boolean;
             collectsVisitorCount: boolean;
             collectsExtraInteractions: boolean;
+            collectsVisitorProvenance: boolean;
         };
     };
     section: string;
@@ -362,6 +363,7 @@ const pickBanner = (key: string | null) => {
                     :can-create="can.createSchedule"
                     :collects-visitor-count="group.capabilities.collectsVisitorCount"
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
+                    :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"
                     :group-slug="group.slug"
                 />
 
