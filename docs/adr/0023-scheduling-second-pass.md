@@ -32,7 +32,7 @@ Six decisions. One removes an entity nobody needed, four add columns to `sign_up
 
 **No `attended` column, no attendance capability, no per-Group flag, no kiosk.** A `Sign-up` says a Member took a Shift. Nothing says they turned up, and nothing will.
 
-**A no-show is corrected by removing the Sign-up.** ADR-0021 already gives a Scheduler that power and does not time-bound it; only *Member* cancellation stops when the Shift starts. Removing the Sign-up drops the credit with it, because ADR-0022's _recalculate this month_ reads Sign-ups. The correction path was already in the model. It had not been named as one.
+**A no-show is corrected by removing the Sign-up.** ADR-0021 already gives a Scheduler that power and does not time-bound it; only _Member_ cancellation stops when the Shift starts. Removing the Sign-up drops the credit with it, because ADR-0022's _recalculate this month_ reads Sign-ups. The correction path was already in the model. It had not been named as one.
 
 Every argument attendance had was taken from it before the question was worked. It does not make hours correct: ADR-0022 ships the entire hours feature without it. It is not service awards, which run on **years of service** from `Entry_Year`, hand-entered by Records, with no code joining them to hours. It has no consistent legacy behaviour to port: `Confirmed` is live in six of ten Groups and gates credit in only four of those. And it has no workflow behind it — no marker, no consequence, no procedure.
 
@@ -88,11 +88,11 @@ no roster join. no audience test. no membership test.
 
 `audience` is a **read** concern. It decides who sees a Sign-up button. By the time a Sign-up exists the audience question has been answered, so it plays no part in crediting.
 
-**The "guest flag" this question was charted against does not exist.** Legacy's one linked pair credits the taker's home Group, but not by policy: Visitor Wayfinders and Visitor Guides store the same shift as two rows in two tables, and the month-close `DELETE` against one half (`special.php:2438`) is what stops the department reporting the hours twice. It is plumbing. ADR-0021 already retired the row-stapling it defended, so there is nothing left for it to defend. Legacy's *other* path — the six Friends Committees swept out of the same table with no exclusion at all — is already owner-credit. Legacy is inconsistent between its two paths; we take the one that generalises.
+**The "guest flag" this question was charted against does not exist.** Legacy's one linked pair credits the taker's home Group, but not by policy: Visitor Wayfinders and Visitor Guides store the same shift as two rows in two tables, and the month-close `DELETE` against one half (`special.php:2438`) is what stops the department reporting the hours twice. It is plumbing. ADR-0021 already retired the row-stapling it defended, so there is nothing left for it to defend. Legacy's _other_ path — the six Friends Committees swept out of the same table with no exclusion at all — is already owner-credit. Legacy is inconsistent between its two paths; we take the one that generalises.
 
 **Rejected: credit the taker's home Group.** It contradicts the Friends path, it needs a definition of "home Group" for a Member of several and legacy has none, and it makes an officer standing on Group A write rows under Group B, so a Member's total would depend on which officer recalculates first. Owner-credit has no ordering hazard.
 
-**[#406](https://github.com/roytanaka/dmv-rom-v2/issues/406) story 68 needs one word.** It reads *"a Group's total to always equal the sum of its **Members'** records"*, which under owner-credit is ambiguous and, read as the roster, false. Restate it as: **a Group's total equals the sum of the Hours records filed under that Group.** Same number legacy computes, and it holds by construction.
+**[#406](https://github.com/roytanaka/dmv-rom-v2/issues/406) story 68 needs one word.** It reads _"a Group's total to always equal the sum of its **Members'** records"_, which under owner-credit is ambiguous and, read as the roster, false. Restate it as: **a Group's total equals the sum of the Hours records filed under that Group.** Same number legacy computes, and it holds by construction.
 
 ### 5. Entry lives on the Group's Scheduling tab, in two places
 
@@ -101,11 +101,11 @@ no roster join. no audience test. no membership test.
 **The volunteer has two ways in, both on that tab.**
 
 1. **Inline on the Agenda.** A Shift the viewer holds a Sign-up on grows a sign-out panel from five minutes before its `ends_at`: the number boxes, and the Sign Out button disabled until a number is typed.
-2. **A personal outstanding-shifts panel** on the same tab — *my* Sign-ups, upcoming plus any past Shift inside the 28-day window that still has no number.
+2. **A personal outstanding-shifts panel** on the same tab — _my_ Sign-ups, upcoming plus any past Shift inside the 28-day window that still has no number.
 
 **The panel is date-ranged, so it crosses Schedules.** This is the part the Agenda alone cannot do. A Shift's `schedule_id` is mandatory and its date must sit inside the Schedule's range (ADR-0021 §1-2), so a three-week-old Shift is routinely on last month's Schedule, a different page. A pure-Agenda answer strands it.
 
-This is a faithful port. Legacy already puts the box in both places, in every scheduling Group: a `WHERE Date = today` board (`vg.php:200`), and a *My … Calendar* personal list present in **nine** Groups under eight labels, whose query is `Date >= today OR (Date >= today - 28 days AND Confirmed = 0)`. We have no `Confirmed`, so the outstanding marker is a **null `visitor_count`** — exactly what §2 reserves it for.
+This is a faithful port. Legacy already puts the box in both places, in every scheduling Group: a `WHERE Date = today` board (`vg.php:200`), and a _My … Calendar_ personal list present in **nine** Groups under eight labels, whose query is `Date >= today OR (Date >= today - 28 days AND Confirmed = 0)`. We have no `Confirmed`, so the outstanding marker is a **null `visitor_count`** — exactly what §2 reserves it for.
 
 **An officer corrects inline**, a pencil on each seat chip, no deadline. Every write is re-checked server-side against a policy.
 
@@ -137,7 +137,7 @@ The adjustment log fixes a defect rather than porting one. Legacy's extra-intera
 - **One visitor number instead of two.** Rejected on evidence: Docents and GDR already collect two, in separate columns, at the same dialog, and have for years.
 - **A per-Group breakdown table or a JSON column** for GDR's provenance. Rejected at §3.
 - **A Schedule close-out table** for officers. Officer-only so it can never ship alone, scrolls sideways on a phone, and is Schedule-shaped, so it answers "what is missing this month" and never "what is missing". Revisit if a Statistician asks for bulk entry; legacy's grids say they might.
-- **A personal top-bar destination** for outstanding shifts. Its *content* is what the panel holds, but `nav.personal.calendar` stays a stub: deciding what My Calendar is — one Member's whole schedule across every Group — is a bigger question than this map, and legacy's own personal list is per-Group.
+- **A personal top-bar destination** for outstanding shifts. Its _content_ is what the panel holds, but `nav.personal.calendar` stays a stub: deciding what My Calendar is — one Member's whole schedule across every Group — is a bigger question than this map, and legacy's own personal list is per-Group.
 - **The Hours tab as the entry surface.** It puts scheduling data on a tab every Group has, including the ones that run no scheduling, reached once a month for a different reason. A volunteer at 17:00 is on the Schedule.
 - **Skipping non-members in recalculation.** It would make every report agree, at the price of the hours vanishing entirely — the owning Group refuses them and the home Group does not own the Shift. That is the lost-credit bug legacy already has with shadow sign-ups.
 - **Reproducing legacy's two month windows** on one screen. Porting a defect.
@@ -155,7 +155,7 @@ The adjustment log fixes a defect rather than porting one. Legacy's extra-intera
 - **Nothing prompts a Member who worked another Group's `open` Shift.** They have a home — the Scheduling section is org-open, so their panel is on that Group's tab — but no surface they visit for their own reasons mentions it. A gap ADR-0021 created and this ADR does not close.
 - **The per-Group sign-up floor has nothing to read for an outsider.** ADR-0021 gates sign-up on two floors and the per-Group one is `MembershipStatus::canSignUp()`, which has no row for a Member of another Group taking an `open` Shift. Only the DMV-wide `Category::canSignUp()` binds them. An ADR-0021 gap made visible by §4, not created by it.
 - **Seat chips get dense on a two-number Group.** Live with it, or move the officer's correction into a small dialog off the chip.
-- **This decision is agreed on evidence and not yet validated with the Groups who will use it.** Roy: *"the real test is getting it in front of leadership."* The prototype on `prototype/after-shift-entry` is what a walkthrough runs against. It joins [#400](https://github.com/roytanaka/dmv-rom-v2/issues/400) §10's fifteen person-questions rather than blocking this ADR.
+- **This decision is agreed on evidence and not yet validated with the Groups who will use it.** Roy: _"the real test is getting it in front of leadership."_ The prototype on `prototype/after-shift-entry` is what a walkthrough runs against. It joins [#400](https://github.com/roytanaka/dmv-rom-v2/issues/400) §10's fifteen person-questions rather than blocking this ADR.
 - **Code deltas:** seven columns on `sign_ups` and one on `hours_records`; a Group-level switch for the visitor count and a second for provenance; a Form Request enforcing the required rule and GDR's sum; a policy for the officer's correction; the sign-out panel and the outstanding-shifts panel on the Scheduling tab; the Summary Visitor Interactions report and its incomplete-Group marker.
 
 ## Legacy defects this port does not inherit
@@ -172,14 +172,14 @@ Recorded so the parity and migration work does not rediscover them. This ADR cha
 
 ## Deliberately out of the second pass
 
-- **The sign-in kiosk.** Legacy's six `*signin` surfaces were a shared museum-network device with a member-list dropdown and the last four digits of a Museum ID as a PIN. **Closed, not deferred:** the hub says *"no longer in use"* in writing, the network gate is dead in all six Groups behind an unconditional `$ipok = TRUE;`, and the 2024 member procedure PDF describes only the main website. Shared-device authentication is unlike anything else in the rebuild. If a bookmarked iPad turns out to still be in use at some desk, the answer is a phone, not a rebuilt kiosk.
+- **The sign-in kiosk.** Legacy's six `*signin` surfaces were a shared museum-network device with a member-list dropdown and the last four digits of a Museum ID as a PIN. **Closed, not deferred:** the hub says _"no longer in use"_ in writing, the network gate is dead in all six Groups behind an unconditional `$ipok = TRUE;`, and the 2024 member procedure PDF describes only the main website. Shared-device authentication is unlike anything else in the rebuild. If a bookmarked iPad turns out to still be in use at some desk, the answer is a phone, not a rebuilt kiosk.
 - **Qualification gating** — the credential system, training programmes, expiry, and every screen. Its own map; it reaches into Member records, so Records has a stake. `ShiftKind` already holds the slot and it stays empty.
 - **Group booking** — the client half. Its own map, and it owes this ADR's report a per-Booking actual audience for Docents, GDR, ROMForYou and ROMWalks. Until it lands those Groups read low, ROMForYou by 72%. Note that a booked group tour has **no other visitor record**, and that legacy's `Earned = RatePerVisitor × Visitors + …` makes the booked figure a **billing quantity**, so the booking map should treat it as an actual worth reporting rather than a forecast to discard.
 - **The Visitor Wayfinders port** — audiences beyond `group` / `open`, the ShiftKind maintenance screen, and `Occasion`. Its own map.
 - **The per-Group money-and-visitor reports** — Docents' Treasurer report, GDR's Tour Provenance, GI's Object Usage, Outreach's and ROMWalks' summaries. Every `$` figure in them belongs to the group-booking map. GDR's Tour Provenance carries no `$` figure at all and is out anyway: this ADR captures the data and builds no reader for it.
 - **Retention** — how far back visitor-count records stay readable, and to whom.
 - **Service awards.** They run on **years of service** from `Entry_Year` against a twelve-row vocabulary table, hand-entered by Records, and no code joins them to hours. ADR-0022 puts them out of its scope too, so they currently belong to no map. Nothing here may be justified by them.
-- **Legacy scheduling data migration and any backfill of historical credit** — the separate migration plan owns it. Facts it needs are recorded here and in #406's *Migration notes*; the data itself is never taken from this map.
+- **Legacy scheduling data migration and any backfill of historical credit** — the separate migration plan owns it. Facts it needs are recorded here and in #406's _Migration notes_; the data itself is never taken from this map.
 
 ### Facts the migration plan needs
 
@@ -198,6 +198,7 @@ Recorded so the parity and migration work does not rediscover them. This ADR cha
 - [ADR-0021](0021-scheduling-first-pass.md) — Schedule, Shift, ShiftKind, Sign-up; refined here (attendance, visitor counts and the kiosk closed; the cross-Group credit question answered)
 - [ADR-0022](0022-hours-and-statistics-model.md) — hours and statistics; amended here (`extra_interactions` on `hours_records`; Summary Visitor Interactions ships)
 - [ADR-0017](0017-authorization-enforcement.md) — enforcement; the Form Request and the officer's policy sit under it
+- [#443](https://github.com/roytanaka/dmv-rom-v2/issues/443) — the buildable spec for ADR-0023
 - [#406](https://github.com/roytanaka/dmv-rom-v2/issues/406) — the buildable spec for ADR-0022, amended in three places by §4 and §6
 - [#334](https://github.com/roytanaka/dmv-rom-v2/issues/334) — does the app record authorship? Left app-wide by §2
 - `prototype/after-shift-entry` — the entry-surface prototype, screenshots and README
