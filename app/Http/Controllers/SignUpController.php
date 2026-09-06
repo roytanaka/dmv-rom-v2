@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DeleteSignUpRequest;
+use App\Http\Requests\RecordSignUpVisitorsRequest;
 use App\Http\Requests\StoreSignUpRequest;
 use App\Mail\SignUpCancelled;
 use App\Models\Shift;
@@ -63,6 +64,20 @@ class SignUpController extends Controller
                 Mail::to($scheduler)->send(new SignUpCancelled($shift, $member));
             }
         }
+
+        return back();
+    }
+
+    /**
+     * Record the after-the-shift numbers on a Sign-up (#445, PRD #443, ADR-0023 §5). One seam
+     * for the whole feature: the inline Agenda panel, and later the outstanding panel and the
+     * Officer's correction, all PATCH here. The Form Request has already resolved the policy
+     * (the seat-holder's own seat, inside the window) and whitelisted the fields — whose seat
+     * is written comes from the route binding, never the body — so this fills and saves.
+     */
+    public function record(RecordSignUpVisitorsRequest $request, SignUp $signUp): RedirectResponse
+    {
+        $signUp->record($request->validated());
 
         return back();
     }

@@ -14,10 +14,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * actors, and the row carries no record of which (no provenance column — point 2 of #334).
  *
  * The (`shift_id`, `member_id`) pair is unique: a Member holds at most one seat on a Shift.
- * A Sign-up has nothing beyond its two foreign keys and timestamps — per-seat data (hours,
- * visitor counts) will hang here when the hours work lands, but the first pass exposes only
- * the Member's name, and only to viewers who can read the Schedule it sits on
- * ({@see MemberResource}, ADR-0017 §6).
+ * Beyond its two foreign keys and timestamps the Sign-up carries the per-seat record made
+ * after the shift (#445, PRD #443, ADR-0023 §2): `visitor_count`, how many visitors this
+ * Member served. **Null means nobody recorded a value; zero means someone recorded zero** —
+ * the two never collapse. The Member's name is exposed to any viewer who can read the
+ * Schedule ({@see MemberResource}, ADR-0017 §6); the count only to the seat-holder and a
+ * schedule admin.
  */
 class SignUp extends Model
 {
@@ -32,7 +34,34 @@ class SignUp extends Model
     protected $fillable = [
         'shift_id',
         'member_id',
+        'visitor_count',
     ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'visitor_count' => 'integer',
+        ];
+    }
+
+    /**
+     * Record the after-the-shift numbers on this seat (#445, ADR-0023 §Model layer). Takes the
+     * already-validated values — the Form Request owns every rule (required, whole, non-negative,
+     * whose seat) — and saves. No transaction: it is one row, corrected by retyping, with no
+     * authorship column ([#334] stays app-wide). A re-file overwrites; a recorded zero sticks
+     * as zero, distinct from an untouched null.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    public function record(array $values): void
+    {
+        $this->fill($values)->save();
+    }
 
     /**
      * The Shift this Sign-up takes a seat on.

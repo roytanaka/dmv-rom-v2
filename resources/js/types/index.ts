@@ -554,12 +554,17 @@ export interface ShiftAgendaItem {
     shift_kind_id: number | null;
     signups: ShiftSignUp[];
     signup_id: number | null;
+    // The count the viewer recorded on their own seat here (#445, ADR-0023 §5) — null when
+    // unrecorded, distinct from a recorded zero. Sent only to the seat-holder; a reader holding
+    // no seat gets null.
+    visitor_count: number | null;
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
     // schedule-admin gate plus a free seat (capacity binds the Scheduler too, #359).
     // `update` / `delete` are the Shift authoring hints (#356 front end): `update` is the
-    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. All false on a foreign
-    // Shift, which carries no authoring affordances.
-    can: { signUp: boolean; assign: boolean; update: boolean; delete: boolean };
+    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. `record` is the sign-out
+    // verdict (#445) — the viewer's own seat, from five minutes before the Shift ends. All false
+    // on a foreign Shift, which carries no authoring affordances.
+    can: { signUp: boolean; assign: boolean; update: boolean; delete: boolean; record: boolean };
 }
 
 // A foreign open Shift (#361, ADR-0021 §Sign-up) — another Group's `open` Shift a reader

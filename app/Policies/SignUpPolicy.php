@@ -14,6 +14,7 @@ use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\SignUp;
+use Carbon\CarbonImmutable;
 
 /**
  * Authorization for a Shift's Sign-ups (#357, PRD #352, ADR-0021 §Sign-up) — the taking
@@ -157,6 +158,26 @@ class SignUpPolicy
     {
         return $signUp->member_id === $actor->getKey()
             || $this->administersSchedulingFor($actor, $signUp->shift->schedule->group);
+    }
+
+    /**
+     * Who may record the after-the-shift numbers on a seat (#445, PRD #443, ADR-0023 §5). The
+     * seat-holder, and only their own seat, **from `ends_at` minus five minutes onward with no
+     * upper bound** — they file the number as they pack up, or a month later from the same
+     * panel. The lower bound is a server rule, not the disabled button's: without it any Member
+     * could file a count for a Shift next month. Legacy has no such check (any logged-in Member
+     * can post any row's id); this is a named deviation.
+     *
+     * A schedule admin's correction of *another* seat has no time bound and is a separate
+     * verdict (officer correction, #450); this method is the seat-holder's own write.
+     */
+    public function record(Member $actor, SignUp $signUp): bool
+    {
+        if ($signUp->member_id !== $actor->getKey()) {
+            return false;
+        }
+
+        return ! CarbonImmutable::now()->isBefore($signUp->shift->ends_at->subMinutes(5));
     }
 
     /**
