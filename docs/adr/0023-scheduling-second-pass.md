@@ -1,6 +1,7 @@
 ---
-status: proposed
+status: accepted
 date: 2026-09-06
+accepted: 2026-09-06
 ---
 
 # Scheduling second pass: what a Sign-up records after the shift
