@@ -121,6 +121,19 @@ class GroupFactory extends Factory
     }
 
     /**
+     * GDR — a Group that also collects the five-origin visitor provenance split (#448, ADR-0023
+     * §3): the sign-out panel's five origin boxes, which must sum to the count. Implies the
+     * visitor count (the five sum to it, which is the count itself), so it layers on
+     * {@see collectsVisitorCount}.
+     */
+    public function collectsVisitorProvenance(): static
+    {
+        return $this->collectsVisitorCount()->state(fn () => [
+            'collects_visitor_provenance' => true,
+        ]);
+    }
+
+    /**
      * A working group — a functional sub-team that meets.
      */
     public function workingGroup(): static

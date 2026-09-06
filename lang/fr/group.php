@@ -328,6 +328,19 @@ return [
                 'extra_recorded' => ':count hors du circuit',
                 'extra_whole_number' => 'Saisissez un nombre entier d’interactions supplémentaires.',
                 'extra_not_negative' => 'Le nombre d’interactions supplémentaires ne peut pas être négatif.',
+                // Les cinq provenances des visiteur·euses de GDR (#448, ADR-0023 §3) — la ventilation
+                // à côté du décompte, GDR seul. Les cinq doivent totaliser le décompte ;
+                // `provenance_sum` nomme les deux totaux. Les cinq étiquettes reprennent le libellé
+                // que le legacy affiche au sign-out depuis 2020.
+                'provenance_france_europe' => 'France + Europe Fr',
+                'provenance_quebec' => 'Prov Québec',
+                'provenance_toronto' => 'Toronto',
+                'provenance_rest_of_canada' => 'Reste du Canada',
+                'provenance_other_countries' => 'Autres Pays',
+                'provenance_sum' => 'Les cinq provenances totalisent :sum, mais le nombre de visiteur·euses est :count.',
+                'provenance_required' => 'Saisissez un nombre pour chaque provenance.',
+                'provenance_whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
+                'provenance_not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
             ],
         ],
         // Bascule de vue (#360, ADR-0021 §7) — la ou le lecteur choisit Agenda ou

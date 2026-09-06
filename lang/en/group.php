@@ -338,6 +338,19 @@ return [
                 'extra_recorded' => ':count outside the tour',
                 'extra_whole_number' => 'Enter a whole number of extra interactions.',
                 'extra_not_negative' => 'The number of extra interactions cannot be negative.',
+                // GDR's five visitor origins (#448, ADR-0023 §3) — the provenance split beside the
+                // count, GDR alone. The five must sum to the count; `provenance_sum` names both
+                // totals so the volunteer sees where the numbers disagree. The five labels carry
+                // the French wording legacy has shown at sign-out since 2020.
+                'provenance_france_europe' => 'France and Europe',
+                'provenance_quebec' => 'Quebec',
+                'provenance_toronto' => 'Toronto',
+                'provenance_rest_of_canada' => 'Rest of Canada',
+                'provenance_other_countries' => 'Other countries',
+                'provenance_sum' => 'The five origins add up to :sum, but the visitor count is :count.',
+                'provenance_required' => 'Enter a number for every origin.',
+                'provenance_whole_number' => 'Enter a whole number of visitors.',
+                'provenance_not_negative' => 'The number of visitors cannot be negative.',
             ],
         ],
         // View toggle (#360, ADR-0021 §7) — the reader chooses Agenda or Calendar; the

@@ -153,6 +153,10 @@ class GroupController extends Controller
                     // the extra-interaction split beside the count. A separate switch: a count-only
                     // Group leaves it off and shows one box, a tour-leading Group shows two.
                     'collectsExtraInteractions' => $group->collects_extra_interactions,
+                    // Whether the Group collects GDR's five visitor origins (#448, ADR-0023 §3) —
+                    // the provenance split that must sum to the count. GDR alone is on; every other
+                    // Group leaves it off and its sign-out panel shows no origin boxes.
+                    'collectsVisitorProvenance' => $group->collects_visitor_provenance,
                 ],
             ],
             'section' => $section,
@@ -802,6 +806,15 @@ class GroupController extends Controller
             // seat-holder, for their own Shift; a reader holding no seat here gets null.
             'visitor_count' => $ownSignUp?->visitor_count,
             'extra_interaction_count' => $ownSignUp?->extra_interaction_count,
+            // GDR's five visitor origins on the viewer's own seat (#448, ADR-0023 §3), so the
+            // sign-out panel pre-fills a correction rather than making the volunteer retype. Same
+            // seat-holder-only, null-when-unrecorded rules as the count; null throughout on any
+            // Group that does not collect provenance.
+            'visitors_france_europe' => $ownSignUp?->visitors_france_europe,
+            'visitors_quebec' => $ownSignUp?->visitors_quebec,
+            'visitors_toronto' => $ownSignUp?->visitors_toronto,
+            'visitors_rest_of_canada' => $ownSignUp?->visitors_rest_of_canada,
+            'visitors_other_countries' => $ownSignUp?->visitors_other_countries,
             // The affordances this Shift offers the viewer. `signUp` is the self-service
             // verdict — the SignUpPolicy's floors and `audience`, plus a free seat and no seat
             // already held. `assign` is the officer verdict — the schedule-admin gate plus a

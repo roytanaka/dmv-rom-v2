@@ -537,6 +537,17 @@ export interface PlacementCandidate {
     standing: string;
 }
 
+// GDR's five visitor origins (#448, ADR-0023 §3) — where a seat's visitors came from, summing to
+// the visitor count. GDR alone collects them; the sign-out panel's five origin boxes write this
+// shape, and the read prop below carries it back on the viewer's own seat.
+export interface VisitorProvenance {
+    visitors_france_europe: number | null;
+    visitors_quebec: number | null;
+    visitors_toronto: number | null;
+    visitors_rest_of_canada: number | null;
+    visitors_other_countries: number | null;
+}
+
 // A Shift on an opened Schedule — one slot the Agenda reads (#355, #357, ADR-0021 §2).
 // `starts_at` / `ends_at` cross the wire as UTC instants and are read on the org wall
 // clock (grouped by day client-side). `kind` is the ShiftKind name where the Group uses
@@ -566,6 +577,14 @@ export interface ShiftAgendaItem {
     // visitors served outside the tour they led, on a tour-leading Group. Stored apart from the
     // count, never folded in. Same null/zero/seat-holder-only rules as `visitor_count`.
     extra_interaction_count: number | null;
+    // GDR's five visitor origins the viewer recorded on their own seat (#448, ADR-0023 §3) — where
+    // their visitors came from, summing to `visitor_count`. GDR alone; same seat-holder-only,
+    // null-when-unrecorded rules as the count, and null throughout on every other Group.
+    visitors_france_europe: number | null;
+    visitors_quebec: number | null;
+    visitors_toronto: number | null;
+    visitors_rest_of_canada: number | null;
+    visitors_other_countries: number | null;
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
     // schedule-admin gate plus a free seat (capacity binds the Scheduler too, #359).
     // `update` / `delete` are the Shift authoring hints (#356 front end): `update` is the
