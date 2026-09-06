@@ -353,6 +353,15 @@ return [
                 'provenance_not_negative' => 'The number of visitors cannot be negative.',
             ],
         ],
+        // My sign-ups (#449, PRD #443, ADR-0023 §5) — the outstanding-shifts panel: the
+        // viewer's own upcoming Shifts plus any past Shift inside the 28-day window still owed a
+        // number. It crosses Schedules, so the subtitle names what it reaches; absent, not empty,
+        // when there is nothing to show.
+        'mine' => [
+            'aria_label' => 'My sign-ups',
+            'heading' => 'My sign-ups',
+            'subtitle' => 'Your upcoming shifts, and any recent shift that still needs a visitor count.',
+        ],
         // View toggle (#360, ADR-0021 §7) — the reader chooses Agenda or Calendar; the
         // choice lives in localStorage, never in the authoring form. Agenda is the default.
         'view' => [

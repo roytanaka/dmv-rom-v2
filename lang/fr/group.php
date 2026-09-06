@@ -343,6 +343,15 @@ return [
                 'provenance_not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
             ],
         ],
+        // Mes inscriptions (#449, PRD #443, ADR-0023 §5) — le panneau des quarts en
+        // souffrance : les quarts à venir de la ou du bénévole, plus tout quart passé dans la
+        // fenêtre de 28 jours qui attend encore un nombre de visiteur·euses. Il traverse les
+        // horaires ; absent, et non vide, quand il n’y a rien à montrer.
+        'mine' => [
+            'aria_label' => 'Mes inscriptions',
+            'heading' => 'Mes inscriptions',
+            'subtitle' => 'Vos quarts à venir, et tout quart récent qui attend encore un nombre de visiteur·euses.',
+        ],
         // Bascule de vue (#360, ADR-0021 §7) — la ou le lecteur choisit Agenda ou
         // Calendrier ; le choix vit dans localStorage, jamais dans le formulaire de
         // rédaction. L’Agenda est la vue par défaut.

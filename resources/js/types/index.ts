@@ -640,6 +640,13 @@ export interface Scheduling {
     // end) — id and name of each active ShiftKind. Present only for a schedule admin on an
     // opened Schedule; empty for a plain reader and on the list.
     shift_kinds: ShiftKind[];
+    // The viewer's own outstanding-shifts panel (#449, ADR-0023 §5) — "my Sign-ups on this
+    // Group": upcoming Shifts, plus any past Shift inside the 28-day window still owed a number.
+    // It is date-ranged, so it crosses Schedules, and rides on the tab whether a Schedule is
+    // opened or not. Empty means no panel — a viewer who owes nothing and holds no upcoming seat,
+    // and a Group that collects no count, both get an empty list. Each entry is a ShiftAgendaItem
+    // the ShiftCard reads, so filing a number from here uses the same seam as the Agenda.
+    mine: ShiftAgendaItem[];
 }
 
 // One option in the Shift form's kind picker (#356 front end, ADR-0021 §3) — a Group's

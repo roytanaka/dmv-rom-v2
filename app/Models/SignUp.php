@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Http\Resources\MemberResource;
+use Carbon\CarbonImmutable;
 use Database\Factories\SignUpFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,6 +32,15 @@ class SignUp extends Model
 {
     /** @use HasFactory<SignUpFactory> */
     use HasFactory;
+
+    /**
+     * How far back the outstanding-shifts list reaches (#449, PRD #443, ADR-0023 §5). Legacy's
+     * personal list asks for shifts from today forward **or** unconfirmed within the last 28 days;
+     * we have no `Confirmed` column, so the outstanding marker is a null `visitor_count` and this
+     * is the window that bounds it. A named constant, not a literal at the call site — the window
+     * is a ported department policy, not an incidental number.
+     */
+    public const OUTSTANDING_WINDOW_DAYS = 28;
 
     /**
      * The attributes that are mass assignable.
@@ -78,6 +89,29 @@ class SignUp extends Model
     public function record(array $values): void
     {
         $this->fill($values)->save();
+    }
+
+    /**
+     * The outstanding set for a Member (#449, PRD #443, ADR-0023 §5) — their Sign-ups on Shifts
+     * that have **ended**, within {@see OUTSTANDING_WINDOW_DAYS} of now, still carrying a **null
+     * `visitor_count`**. That null is the only marker there is: a recorded zero is a fact, not an
+     * omission, so it drops out here. The date bound sits on the Shift join (the Shift date lives
+     * on `shifts`), against the current clock so time-travel in a test moves the window with it.
+     * The window has a lower bound only; a Shift ended today and one ended 27 days ago both count.
+     *
+     * @param  Builder<SignUp>  $query
+     * @return Builder<SignUp>
+     */
+    public function scopeOutstandingFor(Builder $query, Member $member): Builder
+    {
+        $now = CarbonImmutable::now();
+
+        return $query
+            ->where('member_id', $member->getKey())
+            ->whereNull('visitor_count')
+            ->whereHas('shift', fn (Builder $shift) => $shift
+                ->where('ends_at', '<', $now)
+                ->where('ends_at', '>=', $now->subDays(self::OUTSTANDING_WINDOW_DAYS)));
     }
 
     /**

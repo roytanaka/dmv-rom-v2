@@ -115,6 +115,18 @@ onMounted(() => {
 
 watch(view, (value) => localStorage.setItem(VIEW_KEY, value));
 
+// --- My sign-ups (#449, ADR-0023 §5) — the outstanding-shifts panel ------------
+
+// "My Sign-ups on this Group": the viewer's upcoming Shifts, plus any past Shift inside the
+// 28-day window still owed a number. Server-resolved (`scheduling.mine`), already the viewer's
+// own seats and no one else's, ordered by start, and crossing Schedules — the one surface that
+// reaches a three-week-old Shift on last month's Schedule, a different page. The panel is
+// **absent, not empty**, when there is nothing to show: an empty list renders no panel at all,
+// and a Group that collects no count sends an empty list too. Each entry is a ShiftCard, so
+// filing a number here rides the same PATCH seam as the Agenda; a past Shift shows the sign-out
+// form (its window has no upper bound), an upcoming one just lists with its drop control.
+const mine = computed(() => props.scheduling.mine);
+
 // The list arrives already ordered (current & upcoming first, then past). Splitting
 // here only heads the two blocks; an empty block is dropped rather than left bare.
 const sections = computed(() =>
@@ -579,6 +591,31 @@ const runBulkAssign = (action: 'place' | 'remove') => {
 
 <template>
     <div class="flex flex-col gap-4">
+        <!-- My sign-ups (#449, ADR-0023 §5) — the outstanding-shifts panel: the viewer's own
+             upcoming Shifts and any past Shift still owed a number, crossing Schedules. Absent
+             (not empty) when there is nothing to show, so it renders only when the list is
+             non-empty. Each Shift is the shared ShiftCard, so a number is filed straight from
+             here through the same seam as the Agenda. -->
+        <section v-if="mine.length" class="flex flex-col gap-2" :aria-label="trans('group.scheduling_panel.mine.aria_label')">
+            <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">{{ trans('group.scheduling_panel.mine.heading') }}</h3>
+            <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.mine.subtitle') }}</p>
+            <ShiftCard
+                v-for="shift in mine"
+                :key="shift.id"
+                :shift="shift"
+                :collects-visitor-count="collectsVisitorCount"
+                :collects-extra-interactions="collectsExtraInteractions"
+                :collects-visitor-provenance="collectsVisitorProvenance"
+                @take="take"
+                @drop="drop"
+                @assign="openAssign"
+                @remove="removeSeat"
+                @edit="openShiftEdit"
+                @delete="destroyShift"
+                @record="record"
+            />
+        </section>
+
         <div v-if="canCreate && !scheduling.open" class="flex justify-end">
             <Button type="button" size="sm" class="gap-1.5" @click="openCreate">
                 <PhPlus class="size-4" />
