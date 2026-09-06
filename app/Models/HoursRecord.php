@@ -49,6 +49,7 @@ class HoursRecord extends Model
         'scheduled_hours',
         'extra_hours',
         'total_hours',
+        'extra_interactions',
     ];
 
     /**
@@ -63,6 +64,7 @@ class HoursRecord extends Model
             'scheduled_hours' => 'integer',
             'extra_hours' => 'integer',
             'total_hours' => 'integer',
+            'extra_interactions' => 'integer',
         ];
     }
 
@@ -114,7 +116,30 @@ class HoursRecord extends Model
      */
     public static function enterExtra(Member $member, Group $group, string $yearMonth, int $delta, Member $author): ?self
     {
-        return DB::transaction(function () use ($member, $group, $yearMonth, $delta, $author): ?self {
+        return self::enterExtras($member, $group, $yearMonth, $delta, 0, $author);
+    }
+
+    /**
+     * Enter extra hours and extra interactions together in one write (ADR-0023 §6, amending
+     * ADR-0022 §2). Extra interactions are visitors a Member served outside any Shift — the
+     * hand-typed route into the department's headline number for the six Groups without a
+     * scheduling one. Each part behaves exactly as extra hours always have: the signed delta
+     * is *added* to what is on file, a negative delta corrects, and the result floors at zero.
+     *
+     * The two parts share one record and one transaction, so entering hours and interactions
+     * in one submit is a single atomic write and a no-op on both leaves nothing behind (§16) —
+     * neither the record nor either adjustment. Each part that actually moves appends its own
+     * {@see HoursAdjustment} carrying the applied delta, its author, and which field it moved,
+     * so a mistyped interaction count is as correctable and as attributable as a mistyped hour.
+     *
+     * Extra interactions are **outside `total_hours`**: {@see recomputeTotal()} sums only the
+     * two hours parts, so an interactions write never touches an hours figure. A visitor count
+     * is not time worked. `$author` is always the authenticated writer; this never reads it
+     * from input.
+     */
+    public static function enterExtras(Member $member, Group $group, string $yearMonth, int $hoursDelta, int $interactionsDelta, Member $author): ?self
+    {
+        return DB::transaction(function () use ($member, $group, $yearMonth, $hoursDelta, $interactionsDelta, $author): ?self {
             $record = self::firstOrNew(
                 [
                     'member_id' => $member->getKey(),
@@ -122,25 +147,42 @@ class HoursRecord extends Model
                     'year_month' => $yearMonth,
                     'meeting_id' => self::NO_MEETING,
                 ],
-                ['scheduled_hours' => 0, 'extra_hours' => 0, 'total_hours' => 0],
+                ['scheduled_hours' => 0, 'extra_hours' => 0, 'total_hours' => 0, 'extra_interactions' => 0],
             );
 
-            $applied = max(0, $record->extra_hours + $delta) - $record->extra_hours;
+            // Each part floors at zero: the change actually applied is what a negative correction
+            // can subtract without driving the running total below zero.
+            $appliedHours = max(0, $record->extra_hours + $hoursDelta) - $record->extra_hours;
+            $appliedInteractions = max(0, $record->extra_interactions + $interactionsDelta) - $record->extra_interactions;
 
-            // Nothing changed — a zero entry, or a correction the floor swallowed. Leave no
-            // record and no adjustment behind (§16).
-            if ($applied === 0) {
+            // Nothing changed on either part — a zero/blank entry, or a correction the floor
+            // swallowed. Leave no record and no adjustment behind (§16).
+            if ($appliedHours === 0 && $appliedInteractions === 0) {
                 return null;
             }
 
-            $record->extra_hours += $applied;
+            $record->extra_hours += $appliedHours;
+            $record->extra_interactions += $appliedInteractions;
             $record->recomputeTotal();
             $record->save();
 
-            $record->adjustments()->create([
-                'delta' => $applied,
-                'created_by' => $author->getKey(),
-            ]);
+            // One adjustment per part that actually moved, each naming its field so the log's
+            // deltas sum to the current value of that field.
+            if ($appliedHours !== 0) {
+                $record->adjustments()->create([
+                    'field' => HoursAdjustment::FIELD_EXTRA_HOURS,
+                    'delta' => $appliedHours,
+                    'created_by' => $author->getKey(),
+                ]);
+            }
+
+            if ($appliedInteractions !== 0) {
+                $record->adjustments()->create([
+                    'field' => HoursAdjustment::FIELD_EXTRA_INTERACTIONS,
+                    'delta' => $appliedInteractions,
+                    'created_by' => $author->getKey(),
+                ]);
+            }
 
             return $record;
         });

@@ -101,6 +101,44 @@ it('shows each entry month the hours already on file and when they were last tou
             ->where('hours.months.1.updated_at', null));
 });
 
+// --- Extra interactions on file (#446, ADR-0023 §6) -------------------------
+
+it('shows each entry month the extra interactions already on file', function () {
+    $group = hoursReadGroup();
+    $member = Member::factory()->create();
+    [$current] = OrgTime::entryMonths();
+    HoursRecord::enterExtras($member, $group, $current, 0, 14, $member);
+
+    $this->actingAs($member)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'hours']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('hours.months.0.extra_interactions', 14)
+            // The previous month has nothing on file yet.
+            ->where('hours.months.1.extra_interactions', 0));
+});
+
+it('carries extra interactions on each of the viewer\'s records', function () {
+    $group = hoursReadGroup();
+    $member = Member::factory()->create();
+    HoursRecord::factory()->create([
+        'member_id' => $member->id,
+        'group_id' => $group->id,
+        'year_month' => '202606',
+        'meeting_id' => HoursRecord::NO_MEETING,
+        'scheduled_hours' => 4,
+        'extra_hours' => 2,
+        'total_hours' => 6,
+        'extra_interactions' => 11,
+    ]);
+
+    $this->actingAs($member)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'hours']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('hours.records.0.extra_interactions', 11)
+            // total_hours stays the hours-only sum.
+            ->where('hours.records.0.total_hours', 6));
+});
+
 // --- The entry `can` hint ---------------------------------------------------
 
 it('hints entry on for a participating Member and off for a departed one', function () {

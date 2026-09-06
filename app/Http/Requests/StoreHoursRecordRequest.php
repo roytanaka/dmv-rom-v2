@@ -49,12 +49,17 @@ class StoreHoursRecordRequest extends FormRequest
         return [
             'year_month' => ['required', 'string', Rule::in(OrgTime::entryMonths())],
             'hours' => ['nullable', 'integer'],
+            // Visitors served outside a Shift (ADR-0023 §6), entered beside the hours. Whole
+            // like the hours, nullable for a blank no-op, signed for a correction. A visitor
+            // count is not time worked, so it is a separate field, never folded into `hours`.
+            'interactions' => ['nullable', 'integer'],
         ];
     }
 
     /**
-     * Say plainly that whole hours are expected when a decimal is entered, so a Member
-     * rounds rather than guessing why the form refused them (ADR-0022 §2, story 17).
+     * Say plainly that whole numbers are expected when a decimal is entered — for the hours
+     * (ADR-0022 §2, story 17) and the interactions alike (ADR-0023 §6) — so a Member rounds
+     * rather than guessing why the form refused them.
      *
      * @return array<string, string>
      */
@@ -62,6 +67,7 @@ class StoreHoursRecordRequest extends FormRequest
     {
         return [
             'hours.integer' => trans('hours.entry.whole_hours'),
+            'interactions.integer' => trans('hours.entry.whole_interactions'),
         ];
     }
 }
