@@ -600,9 +600,10 @@ export interface ShiftAgendaItem {
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
     // schedule-admin gate plus a free seat (capacity binds the Scheduler too, #359).
     // `update` / `delete` are the Shift authoring hints (#356 front end): `update` is the
-    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. `record` is the sign-out
-    // verdict (#445) — the viewer's own seat, from five minutes before the Shift ends. All false
-    // on a foreign Shift, which carries no authoring affordances.
+    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. `record` is the
+    // sign-out verdict (#445, #450) — the viewer's own seat; a schedule admin may record
+    // at any time, the seat-holder's own window opens five minutes before the Shift ends.
+    // All false on a foreign Shift, which carries no authoring affordances.
     can: { signUp: boolean; assign: boolean; update: boolean; delete: boolean; record: boolean };
 }
 

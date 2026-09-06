@@ -806,10 +806,11 @@ class GroupController extends Controller
 
     /**
      * One Shift's read payload, shared by the owning-Group Agenda and the foreign set (#357,
-     * #359, #361). `$canManage` is the schedule-admin verdict for *this* Shift: it reveals the
-     * officer affordances — each seat's Sign-up id (the removal target) and the `assign`
-     * button — and is always false for a foreign Shift, which carries no authoring affordances
-     * for anyone.
+     * #359, #361, #450). `$canManage` is the schedule-admin verdict for *this* Shift: it reveals
+     * the officer affordances — each seat's Sign-up id (the removal and correction target), the
+     * per-seat visitor counts and `can_record` verdict for officer correction (#450), and the
+     * `assign` button — and is always false for a foreign Shift, which carries no authoring
+     * affordances for anyone.
      *
      * Sign-up names are visible to every reader who can read the Schedule (ADR-0017 §6),
      * routed through {@see MemberResource} so contact PII stays gated. `signup_id` is the
@@ -839,8 +840,10 @@ class GroupController extends Controller
             'shift_kind_id' => $shift->shift_kind_id,
             // The seated Members, names only (contact stays gated per MemberResource). A
             // schedule admin additionally gets each seat's own Sign-up id — the remove target
-            // for officer removal (#359), for any seat, not just their own. A plain reader,
-            // and every reader of a foreign Shift, never learns another seat's id.
+            // for officer removal (#359) and the correction target for officer correction (#450)
+            // — plus the per-seat visitor counts and the `can_record` verdict for the pencil.
+            // A plain reader, and every reader of a foreign Shift, never learns another seat's
+            // id or numbers.
             'signups' => $shift->signUps
                 ->map(function (SignUp $signUp) use ($request, $canManage) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
@@ -902,11 +905,11 @@ class GroupController extends Controller
                 // Always false for a foreign Shift, which carries no authoring affordances.
                 'update' => $canManage,
                 'delete' => $canManage && $taken === 0,
-                // The sign-out affordance (#445, ADR-0023 §5) — the SignUpPolicy's own verdict on
-                // the viewer's seat: their own seat, from five minutes before the Shift ends, no
-                // upper bound. False when the viewer holds no seat here. The panel's live show/hide
-                // is the client's window pure function; this is the server's matching gate for the
-                // Sign Out button, re-checked on PATCH regardless.
+                // The sign-out affordance (#445, #450, ADR-0023 §5) — the SignUpPolicy's verdict on
+                // the viewer's own seat: a schedule admin may record at any time; the seat-holder's
+                // own window opens five minutes before the Shift ends. False when the viewer holds
+                // no seat here. The panel's live show/hide is the client's window pure function;
+                // this is the server's matching gate for the Sign Out button, re-checked on PATCH.
                 'record' => $ownSignUp !== null
                     && $viewer->can('record', $ownSignUp->setRelation('shift', $shift)),
             ],
