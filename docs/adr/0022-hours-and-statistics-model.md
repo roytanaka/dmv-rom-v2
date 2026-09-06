@@ -144,7 +144,9 @@ Legacy renders these through a PHP PDF library. v2 renders **HTML styled for pri
 
 ## Deliberately out of the first pass
 
-- **Visitor Interactions and the `Visitors` counter.** `Interactions` is zero on every one of 74,248 rows. Historical values import; no entry form is built and Summary Visitor Interactions does not ship.
+- **Visitor Interactions and the `Visitors` counter.** ~~`Interactions` is zero on every one of 74,248 rows. Historical values import; no entry form is built and Summary Visitor Interactions does not ship.~~
+
+  > **Withdrawn (2026-09-06, [ADR-0023](0023-scheduling-second-pass.md)).** Two things were wrong here. The evidence covered `MemberActivity.Interactions`, while the exclusion named the **scheduling** `Visitors` column — a different table this ADR never examined, live in nine of ten Groups and current through the present month. And `MemberActivity.Interactions` is **not** zero: 98 of 71,388 production rows carry a value across twelve Groups. The UPDATE branch is indeed unreachable, but `mysql_select` returns `FALSE` on zero rows, so every entry lands through the INSERT below it. **ADR-0023 ships all of it**: two nullable integers on the `Sign-up`, an **`extra_interactions`** whole integer on `hours_records` (outside `total_hours`, entered beside extra hours with an `hours_adjustments` row), and **Summary Visitor Interactions returns** with one composition rule for every Group. Six Groups have no route into that report except `extra_interactions`.
 - **Meeting-hours entry**, pending a meeting attendance roster.
 - **On-behalf-of entry** by a Chair or Statistician, pending a verification workflow. Legacy's _Statistician — Verifying Extra Hours_ procedure is the shape this should eventually take.
 - **Locking a closed month.** Members may correct their own hours with no deadline. A lock with nobody able to unlock it is a support ticket; revisit alongside verification.
