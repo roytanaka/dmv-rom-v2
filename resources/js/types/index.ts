@@ -251,6 +251,8 @@ export interface HoursRecordRow {
     scheduled_hours: number;
     extra_hours: number;
     total_hours: number;
+    /** Visitors served outside a shift (ADR-0023 §6). Outside `total_hours`. */
+    extra_interactions: number;
     /** A UTC instant; format it in `SharedData['timezone']`. Null before first write. */
     updated_at: string | null;
 }
@@ -262,6 +264,8 @@ export interface HoursMonth {
     month: string;
     /** The extra hours already on file for this month — the additive base. */
     extra_hours: number;
+    /** The extra interactions already on file — the additive base for the visitor count. */
+    extra_interactions: number;
     /** When the month's row was last touched; null when nothing is recorded yet. */
     updated_at: string | null;
 }

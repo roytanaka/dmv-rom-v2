@@ -34,20 +34,24 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class HoursController extends Controller
 {
     /**
-     * Add extra hours for the authenticated Member on a Group, in one of the two open
-     * months. The write is additive and floors at zero; a blank or zero entry (or a
-     * correction the floor swallows) writes nothing at all. Every real write appends an
-     * Hours adjustment in the same transaction ({@see HoursRecord::enterExtra()}).
+     * Add extra hours and/or extra interactions for the authenticated Member on a Group, in
+     * one of the two open months. Both parts are additive and floor at zero; a blank or zero
+     * entry (or a correction the floor swallows) writes nothing at all, and a submit that is a
+     * no-op on both leaves nothing behind. Extra interactions (ADR-0023 §6) — visitors served
+     * outside a Shift — ride the same form and land in a column of their own, outside
+     * `total_hours`. Every real write appends its field-tagged Hours adjustment in the same
+     * transaction ({@see HoursRecord::enterExtras()}).
      */
     public function store(StoreHoursRecordRequest $request, Group $group): RedirectResponse
     {
         $actor = $request->user();
 
-        HoursRecord::enterExtra(
+        HoursRecord::enterExtras(
             $actor,
             $group,
             $request->validated('year_month'),
             (int) $request->validated('hours'),
+            (int) $request->validated('interactions'),
             $actor,
         );
 

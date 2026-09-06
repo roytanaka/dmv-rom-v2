@@ -19,12 +19,25 @@ class HoursAdjustment extends Model
     use HasFactory;
 
     /**
+     * The `field` value for an adjustment that moved the record's extra hours — the log this
+     * table has always carried.
+     */
+    public const FIELD_EXTRA_HOURS = 'extra_hours';
+
+    /**
+     * The `field` value for an adjustment that moved the record's extra interactions (ADR-0023
+     * §6) — visitors entered outside a Shift, corrected the same way extra hours are.
+     */
+    public const FIELD_EXTRA_INTERACTIONS = 'extra_interactions';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
     protected $fillable = [
         'hours_record_id',
+        'field',
         'delta',
         'created_by',
     ];

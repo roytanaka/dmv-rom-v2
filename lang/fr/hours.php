@@ -16,6 +16,12 @@ return [
         'hours_label' => 'Heures à ajouter',
         'add' => 'Ajouter les heures',
         'whole_hours' => 'Saisissez des heures entières — les minutes ne nous intéressent pas.',
+        // Interactions supplémentaires (#446, ADR-0023 §6) — visiteurs servis en dehors d’un
+        // quart, saisis à côté des heures. La note précise qu’il s’agit de visiteurs, non d’heures.
+        'interactions_label' => 'Visiteurs à ajouter',
+        'interactions_note' => 'Visiteurs que vous avez servis en dehors d’un quart planifié — un nombre de personnes, pas des heures.',
+        'interactions_on_file' => 'Enregistré : :interactions',
+        'whole_interactions' => 'Saisissez un nombre entier de visiteurs.',
     ],
 
     // Recalcul des heures planifiées d’un groupe à partir des inscriptions (#410, ADR-0022 §2)
@@ -35,6 +41,8 @@ return [
             'scheduled' => 'Planifiées',
             'extra' => 'Supplémentaires',
             'total' => 'Total',
+            // Visiteurs servis en dehors d’un quart (ADR-0023 §6) — hors du total, un nombre de personnes.
+            'interactions' => 'Visiteurs',
             'updated' => 'Dernière mise à jour',
         ],
     ],

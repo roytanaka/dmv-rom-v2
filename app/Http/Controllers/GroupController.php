@@ -487,8 +487,9 @@ class GroupController extends Controller
      * The tab shows the viewer **their own** hours and nobody else's, here or anywhere —
      * per-Member hours feed service awards and legacy has never shown them to a peer
      * (ADR-0022 §4). The records list carries the scheduled / extra / total split (what the
-     * app counted vs. what they told it) newest month first. The two entry months (current
-     * and previous, on the org wall clock) each carry the extra hours already on file and
+     * app counted vs. what they told it) plus the extra-interactions visitor count (ADR-0023
+     * §6, outside the total), newest month first. The two entry months (current and previous,
+     * on the org wall clock) each carry the extra hours and interactions already on file and
      * when they were last touched, so a Member does not double-count. Whether the entry form
      * renders at all is the separate `can.enterHours` hint.
      *
@@ -510,6 +511,8 @@ class GroupController extends Controller
                     'scheduled_hours' => $record->scheduled_hours,
                     'extra_hours' => $record->extra_hours,
                     'total_hours' => $record->total_hours,
+                    // Visitors served outside a Shift (ADR-0023 §6) — outside total_hours.
+                    'extra_interactions' => $record->extra_interactions,
                     'updated_at' => $record->updated_at?->toIso8601String(),
                 ])
                 ->all(),
@@ -524,6 +527,8 @@ class GroupController extends Controller
                         'year_month' => $yearMonth,
                         'month' => $this->monthStart($yearMonth),
                         'extra_hours' => $onFile?->extra_hours ?? 0,
+                        // The additive base for the interactions field, alongside the hours one.
+                        'extra_interactions' => $onFile?->extra_interactions ?? 0,
                         'updated_at' => $onFile?->updated_at?->toIso8601String(),
                     ];
                 })

@@ -9,10 +9,11 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Entering extra hours on a Group (#408, PRD #406, ADR-0022 §2, §4). The mutation is
- * authorized structurally here — `authorize()` resolves the route-bound Group and delegates
- * to the HoursRecordPolicy, never returning `true` blindly — and `rules()` is a whitelist of
- * exactly the two fields a Member enters: which month, and the whole-number delta.
+ * Entering extra hours and interactions on a Group (#408, #446, PRD #406, ADR-0022 §2, §4,
+ * ADR-0023 §6). The mutation is authorized structurally here — `authorize()` resolves the
+ * route-bound Group and delegates to the HoursRecordPolicy, never returning `true` blindly —
+ * and `rules()` is a whitelist of exactly the three fields a Member enters: which month,
+ * a whole-number hours delta, and a whole-number interactions delta.
  *
  * The whitelist deliberately carries **no member id**: whose hours are written is the
  * authenticated session, never anything the request names (ADR-0022 §4, the security
@@ -24,7 +25,10 @@ use Illuminate\Validation\Rule;
  * reach any earlier month. `hours` is a whole number: legacy rejects decimals outright
  * ("we are not concerned with minutes"), so a decimal is refused with a message that says
  * so rather than being silently truncated. It is nullable and may be negative — a blank
- * writes nothing (§16) and a negative corrects an overstatement (§14).
+ * writes nothing (§16) and a negative corrects an overstatement (§14). `interactions`
+ * follows the same shape — whole, nullable, and signed — and carries the visitor count a
+ * Member served outside any Shift (ADR-0023 §6); it is a separate field because a visitor
+ * count is not time worked and must never be folded into `hours`.
  */
 class StoreHoursRecordRequest extends FormRequest
 {
@@ -38,9 +42,10 @@ class StoreHoursRecordRequest extends FormRequest
     }
 
     /**
-     * The whitelist of fields an extra-hours entry may set. `year_month` is constrained to
-     * the two-month window; `hours` is a whole number (nullable for a no-op blank, signed
-     * for a correction). No member id — the writer is the session, not the request.
+     * The whitelist of fields an extra-hours and interactions entry may set. `year_month` is
+     * constrained to the two-month window; `hours` and `interactions` are whole numbers
+     * (nullable for a no-op blank, signed for a correction). No member id — the writer is
+     * the session, not the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -49,12 +54,17 @@ class StoreHoursRecordRequest extends FormRequest
         return [
             'year_month' => ['required', 'string', Rule::in(OrgTime::entryMonths())],
             'hours' => ['nullable', 'integer'],
+            // Visitors served outside a Shift (ADR-0023 §6), entered beside the hours. Whole
+            // like the hours, nullable for a blank no-op, signed for a correction. A visitor
+            // count is not time worked, so it is a separate field, never folded into `hours`.
+            'interactions' => ['nullable', 'integer'],
         ];
     }
 
     /**
-     * Say plainly that whole hours are expected when a decimal is entered, so a Member
-     * rounds rather than guessing why the form refused them (ADR-0022 §2, story 17).
+     * Say plainly that whole numbers are expected when a decimal is entered — for the hours
+     * (ADR-0022 §2, story 17) and the interactions alike (ADR-0023 §6) — so a Member rounds
+     * rather than guessing why the form refused them.
      *
      * @return array<string, string>
      */
@@ -62,6 +72,7 @@ class StoreHoursRecordRequest extends FormRequest
     {
         return [
             'hours.integer' => trans('hours.entry.whole_hours'),
+            'interactions.integer' => trans('hours.entry.whole_interactions'),
         ];
     }
 }

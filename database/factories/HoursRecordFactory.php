@@ -36,6 +36,8 @@ class HoursRecordFactory extends Factory
             'scheduled_hours' => $scheduled,
             'extra_hours' => $extra,
             'total_hours' => $scheduled + $extra,
+            // Outside total_hours — a visitor count, not time worked (ADR-0023 §6).
+            'extra_interactions' => fake()->numberBetween(0, 20),
         ];
     }
 }

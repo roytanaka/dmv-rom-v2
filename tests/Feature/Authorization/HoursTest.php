@@ -326,3 +326,217 @@ it('redirects an unauthenticated entry to login', function () {
     $this->post(route('hours.store', hoursGroup()), ['year_month' => currentMonth(), 'hours' => 5])
         ->assertRedirect(route('login'));
 });
+
+// --- Extra interactions: visitors served outside a Shift (#446, ADR-0023 §6) ------
+//
+// Entered beside extra hours on the same form, behaving exactly as extra hours do —
+// additive, floored at zero, a no-op leaves no trace — but outside total_hours, because
+// a visitor count is not time worked. Every write appends its own field-tagged adjustment.
+
+it('records extra interactions additively, creating the record with total_hours untouched', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => 12])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    $record = HoursRecord::sole();
+    expect($record->member_id)->toBe($member->id)
+        ->and($record->extra_interactions)->toBe(12)
+        ->and($record->extra_hours)->toBe(0)
+        // Outside total_hours — a visitor count never enters an hours figure.
+        ->and($record->total_hours)->toBe(0);
+});
+
+it('appends a field-tagged interactions adjustment carrying the delta and its author', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => 12]);
+
+    $adjustment = HoursAdjustment::sole();
+    expect($adjustment->field)->toBe(HoursAdjustment::FIELD_EXTRA_INTERACTIONS)
+        ->and($adjustment->delta)->toBe(12)
+        ->and($adjustment->created_by)->toBe($member->id)
+        ->and($adjustment->hours_record_id)->toBe(HoursRecord::sole()->id);
+});
+
+it('adds the entered interactions to those already on file (30 onto 20 leaves 50)', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+    HoursRecord::enterExtras($member, $group, currentMonth(), 0, 20, $member);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => 30]);
+
+    expect(HoursRecord::sole()->extra_interactions)->toBe(50);
+});
+
+it('subtracts a negative interactions correction (-5 against 20 leaves 15)', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+    HoursRecord::enterExtras($member, $group, currentMonth(), 0, 20, $member);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => -5]);
+
+    expect(HoursRecord::sole()->extra_interactions)->toBe(15);
+});
+
+it('floors a bad interactions correction at zero (-50 against 20 leaves 0)', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+    HoursRecord::enterExtras($member, $group, currentMonth(), 0, 20, $member);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => -50]);
+
+    expect(HoursRecord::sole()->extra_interactions)->toBe(0);
+});
+
+it('writes no row for a zero or blank interactions entry', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => 0])
+        ->assertRedirect();
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => null])
+        ->assertRedirect();
+
+    expect(HoursRecord::count())->toBe(0)
+        ->and(HoursAdjustment::count())->toBe(0);
+});
+
+it('leaves no trace when a negative interactions correction is swallowed by the floor', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => -3])
+        ->assertRedirect();
+
+    expect(HoursRecord::count())->toBe(0)
+        ->and(HoursAdjustment::count())->toBe(0);
+});
+
+it('refuses a decimal interactions entry with a whole-numbers message and writes nothing', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => '3.5'])
+        ->assertSessionHasErrors(['interactions' => trans('hours.entry.whole_interactions')]);
+
+    expect(HoursRecord::count())->toBe(0);
+});
+
+// --- Hours and interactions together: one transaction, one row ---------------
+
+it('writes extra hours and extra interactions from one submit as a single row', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'hours' => 4, 'interactions' => 9])
+        ->assertSessionHasNoErrors();
+
+    $record = HoursRecord::sole();
+    expect($record->extra_hours)->toBe(4)
+        ->and($record->extra_interactions)->toBe(9)
+        // total_hours counts the hours half only.
+        ->and($record->total_hours)->toBe(4);
+
+    // One adjustment per part that moved, each tagged with its field.
+    $byField = HoursAdjustment::query()->get()->keyBy('field');
+    expect($byField)->toHaveCount(2)
+        ->and($byField[HoursAdjustment::FIELD_EXTRA_HOURS]->delta)->toBe(4)
+        ->and($byField[HoursAdjustment::FIELD_EXTRA_INTERACTIONS]->delta)->toBe(9);
+});
+
+it('leaves nothing behind when a single submit is a no-op on both hours and interactions', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'hours' => 0, 'interactions' => 0])
+        ->assertRedirect();
+
+    expect(HoursRecord::count())->toBe(0)
+        ->and(HoursAdjustment::count())->toBe(0);
+});
+
+it('leaves an existing record\'s extra hours untouched when only interactions are entered', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+    // A record already carrying scheduled and extra hours, as a mixed month would.
+    HoursRecord::factory()->create([
+        'member_id' => $member->id,
+        'group_id' => $group->id,
+        'year_month' => currentMonth(),
+        'meeting_id' => HoursRecord::NO_MEETING,
+        'scheduled_hours' => 6,
+        'extra_hours' => 3,
+        'total_hours' => 9,
+        'extra_interactions' => 0,
+    ]);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => 7]);
+
+    $record = HoursRecord::sole();
+    expect($record->extra_interactions)->toBe(7)
+        ->and($record->extra_hours)->toBe(3)
+        ->and($record->total_hours)->toBe(9);
+});
+
+it('records interactions on a Group that runs no scheduling', function () {
+    // A plain Group with no Schedules at all — its only route into the visitor number.
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'interactions' => 8])
+        ->assertSessionHasNoErrors();
+
+    expect(HoursRecord::sole()->extra_interactions)->toBe(8);
+});
+
+it('accepts interactions for the previous month but refuses an older one', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+    $previous = OrgTime::entryMonths()[1];
+    $tooOld = OrgTime::now()->subMonthsWithoutOverflow(2)->format('Ym');
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => $previous, 'interactions' => 3])
+        ->assertSessionHasNoErrors();
+    expect(HoursRecord::sole()->year_month)->toBe($previous);
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), ['year_month' => $tooOld, 'interactions' => 3])
+        ->assertSessionHasErrors('year_month');
+    expect(HoursRecord::count())->toBe(1);
+});
+
+it('writes interactions against the authenticated Member even when the body names another', function () {
+    $group = hoursGroup();
+    $member = hoursMemberOf($group);
+    $other = Member::factory()->create();
+
+    $this->actingAs($member)
+        ->post(route('hours.store', $group), [
+            'year_month' => currentMonth(),
+            'interactions' => 6,
+            'member_id' => $other->id,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $record = HoursRecord::sole();
+    expect($record->member_id)->toBe($member->id)
+        ->and(HoursAdjustment::sole()->created_by)->toBe($member->id);
+});
