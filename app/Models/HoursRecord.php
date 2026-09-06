@@ -169,9 +169,11 @@ class HoursRecord extends Model
      * left alone. The fiscal-year bound (§2, current year only) is enforced upstream at the
      * Form Request, not here — this method restates whatever month it is handed.
      *
-     * Shift membership and past-ness are resolved in PHP against the org zone so neither the
-     * month bucket nor the boundary depends on the database engine (date and zone handling
-     * differ across engines — the sandbox note).
+     * A Shift falls in the month of its **`ends_at`** (ADR-0023 §4) — the one Shift crossing
+     * midnight into a new month is credited to the month it finished in. Shift membership,
+     * past-ness and the month bucket are resolved in PHP against the org zone so none of them
+     * depends on the database engine (date and zone handling differ across engines — the
+     * sandbox note).
      */
     public static function recalculateScheduled(Group $group, string $yearMonth): void
     {
@@ -183,7 +185,7 @@ class HoursRecord extends Model
             ->where('ends_at', '<=', $asOf)
             ->with('signUps')
             ->get()
-            ->filter(fn (Shift $shift) => $shift->starts_at->setTimezone($zone)->format('Ym') === $yearMonth);
+            ->filter(fn (Shift $shift) => $shift->ends_at->setTimezone($zone)->format('Ym') === $yearMonth);
 
         // Sum each Member's worked minutes across those Shifts, keyed by member id.
         $minutesByMember = [];
