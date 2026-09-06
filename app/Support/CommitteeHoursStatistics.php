@@ -64,6 +64,12 @@ class CommitteeHoursStatistics
             ->whereIn('year_month', $months)
             ->get();
 
+        // Visitor interactions are the fourth grain (ADR-0023 §6). They read the summary's
+        // composition rule from its one home — Sign-up counts plus a Group's extra interactions —
+        // so Detailed and Summary can never diverge. This is a per-Group per-month map; each
+        // breakdown rolls it up over its own subtree exactly as it does the three hours grains.
+        $interactions = VisitorInteractionStatistics::ownFor($root, $months);
+
         // Each direct child of the root is a committee; its row rolls up its whole subtree.
         $children = Group::query()
             ->where('parent_id', $root->getKey())
@@ -71,7 +77,7 @@ class CommitteeHoursStatistics
             ->get();
 
         $committees = $children
-            ->map(fn (Group $child): array => self::breakdown($child, $records, $months))
+            ->map(fn (Group $child): array => self::breakdown($child, $records, $months, $interactions))
             ->all();
 
         // The scheduled section lists every Group that actually runs scheduling, wherever it
@@ -89,10 +95,10 @@ class CommitteeHoursStatistics
             ->where('has_scheduling', true)
             ->orderBy('name')
             ->get()
-            ->map(fn (Group $group): array => self::breakdown($group, $records, $months, includeDescendants: false))
+            ->map(fn (Group $group): array => self::breakdown($group, $records, $months, $interactions, includeDescendants: false))
             ->all();
 
-        return new self($months, $committees, $scheduling, self::breakdown($root, $records, $months));
+        return new self($months, $committees, $scheduling, self::breakdown($root, $records, $months, $interactions));
     }
 
     /**
@@ -105,22 +111,32 @@ class CommitteeHoursStatistics
      * pass false and count the Group alone, so two scheduling Groups on the same branch are
      * never both credited with the same hours.
      *
+     * `$interactions` is the summary's per-Group per-month composition map ({@see
+     * VisitorInteractionStatistics::ownFor()}); the fourth grain rolls it up over the same subtree
+     * as the three hours grains, and stays outside `total`, which is hours alone.
+     *
      * @param  Collection<int, HoursRecord>  $records  every record in the root subtree this year
      * @param  array<int, string>  $months
+     * @param  array<int, array<string, int>>  $interactions  [groupId][YYYYMM] => visitor interactions
      * @return array<string, mixed>
      */
-    private static function breakdown(Group $group, Collection $records, array $months, bool $includeDescendants = true): array
+    private static function breakdown(Group $group, Collection $records, array $months, array $interactions, bool $includeDescendants = true): array
     {
         $groupIds = $includeDescendants
             ? $group->descendants()->pluck('id')->push($group->getKey())->all()
             : [$group->getKey()];
         $own = $records->whereIn('group_id', $groupIds);
 
-        $cells = collect(array_map(function (string $yearMonth) use ($own): array {
+        $cells = collect(array_map(function (string $yearMonth) use ($own, $groupIds, $interactions): array {
             $forMonth = $own->where('year_month', $yearMonth);
             $shifts = (int) $forMonth->sum('scheduled_hours');
             $meetings = (int) $forMonth->where('meeting_id', '!=', HoursRecord::NO_MEETING)->sum('extra_hours');
             $extra = (int) $forMonth->where('meeting_id', HoursRecord::NO_MEETING)->sum('extra_hours');
+
+            $visitors = 0;
+            foreach ($groupIds as $id) {
+                $visitors += $interactions[$id][$yearMonth] ?? 0;
+            }
 
             return [
                 'year_month' => $yearMonth,
@@ -128,6 +144,7 @@ class CommitteeHoursStatistics
                 'meetings' => $meetings,
                 'extra' => $extra,
                 'total' => $shifts + $meetings + $extra,
+                'interactions' => $visitors,
             ];
         }, $months));
 
@@ -140,6 +157,7 @@ class CommitteeHoursStatistics
                 'meetings' => (int) $cells->sum('meetings'),
                 'extra' => (int) $cells->sum('extra'),
                 'total' => (int) $cells->sum('total'),
+                'interactions' => (int) $cells->sum('interactions'),
             ],
         ];
     }

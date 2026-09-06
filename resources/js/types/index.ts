@@ -440,13 +440,16 @@ export interface DmvCommitteeSummary {
     orgRows: { meetings: DmvOrgRow; extra: DmvOrgRow; total: DmvOrgRow };
 }
 
-// Detailed Committee Statistics — each committee broken into shifts, meetings, and extra.
+// Detailed Committee Statistics — each committee broken into shifts, meetings, extra, and the
+// fourth grain, visitor interactions (#452, ADR-0023 §6). Interactions sit beside the hours and
+// stay outside `total`, which is hours alone.
 export interface DmvDetailedCell {
     year_month: string;
     shifts: number;
     meetings: number;
     extra: number;
     total: number;
+    interactions: number;
 }
 
 export interface DmvDetailedYtd {
@@ -454,6 +457,7 @@ export interface DmvDetailedYtd {
     meetings: number;
     extra: number;
     total: number;
+    interactions: number;
 }
 
 export interface DmvCommitteeRow {

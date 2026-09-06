@@ -171,6 +171,11 @@ Route::group([
         ->middleware('auth')->name('hours.committee-summary.csv');
     Route::get(LaravelLocalization::transRoute('routes.hours.committee-detailed.csv'), [HoursController::class, 'committeeDetailedCsv'])
         ->middleware('auth')->name('hours.committee-detailed.csv');
+    // Summary Visitor Interactions CSV (#452, ADR-0023 §6) — the visitors report's export sibling.
+    // Open to any signed-in Member (viewVisitorSummary), exactly as its page is, unlike the six
+    // officer-gated exports above it.
+    Route::get(LaravelLocalization::transRoute('routes.hours.visitor-summary.csv'), [HoursController::class, 'visitorSummaryCsv'])
+        ->middleware('auth')->name('hours.visitor-summary.csv');
     Route::get(LaravelLocalization::transRoute('routes.hours.ranked.csv'), [HoursController::class, 'rankedCsv'])
         ->middleware('auth')->name('hours.ranked.csv');
     Route::get(LaravelLocalization::transRoute('routes.hours.zero-hours.csv'), [HoursController::class, 'zeroHoursCsv'])

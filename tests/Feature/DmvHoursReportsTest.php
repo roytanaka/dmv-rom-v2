@@ -8,7 +8,11 @@ use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\HoursRecord;
 use App\Models\Member;
+use App\Models\Schedule;
+use App\Models\Shift;
+use App\Models\SignUp;
 use App\Support\OrgTime;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -82,6 +86,26 @@ function hoursRowFor(Member $member, Group $group, string $yearMonth, int $sched
 function hoursRow(Group $group, string $yearMonth, int $scheduled = 0, int $extra = 0, int $meetingId = HoursRecord::NO_MEETING): HoursRecord
 {
     return hoursRowFor(Member::factory()->create(), $group, $yearMonth, $scheduled, $extra, $meetingId);
+}
+
+/** A signed-out Sign-up on a Shift owned by the Group, ending mid-month in the org zone. */
+function detailedSignUp(Group $group, string $yearMonth, int $visitors = 0, ?int $extra = null): SignUp
+{
+    $endsAt = CarbonImmutable::createFromFormat('Ym', $yearMonth, config('app.org_timezone'))
+        ->startOfMonth()->addDays(14)->setTime(12, 0);
+    $schedule = Schedule::factory()->create(['group_id' => $group->id]);
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'starts_at' => $endsAt->subHours(3),
+        'ends_at' => $endsAt,
+    ]);
+
+    return SignUp::factory()->create([
+        'shift_id' => $shift->id,
+        'member_id' => Member::factory()->create()->id,
+        'visitor_count' => $visitors,
+        'extra_interaction_count' => $extra,
+    ]);
 }
 
 // --- Who may read the six reports -------------------------------------------
@@ -208,6 +232,28 @@ it('breaks each committee into shifts, meetings and extra, and completes the org
             // The DMV row includes the root's own hours and every sub-group — the complete total.
             ->where('org.months.0.total', 13)
             ->where('org.ytd.total', 13));
+});
+
+it('breaks each committee into a fourth visitor-interactions row, from the summary rule', function () {
+    $committee = Group::factory()->create(['parent_id' => $this->root->id, 'name' => 'Docents']);
+    $cohort = Group::factory()->create(['parent_id' => $committee->id, 'name' => 'Cohort']);
+    detailedSignUp($committee, '202504', visitors: 20, extra: 5); // 25 from a signed-out shift
+    HoursRecord::factory()->create([ // 3 from extra interactions on the Hours record
+        'member_id' => Member::factory()->create()->id,
+        'group_id' => $committee->id,
+        'year_month' => '202504',
+        'meeting_id' => HoursRecord::NO_MEETING,
+        'scheduled_hours' => 0, 'extra_hours' => 0, 'total_hours' => 0,
+        'extra_interactions' => 3,
+    ]);
+    detailedSignUp($cohort, '202504', visitors: 4); // a grandchild folds into Docents and the DMV total
+
+    $this->actingAs(orgOfficer($this->root, Role::Statistician))
+        ->get(route('hours.committee-detailed'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('committees.0.months.0.interactions', 32) // 25 + 3 + 4
+            ->where('committees.0.ytd.interactions', 32)
+            ->where('org.months.0.interactions', 32));
 });
 
 // --- Active Members Ranked Hours --------------------------------------------

@@ -23,12 +23,14 @@ const title = computed(() => trans('hours.dmv.detailed.title'));
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href: route('hours.committee-detailed') }]);
 
-// The three parts each committee is broken into, in display order. The cell key names the
-// field on a month cell and the ytd; the label key names its translated row heading.
+// The four parts each committee is broken into, in display order. The cell key names the
+// field on a month cell and the ytd; the label key names its translated row heading. Visitor
+// interactions is the fourth grain (#452, ADR-0023 §6), read from the summary's composition rule.
 const kinds = [
     { field: 'shifts', label: 'shifts' },
     { field: 'meetings', label: 'meetings' },
     { field: 'extra', label: 'extra' },
+    { field: 'interactions', label: 'interactions' },
 ] as const;
 
 // Does any committee (or the DMV total) carry a number this year? Drives the empty state.

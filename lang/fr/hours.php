@@ -191,11 +191,12 @@ return [
         // Statistiques détaillées des comités — chaque comité ventilé en quarts, réunions, supplémentaires.
         'detailed' => [
             'title' => 'Statistiques détaillées des comités',
-            'lead' => 'Les quarts, réunions et heures supplémentaires de chaque comité durant l\'année financière.',
+            'lead' => 'Les quarts, réunions, heures supplémentaires et interactions visiteurs de chaque comité durant l\'année financière.',
             'kind' => [
                 'shifts' => 'Quarts',
                 'meetings' => 'Réunions',
                 'extra' => 'Supplémentaires',
+                'interactions' => 'Interactions visiteurs',
             ],
             'total' => 'Total du DMV — incluant chaque sous-groupe',
             'column' => [

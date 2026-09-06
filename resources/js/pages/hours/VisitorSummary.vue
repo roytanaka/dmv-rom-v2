@@ -8,6 +8,7 @@
 // Member reaches it from My Hours. Only a DMV officer sees the officer report nav — the rest of
 // that family is officer-gated, so linking it to everyone would 403 an ordinary Member. All
 // chrome is translated (ADR-0004); Group names render as-authored.
+import HoursReportActions from '@/components/HoursReportActions.vue';
 import OrgHoursReportNav from '@/components/OrgHoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -29,6 +30,9 @@ const formatMonth = (iso: string) =>
 
 // A Group's figures are marked incomplete when a booking audience it depends on is not counted yet.
 const hasIncomplete = computed(() => props.groups.some((group) => group.incomplete));
+
+// The CSV export carries the fiscal year in view, so it holds the same numbers as the screen.
+const csvHref = computed(() => route('hours.visitor-summary.csv', { fy: props.fiscalYear }));
 </script>
 
 <template>
@@ -44,6 +48,12 @@ const hasIncomplete = computed(() => props.groups.some((group) => group.incomple
             <!-- Officers reach the rest of the report family here; ordinary Members arrive from My
                  Hours and never see the officer-gated nav (§6). -->
             <OrgHoursReportNav v-if="canViewOrgReports" active="visitors" />
+
+            <!-- Print and CSV, the treatment every hours report carries (#452). Print hands the
+                 page to the browser; the picker nav below is print:hidden so the dark selected
+                 chip a browser drops can never read as the wrong year (the #429 lesson), and the
+                 card title names the fiscal year the printed sheet covers. -->
+            <HoursReportActions :csv-href="csvHref" />
 
             <!-- Fiscal-year picker — one link per pickable year, the year in view marked. -->
             <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.dmv.pick_year')">

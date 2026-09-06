@@ -122,6 +122,57 @@ it('marks a Group whose figures await a booking audience', function () {
             ->where('groups.0.incomplete', true));
 });
 
+// --- CSV export -------------------------------------------------------------
+
+/**
+ * Parse a streamed CSV body into rows of string cells, stripping the UTF-8 BOM and the
+ * trailing blank line.
+ *
+ * @return list<list<string>>
+ */
+function summaryCsvRows(string $csv): array
+{
+    $csv = str_starts_with($csv, "\xEF\xBB\xBF") ? substr($csv, 3) : $csv;
+
+    return collect(explode("\n", trim($csv)))
+        ->map(fn (string $line) => str_getcsv($line, ',', '"', ''))
+        ->all();
+}
+
+it('exports the report as a CSV whose numbers match the screen, cell for cell', function () {
+    $docents = Group::factory()->create(['parent_id' => $this->root->id, 'name' => 'Docents']);
+    summarySignUp($docents, '202504', visitors: 30, extra: 5);
+    HoursRecord::factory()->create([
+        'member_id' => Member::factory()->create()->id,
+        'group_id' => $docents->id,
+        'year_month' => '202504',
+        'meeting_id' => HoursRecord::NO_MEETING,
+        'scheduled_hours' => 0, 'extra_hours' => 0, 'total_hours' => 0,
+        'extra_interactions' => 7,
+    ]);
+
+    $response = $this->actingAs(Member::factory()->create())->get(route('hours.visitor-summary.csv'));
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('text/csv');
+    expect($response->headers->get('content-disposition'))->toContain('attachment');
+
+    $rows = summaryCsvRows($response->streamedContent());
+    $docentsRow = collect($rows)->first(fn (array $r) => $r[0] === 'Docents');
+    // Group name, then April (42 = 30 + 5 + 7), eleven zero months, then the year-to-date.
+    expect($docentsRow)->toBe(['Docents', '42', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '42']);
+});
+
+it('opens the CSV export to any signed-in Member, exactly as the screen is', function () {
+    $this->actingAs(Member::factory()->create())
+        ->get(route('hours.visitor-summary.csv'))
+        ->assertOk();
+});
+
+it('redirects an unauthenticated visitor from the CSV route to login', function () {
+    $this->get(route('hours.visitor-summary.csv'))->assertRedirect(route('login'));
+});
+
 // --- Fiscal-year window and locale ------------------------------------------
 
 it('defaults to the current fiscal year and moves to a picked one', function () {

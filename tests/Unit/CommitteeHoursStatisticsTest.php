@@ -3,7 +3,11 @@
 use App\Models\Group;
 use App\Models\HoursRecord;
 use App\Models\Member;
+use App\Models\Schedule;
+use App\Models\Shift;
+use App\Models\SignUp;
 use App\Support\CommitteeHoursStatistics;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,6 +35,41 @@ function committeeRecord(Group $group, string $yearMonth, int $scheduled = 0, in
         'scheduled_hours' => $scheduled,
         'extra_hours' => $extra,
         'total_hours' => $scheduled + $extra,
+    ]);
+}
+
+/** A signed-out Sign-up on a Shift owned by the Group, ending mid-month in the org zone. */
+function committeeSignUp(Group $group, string $yearMonth, int $visitors = 0, ?int $extra = null): SignUp
+{
+    $endsAt = CarbonImmutable::createFromFormat('Ym', $yearMonth, config('app.org_timezone'))
+        ->startOfMonth()->addDays(14)->setTime(12, 0);
+    $schedule = Schedule::factory()->create(['group_id' => $group->id]);
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'starts_at' => $endsAt->subHours(3),
+        'ends_at' => $endsAt,
+    ]);
+
+    return SignUp::factory()->create([
+        'shift_id' => $shift->id,
+        'member_id' => Member::factory()->create()->id,
+        'visitor_count' => $visitors,
+        'extra_interaction_count' => $extra,
+    ]);
+}
+
+/** An Hours record carrying extra interactions for the Group in the month. */
+function committeeInteractions(Group $group, string $yearMonth, int $count): HoursRecord
+{
+    return HoursRecord::factory()->create([
+        'member_id' => Member::factory()->create()->id,
+        'group_id' => $group->id,
+        'year_month' => $yearMonth,
+        'meeting_id' => HoursRecord::NO_MEETING,
+        'scheduled_hours' => 0,
+        'extra_hours' => 0,
+        'total_hours' => 0,
+        'extra_interactions' => $count,
     ]);
 }
 
@@ -139,6 +178,29 @@ it('makes year-to-date the sum of the twelve buckets for each grain', function (
         'meetings' => 3,
         'total' => 10,
     ]);
+});
+
+it('breaks out visitor interactions as a fourth grain, rolled up over the whole subtree', function () {
+    // The fourth grain (ADR-0023 §6) reads the summary's composition rule from its one home —
+    // a Sign-up's two counts plus the Group's extra interactions — and rolls it up the subtree
+    // exactly as shifts, meetings and extra roll up, so a grandchild folds into its committee.
+    $root = Group::factory()->create();
+    $committee = Group::factory()->create(['parent_id' => $root->id]);
+    $grandchild = Group::factory()->create(['parent_id' => $committee->id]);
+
+    committeeSignUp($committee, '202504', visitors: 20, extra: 5); // 25 from a signed-out shift
+    committeeInteractions($committee, '202504', count: 3);         // 3 from extra interactions
+    committeeSignUp($grandchild, '202504', visitors: 4);          // folds into the committee row
+
+    $stats = CommitteeHoursStatistics::for($root, 2026);
+
+    // The committee row reaches its whole subtree; the interactions grain sits beside the hours.
+    expect($stats->committees[0]['months'][0]['interactions'])->toBe(32) // 25 + 3 + 4
+        ->and($stats->committees[0]['ytd']['interactions'])->toBe(32)
+        // The interactions grain never bleeds into the hours total.
+        ->and($stats->committees[0]['months'][0]['total'])->toBe(0)
+        // The org row is the complete department total, the whole subtree of the root.
+        ->and($stats->org['months'][0]['interactions'])->toBe(32);
 });
 
 it('does not re-apply the Group hours multiplier — it is already baked into the stored hours', function () {

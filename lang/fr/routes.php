@@ -74,6 +74,7 @@ return [
     // Les exports CSV en pendant de chaque rapport (#414) — un suffixe « .csv » verbatim.
     'hours.committee-summary.csv' => 'heures/statistiques-sommaire.csv',
     'hours.committee-detailed.csv' => 'heures/statistiques-detaillees.csv',
+    'hours.visitor-summary.csv' => 'heures/interactions-visiteurs.csv',
     'hours.ranked.csv' => 'heures/classement.csv',
     'hours.zero-hours.csv' => 'heures/zero-heure.csv',
     'hours.zero-shift-hours.csv' => 'heures/zero-heure-quart.csv',

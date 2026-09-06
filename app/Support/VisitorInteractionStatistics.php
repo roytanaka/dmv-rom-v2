@@ -54,10 +54,37 @@ class VisitorInteractionStatistics
     public static function for(Group $root, int $fiscalYear): self
     {
         $months = OrgTime::fiscalYearMonths($fiscalYear);
-        $zone = config('app.org_timezone');
-
         $subtree = $root->descendants()->prepend($root);
-        $subtreeIds = $subtree->pluck('id')->all();
+
+        // The one place the rule lives: each Group's *own* interactions per bucket, [id][ym] => int.
+        $own = self::ownFor($root, $months);
+
+        // A Group appears iff it carries visitor data of its own this year; its figure rolls up
+        // the whole subtree. Name-ordered so the report is stable across runs.
+        $groups = $subtree
+            ->sortBy('name')
+            ->filter(fn (Group $group): bool => array_sum($own[$group->getKey()]) > 0)
+            ->map(fn (Group $group): array => self::figure($group, $own, $months))
+            ->values()
+            ->all();
+
+        return new self($months, $groups);
+    }
+
+    /**
+     * The composition rule as a per-Group per-month map over the root's subtree — [groupId][YYYYMM]
+     * => interactions, each Group's *own* figure before any rollup. This is the report's one home
+     * (ADR-0023 §6: one rule, one home, two readers), exposed so Detailed Committee Statistics can
+     * break out its fourth row from the same rule and the same place rather than re-implementing it.
+     * The caller rolls it up over whatever subtree its row spans.
+     *
+     * @param  array<int, string>  $months  the twelve `YYYYMM` buckets, April-to-March order
+     * @return array<int, array<string, int>> [groupId][YYYYMM] => interactions, seeded to zero
+     */
+    public static function ownFor(Group $root, array $months): array
+    {
+        $zone = config('app.org_timezone');
+        $subtreeIds = $root->descendants()->pluck('id')->push($root->getKey())->all();
 
         // The two sources of the composition rule, loaded once. Sign-ups are reached through the
         // Shift's Schedule, which carries the owning Group; Hours records carry the Group directly.
@@ -71,19 +98,7 @@ class VisitorInteractionStatistics
             ->whereIn('year_month', $months)
             ->get();
 
-        // The one place the rule lives: each Group's *own* interactions per bucket, [id][ym] => int.
-        $own = self::own($subtreeIds, $months, $signUps, $records, $zone);
-
-        // A Group appears iff it carries visitor data of its own this year; its figure rolls up
-        // the whole subtree. Name-ordered so the report is stable across runs.
-        $groups = $subtree
-            ->sortBy('name')
-            ->filter(fn (Group $group): bool => array_sum($own[$group->getKey()]) > 0)
-            ->map(fn (Group $group): array => self::figure($group, $own, $months))
-            ->values()
-            ->all();
-
-        return new self($months, $groups);
+        return self::own($subtreeIds, $months, $signUps, $records, $zone);
     }
 
     /**
