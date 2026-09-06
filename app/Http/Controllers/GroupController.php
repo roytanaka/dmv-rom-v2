@@ -207,7 +207,7 @@ class GroupController extends Controller
             // visible Schedules and which one (if any) opens directly.
             'scheduling' => $section === 'scheduling'
                 ? $this->scheduling($request, $group, $schedule)
-                : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => []],
+                : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'mine' => []],
             // The Hours tab's payload, resolved only on that tab: the viewer's own records
             // for this Group and the two-month entry state (ADR-0022 §2). Never another
             // Member's hours — the roster is not a leaderboard (§4).
@@ -591,6 +591,9 @@ class GroupController extends Controller
                 'open' => $this->scheduleDetail($request, $schedule),
                 'roster' => $this->assignmentRoster($request, $group),
                 'shift_kinds' => $this->shiftKinds($request, $group, $schedule),
+                // The outstanding-shifts panel rides on the tab regardless of which Schedule is
+                // open — it crosses Schedules, so it is not the opened Schedule's concern (#449).
+                'mine' => $this->mine($request, $group),
             ];
         }
 
@@ -630,7 +633,58 @@ class GroupController extends Controller
             // neither.
             'roster' => [],
             'shift_kinds' => [],
+            // The outstanding-shifts panel rides on the list view too — a volunteer landing on
+            // the bare section URL sees what they still owe without opening any Schedule (#449).
+            'mine' => $this->mine($request, $group),
         ];
+    }
+
+    /**
+     * The viewer's own outstanding-shifts panel (#449, PRD #443, ADR-0023 §5) — "my Sign-ups on
+     * this Group". Two sets, both the viewer's own: **upcoming** Shifts (still ahead, whatever
+     * their count), and **outstanding** past Shifts inside the 28-day window still owed a number
+     * ({@see SignUp::scopeOutstandingFor}). It is **date-ranged, so it crosses Schedules** — a
+     * three-week-old Shift on last month's Schedule is a different page the Agenda alone strands,
+     * and this is the one surface that reaches it.
+     *
+     * Present only where the Group collects a count: Reception collects nothing and gets no panel.
+     * The list is the viewer's own seats and no one else's, ordered by Shift start. It is returned
+     * as a flat list; **empty means no panel** — a viewer who owes nothing and holds no upcoming
+     * seat, and a reader with no Sign-ups here at all, both get an empty list and the tab renders
+     * no panel. Each entry is the shared {@see shiftPayload} the ShiftCard reads, carrying `canManage:
+     * false` — the volunteer files from here through the same PATCH seam as the Agenda; the Officer's
+     * correction is a separate surface (#450).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function mine(Request $request, Group $group): array
+    {
+        if (! $group->collects_visitor_count) {
+            return [];
+        }
+
+        $viewer = $request->user();
+        $now = CarbonImmutable::now();
+
+        return SignUp::query()
+            ->where('member_id', $viewer->getKey())
+            ->whereHas('shift.schedule', fn (Builder $query) => $query->where('group_id', $group->id))
+            ->where(fn (Builder $query) => $query
+                // Upcoming — a seat still ahead of the viewer, whatever it does or does not record.
+                ->whereHas('shift', fn (Builder $shift) => $shift->where('ends_at', '>=', $now))
+                // Or outstanding — a past Shift inside the window still owed a number.
+                ->orWhere(fn (Builder $outstanding) => $outstanding->outstandingFor($viewer)))
+            ->with([
+                'shift.kind',
+                'shift.schedule.group',
+                'shift.signUps.member.memberships.group',
+                'shift.signUps.member.memberships.roles',
+            ])
+            ->get()
+            ->sortBy(fn (SignUp $signUp) => $signUp->shift->starts_at)
+            ->map(fn (SignUp $signUp) => $this->shiftPayload($request, $signUp->shift, canManage: false))
+            ->values()
+            ->all();
     }
 
     /**
