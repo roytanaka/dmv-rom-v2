@@ -578,8 +578,10 @@ it('splits every counted GDR Sign-up into five origins that sum to the count', f
 });
 
 it('carries extra_interactions on the Groups whose only route into the report is the Hours tab', function () {
-    // The six Groups with no per-shift visitor data (ADR-0023 §6) — ROM Travel, Hands-on
+    // Five of the six Groups in EXTRA_INTERACTION_GROUPS (ADR-0023 §6) — ROM Travel, Hands-on
     // Tours, ROMBus and two Friends committees — appear only on hand-typed extra interactions.
+    // The sixth (DMV root) is excluded: its extra_interactions represent its own roll-up entry,
+    // not a leaf group's sole report presence.
     foreach (['romtravel', 'dmv-hands-on-tours', 'rombus', 'friends-of-palaeontology-fop', 'friends-of-global-south-asia-fsa'] as $slug) {
         $group = Group::where('slug', $slug)->firstOrFail();
         expect(HoursRecord::where('group_id', $group->id)->where('extra_interactions', '>', 0)->exists())->toBeTrue();

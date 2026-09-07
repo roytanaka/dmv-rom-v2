@@ -113,6 +113,22 @@ class DemoSeeder extends Seeder
      */
     private const HOURS_CHUNK = 500;
 
+    /** The name of the recent, all-past Schedule each collecting Group gets its sign-out seats on. */
+    private const RECENT_SCHEDULE_NAME = 'Recent shifts';
+
+    /** How far back the recent Schedule opens — comfortably past the last of its Shifts. */
+    private const RECENT_SPAN_DAYS = 30;
+
+    /** Seats on each recent Shift (also its capacity, so the roster reads as fully worked). */
+    private const RECENT_SEATS = 3;
+
+    /**
+     * Day-offsets before now for the recent Shifts — all ended, all inside the outstanding window
+     * ({@see SignUp::OUTSTANDING_WINDOW_DAYS}), so the counts land in the current fiscal year and
+     * the first Shift's null seats show up on the outstanding-shifts panel.
+     */
+    private const RECENT_SHIFT_OFFSETS = [3, 10, 17, 24];
+
     /**
      * The Groups whose only route into Summary Visitor Interactions is hand-typed
      * `extra_interactions` on the Hours tab (ADR-0023 §6): the ones with no per-shift visitor
@@ -868,12 +884,9 @@ class DemoSeeder extends Seeder
      */
     private function placeSignUps(Group $group, Schedule $schedule): void
     {
-        $members = Member::whereHas('memberships', function ($query) use ($group) {
-            $query->where('group_id', $group->id)
-                ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased]);
-        })->orderBy('id')->get();
+        $members = $this->livingRoster($group);
 
-        if ($members->isEmpty()) {
+        if ($members === []) {
             return;
         }
 
@@ -884,27 +897,11 @@ class DemoSeeder extends Seeder
             for ($k = 0; $k < $seats; $k++, $cursor++) {
                 SignUp::firstOrCreate([
                     'shift_id' => $shift->id,
-                    'member_id' => $members[$cursor % $members->count()]->id,
+                    'member_id' => $members[$cursor % count($members)]->id,
                 ]);
             }
         }
     }
-
-    /** The name of the recent, all-past Schedule each collecting Group gets its sign-out seats on. */
-    private const RECENT_SCHEDULE_NAME = 'Recent shifts';
-
-    /** How far back the recent Schedule opens — comfortably past the last of its Shifts. */
-    private const RECENT_SPAN_DAYS = 30;
-
-    /** Seats on each recent Shift (also its capacity, so the roster reads as fully worked). */
-    private const RECENT_SEATS = 3;
-
-    /**
-     * Day-offsets before now for the recent Shifts — all ended, all inside the outstanding window
-     * ({@see SignUp::OUTSTANDING_WINDOW_DAYS}), so the counts land in the current fiscal year and
-     * the first Shift's null seats show up on the outstanding-shifts panel.
-     */
-    private const RECENT_SHIFT_OFFSETS = [3, 10, 17, 24];
 
     /**
      * The after-the-shift visitor record goes live in the demo org (#474, PRD #443, ADR-0023 §2-§6).
@@ -1032,7 +1029,7 @@ class DemoSeeder extends Seeder
      * identically. Every visitor column is present on every row — null where the Group does not
      * collect it — so the whole set upserts under one uniform column list.
      *
-     * @return array<string, int|string|null>
+     * @return array<string, int|CarbonImmutable|null>
      */
     private function seatRecord(Group $group, Shift $shift, Member $member, int $shiftIndex, int $seat, CarbonImmutable $now): array
     {
@@ -1104,7 +1101,7 @@ class DemoSeeder extends Seeder
      * reseed restates each seat to its absolute value rather than doubling. `created_at` is written
      * on insert only; the seven visitor columns and `updated_at` are the healed set.
      *
-     * @param  list<array<string, int|string|null>>  $rows
+     * @param  list<array<string, int|CarbonImmutable|null>>  $rows
      */
     private function writeSeatRecords(array $rows): void
     {
