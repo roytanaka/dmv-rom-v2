@@ -15,10 +15,14 @@ import { usePage } from '@inertiajs/vue3';
 import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
+// PROTOTYPE (#467) — Sign-ups on this one Shift, from the card's action row.
+import ComposeEntry from '@/prototype/compose/ComposeEntry.vue';
+import type { ComposeContext } from '@/prototype/compose/model';
 
 const props = withDefaults(
     defineProps<{
         shift: ShiftAgendaItem;
+        protoContext?: ComposeContext;
         collectsVisitorCount?: boolean;
         collectsExtraInteractions?: boolean;
         collectsVisitorProvenance?: boolean;
@@ -271,6 +275,16 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                     <PhTrash class="size-4" />
                     {{ trans('group.scheduling_panel.delete') }}
                 </Button>
+                <!-- PROTOTYPE (#467) — email the people signed up on this Shift. Officer-only in
+                     the real thing; the prototype shows it whenever there is a seat taken. -->
+                <ComposeEntry
+                    v-if="protoContext && shift.signups.length"
+                    :context="protoContext"
+                    :selected="shift.signups.map((s) => s.id)"
+                    variant-style="ghost"
+                    no-bar
+                    class="ml-auto"
+                />
             </div>
 
             <!-- Recording the numbers (#445, #450, ADR-0023 §5) — one form, two ways in: the

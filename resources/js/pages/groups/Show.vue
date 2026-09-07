@@ -25,6 +25,11 @@ import type { NavNode } from '@/chrome/types';
 import { bannerSources, defaultBannerKey, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type GroupHours as GroupHoursData, type Meeting, type RosterMember, type RosterMeta, type Scheduling, type SharedData } from '@/types';
+// PROTOTYPE (#467) — compose entry points and the variant switcher. Throwaway.
+import ComposeEntry from '@/prototype/compose/ComposeEntry.vue';
+import PrototypeSwitcher from '@/prototype/compose/PrototypeSwitcher.vue';
+import { groupContext, scheduleContext, shiftContext } from '@/prototype/compose/contexts';
+import type { ShiftAgendaItem } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { PhImage, PhPencilSimple } from '@phosphor-icons/vue';
@@ -165,6 +170,14 @@ const cancelAbout = () => {
     editingAbout.value = false;
 };
 
+// PROTOTYPE (#467) — the compose contexts this page can open: the Group itself, the
+// opened Schedule, and each Shift. Officer-only Audiences key off `can.manageRoster`.
+const protoGroup = computed(() => groupContext(props.group, props.roster, props.can.manageRoster));
+const protoSchedule = computed(() =>
+    props.scheduling.open ? scheduleContext(props.group, props.scheduling.open, props.roster, props.can.manageRoster) : null,
+);
+const protoShift = (shift: ShiftAgendaItem, label: string) => shiftContext(props.group, shift, label, props.roster);
+
 const bannerPickerOpen = ref(false);
 const bannerForm = useForm<{ banner_key: string | null }>({ banner_key: props.group.banner_key });
 const pickBanner = (key: string | null) => {
@@ -249,8 +262,10 @@ const pickBanner = (key: string | null) => {
 
             <!-- Sticky in-body section-tab strip, directly under the header (ADR-0013
                  amendment). Reuses SectionTabs in its 'body' placement. -->
-            <div class="bg-background sticky top-16 z-20 px-4 py-4 shadow-sm sm:px-6">
+            <div class="bg-background sticky top-16 z-20 flex items-center justify-between gap-3 px-4 py-4 shadow-sm sm:px-6">
                 <SectionTabs :items="tabs" variant="body" :soon-label="trans('group.soon')" />
+                <!-- PROTOTYPE (#467) — the Group-level entry point, on every section. -->
+                <ComposeEntry v-if="section !== 'roster'" :context="protoGroup" class="shrink-0" />
             </div>
 
             <div class="flex-1 p-4 sm:p-6">
@@ -348,6 +363,7 @@ const pickBanner = (key: string | null) => {
                     :can-manage="can.manageRoster"
                     :meta="rosterMeta"
                     :group-slug="group.slug"
+                    :proto-context="protoGroup"
                 />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
@@ -365,6 +381,8 @@ const pickBanner = (key: string | null) => {
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
                     :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"
                     :group-slug="group.slug"
+                    :proto-schedule="protoSchedule"
+                    :proto-shift="protoShift"
                 />
 
                 <!-- Hours (#408, ADR-0022 §2) — always-on on every Group. The extra-hours
@@ -381,5 +399,6 @@ const pickBanner = (key: string | null) => {
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>
             </div>
         </div>
+        <PrototypeSwitcher />
     </AppLayout>
 </template>

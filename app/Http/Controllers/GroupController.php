@@ -189,7 +189,9 @@ class GroupController extends Controller
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
             // the Overview never needs.
-            'roster' => $section === 'roster' ? $this->roster($request, $group) : [],
+            // PROTOTYPE (#467): the roster is sent on every section so the compose picker
+            // has people on the Overview and Scheduling tabs too. Throwaway; revert.
+            'roster' => $this->roster($request, $group),
             // Officer roster CRUD scaffolding (#192), resolved only on the Roster tab.
             // `candidates` (Members not yet in the Group, for the add-member search)
             // and `assignableRoles` (the Group's capability-valid roles) are withheld

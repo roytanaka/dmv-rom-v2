@@ -46,8 +46,13 @@ import {
 } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, onMounted, ref, watch } from 'vue';
+// PROTOTYPE (#467) — the Schedule-level entry point and the per-Shift context.
+import ComposeEntry from '@/prototype/compose/ComposeEntry.vue';
+import type { ComposeContext } from '@/prototype/compose/model';
 
 const props = defineProps<{
+    protoSchedule?: ComposeContext | null;
+    protoShift?: (shift: ShiftAgendaItem, label: string) => ComposeContext;
     scheduling: Scheduling;
     canCreate: boolean;
     collectsVisitorCount: boolean;
@@ -643,7 +648,9 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                             </CardTitle>
                             <p class="text-muted-foreground text-sm">{{ dateRange(scheduling.open.starts_on, scheduling.open.ends_on) }}</p>
                         </div>
-                        <div v-if="scheduling.open.can.update || scheduling.open.can.delete" class="flex shrink-0 flex-wrap gap-1">
+                        <div class="flex shrink-0 flex-wrap gap-1">
+                            <!-- PROTOTYPE (#467) — Sign-ups across this Schedule, from its header. -->
+                            <ComposeEntry v-if="protoSchedule" :context="protoSchedule" variant-style="ghost" />
                             <Button
                                 v-if="scheduling.open.can.update"
                                 type="button"
@@ -850,6 +857,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         v-for="shift in day.shifts"
                         :key="shift.id"
                         :shift="shift"
+                        :proto-context="protoShift?.(shift, formatDay(day.date))"
                         :collects-visitor-count="collectsVisitorCount"
                         :collects-extra-interactions="collectsExtraInteractions"
                         :collects-visitor-provenance="collectsVisitorProvenance"

@@ -35,8 +35,22 @@ import { router, useForm } from '@inertiajs/vue3';
 import { PhDotsThree, PhMagnifyingGlass, PhPlus } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+// PROTOTYPE (#467) — the roster's compose entry and, under Variant C, its tick boxes.
+import ComposeEntry from '@/prototype/compose/ComposeEntry.vue';
+import type { ComposeContext } from '@/prototype/compose/model';
+import { useVariant } from '@/prototype/compose/variant';
 
-const props = defineProps<{ members: RosterMember[]; canManage: boolean; meta: RosterMeta; groupSlug: string }>();
+const props = defineProps<{ members: RosterMember[]; canManage: boolean; meta: RosterMeta; groupSlug: string; protoContext?: ComposeContext }>();
+
+const { variant: protoVariant } = useVariant();
+const protoSelected = ref<Set<number>>(new Set());
+const protoToggle = (id: number, on: boolean) => {
+    const next = new Set(protoSelected.value);
+    if (on) next.add(id);
+    else next.delete(id);
+    protoSelected.value = next;
+};
+const protoSelectedIds = computed(() => [...protoSelected.value]);
 
 // The standings an officer may set directly. Resigned is reached through the Resign
 // action (it keeps history), and Deceased is never set here — both are excluded.
@@ -89,7 +103,7 @@ const displayName = (member: RosterMember) => `${member.last_name}, ${member.fir
 const hasContact = (member: RosterMember) => member.email !== undefined || member.phone !== undefined;
 
 // Empty-state colspan tracks the optional officer Actions column.
-const columnCount = computed(() => (props.canManage ? 6 : 5));
+const columnCount = computed(() => (props.canManage ? 6 : 5) + (protoVariant.value === 'C' ? 1 : 0));
 
 // Native select styling shared by both the add and manage dialogs.
 const SELECT_CLASS =
@@ -205,12 +219,14 @@ const hardRemove = (member: RosterMember) => {
             </div>
 
             <!-- Officer controls: show-past toggle + add member (#192). -->
-            <div v-if="canManage" class="flex items-center gap-4">
-                <label class="text-muted-foreground flex items-center gap-2 text-sm">
+            <div class="flex items-center gap-4">
+                <!-- PROTOTYPE (#467) — the roster-level entry point, beside the officer controls. -->
+                <ComposeEntry v-if="protoContext" :context="protoContext" :selected="protoSelectedIds" @clear="protoSelected = new Set()" />
+                <label v-if="canManage" class="text-muted-foreground flex items-center gap-2 text-sm">
                     <Checkbox :checked="meta.showingPast" @update:checked="toggleShowPast" />
                     {{ trans('group.roster.show_past') }}
                 </label>
-                <Button type="button" size="sm" class="gap-1.5" @click="openAdd">
+                <Button v-if="canManage" type="button" size="sm" class="gap-1.5" @click="openAdd">
                     <PhPlus class="size-4" />
                     {{ trans('group.roster.add') }}
                 </Button>
@@ -222,6 +238,8 @@ const hardRemove = (member: RosterMember) => {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <!-- PROTOTYPE (#467) Variant C — select-first tick column. -->
+                            <TableHead v-if="protoVariant === 'C'" class="w-10"><span class="sr-only">Select</span></TableHead>
                             <TableHead class="w-12"
                                 ><span class="sr-only">{{ trans('group.roster.column.name') }}</span></TableHead
                             >
@@ -236,6 +254,9 @@ const hardRemove = (member: RosterMember) => {
                     </TableHeader>
                     <TableBody>
                         <TableRow v-for="member in filteredMembers" :id="anchorId(member)" :key="member.id" class="scroll-mt-24">
+                            <TableCell v-if="protoVariant === 'C'">
+                                <Checkbox :checked="protoSelected.has(member.id)" @update:checked="(on: boolean) => protoToggle(member.id, on)" />
+                            </TableCell>
                             <TableCell>
                                 <Avatar size="sm">
                                     <AvatarImage v-if="member.photo" :src="member.photo" :alt="`${member.first_name} ${member.last_name}`" />

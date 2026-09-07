@@ -10,10 +10,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
+// PROTOTYPE (#467) — the Direct-message entry point on a profile.
+import ComposeEntry from '@/prototype/compose/ComposeEntry.vue';
+import PrototypeSwitcher from '@/prototype/compose/PrototypeSwitcher.vue';
+import { memberContext } from '@/prototype/compose/contexts';
 
 interface MemberGroup {
     name: string;
@@ -46,6 +50,12 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 ]);
 
 const hasContact = computed(() => props.member.email !== undefined || props.member.phone !== undefined);
+
+// PROTOTYPE (#467) — From is the sender's own name for a Direct message. Hidden on
+// the viewer's own profile: nobody messages themselves.
+const page = usePage<SharedData>();
+const protoContext = computed(() => memberContext(props.member, `${page.props.auth.user.first_name} ${page.props.auth.user.last_name}`));
+const protoSelf = computed(() => page.props.auth.user.id === props.member.id);
 </script>
 
 <template>
@@ -53,7 +63,7 @@ const hasContact = computed(() => props.member.email !== undefined || props.memb
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-6">
-            <header class="flex items-center gap-4">
+            <header class="flex flex-wrap items-center gap-4">
                 <Avatar size="base">
                     <AvatarImage v-if="member.photo" :src="member.photo" :alt="fullName" />
                     <AvatarFallback>{{ initials }}</AvatarFallback>
@@ -62,6 +72,8 @@ const hasContact = computed(() => props.member.email !== undefined || props.memb
                     <h1 class="text-rom-ink text-2xl font-semibold">{{ fullName }}</h1>
                     <StandingBadge :standing="member.standing" class="self-start" />
                 </div>
+                <!-- PROTOTYPE (#467) — Direct message: any Member to this one Member. -->
+                <ComposeEntry v-if="!protoSelf" :context="protoContext" size="default" variant-style="default" class="sm:ml-auto" />
             </header>
 
             <div class="grid gap-6 md:grid-cols-2">
@@ -102,5 +114,6 @@ const hasContact = computed(() => props.member.email !== undefined || props.memb
                 </Card>
             </div>
         </div>
+        <PrototypeSwitcher />
     </AppLayout>
 </template>

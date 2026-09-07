@@ -28,6 +28,13 @@ import { Head } from '@inertiajs/vue3';
 import { PhCaretDown, PhMagnifyingGlass } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+// PROTOTYPE (#467) — the Directory's compose entry (org-wide Audiences, Records only),
+// the variant switcher, and Variant C's tick column.
+import { Checkbox } from '@/components/ui/checkbox';
+import ComposeEntry from '@/prototype/compose/ComposeEntry.vue';
+import PrototypeSwitcher from '@/prototype/compose/PrototypeSwitcher.vue';
+import { directoryContext } from '@/prototype/compose/contexts';
+import { useVariant } from '@/prototype/compose/variant';
 
 interface DirectoryGroup {
     name: string;
@@ -45,6 +52,18 @@ interface DirectoryMember {
 }
 
 const props = defineProps<{ members: DirectoryMember[] }>();
+
+// PROTOTYPE (#467)
+const protoContext = computed(() => directoryContext(props.members));
+const { variant: protoVariant } = useVariant();
+const protoSelected = ref<Set<number>>(new Set());
+const protoToggle = (id: number, on: boolean) => {
+    const next = new Set(protoSelected.value);
+    if (on) next.add(id);
+    else next.delete(id);
+    protoSelected.value = next;
+};
+const protoSelectedIds = computed(() => [...protoSelected.value]);
 
 // `computed` so the label survives a full-page locale switch — the messages load
 // async, so a `trans()` snapshot taken at setup would capture the raw key.
@@ -158,9 +177,13 @@ const groupNames = (member: DirectoryMember) =>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6">
-            <header class="flex flex-col gap-1">
-                <h1 class="text-2xl font-semibold">{{ trans('directory.title') }}</h1>
-                <p class="text-muted-foreground text-sm">{{ transChoice('directory.count', filteredMembers.length) }}</p>
+            <header class="flex flex-wrap items-start justify-between gap-3">
+                <div class="flex flex-col gap-1">
+                    <h1 class="text-2xl font-semibold">{{ trans('directory.title') }}</h1>
+                    <p class="text-muted-foreground text-sm">{{ transChoice('directory.count', filteredMembers.length) }}</p>
+                </div>
+                <!-- PROTOTYPE (#467) — the Directory entry point. Records-only in the real thing. -->
+                <ComposeEntry :context="protoContext" :selected="protoSelectedIds" size="default" @clear="protoSelected = new Set()" />
             </header>
 
             <!-- Above-table toolbar: name search + single-select Group filter (a
@@ -227,6 +250,8 @@ const groupNames = (member: DirectoryMember) =>
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <!-- PROTOTYPE (#467) Variant C — select-first tick column. -->
+                                <TableHead v-if="protoVariant === 'C'" class="w-10"><span class="sr-only">Select</span></TableHead>
                                 <TableHead class="w-12"
                                     ><span class="sr-only">{{ trans('directory.column.name') }}</span></TableHead
                                 >
@@ -237,6 +262,9 @@ const groupNames = (member: DirectoryMember) =>
                         </TableHeader>
                         <TableBody>
                             <TableRow v-for="member in sortedMembers" :id="anchorId(member)" :key="member.id" class="scroll-mt-24">
+                                <TableCell v-if="protoVariant === 'C'">
+                                    <Checkbox :checked="protoSelected.has(member.id)" @update:checked="(on: boolean) => protoToggle(member.id, on)" />
+                                </TableCell>
                                 <TableCell>
                                     <Avatar size="sm">
                                         <AvatarImage v-if="member.photo" :src="member.photo" :alt="`${member.first_name} ${member.last_name}`" />
@@ -253,7 +281,7 @@ const groupNames = (member: DirectoryMember) =>
                             <!-- No-matches row: an empty result reads as a filter state, with a
                                  one-click way back to the full roster. -->
                             <TableRow v-if="!sortedMembers.length">
-                                <TableCell colspan="4" class="py-10 text-center">
+                                <TableCell :colspan="protoVariant === 'C' ? 5 : 4" class="py-10 text-center">
                                     <div class="text-muted-foreground flex flex-col items-center gap-1">
                                         <span>{{ trans('directory.no_matches.message') }}</span>
                                         <Button v-if="hasActiveFilters" variant="link" class="h-auto p-0" @click="clearFilters">
@@ -271,5 +299,6 @@ const groupNames = (member: DirectoryMember) =>
                 <AlphaJumpRail :available="availableLetters" class="sticky top-24 hidden self-start sm:flex" @jump="jumpTo" />
             </div>
         </div>
+        <PrototypeSwitcher />
     </AppLayout>
 </template>
