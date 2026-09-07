@@ -15,12 +15,16 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\GroupStewardship;
+use App\Models\HoursRecord;
 use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
 use App\Personas\PersonaCatalogue;
+use App\Support\CommitteeHoursStatistics;
+use App\Support\OrgTime;
+use App\Support\VisitorInteractionStatistics;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\Http;
@@ -471,6 +475,149 @@ it('seeds the ROMWalks walks-to-hours multiplier at 2, every other Group at the 
     expect(Group::where('slug', 'romwalks')->firstOrFail()->hours_multiplier)->toBe(2)
         ->and(Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail()->hours_multiplier)->toBe(1)
         ->and(Group::where('slug', 'reception')->firstOrFail()->hours_multiplier)->toBe(1);
+});
+
+/*
+ * The after-the-shift visitor record goes live in the demo org (#474, PRD #443, ADR-0023).
+ * The feature shipped correct but invisible on staging because nothing turned the Group
+ * switches on or wrote a single count — #428's failure again. These assert a fresh seed
+ * exercises it end to end: the switches, the per-seat numbers, GDR's origins, the Hours-tab
+ * interactions, and the report they all feed.
+ */
+
+it('turns the four visitor switches on per Group, with Reception collecting nothing', function () {
+    $gdr = Group::where('slug', 'guides-du-rom')->firstOrFail();
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $reception = Group::where('slug', DemoSeeder::RECEPTION)->firstOrFail();
+
+    // GDR is the one Group carrying all four, and the only one anywhere with provenance.
+    expect($gdr->collects_visitor_count)->toBeTrue()
+        ->and($gdr->collects_extra_interactions)->toBeTrue()
+        ->and($gdr->collects_visitor_provenance)->toBeTrue()
+        ->and($gdr->visitor_figures_await_booking)->toBeTrue()
+        ->and(Group::where('collects_visitor_provenance', true)->count())->toBe(1);
+
+    // A tour-leading Group collects the split; Reception, the tenth scheduling Group,
+    // collects nothing at all (ADR-0023 §5) so it renders no sign-out panel.
+    expect($docents->collects_visitor_count)->toBeTrue()
+        ->and($docents->collects_extra_interactions)->toBeTrue()
+        ->and($reception->collects_visitor_count)->toBeFalse()
+        ->and($reception->collects_extra_interactions)->toBeFalse()
+        ->and($reception->collects_visitor_provenance)->toBeFalse()
+        ->and($reception->visitor_figures_await_booking)->toBeFalse();
+
+    // Each of the four switches is on for at least one Group on a fresh seed.
+    foreach (['collects_visitor_count', 'collects_extra_interactions', 'collects_visitor_provenance', 'visitor_figures_await_booking'] as $switch) {
+        expect(Group::where($switch, true)->exists())->toBeTrue();
+    }
+});
+
+it('collects the split only on tour-leading Groups, never on desk or gallery Groups', function () {
+    // Tour-leading Groups carry the second box (ADR-0023 §2) …
+    foreach (['docents', 'guides-du-rom', 'romwalks'] as $slug) {
+        expect(Group::where('slug', $slug)->firstOrFail()->collects_extra_interactions)->toBeTrue();
+    }
+
+    // … while a desk or gallery Group's visitor count already is an interaction count.
+    foreach (['visitor-guides', 'visitor-wayfinders', 'gallery-interpreters'] as $slug) {
+        $group = Group::where('slug', $slug)->firstOrFail();
+        expect($group->collects_visitor_count)->toBeTrue()
+            ->and($group->collects_extra_interactions)->toBeFalse();
+    }
+});
+
+it('records visitor counts on past Sign-ups for collecting Groups, including recorded zeroes', function () {
+    // Every collecting Group's recent Schedule carries ended Shifts whose seats were signed
+    // out — a real recorded count, and a few a deliberate recorded zero, distinct from null.
+    $collecting = Group::where('collects_visitor_count', true)->pluck('id');
+
+    $recorded = SignUp::query()
+        ->whereNotNull('visitor_count')
+        ->whereHas('shift.schedule', fn ($query) => $query->whereIn('group_id', $collecting))
+        ->get();
+
+    expect($recorded)->not->toBeEmpty()
+        ->and($recorded->contains(fn (SignUp $s) => $s->visitor_count > 0))->toBeTrue()
+        ->and($recorded->contains(fn (SignUp $s) => $s->visitor_count === 0))->toBeTrue();
+});
+
+it('leaves a persona an outstanding past Shift — a null count inside the window', function () {
+    // The outstanding-shifts panel reads a null visitor_count on a Shift ended within the
+    // window (ADR-0023 §5). A demo persona must hold one, or a walkthrough sees an empty panel.
+    $personaIds = Member::whereIn('email', PersonaCatalogue::emails())->pluck('id');
+
+    $outstanding = SignUp::query()
+        ->whereIn('member_id', $personaIds)
+        ->whereNull('visitor_count')
+        ->whereHas('shift', fn ($query) => $query
+            ->where('ends_at', '<', now())
+            ->where('ends_at', '>=', now()->subDays(SignUp::OUTSTANDING_WINDOW_DAYS)))
+        ->exists();
+
+    expect($outstanding)->toBeTrue();
+});
+
+it('splits every counted GDR Sign-up into five origins that sum to the count', function () {
+    $gdr = Group::where('slug', 'guides-du-rom')->firstOrFail();
+
+    $signUps = SignUp::query()
+        ->whereNotNull('visitor_count')
+        ->whereHas('shift.schedule', fn ($query) => $query->where('group_id', $gdr->id))
+        ->get();
+
+    expect($signUps)->not->toBeEmpty();
+    $signUps->each(function (SignUp $signUp) {
+        $sum = $signUp->visitors_france_europe
+            + $signUp->visitors_quebec
+            + $signUp->visitors_toronto
+            + $signUp->visitors_rest_of_canada
+            + $signUp->visitors_other_countries;
+
+        expect($sum)->toBe($signUp->visitor_count);
+    });
+});
+
+it('carries extra_interactions on the Groups whose only route into the report is the Hours tab', function () {
+    // Five of the six Groups in EXTRA_INTERACTION_GROUPS (ADR-0023 §6) — ROM Travel, Hands-on
+    // Tours, ROMBus and two Friends committees — appear only on hand-typed extra interactions.
+    // The sixth (DMV root) is excluded: its extra_interactions represent its own roll-up entry,
+    // not a leaf group's sole report presence.
+    foreach (['romtravel', 'dmv-hands-on-tours', 'rombus', 'friends-of-palaeontology-fop', 'friends-of-global-south-asia-fsa'] as $slug) {
+        $group = Group::where('slug', $slug)->firstOrFail();
+        expect(HoursRecord::where('group_id', $group->id)->where('extra_interactions', '>', 0)->exists())->toBeTrue();
+    }
+
+    // ROM Travel runs no scheduling at all, so its extra interactions are its entire presence.
+    expect(Group::where('slug', 'romtravel')->firstOrFail()->has_scheduling)->toBeFalse();
+});
+
+it('renders a non-empty Summary Visitor Interactions across two fiscal years', function () {
+    // The assertion #428 was missing: a fresh seed must not print an empty grid.
+    $root = Group::where('slug', DemoSeeder::ROOT)->firstOrFail();
+    $currentFiscalYear = OrgTime::currentFiscalYear();
+
+    foreach ([$currentFiscalYear - 1, $currentFiscalYear] as $fiscalYear) {
+        $stats = VisitorInteractionStatistics::for($root, $fiscalYear);
+
+        expect($stats->groups)->not->toBeEmpty()
+            ->and(array_sum(array_column($stats->groups, 'ytd')))->toBeGreaterThan(0);
+    }
+
+    $current = VisitorInteractionStatistics::for($root, $currentFiscalYear);
+
+    // A Group whose figures wait on the group-booking work flies the incomplete marker …
+    expect(collect($current->groups)->contains(fn (array $g) => $g['incomplete'] === true))->toBeTrue()
+        // … and ROM Travel, which never schedules, still reaches the report.
+        ->and(collect($current->groups)->pluck('name'))->toContain('ROMTravel');
+});
+
+it('feeds the Detailed Committee Statistics fourth row with visitor numbers', function () {
+    $root = Group::where('slug', DemoSeeder::ROOT)->firstOrFail();
+
+    $stats = CommitteeHoursStatistics::for($root, OrgTime::currentFiscalYear());
+
+    // The fourth grain beside shifts, meetings and extra hours carries real numbers.
+    expect($stats->org['ytd']['interactions'])->toBeGreaterThan(0);
 });
 
 it('is idempotent across the scheduling rows — re-seeding heals rather than duplicates', function () {

@@ -113,6 +113,40 @@ class DemoSeeder extends Seeder
      */
     private const HOURS_CHUNK = 500;
 
+    /** The name of the recent, all-past Schedule each collecting Group gets its sign-out seats on. */
+    private const RECENT_SCHEDULE_NAME = 'Recent shifts';
+
+    /** How far back the recent Schedule opens — comfortably past the last of its Shifts. */
+    private const RECENT_SPAN_DAYS = 30;
+
+    /** Seats on each recent Shift (also its capacity, so the roster reads as fully worked). */
+    private const RECENT_SEATS = 3;
+
+    /**
+     * Day-offsets before now for the recent Shifts — all ended, all inside the outstanding window
+     * ({@see SignUp::OUTSTANDING_WINDOW_DAYS}), so the counts land in the current fiscal year and
+     * the first Shift's null seats show up on the outstanding-shifts panel.
+     */
+    private const RECENT_SHIFT_OFFSETS = [3, 10, 17, 24];
+
+    /**
+     * The Groups whose only route into Summary Visitor Interactions is hand-typed
+     * `extra_interactions` on the Hours tab (ADR-0023 §6): the ones with no per-shift visitor
+     * data at all. ROM Travel runs no scheduling, Hands-on Tours and ROMBus have no visitor
+     * table, two Friends committees never staffed a desk, and the DMV root carries only its own
+     * roll-up total. Every one of them needs a row here or it drops out of the report entirely.
+     *
+     * @var list<string>
+     */
+    private const EXTRA_INTERACTION_GROUPS = [
+        self::ROOT,
+        'romtravel',
+        'dmv-hands-on-tours',
+        'rombus',
+        'friends-of-palaeontology-fop',
+        'friends-of-global-south-asia-fsa',
+    ];
+
     /**
      * Slugs created so far this run — a guard so two curated nodes that slugify
      * to the same value fail loudly instead of silently merging via firstOrCreate.
@@ -128,6 +162,7 @@ class DemoSeeder extends Seeder
         $this->roster();
         $this->bulkRoster();
         $this->scheduling();
+        $this->afterShiftRecords();
         $this->hours();
     }
 
@@ -849,12 +884,9 @@ class DemoSeeder extends Seeder
      */
     private function placeSignUps(Group $group, Schedule $schedule): void
     {
-        $members = Member::whereHas('memberships', function ($query) use ($group) {
-            $query->where('group_id', $group->id)
-                ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased]);
-        })->orderBy('id')->get();
+        $members = $this->livingRoster($group);
 
-        if ($members->isEmpty()) {
+        if ($members === []) {
             return;
         }
 
@@ -865,9 +897,229 @@ class DemoSeeder extends Seeder
             for ($k = 0; $k < $seats; $k++, $cursor++) {
                 SignUp::firstOrCreate([
                     'shift_id' => $shift->id,
-                    'member_id' => $members[$cursor % $members->count()]->id,
+                    'member_id' => $members[$cursor % count($members)]->id,
                 ]);
             }
+        }
+    }
+
+    /**
+     * The after-the-shift visitor record goes live in the demo org (#474, PRD #443, ADR-0023 §2-§6).
+     * The whole feature shipped correct and invisible on staging because nothing turned the Group
+     * switches on or wrote a single count — the same failure as #428. This seeds the Sign-up half:
+     * recent, ended Shifts on every Group that collects a visitor count, their seats carrying the
+     * numbers a volunteer files at sign-out. The Hours-tab half — `extra_interactions` — rides
+     * {@see hours()}.
+     *
+     * The switches themselves are set per Group in the curated tree (the capability overrides on
+     * the program nodes, exactly as ROMBus turns scheduling off), so this reads them back rather
+     * than restating the mapping: a Group collects a count, and on top of it the tour-leading split
+     * ({@see seatRecord()}) or GDR's five origins, precisely as its own flags say.
+     *
+     * Each collecting Group gets one recent Schedule of ended Shifts. The first is left unrecorded
+     * on purpose — null on every seat — so the outstanding-shifts panel has something to show the
+     * personas seated there (the roster is id-ordered and personas, seeded first, sort ahead of the
+     * generated pool); the rest carry counts, a few of them a deliberate recorded zero, never
+     * confused with the null. GDR's counted seats carry five origins that sum to the count (§3).
+     *
+     * Faker-free and idempotent: the Schedule keys on (Group, name), Shifts on (Schedule, start),
+     * and every seat value is written in one bulk upsert on the (Shift, Member) grain — so a reseed
+     * restates each seat to its absolute value rather than doubling, the same reason {@see hours()}
+     * upserts rather than looping a row at a time (#431).
+     */
+    private function afterShiftRecords(): void
+    {
+        $groups = Group::where('collects_visitor_count', true)->orderBy('id')->get();
+
+        $now = OrgTime::now();
+
+        $rows = [];
+        foreach ($groups as $group) {
+            $roster = $this->livingRoster($group);
+            if ($roster === []) {
+                continue;
+            }
+
+            $schedule = $this->recentSchedule($group, $now);
+            $shifts = $this->recentShifts($schedule, $now);
+
+            $cursor = 0;
+            foreach ($shifts as $index => $shift) {
+                for ($seat = 0; $seat < self::RECENT_SEATS; $seat++, $cursor++) {
+                    $member = $roster[$cursor % count($roster)];
+                    $rows[] = $this->seatRecord($group, $shift, $member, $index, $seat, $now);
+                }
+            }
+        }
+
+        $this->writeSeatRecords($rows);
+    }
+
+    /**
+     * The Group's living roster (Resigned / Deceased excluded — they cannot work a Shift),
+     * id-ordered so the seated set is deterministic and the curated Personas, seeded first, take
+     * the earliest seats.
+     *
+     * @return list<Member>
+     */
+    private function livingRoster(Group $group): array
+    {
+        return Member::whereHas('memberships', fn ($query) => $query
+            ->where('group_id', $group->id)
+            ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased]))
+            ->orderBy('id')
+            ->get()
+            ->all();
+    }
+
+    /**
+     * The recent, all-past Schedule for a collecting Group — published, spanning the window the
+     * recent Shifts sit in. Keyed on (Group, name) so a reseed heals rather than duplicates.
+     */
+    private function recentSchedule(Group $group, CarbonImmutable $now): Schedule
+    {
+        return Schedule::firstOrCreate(
+            ['group_id' => $group->id, 'name' => self::RECENT_SCHEDULE_NAME],
+            [
+                'starts_on' => $now->subDays(self::RECENT_SPAN_DAYS)->toDateString(),
+                'ends_on' => $now->toDateString(),
+                'state' => ScheduleState::Published,
+                'description' => 'Recently completed shifts — the visitor numbers filed at sign-out.',
+            ],
+        );
+    }
+
+    /**
+     * The recent Shifts on the Schedule — one per {@see RECENT_SHIFT_OFFSETS} entry, each a
+     * three-hour morning Shift already ended, built on the org wall clock and stored in UTC
+     * ({@see OrgTime}). Keyed on (Schedule, starts_at) so a reseed neither duplicates nor drifts.
+     *
+     * @return list<Shift>
+     */
+    private function recentShifts(Schedule $schedule, CarbonImmutable $now): array
+    {
+        $shifts = [];
+        foreach (self::RECENT_SHIFT_OFFSETS as $offset) {
+            $day = $now->subDays($offset);
+            $startsAt = OrgTime::toUtc($day->setTime(10, 0)->toDateTimeString());
+            $endsAt = OrgTime::toUtc($day->setTime(13, 0)->toDateTimeString());
+
+            $shifts[] = Shift::firstOrCreate(
+                ['schedule_id' => $schedule->id, 'starts_at' => $startsAt],
+                [
+                    'ends_at' => $endsAt,
+                    'capacity' => self::RECENT_SEATS,
+                    'audience' => ShiftAudience::Group,
+                    'shift_kind_id' => null,
+                ],
+            );
+        }
+
+        return $shifts;
+    }
+
+    /**
+     * One seat's after-the-shift record, as an upsert row. The first Shift of the Schedule is left
+     * unrecorded — null on every column — because a null `visitor_count` is the outstanding marker
+     * (ADR-0023 §5). Every later seat carries a count, a few of them a deliberate recorded zero
+     * ("nobody came"), distinct from the null. A tour-leading Group also fills the second box
+     * ({@see Group::$collects_extra_interactions}); GDR also fills five origins that sum to the count.
+     *
+     * Deterministic ({@see spread()}, not `fake()`) so a local reseed and a staging deploy read
+     * identically. Every visitor column is present on every row — null where the Group does not
+     * collect it — so the whole set upserts under one uniform column list.
+     *
+     * @return array<string, int|CarbonImmutable|null>
+     */
+    private function seatRecord(Group $group, Shift $shift, Member $member, int $shiftIndex, int $seat, CarbonImmutable $now): array
+    {
+        $row = [
+            'shift_id' => $shift->id,
+            'member_id' => $member->id,
+            'visitor_count' => null,
+            'extra_interaction_count' => null,
+            'visitors_france_europe' => null,
+            'visitors_quebec' => null,
+            'visitors_toronto' => null,
+            'visitors_rest_of_canada' => null,
+            'visitors_other_countries' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+
+        // The first Shift stays outstanding: nobody has filed a number, so every seat is null.
+        if ($shiftIndex === 0) {
+            return $row;
+        }
+
+        $seed = $group->id * 6151 + $shiftIndex * 97 + $seat;
+
+        // One seat in ten is a recorded zero — a real "nobody came", not an omission.
+        $count = $this->spread($seed, 0, 9) === 0 ? 0 : $this->spread($seed + 1, 5, 40);
+        $row['visitor_count'] = $count;
+
+        if ($group->collects_extra_interactions) {
+            $row['extra_interaction_count'] = $this->spread($seed + 2, 0, 10);
+        }
+
+        if ($group->collects_visitor_provenance) {
+            [
+                $row['visitors_france_europe'],
+                $row['visitors_quebec'],
+                $row['visitors_toronto'],
+                $row['visitors_rest_of_canada'],
+                $row['visitors_other_countries'],
+            ] = $this->splitProvenance($count, $seed + 3);
+        }
+
+        return $row;
+    }
+
+    /**
+     * Split a visitor count into five origins that sum back to it exactly (ADR-0023 §3 — legacy
+     * honours this on 712 of 712 rows). An even base, the remainder spread one-per-bucket, then
+     * rotated by a seed so the columns are not always front-loaded. A zero count yields five zeros,
+     * whose sum is still zero, so the invariant holds for a recorded zero as well.
+     *
+     * @return list<int>
+     */
+    private function splitProvenance(int $count, int $seed): array
+    {
+        $origins = array_fill(0, 5, intdiv($count, 5));
+        for ($i = 0, $remainder = $count % 5; $i < $remainder; $i++) {
+            $origins[$i]++;
+        }
+
+        $rotation = $this->spread($seed, 0, 4);
+
+        return array_merge(array_slice($origins, $rotation), array_slice($origins, 0, $rotation));
+    }
+
+    /**
+     * Write the seat rows in bulk (#474 keeps #431's rule — never a row at a time). An upsert on the
+     * (Shift, Member) grain both seats the Sign-up and files its numbers in one statement, and on a
+     * reseed restates each seat to its absolute value rather than doubling. `created_at` is written
+     * on insert only; the seven visitor columns and `updated_at` are the healed set.
+     *
+     * @param  list<array<string, int|CarbonImmutable|null>>  $rows
+     */
+    private function writeSeatRecords(array $rows): void
+    {
+        foreach (array_chunk($rows, self::HOURS_CHUNK) as $chunk) {
+            SignUp::upsert(
+                $chunk,
+                ['shift_id', 'member_id'],
+                [
+                    'visitor_count',
+                    'extra_interaction_count',
+                    'visitors_france_europe',
+                    'visitors_quebec',
+                    'visitors_toronto',
+                    'visitors_rest_of_canada',
+                    'visitors_other_countries',
+                    'updated_at',
+                ],
+            );
         }
     }
 
@@ -1079,7 +1331,9 @@ class DemoSeeder extends Seeder
      * adding a second.
      *
      * `total_hours` is not a free field: it is written as the sum of the pair, so the
-     * seeded rows satisfy the same identity every write path does (§1).
+     * seeded rows satisfy the same identity every write path does (§1). `extra_interactions`
+     * (ADR-0023 §6) sits outside that sum — a visitor count, not hours — and lands only on the
+     * Groups whose sole route into the visitor report is the Hours tab ({@see EXTRA_INTERACTION_GROUPS}).
      *
      * @return list<array<string, int|string>>
      */
@@ -1094,7 +1348,14 @@ class DemoSeeder extends Seeder
         $scheduled = $group->has_scheduling ? $this->spread($seed + 1, 0, 12) : 0;
         $extra = $this->spread($seed + 2, 0, 6);
 
-        if ($scheduled === 0 && $extra === 0) {
+        // Extra interactions (ADR-0023 §6): a whole visitor count typed on the Hours tab, outside
+        // total_hours. Seeded on the Groups whose only route into Summary Visitor Interactions is
+        // this column, so a fresh seed shows them there — ROM Travel's entire presence is here.
+        $interactions = in_array($group->slug, self::EXTRA_INTERACTION_GROUPS, true)
+            ? $this->spread($seed + 5, 15, 80)
+            : 0;
+
+        if ($scheduled === 0 && $extra === 0 && $interactions === 0) {
             return [];
         }
 
@@ -1106,6 +1367,7 @@ class DemoSeeder extends Seeder
             'scheduled_hours' => $scheduled,
             'extra_hours' => $extra,
             'total_hours' => $scheduled + $extra,
+            'extra_interactions' => $interactions,
         ]];
 
         // The meeting row gets no adjustment: the trail records a Member's own testimony,
@@ -1121,6 +1383,7 @@ class DemoSeeder extends Seeder
                 'scheduled_hours' => 0,
                 'extra_hours' => $meetingExtra,
                 'total_hours' => $meetingExtra,
+                'extra_interactions' => 0,
             ];
         }
 
@@ -1163,7 +1426,7 @@ class DemoSeeder extends Seeder
                     $chunk,
                 ),
                 ['member_id', 'group_id', 'year_month', 'meeting_id'],
-                ['scheduled_hours', 'extra_hours', 'total_hours', 'updated_at'],
+                ['scheduled_hours', 'extra_hours', 'total_hours', 'extra_interactions', 'updated_at'],
             );
         }
 
@@ -1269,32 +1532,60 @@ class DemoSeeder extends Seeder
                 // Programs — a container section grouping the member-facing
                 // operating units, with their working groups and exhibition cohorts.
                 $this->container('Programs', [
+                    // Docents lead tours, so they collect the split — the visitor count and
+                    // the talked-to second box (ADR-0023 §2) — and their historical figures came
+                    // off a booking table, so they carry the incomplete marker (§6).
                     $this->program('Docents', [
                         $this->cohort('Pompeii', archived: true),
                         $this->cohort('Ultimate Dinosaurs', archived: true),
                         $this->cohort('Forbidden City', archived: true),
-                    ], GroupLogo::Docents),
-                    $this->program('Guides du ROM', [], GroupLogo::GuidesDuRom),
+                    ], GroupLogo::Docents, capabilities: [
+                        'collects_visitor_count' => true,
+                        'collects_extra_interactions' => true,
+                        'visitor_figures_await_booking' => true,
+                    ]),
+                    // GDR is the one Group in fifteen years with visitor provenance (ADR-0023 §3):
+                    // it collects the count, the split, the five origins, and the booking marker.
+                    $this->program('Guides du ROM', [], GroupLogo::GuidesDuRom, capabilities: [
+                        'collects_visitor_count' => true,
+                        'collects_extra_interactions' => true,
+                        'collects_visitor_provenance' => true,
+                        'visitor_figures_await_booking' => true,
+                    ]),
                     $this->program('Les Amis Francophiles', [], GroupLogo::LesAmisFrancophiles),
                     $this->program('DMV Hands-on Tours', [
                         $this->workingGroup('Social', 'hands-on-tours-social'),
                         $this->workingGroup('Training', 'hands-on-tours-training'),
                         $this->workingGroup('Vetting', visibility: ListingVisibility::Public),
                     ], GroupLogo::DmvHandsOnTours),
+                    // Gallery Interpreters work the galleries, not tours: they collect one
+                    // number, the visitor count, which already is an interaction count (§2).
                     $this->program('Gallery Interpreters', [
                         // A Private subgroup nested in a Program — the strictest
                         // tier, exercised on staging (PRD #268, ADR-0019).
                         $this->workingGroup('Events', 'gallery-interpreters-events', ListingVisibility::Private),
-                    ], GroupLogo::GalleryInterpreters),
+                    ], GroupLogo::GalleryInterpreters, capabilities: [
+                        'collects_visitor_count' => true,
+                    ]),
                     // ROMForYou deliberately ships no mark — the visible generic
                     // fallback the launcher exercises on a top-level program (#257).
+                    // ROMForYou runs desk-style presentations — one visitor count — and its
+                    // legacy figure came off a booking table most severely of all (§6: 293 of
+                    // 1,055 in fiscal 2026), so it flies the incomplete marker.
                     $this->program('ROMForYou', [
                         $this->workingGroup('Content Development', visibility: ListingVisibility::Public),
                         $this->workingGroup('Team Leads — adult presentations'),
                         $this->workingGroup('Outreach'),
                         $this->workingGroup('Adapted Presentations'),
+                    ], capabilities: [
+                        'collects_visitor_count' => true,
+                        'visitor_figures_await_booking' => true,
                     ]),
-                    $this->program('Visitor Guides', [], GroupLogo::VisitorGuides),
+                    // Visitor Guides and Visitor Wayfinders staff desks: one visitor count each,
+                    // no second box (§2). They are the forced-entry Groups behind legacy's 96-98%.
+                    $this->program('Visitor Guides', [], GroupLogo::VisitorGuides, capabilities: [
+                        'collects_visitor_count' => true,
+                    ]),
                     $this->program('Visitor Wayfinders', [
                         $this->workingGroup('Documentation', visibility: ListingVisibility::Public),
                         $this->workingGroup('Shadow Shift & Vetting Volunteers'),
@@ -1303,7 +1594,9 @@ class DemoSeeder extends Seeder
                         $this->cohort('TRex Spot Tours', archived: true),
                         $this->cohort('Blue Whale', archived: true),
                         $this->cohort('Zuul', archived: true),
-                    ], GroupLogo::VisitorWayfinders),
+                    ], GroupLogo::VisitorWayfinders, capabilities: [
+                        'collects_visitor_count' => true,
+                    ]),
                     // ROMWalks — one coherent subtree merged from the source's
                     // two differing listings (see class docblock).
                     $this->program('ROMWalks', [
@@ -1314,18 +1607,27 @@ class DemoSeeder extends Seeder
                         $this->workingGroup('Statistical', visibility: ListingVisibility::Public),
                         $this->workingGroup('Training', 'romwalks-training'),
                         $this->workingGroup('Walker Vetting'),
-                    ], GroupLogo::Romwalks, hoursMultiplier: 2),
+                    ], GroupLogo::Romwalks, capabilities: [
+                        // A walk is a led tour, so ROMWalks collects the split; its figures came
+                        // off a booking table too, so it carries the incomplete marker (§6).
+                        'collects_visitor_count' => true,
+                        'collects_extra_interactions' => true,
+                        'visitor_figures_await_booking' => true,
+                    ], hoursMultiplier: 2),
                     $this->program('Reception', [
                         $this->workingGroup('Library', visibility: ListingVisibility::Public),
                     ], GroupLogo::Reception),
                     // ROMBus is a booking-only Group — scheduling stays off until the
                     // group-booking capability lands (#364, ADR-0021).
                     $this->program('ROMBus', [], GroupLogo::Rombus, ['has_scheduling' => false]),
+                    // ROM Travel has no scheduling table in production at all (ADR-0023, facts
+                    // for the migration plan), so scheduling stays off and its only presence in
+                    // the visitor report is hand-typed extra interactions on the Hours tab (§6).
                     $this->program('ROMTravel', [
                         $this->workingGroup('Admin Committee'),
                         $this->workingGroup('Feasibility Committee'),
                         $this->workingGroup('Support Roles', visibility: ListingVisibility::Public),
-                    ], GroupLogo::Romtravel),
+                    ], GroupLogo::Romtravel, ['has_scheduling' => false]),
                 ]),
                 // Special Projects — a real coordinating Group (not a container):
                 // it has a page, a roster and leadership like any standing committee,
