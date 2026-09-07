@@ -2,14 +2,16 @@
 // PROTOTYPE (#467) — Variant B: the Audiences are named at the entry point (a menu:
 // "Email whole Group", "Email officers", "Pick people…"), and the chosen one opens a
 // side Sheet that walks three steps: Who → Message → Sent. Step 1 is the Audience
-// already expanded into ticked rows the officer may untick, with the count in the
-// step heading. No pre-send marking of unreachable Members; the result reports them.
+// already expanded into a To field of name chips (× removes a person, the way the
+// winner of #467 was reacted to), with the count in the step heading and an "Add
+// people" panel for the rest of the roster. No pre-send marking of unreachable
+// Members; the result reports them.
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { PhArrowLeft, PhMagnifyingGlass, PhPlus } from '@phosphor-icons/vue';
+import { PhArrowLeft, PhMagnifyingGlass, PhPlus, PhX } from '@phosphor-icons/vue';
 import { computed, ref, toRef, watch } from 'vue';
 import ComposerFields from './ComposerFields.vue';
 import { fakeSend, fullName, initials, useDraft, useSelection, type ComposeContext } from './model';
@@ -24,12 +26,11 @@ const step = ref<1 | 2 | 3>(1);
 const adding = ref(false);
 const search = ref('');
 
-// Step 1 lists the Audience's own members (ticked); "Add people" reveals the rest of
-// the roster. With no Audience (Pick people…), the whole roster shows unticked.
+// Step 1 shows the recipients as chips; the "Add people" panel lists the roster with
+// tick boxes and a search. With no Audience (Pick people…) the panel opens at once.
 const listed = computed(() => {
-    const base = selection.audience.value && !adding.value ? selection.audience.value.members : props.context.roster;
     const q = search.value.trim().toLowerCase();
-    return base.filter((p) => q === '' || fullName(p).toLowerCase().includes(q));
+    return props.context.roster.filter((p) => q === '' || fullName(p).toLowerCase().includes(q));
 });
 const allTicked = computed(() => listed.value.length > 0 && listed.value.every((p) => selection.ticked.value.has(p.id)));
 const tickListed = (on: boolean) => listed.value.forEach((p) => selection.toggle(p.id, on));
@@ -50,9 +51,9 @@ watch(open, (o) => {
     if (!o) return;
     draft.reset();
     step.value = 1;
-    adding.value = false;
     search.value = '';
     selection.pickAudience(props.audience);
+    adding.value = props.audience === null;
 });
 </script>
 
@@ -89,43 +90,70 @@ watch(open, (o) => {
                 </div>
 
                 <template v-else>
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <p class="text-sm">
-                            <span v-if="selection.audience.value && !adding">
-                                <strong>{{ selection.audience.value.name }}</strong>
-                                <span class="text-muted-foreground"> · untick anyone to leave them out</span>
+                    <p class="text-sm">
+                        <span v-if="selection.audience.value">
+                            <strong>{{ selection.audienceLabel.value }}</strong>
+                            <span class="text-muted-foreground"> · remove anyone to leave them out</span>
+                        </span>
+                        <span v-else class="text-muted-foreground">Pick people from {{ context.title }}</span>
+                    </p>
+
+                    <!-- The To field: every recipient as a chip, × removes them. -->
+                    <div class="grid grid-cols-[max-content_1fr] items-start gap-x-3 text-sm">
+                        <span class="text-muted-foreground pt-2">To</span>
+                        <div class="border-input flex min-h-11 flex-wrap items-center gap-1.5 border px-2 py-1.5">
+                            <span
+                                v-for="p in selection.recipients.value"
+                                :key="p.id"
+                                class="bg-secondary text-secondary-foreground inline-flex items-center gap-1 px-2 py-0.5 text-sm"
+                            >
+                                {{ fullName(p) }}
+                                <button
+                                    type="button"
+                                    class="hover:text-destructive"
+                                    :aria-label="`Remove ${fullName(p)}`"
+                                    @click="selection.toggle(p.id, false)"
+                                >
+                                    <PhX class="size-3" />
+                                </button>
                             </span>
-                            <span v-else class="text-muted-foreground">Everyone on {{ context.title }}</span>
-                        </p>
-                        <label class="text-muted-foreground flex items-center gap-2 text-sm">
-                            <Checkbox :checked="allTicked" @update:checked="tickListed" /> All
-                        </label>
+                            <span v-if="!selection.recipients.value.length" class="text-muted-foreground px-1">Nobody yet</span>
+                            <Button type="button" variant="ghost" size="sm" class="ml-auto h-7 gap-1 px-2 text-xs" @click="adding = !adding">
+                                <PhPlus class="size-3.5" /> Add people
+                            </Button>
+                        </div>
                     </div>
-                    <div class="relative">
-                        <PhMagnifyingGlass class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                        <Input v-model="search" type="search" placeholder="Find a name" class="h-9 pl-9" />
-                    </div>
-                    <ul class="divide-y border">
-                        <li v-for="p in listed" :key="p.id">
-                            <label class="hover:bg-muted/60 flex items-center gap-3 px-3 py-2 text-sm">
-                                <Checkbox :checked="selection.ticked.value.has(p.id)" @update:checked="(on: boolean) => selection.toggle(p.id, on)" />
-                                <span class="min-w-0 flex-1 truncate">
-                                    {{ fullName(p) }}
-                                    <span v-if="p.hint" class="text-muted-foreground ml-1 text-xs">· {{ p.hint }}</span>
-                                </span>
+
+                    <!-- The add panel: the roster with tick boxes and a search. -->
+                    <div v-if="adding" class="flex flex-col gap-2 border p-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="relative flex-1">
+                                <PhMagnifyingGlass
+                                    class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                                />
+                                <Input v-model="search" type="search" placeholder="Find a name" class="h-9 pl-9" />
+                            </div>
+                            <label class="text-muted-foreground flex items-center gap-2 text-sm">
+                                <Checkbox :checked="allTicked" @update:checked="tickListed" /> All
                             </label>
-                        </li>
-                        <li v-if="!listed.length" class="text-muted-foreground px-3 py-4 text-center text-sm">Nobody here.</li>
-                    </ul>
-                    <Button
-                        v-if="selection.audience.value && !adding && context.roster.length"
-                        type="button"
-                        variant="link"
-                        class="h-auto w-fit p-0"
-                        @click="adding = true"
-                    >
-                        <PhPlus class="size-4" /> Add other people from {{ context.title }}
-                    </Button>
+                        </div>
+                        <ul class="max-h-64 divide-y overflow-y-auto">
+                            <li v-for="p in listed" :key="p.id">
+                                <label class="hover:bg-muted/60 flex items-center gap-3 px-2 py-1.5 text-sm">
+                                    <Checkbox
+                                        :checked="selection.ticked.value.has(p.id)"
+                                        @update:checked="(on: boolean) => selection.toggle(p.id, on)"
+                                    />
+                                    <span class="min-w-0 flex-1 truncate">
+                                        {{ p.last_name }}, {{ p.first_name }}
+                                        <span v-if="p.hint" class="text-muted-foreground ml-1 text-xs">· {{ p.hint }}</span>
+                                    </span>
+                                </label>
+                            </li>
+                            <li v-if="!listed.length" class="text-muted-foreground px-3 py-4 text-center text-sm">Nobody matches.</li>
+                        </ul>
+                        <Button type="button" variant="ghost" size="sm" class="self-end" @click="adding = false">Done</Button>
+                    </div>
                 </template>
 
                 <div class="mt-auto flex items-center justify-between gap-2 border-t pt-4">
