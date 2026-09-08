@@ -4,6 +4,7 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupMemberController;
+use App\Http\Controllers\GroupReminderSettingsController;
 use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\MeetingController;
@@ -275,6 +276,15 @@ Route::patch('schedules/{schedule}', [ScheduleController::class, 'update'])
 Route::delete('schedules/{schedule}', [ScheduleController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('schedules.destroy');
+
+// Group Reminder settings (#486, PRD #479, ADR-0024 §7). The Scheduling section's Reminders
+// block — on/off and lead days — edited by a Scheduler or Chair. One dedicated endpoint, bound
+// to the Group by slug, structurally authorized in UpdateReminderSettingsRequest, which
+// delegates to the SchedulePolicy's `updateReminders` gate (scheduling on, actor a schedule
+// admin). A plain member is refused before the write.
+Route::patch('groups/{group}/reminder-settings', [GroupReminderSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('groups.reminders.update');
 
 // Shift authoring (#356, PRD #352, ADR-0021 §2). The Scheduler's write seam for the
 // Shifts on a Schedule: add a Shift (times, capacity, optional kind, audience), edit it

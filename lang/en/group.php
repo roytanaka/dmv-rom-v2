@@ -169,6 +169,14 @@ return [
         'draft_badge' => 'Draft',
         'date_range' => ':start – :end',
         'back_to_list' => 'All schedules',
+        // Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and lead
+        // days for this Group's shift Reminders, shown on the list view.
+        'reminders' => [
+            'heading' => 'Shift reminders',
+            'description' => 'Email members a reminder a few days before each shift they have signed up for.',
+            'enabled_label' => 'Send shift reminders',
+            'lead_days_label' => 'Days before the shift',
+        ],
         // Authoring (#354) — shown only to a Scheduler / Chair / super-tier
         // (server-gated via `can`). Publish / un-publish are the two state transitions.
         'new' => 'New schedule',

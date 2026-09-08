@@ -77,6 +77,8 @@ class Group extends Model
         'collects_visitor_provenance',
         'visitor_figures_await_booking',
         'hours_multiplier',
+        'reminders_enabled',
+        'reminder_lead_days',
     ];
 
     /**
@@ -107,6 +109,8 @@ class Group extends Model
             'collects_visitor_provenance' => 'boolean',
             'visitor_figures_await_booking' => 'boolean',
             'hours_multiplier' => 'integer',
+            'reminders_enabled' => 'boolean',
+            'reminder_lead_days' => 'integer',
         ];
     }
 

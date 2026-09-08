@@ -61,6 +61,29 @@ it('renders the Scheduling tab with an empty state when the Group has no Schedul
             ->where('scheduling.schedules', []));
 });
 
+it('carries the Group’s Reminder settings and a manage hint for a schedule admin', function () {
+    // The Reminders block reads these off the group payload; a schedule admin gets the hint on.
+    $group = Group::factory()->program()->publicListing()->create([
+        'reminders_enabled' => true,
+        'reminder_lead_days' => 5,
+    ]);
+
+    $this->actingAs(schedulingMemberOf($group, role: Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('group.reminders.enabled', true)
+            ->where('group.reminders.leadDays', 5)
+            ->where('can.manageReminders', true));
+});
+
+it('withholds the manage-Reminders hint from a plain member', function () {
+    $group = schedulingGroup();
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page->where('can.manageReminders', false));
+});
+
 it('404s the Scheduling section on a Group that does not run scheduling', function () {
     $group = Group::factory()->create(['has_scheduling' => false]);
 

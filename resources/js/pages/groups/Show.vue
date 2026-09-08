@@ -72,6 +72,11 @@ const props = defineProps<{
             collectsExtraInteractions: boolean;
             collectsVisitorProvenance: boolean;
         };
+        // The Group's Reminder settings (#486) — the Scheduling tab's Reminders block reads them.
+        reminders: {
+            enabled: boolean;
+            leadDays: number;
+        };
     };
     section: string;
     // UI hints from the policies — drive the officer affordances only; the server
@@ -84,6 +89,7 @@ const props = defineProps<{
         createMeeting: boolean;
         manageRoster: boolean;
         createSchedule: boolean;
+        manageReminders: boolean;
         enterHours: boolean;
         viewReports: boolean;
     };
@@ -364,6 +370,8 @@ const pickBanner = (key: string | null) => {
                     :collects-visitor-count="group.capabilities.collectsVisitorCount"
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
                     :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"
+                    :reminders="group.reminders"
+                    :can-manage-reminders="can.manageReminders"
                     :group-slug="group.slug"
                 />
 

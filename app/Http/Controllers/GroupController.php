@@ -158,6 +158,14 @@ class GroupController extends Controller
                     // Group leaves it off and its sign-out panel shows no origin boxes.
                     'collectsVisitorProvenance' => $group->collects_visitor_provenance,
                 ],
+                // The Group's Reminder settings (#486, ADR-0024 §7) — the Scheduling section's
+                // Reminders block reads these to render its on/off switch and lead-days field.
+                // Present on every Group; the block itself renders only inside Scheduling, and
+                // only to a schedule admin (`can.manageReminders`).
+                'reminders' => [
+                    'enabled' => $group->reminders_enabled,
+                    'leadDays' => $group->reminder_lead_days,
+                ],
             ],
             'section' => $section,
             // UI hints only — the server enforces in the Form Requests. `update`
@@ -170,6 +178,10 @@ class GroupController extends Controller
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $request->user()->can('create', [GroupMember::class, $group]),
                 'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
+                // `manageReminders` drives the Scheduling tab's Reminders settings block (#486,
+                // ADR-0024 §7) — a Scheduler or Chair of the scheduling Group. UI hint only;
+                // UpdateReminderSettingsRequest re-checks the gate on PATCH.
+                'manageReminders' => $request->user()->can('updateReminders', [Schedule::class, $group]),
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.

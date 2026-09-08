@@ -469,6 +469,18 @@ it('turns scheduling on for the demo programs but off for the booking-only Group
         ->and(Group::where('slug', 'outreach')->firstOrFail()->has_scheduling)->toBeFalse();
 });
 
+it('turns Reminders on with 3 lead days for the five Reminder Groups, off elsewhere', function () {
+    // The five Groups that run Reminders today (ADR-0024 §7), each at the standard 3 lead days.
+    foreach (['docents', 'guides-du-rom', 'visitor-wayfinders', 'visitor-guides', 'reception'] as $slug) {
+        $group = Group::where('slug', $slug)->firstOrFail();
+        expect($group->reminders_enabled)->toBeTrue()
+            ->and($group->reminder_lead_days)->toBe(3);
+    }
+
+    // A scheduling Group not on the list keeps Reminders off (the opt-in default).
+    expect(Group::where('slug', 'romwalks')->firstOrFail()->reminders_enabled)->toBeFalse();
+});
+
 it('seeds the ROMWalks walks-to-hours multiplier at 2, every other Group at the default 1', function () {
     // ROMWalks counts each walk as two hours (ADR-0022 §7) — the one Group whose
     // multiplier differs; the Docents program keeps the org-wide default.
