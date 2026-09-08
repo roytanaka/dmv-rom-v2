@@ -118,6 +118,27 @@ it('writes nothing when a Member takes a Shift — the deliberate silence on sig
     expect(Delivery::count())->toBe(0);
 });
 
+it('writes no Delivery for a Scheduler carrying the no-email flag', function () {
+    $group = mailGroup();
+    $silenced = mailMemberOf($group, role: Role::Scheduler);
+    // Not mass-assignable — set the Records-only flag directly (as the endpoint does).
+    $silenced->no_email = true;
+    $silenced->save();
+    $heard = mailMemberOf($group, role: Role::Scheduler);
+    $holder = mailMemberOf($group);
+    $seat = seatFor($group, $holder);
+
+    $this->actingAs($holder)
+        ->delete(route('sign-ups.destroy', ['signUp' => $seat->id]))
+        ->assertRedirect();
+
+    // The flag is checked when Delivery rows are written (ADR-0024 §9): the silenced
+    // Scheduler gets no row, the reachable one still does.
+    $rows = Delivery::all();
+    expect($rows)->toHaveCount(1);
+    expect($rows->pluck('member_id')->all())->toEqual([$heard->id]);
+});
+
 it('writes a row inside the legacy two-day window it used to suppress — the Notice is unconditional', function () {
     $group = mailGroup();
     mailMemberOf($group, role: Role::Scheduler);

@@ -8,6 +8,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SignUpController;
@@ -207,6 +208,14 @@ Route::patch('members/{member}', [MemberController::class, 'update'])
 Route::put('members/{member}/super-tier', SuperTierController::class)
     ->middleware(['auth'])
     ->name('members.super-tier.update');
+
+// Set/clear the no-email flag (#483, ADR-0024 §9). A dedicated, member-administration-
+// gated action — never a field on a member form. Records or super-tier only, via the
+// `administer-members` gate in the UpdateNoEmailFlagRequest; a Chair or the Member
+// themself is denied.
+Route::put('members/{member}/no-email-flag', NoEmailFlagController::class)
+    ->middleware(['auth'])
+    ->name('members.no-email-flag.update');
 
 // News feed mutations (#155, ADR-0017 §5). The non-localized write seam: posting,
 // editing, and deleting are each structurally authorized in their Form Request,

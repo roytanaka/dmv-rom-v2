@@ -12,6 +12,12 @@ return [
     'groups' => 'Groups & roles',
     'no_groups' => 'No group memberships.',
 
+    // Records-only member-administration controls (#483, ADR-0024 §9). Shown only when
+    // the viewer may administer members — the MemberResource gates the underlying data.
+    'administration' => 'Member administration',
+    'no_email' => 'No email',
+    'no_email_help' => 'Silence every email to this member — Broadcasts, Direct messages, Reminders, and Notices.',
+
     // DMV-wide standing labels (the Member's Category), keyed by the enum value the
     // MemberResource exposes as `standing`. Drives the directory/profile standing
     // badge. Mirrors lang/fr/member.php.

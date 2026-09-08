@@ -71,6 +71,17 @@ class MemberFactory extends Factory
         ]);
     }
 
+    /**
+     * Indicate that the Member carries the no-email flag — a Records-set switch that
+     * silences every mail to them (#483, ADR-0024 §9).
+     */
+    public function noEmail(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'no_email' => true,
+        ]);
+    }
+
     public function category(Category $category): static
     {
         return $this->state(fn (array $attributes) => [

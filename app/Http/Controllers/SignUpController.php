@@ -70,6 +70,12 @@ class SignUpController extends Controller
             $snapshot = $this->cancellationSnapshot($shift, $member);
 
             foreach ($shift->schedule->group->schedulers() as $scheduler) {
+                // The no-email flag silences every mail, checked once here — the sole
+                // point a Notice Delivery is written (#483, ADR-0024 §9).
+                if ($scheduler->no_email) {
+                    continue;
+                }
+
                 Delivery::create([
                     'kind' => DeliveryKind::Notice,
                     'member_id' => $scheduler->getKey(),
