@@ -3,13 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AudienceKey;
-use App\Enums\ContextType;
-use App\Models\Group;
 use App\Models\Member;
-use App\Models\Schedule;
-use App\Models\Shift;
 use App\Support\Audiences\Audience;
 use App\Support\Audiences\AudienceContext;
+use App\Support\Audiences\AudienceContextFactory;
 use App\Support\Audiences\AudienceResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,7 +26,10 @@ use Illuminate\Http\Request;
  */
 class AudienceController extends Controller
 {
-    public function __construct(private readonly AudienceResolver $resolver) {}
+    public function __construct(
+        private readonly AudienceResolver $resolver,
+        private readonly AudienceContextFactory $contexts,
+    ) {}
 
     /**
      * List the Audiences the actor may pick in the context, each with its resolved
@@ -86,26 +86,12 @@ class AudienceController extends Controller
     }
 
     /**
-     * Build the {@see AudienceContext} from the request's `context` and `subject`.
-     * An unknown context type, or a subject that resolves to no row, 404s.
+     * Build the {@see AudienceContext} from the request's `context` and `subject`,
+     * through the shared factory the send path uses too.
      */
     private function context(Request $request): AudienceContext
     {
-        $type = ContextType::tryFrom((string) $request->query('context'));
-
-        if ($type === null) {
-            abort(404);
-        }
-
-        return match ($type) {
-            ContextType::Group => AudienceContext::group(
-                Group::where('slug', $request->query('subject'))->firstOrFail()
-            ),
-            ContextType::Schedule => AudienceContext::schedule(Schedule::findOrFail($request->query('subject'))),
-            ContextType::Shift => AudienceContext::shift(Shift::findOrFail($request->query('subject'))),
-            ContextType::Member => AudienceContext::member(Member::findOrFail($request->query('subject'))),
-            ContextType::Directory => AudienceContext::directory(),
-        };
+        return $this->contexts->fromRequest($request);
     }
 
     /**

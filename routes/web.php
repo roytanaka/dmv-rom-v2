@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
+use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupEmptyDeskSettingsController;
 use App\Http\Controllers\GroupMemberController;
@@ -438,6 +439,15 @@ Route::get('audiences', [AudienceController::class, 'index'])
 Route::get('audiences/{audience}', [AudienceController::class, 'show'])
     ->middleware(['auth'])
     ->name('audiences.show');
+
+// The Broadcast send path (#488, ADR-0024 §4, §6). The composer posts its context, the
+// Audience to resolve, the picker's per-Member edits, the subject, body, and up to two
+// attachments; the server re-resolves the Audience, writes the sent record and one Delivery
+// per recipient plus the sender's copy, and returns the queued count and the skipped names.
+// Nothing sends in the request. A data endpoint (JSON), non-localized like the Audience seams.
+Route::post('broadcasts', [BroadcastController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('broadcasts.store');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

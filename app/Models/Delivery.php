@@ -80,4 +80,17 @@ class Delivery extends Model
     {
         return $this->belongsTo(Shift::class);
     }
+
+    /**
+     * The Broadcast this row renders from — set on the Broadcast and sender-copy kinds,
+     * null on every other. The column is unconstrained (the `broadcasts` table arrived
+     * after this one), so this is a plain belongsTo, read only when the kind is a
+     * Broadcast (#488, ADR-0024 §6).
+     *
+     * @return BelongsTo<Broadcast, $this>
+     */
+    public function broadcast(): BelongsTo
+    {
+        return $this->belongsTo(Broadcast::class);
+    }
 }
