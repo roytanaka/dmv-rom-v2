@@ -205,7 +205,7 @@ class DemoSeeder extends Seeder
         // Awards Groups may send the org-wide Broadcast Audiences. A member of any of
         // them is an org-wide sender. Org structure, not a Persona; skips a Group
         // absent from a trimmed tree rather than failing.
-        foreach (['executive', self::RECORDS, 'awards'] as $slug) {
+        foreach ([Group::EXECUTIVE_SLUG, self::RECORDS, 'awards'] as $slug) {
             if (($group = $this->findGroup($slug)) !== null) {
                 $this->steward($group, StewardshipFunction::OrgMail);
             }

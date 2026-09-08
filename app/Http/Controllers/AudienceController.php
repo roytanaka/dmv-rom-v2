@@ -65,11 +65,13 @@ class AudienceController extends Controller
             abort(404);
         }
 
+        $parameter = $request->query('parameter');
+
         $resolved = $this->resolver->resolve(
             $request->user(),
             $this->context($request),
             $key,
-            $request->query('parameter'),
+            is_string($parameter) ? $parameter : null,
             $this->ids($request, 'removed'),
             $this->ids($request, 'added'),
         );

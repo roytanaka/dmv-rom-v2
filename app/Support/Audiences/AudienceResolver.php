@@ -12,6 +12,8 @@ use App\Enums\Role;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
+use App\Models\Shift;
+use App\Models\SignUp;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -278,8 +280,8 @@ class AudienceResolver
             ->where('ends_at', '>=', now())
             ->with('signUps.member')
             ->get()
-            ->flatMap(fn ($shift): Collection => $shift->signUps
-                ->map(fn ($signUp): Member => $signUp->member))
+            ->flatMap(fn (Shift $shift): Collection => $shift->signUps
+                ->map(fn (SignUp $signUp): Member => $signUp->member))
             ->values();
     }
 
@@ -291,7 +293,7 @@ class AudienceResolver
     private function shiftSignUps(AudienceContext $context): Collection
     {
         return $context->subject->signUps()->with('member')->get()
-            ->map(fn ($signUp): Member => $signUp->member)
+            ->map(fn (SignUp $signUp): Member => $signUp->member)
             ->values();
     }
 
@@ -381,13 +383,11 @@ class AudienceResolver
      */
     private function currentCategories(bool $withLoa): array
     {
-        $categories = array_values(array_filter(
+        return array_values(array_filter(
             Category::cases(),
             fn (Category $category): bool => $category->accessTier() !== AccessTier::None
                 && ($withLoa || $category !== Category::Loa),
         ));
-
-        return $categories;
     }
 
     /**
