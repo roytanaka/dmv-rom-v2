@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Mail\SignUpCancelled;
+use App\Mail\StandingChanged;
 use App\Models\Delivery;
 use Illuminate\Console\Command;
 use Illuminate\Mail\Mailable;
@@ -209,12 +210,26 @@ class DrainDeliveries extends Command
 
     /**
      * Build the Mailable for a row from its kind. A Notice renders from the row's payload
-     * snapshot, because the Sign-up it announces is gone by now.
+     * snapshot, because the event it announces (a dropped Sign-up, a standing change) may be
+     * gone by now. Several Notices share the one Notice kind (ADR-0024 §8), so the payload's
+     * `notice` discriminator picks the Mailable within it.
      */
     private function mailableFor(Delivery $delivery): Mailable
     {
         return match ($delivery->kind) {
-            DeliveryKind::Notice => SignUpCancelled::fromSnapshot($delivery->payload),
+            DeliveryKind::Notice => $this->noticeFor($delivery->payload),
+        };
+    }
+
+    /**
+     * Pick the Notice Mailable from the payload discriminator. A row without one is a Sign-up
+     * cancellation, the first Notice on the queue, written before the discriminator existed.
+     */
+    private function noticeFor(array $payload): Mailable
+    {
+        return match ($payload['notice'] ?? null) {
+            StandingChanged::NOTICE_TYPE => StandingChanged::fromSnapshot($payload),
+            default => SignUpCancelled::fromSnapshot($payload),
         };
     }
 }
