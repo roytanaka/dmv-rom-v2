@@ -1,7 +1,6 @@
 @php
     // Names render as-authored content — directly, never through the lang files (ADR-0004).
     $memberName = trim($member->first_name.' '.$member->last_name);
-    $groupName = $group->name;
     // The new DMV-wide standing, resolved to its label in the render locale (chrome).
     $standingLabel = __('member.standing.'.$standing->value);
     // The effective date, in the render locale; translatedFormat honours it.
@@ -18,7 +17,7 @@
 @component('mail::message')
 # {{ __('notices.standing_change.heading') }}
 
-{{ __('notices.standing_change.intro', ['member' => $memberName, 'group' => $groupName, 'standing' => $standingLabel, 'date' => $date]) }}
+{{ __('notices.standing_change.intro', ['member' => $memberName, 'group' => $group->name, 'standing' => $standingLabel, 'date' => $date]) }}
 
 {{ __('notices.standing_change.footer') }}
 

@@ -217,7 +217,7 @@ class DrainDeliveries extends Command
     private function mailableFor(Delivery $delivery): Mailable
     {
         return match ($delivery->kind) {
-            DeliveryKind::Notice => $this->noticeFor($delivery),
+            DeliveryKind::Notice => $this->noticeFor($delivery->payload),
         };
     }
 
@@ -225,11 +225,11 @@ class DrainDeliveries extends Command
      * Pick the Notice Mailable from the payload discriminator. A row without one is a Sign-up
      * cancellation, the first Notice on the queue, written before the discriminator existed.
      */
-    private function noticeFor(Delivery $delivery): Mailable
+    private function noticeFor(array $payload): Mailable
     {
-        return match ($delivery->payload['notice'] ?? null) {
-            StandingChanged::NOTICE_TYPE => StandingChanged::fromSnapshot($delivery->payload),
-            default => SignUpCancelled::fromSnapshot($delivery->payload),
+        return match ($payload['notice'] ?? null) {
+            StandingChanged::NOTICE_TYPE => StandingChanged::fromSnapshot($payload),
+            default => SignUpCancelled::fromSnapshot($payload),
         };
     }
 }

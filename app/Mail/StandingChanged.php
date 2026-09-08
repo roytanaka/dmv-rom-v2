@@ -3,11 +3,9 @@
 namespace App\Mail;
 
 use App\Enums\Category;
-use App\Enums\DeliveryKind;
 use App\Models\Delivery;
 use App\Models\Group;
 use App\Models\Member;
-use App\Support\Notices\StandingChangeNoticeWriter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
@@ -21,7 +19,7 @@ use Illuminate\Queue\SerializesModels;
  * The standing-change Notice (#485, spec #479, ADR-0024 §8). When a Member's DMV-wide Category
  * moves into a departure — Resigned or Deceased — every Chair of every Group where that Member's
  * Membership is not already departed is told, so the Chair can update their own roster. The
- * {@see StandingChangeNoticeWriter} writes one Notice {@see Delivery} per
+ * StandingChangeNoticeWriter writes one Notice {@see Delivery} per
  * Chair, and the Drain builds this Mailable from the row's payload snapshot and sends it.
  *
  * It renders in the recipient's saved locale. From is the app's one address carrying the Group's
@@ -40,7 +38,7 @@ class StandingChanged extends Mailable
 
     /**
      * The payload discriminator that tells the Drain a Notice Delivery is a standing change
-     * rather than a Sign-up cancellation — both ride the {@see DeliveryKind::Notice}
+     * rather than a Sign-up cancellation — both ride the DeliveryKind::Notice
      * kind (ADR-0024 §8), so the kind alone cannot pick the Mailable.
      */
     public const NOTICE_TYPE = 'standing_change';
