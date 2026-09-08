@@ -177,6 +177,16 @@ return [
             'enabled_label' => 'Send shift reminders',
             'lead_days_label' => 'Days before the shift',
         ],
+        // Empty-desk settings (#487, ADR-0024 §7) — the schedule-admin's on/off switch,
+        // look-ahead, and which shift kinds the alert watches, shown on the list view.
+        'empty_desk' => [
+            'heading' => 'Empty-desk alert',
+            'description' => 'Every third day of the month, email members which watched shifts still have no one signed up.',
+            'enabled_label' => 'Send the empty-desk alert',
+            'days_ahead_label' => 'Days ahead to check',
+            'watched_label' => 'Shift kinds to watch',
+            'no_kinds' => 'This group has no shift kinds to watch yet.',
+        ],
         // Authoring (#354) — shown only to a Scheduler / Chair / super-tier
         // (server-gated via `can`). Publish / un-publish are the two state transitions.
         'new' => 'New schedule',

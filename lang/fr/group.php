@@ -159,6 +159,16 @@ return [
             'enabled_label' => 'Envoyer les rappels de quart',
             'lead_days_label' => 'Jours avant le quart',
         ],
+        // Réglages de l'alerte de poste vacant (#487, ADR-0024 §7) — l'interrupteur, le délai et
+        // les types de quart surveillés, affichés sur la vue en liste.
+        'empty_desk' => [
+            'heading' => 'Alerte de poste vacant',
+            'description' => 'Tous les trois jours du mois, indiquer par courriel aux membres quels quarts surveillés n’ont toujours personne d’inscrit.',
+            'enabled_label' => 'Envoyer l’alerte de poste vacant',
+            'days_ahead_label' => 'Nombre de jours à vérifier',
+            'watched_label' => 'Types de quart à surveiller',
+            'no_kinds' => 'Ce groupe n’a pas encore de types de quart à surveiller.',
+        ],
         // Rédaction (#354) — visible seulement pour un·e responsable horaire /
         // président·e / super-palier (contrôlé côté serveur via `can`). Publier /
         // dépublier sont les deux transitions d’état.

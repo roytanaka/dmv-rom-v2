@@ -17,4 +17,16 @@ return [
         'footer' => 'Veuillez mettre à jour votre liste des membres au besoin. Ce message est fourni à titre informatif ; aucune réponse n’est attendue.',
         'view_roster' => 'Voir la liste des membres du groupe',
     ],
+    // L'alerte de poste vacant (#487) : tous les trois jours du mois, un groupe indique à sa
+    // liste de membres en règle quels quarts surveillés n'ont toujours personne. :group s'affiche
+    // tel qu'écrit ; les dates, les heures et les types de quart s'affichent dans le corps, jamais
+    // par cette table. « today » marque un quart daté du jour de l'envoi.
+    'empty_desk' => [
+        'subject' => 'Des quarts cherchent toujours quelqu’un — :group',
+        'heading' => 'Ces quarts cherchent toujours quelqu’un',
+        'intro' => 'Les quarts suivants du groupe :group n’ont toujours personne d’inscrit :',
+        'today' => 'aujourd’hui',
+        'footer' => 'Si vous pouvez en prendre un, veuillez vous inscrire afin que le poste soit couvert.',
+        'view_schedules' => 'Voir l’horaire',
+    ],
 ];

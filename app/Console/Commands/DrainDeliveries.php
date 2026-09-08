@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Mail\EmptyDeskAlert;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
 use App\Mail\StandingChanged;
@@ -222,6 +223,9 @@ class DrainDeliveries extends Command
         return match ($delivery->kind) {
             DeliveryKind::Notice => $this->noticeFor($delivery->payload),
             DeliveryKind::Reminder => new ShiftReminder($delivery->shift, $delivery->member),
+            // The empty-desk alert renders from its payload snapshot too — the Shifts it names
+            // may be filled or gone by now (ADR-0024 §7).
+            DeliveryKind::EmptyDesk => EmptyDeskAlert::fromSnapshot($delivery->payload),
         };
     }
 
