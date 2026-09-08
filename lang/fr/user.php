@@ -6,5 +6,6 @@ return [
     'profile' => 'Mon profil',
     'renew' => "Renouveler l'adhésion",
     'language' => 'Langue',
+    'mail_status' => 'État du courriel',
     'logout' => 'Se déconnecter',
 ];
