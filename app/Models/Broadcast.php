@@ -71,7 +71,7 @@ class Broadcast extends Model
 
     /**
      * The Group the send was scoped to; null for an org-wide Broadcast or a Direct
-     * message. The From display name is this Group's name, or the app's name when null.
+     * message.
      *
      * @return BelongsTo<Group, $this>
      */

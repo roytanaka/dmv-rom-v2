@@ -35,11 +35,11 @@ return [
         'search_placeholder' => 'Search by name',
         'select_all' => 'Select all',
         'empty_roster' => 'No one on this roster matches.',
-        // The Message step.
-        'from' => 'From :group · replies come to you · you get a copy',
         // The Who step of a Direct message: one fixed recipient, no picking. The note warns the
         // sender their reply address is shown, since a reply comes to them (ADR-0024 §6).
         'direct_reply_note' => 'A reply comes to your own address, so :name will see it.',
+        // The Message step.
+        'from' => 'From :group · replies come to you · you get a copy',
         'subject' => 'Subject',
         'body' => 'Message',
         'attachments' => 'Attachments',

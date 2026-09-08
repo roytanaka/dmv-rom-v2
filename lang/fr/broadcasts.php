@@ -37,11 +37,11 @@ return [
         'search_placeholder' => 'Rechercher par nom',
         'select_all' => 'Tout sélectionner',
         'empty_roster' => 'Personne sur cette liste ne correspond.',
-        // L'étape Message.
-        'from' => 'De :group · les réponses vous parviennent · vous en recevez une copie',
         // L'étape Qui d'un message direct : un seul destinataire fixe, sans sélection. La note
         // prévient l'expéditeur que son adresse de réponse est visible (ADR-0024 §6).
         'direct_reply_note' => 'Une réponse parvient à votre propre adresse, donc :name la verra.',
+        // L'étape Message.
+        'from' => 'De :group · les réponses vous parviennent · vous en recevez une copie',
         'subject' => 'Objet',
         'body' => 'Message',
         'attachments' => 'Pièces jointes',
