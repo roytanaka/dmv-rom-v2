@@ -8,6 +8,13 @@
     // through the lang files (ADR-0004).
     $memberName = trim($member->first_name.' '.$member->last_name);
     $groupName = $shift->schedule->group->name;
+    // A plain link to the Schedule, built for the render locale (ADR-0008): a French
+    // recipient gets the /fr/ twin. No token — the page enforces its own read audience.
+    $scheduleUrl = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getURLFromRouteNameTranslated(
+        app()->getLocale(),
+        'routes.groups.scheduling.show',
+        ['group' => $shift->schedule->group->slug, 'schedule' => $shift->schedule->id],
+    );
 @endphp
 
 @component('mail::message')
@@ -25,4 +32,6 @@
 @endcomponent
 
 {{ __('scheduling.cancellation_email.footer') }}
+
+[{{ __('scheduling.cancellation_email.view_schedule') }}]({{ $scheduleUrl }})
 @endcomponent

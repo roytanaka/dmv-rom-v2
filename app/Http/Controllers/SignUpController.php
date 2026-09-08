@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\DeliveryKind;
+use App\Enums\DeliveryState;
 use App\Http\Requests\DeleteSignUpRequest;
 use App\Http\Requests\RecordSignUpVisitorsRequest;
 use App\Http\Requests\StoreSignUpRequest;
-use App\Mail\SignUpCancelled;
+use App\Models\Delivery;
+use App\Models\Member;
 use App\Models\Shift;
 use App\Models\SignUp;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * Sign-up write seam (#357, PRD #352, ADR-0021 §Sign-up) — a Member taking a Shift and
@@ -42,12 +44,17 @@ class SignUpController extends Controller
      * Shift's start; the guard is ownership, resolved in the Form Request.
      *
      * A Member cancelling is **the single event where otherwise nobody finds out until the
-     * shift is empty**, so every Scheduler of the owning Group is emailed — unconditionally,
-     * with no threshold or proximity window (#358, ADR-0021 §Sign-up "Notification"). The mail
-     * fires only for a Member dropping their *own* seat: a Scheduler removing a placed Member
-     * (officer removal, #359) is a distinct actor who is already in contact with the person,
-     * and that silence is deliberate. Guarding on ownership here keeps that silence true now
-     * that officer removal reuses this seam.
+     * shift is empty**, so every Scheduler and Chair of the owning Group is told —
+     * unconditionally, with no threshold or proximity window (#358, ADR-0021 §Sign-up
+     * "Notification"). The Notice fires only for a Member dropping their *own* seat: a
+     * Scheduler removing a placed Member (officer removal, #359) is a distinct actor who is
+     * already in contact with the person, and that silence is deliberate. Guarding on
+     * ownership here keeps that silence true now that officer removal reuses this seam.
+     *
+     * Nothing sends in the request (#481, ADR-0024). The controller writes one Notice
+     * {@see Delivery} per recipient and returns; the every-minute Drain sends them. The
+     * Sign-up is gone by drain time, so the row carries a payload snapshot of everything the
+     * mail names — the dropped Member, the Group, and the Shift's Schedule, times, and kind.
      */
     public function destroy(DeleteSignUpRequest $request, SignUp $signUp): RedirectResponse
     {
@@ -60,12 +67,50 @@ class SignUpController extends Controller
         $signUp->delete();
 
         if ($isSelfCancellation) {
+            $snapshot = $this->cancellationSnapshot($shift, $member);
+
             foreach ($shift->schedule->group->schedulers() as $scheduler) {
-                Mail::to($scheduler)->send(new SignUpCancelled($shift, $member));
+                Delivery::create([
+                    'kind' => DeliveryKind::Notice,
+                    'member_id' => $scheduler->getKey(),
+                    'email' => $scheduler->email,
+                    'payload' => $snapshot,
+                    'state' => DeliveryState::Pending,
+                    'next_attempt_at' => now(),
+                ]);
             }
         }
 
         return back();
+    }
+
+    /**
+     * Freeze what a cancellation Notice names into a payload the Drain can render from without
+     * the Sign-up, which is already gone. Shape mirrors {@see SignUpCancelled::fromSnapshot}.
+     *
+     * @return array<string, mixed>
+     */
+    private function cancellationSnapshot(Shift $shift, Member $member): array
+    {
+        return [
+            'member' => [
+                'first_name' => $member->first_name,
+                'last_name' => $member->last_name,
+            ],
+            'group' => [
+                'name' => $shift->schedule->group->name,
+                'slug' => $shift->schedule->group->slug,
+            ],
+            'schedule' => [
+                'id' => $shift->schedule->id,
+                'name' => $shift->schedule->name,
+            ],
+            'shift' => [
+                'starts_at' => $shift->starts_at->toIso8601String(),
+                'ends_at' => $shift->ends_at->toIso8601String(),
+                'kind' => $shift->kind?->name,
+            ],
+        ];
     }
 
     /**

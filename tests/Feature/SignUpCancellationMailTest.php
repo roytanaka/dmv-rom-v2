@@ -1,7 +1,10 @@
 <?php
 
+use App\Enums\DeliveryKind;
+use App\Enums\DeliveryState;
 use App\Enums\Role;
 use App\Mail\SignUpCancelled;
+use App\Models\Delivery;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -13,20 +16,18 @@ use App\Models\SignUp;
 use Illuminate\Support\Facades\Mail;
 
 /*
- * The cancellation email (#358, PRD #352, ADR-0021 §Sign-up "Notification") — the first mail
- * in the app. When a Member drops a Sign-up, every Scheduler of the owning Group is told,
- * unconditionally (legacy gates the same mail on a dead 2-day guard, so a Scheduler is
- * silently not-told). The two deliberate silences — a Member *taking* a Shift, and a
- * Scheduler placing or removing a named Member — send nothing, and that silence is pinned,
- * not merely absent. Prior art: GroupSignUpsTest for the write seams.
+ * The Sign-up cancellation Notice (#358, PRD #352, ADR-0021 §Sign-up "Notification"; moved
+ * onto the Delivery queue in #481, ADR-0024). When a Member drops their own seat, every
+ * Scheduler and Chair of the owning Group is told — but nothing sends in the request now: the
+ * controller writes one pending Notice Delivery per recipient, and the every-minute Drain
+ * sends them. These tests cover both seams: the rows the write path writes, and what the Drain
+ * does with them. Prior art: GroupSignUpsTest for the write seams.
  */
 
 /**
- * A Group that runs scheduling and is listed org-wide. The name is fixed, not faker's:
- * a generated company name can hold an apostrophe (O'Conner-Kihn), and the two sides of
- * assertSeeInHtml then disagree about it — the assertion escapes what it looks for
- * (O&#039;…) while the Markdown mail emits the apostrophe raw, so the test failed on the
- * runs faker happened to pick such a name (#394).
+ * A Group that runs scheduling and is listed org-wide. The name is fixed, not faker's, so the
+ * fixture is stable (a generated company name can hold an apostrophe; the apostrophe case is
+ * pinned deliberately in its own test rather than left to chance — #394).
  */
 function mailGroup(): Group
 {
@@ -63,12 +64,12 @@ function seatFor(Group $group, Member $holder, array $shiftOverrides = []): Sign
     return SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => $holder->id]);
 }
 
-it('emails every Scheduler of the owning Group when a Member drops a Sign-up', function () {
+it('writes one pending Notice Delivery per Scheduler and Chair, and sends nothing in the request', function () {
     Mail::fake();
 
     $group = mailGroup();
-    $schedulerA = mailMemberOf($group, role: Role::Scheduler);
-    $schedulerB = mailMemberOf($group, role: Role::Scheduler);
+    $scheduler = mailMemberOf($group, role: Role::Scheduler);
+    $chair = mailMemberOf($group, role: Role::Chair);
     $ordinary = mailMemberOf($group);
     $holder = mailMemberOf($group);
     $seat = seatFor($group, $holder);
@@ -77,23 +78,157 @@ it('emails every Scheduler of the owning Group when a Member drops a Sign-up', f
         ->delete(route('sign-ups.destroy', ['signUp' => $seat->id]))
         ->assertRedirect();
 
-    Mail::assertSent(SignUpCancelled::class, 2);
-    Mail::assertSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($schedulerA->email));
-    Mail::assertSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($schedulerB->email));
-    Mail::assertNotSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($ordinary->email));
+    // Nothing goes out inside the web request — the send is the Drain's job now.
+    Mail::assertNothingSent();
+
+    $rows = Delivery::all();
+    expect($rows)->toHaveCount(2);
+    expect($rows->pluck('member_id')->all())->toEqualCanonicalizing([$scheduler->id, $chair->id]);
+    expect($rows->pluck('member_id')->all())->not->toContain($ordinary->id);
+
+    $row = $rows->firstWhere('member_id', $scheduler->id);
+    expect($row->kind)->toBe(DeliveryKind::Notice);
+    expect($row->state)->toBe(DeliveryState::Pending);
+    expect($row->email)->toBe($scheduler->email);
+    expect($row->next_attempt_at)->not->toBeNull();
+    // The snapshot the Drain renders from — the Sign-up is gone, so the row froze what the
+    // mail names.
+    expect($row->payload['group']['name'])->toBe($group->name);
+    expect($row->payload['group']['slug'])->toBe($group->slug);
+    expect($row->payload['member']['first_name'])->toBe($holder->first_name);
 });
 
-it('tells a Chair, who acts as Scheduler on their own Group even without the role', function () {
+it('writes nothing when a Member takes a Shift — the deliberate silence on sign-up', function () {
     Mail::fake();
 
     $group = mailGroup();
-    $chair = mailMemberOf($group, role: Role::Chair);
+    mailMemberOf($group, role: Role::Scheduler);
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'starts_at' => now()->startOfMonth()->addDays(9)->setTime(10, 0),
+        'ends_at' => now()->startOfMonth()->addDays(9)->setTime(13, 0),
+    ]);
+    $member = mailMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('sign-ups.store', ['shift' => $shift->id]))
+        ->assertRedirect();
+
+    expect(Delivery::count())->toBe(0);
+});
+
+it('writes a row inside the legacy two-day window it used to suppress — the Notice is unconditional', function () {
+    $group = mailGroup();
+    mailMemberOf($group, role: Role::Scheduler);
+    $holder = mailMemberOf($group);
+    // A Shift starting tomorrow: legacy's dead +2-day guard would have silenced this.
+    $seat = seatFor($group, $holder, [
+        'starts_at' => now()->addDay()->setTime(10, 0),
+        'ends_at' => now()->addDay()->setTime(13, 0),
+    ]);
+
+    $this->actingAs($holder)->delete(route('sign-ups.destroy', ['signUp' => $seat->id]));
+
+    expect(Delivery::where('kind', DeliveryKind::Notice)->count())->toBe(1);
+});
+
+it('sends each pending Delivery through the Drain and marks it sent with a sent time', function () {
+    Mail::fake();
+
+    $group = mailGroup();
+    $scheduler = mailMemberOf($group, role: Role::Scheduler);
     $holder = mailMemberOf($group);
     $seat = seatFor($group, $holder);
 
     $this->actingAs($holder)->delete(route('sign-ups.destroy', ['signUp' => $seat->id]));
+    Mail::assertNothingSent();
 
-    Mail::assertSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($chair->email));
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    Mail::assertSent(SignUpCancelled::class, 1);
+    Mail::assertSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($scheduler->email));
+
+    $row = Delivery::sole();
+    expect($row->state)->toBe(DeliveryState::Sent);
+    expect($row->sent_at)->not->toBeNull();
+});
+
+it('renders each recipient’s copy in their own saved locale', function () {
+    Mail::fake();
+
+    $group = mailGroup();
+    $english = mailMemberOf($group, role: Role::Scheduler, locale: 'en');
+    $french = mailMemberOf($group, role: Role::Scheduler, locale: 'fr');
+    $holder = mailMemberOf($group);
+    $seat = seatFor($group, $holder);
+
+    $this->actingAs($holder)->delete(route('sign-ups.destroy', ['signUp' => $seat->id]));
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    Mail::assertSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($english->email) && $mail->locale === 'en');
+    Mail::assertSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($french->email) && $mail->locale === 'fr');
+});
+
+it('links to the Schedule for the render locale — a /fr/ twin in French, the English root in English', function () {
+    $group = mailGroup();
+    $holder = mailMemberOf($group);
+    mailMemberOf($group, role: Role::Scheduler);
+    $seat = seatFor($group, $holder);
+
+    $this->actingAs($holder)->delete(route('sign-ups.destroy', ['signUp' => $seat->id]));
+
+    $payload = Delivery::sole()->payload;
+
+    (SignUpCancelled::fromSnapshot($payload))->locale('fr')
+        ->assertSeeInHtml("/fr/groupes/{$group->slug}/horaire/");
+    (SignUpCancelled::fromSnapshot($payload))->locale('en')
+        ->assertSeeInHtml("/groups/{$group->slug}/scheduling/");
+});
+
+it('carries the Group name as the From display name, the app address as From, and no Reply-To', function () {
+    $group = mailGroup();
+    $holder = mailMemberOf($group);
+    mailMemberOf($group, role: Role::Scheduler);
+    $seat = seatFor($group, $holder);
+
+    $this->actingAs($holder)->delete(route('sign-ups.destroy', ['signUp' => $seat->id]));
+
+    $envelope = SignUpCancelled::fromSnapshot(Delivery::sole()->payload)->envelope();
+
+    expect($envelope->from->address)->toBe(config('mail.from.address'));
+    expect($envelope->from->name)->toBe($group->name);
+    expect($envelope->replyTo)->toBe([]);
+});
+
+it('sends at most 8 rows a pass, oldest first', function () {
+    Mail::fake();
+
+    $member = Member::factory()->create();
+    $rows = Delivery::factory()->count(10)->create(['member_id' => $member->id]);
+
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    Mail::assertSent(SignUpCancelled::class, 8);
+    expect(Delivery::where('state', DeliveryState::Sent)->count())->toBe(8);
+
+    // The two left behind are the two newest — the Drain took the oldest eight.
+    $pending = Delivery::where('state', DeliveryState::Pending)->pluck('id');
+    expect($pending->all())->toEqualCanonicalizing([$rows[8]->id, $rows[9]->id]);
+});
+
+it('never sends more than 450 rows in a rolling hour', function () {
+    Mail::fake();
+
+    $member = Member::factory()->create();
+    // 445 already sent in the last hour leaves a budget of 5, below the per-pass 8.
+    Delivery::factory()->count(445)->sent()->create(['member_id' => $member->id]);
+    Delivery::factory()->count(8)->create(['member_id' => $member->id]);
+
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    Mail::assertSent(SignUpCancelled::class, 5);
+    expect(Delivery::where('state', DeliveryState::Pending)->count())->toBe(3);
 });
 
 it('names the Shift — date, time, kind — and the Member who dropped', function () {
@@ -140,21 +275,6 @@ it('omits the kind line for a Group that labels no Shifts (Reception)', function
     $mail->assertSeeInHtml($wallClockTime);
 });
 
-it('renders each recipient’s copy in their own locale', function () {
-    Mail::fake();
-
-    $group = mailGroup();
-    $english = mailMemberOf($group, role: Role::Scheduler, locale: 'en');
-    $french = mailMemberOf($group, role: Role::Scheduler, locale: 'fr');
-    $holder = mailMemberOf($group);
-    $seat = seatFor($group, $holder);
-
-    $this->actingAs($holder)->delete(route('sign-ups.destroy', ['signUp' => $seat->id]));
-
-    Mail::assertSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($english->email) && $mail->locale === 'en');
-    Mail::assertSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($french->email) && $mail->locale === 'fr');
-});
-
 it('renders the French subject and heading from the lang files', function () {
     $group = mailGroup();
     $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
@@ -171,39 +291,20 @@ it('renders the French subject and heading from the lang files', function () {
     $mail->assertSeeInHtml(__('scheduling.cancellation_email.heading', [], 'fr'));
 });
 
-it('is unconditional — it fires inside the legacy two-day window it used to suppress', function () {
+it('sends reliably when the Group name carries an apostrophe (#394)', function () {
     Mail::fake();
 
     $group = mailGroup();
+    $group->update(['name' => "O'Connor Guides"]);
     $scheduler = mailMemberOf($group, role: Role::Scheduler);
     $holder = mailMemberOf($group);
-    // A Shift starting tomorrow: legacy's dead +2-day guard would have silenced this.
-    $seat = seatFor($group, $holder, [
-        'starts_at' => now()->addDay()->setTime(10, 0),
-        'ends_at' => now()->addDay()->setTime(13, 0),
-    ]);
+    $seat = seatFor($group, $holder);
 
     $this->actingAs($holder)->delete(route('sign-ups.destroy', ['signUp' => $seat->id]));
+    $this->artisan('mail:drain')->assertSuccessful();
 
-    Mail::assertSent(SignUpCancelled::class, 1);
-});
-
-it('sends nothing when a Member takes a Shift — the deliberate silence on sign-up', function () {
-    Mail::fake();
-
-    $group = mailGroup();
-    mailMemberOf($group, role: Role::Scheduler);
-    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
-    $shift = Shift::factory()->create([
-        'schedule_id' => $schedule->id,
-        'starts_at' => now()->startOfMonth()->addDays(9)->setTime(10, 0),
-        'ends_at' => now()->startOfMonth()->addDays(9)->setTime(13, 0),
-    ]);
-    $member = mailMemberOf($group);
-
-    $this->actingAs($member)
-        ->post(route('sign-ups.store', ['shift' => $shift->id]))
-        ->assertRedirect();
-
-    Mail::assertNothingSent();
+    Mail::assertSent(SignUpCancelled::class, fn (SignUpCancelled $mail) => $mail->hasTo($scheduler->email));
+    // The apostrophe rides the From display name, not an HTML-escaped body assertion — the
+    // brittle escape comparison that made #394 flaky is gone.
+    expect(SignUpCancelled::fromSnapshot(Delivery::sole()->payload)->envelope()->from->name)->toBe("O'Connor Guides");
 });
