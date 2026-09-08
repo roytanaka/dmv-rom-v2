@@ -282,7 +282,10 @@ const pickBanner = (key: string | null) => {
                  its menu resolves the Group's pickable Audiences server-side. -->
             <div class="bg-background sticky top-16 z-20 flex items-center justify-between gap-3 px-4 py-4 shadow-sm sm:px-6">
                 <SectionTabs :items="tabs" variant="body" :soon-label="trans('group.soon')" />
-                <EmailMenu context="group" :context-subject="group.slug" :group-name="group.name" :roster="emailRoster" />
+                <!-- The strip carries the Email control on every section but the roster, where
+                     it moves into the roster toolbar beside the officer controls (#490,
+                     ADR-0024 §6.2). -->
+                <EmailMenu v-if="section !== 'roster'" context="group" :context-subject="group.slug" :group-name="group.name" :roster="emailRoster" />
             </div>
 
             <div class="flex-1 p-4 sm:p-6">
@@ -380,6 +383,7 @@ const pickBanner = (key: string | null) => {
                     :can-manage="can.manageRoster"
                     :meta="rosterMeta"
                     :group-slug="group.slug"
+                    :group-name="group.name"
                 />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
@@ -401,6 +405,7 @@ const pickBanner = (key: string | null) => {
                     :empty-desk="group.emptyDesk"
                     :can-manage-empty-desk="can.manageEmptyDesk"
                     :group-slug="group.slug"
+                    :group-name="group.name"
                 />
 
                 <!-- Hours (#408, ADR-0022 §2) — always-on on every Group. The extra-hours

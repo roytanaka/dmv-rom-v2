@@ -18,6 +18,21 @@ export interface AudienceOption {
     count: number;
 }
 
+/**
+ * The Email menu's shape, derived from the server's Audience index (ADR-0024 §5–6): the
+ * named Audiences the menu lists, and whether the actor may hand-pick. "Pick people…" is
+ * offered only when the server returned a hand-pick Audience — the picker rule decides it
+ * (any member of a Group; Records on the Directory), so a plain Member on the Directory sees
+ * the three leadership Audiences and no hand-pick. The `hand_picked` key itself is dropped
+ * from the list: the menu renders its own always-last "Pick people…" item when it may.
+ */
+export function menuFromIndex(audiences: AudienceOption[]): { audiences: AudienceOption[]; canHandPick: boolean } {
+    return {
+        audiences: audiences.filter((audience) => audience.key !== 'hand_picked'),
+        canHandPick: audiences.some((audience) => audience.key === 'hand_picked'),
+    };
+}
+
 /** A resolved recipient row (ADR-0024 §5) — identity and a standing hint, never an address. */
 export interface Recipient {
     id: number;

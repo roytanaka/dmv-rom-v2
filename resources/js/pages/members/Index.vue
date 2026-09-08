@@ -22,9 +22,11 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import EmailMenu from '@/emailing/EmailMenu.vue';
+import { type Recipient } from '@/emailing/composer';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, usePage } from '@inertiajs/vue3';
 import { PhCaretDown, PhMagnifyingGlass } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -46,9 +48,27 @@ interface DirectoryMember {
 
 const props = defineProps<{ members: DirectoryMember[] }>();
 
+const page = usePage<SharedData>();
+
 // `computed` so the label survives a full-page locale switch — the messages load
 // async, so a `trans()` snapshot taken at setup would capture the raw key.
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: trans('directory.title'), href: route('directory') }]);
+
+// The Directory's Email control (#490, ADR-0024 §6.5): the org-wide and leadership
+// Audiences, resolved server-side per the picker rule — a plain Member reaches the three
+// leadership Audiences, an org-wide sender the full set with a hand-pick over these rows.
+// A Directory send is scoped to no Group, so it goes out under the app's name (§3), which
+// stands in for the composer's From line here. The hand-pick pool is the Directory itself,
+// each row shaped to a Recipient (a standing hint, never an address).
+const emailRoster = computed<Recipient[]>(() =>
+    props.members.map((member) => ({
+        id: member.id,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        photo: member.photo,
+        standing: member.standing,
+    })),
+);
 
 // Live name search and the active Group filter ('' = all Groups). Both narrow the
 // loaded set; nothing here touches the server.
@@ -158,9 +178,15 @@ const groupNames = (member: DirectoryMember) =>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6">
-            <header class="flex flex-col gap-1">
-                <h1 class="text-2xl font-semibold">{{ trans('directory.title') }}</h1>
-                <p class="text-muted-foreground text-sm">{{ transChoice('directory.count', filteredMembers.length) }}</p>
+            <header class="flex flex-wrap items-start justify-between gap-3">
+                <div class="flex flex-col gap-1">
+                    <h1 class="text-2xl font-semibold">{{ trans('directory.title') }}</h1>
+                    <p class="text-muted-foreground text-sm">{{ transChoice('directory.count', filteredMembers.length) }}</p>
+                </div>
+                <!-- Email control (#490, ADR-0024 §6.5) — org-wide and leadership Audiences,
+                     server-filtered to the viewer's picker rule; the From display name is the
+                     app's name, so the record's Group is null. -->
+                <EmailMenu context="directory" :context-subject="null" :group-name="page.props.name" :roster="emailRoster" />
             </header>
 
             <!-- Above-table toolbar: name search + single-select Group filter (a
