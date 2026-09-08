@@ -35,6 +35,7 @@ class MemberFactory extends Factory
             'locale' => 'en',
             'super_tier' => false,
             'support_operator' => false,
+            'no_email' => false,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
