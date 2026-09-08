@@ -30,7 +30,7 @@ function emptyDeskSnapshot(array $shifts, string $group = 'Visitor Guides', stri
 /** One Shift row for the snapshot — instants ISO-8601, kind as-authored. */
 function emptyDeskShift(DateTimeInterface $startsAt, string $kind): array
 {
-    $start = Carbon::instance(Carbon::parse($startsAt));
+    $start = Carbon::parse($startsAt);
 
     return [
         'starts_at' => $start->toIso8601String(),
