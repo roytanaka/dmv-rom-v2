@@ -4,11 +4,15 @@ namespace App\Console\Commands;
 
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Mail\BroadcastMail;
+use App\Mail\BroadcastSenderCopy;
 use App\Mail\EmptyDeskAlert;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
 use App\Mail\StandingChanged;
+use App\Models\Broadcast;
 use App\Models\Delivery;
+use App\Support\Mail\BroadcastAttachmentStorage;
 use Illuminate\Console\Command;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailer;
@@ -85,8 +89,9 @@ class DrainDeliveries extends Command
 
         $due = Delivery::query()
             // The member for locale and address; the Shift and its chrome for a Reminder, which
-            // renders from the live Shift (null on every other kind, so the eager load is free).
-            ->with(['member', 'shift.schedule.group', 'shift.kind'])
+            // renders from the live Shift; the Broadcast and its sender and Group for a Broadcast
+            // or sender copy (all null on the kinds that do not use them, so the loads are free).
+            ->with(['member', 'shift.schedule.group', 'shift.kind', 'broadcast.sender', 'broadcast.group'])
             ->where('state', DeliveryState::Pending)
             ->where('next_attempt_at', '<=', now())
             // Oldest first, no priority — a Notice queued behind a big send waits its turn.
@@ -105,10 +110,36 @@ class DrainDeliveries extends Command
         }
 
         foreach ($due as $delivery) {
+            // The sender's copy is the done signal: it waits until every sibling has reached a
+            // terminal state (ADR-0024 §4). Not yet — leave it pending, the next pass looks again.
+            if ($delivery->kind === DeliveryKind::SenderCopy && ! $this->senderCopyReady($delivery)) {
+                continue;
+            }
+
             $this->send($delivery);
+
+            // The attachments lived on the private disk only for the queue's life: once the
+            // sender's copy is out, the last reader is done, so delete them (ADR-0024 §4).
+            if ($delivery->kind === DeliveryKind::SenderCopy && $delivery->state === DeliveryState::Sent) {
+                (new BroadcastAttachmentStorage)->delete($delivery->broadcast->attachments);
+            }
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Whether a sender-copy row may go now — true once no recipient (Broadcast-kind) sibling of
+     * the same Broadcast is still pending (ADR-0024 §4). Failed and expired siblings are
+     * terminal and do not hold it back; the copy names the failed ones in its footer.
+     */
+    private function senderCopyReady(Delivery $delivery): bool
+    {
+        return ! Delivery::query()
+            ->where('broadcast_id', $delivery->broadcast_id)
+            ->where('kind', DeliveryKind::Broadcast)
+            ->where('state', DeliveryState::Pending)
+            ->exists();
     }
 
     /**
@@ -216,7 +247,8 @@ class DrainDeliveries extends Command
      * Build the Mailable for a row from its kind. A Notice renders from the row's payload
      * snapshot, because the event it announces (a dropped Sign-up, a standing change) may be
      * gone by now. Several Notices share the one Notice kind (ADR-0024 §8), so the payload's
-     * `notice` discriminator picks the Mailable within it.
+     * `notice` discriminator picks the Mailable within it. A Broadcast and its sender copy both
+     * render from the sent record the row points at.
      */
     private function mailableFor(Delivery $delivery): Mailable
     {
@@ -226,7 +258,27 @@ class DrainDeliveries extends Command
             // The empty-desk alert renders from its payload snapshot too — the Shifts it names
             // may be filled or gone by now (ADR-0024 §7).
             DeliveryKind::EmptyDesk => EmptyDeskAlert::fromSnapshot($delivery->payload),
+            DeliveryKind::Broadcast => new BroadcastMail($delivery->broadcast),
+            // The sender's copy carries the roll of who was not reached, read from the failed
+            // recipient rows now that every sibling is terminal (ADR-0024 §4).
+            DeliveryKind::SenderCopy => new BroadcastSenderCopy($delivery->broadcast, $this->failedNames($delivery->broadcast)),
         };
+    }
+
+    /**
+     * The full names of the recipients a Broadcast could not reach — its failed recipient rows —
+     * for the sender copy's footer (ADR-0024 §4).
+     *
+     * @return list<string>
+     */
+    private function failedNames(Broadcast $broadcast): array
+    {
+        return $broadcast->recipientDeliveries()
+            ->where('state', DeliveryState::Failed)
+            ->with('member')
+            ->get()
+            ->map(fn (Delivery $delivery): string => $delivery->member->fullName())
+            ->all();
     }
 
     /**

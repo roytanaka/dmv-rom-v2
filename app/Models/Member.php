@@ -123,6 +123,16 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * The Member's full name, first and last, for a mail's display name and a sender
+     * copy's roll of who was not reached (ADR-0024 §3, §4). Trimmed so a missing part
+     * leaves no stray space.
+     */
+    public function fullName(): string
+    {
+        return trim($this->first_name.' '.$this->last_name);
+    }
+
+    /**
      * The locale system-generated messages address this Member in (Laravel's
      * {@see HasLocalePreference}). The mailer reads it to render each recipient's copy of a
      * notification in their own language — the Sign-up cancellation email is the first
