@@ -1553,6 +1553,10 @@ class DemoSeeder extends Seeder
                         'collects_visitor_count' => true,
                         'collects_extra_interactions' => true,
                         'visitor_figures_await_booking' => true,
+                        // Reminders on with the standard 3 lead days (ADR-0024 §7) — one of the
+                        // five Groups that run them today. The lead days stay at the column
+                        // default, so only the switch is set here.
+                        'reminders_enabled' => true,
                     ]),
                     // GDR is the one Group in fifteen years with visitor provenance (ADR-0023 §3):
                     // it collects the count, the split, the five origins, and the booking marker.
@@ -1561,6 +1565,7 @@ class DemoSeeder extends Seeder
                         'collects_extra_interactions' => true,
                         'collects_visitor_provenance' => true,
                         'visitor_figures_await_booking' => true,
+                        'reminders_enabled' => true,
                     ]),
                     $this->program('Les Amis Francophiles', [], GroupLogo::LesAmisFrancophiles),
                     $this->program('DMV Hands-on Tours', [
@@ -1595,6 +1600,7 @@ class DemoSeeder extends Seeder
                     // no second box (§2). They are the forced-entry Groups behind legacy's 96-98%.
                     $this->program('Visitor Guides', [], GroupLogo::VisitorGuides, capabilities: [
                         'collects_visitor_count' => true,
+                        'reminders_enabled' => true,
                     ]),
                     $this->program('Visitor Wayfinders', [
                         $this->workingGroup('Documentation', visibility: ListingVisibility::Public),
@@ -1606,6 +1612,7 @@ class DemoSeeder extends Seeder
                         $this->cohort('Zuul', archived: true),
                     ], GroupLogo::VisitorWayfinders, capabilities: [
                         'collects_visitor_count' => true,
+                        'reminders_enabled' => true,
                     ]),
                     // ROMWalks — one coherent subtree merged from the source's
                     // two differing listings (see class docblock).
@@ -1626,7 +1633,9 @@ class DemoSeeder extends Seeder
                     ], hoursMultiplier: 2),
                     $this->program('Reception', [
                         $this->workingGroup('Library', visibility: ListingVisibility::Public),
-                    ], GroupLogo::Reception),
+                    ], GroupLogo::Reception, capabilities: [
+                        'reminders_enabled' => true,
+                    ]),
                     // ROMBus is a booking-only Group — scheduling stays off until the
                     // group-booking capability lands (#364, ADR-0021).
                     $this->program('ROMBus', [], GroupLogo::Rombus, ['has_scheduling' => false]),

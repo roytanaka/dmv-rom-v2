@@ -46,6 +46,8 @@ it('seeds a scheduling program that accepts a Scheduler role', function () {
     $scheduler = Member::where('email', OrgTreeSeeder::SCHEDULER_EMAIL)->firstOrFail();
 
     expect($program->has_scheduling)->toBeTrue()
+        // Reminders on (ADR-0024 §7), so the daily pass has a Group to act on in the fixture.
+        ->and($program->reminders_enabled)->toBeTrue()
         ->and($scheduler->holdsRole(Role::Scheduler, $program))->toBeTrue();
 
     // The capability gate admits a further Scheduler on the same program.

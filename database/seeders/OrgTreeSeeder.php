@@ -92,11 +92,14 @@ class OrgTreeSeeder extends Seeder
         // org-wide Broadcast Audiences.
         $this->steward($records, StewardshipFunction::OrgMail);
 
+        // The scheduling program runs Reminders (ADR-0024 §7), so the daily pass has a Group to
+        // act on in the spine fixture the emailing tests build against.
         $program = $this->group(self::PROGRAM, fn () => Group::factory()->program()->create([
             'parent_id' => $root->id,
             'slug' => self::PROGRAM,
             'name' => 'Docents Program',
             'display_order' => 3,
+            'reminders_enabled' => true,
         ]));
 
         $this->group(self::COHORT, fn () => Group::factory()->cohort()->create([

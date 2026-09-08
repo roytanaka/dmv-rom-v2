@@ -151,6 +151,14 @@ return [
         'draft_badge' => 'Brouillon',
         'date_range' => 'Du :start au :end',
         'back_to_list' => 'Tous les horaires',
+        // Réglages des rappels (#486, ADR-0024 §7) — l'interrupteur marche/arrêt et le nombre de
+        // jours d'avance de l'administrateur·rice de l'horaire, affichés dans la vue liste.
+        'reminders' => [
+            'heading' => 'Rappels de quart',
+            'description' => 'Envoyer aux membres un rappel par courriel quelques jours avant chaque quart auquel ils sont inscrits.',
+            'enabled_label' => 'Envoyer les rappels de quart',
+            'lead_days_label' => 'Jours avant le quart',
+        ],
         // Rédaction (#354) — visible seulement pour un·e responsable horaire /
         // président·e / super-palier (contrôlé côté serveur via `can`). Publier /
         // dépublier sont les deux transitions d’état.

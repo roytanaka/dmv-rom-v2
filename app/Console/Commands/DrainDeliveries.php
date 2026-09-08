@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
 use App\Mail\StandingChanged;
 use App\Models\Delivery;
@@ -82,7 +83,9 @@ class DrainDeliveries extends Command
         }
 
         $due = Delivery::query()
-            ->with('member')
+            // The member for locale and address; the Shift and its chrome for a Reminder, which
+            // renders from the live Shift (null on every other kind, so the eager load is free).
+            ->with(['member', 'shift.schedule.group', 'shift.kind'])
             ->where('state', DeliveryState::Pending)
             ->where('next_attempt_at', '<=', now())
             // Oldest first, no priority — a Notice queued behind a big send waits its turn.
@@ -218,6 +221,7 @@ class DrainDeliveries extends Command
     {
         return match ($delivery->kind) {
             DeliveryKind::Notice => $this->noticeFor($delivery->payload),
+            DeliveryKind::Reminder => new ShiftReminder($delivery->shift, $delivery->member),
         };
     }
 

@@ -23,6 +23,7 @@ import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,6 +54,8 @@ const props = defineProps<{
     collectsVisitorCount: boolean;
     collectsExtraInteractions: boolean;
     collectsVisitorProvenance: boolean;
+    reminders: { enabled: boolean; leadDays: number };
+    canManageReminders: boolean;
     groupSlug: string;
 }>();
 
@@ -139,6 +142,16 @@ const sections = computed(() =>
 // URL, which always lists. Built through the route helper so the French twin comes
 // out right, as the Roster's show-past toggle already does.
 const listHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling' }));
+
+// --- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and lead
+// days, gated by `canManageReminders`. One PATCH to the dedicated endpoint; the server
+// re-checks the gate. The form seeds from the Group's current settings.
+const reminderForm = useForm<{ reminders_enabled: boolean; reminder_lead_days: number }>({
+    reminders_enabled: props.reminders.enabled,
+    reminder_lead_days: props.reminders.leadDays,
+});
+
+const saveReminders = () => reminderForm.patch(route('groups.reminders.update', { group: props.groupSlug }), { preserveScroll: true });
 
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
 
@@ -622,6 +635,32 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 {{ trans('group.scheduling_panel.new') }}
             </Button>
         </div>
+
+        <!-- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and
+             lead days for this Group's shift Reminders. Shown on the list view only, and only to
+             a Scheduler / Chair (`canManageReminders`); the server re-checks on save. -->
+        <Card v-if="canManageReminders && !scheduling.open">
+            <CardHeader>
+                <CardTitle>{{ trans('group.scheduling_panel.reminders.heading') }}</CardTitle>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-4">
+                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.reminders.description') }}</p>
+                <label class="flex items-center gap-2 text-sm">
+                    <Checkbox :checked="reminderForm.reminders_enabled" @update:checked="(on: boolean) => (reminderForm.reminders_enabled = on)" />
+                    {{ trans('group.scheduling_panel.reminders.enabled_label') }}
+                </label>
+                <div class="flex flex-col gap-1.5">
+                    <Label for="reminder-lead-days">{{ trans('group.scheduling_panel.reminders.lead_days_label') }}</Label>
+                    <Input id="reminder-lead-days" v-model.number="reminderForm.reminder_lead_days" type="number" min="1" max="90" class="w-24" />
+                    <InputError :message="reminderForm.errors.reminder_lead_days" />
+                </div>
+                <div class="flex justify-end">
+                    <Button type="button" size="sm" :disabled="reminderForm.processing" @click="saveReminders">
+                        {{ trans('group.scheduling_panel.save') }}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
 
         <!-- One Schedule, addressed by permalink: its header card, then the Agenda's
              day-grouped Shifts. -->
