@@ -66,7 +66,7 @@ Member::canActAs(Role $role, Group $group): bool
 
 - A `viewContact($viewer, $target)` ability: Records + super-tier (org-wide); own-Group officers with a contact-need role (default Chair/Scheduler/Secretary, tunable).
 - Enforced in **one centralized `MemberResource`** — no hand-built member arrays in controllers.
-- **Allowlist, not blocklist:** every logged-in member sees only first/last name, photo (if uploaded), Groups/roles; everything else is gated by default, so new fields are private until deliberately exposed. (Consequence: an in-app, email-native member-to-member messaging path is needed as the directory no longer exposes contact details — separate PRD.)
+- **Allowlist, not blocklist:** every logged-in member sees only first/last name, photo (if uploaded), Groups/roles; everything else is gated by default, so new fields are private until deliberately exposed. (Consequence: an in-app, email-native member-to-member messaging path is needed as the directory no longer exposes contact details — separate PRD.) _(Delivered 2026-09-07 as the **Direct message**, [ADR-0024](0024-emailing-model.md).)_
 - _(Added 2026-08-09, [ADR-0021](0021-scheduling-first-pass.md).)_ **A Sign-up's Member name is allowlisted to every viewer who can read the Schedule it sits on** — including non-members of the owning Group, since a published Schedule follows the Group's `listing_visibility` and is therefore org-open by default. Named here explicitly rather than left to ride in on the always-public name tier, because ADR-0021 **widened** the read audience relative to legacy's: legacy showed a schedule to the Group, we show it to the org, so legacy's behaviour was not automatically safe. The justification is that a Schedule is a roster of who is on the floor, no more exposing than the Directory. Nothing else about a Sign-up is exposed by this entry.
 - **Name is stored split as `first_name` + `last_name`** (no middle, preferred, or display name) — the Directory sorts and jumps by surname and the legacy migration source already separates the two. `MemberResource` exposes both fields, not a composed `name`; UI composes the display form it needs ("First Last" on a profile, "Last, First" in the roster). (#168)
 
@@ -107,7 +107,7 @@ Member::canActAs(Role $role, Group $group): bool
 - **Spine code deltas:** drop the unused `Life` category case; add `AccessTier` + `Category::accessTier()/canSignUp()`; remove `super_tier` from `$fillable` + strict-model mode; refactor `Member` helpers + add `canActAs`; add `has_announcements` + a News-editor `Role` case; add `posting_group_id` to the news table.
 - **Amends** [ADR-0010](0010-group-model.md) (`announcements` capability) and [ADR-0011](0011-authorization-model.md) (News-editor role, reworked news example, directory allowlist, Chair-except-Treasurer).
 - **Unblocks the officer-action features** (scheduling admin, news, documents, reports, member email) to state predicates in `canActAs`/policy terms.
-- **Implies a new feature:** in-app, email-native member-to-member messaging.
+- **Implies a new feature:** in-app, email-native member-to-member messaging. _(Decided 2026-09-07: the **Direct message**, [ADR-0024](0024-emailing-model.md).)_
 - **Organizational confirms outstanding:** may Provisional members sign up? is a lifetime tier wanted?
 
 ## References

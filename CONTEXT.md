@@ -97,6 +97,38 @@ _Avoid_: legacy's `Confirmed`, which means _signed out at the end of a shift_ ra
 Who may take it: `group` (the default — Members of the owning Group, in a per-Group standing that permits sign-up) or `open` (any Member who can read the **Schedule**). This is what makes cross-Group participation a **read filter** rather than a relationship — there is no second row and nothing to keep in sync. A **Scheduler** placing a named volunteer is not bound by it.
 _Avoid_: reading audience as an eligibility gate. Two separate floors decide whether a person may work at all (`Category::canSignUp()` DMV-wide, `MembershipStatus::canSignUp()` per Group); audience only decides who is shown a Sign-up button.
 
+**Audience** (of a **Broadcast**):
+A named set of recipients, resolved **on the server at send time** from the Group model: "Whole Group", "The Group's officers", "Sign-ups on this Shift", "All Members", "Board of Directors", and the rest of the table in [ADR-0024 §5](docs/adr/0024-emailing-model.md). Who may pick an Audience is part of its definition: any member of a Group gets its roster sets, the Group's officers get the officer and Sign-up sets, and every org-wide set needs **Records** (member administration). An officer may remove names from a resolved Audience; the record then keeps the Audience's name with an edited flag.
+_Avoid_: confusing it with a **Shift**'s `audience` (`group` / `open`), which decides who may take a Shift, not who gets mail. And never let the browser post a recipient list: the server resolves the Audience, the browser only names it.
+
+**Broadcast**:
+A message an **Officer** writes and sends to an **Audience**, from the "Email ▾" control on a Group page, roster, Schedule, Shift, or (for Records) the Directory. Rich text, up to two attachments, one language as written (it is **content**). Sent by the app from one address with the Group's name as display name; Reply-To is the officer, who also gets a copy, sent last, naming anyone not reached. Stored as a sent record with its **Delivery** rows ([ADR-0024](docs/adr/0024-emailing-model.md)).
+_Avoid_: "email blast", "mass mail", "newsletter" (the newsletter is a separate system); and using Broadcast for the one-to-one case, which is a **Direct message**.
+
+**Direct message**:
+A message any **Member** writes and sends to **one** other Member from the Directory or a profile. A peer of **Broadcast** sharing its composer, sent record, queue, and no-email rule; it differs only in who may send it and that its Audience is one Member. The sender never sees the recipient's address; Reply-To is the sender, so a reply discloses the recipient's address by their own choice. No abuse guard beyond authorization and the record.
+_Avoid_: "member-to-member messaging" (the older ADR-0011 / ADR-0017 phrase), "DM", "chat", and any reading that implies an inbox: nothing is in-app, the app sends email.
+
+**Reminder**:
+An automatic mail about the recipient's **own upcoming Sign-up**, written by the daily pass for every Sign-up inside the Group's lead window (3 days by default) that has no Reminder **Delivery** yet, and sent by the **Drain**. Per-Group settings: on or off, lead days. Chrome, rendered in the recipient's **locale**; no Reply-To. A Reminder's Delivery expires at the Shift's start. The **empty-desk alert** is its sibling, a Group setting (watched shift kinds and days ahead, on for Visitor Guides): every third day of the month the roster is told which watched Shifts still have no Sign-up.
+_Avoid_: "notification"; and reading a Reminder as a date match. It is a window with a sent record, so a missed day catches up and a late Sign-up still gets one.
+
+**Notice**:
+An automatic mail triggered by an **event**: a Member cancelling a Sign-up (to the Group's Schedulers and Chairs, [ADR-0021](docs/adr/0021-scheduling-first-pass.md)), or a Member's **Category** moving to Resigned or Deceased (to the Chairs of every Group where their Membership is not already departed). Chrome in the recipient's locale, no Reply-To, plain links, never expires. Officer assign and remove, leave of absence, reinstatement, and Withdrawn send nothing, on purpose.
+_Avoid_: "notification" (retired, see Flagged ambiguities); and building a Notice on a model observer. The hook is the action that makes the change.
+
+**No-email flag**:
+A **Records**-set switch on a **Member** that silences **all** mail to them: Broadcasts, Direct messages, Reminders, Notices. Records-only field-visibility tier; super-tier inherits it. Checked once, when Delivery rows are written. A sender learns a Member is unreachable only by trying to reach them: a Direct message is refused with "cannot be reached", and an officer is told the names skipped from their Audience after sending. The only opt-out there is; it replaces legacy's address sentinel (see **noemail** under Legacy vocabulary).
+_Avoid_: "unsubscribe" (nothing self-service exists, and none is legally owed for this mail), "opt-out preferences", per-kind switches. One flag, everything.
+
+**Delivery**:
+One queued mail to one recipient: the unit the throttle counts and the sent record stores. A Broadcast to 450 Members is 450 Deliveries. Four states: **pending**, **sent**, **failed**, **expired**. Written by a send (or by the daily pass), drained by the **Drain** at most 8 a minute and 450 a rolling hour, retried on a temporary error (three tries) and failed at once on a permanent one. Kept forever, readable in the Records-only tier and by the sender for their own sends.
+_Avoid_: Laravel's `jobs` table, or the word "job", for it. A Delivery is our own row and the record of truth. And "sent" for a pending row: the sender's flash says "queued".
+
+**Drain**:
+The every-minute scheduled task that sends pending **Deliveries**. **The only code path that talks SMTP.** Runs under an overlap lock; stops the pass on a connection-level error (which is also how the host's daily cap presents) and retries next minute without giving up; writes "scheduler last ran" and "last connection error" for the super-tier Mail status page; checks in with the Sentry cron monitor. A second task, the **daily pass** at 06:00, only writes Delivery rows for Reminders and the empty-desk alert.
+_Avoid_: "worker" or "queue worker" ([ADR-0002](docs/adr/0002-stay-on-stormweb-shared-hosting.md): none exist; this is a cron pass), and sending mail from anywhere else.
+
 **Visitor count**:
 The number of visitors one **Member** served on one **Shift**, recorded after the shift on their **Sign-up** as a nullable integer (`visitor_count`). Null means _not recorded_; zero means _recorded as zero_. The Member enters it at sign-out; a Group **Officer** may set or correct it at any time, with no deadline. Nine of the ten scheduling Groups collect it, and whether a Group collects it is a **Group** setting rather than a **shift kind** one. It never feeds **hours** ([#404](https://github.com/roytanaka/dmv-rom-v2/issues/404)).
 _Avoid_: reading it as a headcount of distinct people. Several volunteers on one Shift each record their own number, so a Group total counts _interactions_, not visitors. And do not confuse it with a **Booking**'s expected audience, which is a forecast typed before the event.
@@ -160,6 +192,8 @@ _Avoid_: epic, spec, brief, initiative — all refer to the same artifact in oth
 - A **Group** with the scheduling capability publishes **Schedules**; a **Schedule** holds **Shifts**; a **Member** takes a **Shift** via a **Sign-up**, and one Shift holds up to `capacity` Sign-ups
 - Every **Group** holds **Hours records**, one per **Member** per month; a Group's report totals its own and every descendant's, to any depth
 - **Login** to the app grants the **Member** their session and their authorization scope
+- An **Officer** sends a **Broadcast** to an **Audience**; any **Member** sends a **Direct message** to one Member; both become one sent record and one **Delivery** per recipient
+- The daily pass writes a **Reminder** Delivery per (Shift, Member) inside the lead window; a **Notice** fires from the action that changes something; the **Drain** sends every Delivery; the **No-email flag** stops a row being written at all
 
 ## Example dialogue
 
@@ -173,6 +207,8 @@ _Avoid_: epic, spec, brief, initiative — all refer to the same artifact in oth
 
 - _"Member" vs "Membership"_ — **Member** is the person (the identity record); a **Membership** is that Member's join-row in a Group. Keep them distinct in schema names: the identity table is `members`; the Group join-table is `group_member`, never `members` again. "Group member" is acceptable prose for a person in a Group.
 - _"Volunteer"_ — superseded as the person term by **Member**. Still correct only inside the proper noun "Department of Museum Volunteers." Earlier ADR prose may still say "Volunteer"; treat **Member** as canonical wherever they conflict.
+- _"Audience"_ — two senses. A **Shift**'s `audience` (`group` / `open`) says who may take it; a **Broadcast**'s **Audience** says who receives mail. Both stay, because both are the natural word; qualify when a sentence could read either way.
+- _"Notification"_ — **retired as a domain word** ([ADR-0024](docs/adr/0024-emailing-model.md)). Say **Reminder** (about your own Sign-up), **Notice** (fired by an event), or **Broadcast** (written by an officer). Earlier ADR prose that says "notification email" means a Notice.
 
 ## Legacy vocabulary
 
@@ -271,3 +307,11 @@ _Avoid_: the name **Activity** for our model (already three things — see above
 A coarse cross-Group audience for a legacy shift. **Not** a designation stored on a Member — it is evaluated on the spot as active membership in any of six Groups: Gallery Interpreters, Docents, GDR, Visitor Guides, Outreach, Visitor Wayfinders. A hardcoded union that nobody maintains.
 **Not ported** ([ADR-0021](docs/adr/0021-scheduling-first-pass.md)). Our **audience** enum has two values, `group` and `open`; `MIS` and legacy's three other values (nobody, a committee id, a subcommittee id) are dropped. A proper Group-list audience covers this case when a Group needs it, and the two-value enum widens to one without reshaping **Sign-up**.
 _Avoid_: treating it as a qualification or a standing.
+
+**noemail** (the legacy opt-out sentinel):
+Legacy has no opt-out flag. To silence a Member, an officer edits their email address to one containing a "noemail" domain, and every list page and the nightly job skip addresses that match. Four current Members carry it today, none with a role. **We call this the No-email flag** (see the glossary above): a Records-set switch on the Member, the address left intact. Moving the sentinel onto the flag is the migration plan's job, not a v2 ticket.
+_Avoid_: reading a sentinel address as a bad address, and porting the string match.
+
+**Send email** (legacy button) and **DMV Reminder** (legacy From name):
+Every legacy list page carries a Send email button that posts the page's visible addresses to one shared composer. "Send email" is therefore a _surface_, not a kind of mail, and _which page it sat on_ is what we now call the **Audience** (of a **Broadcast**). "DMV Reminder" is the fixed From display name of the nightly job; ours is the Group's name on the app's one address, and the mail is a **Reminder**.
+_Avoid_: "the emailer" as a feature name. Name the Broadcast, the Audience, or the Reminder.
