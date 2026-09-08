@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\AudienceKey;
 use App\Enums\BroadcastKind;
+use App\Enums\ContextType;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Http\Requests\SendBroadcastRequest;
@@ -18,6 +19,7 @@ use App\Support\Mail\HtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The Broadcast send path (spec #479, ADR-0024 §4, §6) — the server side of the composer.
@@ -55,11 +57,22 @@ class BroadcastController extends Controller
             $request->input('added', []),
         );
 
+        $kind = $context->type === ContextType::Member ? BroadcastKind::DirectMessage : BroadcastKind::Broadcast;
+
+        // A Direct message has one recipient and no silent-skip: where a Broadcast quietly drops a
+        // flagged Member and reports them after the fact, a Direct message to one is refused outright
+        // so nothing is written and the sender is told they cannot be reached (ADR-0024 §6, §9).
+        if ($kind === BroadcastKind::DirectMessage && $resolved->recipients->isEmpty()) {
+            throw ValidationException::withMessages([
+                'audience' => __('broadcasts.direct.unreachable', ['name' => $context->subject->fullName()]),
+            ]);
+        }
+
         $manifest = $this->attachments->store($this->uploadedFiles($request));
 
-        $broadcast = DB::transaction(function () use ($actor, $context, $key, $resolved, $request, $manifest): Broadcast {
+        $broadcast = DB::transaction(function () use ($actor, $context, $key, $kind, $resolved, $request, $manifest): Broadcast {
             $broadcast = Broadcast::create([
-                'kind' => BroadcastKind::Broadcast,
+                'kind' => $kind,
                 'sender_id' => $actor->getKey(),
                 'group_id' => $context->owningGroup()?->getKey(),
                 'audience_key' => $key->value,

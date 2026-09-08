@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Enums\BroadcastKind;
 use App\Models\Broadcast;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -82,6 +83,14 @@ class BroadcastSenderCopy extends Mailable
     {
         if ($this->failedNames === []) {
             return '';
+        }
+
+        // A Direct message has one recipient, so its footer names that one plainly rather than
+        // opening a "could not be delivered to" list (ADR-0024 §6).
+        if ($this->broadcast->kind === BroadcastKind::DirectMessage) {
+            $line = __('broadcasts.sender_copy.undelivered_direct', ['name' => $this->failedNames[0]]);
+
+            return '<hr><p>'.e($line).'</p>';
         }
 
         $shown = array_slice($this->failedNames, 0, self::NAMES_SHOWN);

@@ -13,6 +13,10 @@ return [
     'groups' => 'Groupes et rôles',
     'no_groups' => 'Aucune adhésion à un groupe.',
 
+    // L'action de message direct (#491, ADR-0024 §6) : tout membre peut écrire à un autre depuis
+    // son profil. Masquée sur son propre profil. Nommée par le prénom, comme le lit le bouton.
+    'message' => 'Écrire à :name',
+
     // Contrôles d'administration des membres réservés aux Archives (#483, ADR-0024 §9).
     // Affichés uniquement lorsque le lecteur peut administrer les membres — le
     // MemberResource protège les données sous-jacentes.

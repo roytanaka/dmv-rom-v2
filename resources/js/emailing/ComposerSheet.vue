@@ -36,6 +36,10 @@ const props = defineProps<{
     groupName: string;
     roster: Recipient[];
     audience: AudienceOption | null;
+    // A Direct message (#491, ADR-0024 §6): one fixed recipient, chosen by opening the sheet from
+    // their profile rather than picked from a roster. When set, the Who step shows them and nothing
+    // else, and Next goes straight to Message. Absent for a Broadcast.
+    fixed?: Recipient | null;
 }>();
 
 const emit = defineEmits<{ (e: 'update:open', value: boolean): void }>();
@@ -56,13 +60,14 @@ const attachments = ref<File[]>([]);
 const sending = ref(false);
 const queued = ref(0);
 const skipped = ref<string[]>([]);
+const errorMessage = ref('');
 
-// (Re)seed the sheet each time it opens for an Audience. A named Audience fetches its
-// resolved rows to pre-tick and to name the chips; a hand-pick opens on an empty To field
-// with the Add-people panel already open (ADR-0024 §6).
+// (Re)seed the sheet each time it opens. A Direct message seeds its one fixed recipient and shows
+// no roster; a named Audience fetches its resolved rows to pre-tick and to name the chips; a
+// hand-pick opens on an empty To field with the Add-people panel already open (ADR-0024 §6).
 watch(
-    () => [props.open, props.audience] as const,
-    ([open, audience]) => {
+    () => [props.open, props.audience, props.fixed] as const,
+    ([open]) => {
         if (!open) {
             return;
         }
@@ -74,9 +79,18 @@ watch(
         attachments.value = [];
         queued.value = 0;
         skipped.value = [];
+        errorMessage.value = '';
         directory.value = new Map(props.roster.map((member) => [member.id, member]));
 
-        if (audience === null) {
+        if (props.fixed) {
+            directory.value = new Map([[props.fixed.id, props.fixed]]);
+            baseIds.value = [props.fixed.id];
+            ticked.value = new Set([props.fixed.id]);
+            panelOpen.value = false;
+            return;
+        }
+
+        if (props.audience === null) {
             baseIds.value = [];
             ticked.value = new Set();
             panelOpen.value = true;
@@ -84,7 +98,7 @@ watch(
         }
 
         panelOpen.value = false;
-        void loadRecipients(audience);
+        void loadRecipients(props.audience);
     },
     { immediate: true },
 );
@@ -234,6 +248,12 @@ async function send(): Promise<void> {
         });
 
         if (!response.ok) {
+            // A Direct message to a Member with email switched off is refused (ADR-0024 §6): surface
+            // the server's "cannot be reached" message rather than failing silently.
+            if (response.status === 422) {
+                const problem = (await response.json().catch(() => null)) as { message?: string; errors?: Record<string, string[]> } | null;
+                errorMessage.value = problem?.errors?.audience?.[0] ?? problem?.message ?? '';
+            }
             return;
         }
 
@@ -258,8 +278,24 @@ function close(): void {
                 <SheetTitle>{{ trans('broadcasts.composer.title') }}</SheetTitle>
             </SheetHeader>
 
+            <!-- Who, a Direct message: one fixed recipient, no picking (ADR-0024 §6). -->
+            <div v-if="step === 'who' && fixed" class="flex flex-1 flex-col gap-4">
+                <div class="flex items-center gap-3">
+                    <Avatar size="base">
+                        <AvatarImage v-if="fixed.photo" :src="fixed.photo" :alt="recipientName(fixed)" />
+                        <AvatarFallback>{{ recipientName(fixed).charAt(0) }}</AvatarFallback>
+                    </Avatar>
+                    <p class="text-base font-semibold">{{ recipientName(fixed) }}</p>
+                </div>
+                <p class="text-muted-foreground text-sm">{{ trans('broadcasts.composer.direct_reply_note', { name: fixed.first_name }) }}</p>
+
+                <div class="mt-auto flex justify-end pt-4">
+                    <Button type="button" @click="step = 'message'">{{ trans('broadcasts.composer.next') }}</Button>
+                </div>
+            </div>
+
             <!-- Who -->
-            <div v-if="step === 'who'" class="flex flex-1 flex-col gap-4">
+            <div v-else-if="step === 'who'" class="flex flex-1 flex-col gap-4">
                 <div>
                     <h3 class="text-base font-semibold">
                         {{ transChoice('broadcasts.composer.who_heading', recipientCount, { count: String(recipientCount) }) }}
@@ -362,6 +398,8 @@ function close(): void {
                         <input type="file" multiple class="hidden" @change="onFiles" />
                     </label>
                 </div>
+
+                <p v-if="errorMessage" class="text-destructive text-sm">{{ errorMessage }}</p>
 
                 <div class="mt-auto flex justify-between gap-2 pt-4">
                     <Button type="button" variant="outline" @click="step = 'who'">{{ trans('broadcasts.composer.back') }}</Button>

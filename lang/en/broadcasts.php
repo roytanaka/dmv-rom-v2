@@ -10,6 +10,14 @@ return [
     'sender_copy' => [
         'undelivered' => 'Could not be delivered to: :names',
         'and_more' => 'and :count more',
+        // A Direct message has one recipient, so its sender copy names the one who was missed.
+        'undelivered_direct' => 'Could not deliver to :name.',
+    ],
+
+    // A Direct message (ADR-0024 §6) — any Member to one other. The refusal shown when the one
+    // recipient has email switched off, so nothing is written and the sender is told at once.
+    'direct' => [
+        'unreachable' => ':name cannot be reached by email.',
     ],
 
     // The composer sheet's chrome (ADR-0024 §6) — the stepped Who → Message → Sent flow the
@@ -27,6 +35,9 @@ return [
         'search_placeholder' => 'Search by name',
         'select_all' => 'Select all',
         'empty_roster' => 'No one on this roster matches.',
+        // The Who step of a Direct message: one fixed recipient, no picking. The note warns the
+        // sender their reply address is shown, since a reply comes to them (ADR-0024 §6).
+        'direct_reply_note' => 'A reply comes to your own address, so :name will see it.',
         // The Message step.
         'from' => 'From :group · replies come to you · you get a copy',
         'subject' => 'Subject',

@@ -9,14 +9,18 @@ import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { type AudienceOption, type Recipient } from '@/emailing/composer';
+import ComposerSheet from '@/emailing/ComposerSheet.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { PhEnvelopeSimple } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 interface MemberGroup {
     name: string;
@@ -68,6 +72,34 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 ]);
 
 const hasContact = computed(() => props.member.email !== undefined || props.member.phone !== undefined);
+
+// The Direct-message affordance (#491, ADR-0024 §6): any Member may write to one other, never
+// seeing their address — the mail routes through the queue. Hidden on the viewer's own profile,
+// where writing to yourself makes no sense; the server enforces the rest.
+const page = usePage<SharedData>();
+const isSelf = computed(() => page.props.auth.user.id === props.member.id);
+
+const messageOpen = ref(false);
+
+// The sheet opens as a Direct message: the fixed recipient the profile is for, and the OneMember
+// Audience the server resolves to just them. The From line the recipient will see is the sender's
+// own name, so the Message step names the viewer.
+const recipient = computed<Recipient>(() => ({
+    id: props.member.id,
+    first_name: props.member.first_name,
+    last_name: props.member.last_name,
+    photo: props.member.photo,
+    standing: props.member.standing,
+}));
+
+const directAudience = computed<AudienceOption>(() => ({
+    key: 'one_member',
+    parameter: null,
+    label: fullName.value,
+    count: 1,
+}));
+
+const senderName = computed(() => `${page.props.auth.user.first_name} ${page.props.auth.user.last_name}`);
 </script>
 
 <template>
@@ -84,7 +116,22 @@ const hasContact = computed(() => props.member.email !== undefined || props.memb
                     <h1 class="text-rom-ink text-2xl font-semibold">{{ fullName }}</h1>
                     <StandingBadge :standing="member.standing" class="self-start" />
                 </div>
+                <Button v-if="!isSelf" type="button" variant="outline" size="sm" class="ml-auto gap-1.5" @click="messageOpen = true">
+                    <PhEnvelopeSimple class="size-4" />
+                    {{ trans('member.message', { name: member.first_name }) }}
+                </Button>
             </header>
+
+            <ComposerSheet
+                v-if="!isSelf"
+                v-model:open="messageOpen"
+                context="member"
+                :context-subject="String(member.id)"
+                :group-name="senderName"
+                :roster="[recipient]"
+                :audience="directAudience"
+                :fixed="recipient"
+            />
 
             <div class="grid gap-6 md:grid-cols-2">
                 <Card>
