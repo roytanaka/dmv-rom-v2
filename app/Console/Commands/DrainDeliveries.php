@@ -39,7 +39,7 @@ class DrainDeliveries extends Command
     {
         $sentLastHour = Delivery::query()
             ->where('state', DeliveryState::Sent)
-            ->where('sent_at', '>=', now()->subMinutes(60))
+            ->where('sent_at', '>=', now()->subHour())
             ->count();
 
         $budget = min(self::PASS_LIMIT, self::HOURLY_LIMIT - $sentLastHour);
