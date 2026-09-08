@@ -71,4 +71,20 @@ class MemberPolicy
     {
         return $viewer->is($target) || $viewer->hasMemberAdminAuthority();
     }
+
+    /**
+     * Who may see a member's no-email flag — a Records-only member-administration
+     * field (#483, ADR-0024 §9). Granted only to member-administration authority (the
+     * Records stewardship) org-wide; super-tier passes via the Gate::before
+     * short-circuit.
+     *
+     * Stricter than {@see viewAddress()}: the member themself is *not* admitted. The
+     * flag is a Records decision about a member, not that member's own data — a sender
+     * learns someone is unreachable only by trying to reach them (ADR-0024 §9), so the
+     * flag never surfaces on the member's own profile either.
+     */
+    public function viewNoEmailFlag(Member $viewer, Member $target): bool
+    {
+        return $viewer->hasMemberAdminAuthority();
+    }
 }

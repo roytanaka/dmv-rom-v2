@@ -78,6 +78,7 @@ class Member extends Authenticatable implements HasLocalePreference
             'category' => Category::class,
             'super_tier' => 'boolean',
             'support_operator' => 'boolean',
+            'no_email' => 'boolean',
         ];
     }
 
