@@ -1,7 +1,7 @@
 {
     "private": true,
     "type": "module",
-    "packageManager": "pnpm@11.0.9",
+    "packageManager": "pnpm@11.9.0",
     "engines": {
         "node": ">=24"
     },
@@ -13,7 +13,11 @@
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "prepare": "husky",
+        "sandcastle": "npx tsx .sandcastle/main.ts",
         "sail": "sh vendor/bin/sail",
+        "test:unit": "node --test 'resources/js/**/*.test.ts'",
+        "db:seed": "sh vendor/bin/sail artisan db:seed",
+        "db:fresh": "sh vendor/bin/sail artisan migrate:fresh --seed",
         "sail:up": "sh vendor/bin/sail up -d",
         "sail:down": "sh vendor/bin/sail down",
         "sail:logs": "sh vendor/bin/sail logs -f",
@@ -21,53 +25,53 @@
         "typecheck": "vue-tsc --noEmit"
     },
     "devDependencies": {
-        "@eslint/js": "^9.19.0",
-        "@vue/eslint-config-typescript": "^14.3.0",
-        "eslint": "^9.17.0",
+        "@ai-hero/sandcastle": "^0.12.0",
+        "@eslint/js": "^10.0.1",
+        "@vue/eslint-config-typescript": "^14.9.0",
+        "eslint": "^10.8.0",
         "eslint-config-prettier": "^10.0.1",
-        "eslint-plugin-vue": "^9.32.0",
+        "eslint-plugin-vue": "^10.10.0",
         "husky": "^9.1.7",
-        "lint-staged": "^17.0.3",
-        "prettier": "^3.4.2",
+        "lint-staged": "^17.3.0",
+        "prettier": "^3.9.6",
         "prettier-plugin-organize-imports": "^4.1.0",
-        "prettier-plugin-tailwindcss": "^0.8.0",
-        "typescript-eslint": "^8.23.0"
+        "prettier-plugin-tailwindcss": "^0.8.1",
+        "typescript-eslint": "^8.66.0"
     },
     "dependencies": {
         "@headlessui/vue": "^1.7.23",
-        "@inertiajs/vue3": "^2.0.0-beta.3",
+        "@inertiajs/vue3": "^3.6.1",
+        "@phosphor-icons/vue": "^2.2.1",
         "@tailwindcss/forms": "^0.5.3",
-        "@tailwindcss/vite": "^4.3.0",
-        "@types/node": "^22.10.2",
-        "@types/ziggy-js": "^1.3.3",
-        "@vitejs/plugin-vue": "^5.2.1",
-        "@vueuse/core": "^12.0.0",
+        "@tailwindcss/vite": "^4.3.3",
+        "@types/node": "^26.1.2",
+        "@vitejs/plugin-vue": "^6.0.8",
+        "@vueuse/core": "^14.4.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
-        "concurrently": "^9.0.1",
-        "laravel-vite-plugin": "^1.0",
-        "lucide": "^0.468.0",
-        "lucide-vue-next": "^0.468.0",
+        "concurrently": "^10.0.4",
+        "laravel-vite-plugin": "^3.1",
+        "laravel-vue-i18n": "^2.8.0",
         "radix-vue": "^1.9.11",
-        "tailwind-merge": "^2.5.5",
-        "tailwindcss": "^4.3.0",
+        "tailwind-merge": "^3.6.0",
+        "tailwindcss": "^4.3.3",
         "tw-animate-css": "^1.2.0",
-        "typescript": "^5.2.2",
-        "vite": "^6.0.3",
-        "vue": "^3.5.13",
-        "vue-tsc": "^2.2.0",
-        "ziggy-js": "^2.4.2"
+        "typescript": "^6.0.3",
+        "vite": "^8.2.1",
+        "vue": "^3.5.41",
+        "vue-tsc": "^3.3.9",
+        "ziggy-js": "^2.6.3"
     },
     "optionalDependencies": {
-        "@rollup/rollup-linux-x64-gnu": "4.9.5",
-        "lightningcss-linux-x64-gnu": "^1.29.1"
+        "@rollup/rollup-linux-x64-gnu": "4.62.4",
+        "lightningcss-linux-x64-gnu": "^1.33.0"
     },
     "lint-staged": {
-        "*.php": "vendor/bin/sail pint",
+        "*.php": "vendor/bin/pint",
         "*.{js,ts,vue}": [
             "prettier --write",
             "eslint --fix"
         ],
-        "*.css": "prettier --write"
+        "*.{css,md,json,jsonc,yaml,yml,html}": "prettier --write"
     }
 }

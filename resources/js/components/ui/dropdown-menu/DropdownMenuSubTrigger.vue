@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
-import { ChevronRight } from 'lucide-vue-next';
+import { PhCaretRight } from '@phosphor-icons/vue';
 import { DropdownMenuSubTrigger, useForwardProps, type DropdownMenuSubTriggerProps } from 'radix-vue';
 import { computed, type HTMLAttributes } from 'vue';
 
@@ -20,12 +20,12 @@ const forwardedProps = useForwardProps(delegatedProps);
         v-bind="forwardedProps"
         :class="
             cn(
-                'flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden focus:bg-accent data-[state=open]:bg-accent',
+                'flex select-none items-center rounded-none px-2 py-1.5 text-sm outline-hidden focus:bg-accent data-[state=open]:bg-accent',
                 props.class,
             )
         "
     >
         <slot />
-        <ChevronRight class="ml-auto h-4 w-4" />
+        <PhCaretRight class="ml-auto h-4 w-4" />
     </DropdownMenuSubTrigger>
 </template>

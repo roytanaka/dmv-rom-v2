@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import AppContent from '@/components/AppContent.vue';
+import AppFooter from '@/components/AppFooter.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
+import ImpersonationToolbar from '@/components/ImpersonationToolbar.vue';
+import TopBar from '@/components/TopBar.vue';
 import type { BreadcrumbItemType } from '@/types';
 
 interface Props {
@@ -15,11 +18,19 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-    <AppShell variant="sidebar">
-        <AppSidebar />
-        <AppContent variant="sidebar">
-            <AppSidebarHeader :breadcrumbs="breadcrumbs" />
-            <slot />
-        </AppContent>
+    <AppShell>
+        <!-- Full-width top bar spans above both the rail and the content. Sticky so it
+             stays pinned while the page scrolls and the fixed rail (offset below it)
+             remains aligned. -->
+        <TopBar class="sticky top-0 z-30" />
+        <div class="flex w-full flex-1">
+            <AppSidebar />
+            <AppContent>
+                <AppSidebarHeader :breadcrumbs="breadcrumbs" />
+                <slot />
+                <AppFooter />
+            </AppContent>
+        </div>
+        <ImpersonationToolbar />
     </AppShell>
 </template>

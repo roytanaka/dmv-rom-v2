@@ -1,0 +1,111 @@
+---
+status: accepted
+date: 2026-05-23
+accepted: 2026-06-01
+---
+
+# Group model: one entity for every committee, program, team, and cohort
+
+> **Amendment (2026-08-23, [ADR-0022](0022-hours-and-statistics-model.md)).** The **hours & stats capability is withdrawn**. Every Group and sub-Group carries Hours, so `has_hours_stats` is dropped from `groups` and hours joins **roster** as an always-on capability — the fixed set is now **six** flags, not seven. Consequence: `Role::Statistician` loses its `requiredCapability()` gate and attaches to any Group, like the core roles. The Group row also gains an `hours_multiplier` (default `1`, ROMWalks `2`), moving legacy's hardcoded per-Group conversion out of code and into data. See ADR-0022 §3 and §7.
+
+> **Amendment (2026-07-06, [ADR-0019](0019-group-listing-visibility-and-parentage-authority.md)).** A **`listing_visibility`** facet joins the Group (`Public` / `Group` / `Private`) — governing who sees a Group in navigation, and (for `Private` only) who may open it at all. It is a stored, explicitly-set attribute, **orthogonal to** the three axes and the capability set. The same decision refined the **Parentage** relationship kind (§Relationship kinds #2) to a structure/content split. See ADR-0019.
+
+> **Amendment (2026-07-07, [ADR-0020](0020-groups-nav-partition-and-sidebar-shape.md)).** Root-DMV membership is **derived from a Member's `Category`** (active standing), not a stored membership row: the root Group is the **My Groups org node** (its Roster _is_ the Directory) and a navigation **leaf** that does not expand into the tree. See ADR-0020.
+
+## Context
+
+DMV's organizational structure is large and varied: governance and operations committees, volunteer-facing programs, functional sub-teams, time-boxed projects, exhibition volunteer pools, a monthly committee of chairs, and federation nodes that group other committees. The legacy app expresses all of this as flat lists with no notion of _what kind_ of thing each entry is or _whether it is still alive_, so the lists accumulate duplicates, test entries, and pools left "active" years after their event closed.
+
+But the legacy is _almost_ right: every one of those things is the **same underlying shape** — a named group of people, with roles, that can meet, hold documents, and has an "About Us." The problem is not a missing structure; it is one good idea expressed without the two attributes (kind, lifecycle) that keep it from rotting.
+
+## Decision
+
+Adopt the **Group** as the single organizing entity. Everything — committee, program, working group, project, event cohort — is a Group. "Subcommittee" is not a separate noun: it is _a Group whose parent is another Group._
+
+### One core entity: the Group
+
+A Group always has a **name** and **description / About Us**, a **parent** (one hierarchy), **members** carrying **role(s) in that group**, and a **lifecycle state**. Everything else is a _capability_ switched on per Group.
+
+### Three orthogonal axes — and Kind is a stored, explicit attribute
+
+Rather than one `type` column with many values, three small independent axes describe any group:
+
+| Axis          | Values                                                              | Answers                               |
+| ------------- | ------------------------------------------------------------------- | ------------------------------------- |
+| **Scope**     | Organization · Program · Sub-team                                   | _Where does it sit in the tree?_      |
+| **Kind**      | Standing committee · Program · Working group · Project · Cohort     | _What is it for?_                     |
+| **Lifecycle** | Standing vs. Time-boxed; Active vs. Archived (+ optional start/end) | _Is it permanent? Is it still alive?_ |
+
+**Kind is an explicit stored enum, never derived from capability flags.** Kind expresses a group's _intent_; capabilities express _what is switched on right now_. They are orthogonal and may legitimately diverge — a Program with scheduling temporarily off, or a committee that runs a document library, is not a contradiction. Deriving Kind from capabilities would collapse two axes into one and make a group's identity a brittle function of its feature toggles.
+
+The payoff: _"which groups are dead?"_ becomes a **query** (`lifecycle = time-boxed AND no recent activity`), not a manual audit.
+
+There is intentionally **no "sub-purpose" attribute** — no behaviour reads one, so it is not modelled until a concrete need appears.
+
+### Capabilities — flags on the Group; each capability's data lives in its own tables
+
+A Group **enables only the capabilities it needs**, from a **small, fixed set**: roster & roles (always on), meetings (agenda/minutes), document library, shift/tour scheduling, content catalog, vetting workflow, hours & stats, and announcements (posting to the org-wide news feed).
+
+**Physical shape: one `groups` table holding core identity plus a handful of boolean/enum capability flags.** A capability is _not_ a configuration blob and _not_ a polymorphic per-capability config table. Each capability is a feature with **its own tables, foreign-keyed to the group** — scheduling has shifts / sign-ups / repeat rules / catalog ([ADR-0015](0015-scheduling-model.md)); documents has the library ([ADR-0003](0003-document-storage-architecture.md)); meetings has agendas / minutes; hours has its records. The group row carries only the **flag** that a feature is on; the feature's data lives where data belongs, and per-capability _settings_ live on that capability's own tables. This is ADR-0003's rule applied: explicit foreign keys, no polymorphism, no premature abstraction. A `group_capabilities` pivot was considered and **deferred** — flags fit a fixed set of ~7; promote later only if settings proliferate.
+
+**Amendment (2026-06-16): the `announcements` capability.** Unlike the other capabilities — whose data is read **group-scoped** (a Group's own library, its own shifts) — `announcements` writes to a **single org-wide news feed** that everyone reads; each news item carries a `posting_group_id` (which Group published it), so the capability's data is still foreign-keyed to a Group, but the **read is org-wide** — the one deliberate exception. The capability is multi-Group by design (several Groups may post to the one feed — Communications today; others as a data edit), which is what distinguishes it from a _stewardship_ (single-owner, e.g. Records → member administration). Posting is gated by a capability-scoped **news-editor role** ([ADR-0011](0011-authorization-model.md)). Per-Group _feeds_ (a Group publishing to its own members) remain a later new-feature, not this capability.
+
+Build each capability **once**; attach it per group. A new exhibition cohort is a _new row with scheduling on_, not new code.
+
+### Relationship kinds
+
+1. **Membership** — a person belongs to a group with **role(s)**, group-wide or scoped below the group (see _Scoped roles_).
+2. **Parentage** — a group has one parent; one tree, the organization at the root. Per [ADR-0011](0011-authorization-model.md) as refined by [ADR-0019](0019-group-listing-visibility-and-parentage-authority.md) (2026-07-06), **parentage carries _structural_ authority, not _operational/content_ authority**: a parent's administering officers administer the shell and roster of the whole subtree (create / re-parent / roster / role-assign / `listing_visibility`), but _reading_ a child's content still requires a role held in that child — a `Private` child stays opaque to a non-member parent.
+3. **Stewardship** — a group is **responsible for operating a system function** for the whole org (e.g. statistics, the website, member administration). A responsibility it owns, not a capability it consumes.
+4. **Qualification / assignment (overlay)** — belonging to a Cohort means "**eligible to be scheduled**" for an event, not primary belonging; the scheduling capability filters to the qualified set.
+5. **Derived membership** — membership **computed from a rule** with a **manual add/remove overlay**, rather than maintained by hand. **It confers no roles and no authority**, so it never enters the authorization pivot; it exists for meetings, display, and notices, and is system-computed so it cannot go stale.
+
+### Scoped roles — a subdivision _inside a capability_, not a sub-group
+
+A role may be **scoped to a subdivision inside a capability**, not to the Group as a whole. The demonstrated case is a docent **Section**: a slice of the docents **content catalog** (Category → Section → Tour) that groups tours and names a single **Section Head** — the _Statistician_ role narrowed to one section.
+
+The scope target is **strictly less than a Group**: no roster, no capabilities, no children, no node in the Group tree. Because the depth lives inside one capability's own structure rather than as additional Group rows, **there are no extra Groups to nest** — which is what forecloses "arbitrary nested groups." Demonstrated once; this ADR fixes the **concept and its ceiling**, and the **physical shape** is settled with the docent roster/scheduling work. This is the representation [ADR-0011](0011-authorization-model.md)'s scoped-down role rests on.
+
+## Outliers — and how the model absorbs them
+
+- **A monthly committee of chairs** is a real Standing committee (Meetings on) whose roster is **derived** — the current chairs and co-chairs, by rule, plus a manual overlay for guests. It confers no authority (members are there _because_ they chair something elsewhere, where their authority already lives). Hand-maintaining such a list is exactly what makes it rot.
+- **A federation node** (a group that groups other committees) is a **parent Group with little/no capability of its own** — a scoping node whose "members" are its child groups.
+- **Event pools never closed out** are **Cohorts whose lifecycle should have flipped to Archived**. A Cohort gets an end date; reaching it prompts archival, retaining history while clearing active views.
+- **Duplicates, test entries, and stale rows** are **not modelled — dropped at migration.** A rename is a rename, a superseded group is merged, a finished group is archived; the model makes duplicates hard to create.
+
+## What this buys us
+
+- **Cleanup is a standing query, not a one-time audit.** Lifecycle + activity make "what's dead?" answerable forever.
+- **No duplicate drift.** Merge/archive replace copy-another-row.
+- **New things rarely need new code.** Next exhibition = one Cohort row with scheduling on.
+- **Graceful endings.** Time-boxed + Archived retains history while clearing active views.
+- **Permissions get a real home.** Roles live on membership, aligning with [ADR-0011](0011-authorization-model.md).
+
+## What this is NOT (guardrails)
+
+- **Not a full schema.** This ADR fixes the entity, axes, capability set, and relationships; column- and table-level shape is settled with the data-model and PRD work, under ADR-0003's rules.
+- **Not a generic workflow/plugin engine.** Capabilities are a small fixed set (~7), not user-defined plugins.
+- **Not a mandate to over-unify.** "Everything is a Group" is a _modelling_ insight, not an instruction to collapse the UI.
+
+## Considered alternatives
+
+- **Capabilities as a JSON config blob on the group row.** Rejected: unqueryable, no foreign keys, contradicts ADR-0003.
+- **Capabilities as a polymorphic "core + per-capability config table" scheme.** Rejected as premature: each capability already owns its own FK-linked tables.
+- **A `group_capabilities` pivot from day one.** Deferred: flags fit a fixed set of ~7; promote only if settings proliferate.
+- **Kind derived from capability flags.** Rejected: collapses two orthogonal axes and makes identity a function of feature toggles.
+- **A "sub-purpose" attribute.** Rejected/omitted: nothing reads it.
+- **Sections as child Groups.** Rejected: a section has no roster, capabilities, or lifecycle; a capability-internal subdivision is strictly less than a Group and avoids arbitrary nesting.
+- **A chairs' committee as a pure messaging audience (no Group), or as a hand-maintained roster.** Rejected: it is a real meeting committee (so, a Group), and a hand-maintained roster is what rots.
+
+## Consequences
+
+- **The Group entity and its capability set anchor the rebuild's domain model.** Authorization ([ADR-0011](0011-authorization-model.md)) and scheduling ([ADR-0015](0015-scheduling-model.md)) both state their decisions in these terms.
+- **The group-membership pivot is a central table** (roles + membership status), read on nearly every authorization decision — index and cache accordingly.
+- **Capabilities are built once and attached per group**, rather than reimplemented per committee.
+
+## References
+
+- [ADR-0001](0001-authentication-and-identity.md) — identity and the per-group role model membership builds on
+- [ADR-0003](0003-document-storage-architecture.md) — explicit FKs, no polymorphism, no premature abstraction
+- [ADR-0011](0011-authorization-model.md) — authorization (roles attach to this model's membership)
+- [ADR-0015](0015-scheduling-model.md) — scheduling (one capability a Group enables)

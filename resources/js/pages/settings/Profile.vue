@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { TransitionRoot } from '@headlessui/vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
+import { computed, ref } from 'vue';
 
-import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
@@ -16,49 +19,177 @@ interface Props {
     mustVerifyEmail: boolean;
     status?: string;
     className?: string;
+    // Per-resource UI hint from MemberPolicy (ADR-0017). Drives whether the save
+    // control renders enabled; the server enforces the action regardless.
+    can: { update: boolean };
 }
 
 defineProps<Props>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+const localizeHref = useLocalizedHref();
+
+// `computed`, not a plain const: after a full-page locale switch the messages load
+// async, so a `trans()` snapshot taken at setup captures the raw key before the
+// locale is ready. A computed re-derives the label reactively once it resolves.
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Profile settings',
-        href: '/settings/profile',
+        title: trans('settings.profile.title'),
+        href: localizeHref('/settings/profile'),
     },
-];
+]);
 
 const page = usePage<SharedData>();
 const user = page.props.auth.user as User;
 
 const form = useForm({
-    name: user.name,
+    first_name: user.first_name,
+    last_name: user.last_name,
     email: user.email,
+    // Contact record (#232) — all optional. Province defaults to Ontario and country
+    // to Canada (the ROM's home province) so the common case needs no input.
+    phone: user.phone ?? '',
+    alternate_phone: user.alternate_phone ?? '',
+    business_phone: user.business_phone ?? '',
+    address_street: user.address_street ?? '',
+    address_city: user.address_city ?? '',
+    address_province: user.address_province ?? 'ON',
+    address_postal_code: user.address_postal_code ?? '',
+    address_country: user.address_country ?? 'Canada',
+    // Optional photo upload (#233). A File here makes useForm submit multipart with
+    // method spoofing; null leaves photo_path untouched server-side.
+    photo: null as File | null,
+    current_password: '',
 });
 
-const submit = () => {
-    form.patch(route('profile.update'), {
+// PRD #228: mirror the server's email-change gate so the field only appears when needed.
+const emailIsChanging = computed(() => form.email !== user.email);
+
+const initials = computed(() => `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase());
+
+// Read the saved photo reactively from the shared prop (not the one-time `user`
+// snapshot) so the avatar refreshes after a successful upload re-shares auth.user.
+const savedPhotoUrl = computed(() => (page.props.auth.user as User).photo_url ?? null);
+
+const photoInput = ref<HTMLInputElement | null>(null);
+const selectedPreview = ref<string | null>(null);
+
+// Show the just-picked file first, then the saved photo, else fall through to initials.
+const previewSrc = computed(() => selectedPreview.value ?? savedPhotoUrl.value ?? undefined);
+
+const onPhotoChange = (event: Event) => {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    form.photo = file;
+
+    if (selectedPreview.value) {
+        URL.revokeObjectURL(selectedPreview.value);
+    }
+    selectedPreview.value = file ? URL.createObjectURL(file) : null;
+};
+
+const clearSelectedPreview = () => {
+    if (selectedPreview.value) {
+        URL.revokeObjectURL(selectedPreview.value);
+        selectedPreview.value = null;
+    }
+    if (photoInput.value) {
+        photoInput.value.value = '';
+    }
+};
+
+// Dedicated DELETE so clearing the photo is independent of the main profile save.
+// Any in-progress local selection is also discarded.
+const removePhoto = () => {
+    router.delete(route('settings.profile.photo.destroy'), {
         preserveScroll: true,
+        onSuccess: () => {
+            form.reset('photo');
+            clearSelectedPreview();
+        },
+    });
+};
+
+const submit = () => {
+    // Submit as POST + _method spoof, not a real PATCH: PHP only parses
+    // multipart/form-data (the encoding a File forces) on POST, so a genuine PATCH
+    // would arrive with an empty $_FILES and the photo would silently never save.
+    // Laravel reads _method to route it to the PATCH handler all the same.
+    form.transform((data) => ({ ...data, _method: 'patch' })).post(route('settings.profile.update'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            form.reset('current_password', 'photo');
+            clearSelectedPreview();
+        },
+        onError: () => form.reset('current_password'),
     });
 };
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Profile settings" />
+        <Head :title="trans('settings.profile.title')" />
 
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
-                <HeadingSmall title="Profile information" description="Update your name and email address" />
+                <HeadingSmall :title="trans('settings.profile.heading')" :description="trans('settings.profile.description')" />
 
                 <form @submit.prevent="submit" class="space-y-6">
-                    <div class="grid gap-2">
-                        <Label for="name">Name</Label>
-                        <Input id="name" class="mt-1 block w-full" v-model="form.name" required autocomplete="name" placeholder="Full name" />
-                        <InputError class="mt-2" :message="form.errors.name" />
+                    <div class="flex items-center gap-4">
+                        <Avatar size="lg">
+                            <AvatarImage v-if="previewSrc" :src="previewSrc" :alt="`${user.first_name} ${user.last_name}`" />
+                            <AvatarFallback>{{ initials }}</AvatarFallback>
+                        </Avatar>
+                        <div class="grid gap-2">
+                            <Label for="photo">{{ trans('settings.profile.photo') }}</Label>
+                            <input
+                                id="photo"
+                                ref="photoInput"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="file:bg-secondary file:text-foreground hover:file:bg-secondary/80 block text-sm text-neutral-700 file:mr-4 file:rounded-md file:border-0 file:px-4 file:py-2 file:text-sm file:font-medium"
+                                @change="onPhotoChange"
+                            />
+                            <p class="text-sm text-neutral-600">{{ trans('settings.profile.photo_hint') }}</p>
+                            <Button
+                                v-if="savedPhotoUrl"
+                                type="button"
+                                variant="link"
+                                class="h-auto justify-self-start p-0 text-sm"
+                                @click="removePhoto"
+                            >
+                                {{ trans('settings.profile.photo_remove') }}
+                            </Button>
+                            <InputError class="mt-2" :message="form.errors.photo" />
+                        </div>
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="email">Email address</Label>
+                        <Label for="first_name">{{ trans('settings.profile.first_name') }}</Label>
+                        <Input
+                            id="first_name"
+                            class="mt-1 block w-full"
+                            v-model="form.first_name"
+                            required
+                            autocomplete="given-name"
+                            :placeholder="trans('settings.profile.first_name')"
+                        />
+                        <InputError class="mt-2" :message="form.errors.first_name" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="last_name">{{ trans('settings.profile.last_name') }}</Label>
+                        <Input
+                            id="last_name"
+                            class="mt-1 block w-full"
+                            v-model="form.last_name"
+                            required
+                            autocomplete="family-name"
+                            :placeholder="trans('settings.profile.last_name')"
+                        />
+                        <InputError class="mt-2" :message="form.errors.last_name" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="email">{{ trans('settings.profile.email') }}</Label>
                         <Input
                             id="email"
                             type="email"
@@ -66,31 +197,104 @@ const submit = () => {
                             v-model="form.email"
                             required
                             autocomplete="username"
-                            placeholder="Email address"
+                            :placeholder="trans('settings.profile.email')"
                         />
                         <InputError class="mt-2" :message="form.errors.email" />
                     </div>
 
+                    <div class="grid gap-2 border-t pt-6">
+                        <HeadingSmall
+                            :title="trans('settings.profile.contact_heading')"
+                            :description="trans('settings.profile.contact_description')"
+                        />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="phone">{{ trans('settings.profile.phone') }}</Label>
+                        <Input id="phone" class="mt-1 block w-full" v-model="form.phone" autocomplete="tel" />
+                        <InputError class="mt-2" :message="form.errors.phone" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="alternate_phone">{{ trans('settings.profile.alternate_phone') }}</Label>
+                        <Input id="alternate_phone" class="mt-1 block w-full" v-model="form.alternate_phone" autocomplete="tel" />
+                        <InputError class="mt-2" :message="form.errors.alternate_phone" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="business_phone">{{ trans('settings.profile.business_phone') }}</Label>
+                        <Input id="business_phone" class="mt-1 block w-full" v-model="form.business_phone" autocomplete="tel" />
+                        <InputError class="mt-2" :message="form.errors.business_phone" />
+                    </div>
+
+                    <div class="grid gap-2 border-t pt-6">
+                        <HeadingSmall :title="trans('settings.profile.address_heading')" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="address_street">{{ trans('settings.profile.address_street') }}</Label>
+                        <Input id="address_street" class="mt-1 block w-full" v-model="form.address_street" autocomplete="street-address" />
+                        <InputError class="mt-2" :message="form.errors.address_street" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="address_city">{{ trans('settings.profile.address_city') }}</Label>
+                        <Input id="address_city" class="mt-1 block w-full" v-model="form.address_city" autocomplete="address-level2" />
+                        <InputError class="mt-2" :message="form.errors.address_city" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="address_province">{{ trans('settings.profile.address_province') }}</Label>
+                        <Input id="address_province" class="mt-1 block w-full" v-model="form.address_province" autocomplete="address-level1" />
+                        <InputError class="mt-2" :message="form.errors.address_province" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="address_postal_code">{{ trans('settings.profile.address_postal_code') }}</Label>
+                        <Input id="address_postal_code" class="mt-1 block w-full" v-model="form.address_postal_code" autocomplete="postal-code" />
+                        <InputError class="mt-2" :message="form.errors.address_postal_code" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="address_country">{{ trans('settings.profile.address_country') }}</Label>
+                        <Input id="address_country" class="mt-1 block w-full" v-model="form.address_country" autocomplete="country-name" />
+                        <InputError class="mt-2" :message="form.errors.address_country" />
+                    </div>
+
+                    <div v-if="emailIsChanging" class="grid gap-2">
+                        <Label for="current_password">{{ trans('settings.profile.current_password') }}</Label>
+                        <Input
+                            id="current_password"
+                            type="password"
+                            class="mt-1 block w-full"
+                            v-model="form.current_password"
+                            autocomplete="current-password"
+                            :placeholder="trans('settings.profile.current_password')"
+                        />
+                        <p class="text-sm text-neutral-600">{{ trans('settings.profile.current_password_hint') }}</p>
+                        <InputError class="mt-2" :message="form.errors.current_password" />
+                    </div>
+
                     <div v-if="mustVerifyEmail && !user.email_verified_at">
                         <p class="mt-2 text-sm text-neutral-800">
-                            Your email address is unverified.
+                            {{ trans('settings.profile.unverified') }}
                             <Link
                                 :href="route('verification.send')"
                                 method="post"
                                 as="button"
                                 class="rounded-md text-sm text-neutral-600 underline hover:text-neutral-900 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
                             >
-                                Click here to re-send the verification email.
+                                {{ trans('settings.profile.resend') }}
                             </Link>
                         </p>
 
                         <div v-if="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-green-600">
-                            A new verification link has been sent to your email address.
+                            {{ trans('settings.profile.verification_sent') }}
                         </div>
                     </div>
 
                     <div class="flex items-center gap-4">
-                        <Button :disabled="form.processing">Save</Button>
+                        <Button :loading="form.processing" :disabled="!can.update">{{ trans('settings.profile.save') }}</Button>
 
                         <TransitionRoot
                             :show="form.recentlySuccessful"
@@ -99,13 +303,11 @@ const submit = () => {
                             leave="transition ease-in-out"
                             leave-to="opacity-0"
                         >
-                            <p class="text-sm text-neutral-600">Saved.</p>
+                            <p class="text-sm text-neutral-600">{{ trans('settings.profile.saved') }}</p>
                         </TransitionRoot>
                     </div>
                 </form>
             </div>
-
-            <DeleteUser />
         </SettingsLayout>
     </AppLayout>
 </template>

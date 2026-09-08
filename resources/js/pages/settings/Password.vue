@@ -4,12 +4,14 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { TransitionRoot } from '@headlessui/vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { trans } from 'laravel-vue-i18n';
+import { computed, ref } from 'vue';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import { type BreadcrumbItem } from '@/types';
 
 interface Props {
@@ -18,12 +20,17 @@ interface Props {
 
 defineProps<Props>();
 
-const breadcrumbItems: BreadcrumbItem[] = [
+const localizeHref = useLocalizedHref();
+
+// `computed`, not a plain const: after a full-page locale switch the messages load
+// async, so a `trans()` snapshot taken at setup captures the raw key before the
+// locale is ready. A computed re-derives the label reactively once it resolves.
+const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Password settings',
-        href: '/settings/password',
+        title: trans('settings.password.title'),
+        href: localizeHref('/settings/password'),
     },
-];
+]);
 
 const passwordInput = ref<HTMLInputElement>();
 const currentPasswordInput = ref<HTMLInputElement>();
@@ -35,7 +42,7 @@ const form = useForm({
 });
 
 const updatePassword = () => {
-    form.put(route('password.update'), {
+    form.put(route('settings.password.update'), {
         preserveScroll: true,
         onSuccess: () => form.reset(),
         onError: (errors: any) => {
@@ -59,15 +66,15 @@ const updatePassword = () => {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Profile settings" />
+        <Head :title="trans('settings.password.title')" />
 
         <SettingsLayout>
             <div class="space-y-6">
-                <HeadingSmall title="Update password" description="Ensure your account is using a long, random password to stay secure" />
+                <HeadingSmall :title="trans('settings.password.heading')" :description="trans('settings.password.description')" />
 
                 <form @submit.prevent="updatePassword" class="space-y-6">
                     <div class="grid gap-2">
-                        <Label for="current_password">Current Password</Label>
+                        <Label for="current_password">{{ trans('settings.password.current_password') }}</Label>
                         <Input
                             id="current_password"
                             ref="currentPasswordInput"
@@ -75,13 +82,13 @@ const updatePassword = () => {
                             type="password"
                             class="mt-1 block w-full"
                             autocomplete="current-password"
-                            placeholder="Current password"
+                            :placeholder="trans('settings.password.current_password')"
                         />
                         <InputError :message="form.errors.current_password" />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="password">New password</Label>
+                        <Label for="password">{{ trans('settings.password.new_password') }}</Label>
                         <Input
                             id="password"
                             ref="passwordInput"
@@ -89,26 +96,26 @@ const updatePassword = () => {
                             type="password"
                             class="mt-1 block w-full"
                             autocomplete="new-password"
-                            placeholder="New password"
+                            :placeholder="trans('settings.password.new_password')"
                         />
                         <InputError :message="form.errors.password" />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="password_confirmation">Confirm password</Label>
+                        <Label for="password_confirmation">{{ trans('settings.password.confirm_password') }}</Label>
                         <Input
                             id="password_confirmation"
                             v-model="form.password_confirmation"
                             type="password"
                             class="mt-1 block w-full"
                             autocomplete="new-password"
-                            placeholder="Confirm password"
+                            :placeholder="trans('settings.password.confirm_password')"
                         />
                         <InputError :message="form.errors.password_confirmation" />
                     </div>
 
                     <div class="flex items-center gap-4">
-                        <Button :disabled="form.processing">Save password</Button>
+                        <Button :loading="form.processing">{{ trans('settings.password.save') }}</Button>
 
                         <TransitionRoot
                             :show="form.recentlySuccessful"
@@ -117,7 +124,7 @@ const updatePassword = () => {
                             leave="transition ease-in-out"
                             leave-to="opacity-0"
                         >
-                            <p class="text-sm text-neutral-600">Saved</p>
+                            <p class="text-sm text-neutral-600">{{ trans('settings.password.saved') }}</p>
                         </TransitionRoot>
                     </div>
                 </form>

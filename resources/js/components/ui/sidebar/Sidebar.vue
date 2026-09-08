@@ -29,7 +29,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 <template>
     <div
         v-if="collapsible === 'none'"
-        :class="cn('flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground', props.class)"
+        :class="cn('flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground print:hidden', props.class)"
         v-bind="$attrs"
     >
         <slot />
@@ -53,17 +53,20 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
     <div
         v-else
-        class="group peer hidden md:block"
+        class="group peer hidden md:block print:hidden"
         :data-state="state"
         :data-collapsible="state === 'collapsed' ? collapsible : ''"
         :data-variant="variant"
         :data-side="side"
     >
-        <!-- This is what handles the sidebar gap on desktop  -->
+        <!-- This is what handles the sidebar gap on desktop. Local customisation:
+             the gap + fixed rail are offset by --header-height (default 0px) so the
+             rail starts below a full-width top bar; see AppShell/AppSidebarLayout. -->
+
         <div
             :class="
                 cn(
-                    'relative h-svh w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear',
+                    'relative h-[calc(100svh_-_var(--header-height,0px))] w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear',
                     'group-data-[collapsible=offcanvas]:w-0',
                     'group-data-[side=right]:rotate-180',
                     variant === 'floating' || variant === 'inset'
@@ -75,7 +78,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
         <div
             :class="
                 cn(
-                    'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
+                    'fixed top-[var(--header-height,0px)] bottom-0 z-10 hidden h-[calc(100svh_-_var(--header-height,0px))] w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
                     side === 'left'
                         ? 'left-0 group-data-[collapsible=offcanvas]:-left-(--sidebar-width)'
                         : 'right-0 group-data-[collapsible=offcanvas]:-right-(--sidebar-width)',

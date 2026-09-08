@@ -104,8 +104,8 @@ See `docs/conventions.md` § Documents for implementation details.
 - All user-facing strings come from `lang/en/*.php` and `lang/fr/*.php` files. No hardcoded strings in templates or components.
 - The user's locale preference is stored on the `Volunteer` record (`locale` column, default `'en'`) and applied via middleware.
 - URLs are bilingual too: English is canonical at the root, French lives under `/fr/` with translated path segments (`/fr/benevoles/123`). Route segments are translated via `lang/en/routes.php` + `lang/fr/routes.php` and resolved by the `mcamara/laravel-localization` package. See [ADR-0008](adr/0008-bilingual-url-routing.md) and `docs/conventions.md` § Internationalization → URL routing.
-- Document titles and descriptions can be stored bilingually (per-document fields for `title_en`, `title_fr`, etc.). Decide per-feature whether content is translatable or single-language.
-- Dates and numbers use locale-aware formatting (`Carbon` for PHP, `Intl.DateTimeFormat` for JS).
+- **Only chrome is translated.** Volunteer-authored content (Group names, news, document titles, meeting notes) is single-column and rendered as-authored in both locales — no `_en`/`_fr` content columns. See [ADR-0004](adr/0004-chrome-only-translation.md).
+- French chrome targets **Canadian French (`fr-CA`)**; dates and numbers use locale-aware formatting (`Carbon` for PHP, `Intl.DateTimeFormat` for JS).
 
 ## Environments
 
@@ -122,3 +122,22 @@ Automated via GitHub Actions. See [ADR-0007](adr/0007-dev-staging-deploy-strateg
 - Vite builds in CI; artifacts (`public/build/`) are rsync'd to Stormweb. Node is not installed on the production server.
 - Composer install + `php artisan migrate` run on the server via SSH from the deploy workflow.
 - Production deploys take a `mysqldump` of the DB before running migrations (fresh recovery point).
+
+### Demo seeding for a presentation (manual, staging only)
+
+`DemoSeeder` (see PRD #139) populates staging with a curated, believable slice of the DMV org — committees, programs, members, memberships, roles, stewardship — so a board pitch lands against a living app instead of the near-empty default. It is **manual and on-demand only**: deliberately not wired into `DatabaseSeeder` or the deploy pipeline, so an unrelated push never populates or alters staging. It runs by hand over SSH, and **only on staging — never on production**, where real volunteer data lives.
+
+Procedure, run right before the presentation:
+
+1. **Deploy the demo build first.** Every push to `staging` runs `migrate:fresh --seed`, which **drops the database** and reseeds only the test login. So deploy before you seed — never the other way around.
+2. **Seed last.** SSH into the Stormweb account and `cd` into the **staging** app folder, then run the seeder (Stormweb's default `php` is 7.4; the app needs 8.4):
+
+   ```bash
+   ssh dmvromca@dmv-rom.ca
+   cd ~/domains/staging.dmv-rom.ca/dmv-rom-v2        # staging — NOT the prod domain folder
+   /usr/local/php84/bin/php artisan db:seed --class=DemoSeeder --force
+   ```
+
+   Staging and production are sibling domain folders under the **same** `dmvromca@dmv-rom.ca` account, so the directory you `cd` into is the only thing keeping this off production. Confirm before seeding — `pwd` should end in `staging.dmv-rom.ca/dmv-rom-v2`, and `grep -E '^(APP_ENV|APP_URL|DB_DATABASE)=' .env` should show the staging environment. If `.env` says production, **stop** — you're in the wrong folder. (`DemoSeeder` is insert-only, so it won't overwrite real data, but it would scatter `*@dmv.test` members and demo groups through the live org.) The seeder picks up the DB credentials from that folder's `.env`; `--force` is needed only to skip Laravel's production-env confirmation prompt.
+
+3. **Present — and don't push to `staging` again until you're done.** Any further push triggers `migrate:fresh --seed` and wipes the demo data. If that happens, just re-run the command above: `DemoSeeder` is idempotent, so re-seeding heals the data (keyed on slug / email / membership pair) rather than duplicating it.

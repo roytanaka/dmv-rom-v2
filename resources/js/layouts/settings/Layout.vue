@@ -2,30 +2,41 @@
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
+import { computed } from 'vue';
 
-const sidebarNavItems: NavItem[] = [
+const localizeHref = useLocalizedHref();
+
+// Hrefs are authored English-canonical and localized per ADR-0008 so a French
+// Member navigating the settings sidebar stays on the French twins.
+//
+// `computed`, not a plain const: after a full-page locale switch the messages load
+// async, so a `trans()` snapshot taken at setup captures the raw key before FR is
+// ready. A computed re-derives the labels reactively once the locale resolves.
+const sidebarNavItems = computed<NavItem[]>(() => [
     {
-        title: 'Profile',
-        href: '/settings/profile',
+        title: trans('settings.nav.profile'),
+        href: localizeHref('/settings/profile'),
     },
     {
-        title: 'Password',
-        href: '/settings/password',
+        title: trans('settings.nav.password'),
+        href: localizeHref('/settings/password'),
     },
     {
-        title: 'Appearance',
-        href: '/settings/appearance',
+        title: trans('settings.nav.skills'),
+        href: localizeHref('/settings/skills'),
     },
-];
+]);
 
 const currentPath = window.location.pathname;
 </script>
 
 <template>
     <div class="px-4 py-6">
-        <Heading title="Settings" description="Manage your profile and account settings" />
+        <Heading :title="trans('settings.title')" :description="trans('settings.description')" />
 
         <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
