@@ -21,6 +21,7 @@ import {
     canSend,
     filterRoster,
     isEdited,
+    menuFromIndex,
     recipientName,
     rosterIds,
     type AudienceOption,
@@ -99,4 +100,28 @@ test('filterRoster matches on the full name, case-insensitively', () => {
 
 test('rosterIds is the tick-all target: every row on the page', () => {
     assert.deepEqual([...rosterIds(roster)], [1, 2, 3]);
+});
+
+test('menuFromIndex drops the hand-pick key and reports it may be hand-picked', () => {
+    const index: AudienceOption[] = [
+        { key: 'whole_group', parameter: null, label: 'Whole group', count: 3 },
+        { key: 'hand_picked', parameter: null, label: 'Hand-picked', count: 0 },
+    ];
+    const { audiences, canHandPick } = menuFromIndex(index);
+    assert.deepEqual(
+        audiences.map((a) => a.key),
+        ['whole_group'],
+    );
+    assert.equal(canHandPick, true);
+});
+
+test('menuFromIndex reports no hand-pick when the server offered none (a plain Directory member)', () => {
+    const index: AudienceOption[] = [
+        { key: 'board_of_directors', parameter: null, label: 'Board of Directors', count: 9 },
+        { key: 'committee_chairs', parameter: null, label: 'Committee Chairs', count: 12 },
+        { key: 'all_chairs', parameter: null, label: 'All Chairs', count: 15 },
+    ];
+    const { audiences, canHandPick } = menuFromIndex(index);
+    assert.equal(audiences.length, 3);
+    assert.equal(canHandPick, false);
 });

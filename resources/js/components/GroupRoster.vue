@@ -30,13 +30,29 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import EmailMenu from '@/emailing/EmailMenu.vue';
+import { type Recipient } from '@/emailing/composer';
 import { type RosterMember, type RosterMeta } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
 import { PhDotsThree, PhMagnifyingGlass, PhPlus } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
-const props = defineProps<{ members: RosterMember[]; canManage: boolean; meta: RosterMeta; groupSlug: string }>();
+const props = defineProps<{ members: RosterMember[]; canManage: boolean; meta: RosterMeta; groupSlug: string; groupName: string }>();
+
+// The Group's roster as the composer's hand-pick pool (#490, ADR-0024 §6.2): the same
+// Group-context Audiences the section-tab strip offers, here in the roster toolbar. Shaped to
+// the composer's Recipient (a within-Group standing hint, never an address); the server
+// re-resolves who is actually reached.
+const emailRoster = computed<Recipient[]>(() =>
+    props.members.map((member) => ({
+        id: member.id,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        photo: member.photo,
+        standing: member.group_standing,
+    })),
+);
 
 // The standings an officer may set directly. Resigned is reached through the Resign
 // action (it keeps history), and Deceased is never set here — both are excluded.
@@ -204,16 +220,21 @@ const hardRemove = (member: RosterMember) => {
                 />
             </div>
 
-            <!-- Officer controls: show-past toggle + add member (#192). -->
-            <div v-if="canManage" class="flex items-center gap-4">
-                <label class="text-muted-foreground flex items-center gap-2 text-sm">
-                    <Checkbox :checked="meta.showingPast" @update:checked="toggleShowPast" />
-                    {{ trans('group.roster.show_past') }}
-                </label>
-                <Button type="button" size="sm" class="gap-1.5" @click="openAdd">
-                    <PhPlus class="size-4" />
-                    {{ trans('group.roster.add') }}
-                </Button>
+            <!-- Officer controls: show-past toggle + add member (#192), and the Email control
+                 (#490, ADR-0024 §6.2) — the Group-context Audiences, moved into the roster
+                 toolbar. The Email menu is present for every member; the officer CRUD is gated. -->
+            <div class="flex items-center gap-4">
+                <template v-if="canManage">
+                    <label class="text-muted-foreground flex items-center gap-2 text-sm">
+                        <Checkbox :checked="meta.showingPast" @update:checked="toggleShowPast" />
+                        {{ trans('group.roster.show_past') }}
+                    </label>
+                    <Button type="button" size="sm" class="gap-1.5" @click="openAdd">
+                        <PhPlus class="size-4" />
+                        {{ trans('group.roster.add') }}
+                    </Button>
+                </template>
+                <EmailMenu context="group" :context-subject="groupSlug" :group-name="groupName" :roster="emailRoster" />
             </div>
         </div>
 

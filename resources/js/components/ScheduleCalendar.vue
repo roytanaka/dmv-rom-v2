@@ -25,6 +25,9 @@ const props = defineProps<{
     foreignExpanded: boolean;
     startsOn: string;
     endsOn: string;
+    // The owning Group's name, threaded to each day-sheet ShiftCard so a seat-taken Shift
+    // surfaces its Email control (#490, ADR-0024 §6.4), exactly as in the Agenda.
+    groupName: string;
 }>();
 
 const emit = defineEmits<{
@@ -174,6 +177,7 @@ const formatDay = (date: string) =>
                         v-for="shift in openDay.shifts"
                         :key="shift.id"
                         :shift="shift"
+                        :email-group-name="groupName"
                         @take="emit('take', $event)"
                         @drop="emit('drop', $event)"
                         @assign="emit('assign', $event)"

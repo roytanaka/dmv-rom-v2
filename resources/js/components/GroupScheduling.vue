@@ -28,6 +28,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import EmailMenu from '@/emailing/EmailMenu.vue';
+import { type Recipient } from '@/emailing/composer';
 import { buildAgenda } from '@/scheduling/agenda';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
@@ -59,6 +61,7 @@ const props = defineProps<{
     emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] };
     canManageEmptyDesk: boolean;
     groupSlug: string;
+    groupName: string;
 }>();
 
 const page = usePage<SharedData>();
@@ -144,6 +147,20 @@ const sections = computed(() =>
 // URL, which always lists. Built through the route helper so the French twin comes
 // out right, as the Roster's show-past toggle already does.
 const listHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling' }));
+
+// The opened Schedule's Email control (#490, ADR-0024 §6.3): its menu leads with "Sign-ups
+// on <Schedule>", then the owning Group's Audiences, all resolved server-side. The hand-pick
+// pool is the Group's placeable roster the server already sent for officer assignment (empty
+// for a plain reader, who cannot hand-pick here anyway), each row shaped to a Recipient.
+const emailRoster = computed<Recipient[]>(() =>
+    props.scheduling.roster.map((candidate) => ({
+        id: candidate.id,
+        first_name: candidate.first_name,
+        last_name: candidate.last_name,
+        photo: candidate.photo,
+        standing: candidate.standing,
+    })),
+);
 
 // --- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and lead
 // days, gated by `canManageReminders`. One PATCH to the dedicated endpoint; the server
@@ -752,7 +769,16 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                             </CardTitle>
                             <p class="text-muted-foreground text-sm">{{ dateRange(scheduling.open.starts_on, scheduling.open.ends_on) }}</p>
                         </div>
-                        <div v-if="scheduling.open.can.update || scheduling.open.can.delete" class="flex shrink-0 flex-wrap gap-1">
+                        <div class="flex shrink-0 flex-wrap items-center gap-1">
+                            <!-- Email control (#490, ADR-0024 §6.3) — led by "Sign-ups on this
+                                 Schedule", then the Group's Audiences. Present for every reader
+                                 who can open the Schedule; the picker rule narrows the menu. -->
+                            <EmailMenu
+                                context="schedule"
+                                :context-subject="String(scheduling.open.id)"
+                                :group-name="groupName"
+                                :roster="emailRoster"
+                            />
                             <Button
                                 v-if="scheduling.open.can.update"
                                 type="button"
@@ -962,6 +988,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         :collects-visitor-count="collectsVisitorCount"
                         :collects-extra-interactions="collectsExtraInteractions"
                         :collects-visitor-provenance="collectsVisitorProvenance"
+                        :email-group-name="groupName"
                         @take="take"
                         @drop="drop"
                         @assign="openAssign"
@@ -993,6 +1020,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 :foreign-expanded="foreignExpanded"
                 :starts-on="scheduling.open.starts_on"
                 :ends-on="scheduling.open.ends_on"
+                :group-name="groupName"
                 @take="take"
                 @drop="drop"
                 @assign="openAssign"

@@ -1,15 +1,19 @@
 <script setup lang="ts">
-// The "Email ▾" control (#489, ADR-0024 §6) — one control wherever an Audience is reachable.
-// Its menu *is* the Audience list: each item names an Audience the viewer may pick and its
-// live count, fetched from the Audience index (§5), and a last item, "Pick people…", opens a
-// hand-pick from the page's roster. Picking either opens the stepped composer sheet.
+// The "Email ▾" control (#489, #490, ADR-0024 §6) — one control wherever an Audience is
+// reachable: the Group page and roster, an opened Schedule, a Shift with a seat taken, and
+// the Directory. Its menu *is* the Audience list: each item names an Audience the viewer may
+// pick and its live count, fetched from the Audience index (§5), and a last item, "Pick
+// people…", opens a hand-pick from the page's roster. Picking either opens the stepped
+// composer sheet.
 //
-// Context-driven by props so the same control serves the Group page now and the roster,
-// Schedule, Shift, and Directory surfaces next, each passing its own context and roster.
+// Context-driven by props so the same control serves every surface, each passing its own
+// context and roster. Whether "Pick people…" shows is the server's call too: it appears only
+// when the index offered a hand-pick Audience, so a plain Member on the Directory — who may
+// reach the three leadership Audiences but not hand-pick — sees none.
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import ComposerSheet from '@/emailing/ComposerSheet.vue';
-import { type AudienceOption, type Recipient } from '@/emailing/composer';
+import { menuFromIndex, type AudienceOption, type Recipient } from '@/emailing/composer';
 import { PhCaretDown, PhEnvelopeSimple } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { ref } from 'vue';
@@ -22,13 +26,15 @@ const props = defineProps<{
 }>();
 
 const audiences = ref<AudienceOption[]>([]);
+const canHandPick = ref(false);
 const loaded = ref(false);
 const sheetOpen = ref(false);
 const selected = ref<AudienceOption | null>(null);
 
 // Fetch the pickable Audiences the first time the menu opens — live counts, resolved on the
-// server (§5). The hand-pick key, if the index returns it, is dropped: the menu renders its
-// own "Pick people…" item so it is always present and always last.
+// server (§5). {@see menuFromIndex} splits the response into the named Audiences the menu
+// lists and whether the actor may hand-pick; the menu renders its own always-last "Pick
+// people…" item only then.
 async function ensureLoaded(): Promise<void> {
     if (loaded.value) {
         return;
@@ -49,7 +55,9 @@ async function ensureLoaded(): Promise<void> {
     }
 
     const data = (await response.json()) as { audiences: AudienceOption[] };
-    audiences.value = data.audiences.filter((audience) => audience.key !== 'hand_picked');
+    const menu = menuFromIndex(data.audiences);
+    audiences.value = menu.audiences;
+    canHandPick.value = menu.canHandPick;
 }
 
 function pick(audience: AudienceOption | null): void {
@@ -73,8 +81,8 @@ function pick(audience: AudienceOption | null): void {
                     <span class="flex-1">{{ audience.label }}</span>
                     <span class="text-muted-foreground">{{ audience.count }}</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator v-if="audiences.length" />
-                <DropdownMenuItem @select="pick(null)">{{ trans('audience.hand_picked') }}</DropdownMenuItem>
+                <DropdownMenuSeparator v-if="canHandPick && audiences.length" />
+                <DropdownMenuItem v-if="canHandPick" @select="pick(null)">{{ trans('audience.hand_picked') }}</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
 

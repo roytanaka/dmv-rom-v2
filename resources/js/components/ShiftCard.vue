@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import EmailMenu from '@/emailing/EmailMenu.vue';
 import { withinSignOutWindow } from '@/scheduling/signOut';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -22,11 +23,17 @@ const props = withDefaults(
         collectsVisitorCount?: boolean;
         collectsExtraInteractions?: boolean;
         collectsVisitorProvenance?: boolean;
+        // The owning Group's name, set only where the card sits on an opened Schedule (#490,
+        // ADR-0024 §6.4): its presence, with a seat taken, surfaces the Shift's Email control
+        // ("Sign-ups on this Shift"). Null on the cross-Group "my Sign-ups" panel, where the
+        // Shift is not an email entry point.
+        emailGroupName?: string | null;
     }>(),
     {
         collectsVisitorCount: false,
         collectsExtraInteractions: false,
         collectsVisitorProvenance: false,
+        emailGroupName: null,
     },
 );
 
@@ -271,6 +278,18 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                     <PhTrash class="size-4" />
                     {{ trans('group.scheduling_panel.delete') }}
                 </Button>
+                <!-- Email control (#490, ADR-0024 §6.4) — one Audience, "Sign-ups on this Shift".
+                     Shown only on an opened Schedule (`emailGroupName` set) and only once a seat
+                     is taken; a Shift with nobody on it is not an entry point. The picker rule
+                     narrows the menu to a Chair or Scheduler server-side. No hand-pick here, so
+                     the composer's Add-people pool is empty. -->
+                <EmailMenu
+                    v-if="emailGroupName !== null && shift.signups.length"
+                    context="shift"
+                    :context-subject="String(shift.id)"
+                    :group-name="emailGroupName"
+                    :roster="[]"
+                />
             </div>
 
             <!-- Recording the numbers (#445, #450, ADR-0023 §5) — one form, two ways in: the
