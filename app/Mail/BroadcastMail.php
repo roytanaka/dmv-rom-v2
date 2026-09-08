@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use App\Models\Broadcast;
-use App\Models\Delivery;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;

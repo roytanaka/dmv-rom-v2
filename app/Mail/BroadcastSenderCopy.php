@@ -26,6 +26,11 @@ class BroadcastSenderCopy extends Mailable
     use Queueable, SerializesModels;
 
     /**
+     * The most names the footer spells out before it falls back to a count (ADR-0024 §4).
+     */
+    public const NAMES_SHOWN = 20;
+
+    /**
      * @param  Broadcast  $broadcast  the send this is a copy of
      * @param  list<string>  $failedNames  the full names of recipients not reached, for the footer
      */
@@ -33,11 +38,6 @@ class BroadcastSenderCopy extends Mailable
         public Broadcast $broadcast,
         public array $failedNames = [],
     ) {}
-
-    /**
-     * The most names the footer spells out before it falls back to a count (ADR-0024 §4).
-     */
-    public const NAMES_SHOWN = 20;
 
     public function envelope(): Envelope
     {
