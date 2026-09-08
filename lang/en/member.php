@@ -12,6 +12,10 @@ return [
     'groups' => 'Groups & roles',
     'no_groups' => 'No group memberships.',
 
+    // The Direct-message affordance (#491, ADR-0024 §6): any Member may write to one other from
+    // their profile. Hidden on the viewer's own profile. Named by first name, as the button reads.
+    'message' => 'Message :name',
+
     // Records-only member-administration controls (#483, ADR-0024 §9). Shown only when
     // the viewer may administer members — the MemberResource gates the underlying data.
     'administration' => 'Member administration',

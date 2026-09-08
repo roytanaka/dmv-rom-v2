@@ -119,11 +119,16 @@ class Broadcast extends Model
     }
 
     /**
-     * The display name the From line wears: the Group's name for a Group Broadcast, the
-     * app's name for an org-wide send (ADR-0024 §3).
+     * The display name the From line wears: the sender's own name for a Direct message
+     * (ADR-0024 §6), the Group's name for a Group Broadcast, the app's name for an
+     * org-wide send (ADR-0024 §3).
      */
     public function fromName(): string
     {
+        if ($this->kind === BroadcastKind::DirectMessage) {
+            return $this->sender->fullName();
+        }
+
         return $this->group?->name ?? config('app.name');
     }
 }

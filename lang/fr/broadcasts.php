@@ -12,6 +12,14 @@ return [
     'sender_copy' => [
         'undelivered' => 'Impossible de livrer à : :names',
         'and_more' => 'et :count de plus',
+        // Un message direct n'a qu'un destinataire; sa copie nomme donc la personne non jointe.
+        'undelivered_direct' => 'Impossible de livrer à :name.',
+    ],
+
+    // Un message direct (ADR-0024 §6) — d'un membre à un autre. Le refus affiché lorsque le seul
+    // destinataire a désactivé le courriel : rien n'est écrit et l'expéditeur est averti aussitôt.
+    'direct' => [
+        'unreachable' => 'Impossible de joindre :name par courriel.',
     ],
 
     // Le châssis de la feuille du compositeur (ADR-0024 §6) — le flux échelonné Qui → Message →
@@ -31,6 +39,9 @@ return [
         'empty_roster' => 'Personne sur cette liste ne correspond.',
         // L'étape Message.
         'from' => 'De :group · les réponses vous parviennent · vous en recevez une copie',
+        // L'étape Qui d'un message direct : un seul destinataire fixe, sans sélection. La note
+        // prévient l'expéditeur que son adresse de réponse est visible (ADR-0024 §6).
+        'direct_reply_note' => 'Une réponse parvient à votre propre adresse, donc :name la verra.',
         'subject' => 'Objet',
         'body' => 'Message',
         'attachments' => 'Pièces jointes',
