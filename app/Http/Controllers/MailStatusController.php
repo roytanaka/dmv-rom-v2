@@ -36,10 +36,8 @@ class MailStatusController extends Controller
         $schedulerLastRan = Cache::get(DrainDeliveries::SCHEDULER_LAST_RAN);
         $connectionError = Cache::get(DrainDeliveries::LAST_CONNECTION_ERROR);
 
-        $mailLastSent = Delivery::query()
-            ->where('state', DeliveryState::Sent)
-            ->max('sent_at');
-        $mailLastSent = $mailLastSent ? Carbon::parse($mailLastSent) : null;
+        $maxSentAt = Delivery::query()->where('state', DeliveryState::Sent)->max('sent_at');
+        $mailLastSent = $maxSentAt ? Carbon::parse($maxSentAt) : null;
 
         $errorAt = isset($connectionError['at']) ? Carbon::parse($connectionError['at']) : null;
 
