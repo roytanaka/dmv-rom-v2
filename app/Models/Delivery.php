@@ -16,8 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * The row snapshots the recipient's address (`email`) at write time and, for the kinds whose
  * source may be gone by drain time, a `payload` snapshot of what the mail needs. `state`
  * walks the {@see DeliveryState} lifecycle; `kind` ({@see DeliveryKind}) decides which
- * Mailable the Drain builds. Failure, retry, and expiry columns are wired by a later ticket
- * (#482); this ticket writes and sends `Notice` rows only.
+ * Mailable the Drain builds. Failure, retry, and expiry are handled by the Drain (#482,
+ * ADR-0024 §4).
  */
 class Delivery extends Model
 {
