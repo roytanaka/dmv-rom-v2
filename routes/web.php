@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\HoursController;
@@ -402,6 +403,21 @@ if (! app()->environment('production')) {
         ->middleware('auth')
         ->name('impersonation.stop');
 }
+
+// Audience endpoints (#484, ADR-0024 §5). The two reads the composer sheet fetches:
+// an index of the Audiences the actor may pick in a context (each with a label and a
+// count), and a show of one Audience's resolved rows (id, name, photo, standing — never
+// an address). Both resolve every Audience on the server from the Group model, enforcing
+// the picker rule; the browser names the Audience and never posts a recipient list. Data
+// endpoints (JSON), non-localized like the other seams: the `context`/`subject` query
+// pair names the surface, `parameter` pins a parameterised Audience, and `removed[]` /
+// `added[]` carry the picker's per-Member edits.
+Route::get('audiences', [AudienceController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('audiences.index');
+Route::get('audiences/{audience}', [AudienceController::class, 'show'])
+    ->middleware(['auth'])
+    ->name('audiences.show');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

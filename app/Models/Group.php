@@ -10,6 +10,7 @@ use App\Enums\ListingVisibility;
 use App\Enums\Role;
 use App\Enums\Scope;
 use App\Enums\StewardshipFunction;
+use App\Support\Audiences\AudienceResolver;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -34,6 +35,16 @@ class Group extends Model
      * node without hard-coding the string, and single-sourced with {@see OrgTreeSeeder}.
      */
     public const ROOT_SLUG = 'dmv';
+
+    /**
+     * The slug of the DMV Executive Group — the top governance body, a single
+     * standing committee under the root (CONTEXT.md: "DMV Executive"; not the root
+     * itself, and not the super-tier grant). Named so the Board-of-Directors Audience
+     * ({@see AudienceResolver}) can resolve the Executive's
+     * roster without hard-coding the string, and single-sourced across both seeders,
+     * exactly as {@see ROOT_SLUG} single-sources the root.
+     */
+    public const EXECUTIVE_SLUG = 'executive';
 
     /**
      * The attributes that are mass assignable.
@@ -246,6 +257,38 @@ class Group extends Model
     public static function stewardOf(StewardshipFunction $function): ?self
     {
         return static::stewarding($function)->first();
+    }
+
+    /**
+     * The DMV Executive Group, or null if none is seeded — the roster the
+     * Board-of-Directors Audience resolves to (ADR-0024 §5). Resolved by the
+     * well-known {@see EXECUTIVE_SLUG}, the same way {@see stewardOf()} resolves the
+     * Records Group; the Executive is a specific Group, not an org-wide function, so
+     * it is keyed on its slug rather than a stewardship row.
+     */
+    public static function executive(): ?self
+    {
+        return static::where('slug', self::EXECUTIVE_SLUG)->first();
+    }
+
+    /**
+     * Whether this Group is still alive — the instance twin of {@see scopeActive()},
+     * for a Group already in memory (e.g. walking a Member's loaded memberships).
+     * Lifecycle Active, and not an expired time-boxed Group; a time-boxed Group with
+     * no end_date is treated as still open. Mirrors the scope's predicate exactly so
+     * the two never drift.
+     */
+    public function isActive(): bool
+    {
+        if ($this->lifecycle_state !== LifecycleState::Active) {
+            return false;
+        }
+
+        if (! $this->time_boxed || $this->end_date === null) {
+            return true;
+        }
+
+        return $this->end_date->startOfDay()->gte(now()->startOfDay());
     }
 
     /**

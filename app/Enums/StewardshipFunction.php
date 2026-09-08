@@ -14,4 +14,12 @@ enum StewardshipFunction: string
     case MemberAdmin = 'member_admin';
     case Statistics = 'statistics';
     case Website = 'website';
+
+    // The org-wide mail franchise (ADR-0024 §5): a Group that stewards `org_mail`
+    // may send the org-wide Broadcast Audiences — All Members, One Category, the
+    // Directory hand-pick — that reach past any one Group's roster. Seeded on the
+    // DMV Executive, Records, and Awards Groups. Membership in any stewarding Group
+    // is one of the two ways a Member is an "org-wide sender"
+    // ({@see \App\Models\Member::isOrgWideSender()}); the other is a Chair role.
+    case OrgMail = 'org_mail';
 }

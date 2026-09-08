@@ -305,4 +305,40 @@ class Member extends Authenticatable implements HasLocalePreference
 
         return $records !== null && $this->membershipIn($records) !== null;
     }
+
+    /**
+     * Whether this Member is one of the given Group's officers — holds at least one
+     * {@see Role} in it (ADR-0024 §5: "the Group's officers means memberships holding
+     * any Role, not a fixed subset"). Distinct from {@see administers()}, the narrower
+     * Secretary-or-Chair predicate; a Scheduler or Librarian is an officer here but
+     * does not administer. The gate behind the officer-only Broadcast Audiences (the
+     * officer set and a child Group's roster). False when the Member isn't in the Group.
+     */
+    public function isOfficerOf(Group $group): bool
+    {
+        return (bool) $this->membershipIn($group)?->roles->isNotEmpty();
+    }
+
+    /**
+     * Whether this Member may send the org-wide Broadcast Audiences (ADR-0024 §5) —
+     * the two ways to hold the franchise: membership in any Group that stewards
+     * `org_mail` (the Executive, Records, and Awards Groups), or a Chair role in any
+     * *active* Group at any depth. The gate the Directory's org-wide Audiences and its
+     * hand-pick read; the three leadership Audiences (Board, Committee Chairs, All
+     * Chairs) are open to every Member and do not consult this.
+     *
+     * Self-loads the roles and stewardships it reads so it is safe under strict mode
+     * whatever the caller pre-loaded, mirroring {@see membershipIn()}.
+     */
+    public function isOrgWideSender(): bool
+    {
+        $this->loadMissing(['memberships.roles', 'memberships.group.stewardships']);
+
+        return $this->memberships->contains(function (GroupMember $membership): bool {
+            $group = $membership->group;
+
+            return $group->stewardships->contains('function', StewardshipFunction::OrgMail)
+                || ($group->isActive() && $membership->roles->contains('role', Role::Chair));
+        });
+    }
 }
