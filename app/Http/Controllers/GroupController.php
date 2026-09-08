@@ -166,6 +166,20 @@ class GroupController extends Controller
                     'enabled' => $group->reminders_enabled,
                     'leadDays' => $group->reminder_lead_days,
                 ],
+                // The Group's empty-desk settings (#487, ADR-0024 §7) — the Scheduling section's
+                // empty-desk block reads these to render its on/off switch, look-ahead field, and
+                // the roster of watch-tick rows, one per shift kind. Only to a schedule admin
+                // (`can.manageEmptyDesk`); the alert needs kinds to watch, so the kinds ride here.
+                'emptyDesk' => [
+                    'enabled' => $group->empty_desk_alert_enabled,
+                    'daysAhead' => $group->empty_desk_days_ahead,
+                    'shiftKinds' => $group->shiftKinds()->orderBy('sort_order')->get()
+                        ->map(fn (ShiftKind $kind): array => [
+                            'id' => $kind->id,
+                            'name' => $kind->name,
+                            'watched' => $kind->alert_when_empty,
+                        ])->all(),
+                ],
             ],
             'section' => $section,
             // UI hints only — the server enforces in the Form Requests. `update`
@@ -182,6 +196,10 @@ class GroupController extends Controller
                 // ADR-0024 §7) — a Scheduler or Chair of the scheduling Group. UI hint only;
                 // UpdateReminderSettingsRequest re-checks the gate on PATCH.
                 'manageReminders' => $request->user()->can('updateReminders', [Schedule::class, $group]),
+                // `manageEmptyDesk` drives the Scheduling tab's empty-desk settings block (#487,
+                // ADR-0024 §7) — the same Scheduler/Chair gate as Reminders. UI hint only;
+                // UpdateEmptyDeskSettingsRequest re-checks the gate on PATCH.
+                'manageEmptyDesk' => $request->user()->can('updateEmptyDeskAlert', [Schedule::class, $group]),
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.

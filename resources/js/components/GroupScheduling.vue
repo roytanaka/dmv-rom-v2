@@ -56,6 +56,8 @@ const props = defineProps<{
     collectsVisitorProvenance: boolean;
     reminders: { enabled: boolean; leadDays: number };
     canManageReminders: boolean;
+    emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] };
+    canManageEmptyDesk: boolean;
     groupSlug: string;
 }>();
 
@@ -152,6 +154,24 @@ const reminderForm = useForm<{ reminders_enabled: boolean; reminder_lead_days: n
 });
 
 const saveReminders = () => reminderForm.patch(route('groups.reminders.update', { group: props.groupSlug }), { preserveScroll: true });
+
+// --- Empty-desk settings (#487, ADR-0024 §7) — the schedule-admin's on/off switch, look-ahead,
+// and the tick-rows marking which shift kinds to watch, gated by `canManageEmptyDesk`. One PATCH
+// to the dedicated endpoint; the server re-checks the gate. The form seeds from the Group's
+// current settings, its watched-kinds set drawn from the kinds already flagged.
+const emptyDeskForm = useForm<{ empty_desk_alert_enabled: boolean; empty_desk_days_ahead: number; watched_shift_kinds: number[] }>({
+    empty_desk_alert_enabled: props.emptyDesk.enabled,
+    empty_desk_days_ahead: props.emptyDesk.daysAhead,
+    watched_shift_kinds: props.emptyDesk.shiftKinds.filter((kind) => kind.watched).map((kind) => kind.id),
+});
+
+const toggleWatchedKind = (id: number, on: boolean) => {
+    emptyDeskForm.watched_shift_kinds = on
+        ? [...emptyDeskForm.watched_shift_kinds, id]
+        : emptyDeskForm.watched_shift_kinds.filter((kindId) => kindId !== id);
+};
+
+const saveEmptyDesk = () => emptyDeskForm.patch(route('groups.empty-desk.update', { group: props.groupSlug }), { preserveScroll: true });
 
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
 
@@ -656,6 +676,56 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 </div>
                 <div class="flex justify-end">
                     <Button type="button" size="sm" :disabled="reminderForm.processing" @click="saveReminders">
+                        {{ trans('group.scheduling_panel.save') }}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+
+        <!-- Empty-desk settings (#487, ADR-0024 §7) — the schedule-admin's on/off switch,
+             look-ahead, and the tick-rows marking which shift kinds the alert watches. Shown on
+             the list view only, and only to a Scheduler / Chair (`canManageEmptyDesk`); the
+             server re-checks on save. -->
+        <Card v-if="canManageEmptyDesk && !scheduling.open">
+            <CardHeader>
+                <CardTitle>{{ trans('group.scheduling_panel.empty_desk.heading') }}</CardTitle>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-4">
+                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.empty_desk.description') }}</p>
+                <label class="flex items-center gap-2 text-sm">
+                    <Checkbox
+                        :checked="emptyDeskForm.empty_desk_alert_enabled"
+                        @update:checked="(on: boolean) => (emptyDeskForm.empty_desk_alert_enabled = on)"
+                    />
+                    {{ trans('group.scheduling_panel.empty_desk.enabled_label') }}
+                </label>
+                <div class="flex flex-col gap-1.5">
+                    <Label for="empty-desk-days-ahead">{{ trans('group.scheduling_panel.empty_desk.days_ahead_label') }}</Label>
+                    <Input
+                        id="empty-desk-days-ahead"
+                        v-model.number="emptyDeskForm.empty_desk_days_ahead"
+                        type="number"
+                        min="1"
+                        max="90"
+                        class="w-24"
+                    />
+                    <InputError :message="emptyDeskForm.errors.empty_desk_days_ahead" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <span class="text-sm font-medium">{{ trans('group.scheduling_panel.empty_desk.watched_label') }}</span>
+                    <p v-if="emptyDesk.shiftKinds.length === 0" class="text-muted-foreground text-sm">
+                        {{ trans('group.scheduling_panel.empty_desk.no_kinds') }}
+                    </p>
+                    <label v-for="kind in emptyDesk.shiftKinds" :key="kind.id" class="flex items-center gap-2 text-sm">
+                        <Checkbox
+                            :checked="emptyDeskForm.watched_shift_kinds.includes(kind.id)"
+                            @update:checked="(on: boolean) => toggleWatchedKind(kind.id, on)"
+                        />
+                        {{ kind.name }}
+                    </label>
+                </div>
+                <div class="flex justify-end">
+                    <Button type="button" size="sm" :disabled="emptyDeskForm.processing" @click="saveEmptyDesk">
                         {{ trans('group.scheduling_panel.save') }}
                     </Button>
                 </div>

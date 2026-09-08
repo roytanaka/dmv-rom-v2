@@ -77,6 +77,13 @@ const props = defineProps<{
             enabled: boolean;
             leadDays: number;
         };
+        // The Group's empty-desk settings (#487) — the Scheduling tab's empty-desk block reads
+        // them, its watch-tick rows drawn from the Group's shift kinds.
+        emptyDesk: {
+            enabled: boolean;
+            daysAhead: number;
+            shiftKinds: { id: number; name: string; watched: boolean }[];
+        };
     };
     section: string;
     // UI hints from the policies — drive the officer affordances only; the server
@@ -90,6 +97,7 @@ const props = defineProps<{
         manageRoster: boolean;
         createSchedule: boolean;
         manageReminders: boolean;
+        manageEmptyDesk: boolean;
         enterHours: boolean;
         viewReports: boolean;
     };
@@ -372,6 +380,8 @@ const pickBanner = (key: string | null) => {
                     :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"
                     :reminders="group.reminders"
                     :can-manage-reminders="can.manageReminders"
+                    :empty-desk="group.emptyDesk"
+                    :can-manage-empty-desk="can.manageEmptyDesk"
                     :group-slug="group.slug"
                 />
 

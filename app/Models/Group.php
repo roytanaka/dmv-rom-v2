@@ -79,6 +79,8 @@ class Group extends Model
         'hours_multiplier',
         'reminders_enabled',
         'reminder_lead_days',
+        'empty_desk_alert_enabled',
+        'empty_desk_days_ahead',
     ];
 
     /**
@@ -111,6 +113,8 @@ class Group extends Model
             'hours_multiplier' => 'integer',
             'reminders_enabled' => 'boolean',
             'reminder_lead_days' => 'integer',
+            'empty_desk_alert_enabled' => 'boolean',
+            'empty_desk_days_ahead' => 'integer',
         ];
     }
 
@@ -227,6 +231,17 @@ class Group extends Model
                 || $membership->roles->contains('role', Role::Chair))
             ->map(fn (GroupMember $membership) => $membership->member)
             ->values();
+    }
+
+    /**
+     * The empty-desk alert runs recorded for this Group (#487, ADR-0024 §7) — one per cadence
+     * day the alert fired. Read by the daily pass as the "already ran today" idempotency key.
+     *
+     * @return HasMany<EmptyDeskRun, $this>
+     */
+    public function emptyDeskRuns(): HasMany
+    {
+        return $this->hasMany(EmptyDeskRun::class);
     }
 
     /**

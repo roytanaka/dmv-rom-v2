@@ -8,14 +8,16 @@ use App\Enums\ScheduleState;
 use App\Models\Delivery;
 use App\Models\Group;
 use App\Models\SignUp;
+use App\Support\EmptyDesk\EmptyDeskAlertWriter;
 use App\Support\OrgTime;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
  * The daily pass (spec #479, ADR-0024 §7, §10) — the once-a-day, 06:00-org-time task that writes
- * the day's Reminder Deliveries. It **only writes rows**; the every-minute {@see DrainDeliveries}
- * sends them within the hour. Scheduled with a 10-minute overlap lock in `routes/console.php`.
+ * the day's Reminder and empty-desk-alert Deliveries. It **only writes rows**; the every-minute
+ * {@see DrainDeliveries} sends them within the hour. Scheduled with a 10-minute overlap lock in
+ * `routes/console.php`.
  *
  * For each Group with Reminders on, it writes one Reminder for every Sign-up whose Shift starts
  * after now and before the end of today plus the Group's lead days, on a published Schedule, for
@@ -32,9 +34,9 @@ class RunDailyMailPass extends Command
 {
     protected $signature = 'mail:daily-pass';
 
-    protected $description = 'Write the day’s Reminder Deliveries';
+    protected $description = 'Write the day’s Reminder and empty-desk-alert Deliveries';
 
-    public function handle(): int
+    public function handle(EmptyDeskAlertWriter $emptyDeskAlerts): int
     {
         $now = now();
 
@@ -46,6 +48,10 @@ class RunDailyMailPass extends Command
         foreach ($groups as $group) {
             $this->writeReminders($group, $now);
         }
+
+        // The empty-desk alert runs on its own every-third-day cadence and Group-setting gate,
+        // so it is its own writer (ADR-0024 §7); the pass just hands it the wheel.
+        $emptyDeskAlerts->write();
 
         return self::SUCCESS;
     }

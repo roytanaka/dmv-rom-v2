@@ -121,6 +121,18 @@ class SchedulePolicy
     }
 
     /**
+     * Who may edit a Group's empty-desk settings (#487, ADR-0024 §7): a schedule admin of the
+     * Group — the same Scheduler / Chair gate, with the scheduling-capability guard folded in.
+     * The alert, its look-ahead, and which shift kinds to watch all move through one endpoint
+     * (UpdateEmptyDeskSettingsRequest), so the one gate covers the settings and the shift-kind
+     * flag alike.
+     */
+    public function updateEmptyDeskAlert(Member $actor, Group $group): bool
+    {
+        return $this->administersSchedulingFor($actor, $group);
+    }
+
+    /**
      * The schedule-admin gate: the Group runs scheduling *and* the actor can act as
      * its Scheduler (Chair-implication folded in by {@see Member::canActAs()}). The
      * capability guard matters because Chair-implication would otherwise grant schedule

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\GroupEmptyDeskSettingsController;
 use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\GroupReminderSettingsController;
 use App\Http\Controllers\HoursController;
@@ -285,6 +286,15 @@ Route::delete('schedules/{schedule}', [ScheduleController::class, 'destroy'])
 Route::patch('groups/{group}/reminder-settings', [GroupReminderSettingsController::class, 'update'])
     ->middleware(['auth'])
     ->name('groups.reminders.update');
+
+// Group empty-desk settings (#487, PRD #479, ADR-0024 §7). The Scheduling section's empty-desk
+// block — the alert on/off, the look-ahead days, and which shift kinds to watch — edited by a
+// Scheduler or Chair. One dedicated endpoint, bound to the Group by slug, structurally authorized
+// in UpdateEmptyDeskSettingsRequest, which delegates to the SchedulePolicy's `updateEmptyDeskAlert`
+// gate (scheduling on, actor a schedule admin). A plain member is refused before the write.
+Route::patch('groups/{group}/empty-desk-settings', [GroupEmptyDeskSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('groups.empty-desk.update');
 
 // Shift authoring (#356, PRD #352, ADR-0021 §2). The Scheduler's write seam for the
 // Shifts on a Schedule: add a Shift (times, capacity, optional kind, audience), edit it

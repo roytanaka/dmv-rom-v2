@@ -881,6 +881,29 @@ class DemoSeeder extends Seeder
         }
 
         $this->placeSignUps($docents, $schedule);
+
+        $this->watchVisitorGuidesDesk();
+    }
+
+    /**
+     * Give Visitor Guides its one watched shift kind (#487, ADR-0024 §7). The Group carries the
+     * empty-desk alert on (its `empty_desk_alert_enabled` capability), and legacy watches a single
+     * "Desk" kind — so the demo seeds that kind with the watch flag on, the one kind the alert
+     * scans. Keyed on (Group, name) so a reseed heals rather than duplicates; skipped silently if
+     * the Group is absent.
+     */
+    private function watchVisitorGuidesDesk(): void
+    {
+        $visitorGuides = Group::where('slug', 'visitor-guides')->first();
+
+        if ($visitorGuides === null) {
+            return;
+        }
+
+        ShiftKind::firstOrCreate(
+            ['group_id' => $visitorGuides->id, 'name' => 'Desk'],
+            ['active' => true, 'alert_when_empty' => true, 'sort_order' => 0],
+        );
     }
 
     /**
@@ -1598,9 +1621,12 @@ class DemoSeeder extends Seeder
                     ]),
                     // Visitor Guides and Visitor Wayfinders staff desks: one visitor count each,
                     // no second box (§2). They are the forced-entry Groups behind legacy's 96-98%.
+                    // Visitor Guides runs the empty-desk alert in legacy — its Desk kind is the
+                    // one watched kind, seeded on in scheduling() (#487, ADR-0024 §7).
                     $this->program('Visitor Guides', [], GroupLogo::VisitorGuides, capabilities: [
                         'collects_visitor_count' => true,
                         'reminders_enabled' => true,
+                        'empty_desk_alert_enabled' => true,
                     ]),
                     $this->program('Visitor Wayfinders', [
                         $this->workingGroup('Documentation', visibility: ListingVisibility::Public),
