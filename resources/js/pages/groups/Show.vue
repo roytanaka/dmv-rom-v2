@@ -22,6 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import type { NavNode } from '@/chrome/types';
+import EmailMenu from '@/emailing/EmailMenu.vue';
+import { type Recipient } from '@/emailing/composer';
 import { bannerSources, defaultBannerKey, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type GroupHours as GroupHoursData, type Meeting, type RosterMember, type RosterMeta, type Scheduling, type SharedData } from '@/types';
@@ -120,6 +122,19 @@ const formatDate = (iso: string) => new Intl.DateTimeFormat(page.props.locale, {
 // Lifecycle badge: Archived takes precedence; otherwise a time-boxed Group whose
 // window has closed reads "Ended <date>". An open or open-ended Group shows none.
 const ended = computed(() => !props.group.archived && props.group.end_date !== null && new Date(props.group.end_date) < new Date());
+
+// The page's roster as the composer's hand-pick pool (#489, ADR-0024 §6): the Add-people
+// panel and "Pick people…" tick from these rows. Shaped to the composer's Recipient (a
+// standing hint, never an address); the server re-resolves who is actually reached.
+const emailRoster = computed<Recipient[]>(() =>
+    props.roster.map((member) => ({
+        id: member.id,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        photo: member.photo,
+        standing: member.group_standing,
+    })),
+);
 
 // The in-body section tabs. Overview · Roster are always present; Meetings is a real
 // tab when the Group runs meetings. The remaining capabilities render as muted "soon"
@@ -262,9 +277,12 @@ const pickBanner = (key: string | null) => {
             </header>
 
             <!-- Sticky in-body section-tab strip, directly under the header (ADR-0013
-                 amendment). Reuses SectionTabs in its 'body' placement. -->
-            <div class="bg-background sticky top-16 z-20 px-4 py-4 shadow-sm sm:px-6">
+                 amendment). Reuses SectionTabs in its 'body' placement. The "Email ▾"
+                 control sits at the strip's end on every section (#489, ADR-0024 §6);
+                 its menu resolves the Group's pickable Audiences server-side. -->
+            <div class="bg-background sticky top-16 z-20 flex items-center justify-between gap-3 px-4 py-4 shadow-sm sm:px-6">
                 <SectionTabs :items="tabs" variant="body" :soon-label="trans('group.soon')" />
+                <EmailMenu context="group" :context-subject="group.slug" :group-name="group.name" :roster="emailRoster" />
             </div>
 
             <div class="flex-1 p-4 sm:p-6">
