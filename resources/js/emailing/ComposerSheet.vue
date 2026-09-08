@@ -62,7 +62,7 @@ const skipped = ref<string[]>([]);
 // with the Add-people panel already open (ADR-0024 §6).
 watch(
     () => [props.open, props.audience] as const,
-    ([open]) => {
+    ([open, audience]) => {
         if (!open) {
             return;
         }
@@ -76,7 +76,7 @@ watch(
         skipped.value = [];
         directory.value = new Map(props.roster.map((member) => [member.id, member]));
 
-        if (props.audience === null) {
+        if (audience === null) {
             baseIds.value = [];
             ticked.value = new Set();
             panelOpen.value = true;
@@ -84,7 +84,7 @@ watch(
         }
 
         panelOpen.value = false;
-        void loadRecipients(props.audience);
+        void loadRecipients(audience);
     },
     { immediate: true },
 );
@@ -213,7 +213,7 @@ async function send(): Promise<void> {
     form.set('subject', subject.value);
     form.set('body', body.value);
     form.set('audience', props.audience?.key ?? 'hand_picked');
-    if (props.audience?.parameter) {
+    if (props.audience?.parameter != null) {
         form.set('parameter', props.audience.parameter);
     }
     for (const id of edits.removed) {
