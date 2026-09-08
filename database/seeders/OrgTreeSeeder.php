@@ -52,7 +52,15 @@ class OrgTreeSeeder extends Seeder
 
     public const PROJECT = 'oral-history-project';
 
+    // The DMV Executive Group (ADR-0024 §5) — a top-level standing committee under
+    // the root, the roster the Board-of-Directors Audience resolves to. Keyed on the
+    // well-known {@see Group::EXECUTIVE_SLUG} so the resolver finds it the same way in
+    // the fixture as in the curated demo tree.
+    public const EXECUTIVE = Group::EXECUTIVE_SLUG;
+
     public const SCHEDULER_EMAIL = 'scheduler@dmv.test';
+
+    public const EXECUTIVE_CHAIR_EMAIL = 'exec-chair@dmv.test';
 
     /**
      * Build the miniature org tree end-to-end.
@@ -80,6 +88,9 @@ class OrgTreeSeeder extends Seeder
             'display_order' => 2,
         ]));
         $this->steward($records, StewardshipFunction::MemberAdmin);
+        // Records is also an org-wide sender (ADR-0024 §5): a member of it may pick the
+        // org-wide Broadcast Audiences.
+        $this->steward($records, StewardshipFunction::OrgMail);
 
         $program = $this->group(self::PROGRAM, fn () => Group::factory()->program()->create([
             'parent_id' => $root->id,
@@ -109,6 +120,18 @@ class OrgTreeSeeder extends Seeder
             'name' => 'Oral History Project',
             'display_order' => 6,
         ]));
+
+        // The DMV Executive — a top-level standing committee stewarding `org_mail`
+        // (ADR-0024 §5). Its roster is the Board-of-Directors Audience, and its Chair
+        // is a Committee Chair (a top-level Chair, distinct from the root's own Chair,
+        // who is an All-Chair only). A member of it is an org-wide sender.
+        $executive = $this->group(self::EXECUTIVE, fn () => Group::factory()->standingCommittee()->create([
+            'parent_id' => $root->id,
+            'slug' => self::EXECUTIVE,
+            'name' => 'DMV Executive',
+            'display_order' => 7,
+        ]));
+        $this->steward($executive, StewardshipFunction::OrgMail);
 
         // Members — a super-tier holder plus the people who fill the roles below.
         $president = $this->member('president@dmv.test', fn () => Member::factory()->superTier()->create([
@@ -141,9 +164,15 @@ class OrgTreeSeeder extends Seeder
             'last_name' => 'On Leave',
             'email' => 'onleave@dmv.test',
         ]));
+        $executiveChair = $this->member(self::EXECUTIVE_CHAIR_EMAIL, fn () => Member::factory()->create([
+            'first_name' => 'Executive',
+            'last_name' => 'Chair',
+            'email' => self::EXECUTIVE_CHAIR_EMAIL,
+        ]));
 
         // Memberships + roles + varied statuses + an LOA window.
         $this->membership($root, $president, MembershipStatus::Full, [Role::Chair]);
+        $this->membership($executive, $executiveChair, MembershipStatus::Full, [Role::Chair]);
         $this->membership($committee, $secretary, MembershipStatus::Full, [Role::Secretary]);
         $this->membership($records, $clerk, MembershipStatus::Full);
         // The capability-backed Scheduler role lands on the scheduling program.

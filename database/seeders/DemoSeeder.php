@@ -200,6 +200,16 @@ class DemoSeeder extends Seeder
         // is membership in it, not a standalone flag. Org structure, not a Persona.
         $records = Group::where('slug', self::RECORDS)->firstOrFail();
         $this->steward($records, StewardshipFunction::MemberAdmin);
+
+        // The org-wide mail franchise (ADR-0024 §5): the Executive, Records, and
+        // Awards Groups may send the org-wide Broadcast Audiences. A member of any of
+        // them is an org-wide sender. Org structure, not a Persona; skips a Group
+        // absent from a trimmed tree rather than failing.
+        foreach (['executive', self::RECORDS, 'awards'] as $slug) {
+            if (($group = $this->findGroup($slug)) !== null) {
+                $this->steward($group, StewardshipFunction::OrgMail);
+            }
+        }
     }
 
     /**
