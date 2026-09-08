@@ -10,9 +10,6 @@ use App\Models\Delivery;
  * `Sent` on a successful send, to `Failed` when a send gives up, or to `Expired` when the
  * thing it would announce is gone before it goes out. `Sent`, `Failed`, and `Expired` are
  * terminal — the Drain never touches a row again once it lands there.
- *
- * Failure and expiry are wired by later tickets (#482); this ticket only needs `Pending`
- * and `Sent`, but the whole set lives here so the column's domain is closed from the start.
  */
 enum DeliveryState: string
 {
