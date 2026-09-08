@@ -9,6 +9,7 @@ use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\GroupReminderSettingsController;
 use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
@@ -197,6 +198,13 @@ Route::group([
 Route::get('design-system', function () {
     return Inertia::render('DesignSystem');
 })->middleware(['auth'])->name('design-system');
+
+// The Mail status page (#492, ADR-0024 §10). Non-localized like the design-system page —
+// a super-tier-only operations screen, not member-facing chrome. Access is the
+// `view-mail-status` gate, which the controller authorizes: it denies everyone but the
+// super-tier Gate::before short-circuit.
+Route::get('mail-status', MailStatusController::class)
+    ->middleware(['auth'])->name('mail-status');
 
 // Member administration (ADR-0017). Editing a member record is gated by the
 // MemberPolicy via the UpdateMemberRequest: self by default, Records or super-tier

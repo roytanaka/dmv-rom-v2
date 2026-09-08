@@ -100,6 +100,9 @@ class HandleInertiaRequests extends Middleware
                 // are computed by the relevant policy on each page.
                 'can' => [
                     'administerMembers' => (bool) $request->user()?->can('administer-members'),
+                    // Super-tier-only Mail status page (ADR-0024 §10). Coarse hint for the
+                    // user-menu item; the route re-checks the gate on every visit.
+                    'viewMailStatus' => (bool) $request->user()?->can('view-mail-status'),
                 ],
             ],
             // Persisted sidebar state. The cookie is written client-side by the

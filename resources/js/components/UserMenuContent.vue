@@ -6,7 +6,7 @@ import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import type { SharedData, User } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhArrowSquareOut, PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
+import { PhArrowSquareOut, PhEnvelopeSimple, PhSignOut, PhUserCircle } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
 interface Props {
@@ -25,6 +25,11 @@ const localizeHref = useLocalizedHref();
 // renders here (the lg:hidden group below). It is a SELECTABLE list with a checkmark
 // on the active locale — never a toggle — so the current selection is always visible.
 const localeSwitcher = computed(() => page.props.localeSwitcher);
+
+// The Mail status item is super-tier only (ADR-0024 §10). Coarse `auth.can` hint — the
+// route re-checks the gate, so hiding the item is chrome, never the lock. Non-localized
+// href like the design-system page: an operations screen, not member-facing chrome.
+const canViewMailStatus = computed(() => page.props.auth.can.viewMailStatus);
 </script>
 
 <template>
@@ -46,6 +51,13 @@ const localeSwitcher = computed(() => page.props.localeSwitcher);
             <Link class="block w-full" :href="localizeHref('/renew')" as="button">
                 <PhArrowSquareOut class="mr-2 h-4 w-4" />
                 {{ trans('user.renew') }}
+            </Link>
+        </DropdownMenuItem>
+        <!-- Mail status: super-tier only (#492, ADR-0024 §10). Non-localized href. -->
+        <DropdownMenuItem v-if="canViewMailStatus" class="py-2.5" :as-child="true">
+            <Link class="block w-full" :href="route('mail-status')" as="button">
+                <PhEnvelopeSimple class="mr-2 h-4 w-4" />
+                {{ trans('user.mail_status') }}
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>
