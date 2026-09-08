@@ -94,15 +94,17 @@ Every Audience is **resolved on the server at send time** from the Group model. 
 
 "Present standing" means `MembershipStatus::canSignUp()` is true: Full, Trainee, Transitional, Auxiliary, Projects, Emeritus, Donor. "Records" means member-administration authority, a membership in the Group that stewards `member_admin`; super-tier inherits everything. "The Group's officers" means memberships holding any `Role` in that Group, not a fixed subset: legacy's executive lists are free-text positions with no status filter.
 
+_(Amended 2026-09-07, from the legacy maintainer's note on the DMV members list.)_ **"Org-wide senders"** are the Members who may mail the whole department: a membership in any Group that stewards a new `org_mail` stewardship function (seeded on DMV Executive, Records, and Awards), or a `Role::Chair` in any active Group at any depth. This is legacy's rule for the Send option on the DMV list, ported faithfully; the three stewarding Groups are the ones legacy names, and a stewardship is how the Group model already says "this Group runs an org-wide function" ([ADR-0011](0011-authorization-model.md)). Legacy also shows the Board and Chair sublists to anyone who can open the list, so those three Audiences are open to any Member.
+
 | Audience | Who may pick it | Definition |
 | --- | --- | --- |
-| All Members | Records | `Category` with an access tier, minus `Loa`: Active, PreActive, Provisional, Sustaining, Honourary. **Not** the Directory set, which keeps LOA and drops Provisional and PreActive. |
-| All Members and on leave | Records | all six current Categories |
-| Active and Provisional | Records | `Category` in {Active, Provisional} |
-| One Category | Records | the chosen Category |
-| Board of Directors | Records | the DMV Executive Group's roster in present standing |
-| Committee Chairs | Records | `Role::Chair` holders in every active Group that was a legacy top-level committee |
-| All Chairs | Records | `Role::Chair` holders in every active Group, any depth |
+| All Members | org-wide senders | `Category` with an access tier, minus `Loa`: Active, PreActive, Provisional, Sustaining, Honourary. **Not** the Directory set, which keeps LOA and drops Provisional and PreActive. |
+| All Members and on leave | org-wide senders | all six current Categories |
+| Active and Provisional | org-wide senders | `Category` in {Active, Provisional} |
+| One Category | org-wide senders | the chosen Category |
+| Board of Directors | any Member | the DMV Executive Group's roster in present standing |
+| Committee Chairs | any Member | `Role::Chair` holders in every active Group that was a legacy top-level committee |
+| All Chairs | any Member | `Role::Chair` holders in every active Group, any depth |
 | Whole Group | any member of the Group | the Group's memberships in present standing (drops Inactive and LOA, keeps Donor) |
 | Whole Group and on leave | any member of the Group | present standing plus `Loa` |
 | One status | any member of the Group | memberships with that `MembershipStatus` |
@@ -112,11 +114,13 @@ Every Audience is **resolved on the server at send time** from the Group model. 
 | Sign-ups on one Shift | the Group's officers | distinct Members with a Sign-up on that Shift. **New**; legacy addressed only the whole event. |
 | A child Group's roster | the parent Group's officers | the child's memberships in present standing |
 | One Member | any Member | that Member, from the Directory or a profile (a Direct message) |
-| Hand-picked | any member of the Group; Records on the Directory | the ticked rows, drawn from the page's roster |
+| Hand-picked | any member of the Group; org-wide senders on the Directory | the ticked rows, drawn from the page's roster |
 
 **Exclusions.** Only the no-email flag survives as a rule (§9). Legacy's blank-address, shared sign-in account, and non-member account-type exclusions are dead. Recipients are de-duplicated by Member; the two current shared-address pairs each receive two copies, which is correct.
 
-**Three deviations from legacy, named.** Legacy let any full-access member mail the Board and the Chairs, and any committee Chair mail All Members; **every org-wide Audience now needs Records.** This is the map's one residual authorization fork; it is decided this way because org-wide sends are the ones that spend the hourly budget and reach people who never joined that officer's Group. Reverse it later by adding Chair to the picker rule, nothing else moves. Second, the **Scheduler role gets the Sign-up Audiences** alongside the Chair; legacy gave them to the Chair bit only, and `Group::schedulers()` already treats the two alike. Third, **All Chairs picks up child-Group Chairs** at any depth, a harmless superset.
+**Two deviations from legacy, named.** First, the **Scheduler role gets the Sign-up Audiences** alongside the Chair; legacy gave them to the Chair bit only, and `Group::schedulers()` already treats the two alike. Second, **All Chairs picks up child-Group Chairs** at any depth, a harmless superset.
+
+_(Amended 2026-09-07.)_ **The org-wide picker rule is no longer a deviation.** The accepted text gave every org-wide Audience to Records alone, as the map's residual authorization fork, because research had only found "any Chair may mail All Members". The legacy maintainer then supplied the full rule for the DMV list: DMV Executive, Records, Awards, and any Chair may send org-wide, and anyone may mail the Board and the Chairs. That is the "org-wide senders" definition above, ported as is. The hourly budget is protected by the throttle (§4), not by narrowing who may send. Tightening later is one line in the picker rule and one seeded stewardship fewer.
 
 **Hand-pick surfaces that are not Audiences.** Legacy's Trainers, Section Admins, Coordinators, per-tour and per-walk lists, and Day-availability lists are roster filters owed with scoped roles and the content catalog. They are not ported here.
 
@@ -124,11 +128,11 @@ Every Audience is **resolved on the server at send time** from the Group model. 
 
 **Where compose lives.** One control, "Email ▾", wherever an Audience is reachable. Its menu **is** the Audience list: each item names an Audience and its resolved count, and a last item, "Pick people…", opens a hand-pick from the page's roster. Prototyped on `prototype/compose-picker`; the winner was the Audience menu with a stepped side sheet, its Who step reshaped into a To field of name chips.
 
-1. **Group page**: in the sticky section-tab strip, on every section. Records-only Audiences never appear here.
+1. **Group page**: in the sticky section-tab strip, on every section. Org-wide Audiences never appear here.
 2. **Roster tab**: the same control moves into the roster toolbar, beside the officer controls.
 3. **Schedule**: in the opened Schedule's card header. Its menu leads with "Sign-ups on <Schedule>", then the Group's Audiences.
 4. **Shift**: in the Shift card's action row, only when a seat is taken. One Audience: "Sign-ups on this Shift".
-5. **Directory**: in the page header, Records-only. The org-wide Audiences plus "Pick people…".
+5. **Directory**: in the page header, for every Member who can open the Directory. Any Member's menu lists Board of Directors, Committee Chairs, and All Chairs; an org-wide sender's menu adds the remaining org-wide Audiences and "Pick people…" _(amended 2026-09-07, §5)_.
 6. **Member profile**: a "Message <first name>" button in the profile header, hidden on the viewer's own profile. Opens the same sheet with one fixed recipient.
 
 **The sheet, stepped Who → Message → Sent.** A right-hand sheet; the host page stays visible behind it.
@@ -238,6 +242,7 @@ Fixed, not ported. Named per the map's faithful-port rule.
 - **BCC blocks of ninety inside the request**, the ticket's original default. Rejected once the host confirmed per-recipient counting: blocks save connections, not budget, and lose the name and locale.
 - **Small Broadcasts in the request, large ones queued.** Rejected: legacy's over-limit hours came from bursts of mid-size sends, and a throttle blind to in-request sends cannot protect the limit. A second send path is a second place the limit leaks.
 - **Laravel's queue driver with a `jobs` table.** Rejected for now: the Delivery rows are the record and the progress count, and a second table is a second truth.
+- **Org-wide Audiences for Records only**, the accepted text's residual fork. Superseded 2026-09-07 once the legacy maintainer supplied the full DMV-list rule (§5): ported instead, with the throttle guarding the budget.
 - **Pruning Delivery rows to counts** once a send finishes. Rejected: retry and any future sent-items screen need the rows, failed rows must be kept anyway, and the cost is a who-got-what log in the Records-only tier.
 - **A "Message" or "Mail" umbrella noun, or a kind field on Broadcast**, to cover member-to-member mail. Rejected for two familiar nouns, Broadcast and Direct message, sharing one record.
 - **Marking unreachable Members in the picker.** Rejected: it tells an officer about flags on people they did not address.
@@ -255,11 +260,11 @@ Fixed, not ported. Named per the map's faithful-port rule.
 - **The sender's copy is the only failure signal**, and it cannot see bounces that arrive after acceptance. The record undercounts bad addresses until inbound mail is in scope.
 - **Records gains three fields and one screen**: the no-email flag, the standing-change action (its own spec), and read access to the sent record. Super-tier gains the Mail status page.
 - **Groups gain four settings** (Reminders on, lead days, empty-desk alert on, days ahead) and shift kinds gain one (watch when empty). A Chair or Scheduler edits them.
-- **Org-wide mail moves from Chairs to Records.** A committee Chair who mailed All Members in legacy now asks Records or uses their Group's Audiences. Reversible in one rule.
+- **Org-wide mail stays with legacy's senders.** DMV Executive, Records, Awards, and every Chair may mail the department; anyone may mail the Board and the Chairs. A new `org_mail` stewardship names the three Groups. Tightening is one rule and one seed _(amended 2026-09-07, §5)_.
 - **Some Members get a Reminder legacy would not have sent**: one taken inside the lead window, and one for a Shift whose exact reminder day the cron missed. Both are the point.
 - **The Sentry payloads leave Canada.** Scrubbed of addresses, PII off; the residency story is the mail, not the crash reports.
 - **The prototype branch is a reference, not a base.** `prototype/compose-picker` fakes the flag and the send and pushes the roster into every Group section; the real build needs an endpoint that resolves an Audience by name, count and rows.
-- **Code deltas:** a `deliveries` table and model with the four states, a `broadcasts` (sent record) table, an empty-desk run table; the Drain and the daily pass as scheduled commands with overlap locks; the `smtp` mailer config and the app mailbox; Mailables for Reminder, empty-desk alert, standing-change Notice, Broadcast, Direct message, and the sender's copy; the Audience resolver and its policy; the compose sheet and its six entry points; the no-email flag on `members`; four Group settings and one shift-kind flag; the Mail status page; two packages.
+- **Code deltas:** a `deliveries` table and model with the four states, a `broadcasts` (sent record) table, an empty-desk run table; the Drain and the daily pass as scheduled commands with overlap locks; the `smtp` mailer config and the app mailbox; Mailables for Reminder, empty-desk alert, standing-change Notice, Broadcast, Direct message, and the sender's copy; the Audience resolver and its policy; an `org_mail` stewardship function seeded on three Groups; the compose sheet and its six entry points; the no-email flag on `members`; four Group settings and one shift-kind flag; the Mail status page; two packages.
 
 ## Deliberately out
 
