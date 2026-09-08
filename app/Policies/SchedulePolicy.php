@@ -5,7 +5,6 @@ namespace App\Policies;
 use App\Enums\ListingVisibility;
 use App\Enums\Role;
 use App\Enums\ScheduleState;
-use App\Http\Requests\UpdateReminderSettingsRequest;
 use App\Models\Group;
 use App\Models\Member;
 use App\Models\Schedule;
@@ -114,7 +113,7 @@ class SchedulePolicy
      * Group — the same Scheduler / Chair gate every authoring ability uses. Reminders are a
      * scheduling concern, so the capability guard folds in: a Chair of a non-scheduling Group
      * has no Reminders to edit. Reached on a Group, not a Schedule, so the caller resolves the
-     * policy by the class name ({@see UpdateReminderSettingsRequest}).
+     * policy by the class name (UpdateReminderSettingsRequest).
      */
     public function updateReminders(Member $actor, Group $group): bool
     {

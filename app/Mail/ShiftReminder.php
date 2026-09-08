@@ -2,7 +2,6 @@
 
 namespace App\Mail;
 
-use App\Models\Delivery;
 use App\Models\Member;
 use App\Models\Shift;
 use Illuminate\Bus\Queueable;
