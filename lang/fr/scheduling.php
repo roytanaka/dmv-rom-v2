@@ -10,5 +10,6 @@ return [
         'heading' => 'Un quart a été annulé',
         'intro' => ':member a annulé son inscription à un quart de :group :',
         'footer' => 'La place est de nouveau libre. Aucune action n’est requise, à moins que vous ne souhaitiez la combler.',
+        'view_schedule' => 'Voir l’horaire',
     ],
 ];

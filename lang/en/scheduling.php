@@ -9,5 +9,6 @@ return [
         'heading' => 'A shift has been dropped',
         'intro' => ':member has dropped their sign-up for a :group shift:',
         'footer' => 'The seat is now open again. No action is required unless you want to fill it.',
+        'view_schedule' => 'View the schedule',
     ],
 ];
