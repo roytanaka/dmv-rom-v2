@@ -20,16 +20,23 @@ export interface AudienceOption {
 
 /**
  * The Email menu's shape, derived from the server's Audience index (ADR-0024 §5–6): the
- * named Audiences the menu lists, and whether the actor may hand-pick. "Pick people…" is
- * offered only when the server returned a hand-pick Audience — the picker rule decides it
- * (any member of a Group; Records on the Directory), so a plain Member on the Directory sees
- * the three leadership Audiences and no hand-pick. The `hand_picked` key itself is dropped
- * from the list: the menu renders its own always-last "Pick people…" item when it may.
+ * named Audiences the menu lists, whether the actor may hand-pick, and whether the index
+ * came back empty. "Pick people…" is offered only when the server returned a hand-pick
+ * Audience — the picker rule decides it (any member of a Group; Records on the Directory),
+ * so a plain Member on the Directory sees the three leadership Audiences and no hand-pick.
+ * The `hand_picked` key itself is dropped from the list: the menu renders its own
+ * always-last "Pick people…" item when it may. `isEmpty` is true when there is nothing to
+ * offer at all — the menu shows one disabled "nothing to email" line instead of a bare
+ * dropdown (a plain Member on the root roster, #506).
  */
-export function menuFromIndex(audiences: AudienceOption[]): { audiences: AudienceOption[]; canHandPick: boolean } {
+export function menuFromIndex(audiences: AudienceOption[]): { audiences: AudienceOption[]; canHandPick: boolean; isEmpty: boolean } {
+    const named = audiences.filter((audience) => audience.key !== 'hand_picked');
+    const canHandPick = audiences.some((audience) => audience.key === 'hand_picked');
+
     return {
-        audiences: audiences.filter((audience) => audience.key !== 'hand_picked'),
-        canHandPick: audiences.some((audience) => audience.key === 'hand_picked'),
+        audiences: named,
+        canHandPick,
+        isEmpty: named.length === 0 && !canHandPick,
     };
 }
 

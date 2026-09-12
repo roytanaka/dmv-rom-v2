@@ -311,6 +311,16 @@ class Group extends Model
     }
 
     /**
+     * Whether this is the org root — the single parentless "DMV" Group at the top of
+     * the tree (ADR-0010). Single-sourced on {@see ROOT_SLUG}, the same key the
+     * seeders and top-level ancestor climb use to resolve the root.
+     */
+    public function isRoot(): bool
+    {
+        return $this->slug === self::ROOT_SLUG;
+    }
+
+    /**
      * Limit the query to Groups that are still alive: lifecycle Active, and not
      * an expired time-boxed Group (one whose end_date has passed). A time-boxed
      * Group with no end_date is treated as still open.

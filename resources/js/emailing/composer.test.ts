@@ -121,7 +121,15 @@ test('menuFromIndex reports no hand-pick when the server offered none (a plain D
         { key: 'committee_chairs', parameter: null, label: 'Committee Chairs', count: 12 },
         { key: 'all_chairs', parameter: null, label: 'All Chairs', count: 15 },
     ];
-    const { audiences, canHandPick } = menuFromIndex(index);
+    const { audiences, canHandPick, isEmpty } = menuFromIndex(index);
     assert.equal(audiences.length, 3);
     assert.equal(canHandPick, false);
+    assert.equal(isEmpty, false);
+});
+
+test('menuFromIndex is empty when the server offered nothing (a plain root member)', () => {
+    const { audiences, canHandPick, isEmpty } = menuFromIndex([]);
+    assert.equal(audiences.length, 0);
+    assert.equal(canHandPick, false);
+    assert.equal(isEmpty, true);
 });

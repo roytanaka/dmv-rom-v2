@@ -27,6 +27,7 @@ const props = defineProps<{
 
 const audiences = ref<AudienceOption[]>([]);
 const canHandPick = ref(false);
+const isEmpty = ref(false);
 const loaded = ref(false);
 const sheetOpen = ref(false);
 const selected = ref<AudienceOption | null>(null);
@@ -58,6 +59,7 @@ async function ensureLoaded(): Promise<void> {
     const menu = menuFromIndex(data.audiences);
     audiences.value = menu.audiences;
     canHandPick.value = menu.canHandPick;
+    isEmpty.value = menu.isEmpty;
 }
 
 function pick(audience: AudienceOption | null): void {
@@ -83,6 +85,7 @@ function pick(audience: AudienceOption | null): void {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator v-if="canHandPick && audiences.length" />
                 <DropdownMenuItem v-if="canHandPick" @select="pick(null)">{{ trans('audience.hand_picked') }}</DropdownMenuItem>
+                <DropdownMenuItem v-if="loaded && isEmpty" disabled>{{ trans('audience.empty') }}</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
 
