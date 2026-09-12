@@ -40,7 +40,10 @@ return [
         // L'étape Qui d'un message direct : un seul destinataire fixe, sans sélection. La note
         // prévient l'expéditeur que son adresse de réponse est visible (ADR-0024 §6).
         'direct_reply_note' => 'Une réponse parvient à votre propre adresse, donc :name la verra.',
-        // L'étape Message.
+        // L'étape Message. Ses jetons de destinataires en lecture seule se replient au-delà d'un
+        // seuil, avec une commande « +N de plus » qui révèle le reste sur place (« Tous les
+        // membres » compte environ 500 personnes).
+        'more' => '+:count de plus',
         'from' => 'De :group · les réponses vous parviennent · vous en recevez une copie',
         'subject' => 'Objet',
         'body' => 'Message',
