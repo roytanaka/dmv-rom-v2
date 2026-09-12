@@ -129,6 +129,13 @@ test('menuFromIndex reports no hand-pick when the server offered none (a plain D
     assert.equal(isEmpty, false);
 });
 
+test('menuFromIndex is empty when the server offered nothing (a plain root member)', () => {
+    const { audiences, canHandPick, isEmpty } = menuFromIndex([]);
+    assert.equal(audiences.length, 0);
+    assert.equal(canHandPick, false);
+    assert.equal(isEmpty, true);
+});
+
 test('cappedChips shows every chip and hides none when at or under the cap', () => {
     const chips = roster.slice(0, 3);
     assert.deepEqual(cappedChips(chips, false), { shown: chips, hidden: 0 });
@@ -157,11 +164,4 @@ test('cappedChips reveals every chip once expanded, hiding none', () => {
         standing: 'full',
     }));
     assert.deepEqual(cappedChips(many, true), { shown: many, hidden: 0 });
-});
-
-test('menuFromIndex is empty when the server offered nothing (a plain root member)', () => {
-    const { audiences, canHandPick, isEmpty } = menuFromIndex([]);
-    assert.equal(audiences.length, 0);
-    assert.equal(canHandPick, false);
-    assert.equal(isEmpty, true);
 });
