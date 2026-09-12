@@ -19,6 +19,8 @@ import {
     audienceLabelDescriptor,
     bodyHasContent,
     canSend,
+    cappedChips,
+    CHIP_CAP,
     filterRoster,
     isEdited,
     menuFromIndex,
@@ -125,6 +127,36 @@ test('menuFromIndex reports no hand-pick when the server offered none (a plain D
     assert.equal(audiences.length, 3);
     assert.equal(canHandPick, false);
     assert.equal(isEmpty, false);
+});
+
+test('cappedChips shows every chip and hides none when at or under the cap', () => {
+    const chips = roster.slice(0, 3);
+    assert.deepEqual(cappedChips(chips, false), { shown: chips, hidden: 0 });
+});
+
+test('cappedChips caps the visible chips and reports the overflow when collapsed', () => {
+    const many: Recipient[] = Array.from({ length: CHIP_CAP + 5 }, (_, i) => ({
+        id: i + 1,
+        first_name: `Member${i + 1}`,
+        last_name: 'Test',
+        photo: null,
+        standing: 'full',
+    }));
+    const { shown, hidden } = cappedChips(many, false);
+    assert.equal(shown.length, CHIP_CAP);
+    assert.equal(hidden, 5);
+    assert.deepEqual(shown, many.slice(0, CHIP_CAP));
+});
+
+test('cappedChips reveals every chip once expanded, hiding none', () => {
+    const many: Recipient[] = Array.from({ length: CHIP_CAP + 5 }, (_, i) => ({
+        id: i + 1,
+        first_name: `Member${i + 1}`,
+        last_name: 'Test',
+        photo: null,
+        standing: 'full',
+    }));
+    assert.deepEqual(cappedChips(many, true), { shown: many, hidden: 0 });
 });
 
 test('menuFromIndex is empty when the server offered nothing (a plain root member)', () => {

@@ -9,6 +9,7 @@
 // Context-driven by props (context, contextSubject, roster), so the roster, Schedule, Shift,
 // and Directory entry points in the next tickets mount the same sheet unchanged (AC).
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ import {
     audienceEdits,
     audienceLabelDescriptor,
     canSend,
+    cappedChips,
     filterRoster,
     recipientName,
     rosterIds,
@@ -52,6 +54,8 @@ const ticked = ref<Set<number>>(new Set());
 const directory = ref<Map<number, Recipient>>(new Map());
 const panelOpen = ref(false);
 const search = ref('');
+// The Message step lists the recipients read-only, capped, with a "+N more" reveal (#507).
+const chipsExpanded = ref(false);
 
 const subject = ref('');
 const body = ref('');
@@ -74,6 +78,7 @@ watch(
 
         step.value = 'who';
         search.value = '';
+        chipsExpanded.value = false;
         subject.value = '';
         body.value = '';
         attachments.value = [];
@@ -138,6 +143,9 @@ const recipientCount = computed(() => ticked.value.size);
 const chips = computed<Recipient[]>(() =>
     [...ticked.value].map((id) => directory.value.get(id)).filter((member): member is Recipient => member !== undefined),
 );
+
+// The Message step's read-only chips: capped, with the overflow the "+N more" control reveals.
+const messageChips = computed(() => cappedChips(chips.value, chipsExpanded.value));
 
 const filteredRoster = computed(() => filterRoster(props.roster, search.value));
 const allTicked = computed(() => props.roster.length > 0 && props.roster.every((member) => ticked.value.has(member.id)));
@@ -306,17 +314,17 @@ function close(): void {
                 <div>
                     <Label class="mb-1 block">{{ trans('broadcasts.composer.to') }}</Label>
                     <div class="flex flex-wrap gap-1.5">
-                        <span v-for="member in chips" :key="member.id" class="bg-muted flex items-center gap-1 rounded-full px-2 py-1 text-sm">
+                        <Badge v-for="member in chips" :key="member.id" variant="secondary" class="gap-1 font-normal">
                             {{ recipientName(member) }}
                             <button
                                 type="button"
-                                class="text-muted-foreground hover:text-foreground"
+                                class="hover:text-foreground -mr-0.5 rounded-full transition-colors"
                                 :aria-label="trans('broadcasts.composer.remove', { name: recipientName(member) })"
                                 @click="removeChip(member.id)"
                             >
                                 <PhX class="size-3" />
                             </button>
-                        </span>
+                        </Badge>
                     </div>
                 </div>
 
@@ -362,6 +370,21 @@ function close(): void {
                 <div class="text-sm">
                     <p class="font-medium">{{ transChoice('broadcasts.composer.who_heading', recipientCount, { count: String(recipientCount) }) }}</p>
                     <p class="text-muted-foreground">{{ audienceLabel }}</p>
+                    <!-- The recipients, read-only (Back returns to Who to edit), capped with a "+N more"
+                         reveal. A Direct message shows its one fixed recipient in the heading, unchanged. -->
+                    <div v-if="!fixed" class="mt-2 flex flex-wrap gap-1.5">
+                        <Badge v-for="member in messageChips.shown" :key="member.id" variant="secondary" class="font-normal">
+                            {{ recipientName(member) }}
+                        </Badge>
+                        <button
+                            v-if="messageChips.hidden > 0"
+                            type="button"
+                            class="text-rom-slate text-xs font-semibold hover:underline"
+                            @click="chipsExpanded = true"
+                        >
+                            {{ trans('broadcasts.composer.more', { count: String(messageChips.hidden) }) }}
+                        </button>
+                    </div>
                     <p class="text-muted-foreground mt-1">{{ trans('broadcasts.composer.from', { group: groupName }) }}</p>
                 </div>
 

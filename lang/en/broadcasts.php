@@ -38,7 +38,9 @@ return [
         // The Who step of a Direct message: one fixed recipient, no picking. The note warns the
         // sender their reply address is shown, since a reply comes to them (ADR-0024 §6).
         'direct_reply_note' => 'A reply comes to your own address, so :name will see it.',
-        // The Message step.
+        // The Message step. Its read-only recipient chips collapse past a cap, with a
+        // "+N more" control that reveals the rest in place ("All Members" is ~500 people).
+        'more' => '+:count more',
         'from' => 'From :group · replies come to you · you get a copy',
         'subject' => 'Subject',
         'body' => 'Message',

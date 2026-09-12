@@ -143,3 +143,23 @@ export function filterRoster(roster: Recipient[], query: string): Recipient[] {
 export function rosterIds(roster: Recipient[]): Set<number> {
     return new Set(roster.map((recipient) => recipient.id));
 }
+
+/**
+ * How many recipient chips the read-only Message-step summary shows before it collapses
+ * the rest behind a "+N more" control. "All Members" is ~500 people, so the summary caps
+ * the visible chips and offers to expand in place (ADR-0024 §6).
+ */
+export const CHIP_CAP = 12;
+
+/**
+ * The Message step's read-only chip view: the chips to render and how many are still hidden.
+ * Collapsed, it shows the first {@link CHIP_CAP} and reports the overflow so the sheet can
+ * offer a "+N more" control; expanded, it shows them all and hides none.
+ */
+export function cappedChips(chips: Recipient[], expanded: boolean): { shown: Recipient[]; hidden: number } {
+    if (expanded || chips.length <= CHIP_CAP) {
+        return { shown: chips, hidden: 0 };
+    }
+
+    return { shown: chips.slice(0, CHIP_CAP), hidden: chips.length - CHIP_CAP };
+}
