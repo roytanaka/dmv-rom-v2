@@ -30,7 +30,7 @@ const props = defineProps<Props>();
 
 const page = usePage<SharedData>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: trans('mail_status.title'), href: '/mail-status' }];
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: trans('mail_status.title'), href: '/mail-status' }]);
 
 // Pin the wall clock to the org timezone the server shares, as the meetings screen does: a
 // heartbeat at 11:00 is 11:00 at the museum for whoever reads it, not the reader's local zone.
