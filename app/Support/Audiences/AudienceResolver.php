@@ -177,7 +177,7 @@ class AudienceResolver
 
     /**
      * The picker rule inside a Group-scoped context (§5). The root is the exception:
-     * every Member is enrolled in it, so its roster *is* the whole department and its
+     * every Member is enrolled in it, so its roster is the whole department and its
      * Audiences are org-wide by definition — every one needs an org-wide sender, never
      * the bare "any member of the Group" rule (#506). Super-tier is already handled by
      * the caller.

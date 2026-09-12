@@ -313,7 +313,7 @@ class Group extends Model
     /**
      * Whether this is the org root — the single parentless "DMV" Group at the top of
      * the tree (ADR-0010). Single-sourced on {@see ROOT_SLUG}, the same key the
-     * seeders and the top-level ancestor climb resolve the root by.
+     * seeders and top-level ancestor climb use to resolve the root.
      */
     public function isRoot(): bool
     {
