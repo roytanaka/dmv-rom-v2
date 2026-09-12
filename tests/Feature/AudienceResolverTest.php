@@ -325,3 +325,60 @@ it('lets super-tier pick anything', function () {
 
     expect($resolved->recipients)->not->toBeEmpty();
 });
+
+it('offers a plain root member nothing and refuses the root Whole Group', function () {
+    // Every Member is enrolled in the root, so its roster is the whole department:
+    // its Audiences are org-wide and need the sender gate, not the bare membership
+    // rule (#506, ADR-0024 §5).
+    $root = Group::where('slug', OrgTreeSeeder::ROOT)->firstOrFail();
+    $plain = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create([
+        'group_id' => $root->id,
+        'member_id' => $plain->id,
+    ]);
+
+    expect(resolver()->available($plain, AudienceContext::group($root)))->toBeEmpty();
+
+    resolver()->resolve($plain, AudienceContext::group($root), AudienceKey::WholeGroup);
+})->throws(AuthorizationException::class);
+
+it('gives a DMV Executive member the root roster sets and hand-pick', function () {
+    // The Executive stewards org_mail, so its members are org-wide senders and reach
+    // the root's org-wide Audiences (#506).
+    $root = Group::where('slug', OrgTreeSeeder::ROOT)->firstOrFail();
+
+    $keys = resolver()->available(member(OrgTreeSeeder::EXECUTIVE_CHAIR_EMAIL), AudienceContext::group($root))
+        ->map(fn ($audience) => $audience->key->value);
+
+    expect($keys)->toContain('whole_group', 'hand_picked');
+});
+
+it('gives a Chair of a nested active Group the root roster sets', function () {
+    // A Chair of any active Group at any depth is an org-wide sender, with no need for
+    // an org_mail stewardship (#506).
+    $root = Group::where('slug', OrgTreeSeeder::ROOT)->firstOrFail();
+    $chair = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create([
+        'group_id' => $this->docents->id,
+        'member_id' => $chair->id,
+    ])->roles()->create(['role' => Role::Chair]);
+
+    $keys = resolver()->available($chair->fresh(), AudienceContext::group($root))
+        ->map(fn ($audience) => $audience->key->value);
+
+    expect($keys)->toContain('whole_group', 'hand_picked');
+});
+
+it('still gives a plain member the Whole Group on a non-root Group', function () {
+    // The root gate must not touch the ordinary Group rule: a member of Docents (not
+    // the root) still gets its roster sets (#506, no regression).
+    $trainee = member('trainee@dmv.test');
+
+    $keys = resolver()->available($trainee, AudienceContext::group($this->docents))
+        ->map(fn ($audience) => $audience->key->value);
+
+    $resolved = resolver()->resolve($trainee, AudienceContext::group($this->docents), AudienceKey::WholeGroup);
+
+    expect($keys)->toContain('whole_group')
+        ->and($resolved->recipients)->not->toBeEmpty();
+});

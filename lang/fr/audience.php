@@ -33,4 +33,8 @@ return [
     // personnes (ADR-0024 §6) : le nom de l'audience demeure et le nombre de
     // retraits est indiqué.
     'edited' => ':label, :count retiré(s)',
+
+    // État vide du menu Courriel — une seule ligne désactivée affichée lorsque
+    // l'utilisateur ne peut choisir aucune audience ici, au lieu d'un menu vide (#506).
+    'empty' => 'Rien à envoyer par courriel d’ici',
 ];

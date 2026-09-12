@@ -32,4 +32,8 @@ return [
     // The edited-Audience suffix, appended when the picker removed anyone
     // (ADR-0024 §6): the Audience name stays and the count of removals is named.
     'edited' => ':label, :count removed',
+
+    // The Email menu's empty state — one disabled line shown when the actor may pick
+    // no Audience here at all, in place of a bare dropdown (#506).
+    'empty' => 'Nothing you can email from here',
 ];

@@ -171,13 +171,29 @@ class AudienceResolver
             },
             ContextType::Member => true,
             // Group, Schedule, and Shift are all scoped to a Group.
-            default => match ($key) {
-                AudienceKey::GroupOfficers,
-                AudienceKey::ChildRoster => $actor->isOfficerOf($context->owningGroup()),
-                AudienceKey::SignUpsSchedule,
-                AudienceKey::SignUpsShift => $actor->canActAs(Role::Scheduler, $context->owningGroup()),
-                default => $actor->membershipIn($context->owningGroup()) !== null,
-            },
+            default => $this->canPickGroupScoped($actor, $context->owningGroup(), $key),
+        };
+    }
+
+    /**
+     * The picker rule inside a Group-scoped context (§5). The root is the exception:
+     * every Member is enrolled in it, so its roster *is* the whole department and its
+     * Audiences are org-wide by definition — every one needs an org-wide sender, never
+     * the bare "any member of the Group" rule (#506). Super-tier is already handled by
+     * the caller.
+     */
+    private function canPickGroupScoped(Member $actor, Group $group, AudienceKey $key): bool
+    {
+        if ($group->isRoot()) {
+            return $actor->isOrgWideSender();
+        }
+
+        return match ($key) {
+            AudienceKey::GroupOfficers,
+            AudienceKey::ChildRoster => $actor->isOfficerOf($group),
+            AudienceKey::SignUpsSchedule,
+            AudienceKey::SignUpsShift => $actor->canActAs(Role::Scheduler, $group),
+            default => $actor->membershipIn($group) !== null,
         };
     }
 
