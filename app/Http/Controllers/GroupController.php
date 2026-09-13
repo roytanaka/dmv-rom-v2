@@ -22,6 +22,8 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Support\Audiences\AudienceContext;
+use App\Support\Audiences\AudienceResolver;
 use App\Support\OrgTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -182,6 +184,16 @@ class GroupController extends Controller
                 ],
             ],
             'section' => $section,
+            // The Email control's empty state (#513, ADR-0024 §6) — the reason the viewer can
+            // pick no Audience on this Group-scoped surface, or null when at least one is
+            // pickable. Asked of the resolver once here; the strip, roster, and Schedule
+            // controls all read it to grey themselves and name why on hover and on open.
+            'email' => [
+                'reason' => app(AudienceResolver::class)->emptyReason(
+                    $request->user(),
+                    AudienceContext::group($group),
+                ),
+            ],
             // UI hints only — the server enforces in the Form Requests. `update`
             // drives the Overview's inline About Us edit and banner picker;
             // `createMeeting` drives the Meetings tab's "New meeting" affordance;
@@ -735,7 +747,16 @@ class GroupController extends Controller
             'ends_on' => $schedule->ends_on->toDateString(),
             'state' => $schedule->state->value,
             'description' => $schedule->description,
-            'can' => $this->scheduleAuthoring($request, $schedule),
+            'can' => [
+                ...$this->scheduleAuthoring($request, $schedule),
+                // Whether this viewer may email the Schedule's Sign-ups (#513, ADR-0024 §6.4) —
+                // a Chair or Scheduler of the owning Group, super-tier inheriting. One flag per
+                // opened Schedule, gating the Email button on every Shift card at once, so a
+                // plain member never sees a greyed button per Shift. Mirrors the resolver's
+                // SignUps picker rule; the AudienceController re-checks on send regardless.
+                'emailSignups' => $request->user()->isAllDmv()
+                    || $request->user()->canActAs(Role::Scheduler, $schedule->group),
+            ],
             'shifts' => $this->shifts($request, $schedule),
             // Other Groups' `open` Shifts the viewer can take, in this Schedule's day range —
             // advertised, attributed, and never mixed into the own list above (#361).

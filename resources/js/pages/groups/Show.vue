@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from '@/components/ui/textarea';
 import type { NavNode } from '@/chrome/types';
 import EmailMenu from '@/emailing/EmailMenu.vue';
-import { type Recipient } from '@/emailing/composer';
+import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { bannerSources, defaultBannerKey, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type GroupHours as GroupHoursData, type Meeting, type RosterMember, type RosterMeta, type Scheduling, type SharedData } from '@/types';
@@ -103,6 +103,10 @@ const props = defineProps<{
         enterHours: boolean;
         viewReports: boolean;
     };
+    // The Email control's empty state (#513, ADR-0024 §6) — why the viewer can pick no
+    // Audience on this Group-scoped surface, or null when at least one is pickable. Read
+    // by every Email control on the page (the strip, the roster, the opened Schedule).
+    email: { reason: EmailReason | null };
     roster: RosterMember[];
     rosterMeta: RosterMeta;
     meetings: Meeting[];
@@ -285,7 +289,14 @@ const pickBanner = (key: string | null) => {
                 <!-- The strip carries the Email control on every section but the roster, where
                      it moves into the roster toolbar beside the officer controls (#490,
                      ADR-0024 §6.2). -->
-                <EmailMenu v-if="section !== 'roster'" context="group" :context-subject="group.slug" :group-name="group.name" :roster="emailRoster" />
+                <EmailMenu
+                    v-if="section !== 'roster'"
+                    context="group"
+                    :context-subject="group.slug"
+                    :group-name="group.name"
+                    :roster="emailRoster"
+                    :reason="email.reason"
+                />
             </div>
 
             <div class="flex-1 p-4 sm:p-6">
@@ -384,6 +395,7 @@ const pickBanner = (key: string | null) => {
                     :meta="rosterMeta"
                     :group-slug="group.slug"
                     :group-name="group.name"
+                    :email-reason="email.reason"
                 />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
@@ -406,6 +418,7 @@ const pickBanner = (key: string | null) => {
                     :can-manage-empty-desk="can.manageEmptyDesk"
                     :group-slug="group.slug"
                     :group-name="group.name"
+                    :email-reason="email.reason"
                 />
 
                 <!-- Hours (#408, ADR-0022 §2) — always-on on every Group. The extra-hours

@@ -59,6 +59,26 @@ class AudienceResolver
     }
 
     /**
+     * The empty-state reason for the Email control in a Group-scoped context (#513) — why
+     * the actor can pick no Audience here, or null when at least one is pickable. The root
+     * is the exception: every Member is enrolled in it, so its Audiences are org-wide by
+     * definition and the only way in is the org-wide-sender gate; every other Group's empty
+     * state means the actor has not joined it. Only meaningful for a Group-scoped context
+     * (Group, Schedule, Shift) — the Directory never empties and a Member profile always
+     * offers the one Direct-message Audience — so a context with no owning Group gets null.
+     */
+    public function emptyReason(Member $actor, AudienceContext $context): ?string
+    {
+        $group = $context->owningGroup();
+
+        if ($group === null || $this->available($actor, $context)->isNotEmpty()) {
+            return null;
+        }
+
+        return $group->isRoot() ? 'not_org_wide_sender' : 'not_member';
+    }
+
+    /**
      * Resolve one Audience to its recipients. Enforces the picker rule (a 403 when
      * the actor may not pick it here), validates the edits (removed ids must be
      * inside the resolved Audience; added ids inside the page's roster), then returns

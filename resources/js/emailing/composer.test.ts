@@ -21,6 +21,7 @@ import {
     canSend,
     cappedChips,
     CHIP_CAP,
+    emptyReasonKey,
     filterRoster,
     isEdited,
     menuFromIndex,
@@ -123,17 +124,22 @@ test('menuFromIndex reports no hand-pick when the server offered none (a plain D
         { key: 'committee_chairs', parameter: null, label: 'Committee Chairs', count: 12 },
         { key: 'all_chairs', parameter: null, label: 'All Chairs', count: 15 },
     ];
-    const { audiences, canHandPick, isEmpty } = menuFromIndex(index);
+    const { audiences, canHandPick } = menuFromIndex(index);
     assert.equal(audiences.length, 3);
     assert.equal(canHandPick, false);
-    assert.equal(isEmpty, false);
 });
 
-test('menuFromIndex is empty when the server offered nothing (a plain root member)', () => {
-    const { audiences, canHandPick, isEmpty } = menuFromIndex([]);
+test('menuFromIndex offers nothing when the server offered nothing', () => {
+    // The empty state is now driven by the server's `email.reason` prop (#513), not this
+    // derivation: when nothing is pickable the control greys before the menu ever fetches.
+    const { audiences, canHandPick } = menuFromIndex([]);
     assert.equal(audiences.length, 0);
     assert.equal(canHandPick, false);
-    assert.equal(isEmpty, true);
+});
+
+test('emptyReasonKey maps each empty-state reason to its translation key', () => {
+    assert.equal(emptyReasonKey('not_member'), 'audience.not_member');
+    assert.equal(emptyReasonKey('not_org_wide_sender'), 'audience.not_org_wide_sender');
 });
 
 test('cappedChips shows every chip and hides none when at or under the cap', () => {

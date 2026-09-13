@@ -28,6 +28,9 @@ const props = defineProps<{
     // The owning Group's name, threaded to each day-sheet ShiftCard so a seat-taken Shift
     // surfaces its Email control (#490, ADR-0024 §6.4), exactly as in the Agenda.
     groupName: string;
+    // Whether the viewer may email the Schedule's Sign-ups (#513) — threaded to each day-sheet
+    // ShiftCard so the Shift's Email control shows only to a Chair or Scheduler, as in the Agenda.
+    canEmailSignups: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -178,6 +181,7 @@ const formatDay = (date: string) =>
                         :key="shift.id"
                         :shift="shift"
                         :email-group-name="groupName"
+                        :can-email-signups="canEmailSignups"
                         @take="emit('take', $event)"
                         @drop="emit('drop', $event)"
                         @assign="emit('assign', $event)"

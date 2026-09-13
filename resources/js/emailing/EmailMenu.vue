@@ -12,22 +12,29 @@
 // reach the three leadership Audiences but not hand-pick — sees none.
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import ComposerSheet from '@/emailing/ComposerSheet.vue';
-import { menuFromIndex, type AudienceOption, type Recipient } from '@/emailing/composer';
+import { emptyReasonKey, menuFromIndex, type AudienceOption, type EmailReason, type Recipient } from '@/emailing/composer';
 import { PhCaretDown, PhEnvelopeSimple } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { ref } from 'vue';
 
-const props = defineProps<{
-    context: string;
-    contextSubject: string | null;
-    groupName: string;
-    roster: Recipient[];
-}>();
+const props = withDefaults(
+    defineProps<{
+        context: string;
+        contextSubject: string | null;
+        groupName: string;
+        roster: Recipient[];
+        // Why the viewer can pick no Audience here (#513, ADR-0024 §6), from the page's props —
+        // null when at least one is pickable. When set, the control greys (but stays clickable),
+        // names the reason on hover, and opens to that reason as its one line; it never fetches.
+        reason?: EmailReason | null;
+    }>(),
+    { reason: null },
+);
 
 const audiences = ref<AudienceOption[]>([]);
 const canHandPick = ref(false);
-const isEmpty = ref(false);
 const loaded = ref(false);
 const sheetOpen = ref(false);
 const selected = ref<AudienceOption | null>(null);
@@ -59,7 +66,6 @@ async function ensureLoaded(): Promise<void> {
     const menu = menuFromIndex(data.audiences);
     audiences.value = menu.audiences;
     canHandPick.value = menu.canHandPick;
-    isEmpty.value = menu.isEmpty;
 }
 
 function pick(audience: AudienceOption | null): void {
@@ -70,8 +76,23 @@ function pick(audience: AudienceOption | null): void {
 
 <template>
     <div>
-        <DropdownMenu @update:open="(open: boolean) => open && ensureLoaded()">
-            <DropdownMenuTrigger as-child>
+        <DropdownMenu @update:open="(open: boolean) => open && !reason && ensureLoaded()">
+            <!-- No pickable Audience here (#513): grey the button and name why on hover, but keep
+                 it clickable — a real `disabled` swallows hover and dies on touch, so the phone
+                 path is to open the menu to the same reason as its one greyed line. -->
+            <Tooltip v-if="reason">
+                <TooltipTrigger as-child>
+                    <DropdownMenuTrigger as-child>
+                        <Button type="button" variant="outline" size="sm" class="text-muted-foreground gap-1.5 opacity-60" aria-disabled="true">
+                            <PhEnvelopeSimple class="size-4" />
+                            {{ trans('broadcasts.composer.menu') }}
+                            <PhCaretDown class="size-3" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>{{ trans(emptyReasonKey(reason)) }}</TooltipContent>
+            </Tooltip>
+            <DropdownMenuTrigger v-else as-child>
                 <Button type="button" variant="outline" size="sm" class="gap-1.5">
                     <PhEnvelopeSimple class="size-4" />
                     {{ trans('broadcasts.composer.menu') }}
@@ -79,13 +100,15 @@ function pick(audience: AudienceOption | null): void {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" class="w-64">
-                <DropdownMenuItem v-for="audience in audiences" :key="`${audience.key}:${audience.parameter ?? ''}`" @select="pick(audience)">
-                    <span class="flex-1">{{ audience.label }}</span>
-                    <span class="text-muted-foreground">{{ audience.count }}</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator v-if="canHandPick && audiences.length" />
-                <DropdownMenuItem v-if="canHandPick" @select="pick(null)">{{ trans('audience.hand_picked') }}</DropdownMenuItem>
-                <DropdownMenuItem v-if="loaded && isEmpty" disabled>{{ trans('audience.empty') }}</DropdownMenuItem>
+                <DropdownMenuItem v-if="reason" disabled>{{ trans(emptyReasonKey(reason)) }}</DropdownMenuItem>
+                <template v-else>
+                    <DropdownMenuItem v-for="audience in audiences" :key="`${audience.key}:${audience.parameter ?? ''}`" @select="pick(audience)">
+                        <span class="flex-1">{{ audience.label }}</span>
+                        <span class="text-muted-foreground">{{ audience.count }}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator v-if="canHandPick && audiences.length" />
+                    <DropdownMenuItem v-if="canHandPick" @select="pick(null)">{{ trans('audience.hand_picked') }}</DropdownMenuItem>
+                </template>
             </DropdownMenuContent>
         </DropdownMenu>
 
