@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import EmailMenu from '@/emailing/EmailMenu.vue';
-import { type Recipient } from '@/emailing/composer';
+import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { buildAgenda } from '@/scheduling/agenda';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
@@ -62,6 +62,9 @@ const props = defineProps<{
     canManageEmptyDesk: boolean;
     groupSlug: string;
     groupName: string;
+    // The Email control's empty state for this Group (#513) — passed to the opened Schedule's
+    // Email menu so a viewer who can pick no Audience sees a greyed button with the reason.
+    emailReason: EmailReason | null;
 }>();
 
 const page = usePage<SharedData>();
@@ -778,6 +781,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                                 :context-subject="String(scheduling.open.id)"
                                 :group-name="groupName"
                                 :roster="emailRoster"
+                                :reason="emailReason"
                             />
                             <Button
                                 v-if="scheduling.open.can.update"
@@ -989,6 +993,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         :collects-extra-interactions="collectsExtraInteractions"
                         :collects-visitor-provenance="collectsVisitorProvenance"
                         :email-group-name="groupName"
+                        :can-email-signups="scheduling.open?.can.emailSignups ?? false"
                         @take="take"
                         @drop="drop"
                         @assign="openAssign"
@@ -1021,6 +1026,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 :starts-on="scheduling.open.starts_on"
                 :ends-on="scheduling.open.ends_on"
                 :group-name="groupName"
+                :can-email-signups="scheduling.open.can.emailSignups"
                 @take="take"
                 @drop="drop"
                 @assign="openAssign"

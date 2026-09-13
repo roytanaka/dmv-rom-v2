@@ -28,12 +28,19 @@ const props = withDefaults(
         // ("Sign-ups on this Shift"). Null on the cross-Group "my Sign-ups" panel, where the
         // Shift is not an email entry point.
         emailGroupName?: string | null;
+        // Whether the viewer may email the Schedule's Sign-ups (#513, ADR-0024 §6.4) — a Chair
+        // or Scheduler of the Group, resolved once per opened Schedule. The only Audience here
+        // is theirs to pick, so a plain member never sees the button: without this, a Schedule
+        // of twenty Shifts would show twenty greyed buttons. Gates the Email control below,
+        // on top of the seat-taken rule.
+        canEmailSignups?: boolean;
     }>(),
     {
         collectsVisitorCount: false,
         collectsExtraInteractions: false,
         collectsVisitorProvenance: false,
         emailGroupName: null,
+        canEmailSignups: false,
     },
 );
 
@@ -278,13 +285,13 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                     <PhTrash class="size-4" />
                     {{ trans('group.scheduling_panel.delete') }}
                 </Button>
-                <!-- Email control (#490, ADR-0024 §6.4) — one Audience, "Sign-ups on this Shift".
-                     Shown only on an opened Schedule (`emailGroupName` set) and only once a seat
-                     is taken; a Shift with nobody on it is not an entry point. The picker rule
-                     narrows the menu to a Chair or Scheduler server-side. No hand-pick here, so
-                     the composer's Add-people pool is empty. -->
+                <!-- Email control (#490, #513, ADR-0024 §6.4) — one Audience, "Sign-ups on this
+                     Shift". Shown only on an opened Schedule (`emailGroupName` set), only once a
+                     seat is taken, and only to a Chair or Scheduler (`canEmailSignups`): they
+                     alone may pick it, so a plain member sees no greyed button per Shift. No
+                     hand-pick here, so the composer's Add-people pool is empty. -->
                 <EmailMenu
-                    v-if="emailGroupName !== null && shift.signups.length"
+                    v-if="emailGroupName !== null && canEmailSignups && shift.signups.length"
                     context="shift"
                     :context-subject="String(shift.id)"
                     :group-name="emailGroupName"

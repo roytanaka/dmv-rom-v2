@@ -382,3 +382,40 @@ it('still gives a plain member the Whole Group on a non-root Group', function ()
     expect($keys)->toContain('whole_group')
         ->and($resolved->recipients)->not->toBeEmpty();
 });
+
+// --- The empty-state reason (#513) — why the Email control can pick nothing here ---
+
+it('names the join reason for a non-member of a non-root Group', function () {
+    // The Executive Chair is a Chair elsewhere but not a member of Docents, so Docents
+    // offers them no Audience: the reason is to join the group.
+    expect(resolver()->emptyReason(member(OrgTreeSeeder::EXECUTIVE_CHAIR_EMAIL), AudienceContext::group($this->docents)))
+        ->toBe('not_member');
+});
+
+it('names the org-wide-sender reason for a plain member of the root', function () {
+    // Every Member is enrolled in the root, so its Audiences are org-wide and need the
+    // sender gate; a plain member picks nothing and the reason names that gate.
+    $root = Group::where('slug', OrgTreeSeeder::ROOT)->firstOrFail();
+    $plain = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create([
+        'group_id' => $root->id,
+        'member_id' => $plain->id,
+    ]);
+
+    expect(resolver()->emptyReason($plain, AudienceContext::group($root)))
+        ->toBe('not_org_wide_sender');
+});
+
+it('gives no reason to a member of a non-root Group', function () {
+    // A member of Docents can pick its roster sets, so there is nothing to explain.
+    expect(resolver()->emptyReason(member('trainee@dmv.test'), AudienceContext::group($this->docents)))
+        ->toBeNull();
+});
+
+it('gives no reason to the super-tier on the root', function () {
+    // Super-tier inherits everything, root included, so it always has an Audience to pick.
+    $root = Group::where('slug', OrgTreeSeeder::ROOT)->firstOrFail();
+
+    expect(resolver()->emptyReason(member('president@dmv.test'), AudienceContext::group($root)))
+        ->toBeNull();
+});

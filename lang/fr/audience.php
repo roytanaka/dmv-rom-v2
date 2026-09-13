@@ -34,7 +34,11 @@ return [
     // retraits est indiqué.
     'edited' => ':label, :count retiré(s)',
 
-    // État vide du menu Courriel — une seule ligne désactivée affichée lorsque
-    // l'utilisateur ne peut choisir aucune audience ici, au lieu d'un menu vide (#506).
-    'empty' => 'Rien à envoyer par courriel d’ici',
+    // Raisons de l'état vide du contrôle Courriel (#513, ADR-0024 §6) — affichées dans
+    // l'infobulle du bouton grisé et comme unique ligne désactivée du menu, pour nommer
+    // pourquoi rien n'est sélectionnable plutôt que de laisser vide. « not_member » sur un
+    // groupe non racine que l'utilisateur n'a pas rejoint ; « not_org_wide_sender » sur la
+    // racine, dont les audiences visent l'ensemble de l'organisme.
+    'not_member' => 'Joignez-vous à ce groupe pour écrire à ses membres.',
+    'not_org_wide_sender' => 'Seules les présidences et les membres des groupes Direction, Archives et Prix peuvent écrire à l’ensemble du DMV.',
 ];

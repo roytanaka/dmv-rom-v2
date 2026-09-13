@@ -20,24 +20,35 @@ export interface AudienceOption {
 
 /**
  * The Email menu's shape, derived from the server's Audience index (ADR-0024 §5–6): the
- * named Audiences the menu lists, whether the actor may hand-pick, and whether the index
- * came back empty. "Pick people…" is offered only when the server returned a hand-pick
- * Audience — the picker rule decides it (any member of a Group; Records on the Directory),
- * so a plain Member on the Directory sees the three leadership Audiences and no hand-pick.
- * The `hand_picked` key itself is dropped from the list: the menu renders its own
- * always-last "Pick people…" item when it may. `isEmpty` is true when there is nothing to
- * offer at all — the menu shows one disabled "nothing to email" line instead of a bare
- * dropdown (a plain Member on the root roster, #506).
+ * named Audiences the menu lists and whether the actor may hand-pick. "Pick people…" is
+ * offered only when the server returned a hand-pick Audience — the picker rule decides it
+ * (any member of a Group; Records on the Directory), so a plain Member on the Directory
+ * sees the three leadership Audiences and no hand-pick. The `hand_picked` key itself is
+ * dropped from the list: the menu renders its own always-last "Pick people…" item when it
+ * may. The all-empty case no longer lives here: the server sends an `email.reason` up
+ * front (#513), so a control with nothing to offer greys itself before the menu fetches.
  */
-export function menuFromIndex(audiences: AudienceOption[]): { audiences: AudienceOption[]; canHandPick: boolean; isEmpty: boolean } {
+export function menuFromIndex(audiences: AudienceOption[]): { audiences: AudienceOption[]; canHandPick: boolean } {
     const named = audiences.filter((audience) => audience.key !== 'hand_picked');
     const canHandPick = audiences.some((audience) => audience.key === 'hand_picked');
 
-    return {
-        audiences: named,
-        canHandPick,
-        isEmpty: named.length === 0 && !canHandPick,
-    };
+    return { audiences: named, canHandPick };
+}
+
+/**
+ * Why the Email control can pick no Audience on a Group-scoped surface (#513, ADR-0024 §6),
+ * as the server computes it: `not_member` — the viewer has not joined this Group — or
+ * `not_org_wide_sender` — the root's Audiences are org-wide and need the sender franchise.
+ */
+export type EmailReason = 'not_member' | 'not_org_wide_sender';
+
+/**
+ * The translation key naming an empty-state reason, shown both in the control's hover
+ * tooltip and as the menu's one greyed line (#513). Kept i18n-free here; the Vue layer
+ * resolves the string.
+ */
+export function emptyReasonKey(reason: EmailReason): string {
+    return `audience.${reason}`;
 }
 
 /** A resolved recipient row (ADR-0024 §5) — identity and a standing hint, never an address. */

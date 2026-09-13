@@ -662,7 +662,10 @@ export interface ScheduleDetail {
     ends_on: string;
     state: string;
     description: string | null;
-    can: ScheduleAbilities;
+    // The Schedule authoring hints, plus `emailSignups` (#513, ADR-0024 §6.4): whether the
+    // viewer — a Chair or Scheduler of the Group — may email the Schedule's Sign-ups. One flag
+    // per opened Schedule; the Shift cards read it to gate their Email button (never per Shift).
+    can: ScheduleAbilities & { emailSignups: boolean };
     shifts: ShiftAgendaItem[];
     foreign: ForeignShiftItem[];
 }

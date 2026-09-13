@@ -33,7 +33,10 @@ return [
     // (ADR-0024 §6): the Audience name stays and the count of removals is named.
     'edited' => ':label, :count removed',
 
-    // The Email menu's empty state — one disabled line shown when the actor may pick
-    // no Audience here at all, in place of a bare dropdown (#506).
-    'empty' => 'Nothing you can email from here',
+    // The Email control's empty-state reasons (#513, ADR-0024 §6) — shown in the greyed
+    // button's hover tooltip and as the menu's one disabled line, so the reason nothing is
+    // pickable is named rather than left blank. 'not_member' on a non-root Group the viewer
+    // has not joined; 'not_org_wide_sender' on the root, whose Audiences are org-wide.
+    'not_member' => 'Join this group to email its members.',
+    'not_org_wide_sender' => 'Only Chairs and members of the Executive, Records, and Awards groups can email all of the DMV.',
 ];

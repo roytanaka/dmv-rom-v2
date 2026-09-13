@@ -31,14 +31,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import EmailMenu from '@/emailing/EmailMenu.vue';
-import { type Recipient } from '@/emailing/composer';
+import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { type RosterMember, type RosterMeta } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
 import { PhDotsThree, PhMagnifyingGlass, PhPlus } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
-const props = defineProps<{ members: RosterMember[]; canManage: boolean; meta: RosterMeta; groupSlug: string; groupName: string }>();
+const props = defineProps<{
+    members: RosterMember[];
+    canManage: boolean;
+    meta: RosterMeta;
+    groupSlug: string;
+    groupName: string;
+    // The Email control's empty state for this Group (#513) — passed straight to the toolbar's
+    // Email menu so a plain member of the root sees a greyed button with the reason.
+    emailReason: EmailReason | null;
+}>();
 
 // The Group's roster as the composer's hand-pick pool (#490, ADR-0024 §6.2): the same
 // Group-context Audiences the section-tab strip offers, here in the roster toolbar. Shaped to
@@ -234,7 +243,7 @@ const hardRemove = (member: RosterMember) => {
                         {{ trans('group.roster.add') }}
                     </Button>
                 </template>
-                <EmailMenu context="group" :context-subject="groupSlug" :group-name="groupName" :roster="emailRoster" />
+                <EmailMenu context="group" :context-subject="groupSlug" :group-name="groupName" :roster="emailRoster" :reason="emailReason" />
             </div>
         </div>
 

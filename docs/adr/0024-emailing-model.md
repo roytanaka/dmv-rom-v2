@@ -94,25 +94,25 @@ Every Audience is **resolved on the server at send time** from the Group model. 
 
 "Present standing" means `MembershipStatus::canSignUp()` is true: Full, Trainee, Transitional, Auxiliary, Projects, Emeritus, Donor. "Records" means member-administration authority, a membership in the Group that stewards `member_admin`; super-tier inherits everything. "The Group's officers" means memberships holding any `Role` in that Group, not a fixed subset: legacy's executive lists are free-text positions with no status filter.
 
-| Audience | Who may pick it | Definition |
-| --- | --- | --- |
-| All Members | Records | `Category` with an access tier, minus `Loa`: Active, PreActive, Provisional, Sustaining, Honourary. **Not** the Directory set, which keeps LOA and drops Provisional and PreActive. |
-| All Members and on leave | Records | all six current Categories |
-| Active and Provisional | Records | `Category` in {Active, Provisional} |
-| One Category | Records | the chosen Category |
-| Board of Directors | Records | the DMV Executive Group's roster in present standing |
-| Committee Chairs | Records | `Role::Chair` holders in every active Group that was a legacy top-level committee |
-| All Chairs | Records | `Role::Chair` holders in every active Group, any depth |
-| Whole Group | any member of the Group | the Group's memberships in present standing (drops Inactive and LOA, keeps Donor) |
-| Whole Group and on leave | any member of the Group | present standing plus `Loa` |
-| One status | any member of the Group | memberships with that `MembershipStatus` |
-| Active | any member of the Group | memberships with status `Full` |
-| The Group's officers | the Group's officers | memberships holding at least one `Role` |
-| Sign-ups on a Schedule | the Group's officers | distinct Members with a Sign-up on any Shift of the Schedule ending now or later |
-| Sign-ups on one Shift | the Group's officers | distinct Members with a Sign-up on that Shift. **New**; legacy addressed only the whole event. |
-| A child Group's roster | the parent Group's officers | the child's memberships in present standing |
-| One Member | any Member | that Member, from the Directory or a profile (a Direct message) |
-| Hand-picked | any member of the Group; Records on the Directory | the ticked rows, drawn from the page's roster |
+| Audience                 | Who may pick it                                   | Definition                                                                                                                                                                          |
+| ------------------------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| All Members              | Records                                           | `Category` with an access tier, minus `Loa`: Active, PreActive, Provisional, Sustaining, Honourary. **Not** the Directory set, which keeps LOA and drops Provisional and PreActive. |
+| All Members and on leave | Records                                           | all six current Categories                                                                                                                                                          |
+| Active and Provisional   | Records                                           | `Category` in {Active, Provisional}                                                                                                                                                 |
+| One Category             | Records                                           | the chosen Category                                                                                                                                                                 |
+| Board of Directors       | Records                                           | the DMV Executive Group's roster in present standing                                                                                                                                |
+| Committee Chairs         | Records                                           | `Role::Chair` holders in every active Group that was a legacy top-level committee                                                                                                   |
+| All Chairs               | Records                                           | `Role::Chair` holders in every active Group, any depth                                                                                                                              |
+| Whole Group              | any member of the Group                           | the Group's memberships in present standing (drops Inactive and LOA, keeps Donor)                                                                                                   |
+| Whole Group and on leave | any member of the Group                           | present standing plus `Loa`                                                                                                                                                         |
+| One status               | any member of the Group                           | memberships with that `MembershipStatus`                                                                                                                                            |
+| Active                   | any member of the Group                           | memberships with status `Full`                                                                                                                                                      |
+| The Group's officers     | the Group's officers                              | memberships holding at least one `Role`                                                                                                                                             |
+| Sign-ups on a Schedule   | the Group's officers                              | distinct Members with a Sign-up on any Shift of the Schedule ending now or later                                                                                                    |
+| Sign-ups on one Shift    | the Group's officers                              | distinct Members with a Sign-up on that Shift. **New**; legacy addressed only the whole event.                                                                                      |
+| A child Group's roster   | the parent Group's officers                       | the child's memberships in present standing                                                                                                                                         |
+| One Member               | any Member                                        | that Member, from the Directory or a profile (a Direct message)                                                                                                                     |
+| Hand-picked              | any member of the Group; Records on the Directory | the ticked rows, drawn from the page's roster                                                                                                                                       |
 
 **Exclusions.** Only the no-email flag survives as a rule (§9). Legacy's blank-address, shared sign-in account, and non-member account-type exclusions are dead. Recipients are de-duplicated by Member; the two current shared-address pairs each receive two copies, which is correct.
 
@@ -130,6 +130,8 @@ Every Audience is **resolved on the server at send time** from the Group model. 
 4. **Shift**: in the Shift card's action row, only when a seat is taken. One Audience: "Sign-ups on this Shift".
 5. **Directory**: in the page header, Records-only. The org-wide Audiences plus "Pick people…".
 6. **Member profile**: a "Message <first name>" button in the profile header, hidden on the viewer's own profile. Opens the same sheet with one fixed recipient.
+
+**Amendment (#513): the control has three states.** _Live_ where the viewer may pick at least one Audience; _greyed with a reason_ (never the real `disabled` attribute — it swallows hover and dies on touch) where they may pick none on a Group-scoped surface, the server sending `email.reason` (`not_member` off the root, `not_org_wide_sender` on it) shown on hover and as the menu's one line; and _hidden on Shift cards_ unless the viewer is a Chair or Scheduler (`can.emailSignups`, one flag per opened Schedule), so a plain member never sees a row of greyed buttons.
 
 **The sheet, stepped Who → Message → Sent.** A right-hand sheet; the host page stays visible behind it.
 
