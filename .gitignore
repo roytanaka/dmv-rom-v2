@@ -11,8 +11,10 @@
 .playwright-mcp/
 screenshots/
 
-# Claude Code per-machine settings
-.claude/
+# Claude Code per-machine settings. Project skills are the exception: they
+# are committed so the sandcastle sandbox (which never sees ~/.claude) has them.
+.claude/*
+!.claude/skills/
 
 # Application uploads
 storage/app/documents/
