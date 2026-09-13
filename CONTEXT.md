@@ -174,11 +174,31 @@ The technical identifier for a language + regional convention pair. The app supp
 _Avoid_: Language (the user-facing label is "Language" or "Langue," but in code and ADRs, use **Locale**).
 
 **Chrome / content translation boundary**:
-The line that decides what gets translated. **Chrome** (the frame's own words — UI labels, navigation, system emails) is translated from `lang/{en,fr}` files. **Content** (anything a **Member** authors into a DB row — **Group** names, news, document titles) is single-column and rendered **as-authored**, identical in both locales — never translated, no `_en`/`_fr` columns. See [ADR-0004](docs/adr/0004-chrome-only-translation.md).
+The line that decides what gets translated. **Chrome** (the frame's own words — UI labels, navigation, system emails, **Help articles**) is translated; short strings live in `lang/{en,fr}` files, Help articles in their own tree. **Content** (anything a **Member** authors into a DB row — **Group** names, news, document titles) is single-column and rendered **as-authored**, identical in both locales — never translated, no `_en`/`_fr` columns. See [ADR-0004](docs/adr/0004-chrome-only-translation.md) and [ADR-0025](docs/adr/0025-help-centre.md).
 _Avoid_: "bilingual content," "translatable field" — content is as-authored, not bilingual.
 
 **Default locale**:
 English (`en`). It is the canonical, unprefixed locale — English URLs live at the root, French URLs live under `/fr/`. See [ADR-0008](docs/adr/0008-bilingual-url-routing.md).
+
+**Help article**:
+One page of instructions for one task in the app, written by the project for every **Member**, with screenshots and captions, in both **Locales**. Help articles are **Chrome**: the French version is machine-translated and shipped alongside the English one. See [ADR-0025](docs/adr/0025-help-centre.md).
+_Avoid_: "doc," "guide," "FAQ," "tutorial" — all mean a Help article here. "Documentation" on its own means the developer docs in `docs/`, not this.
+
+**Help section**:
+A named group of **Help articles** that mirrors one area of the app's navigation (Getting started, My Hours, Groups, Scheduling, and so on). Each section has one overview article and any number of task articles.
+_Avoid_: "category," "chapter."
+
+**Required role**:
+The role a **Member** needs before a **Help article**'s task applies to them: a Group role (Scheduler, Chair, and so on), **Super-tier**, or **Support-operator**. Shown as a badge; it never hides the article. Empty means every Member.
+_Avoid_: "audience" — that word is taken by Shifts and Broadcasts.
+
+**Article status**:
+Where a **Help article** stands: `draft` (reachable by URL, hidden from the index) or `published`. Its French copy is separately `machine-translated` or `reviewed`.
+_Avoid_: "done," "live," "WIP."
+
+**Help ledger**:
+The single list of every **Help article** with its **Help section**, **Required role**, **Article status**, screenshot state, and the app page it explains, plus every page with no article. It is the engineer's record of what is built. One list serves both the index Members see and the status page Super-tier sees.
+_Avoid_: "feature inventory," "changelog," "roadmap" — the ledger records what exists, not what is planned.
 
 **PRD** (product requirements document):
 A scoped chunk of product work — large enough to need its own document, small enough to be implementable. PRDs are drafted as GitHub issues labeled `prd`, then broken into implementation tickets.
@@ -194,6 +214,7 @@ _Avoid_: epic, spec, brief, initiative — all refer to the same artifact in oth
 - **Login** to the app grants the **Member** their session and their authorization scope
 - An **Officer** sends a **Broadcast** to an **Audience**; any **Member** sends a **Direct message** to one Member; both become one sent record and one **Delivery** per recipient
 - The daily pass writes a **Reminder** Delivery per (Shift, Member) inside the lead window; a **Notice** fires from the action that changes something; the **Drain** sends every Delivery; the **No-email flag** stops a row being written at all
+- A **Help section** holds **Help articles**; every article carries an **Article status** and a **Required role** and maps to one app page; the **Help ledger** is the full list, and every logged-in **Member** can read every published article
 
 ## Example dialogue
 
