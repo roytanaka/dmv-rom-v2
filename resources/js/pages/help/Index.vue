@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// The help centre index (#517, PRD #516, ADR-0025). Lists the manifest's sections in
-// order, each with its articles (the section overview first, then the task articles).
-// Every logged-in Member sees every article — there is no role gating here (the
-// Required-role badge lands in a later ticket). Section labels are chrome (ADR-0004),
-// resolved via trans(); article titles and hrefs come from the server, already
-// localized (ADR-0008).
+// The help centre index (#517, #518, PRD #516, ADR-0025). Lists the manifest's
+// published sections in order, each with its published articles (the section overview
+// first, then the task articles; drafts are omitted from the index). Every logged-in
+// Member sees every published article — the Required-role badge informs but does not
+// gate. Section labels are chrome (ADR-0004), resolved via trans(); article titles
+// and hrefs come from the server, already localized (ADR-0008).
+import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
@@ -14,6 +15,7 @@ import { computed } from 'vue';
 interface HelpIndexArticle {
     slug: string;
     title: string;
+    requires: string[];
     href: string;
 }
 
@@ -47,8 +49,12 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href
                 <h2 class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">{{ trans(section.labelKey) }}</h2>
                 <ul class="flex flex-col">
                     <li v-for="article in section.articles" :key="article.slug">
-                        <Link :href="article.href" class="text-rom-ink hover:bg-muted -mx-2 block rounded-md px-2 py-1.5 text-sm font-medium">
+                        <Link
+                            :href="article.href"
+                            class="text-rom-ink hover:bg-muted -mx-2 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium"
+                        >
                             {{ article.title }}
+                            <RequiredRoleBadge :requires="article.requires" />
                         </Link>
                     </li>
                 </ul>

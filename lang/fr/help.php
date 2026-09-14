@@ -12,4 +12,26 @@ return [
     'section' => [
         'getting-started' => 'Pour commencer',
     ],
+
+    // Badge du rôle requis (#518, ADR-0025 §6). Le badge affiche « Requis :
+    // Responsable horaire ou Président·e » : le préfixe, une étiquette par rôle
+    // requis, jointes par « ou ». Un article sans rôle requis n'affiche aucun badge.
+    // Une étiquette par jeton de HelpManifest::requirableRoles().
+    'required_role' => [
+        'prefix' => 'Requis :',
+        'or' => 'ou',
+        'role' => [
+            'chair' => 'Président·e',
+            'secretary' => 'Secrétaire',
+            'treasurer' => 'Trésorier·ère',
+            'statistician' => 'Statisticien·ne',
+            'scheduler' => 'Responsable horaire',
+            'vetting' => 'Vérification',
+            'librarian' => 'Bibliothécaire',
+            'content_maintainer' => 'Responsable du contenu',
+            'news_editor' => 'Responsable des nouvelles',
+            'super_tier' => 'Super-niveau',
+            'support_operator' => 'Opérateur de soutien',
+        ],
+    ],
 ];
