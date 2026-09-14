@@ -20,8 +20,11 @@ return [
     'news' => 'nouvelles',
     'profile' => 'profil',
     'renew' => 'renouveler',
-    // Utility — the top bar's Help destination (#194).
+    // Centre d'aide (#517, ADR-0025). L'index à « aide » et un article à
+    // « aide/{article} ». Le slug {article} est un identifiant — la MÊME chaîne dans
+    // les deux langues — donc seul le mot « aide » change ici.
     'help' => 'aide',
+    'help.show' => 'aide/{article}',
 
     // Zone C — officer/admin
     'officer.members' => 'officier/membres',

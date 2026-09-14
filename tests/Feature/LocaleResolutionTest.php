@@ -35,6 +35,12 @@ class LocaleResolutionTest extends TestCase
             'directory' => ['en' => '/directory', 'fr' => '/fr/annuaire', 'component' => 'members/Index'],
             'documents' => ['en' => '/documents', 'fr' => '/fr/documents', 'component' => 'ComingSoon'],
             'news' => ['en' => '/news', 'fr' => '/fr/nouvelles', 'component' => 'news/Index'],
+
+            // Help centre (#517, ADR-0025) — the index and one article. The article
+            // slug is the same identifier in both locales; only the 'help' word is
+            // translated (help ↔ aide).
+            'help' => ['en' => '/help', 'fr' => '/fr/aide', 'component' => 'help/Index'],
+            'help article' => ['en' => '/help/getting-started', 'fr' => '/fr/aide/getting-started', 'component' => 'help/Article'],
             'profile' => ['en' => '/profile', 'fr' => '/fr/profil', 'component' => 'ComingSoon'],
             'renew' => ['en' => '/renew', 'fr' => '/fr/renouveler', 'component' => 'ComingSoon'],
 

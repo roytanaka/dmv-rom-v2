@@ -25,8 +25,11 @@ return [
     'news' => 'news',
     'profile' => 'profile',
     'renew' => 'renew',
-    // Utility — the top bar's Help destination (#194).
+    // Help centre (#517, ADR-0025). The index at 'help' and one article at
+    // 'help/{article}'. The {article} slug is an identifier — the SAME string in
+    // both locales — so only the 'help' word changes in the French twin.
     'help' => 'help',
+    'help.show' => 'help/{article}',
 
     // Zone C — officer/admin
     'officer.members' => 'officer/members',
