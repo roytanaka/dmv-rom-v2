@@ -5,6 +5,9 @@ Téléchargez un rapport en fichier CSV pour l'ouvrir dans un tableur. Cela fonc
 ## Exporter le rapport
 
 1. Ouvrez le rapport voulu.
+
+    ![La barre d'outils d'un rapport : Imprimer et Exporter en CSV au-dessus du choix de l'année financière](01.png)
+
 2. Choisissez l'**Année financière** dont vous avez besoin.
 3. Sélectionnez **Exporter en CSV**.
 

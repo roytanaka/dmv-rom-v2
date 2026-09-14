@@ -15,10 +15,15 @@ You do not enter every kind of hour:
 1. Open the Group from the rail.
 2. Select the **Hours** tab.
 3. Find the month you want under **Record extra hours**.
+
+    ![The Hours tab: Record extra hours, with Hours to add and Visitors to add for each month](01.png)
+
 4. Type the hours in **Hours to add**.
 5. Select **Add hours**.
 
 The form offers this month and last month. On file shows what is already recorded.
+
+**Visitors to add** is optional. Use it for visitors you served outside a Shift. It counts people, not hours.
 
 > **Note:** Do not add Shifts or meetings. The app already counts them.
 

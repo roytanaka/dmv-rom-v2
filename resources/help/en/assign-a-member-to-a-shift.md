@@ -6,7 +6,13 @@ Place a named Member on a Shift yourself, instead of waiting for them to sign up
 
 1. Open your Group's **Scheduling** tab.
 2. Open the Schedule that holds the Shift.
+
+    ![The Schedule's agenda: each Shift with its Place a member button](01.png)
+
 3. Find the Shift and select **Place a member**.
+
+    ![The picker: a search box above the Group's Members](02.png)
+
 4. Type a name in **Search members**.
 5. Select the Member from the list.
 
@@ -16,7 +22,7 @@ The Member now holds a seat on the Shift, the same as if they signed up.
 
 ## Remove a Member
 
-Open the Shift and remove the Member's seat. Removing a seat after the Shift also drops the hours credited for it.
+Select the × beside the Member's name on the Shift. Confirm when the app asks. Removing a seat after the Shift also drops the hours credited for it.
 
 ## What next
 

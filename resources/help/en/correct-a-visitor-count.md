@@ -7,7 +7,13 @@ Set or fix the number of visitors a Member served on a Shift. You need the Sched
 1. Open your Group's **Scheduling** tab.
 2. Open the Schedule that holds the Shift.
 3. Find the Shift and the Member's seat.
+
+    ![An ended Shift: each seat shows its count, a pencil, and an ×](01.png)
+
 4. Select the pencil beside their name.
+
+    ![The correction form under the Shift, naming whose visitors you are correcting](02.png)
+
 5. Type the number in **Visitors served**.
 6. Select **Save**.
 

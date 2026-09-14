@@ -5,6 +5,7 @@ use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
+use App\Enums\MeetingLinkKind;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\ScheduleState;
@@ -16,6 +17,8 @@ use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\GroupStewardship;
 use App\Models\HoursRecord;
+use App\Models\Meeting;
+use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
@@ -25,6 +28,7 @@ use App\Personas\PersonaCatalogue;
 use App\Support\CommitteeHoursStatistics;
 use App\Support\OrgTime;
 use App\Support\VisitorInteractionStatistics;
+use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\Http;
@@ -393,6 +397,20 @@ it('seeds one published Schedule on the Docents Group covering the current month
         ->and($schedule->ends_on->greaterThanOrEqualTo(now()))->toBeTrue();
 });
 
+it('seeds an empty next-month draft Schedule on Docents, so a Scheduler has one to publish', function () {
+    // The Create a Schedule walkthrough (#530) shoots a draft's Publish and New shift controls.
+    // A Member never sees a draft, so the member walkthroughs read as before.
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $next = CarbonImmutable::instance(now())->startOfMonth()->addMonth();
+
+    $draft = Schedule::where('group_id', $docents->id)->where('state', ScheduleState::Draft)->sole();
+
+    expect($draft->name)->toBe($next->format('F Y'))
+        ->and($draft->starts_on->toDateString())->toBe($next->toDateString())
+        ->and($draft->ends_on->toDateString())->toBe($next->endOfMonth()->toDateString())
+        ->and($draft->shifts()->count())->toBe(0);
+});
+
 it('spreads the Schedule across several days with a mix of capacities and an open Shift', function () {
     $schedule = Schedule::where('group_id', Group::where('slug', DemoSeeder::PROGRAM)->value('id'))
         ->with('shifts')
@@ -678,6 +696,35 @@ it('is idempotent across the scheduling rows — re-seeding heals rather than du
         ->and($before['shifts'])->toBeGreaterThan(0)
         ->and($before['shiftKinds'])->toBeGreaterThan(0)
         ->and($before['signUps'])->toBeGreaterThan(0);
+
+    $this->seed(DemoSeeder::class);
+
+    expect($counts())->toBe($before);
+});
+
+/*
+ * Meetings on the Executive committee (#530). The Record a meeting walkthrough shoots the
+ * Meetings tab as the Executive Secretary, so the tab shows real cards with their Edit and
+ * Delete controls rather than the empty state.
+ */
+
+it('seeds an upcoming and a past meeting on the Executive committee, the past one with minutes', function () {
+    $executive = Group::where('slug', 'executive')->firstOrFail();
+
+    $meetings = Meeting::where('group_id', $executive->id)->with('links')->get();
+    $upcoming = $meetings->filter(fn (Meeting $meeting) => $meeting->held_at->isFuture());
+    $past = $meetings->filter(fn (Meeting $meeting) => $meeting->held_at->isPast());
+
+    expect($executive->has_meetings)->toBeTrue()
+        ->and($upcoming)->toHaveCount(1)
+        ->and($past)->toHaveCount(1)
+        ->and($meetings->every(fn (Meeting $meeting) => $meeting->is_published))->toBeTrue()
+        ->and($past->first()->links->pluck('kind')->all())->toContain(MeetingLinkKind::Minutes);
+});
+
+it('is idempotent across the meeting rows — re-seeding heals rather than duplicates', function () {
+    $counts = fn () => [Meeting::count(), MeetingLink::count()];
+    $before = $counts();
 
     $this->seed(DemoSeeder::class);
 

@@ -6,7 +6,13 @@ Ouvrez un horaire pour votre groupe, puis ajoutez les quarts que les membres vie
 
 1. Ouvrez votre groupe depuis la barre latérale.
 2. Sélectionnez l'onglet **Horaire**.
+
+    ![L'onglet Horaire, vu par un·e Responsable horaire : le bouton Nouvel horaire au-dessus de la carte Rappels de quart](01.png)
+
 3. Sélectionnez **Nouvel horaire**.
+
+    ![La fenêtre Nouvel horaire : Nom, Date de début, Date de fin et Description](02.png)
+
 4. Saisissez un **Nom**, une **Date de début** et une **Date de fin**.
 5. Ajoutez une **Description** si cela aide. Ce champ est facultatif.
 6. Sélectionnez **Enregistrer**.
@@ -16,7 +22,13 @@ L'horaire commence comme brouillon. Seuls les Responsables horaire et les Prési
 ## Ajouter des quarts
 
 1. Ouvrez l'horaire que vous venez de créer.
+
+    ![Un horaire en brouillon : l'étiquette Brouillon et Publier en haut, et Nouveau créneau en dessous](03.png)
+
 2. Sélectionnez **Nouveau créneau**.
+
+    ![La fenêtre Nouveau créneau : Début, Fin, Capacité, Type et Audience](04.png)
+
 3. Réglez les heures de **Début** et de **Fin**.
 4. Réglez la **Capacité**, le nombre de membres que le quart accueille.
 5. Choisissez un **Type** si votre groupe en utilise. Laissez **Aucun type** sinon.
@@ -27,7 +39,7 @@ Répétez pour chaque quart. Pour en ajouter plusieurs à la fois, lisez _Ajoute
 
 ## Publier l'horaire
 
-Sélectionnez **Publier** quand les quarts sont prêts. Les membres voient alors l'horaire et peuvent s'inscrire.
+Sélectionnez **Publier** en haut de l'horaire quand les quarts sont prêts. Les membres voient alors l'horaire et peuvent s'inscrire.
 
 > **Note :** Vous ne pouvez dépublier ou supprimer un horaire que tant que personne ne s'est inscrit.
 

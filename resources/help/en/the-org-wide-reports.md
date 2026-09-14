@@ -1,10 +1,20 @@
 # The org-wide reports
 
-Read the hours reports that cover every Group in DMV. You need the super-tier grant or the Records role.
+Read the hours reports that cover every Group in DMV. You need the super-tier grant, a place on Records, or the Chair, Secretary, or Statistician role on DMV.
 
 ## Open the reports
 
-Go to a DMV hours report from its address, then use the links across the top to move between them. Every report covers one fiscal year. Set the year under **Fiscal year**.
+1. Select **My Hours** in the top bar.
+
+    ![My Hours: the Summary Visitor Interactions across the DMV link below the fiscal-year picker](01.png)
+
+2. Select **Summary Visitor Interactions across the DMV**.
+
+    ![Summary Visitor Interactions, with the links to every DMV-wide report across the top](02.png)
+
+3. Use the links across the top to move to another report.
+
+Every report covers one fiscal year. Set the year under **Fiscal year**.
 
 ## What each report shows
 
@@ -15,6 +25,10 @@ Go to a DMV hours report from its address, then use the links across the top to 
 - **Zero hours** lists Members with no hours at all this year.
 - **Zero shift hours** lists Members with no scheduled hours.
 - **Zero extra hours** lists Members with no extra hours.
+
+![Summary Committee Statistics: scheduled hours by committee, month by month](03.png)
+
+![Active Members Ranked Hours: Members by total hours, most first](04.png)
 
 ## Export or print
 

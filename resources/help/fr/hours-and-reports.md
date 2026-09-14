@@ -20,9 +20,11 @@ Lisez _Saisir et corriger des heures_ pour savoir comment les nombres arrivent a
 
 Un·e Président·e ou Statisticien·ne relit le rapport des heures de son propre groupe. Il liste les heures de chaque membre pour cette année financière et totalise le groupe. Lisez _Générer le rapport des heures de votre groupe_.
 
+![Le rapport des heures d'un groupe : une ligne par membre, une colonne par mois, et les totaux du groupe](01.png)
+
 ## Les rapports à l'échelle de l'organisation
 
-Les rapports à l'échelle de l'organisation répondent à des questions sur tous les groupes : heures par comité, nombres de visiteur·euses, totaux classés, et qui n'a pas encore d'heures. Les officier·ères de Records et du super-niveau les relisent. Lisez _Les rapports à l'échelle de l'organisation_.
+Les rapports à l'échelle de l'organisation répondent à des questions sur tous les groupes : heures par comité, nombres de visiteur·euses, totaux classés, et qui n'a pas encore d'heures. Les Président·e, Secrétaire et Statisticien·ne du DMV les relisent. Les membres de Records et les officier·ères du super-niveau aussi. Lisez _Les rapports à l'échelle de l'organisation_.
 
 ## Et ensuite
 

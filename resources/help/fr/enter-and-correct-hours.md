@@ -15,10 +15,15 @@ Vous ne saisissez pas toutes les sortes d'heures :
 1. Ouvrez le groupe depuis la barre latérale.
 2. Sélectionnez l'onglet **Heures**.
 3. Trouvez le mois voulu sous **Enregistrer des heures supplémentaires**.
+
+    ![L'onglet Heures : Enregistrer des heures supplémentaires, avec Heures à ajouter et Visiteurs à ajouter pour chaque mois](01.png)
+
 4. Saisissez les heures dans **Heures à ajouter**.
 5. Sélectionnez **Ajouter les heures**.
 
 Le formulaire propose ce mois-ci et le mois dernier. « Enregistré » indique ce qui figure déjà au dossier.
+
+**Visiteurs à ajouter** est facultatif. Servez-vous-en pour les visiteur·euses servi·es hors d'un quart. Ce champ compte des personnes, pas des heures.
 
 > **Note :** N'ajoutez pas les quarts ni les réunions. L'application les compte déjà.
 

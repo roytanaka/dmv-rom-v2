@@ -1,10 +1,20 @@
 # Les rapports à l'échelle de l'organisation
 
-Relisez les rapports des heures qui couvrent tous les groupes du DMV. Vous avez besoin du grade super-niveau ou du rôle Records.
+Relisez les rapports des heures qui couvrent tous les groupes du DMV. Vous avez besoin du grade super-niveau, d'une place à Records, ou du rôle Président·e, Secrétaire ou Statisticien·ne du DMV.
 
 ## Ouvrir les rapports
 
-Rendez-vous à un rapport des heures du DMV par son adresse, puis servez-vous des liens en haut pour passer de l'un à l'autre. Chaque rapport couvre une année financière. Réglez l'année sous **Année financière**.
+1. Sélectionnez **Mes heures** dans la barre supérieure.
+
+    ![Mes heures : le lien Sommaire des interactions avec les visiteurs du DMV sous le choix de l'année financière](01.png)
+
+2. Sélectionnez **Sommaire des interactions avec les visiteurs du DMV**.
+
+    ![Le sommaire des interactions avec les visiteurs, avec les liens vers chaque rapport du DMV en haut](02.png)
+
+3. Servez-vous des liens en haut pour passer à un autre rapport.
+
+Chaque rapport couvre une année financière. Réglez l'année sous **Année financière**.
 
 ## Ce que montre chaque rapport
 
@@ -15,6 +25,10 @@ Rendez-vous à un rapport des heures du DMV par son adresse, puis servez-vous de
 - **Zéro heure** liste les membres sans aucune heure cette année.
 - **Zéro heure de quart** liste les membres sans heures planifiées.
 - **Zéro heure supplémentaire** liste les membres sans heures supplémentaires.
+
+![Statistiques sommaires des comités : les heures planifiées par comité, mois par mois](03.png)
+
+![Classement des heures des membres actifs : les membres par total d'heures, du plus élevé au plus bas](04.png)
 
 ## Exporter ou imprimer
 

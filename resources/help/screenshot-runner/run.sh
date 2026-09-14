@@ -65,7 +65,9 @@ browser_call() {
 # ── step-script DSL ─────────────────────────────────────────────────────────
 # A step script is sourced, not run. `persona` and `start` set the login and the
 # opening page; `nav` and `act` record steps, which the runner replays after it
-# has logged in. Each step ends in a shot: `nav <path> <NN>` or `act <fn> <NN>`.
+# has logged in. A step with a shot number ends in that shot: `nav <path> <NN>` or
+# `act <fn> <NN>`. Leave the number off to move without a shot, say to reload a page
+# and close a dialog, or to open a Schedule before the helper that frames the shot.
 
 PERSONA_EMAIL=""
 START_PATH=""
@@ -73,8 +75,8 @@ STEPS=()
 
 persona() { PERSONA_EMAIL="$1"; }
 start() { START_PATH="$1"; }
-nav() { STEPS+=("goto|$1|$2"); }
-act() { STEPS+=("call|$1|$2"); }
+nav() { STEPS+=("goto|$1|${2:-}"); }
+act() { STEPS+=("call|$1|${2:-}"); }
 
 # ── main ────────────────────────────────────────────────────────────────────
 
@@ -112,6 +114,7 @@ for entry in "${STEPS[@]}"; do
     goto) browser_goto "$BASE_URL$arg" ;;
     call) browser_call "$arg" ;;
     esac
+    [[ -z "$shot" ]] && continue
     browser_shot "$OUT_DIR/$shot.png"
     echo "  $shot.png"
 done
