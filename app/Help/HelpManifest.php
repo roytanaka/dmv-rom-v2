@@ -171,16 +171,16 @@ final class HelpManifest
     }
 
     /**
-     * The real catalogue. The two Getting started articles stay draft until their
-     * screenshots land (ADR-0025), so the index is empty until the backfill batches.
+     * The real catalogue. An article lands draft and flips to published once its
+     * screenshots are on disk (ADR-0025); the two Getting started articles shipped first.
      *
      * @return list<HelpArticle>
      */
     private static function catalog(): array
     {
         return [
-            new HelpArticle('getting-started', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Draft, route: 'dashboard'),
-            new HelpArticle('change-your-language', HelpSection::GettingStarted, status: ArticleStatus::Draft),
+            new HelpArticle('getting-started', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Published, route: 'dashboard'),
+            new HelpArticle('change-your-language', HelpSection::GettingStarted, status: ArticleStatus::Published),
         ];
     }
 

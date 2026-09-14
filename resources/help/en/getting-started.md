@@ -4,9 +4,11 @@ This app is where DMV Volunteers work online. You track your hours, sign up for 
 
 This page shows you around. Each other article covers one task.
 
+![The dashboard: the black top bar across the top, the rail of Groups down the left, and your Groups in the middle](01.png)
+
 ## The top bar
 
-The black bar stays at the top of every page. It holds your main links: My Hours, My Calendar, News, and Directory. Your name sits on the right. The "?" beside it opens Help.
+The black bar stays at the top of every page. It holds your main links: My Hours, My Calendar, News, and Directory. Your initials sit on the right. Help, marked with a "?", sits beside them.
 
 ## The rail
 
@@ -18,4 +20,6 @@ Your Groups sit in the rail under My Groups. Each Group has its own News, Schedu
 
 ## Where to find help
 
-Select the "?" in the top bar. Help opens the article for the page you are on. Each article gives you short steps to follow.
+Select Help in the top bar. Help opens the article for the page you are on. Each article gives you short steps to follow.
+
+![The Help link in the top bar, outlined, to the left of the language menu and your initials](02.png)

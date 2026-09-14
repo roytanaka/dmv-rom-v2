@@ -51,8 +51,7 @@ it('has every referenced screenshot on disk', function () {
         }
     }
 
-    // Empty in this slice — no article references an image yet — but the check runs,
-    // so a later article's missing screenshot breaks this test, not the page.
+    // A missing screenshot breaks this test, not the page.
     expect($missing)->toBe([]);
 });
 
@@ -63,13 +62,13 @@ it('carries a valid status and French state on every entry', function () {
     }
 });
 
-it('keeps the two Getting started articles draft until their screenshots land', function () {
-    $drafts = collect((new HelpManifest)->all())
-        ->filter(fn ($article) => $article->status === ArticleStatus::Draft)
+it('ships the two Getting started articles published', function () {
+    $published = collect((new HelpManifest)->all())
+        ->filter(fn ($article) => $article->status === ArticleStatus::Published)
         ->map->slug
         ->all();
 
-    expect($drafts)->toContain('getting-started', 'change-your-language');
+    expect($published)->toContain('getting-started', 'change-your-language');
 });
 
 it('requires only known role tokens', function () {

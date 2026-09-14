@@ -16,10 +16,11 @@
 #
 # ── agent-browser coupling ──────────────────────────────────────────────────
 # Every call into the agent-browser CLI goes through the browser_* wrappers
-# below, so the CLI surface this runner needs is one screenful. agent-browser is
-# allowlisted in this repo but nothing was scripted against it before this
-# ticket, so confirm the exact subcommands on the first real run and adjust the
-# wrappers alone if they differ.
+# below, so the CLI surface this runner needs is one screenful. The subcommands
+# were confirmed against agent-browser 0.27.1 (#523): `open`, `set viewport`,
+# `screenshot`, and `eval`. `eval` awaits a returned promise but rejects a
+# top-level `await`, so the login helper is called without one. If a later CLI
+# version renames a subcommand, adjust the wrappers alone.
 
 set -euo pipefail
 
@@ -36,9 +37,9 @@ VIEWPORT_HEIGHT=800
 
 # ── agent-browser wrappers ──────────────────────────────────────────────────
 
-browser_goto() { agent-browser goto "$1"; }
+browser_goto() { agent-browser open "$1"; }
 
-browser_viewport() { agent-browser viewport "$1" "$2"; }
+browser_viewport() { agent-browser set viewport "$1" "$2"; }
 
 browser_shot() {
     mkdir -p "$(dirname "$1")"
@@ -52,7 +53,7 @@ browser_inject() { agent-browser eval "$(cat "$HELPERS_FILE")"; }
 browser_login() {
     browser_goto "$BASE_URL/login"
     browser_inject
-    agent-browser eval "await window.__help.login('$1', '$2')"
+    agent-browser eval "window.__help.login('$1', '$2')"
 }
 
 # Call one named window.__help function on the current page.
