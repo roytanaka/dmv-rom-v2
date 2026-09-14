@@ -21,7 +21,9 @@ enum HelpSection: string
     case Groups = 'groups';
     case Scheduling = 'scheduling';
     case HoursAndReports = 'hours-and-reports';
+    case Emailing = 'emailing';
     case Settings = 'settings';
+    case Support = 'support';
 
     /** The lang key for this section's translated label (chrome, ADR-0004). */
     public function labelKey(): string

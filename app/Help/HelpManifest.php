@@ -225,10 +225,24 @@ final class HelpManifest
             new HelpArticle('enter-and-correct-hours', HelpSection::HoursAndReports, status: ArticleStatus::Draft, route: 'groups.show'),
             new HelpArticle('the-org-wide-reports', HelpSection::HoursAndReports, requires: ['super_tier'], status: ArticleStatus::Draft, route: 'hours.committee-summary'),
 
+            // Emailing and support (#527, ADR-0024) — the composer, its Audiences, and the Mail
+            // status ledger; then the dev Role-switcher, its own small section.
+            new HelpArticle('emailing', HelpSection::Emailing, isOverview: true, status: ArticleStatus::Draft),
+            new HelpArticle('send-a-direct-message', HelpSection::Emailing, status: ArticleStatus::Draft, route: 'members.show'),
+            new HelpArticle('send-a-broadcast', HelpSection::Emailing, status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('pick-an-audience', HelpSection::Emailing, status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('attach-a-file', HelpSection::Emailing, status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('queued-for-n-members', HelpSection::Emailing, status: ArticleStatus::Draft),
+            new HelpArticle('read-the-mail-status-page', HelpSection::Emailing, requires: ['super_tier'], status: ArticleStatus::Draft, route: 'mail-status'),
+
             new HelpArticle('settings', HelpSection::Settings, isOverview: true, status: ArticleStatus::Draft, route: 'settings.profile'),
             new HelpArticle('update-your-profile', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.profile'),
             new HelpArticle('change-your-password', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.password'),
             new HelpArticle('record-your-skills', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.skills'),
+
+            // Support (#527, ADR-0009) — the non-production dev Role-switcher, an operator tool.
+            new HelpArticle('use-the-role-switcher', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Draft),
+            new HelpArticle('return-to-yourself', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Draft),
         ];
     }
 
