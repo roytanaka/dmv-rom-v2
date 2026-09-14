@@ -36,7 +36,7 @@ Browser automation in this repo is the `agent-browser` CLI, allowlisted but with
 
 7. **Article status is `draft` or `published`.** Drafts are hidden from the index and the contextual link but reachable by direct URL, so review happens on staging with real chrome. French state is `machine-translated` or `reviewed`.
 
-8. **Screenshots are scripted and committed.** One `agent-browser` step script per article (persona to log in as, URL, clicks, shot names) plus one shared runner that logs in with the seeded persona and executes a script. Output is committed under `public/help/<slug>/`. English UI only, desktop width only, no drawn annotations; the caption carries the meaning. A wrong shot is replaced by hand; the script stays as the record of intent. When a feature changes, its article's script is re-run. No CI screenshot job yet.
+8. **Screenshots are scripted and committed.** One `agent-browser` step script per article (persona to log in as, URL, clicks, shot names) plus one shared runner that logs in with the seeded persona and executes a script. Output is committed under `public/help-images/<slug>/`. English UI only, desktop width only, no drawn annotations; the caption carries the meaning. A wrong shot is replaced by hand; the script stays as the record of intent. When a feature changes, its article's script is re-run. No CI screenshot job yet.
 
 9. **A ledger page at `/help-status`**, super-tier only, English-only and non-localized like the Mail status page. It lists every manifest entry with its status, French state, screenshot count against references, and mapped route, then every page route with no article. This is the "what have I lost track of" view.
 

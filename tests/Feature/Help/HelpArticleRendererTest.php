@@ -22,7 +22,7 @@ it('renders a screenshot as a captioned figure pointing at the article public fo
 
     expect($rendered->html)
         ->toContain('<figure>')
-        ->toContain('<img src="/help/figure-fixture/01.png"')
+        ->toContain('<img src="/help-images/figure-fixture/01.png"')
         ->toContain('<figcaption>The language menu open in the top bar</figcaption>')
         // The lone image is unwrapped from its paragraph so the figure is a block.
         ->not->toContain('<p><figure>');
