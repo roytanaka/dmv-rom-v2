@@ -62,7 +62,7 @@ it('carries a valid status and French state on every entry', function () {
     }
 });
 
-it('ships the two Getting started articles published, with their screenshots on disk', function () {
+it('ships the two Getting started articles published', function () {
     $published = collect((new HelpManifest)->all())
         ->filter(fn ($article) => $article->status === ArticleStatus::Published)
         ->map->slug

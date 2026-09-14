@@ -10,9 +10,9 @@ The app works in English and French. You choose which one you see.
 
 2. Select the language you want.
 
-The page reloads in your language. Your choice stays until you change it again.
+   ![The same page in French: the top bar links, the rail headings, and Help all read in French](02.png)
 
-![The same page in French: the top bar links, the rail headings, and Help all read in French](02.png)
+The page reloads in your language. Your choice stays until you change it again.
 
 ## What changes
 
