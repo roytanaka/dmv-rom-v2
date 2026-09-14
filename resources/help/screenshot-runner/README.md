@@ -20,7 +20,8 @@ resources/help/screenshot-runner/run.sh getting-started
 
 The runner logs in as the script's Persona, sets a 1280 px desktop viewport,
 walks the steps, and writes the shots to `public/help/<slug>/`. Override
-`BASE_URL` for a non-default Sail port.
+`BASE_URL` for a non-default Sail port; override `DEV_PASSWORD` if the seeded
+password differs from the default.
 
 ## Write a step script
 
