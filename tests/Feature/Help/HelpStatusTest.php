@@ -73,7 +73,7 @@ it('lists an unmapped page route as a gap and omits mapped, excluded, and stub r
         ->assertInertia(fn (Assert $page) => $page
             ->where('gaps', fn (Collection $gaps) => $gaps
                 // A real localized page route no article maps yet.
-                ->contains('groups.hours.report')
+                ->contains('groups.hours.month')
                 // directory is mapped by the volunteer-basics article, even as a draft.
                 && ! $gaps->contains('directory')
                 // A CSV export twin from the exclusion list — the report page's sibling.

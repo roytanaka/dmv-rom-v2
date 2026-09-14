@@ -12,7 +12,7 @@ Three kinds of hours land on a Member's record:
 
 - **Scheduled hours** come from the Shifts a Member is signed up for.
 - **Meeting hours** come from meetings the Member attended.
-- **Extra hours** a Member enters for work outside Shifts and meetings.
+- **Extra hours** come from work a Member enters outside Shifts and meetings.
 
 Read _Enter and correct hours_ for how the numbers get on file.
 
