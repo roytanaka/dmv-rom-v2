@@ -54,6 +54,11 @@ final class PersonaCatalogue
 
     public const SCHEDULER_EMAIL = 'james.tremblay@dmv.test';
 
+    // The Member-tasks Persona: the plain Docents Member the help screenshots and a
+    // walkthrough of a Member's day are shot as, so the seed keeps her in the states those
+    // walk (a seat to drop, a past Shift still owed a visitor count).
+    public const MEMBER_EMAIL = 'amara.abara@dmv.test';
+
     /**
      * Every catalogued Persona, in picker order (grouped by function).
      *
@@ -150,7 +155,7 @@ final class PersonaCatalogue
             new Persona('diego.costa@dmv.test', 'Diego', 'Costa', PersonaGroup::Standings, 'Transitional · Reception', placements: [
                 new PersonaPlacement(self::RECEPTION, MembershipStatus::Transitional),
             ]),
-            new Persona('amara.abara@dmv.test', 'Amara', 'Abara', PersonaGroup::Standings, 'Member · Docents + Reception', placements: [
+            new Persona(self::MEMBER_EMAIL, 'Amara', 'Abara', PersonaGroup::Standings, 'Member · Docents + Reception', placements: [
                 new PersonaPlacement(self::DOCENTS),
                 new PersonaPlacement(self::RECEPTION),
             ]),

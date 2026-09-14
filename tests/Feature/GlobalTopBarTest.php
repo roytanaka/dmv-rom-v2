@@ -48,7 +48,7 @@ it('shares the same fixed global destinations on a Group page', function () {
     $this->actingAs(Member::factory()->create())
         ->get(route('groups.show', $group))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => assertEnglishDestinations($page, '/help/record-extra-hours'));
+        ->assertInertia(fn (Assert $page) => assertEnglishDestinations($page, '/help/groups'));
 });
 
 it('shares the same fixed global destinations on a settings page', function () {
@@ -148,6 +148,6 @@ it('localizes the global destination hrefs to their French twins under /fr/', fu
                 ->where('chromeNav.destinations.1.href', '/fr/calendrier')
                 ->where('chromeNav.destinations.2.href', '/fr/nouvelles')
                 ->where('chromeNav.destinations.3.href', '/fr/annuaire')
-                ->where('chromeNav.help.href', '/fr/aide/record-extra-hours'));
+                ->where('chromeNav.help.href', '/fr/aide/groups'));
     });
 });

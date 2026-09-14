@@ -9,3 +9,4 @@ start /dashboard
 
 nav /dashboard 01          # the rail's My Groups list, where a Group opens from
 nav /groups/docents 02     # the opened Group page
+act openBrowseGroups 03    # Browse Groups expanded in the rail: the areas the other Groups sort into

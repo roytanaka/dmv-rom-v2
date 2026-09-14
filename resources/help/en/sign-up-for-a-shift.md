@@ -6,9 +6,17 @@ Take a seat on a shift you want to work.
 
 1. Open a Group from the rail.
 2. Select the **Scheduling** tab.
+
+    ![The Scheduling tab: the list of schedules](01.png)
+
 3. Select a schedule to open its shifts.
+
+    ![The schedule's agenda: its name and dates, then its shifts by day](02.png)
+
 4. Find a shift with a free seat.
 5. Select **Sign up**.
+
+    ![Shifts with a free seat, each with its Sign up button](03.png)
 
 Your name joins the shift, and the seat count goes up by one.
 
