@@ -15,6 +15,8 @@ return [
         'my-hours' => 'Mes heures',
         'directory' => 'Répertoire',
         'news' => 'Nouvelles',
+        'groups' => 'Groupes',
+        'scheduling' => 'Horaire',
         'settings' => 'Paramètres',
     ],
 

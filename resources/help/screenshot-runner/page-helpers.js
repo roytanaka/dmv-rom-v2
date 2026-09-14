@@ -75,5 +75,20 @@
         return true;
     }
 
-    window.__help = { login, highlightHelpLink, openLanguageSwitcher, openNewsComposer };
+    // Open the first Schedule's agenda from the Scheduling tab's list. The seeded
+    // Schedule's id is not stable across seeds, so the script cannot `nav` to its
+    // permalink; it clicks the first schedule link instead. Each list item is a
+    // TextLink to `/groups/<slug>/scheduling/<id>`, so the permalink is the only
+    // anchor whose href carries a segment after `/scheduling/`. The Inertia click
+    // navigates to the agenda.
+    function openFirstSchedule() {
+        const link = Array.from(document.querySelectorAll('a[href*="/scheduling/"]')).find((element) =>
+            /\/scheduling\/[^/]+$/.test(new URL(element.href).pathname),
+        );
+        if (!link) return false;
+        link.click();
+        return true;
+    }
+
+    window.__help = { login, highlightHelpLink, openLanguageSwitcher, openNewsComposer, openFirstSchedule };
 })();
