@@ -48,7 +48,10 @@ article's own caption is what the reader sees.
 ## Personas
 
 Shoot each article as the account that does the task, so the chrome in the shot
-matches the reader's. All Personas share the dev password `password`.
+matches the reader's. All Personas share the dev password `password`. The
+browser keeps its cookies between runs, so the runner signs the previous Persona
+out before it signs the script's Persona in; two articles shot back to back never
+share a session.
 
 | Article kind                | Persona               | Email                     |
 | --------------------------- | --------------------- | ------------------------- |

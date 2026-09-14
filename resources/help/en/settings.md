@@ -1,6 +1,8 @@
 # Settings
 
-Settings is where you manage your own account. Select your name in the top bar, then **My Profile**.
+Settings is where you manage your own account. Select your initials or photo in the top bar, then **My Profile**.
+
+![Settings: the sidebar with Profile, Password, and Skills, and the Profile page open](01.png)
 
 ## Profile
 

@@ -7,6 +7,8 @@ Lisez les nouvelles publiées par les groupes de tout le DMV.
 1. Sélectionnez **Nouvelles** dans la barre supérieure.
 2. Le fil s'ouvre avec l'élément le plus récent en premier.
 
+![Le fil des nouvelles avec l'élément le plus récent en haut](01.png)
+
 ## Lire un élément
 
 Chaque élément affiche :

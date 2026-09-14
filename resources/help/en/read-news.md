@@ -7,6 +7,8 @@ Read the news that Groups across the DMV have posted.
 1. Select **News** in the top bar.
 2. The feed opens with the newest item first.
 
+![The News feed with the newest item at the top](01.png)
+
 ## Read an item
 
 Each item shows:

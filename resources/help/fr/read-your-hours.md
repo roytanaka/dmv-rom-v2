@@ -7,6 +7,8 @@ Lisez vos heures de tous vos groupes pour une année financière.
 1. Sélectionnez **Mes heures** dans la barre supérieure.
 2. La page s'ouvre sur l'année financière courante.
 
+![Mes heures sur l'année financière courante : une carte de groupe avec les colonnes Planifiées, Supplémentaires et Total, une ligne par mois](01.png)
+
 ## Lire un groupe
 
 Chaque groupe où vous avez des heures apparaît comme une carte. Chaque ligne est un mois. Les colonnes répartissent vos heures en trois. Planifiées compte les quarts auxquels vous vous êtes inscrit. Supplémentaires compte les heures que vous avez enregistrées à la main. Total additionne les deux.

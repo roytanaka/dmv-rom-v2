@@ -6,5 +6,5 @@
 persona amara.abara@dmv.test
 start /directory
 
-nav /directory 01           # the search box and the roster table
-nav /members/2 02           # a Member's profile — swap the id for any seeded Member
+nav /directory 01                   # the search box and the roster table
+act openAnotherMembersProfile 02    # a Member's profile, opened from the roster's name link

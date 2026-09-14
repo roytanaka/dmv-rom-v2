@@ -4,8 +4,10 @@ Keep your name, contact details, and photo up to date.
 
 ## Open your profile
 
-1. Select your name in the top bar.
+1. Select your initials or photo in the top bar.
 2. Select **My Profile**.
+
+![The Profile page: the photo, the file button and Remove photo, then the name and email fields](01.png)
 
 ## Change your details
 

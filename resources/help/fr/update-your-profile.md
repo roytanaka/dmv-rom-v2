@@ -4,8 +4,10 @@ Gardez à jour votre nom, vos coordonnées et votre photo.
 
 ## Ouvrir votre profil
 
-1. Sélectionnez votre nom dans la barre supérieure.
+1. Sélectionnez vos initiales ou votre photo dans la barre supérieure.
 2. Sélectionnez **Mon profil**.
+
+![La page Profil : la photo, le bouton de fichier et Supprimer la photo, puis les champs du nom et du courriel](01.png)
 
 ## Changer vos renseignements
 

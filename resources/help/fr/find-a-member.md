@@ -5,6 +5,9 @@ Trouvez un membre dans le répertoire et ouvrez son profil.
 ## Rechercher par nom
 
 1. Sélectionnez **Répertoire** dans la barre supérieure.
+
+    ![Le répertoire : la boîte de recherche au-dessus de la liste](01.png)
+
 2. Saisissez un nom dans la boîte de recherche.
 3. La liste se réduit à mesure que vous tapez. Elle correspond à un prénom ou à un nom.
 
@@ -17,6 +20,8 @@ Filtrez la liste à un seul groupe avec **Filtrer par groupe**. Triez la liste a
 ## Ouvrir un profil
 
 Sélectionnez le nom d'un membre pour ouvrir son profil.
+
+![Le profil d'un membre : nom, statut, la carte Coordonnées, groupes et rôles](02.png)
 
 ## Et ensuite
 

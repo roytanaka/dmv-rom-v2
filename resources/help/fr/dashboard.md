@@ -8,6 +8,8 @@ Le tableau de bord affiche une tuile pour chaque groupe auquel vous appartenez. 
 
 Si vous n'appartenez à aucun groupe, cette zone reste vide.
 
+![Le tableau de bord : vos groupes en tuiles au centre, avec le rail des groupes à gauche](01.png)
+
 ## Le reste de l'application
 
-La barre supérieure contient Mes heures, Mon calendrier, Nouvelles et Répertoire. Le rail à gauche liste aussi vos groupes. Votre nom se trouve à droite, avec le « ? » de l'aide à côté.
+La barre supérieure contient Mes heures, Mon calendrier, Nouvelles et Répertoire. Le rail à gauche liste aussi vos groupes. Vos initiales se trouvent à droite. L'aide, marquée d'un « ? », se trouve à côté.

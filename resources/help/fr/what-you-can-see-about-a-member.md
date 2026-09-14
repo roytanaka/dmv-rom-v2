@@ -15,6 +15,8 @@ Tout membre connecté voit ces renseignements sur un profil :
 
 Le courriel et les numéros de téléphone ne sont pas pour tout le monde. Vous les voyez seulement si vous êtes un dirigeant d'un groupe auquel le membre appartient. Si vous ne pouvez pas les voir, le profil indique « Les coordonnées ne vous sont pas accessibles. »
 
+![Le profil d'un pair : nom, photo ou initiales, statut et groupes, avec la note que les coordonnées ne vous sont pas accessibles](01.png)
+
 ## Ce qui reste privé
 
 Certains renseignements ne sont jamais affichés à un pair :

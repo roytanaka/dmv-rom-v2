@@ -6,6 +6,8 @@ Mes heures rassemble en un seul endroit vos heures de tous vos groupes. Cette pa
 
 La page affiche une carte par groupe où vous avez des heures. Chaque carte répartit vos heures par mois. Un cumul annuel figure au bas de chaque carte.
 
+![Mes heures : le sélecteur d'année financière en haut et une carte de groupe avec une ligne par mois](01.png)
+
 ## L'année financière
 
 Les heures sont groupées par année financière. L'année va du 1er avril au 31 mars. Le sélecteur en haut permet de passer à une année antérieure.
