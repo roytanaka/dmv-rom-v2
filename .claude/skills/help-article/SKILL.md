@@ -67,8 +67,8 @@ sound like a chatbot. Keep every instruction; change only the wording.
 
 Write `resources/help/fr/<slug>.md`: Canadian-French, machine-translated, matched
 to the English file heading-for-heading and step-for-step. Use the project's
-French words from `CONTEXT.md`. Leave the entry `fr: MachineTranslated`; a human
-sets `Reviewed` later.
+French words from `CONTEXT.md`. Leave the entry `fr: FrenchState::MachineTranslated`; a human
+sets `FrenchState::Reviewed` later.
 
 ## 7. Write the step script
 

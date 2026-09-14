@@ -21,8 +21,8 @@ both locales. The English and Canadian-French files land together.
 | Screenshots     | `public/help/<slug>/NN.png`                        |
 
 The `slug` is one stable string. It names both Markdown files, the step script,
-and the screenshot folder. Use it in the manifest entry and nowhere invent a
-second name.
+and the screenshot folder. Use it in the manifest entry; do not invent a second
+name.
 
 ## Article shape
 
