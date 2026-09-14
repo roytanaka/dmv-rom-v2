@@ -7,6 +7,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupEmptyDeskSettingsController;
 use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\GroupReminderSettingsController;
+use App\Http\Controllers\HelpController;
 use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\MailStatusController;
@@ -50,9 +51,6 @@ Route::group([
     $stubRoutes = [
         // Zone A — personal
         'calendar', 'documents', 'profile', 'renew',
-        // Utility — the top bar's Help destination (#194); a placeholder until
-        // the help surface lands.
-        'help',
         // Zone C — officer/admin
         'officer.members', 'officer.communications', 'officer.reports',
         'officer.flash-messages', 'officer.settings',
@@ -63,6 +61,17 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // Help centre (#517, PRD #516, ADR-0025). The reader's two surfaces: the index of
+    // sections and articles, and one article rendered from its Markdown file. Both are
+    // login-only chrome, localized per ADR-0008 (/help ↔ /fr/aide, /help/{article} ↔
+    // /fr/aide/{article}); the article slug is the same identifier in both locales. The
+    // super-tier ledger at /help-status lands in a later ticket. Replaces the earlier
+    // ComingSoon stub for `help`.
+    Route::get(LaravelLocalization::transRoute('routes.help'), [HelpController::class, 'index'])
+        ->middleware('auth')->name('help');
+    Route::get(LaravelLocalization::transRoute('routes.help.show'), [HelpController::class, 'show'])
+        ->middleware('auth')->name('help.show');
 
     // My Hours (#409, PRD #406, ADR-0022 §8). A Member's own hours, gathered from every
     // Group they have hours in, broken out by month across a fiscal year with a year-to-date
