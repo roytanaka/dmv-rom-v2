@@ -8,6 +8,9 @@ Un rappel envoie un courriel à un·e membre quelques jours avant un quart auque
 
 1. Ouvrez l'onglet **Horaire** de votre groupe.
 2. Trouvez la carte **Rappels de quart**.
+
+    ![La carte Rappels de quart : Envoyer les rappels de quart et Jours avant le quart](01.png)
+
 3. Cochez **Envoyer les rappels de quart** pour les activer.
 4. Réglez **Jours avant le quart** pour choisir le préavis à donner.
 5. Sélectionnez **Enregistrer**.
@@ -17,6 +20,9 @@ Un rappel envoie un courriel à un·e membre quelques jours avant un quart auque
 L'alerte de poste vacant indique par courriel à votre groupe quels quarts surveillés n'ont encore personne d'inscrit.
 
 1. Trouvez la carte **Alerte de poste vacant**.
+
+    ![La carte Alerte de poste vacant : Envoyer l'alerte de poste vacant, les jours à vérifier et les types à surveiller](02.png)
+
 2. Cochez **Envoyer l'alerte de poste vacant** pour l'activer.
 3. Réglez **Nombre de jours à vérifier** pour choisir jusqu'où regarder devant.
 4. Sous **Types de quart à surveiller**, cochez chaque type à inclure.

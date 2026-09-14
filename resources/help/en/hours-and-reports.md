@@ -20,9 +20,11 @@ Read _Enter and correct hours_ for how the numbers get on file.
 
 A Chair or Statistician reads their own Group's hours report. It lists every Member's hours this fiscal year and totals the Group. Read _Run your Group's hours report_.
 
+![A Group's hours report: one row per Member, one column per month, and the Group's totals](01.png)
+
 ## The org-wide reports
 
-DMV-wide reports answer questions across every Group: hours by committee, visitor counts, ranked totals, and who has no hours yet. Records and super-tier officers read them. Read _The org-wide reports_.
+DMV-wide reports answer questions across every Group: hours by committee, visitor counts, ranked totals, and who has no hours yet. The DMV's Chair, Secretary, and Statistician read them. So do Records members and super-tier officers. Read _The org-wide reports_.
 
 ## What next
 

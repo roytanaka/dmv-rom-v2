@@ -5,6 +5,9 @@ Download a report as a CSV file to open it in a spreadsheet. This works on any h
 ## Export the report
 
 1. Open the report you want.
+
+    ![A report's toolbar: Print and Export CSV above the fiscal-year picker](01.png)
+
 2. Choose the **Fiscal year** you need.
 3. Select **Export CSV**.
 

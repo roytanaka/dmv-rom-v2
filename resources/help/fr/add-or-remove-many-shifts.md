@@ -6,7 +6,13 @@ Créez un quart sur chaque jour de semaine choisi d'une plage de dates, ou retir
 
 1. Ouvrez l'onglet **Horaire** de votre groupe.
 2. Ouvrez l'horaire à remplir.
+
+    ![Un horaire ouvert : Créneaux en lot à côté de Nouveau créneau](01.png)
+
 3. Sélectionnez **Créneaux en lot**.
+
+    ![La fenêtre Créer des créneaux en lot : jours, heures, dates, capacité et type, puis Créer les créneaux et Supprimer les correspondants](02.png)
+
 4. Sous **Jours de la semaine**, cochez chaque jour à planifier.
 5. Réglez l'**Heure de début** et l'**Heure de fin**.
 6. Réglez la **Date de début** et la **Date de fin** de la plage.

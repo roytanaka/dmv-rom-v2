@@ -6,7 +6,13 @@ Create one Shift on every chosen weekday across a date range, or remove a batch 
 
 1. Open your Group's **Scheduling** tab.
 2. Open the Schedule you want to fill.
+
+    ![An opened Schedule: Bulk shifts beside New shift](01.png)
+
 3. Select **Bulk shifts**.
+
+    ![The Bulk-create shifts dialog: weekdays, times, dates, capacity, and kind, then Create shifts and Delete matching](02.png)
+
 4. Under **Days of the week**, check each weekday to schedule.
 5. Set the **Start time** and **End time**.
 6. Set the **From date** and **To date** for the range.

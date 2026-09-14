@@ -1,12 +1,18 @@
 # Record a meeting
 
-Post a meeting for your Group, with its time, place, and links. You need the Secretary role.
+Post a meeting for your Group, with its time, place, and links. You need the Secretary or Chair role.
 
 ## Add a meeting
 
 1. Open your Group from the rail.
 2. Select the **Meetings** tab.
+
+    ![The Meetings tab: New meeting above the Upcoming and Past meetings, each with Edit and Delete](01.png)
+
 3. Select **New meeting**.
+
+    ![The New meeting dialog: the title, date and time, place, links, and the Published box](02.png)
+
 4. Type a **Title**.
 5. Set the **Date and time**.
 6. Add a **Description**, a **Location**, and a **Video link** if you have them.

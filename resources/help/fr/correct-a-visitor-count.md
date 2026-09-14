@@ -7,7 +7,13 @@ Réglez ou corrigez le nombre de visiteur·euses qu'un·e membre a servi·es sur
 1. Ouvrez l'onglet **Horaire** de votre groupe.
 2. Ouvrez l'horaire qui contient le quart.
 3. Trouvez le quart et la place du·de la membre.
+
+    ![Un quart terminé : chaque place affiche son nombre, un crayon et un ×](01.png)
+
 4. Sélectionnez le crayon à côté de son nom.
+
+    ![Le formulaire de correction sous le quart, qui nomme le·la membre dont vous corrigez les visiteur·euses](02.png)
+
 5. Saisissez le nombre dans **Visiteur·euses servi·es**.
 6. Sélectionnez **Enregistrer**.
 

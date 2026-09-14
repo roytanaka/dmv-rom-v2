@@ -84,13 +84,25 @@
         return true;
     }
 
-    // The Group page's tab strip sticks to the top of the viewport once the page scrolls, so
-    // an element scrolled to `block: 'start'` lands under it. Back off by the strip's height,
-    // plus `lead` for any heading the shot should keep above the element.
-    const STICKY_STRIP_HEIGHT = 80;
+    // The Group page's tab strip sticks under the top bar once the page scrolls, so an element
+    // scrolled to `block: 'start'` lands under both. Back off by their height together (the
+    // 64 px top bar plus the 68 px tab strip, measured at 1280 px), plus `lead` for any heading
+    // the shot should keep above the element.
+    const STICKY_HEADER_HEIGHT = 132;
     function scrollUnderStickyStrip(element, lead = 0) {
         element.scrollIntoView({ block: 'start' });
-        window.scrollBy(0, -(STICKY_STRIP_HEIGHT + lead));
+        window.scrollBy(0, -(STICKY_HEADER_HEIGHT + lead));
+    }
+
+    // Resolve true after a pause, so a scroll or an opening overlay settles before the shot.
+    function settle(ms = 300) {
+        return new Promise((resolve) => setTimeout(() => resolve(true), ms));
+    }
+
+    // The My sign-ups panel tops the Scheduling tab and holds ShiftCards of its own, so a
+    // walkthrough that points at the page's own controls skips anything inside it.
+    function outsideMySignUps(element) {
+        return !element.closest('section[aria-label="My sign-ups"]');
     }
 
     // Click an Inertia link and resolve once the URL has changed (or give up after five
@@ -128,22 +140,43 @@
         return followLink(link);
     }
 
-    // Open the current month's Schedule — the one whose name carries this month and year, as
-    // the demo seed names it — and scroll its head into view, past the My sign-ups panel that
-    // tops the page. Falls back to the first Schedule when no name matches. The month
-    // Schedule is the one with seats still free and the Persona's own upcoming seat, so the
-    // Sign up and Drop walkthroughs shoot here.
-    async function openCurrentMonthSchedule() {
-        const now = new Date();
-        const name = `${now.toLocaleString('en-CA', { month: 'long' })} ${now.getFullYear()}`;
-        const links = scheduleLinks();
-        const link = links.find((element) => element.textContent.trim() === name) ?? links[0];
+    // Follow a schedule link, then scroll the opened Schedule's head into view, past the My
+    // sign-ups panel that tops the page.
+    async function openSchedule(link) {
         if (!link) return false;
         const moved = await followLink(link);
         if (!moved) return false;
         const back = Array.from(document.querySelectorAll('a')).find((element) => /all schedules/i.test(element.textContent.trim()));
         if (back) scrollUnderStickyStrip(back);
         return true;
+    }
+
+    // Open the current month's Schedule — the one whose name carries this month and year, as
+    // the demo seed names it. Falls back to the first Schedule when no name matches. The month
+    // Schedule is the one with seats still free and the Persona's own upcoming seat, so the
+    // Sign up and Drop walkthroughs shoot here.
+    function openCurrentMonthSchedule() {
+        const now = new Date();
+        const name = `${now.toLocaleString('en-CA', { month: 'long' })} ${now.getFullYear()}`;
+        const links = scheduleLinks();
+        return openSchedule(links.find((element) => element.textContent.trim() === name) ?? links[0]);
+    }
+
+    // Open the draft Schedule — the one whose list card carries the Draft badge. The demo seed
+    // drafts next month on Docents, empty, the state a Scheduler is in right after creating it.
+    // Only a schedule admin sees a draft, so this helper is for the officer walkthroughs.
+    function openDraftSchedule() {
+        const isDraft = (link) =>
+            Array.from(link.closest('[data-slot="card"]')?.querySelectorAll('*') ?? []).some(
+                (element) => element.children.length === 0 && element.textContent.trim() === 'Draft',
+            );
+        return openSchedule(scheduleLinks().find(isDraft));
+    }
+
+    // Open the recent, all-past Schedule the demo seed names "Recent shifts": its seats carry
+    // the visitor counts filed at sign-out, so the correction walkthrough shoots here.
+    function openRecentSchedule() {
+        return openSchedule(scheduleLinks().find((element) => /^recent shifts$/i.test(element.textContent.trim())));
     }
 
     // Scroll the Scheduling tab's list of schedules into view, below the My sign-ups panel.
@@ -192,10 +225,137 @@
     // My sign-ups panel above the Agenda holds ShiftCards too, so its buttons are skipped:
     // the walkthrough points at the Agenda. Resolves after the scroll settles.
     function showShiftWithButton(pattern) {
-        const button = buttonLabelled(pattern, (element) => !element.closest('section[aria-label="My sign-ups"]'));
+        const button = pageButtonLabelled(pattern);
         if (!button) return false;
         scrollUnderStickyStrip(button.closest('[data-slot="card"]') ?? button);
-        return new Promise((resolve) => setTimeout(() => resolve(true), 300));
+        return settle();
+    }
+
+    // Click a button, then give an overlay or inline form time to open before the shot. Dialogs
+    // here are controlled by a plain click handler, so a DOM click opens them; only a Radix
+    // menu needs the keyboard contract (see openLanguageSwitcher).
+    function clickAndSettle(button) {
+        if (!button) return false;
+        button.click();
+        return settle(500);
+    }
+
+    // The first button with this label outside the My sign-ups panel, so a walkthrough points at
+    // the page's own controls, not the panel's copies.
+    function pageButtonLabelled(pattern) {
+        return buttonLabelled(pattern, outsideMySignUps);
+    }
+
+    // The Scheduling tab's list view, as a schedule admin: the New schedule button, then the
+    // Shift reminders and Empty-desk alert cards below it.
+    function showNewScheduleButton() {
+        const button = pageButtonLabelled(/^new schedule$/i);
+        if (!button) return false;
+        scrollUnderStickyStrip(button, 24);
+        return settle();
+    }
+
+    function openNewScheduleDialog() {
+        return clickAndSettle(pageButtonLabelled(/^new schedule$/i));
+    }
+
+    // An opened Schedule's authoring controls.
+    function openNewShiftDialog() {
+        return clickAndSettle(pageButtonLabelled(/^new shift$/i));
+    }
+
+    function openBulkShiftsDialog() {
+        return clickAndSettle(pageButtonLabelled(/^bulk shifts$/i));
+    }
+
+    // A settings card on the Scheduling tab's list view, found by its title. The Shift
+    // reminders and Empty-desk alert cards show only to a schedule admin.
+    function showCardTitled(pattern) {
+        const card = Array.from(document.querySelectorAll('[data-slot="card"]')).find((element) => pattern.test(element.textContent.trim()));
+        if (!card) return false;
+        scrollUnderStickyStrip(card, 16);
+        return settle();
+    }
+
+    function showShiftReminders() {
+        return showCardTitled(/^shift reminders/i);
+    }
+
+    function showEmptyDeskAlert() {
+        return showCardTitled(/^empty-desk alert/i);
+    }
+
+    // The first Agenda Shift still ahead that a schedule admin can place a Member on, scrolled
+    // so its day heading stays in frame. Each Agenda day is a block led by an h3 such as
+    // "Tuesday, September 8", read against today in the current year.
+    function showUpcomingPlaceAMember() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const button = Array.from(document.querySelectorAll('button'))
+            .filter((element) => /^place a member$/i.test(element.textContent.trim()) && outsideMySignUps(element))
+            .find((element) => {
+                const heading = element.closest('[data-slot="card"]')?.parentElement?.querySelector('h3');
+                return heading && new Date(`${heading.textContent.trim()} ${today.getFullYear()}`) >= today;
+            });
+        if (!button) return false;
+        const heading = button.closest('[data-slot="card"]').parentElement.querySelector('h3');
+        scrollUnderStickyStrip(heading, 16);
+        return settle();
+    }
+
+    // Open the picker from the Shift the previous helper framed: the first Place a member button
+    // below the sticky header.
+    function openPlaceAMemberDialog() {
+        const button = Array.from(document.querySelectorAll('button')).find(
+            (element) =>
+                /^place a member$/i.test(element.textContent.trim()) &&
+                outsideMySignUps(element) &&
+                element.getBoundingClientRect().top > STICKY_HEADER_HEIGHT,
+        );
+        return clickAndSettle(button);
+    }
+
+    // The pencil a schedule admin sees on every seat of an opened Schedule, outside the My
+    // sign-ups panel. It is an icon button, so it is found by its accessible label.
+    function correctionPencil() {
+        return Array.from(document.querySelectorAll('button[aria-label="Correct visitor count"]')).find(outsideMySignUps);
+    }
+
+    function showCorrectionPencil() {
+        const pencil = correctionPencil();
+        if (!pencil) return false;
+        scrollUnderStickyStrip(pencil.closest('[data-slot="card"]') ?? pencil, 40);
+        return settle();
+    }
+
+    function openCorrectionForm() {
+        return clickAndSettle(correctionPencil());
+    }
+
+    // The roster's officer controls: Add member opens a dialog on a plain click; each row's
+    // three-dot button is a Radix menu, opened through its keyboard contract.
+    function openAddMemberDialog() {
+        return clickAndSettle(pageButtonLabelled(/^add member$/i));
+    }
+
+    function openRosterRowMenu() {
+        const trigger = document.querySelector('tbody [aria-haspopup="menu"]');
+        if (!trigger) return false;
+        trigger.focus();
+        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        return settle(400);
+    }
+
+    // Open the first row's menu, then pick Manage, which opens the Manage membership dialog.
+    async function openManageMembershipDialog() {
+        if (!(await openRosterRowMenu())) return false;
+        const item = Array.from(document.querySelectorAll('[role="menuitem"]')).find((element) => /^manage$/i.test(element.textContent.trim()));
+        return clickAndSettle(item);
+    }
+
+    // The Meetings tab's New meeting control, for a Secretary or Chair.
+    function openNewMeetingDialog() {
+        return clickAndSettle(pageButtonLabelled(/^new meeting$/i));
     }
 
     // The first Shift the viewer can still take a seat on — the one whose card shows Sign up.
@@ -220,5 +380,21 @@
         openBrowseGroups,
         showFirstOpenShift,
         showMyShift,
+        openDraftSchedule,
+        openRecentSchedule,
+        showNewScheduleButton,
+        openNewScheduleDialog,
+        openNewShiftDialog,
+        openBulkShiftsDialog,
+        showShiftReminders,
+        showEmptyDeskAlert,
+        showUpcomingPlaceAMember,
+        openPlaceAMemberDialog,
+        showCorrectionPencil,
+        openCorrectionForm,
+        openAddMemberDialog,
+        openRosterRowMenu,
+        openManageMembershipDialog,
+        openNewMeetingDialog,
     };
 })();

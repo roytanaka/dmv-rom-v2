@@ -6,7 +6,12 @@ Relisez les heures de chaque membre de votre groupe pour une année financière.
 
 1. Ouvrez votre groupe depuis la barre latérale.
 2. Sélectionnez l'onglet **Heures**.
+
+    ![L'onglet Heures, vu par un·e Statisticien·ne : Voir le rapport des heures du groupe au-dessus du formulaire](01.png)
+
 3. Sélectionnez **Voir le rapport des heures du groupe**.
+
+    ![Le rapport des heures : une ligne par membre, une colonne par mois, et le cumul annuel](02.png)
 
 Le rapport s'ouvre sur l'année financière en cours.
 
@@ -26,6 +31,8 @@ Sélectionnez une année sous **Année financière** pour en relire une plus anc
 ## Voir d'autres vues
 
 Les liens en haut ouvrent d'autres coupes des mêmes heures : **Par mois**, **Historique du membre**, **Heures supplémentaires** et **Heures de réunion**.
+
+![La vue Par mois : les saisies d'un mois pour le groupe, membre par membre](03.png)
 
 > **Note :** Un·e Président·e ou Statisticien·ne d'un groupe parent relit aussi ce rapport. Le rôle porte sur tout l'arbre.
 

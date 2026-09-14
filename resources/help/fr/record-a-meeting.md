@@ -1,12 +1,18 @@
 # Consigner une réunion
 
-Publiez une réunion pour votre groupe, avec son heure, son lieu et ses liens. Vous avez besoin du rôle Secrétaire.
+Publiez une réunion pour votre groupe, avec son heure, son lieu et ses liens. Vous avez besoin du rôle Secrétaire ou Président·e.
 
 ## Ajouter une réunion
 
 1. Ouvrez votre groupe depuis la barre latérale.
 2. Sélectionnez l'onglet **Réunions**.
+
+    ![L'onglet Réunions : Nouvelle réunion au-dessus des réunions À venir et Passées, chacune avec Modifier et Supprimer](01.png)
+
 3. Sélectionnez **Nouvelle réunion**.
+
+    ![La fenêtre Nouvelle réunion : le titre, la date et l'heure, le lieu, les liens et la case Publiée](02.png)
+
 4. Saisissez un **Titre**.
 5. Réglez la **Date et heure**.
 6. Ajoutez une **Description**, un **Lieu** et un **Lien vidéo** si vous en avez.

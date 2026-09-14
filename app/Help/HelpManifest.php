@@ -207,8 +207,8 @@ final class HelpManifest
             new HelpArticle('find-your-group', HelpSection::Groups),
             new HelpArticle('group-page-tabs', HelpSection::Groups, route: 'groups.show'),
             // Groups, officer part (#526) — roster and meetings, run by a Group's officers.
-            new HelpArticle('manage-your-groups-roster', HelpSection::Groups, requires: ['chair'], status: ArticleStatus::Draft, route: 'groups.show'),
-            new HelpArticle('record-a-meeting', HelpSection::Groups, requires: ['secretary'], status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('manage-your-groups-roster', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
+            new HelpArticle('record-a-meeting', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
 
             new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
             new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),
@@ -217,18 +217,18 @@ final class HelpManifest
             new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, route: 'groups.scheduling.show'),
             new HelpArticle('reminders', HelpSection::Scheduling),
             // Scheduling, officer part (#526) — the schedule-admin tasks a Scheduler or Chair does.
-            new HelpArticle('create-a-schedule-and-shifts', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
-            new HelpArticle('add-or-remove-many-shifts', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
-            new HelpArticle('assign-a-member-to-a-shift', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
-            new HelpArticle('correct-a-visitor-count', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
-            new HelpArticle('set-reminders-and-the-empty-desk-alert', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            new HelpArticle('create-a-schedule-and-shifts', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
+            new HelpArticle('add-or-remove-many-shifts', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
+            new HelpArticle('assign-a-member-to-a-shift', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
+            new HelpArticle('correct-a-visitor-count', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
+            new HelpArticle('set-reminders-and-the-empty-desk-alert', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
 
             // Hours and reports (#526) — the officer reports and the entry that feeds them.
-            new HelpArticle('hours-and-reports', HelpSection::HoursAndReports, isOverview: true, status: ArticleStatus::Draft, route: 'groups.hours.report'),
-            new HelpArticle('run-your-groups-hours-report', HelpSection::HoursAndReports, requires: ['statistician', 'chair'], status: ArticleStatus::Draft, route: 'groups.hours.report'),
-            new HelpArticle('export-a-report-as-csv', HelpSection::HoursAndReports, status: ArticleStatus::Draft, route: 'groups.hours.report'),
-            new HelpArticle('enter-and-correct-hours', HelpSection::HoursAndReports, status: ArticleStatus::Draft, route: 'groups.show'),
-            new HelpArticle('the-org-wide-reports', HelpSection::HoursAndReports, requires: ['super_tier'], status: ArticleStatus::Draft, route: 'hours.committee-summary'),
+            new HelpArticle('hours-and-reports', HelpSection::HoursAndReports, isOverview: true, status: ArticleStatus::Published, route: 'groups.hours.report'),
+            new HelpArticle('run-your-groups-hours-report', HelpSection::HoursAndReports, requires: ['statistician', 'chair'], status: ArticleStatus::Published, route: 'groups.hours.report'),
+            new HelpArticle('export-a-report-as-csv', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.hours.report'),
+            new HelpArticle('enter-and-correct-hours', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.show'),
+            new HelpArticle('the-org-wide-reports', HelpSection::HoursAndReports, requires: ['super_tier'], status: ArticleStatus::Published, route: 'hours.committee-summary'),
 
             // Emailing and support (#527, ADR-0024) — the composer, its Audiences, and the Mail
             // status ledger; then the dev Role-switcher, its own small section.

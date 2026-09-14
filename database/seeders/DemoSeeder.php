@@ -8,6 +8,7 @@ use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
+use App\Enums\MeetingLinkKind;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\ScheduleState;
@@ -19,6 +20,8 @@ use App\Models\GroupMember;
 use App\Models\GroupStewardship;
 use App\Models\HoursAdjustment;
 use App\Models\HoursRecord;
+use App\Models\Meeting;
+use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\News;
 use App\Models\Schedule;
@@ -166,6 +169,7 @@ class DemoSeeder extends Seeder
         $this->afterShiftRecords();
         $this->hours();
         $this->news();
+        $this->meetings();
     }
 
     /**
@@ -875,6 +879,12 @@ class DemoSeeder extends Seeder
             ],
         );
 
+        // Last month's seed drafted this month ahead ({@see draftNextMonth()}), so a reseed
+        // without a fresh migrate finds that draft here; publish it rather than leave it hidden.
+        if ($schedule->state !== ScheduleState::Published) {
+            $schedule->update(['state' => ScheduleState::Published]);
+        }
+
         $kinds = $this->shiftKinds($docents);
 
         foreach ($this->shiftSpecs() as $spec) {
@@ -884,7 +894,30 @@ class DemoSeeder extends Seeder
 
         $this->placeSignUps($docents, $schedule);
 
+        $this->draftNextMonth($docents, $month);
+
         $this->watchVisitorGuidesDesk();
+    }
+
+    /**
+     * An empty next-month draft Schedule on Docents (#530): the state a Scheduler is in right
+     * after creating one, so the Create a Schedule walkthrough shoots its Draft badge, Publish,
+     * and New shift controls. A draft is hidden from Members, so the member walkthroughs read
+     * as before. Keyed on (Group, name) so a reseed heals rather than duplicates.
+     */
+    private function draftNextMonth(Group $docents, CarbonImmutable $month): void
+    {
+        $next = $month->addMonth();
+
+        Schedule::firstOrCreate(
+            ['group_id' => $docents->id, 'name' => $next->format('F Y')],
+            [
+                'starts_on' => $next->toDateString(),
+                'ends_on' => $next->endOfMonth()->toDateString(),
+                'state' => ScheduleState::Draft,
+                'description' => 'Next month\'s docent tour roster, still being drafted.',
+            ],
+        );
     }
 
     /**
@@ -1568,6 +1601,67 @@ class DemoSeeder extends Seeder
             $item->created_at ??= $now->subDays(1 + $index * 3);
             $item->save();
         }
+    }
+
+    /**
+     * Two meetings on the Executive committee (#530), so its Meetings tab shows real cards;
+     * the Record a meeting walkthrough shoots it as the Executive Secretary. One is ahead with
+     * an agenda, one is behind with an agenda and minutes. Dated from today on the org wall
+     * clock and keyed on (Group, title), so a reseed moves the dates rather than duplicating
+     * the rows.
+     */
+    private function meetings(): void
+    {
+        $executive = $this->findGroup('executive');
+
+        if ($executive === null || ! $executive->has_meetings) {
+            return;
+        }
+
+        $today = OrgTime::now()->startOfDay();
+
+        foreach ($this->meetingSpecs($today) as $spec) {
+            $meeting = Meeting::updateOrCreate(
+                ['group_id' => $executive->id, 'title' => $spec['title']],
+                [
+                    'held_at' => $spec['held_at']->utc(),
+                    'description' => $spec['description'],
+                    'location' => 'Volunteer lounge, Level 1',
+                    'video_url' => 'https://example.com/dmv-executive',
+                    'is_published' => true,
+                ],
+            );
+
+            foreach ($spec['links'] as $link) {
+                MeetingLink::updateOrCreate(
+                    ['meeting_id' => $meeting->id, 'kind' => $link],
+                    ['url' => "https://example.com/dmv-executive/{$meeting->id}/{$link->value}"],
+                );
+            }
+        }
+    }
+
+    /**
+     * The seeded meetings, the one ahead first.
+     *
+     * @return list<array{title: string, held_at: CarbonImmutable, description: string, links: list<MeetingLinkKind>}>
+     */
+    private function meetingSpecs(CarbonImmutable $today): array
+    {
+        return [
+            [
+                'title' => 'Monthly Executive meeting',
+                'held_at' => $today->addDays(9)->setTime(10, 0),
+                'description' => 'Standing monthly meeting. Committee reports, the fall volunteer fair, and the budget update.',
+                'links' => [MeetingLinkKind::Agenda],
+            ],
+            [
+                'title' => 'Summer planning meeting',
+                'held_at' => $today->subDays(21)->setTime(10, 0),
+                'description' => 'Planning for the fall term: orientation dates, program recruitment, and the Directory photo drive.',
+                'links' => [MeetingLinkKind::Agenda, MeetingLinkKind::Minutes],
+            ],
+        ];
     }
 
     /**
