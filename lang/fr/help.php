@@ -18,7 +18,9 @@ return [
         'groups' => 'Groupes',
         'scheduling' => 'Horaire',
         'hours-and-reports' => 'Heures et rapports',
+        'emailing' => 'Courriel',
         'settings' => 'Paramètres',
+        'support' => 'Soutien',
     ],
 
     // Badge du rôle requis (#518, ADR-0025 §6). Le badge affiche « Requis :

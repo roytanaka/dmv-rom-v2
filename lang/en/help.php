@@ -18,7 +18,9 @@ return [
         'groups' => 'Groups',
         'scheduling' => 'Scheduling',
         'hours-and-reports' => 'Hours and reports',
+        'emailing' => 'Emailing',
         'settings' => 'Settings',
+        'support' => 'Support',
     ],
 
     // Required-role badge (#518, ADR-0025 §6). The badge reads "Needs: Scheduler or
