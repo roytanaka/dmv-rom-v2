@@ -731,13 +731,7 @@ class HandleInertiaRequests extends Middleware
      */
     private function groupHref(Group $group): string
     {
-        $url = LaravelLocalization::getURLFromRouteNameTranslated(
-            app()->getLocale(),
-            'routes.groups.show',
-            ['group' => $group->slug],
-        );
-
-        return parse_url($url, PHP_URL_PATH) ?: $url;
+        return $this->localizedPath('routes.groups.show', ['group' => $group->slug]);
     }
 
     /**
