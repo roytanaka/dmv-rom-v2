@@ -1,5 +1,9 @@
 <?php
 
+use App\Enums\ArticleStatus;
+use App\Enums\HelpSection;
+use App\Help\HelpArticle;
+use App\Help\HelpManifest;
 use App\Models\Group;
 use App\Models\Member;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -49,6 +53,69 @@ it('shares the same fixed global destinations on a settings page', function () {
         ->get('/settings/profile')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => assertEnglishDestinations($page));
+});
+
+/*
+ * Contextual "?" (#519, ADR-0025). The shared chromeNav.help destination points at the
+ * article for the page the Member is on: the middleware resolves the current route name
+ * against the help manifest. A published article's mapping sets the href to that article
+ * (localized); an unmapped page, or one mapped only by a draft, keeps the index. Bound
+ * against a fixture manifest so a published mapping exists to exercise, since the real
+ * catalogue ships only drafts.
+ */
+
+// A fixture manifest with one published article mapped to the dashboard route, plus a
+// draft mapped to the directory route — the two states the "?" resolution turns on.
+function bindHelpRouteFixtures(): void
+{
+    app()->instance(HelpManifest::class, new HelpManifest([
+        new HelpArticle('dashboard-tour', HelpSection::GettingStarted, status: ArticleStatus::Published, route: 'dashboard'),
+        new HelpArticle('directory-tour', HelpSection::GettingStarted, status: ArticleStatus::Draft, route: 'directory'),
+    ]));
+}
+
+it('points the help "?" at the mapped published article for the current page', function () {
+    bindHelpRouteFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('chromeNav.help', ['key' => 'help', 'labelKey' => 'nav.help', 'href' => '/help/dashboard-tour']));
+});
+
+it('localizes the mapped help "?" href to its French twin', function () {
+    bindHelpRouteFixtures();
+
+    $this->actingAs(Member::factory()->create());
+
+    $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/tableau-de-bord')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('locale', 'fr')
+                ->where('chromeNav.help.href', '/fr/aide/dashboard-tour'));
+    });
+});
+
+it('points the help "?" at the index on a page no article maps', function () {
+    bindHelpRouteFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/news')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('chromeNav.help.href', '/help'));
+});
+
+it('keeps the help "?" on the index when only a draft maps the page', function () {
+    bindHelpRouteFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/directory')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('chromeNav.help.href', '/help'));
 });
 
 it('localizes the global destination hrefs to their French twins under /fr/', function () {

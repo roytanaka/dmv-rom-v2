@@ -4,6 +4,7 @@ use App\Enums\ArticleStatus;
 use App\Enums\FrenchState;
 use App\Help\HelpArticleRenderer;
 use App\Help\HelpManifest;
+use Illuminate\Support\Facades\Route;
 
 // Seam B (#517, #518, ADR-0025) — catalogue integrity, in the shape of ChromeCatalogueTest.
 // The manifest and the files on disk must agree: a renamed slug, a missing locale
@@ -77,6 +78,17 @@ it('requires only known role tokens', function () {
         ->unique();
 
     $unknown = $used->diff(HelpManifest::requirableRoles())->values()->all();
+
+    expect($unknown)->toBe([]);
+});
+
+it('maps only route names that exist in the router', function () {
+    $unknown = collect((new HelpManifest)->all())
+        ->map->route
+        ->filter()
+        ->reject(fn (string $name) => Route::has($name))
+        ->values()
+        ->all();
 
     expect($unknown)->toBe([]);
 });

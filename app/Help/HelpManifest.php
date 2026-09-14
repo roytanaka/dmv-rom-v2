@@ -96,6 +96,18 @@ final class HelpManifest
             ->all();
     }
 
+    /**
+     * The published article a route name maps to, or null. Drives the top-bar "?"
+     * (ADR-0025): a match yields the article, anything else the index. Drafts never
+     * match, so a route mapped only by a draft resolves to null.
+     */
+    public function publishedForRoute(string $routeName): ?HelpArticle
+    {
+        return $this->collect()
+            ->first(fn (HelpArticle $article) => $article->route === $routeName
+                && $article->status === ArticleStatus::Published);
+    }
+
     /** The slug of a section's overview article — the section crumb's destination. */
     public function overviewSlug(HelpSection $section): ?string
     {
@@ -129,7 +141,7 @@ final class HelpManifest
     private static function catalog(): array
     {
         return [
-            new HelpArticle('getting-started', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Draft),
+            new HelpArticle('getting-started', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Draft, route: 'dashboard'),
             new HelpArticle('change-your-language', HelpSection::GettingStarted, status: ArticleStatus::Draft),
         ];
     }

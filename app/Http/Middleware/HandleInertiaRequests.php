@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Enums\Kind;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
+use App\Help\HelpManifest;
 use App\Http\Controllers\ImpersonationController;
 use App\Models\Group;
 use App\Models\GroupMember;
@@ -149,8 +150,32 @@ class HandleInertiaRequests extends Middleware
                 ->map(fn (array $spec) => $this->destination($spec))
                 ->values()
                 ->all(),
-            'help' => $this->destination(['key' => 'help', 'route' => 'help', 'labelKey' => 'nav.help']),
+            'help' => $this->helpDestination($request),
         ];
+    }
+
+    /**
+     * The Help utility destination for the top-bar "?" (ADR-0025). The middleware
+     * resolves the current request's route name against the help manifest: a match on
+     * a published article sets the href to that article, so "?" opens help for the page
+     * the Member is on; anything else — an unmapped page, or one mapped only by a draft
+     * — keeps the index. The TopBar component does not change; only this href does. The
+     * href is localized (ADR-0008) so switching language on the article stays on it.
+     *
+     * @return array{key: string, labelKey: string, href: string}
+     */
+    private function helpDestination(Request $request): array
+    {
+        $routeName = $request->route()?->getName();
+        $article = $routeName === null
+            ? null
+            : app(HelpManifest::class)->publishedForRoute($routeName);
+
+        $href = $article === null
+            ? $this->localizedPath('routes.help')
+            : $this->localizedPath('routes.help.show', ['article' => $article->slug]);
+
+        return ['key' => 'help', 'labelKey' => 'nav.help', 'href' => $href];
     }
 
     /**
@@ -706,13 +731,7 @@ class HandleInertiaRequests extends Middleware
      */
     private function groupHref(Group $group): string
     {
-        $url = LaravelLocalization::getURLFromRouteNameTranslated(
-            app()->getLocale(),
-            'routes.groups.show',
-            ['group' => $group->slug],
-        );
-
-        return parse_url($url, PHP_URL_PATH) ?: $url;
+        return $this->localizedPath('routes.groups.show', ['group' => $group->slug]);
     }
 
     /**
@@ -725,15 +744,25 @@ class HandleInertiaRequests extends Middleware
      */
     private function destination(array $spec): array
     {
-        $url = LaravelLocalization::getURLFromRouteNameTranslated(app()->getLocale(), "routes.{$spec['route']}");
-
         return [
             'key' => $spec['key'],
             'labelKey' => $spec['labelKey'],
-            // Strip the host so Inertia navigates client-side and the active-state
-            // match against the (path-only) current URL is exact.
-            'href' => parse_url($url, PHP_URL_PATH) ?: $url,
+            'href' => $this->localizedPath("routes.{$spec['route']}"),
         ];
+    }
+
+    /**
+     * The active locale's localized path for a route lang key (ADR-0008), host stripped
+     * so Inertia navigates client-side and the active-state match against the (path-only)
+     * current URL is exact.
+     *
+     * @param  array<string, string>  $params
+     */
+    private function localizedPath(string $routeKey, array $params = []): string
+    {
+        $url = LaravelLocalization::getURLFromRouteNameTranslated(app()->getLocale(), $routeKey, $params);
+
+        return parse_url($url, PHP_URL_PATH) ?: $url;
     }
 
     /**
