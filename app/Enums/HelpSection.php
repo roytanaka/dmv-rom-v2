@@ -14,6 +14,11 @@ namespace App\Enums;
 enum HelpSection: string
 {
     case GettingStarted = 'getting-started';
+    case Dashboard = 'dashboard';
+    case MyHours = 'my-hours';
+    case Directory = 'directory';
+    case News = 'news';
+    case Settings = 'settings';
 
     /** The lang key for this section's translated label (chrome, ADR-0004). */
     public function labelKey(): string

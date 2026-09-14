@@ -181,6 +181,26 @@ final class HelpManifest
         return [
             new HelpArticle('getting-started', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Published, route: 'dashboard'),
             new HelpArticle('change-your-language', HelpSection::GettingStarted, status: ArticleStatus::Published),
+
+            // Volunteer basics (#524) — the everyday pages, one section per app area.
+            new HelpArticle('dashboard', HelpSection::Dashboard, isOverview: true, status: ArticleStatus::Draft, route: 'dashboard'),
+
+            new HelpArticle('my-hours', HelpSection::MyHours, isOverview: true, status: ArticleStatus::Draft, route: 'hours'),
+            new HelpArticle('record-extra-hours', HelpSection::MyHours, status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('read-your-hours', HelpSection::MyHours, status: ArticleStatus::Draft, route: 'hours'),
+
+            new HelpArticle('directory', HelpSection::Directory, isOverview: true, status: ArticleStatus::Draft, route: 'directory'),
+            new HelpArticle('find-a-member', HelpSection::Directory, status: ArticleStatus::Draft, route: 'directory'),
+            new HelpArticle('what-you-can-see-about-a-member', HelpSection::Directory, status: ArticleStatus::Draft, route: 'members.show'),
+
+            new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Draft, route: 'news'),
+            new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Draft, route: 'news'),
+            new HelpArticle('post-a-news-item', HelpSection::News, requires: ['news_editor'], status: ArticleStatus::Draft, route: 'news'),
+
+            new HelpArticle('settings', HelpSection::Settings, isOverview: true, status: ArticleStatus::Draft, route: 'settings.profile'),
+            new HelpArticle('update-your-profile', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.profile'),
+            new HelpArticle('change-your-password', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.password'),
+            new HelpArticle('record-your-skills', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.skills'),
         ];
     }
 

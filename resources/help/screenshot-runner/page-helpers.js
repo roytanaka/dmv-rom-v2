@@ -64,5 +64,16 @@
         return true;
     }
 
-    window.__help = { login, highlightHelpLink, openLanguageSwitcher };
+    // Reveal the "New post" form on the News page. The form is a plain v-if toggle, not a
+    // Radix overlay, but the step vocabulary is nav/act only, so a mid-page click comes
+    // through a helper. The trigger is the header button whose label is the new-post text
+    // (English chrome, the language the shots are taken in).
+    function openNewsComposer() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /new post/i.test(element.textContent.trim()));
+        if (!button) return false;
+        button.click();
+        return true;
+    }
+
+    window.__help = { login, highlightHelpLink, openLanguageSwitcher, openNewsComposer };
 })();

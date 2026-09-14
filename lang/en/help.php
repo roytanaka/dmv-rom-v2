@@ -11,6 +11,11 @@ return [
     // One label per HelpSection enum case, keyed by the section slug.
     'section' => [
         'getting-started' => 'Getting started',
+        'dashboard' => 'Dashboard',
+        'my-hours' => 'My Hours',
+        'directory' => 'Directory',
+        'news' => 'News',
+        'settings' => 'Settings',
     ],
 
     // Required-role badge (#518, ADR-0025 §6). The badge reads "Needs: Scheduler or
