@@ -1,6 +1,8 @@
 # Paramètres
 
-Les paramètres sont l'endroit où vous gérez votre propre compte. Sélectionnez votre nom dans la barre supérieure, puis **Mon profil**.
+Les paramètres sont l'endroit où vous gérez votre propre compte. Sélectionnez vos initiales ou votre photo dans la barre supérieure, puis **Mon profil**.
+
+![Paramètres : la barre latérale avec Profil, Mot de passe et Compétences, et la page Profil ouverte](01.png)
 
 ## Profil
 

@@ -4,9 +4,12 @@ Changez le mot de passe avec lequel vous vous connectez.
 
 ## Le changer
 
-1. Sélectionnez votre nom dans la barre supérieure.
+1. Sélectionnez vos initiales ou votre photo dans la barre supérieure.
 2. Sélectionnez **Mon profil**.
 3. Sélectionnez **Mot de passe** dans la barre latérale.
+
+    ![La page Mot de passe : Mot de passe actuel, Nouveau mot de passe, Confirmer le mot de passe et le bouton Enregistrer le mot de passe](01.png)
+
 4. Saisissez votre mot de passe actuel.
 5. Saisissez votre nouveau mot de passe, puis saisissez-le de nouveau pour le confirmer.
 6. Sélectionnez **Enregistrer le mot de passe**.

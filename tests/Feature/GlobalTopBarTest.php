@@ -22,7 +22,9 @@ use Inertia\Testing\AssertableInertia as Assert;
  */
 
 // The fixed global strip, in render order, with its English-canonical hrefs. The Help
-// href is the index unless a published article maps the page (the Dashboard's does).
+// href is the index unless a published article maps the page. The Dashboard's is the
+// Getting started tour; the Group page's is "Record extra hours" until the Groups
+// overview publishes (#525) and, as the section overview, takes the route over.
 function assertEnglishDestinations(Assert $page, string $helpHref = '/help'): Assert
 {
     return $page
@@ -46,14 +48,14 @@ it('shares the same fixed global destinations on a Group page', function () {
     $this->actingAs(Member::factory()->create())
         ->get(route('groups.show', $group))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => assertEnglishDestinations($page));
+        ->assertInertia(fn (Assert $page) => assertEnglishDestinations($page, '/help/record-extra-hours'));
 });
 
 it('shares the same fixed global destinations on a settings page', function () {
     $this->actingAs(Member::factory()->create())
         ->get('/settings/profile')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => assertEnglishDestinations($page));
+        ->assertInertia(fn (Assert $page) => assertEnglishDestinations($page, '/help/settings'));
 });
 
 /*
@@ -109,6 +111,20 @@ it('points the help "?" at the index on a page no article maps', function () {
             ->where('chromeNav.help.href', '/help'));
 });
 
+it('opens the section overview when it shares the page with a task article', function () {
+    // The task article sits first in catalogue order; the overview still wins the route.
+    app()->instance(HelpManifest::class, new HelpManifest([
+        new HelpArticle('read-your-hours-tour', HelpSection::MyHours, status: ArticleStatus::Published, route: 'hours'),
+        new HelpArticle('my-hours-tour', HelpSection::MyHours, isOverview: true, status: ArticleStatus::Published, route: 'hours'),
+    ]));
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/hours')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('chromeNav.help.href', '/help/my-hours-tour'));
+});
+
 it('keeps the help "?" on the index when only a draft maps the page', function () {
     bindHelpRouteFixtures();
 
@@ -132,6 +148,6 @@ it('localizes the global destination hrefs to their French twins under /fr/', fu
                 ->where('chromeNav.destinations.1.href', '/fr/calendrier')
                 ->where('chromeNav.destinations.2.href', '/fr/nouvelles')
                 ->where('chromeNav.destinations.3.href', '/fr/annuaire')
-                ->where('chromeNav.help.href', '/fr/aide'));
+                ->where('chromeNav.help.href', '/fr/aide/record-extra-hours'));
     });
 });

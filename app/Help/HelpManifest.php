@@ -99,13 +99,18 @@ final class HelpManifest
     /**
      * The published article a route name maps to, or null. Drives the top-bar "?"
      * (ADR-0025): a match yields the article, anything else the index. Drafts never
-     * match, so a route mapped only by a draft resolves to null.
+     * match, so a route mapped only by a draft resolves to null. When several
+     * published articles map one page, a section overview wins over a task article
+     * (a Group page opens the Groups overview, not "Record extra hours"); among
+     * equals, catalogue order decides.
      */
     public function publishedForRoute(string $routeName): ?HelpArticle
     {
         return $this->collect()
-            ->first(fn (HelpArticle $article) => $article->route === $routeName
-                && $article->status === ArticleStatus::Published);
+            ->filter(fn (HelpArticle $article) => $article->route === $routeName
+                && $article->status === ArticleStatus::Published)
+            ->sortByDesc(fn (HelpArticle $article) => $article->isOverview)
+            ->first();
     }
 
     /** The slug of a section's overview article — the section crumb's destination. */
@@ -183,19 +188,19 @@ final class HelpManifest
             new HelpArticle('change-your-language', HelpSection::GettingStarted, status: ArticleStatus::Published),
 
             // Volunteer basics (#524) — the everyday pages, one section per app area.
-            new HelpArticle('dashboard', HelpSection::Dashboard, isOverview: true, status: ArticleStatus::Draft, route: 'dashboard'),
+            new HelpArticle('dashboard', HelpSection::Dashboard, isOverview: true, status: ArticleStatus::Published, route: 'dashboard'),
 
-            new HelpArticle('my-hours', HelpSection::MyHours, isOverview: true, status: ArticleStatus::Draft, route: 'hours'),
-            new HelpArticle('record-extra-hours', HelpSection::MyHours, status: ArticleStatus::Draft, route: 'groups.show'),
-            new HelpArticle('read-your-hours', HelpSection::MyHours, status: ArticleStatus::Draft, route: 'hours'),
+            new HelpArticle('my-hours', HelpSection::MyHours, isOverview: true, status: ArticleStatus::Published, route: 'hours'),
+            new HelpArticle('record-extra-hours', HelpSection::MyHours, status: ArticleStatus::Published, route: 'groups.show'),
+            new HelpArticle('read-your-hours', HelpSection::MyHours, status: ArticleStatus::Published, route: 'hours'),
 
-            new HelpArticle('directory', HelpSection::Directory, isOverview: true, status: ArticleStatus::Draft, route: 'directory'),
-            new HelpArticle('find-a-member', HelpSection::Directory, status: ArticleStatus::Draft, route: 'directory'),
-            new HelpArticle('what-you-can-see-about-a-member', HelpSection::Directory, status: ArticleStatus::Draft, route: 'members.show'),
+            new HelpArticle('directory', HelpSection::Directory, isOverview: true, status: ArticleStatus::Published, route: 'directory'),
+            new HelpArticle('find-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'directory'),
+            new HelpArticle('what-you-can-see-about-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'members.show'),
 
-            new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Draft, route: 'news'),
-            new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Draft, route: 'news'),
-            new HelpArticle('post-a-news-item', HelpSection::News, requires: ['news_editor'], status: ArticleStatus::Draft, route: 'news'),
+            new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Published, route: 'news'),
+            new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Published, route: 'news'),
+            new HelpArticle('post-a-news-item', HelpSection::News, requires: ['news_editor'], status: ArticleStatus::Published, route: 'news'),
 
             // Groups and Scheduling for members (#525) — what an ordinary Member of a Group does.
             new HelpArticle('groups', HelpSection::Groups, isOverview: true, status: ArticleStatus::Draft, route: 'groups.show'),
@@ -235,10 +240,10 @@ final class HelpManifest
             new HelpArticle('queued-for-n-members', HelpSection::Emailing, status: ArticleStatus::Draft),
             new HelpArticle('read-the-mail-status-page', HelpSection::Emailing, requires: ['super_tier'], status: ArticleStatus::Draft, route: 'mail-status'),
 
-            new HelpArticle('settings', HelpSection::Settings, isOverview: true, status: ArticleStatus::Draft, route: 'settings.profile'),
-            new HelpArticle('update-your-profile', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.profile'),
-            new HelpArticle('change-your-password', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.password'),
-            new HelpArticle('record-your-skills', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.skills'),
+            new HelpArticle('settings', HelpSection::Settings, isOverview: true, status: ArticleStatus::Published, route: 'settings.profile'),
+            new HelpArticle('update-your-profile', HelpSection::Settings, status: ArticleStatus::Published, route: 'settings.profile'),
+            new HelpArticle('change-your-password', HelpSection::Settings, status: ArticleStatus::Published, route: 'settings.password'),
+            new HelpArticle('record-your-skills', HelpSection::Settings, status: ArticleStatus::Published, route: 'settings.skills'),
 
             // Support (#527, ADR-0009) — the non-production dev Role-switcher, an operator tool.
             new HelpArticle('use-the-role-switcher', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Draft),

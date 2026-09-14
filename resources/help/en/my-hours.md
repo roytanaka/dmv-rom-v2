@@ -6,6 +6,8 @@ My Hours gathers your hours from every Group into one place. It answers the rene
 
 The page shows one card per Group you have hours in. Each card breaks your hours out by month. A year-to-date total sits at the bottom of each card.
 
+![My Hours: the Fiscal year picker at the top and a Group card with one row per month](01.png)
+
 ## The fiscal year
 
 Hours are grouped by fiscal year. The year runs 1 April to 31 March. The picker at the top switches to a past year.

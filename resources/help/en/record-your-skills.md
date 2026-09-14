@@ -4,9 +4,12 @@ Record the skills you are willing to use for the DMV.
 
 ## Record them
 
-1. Select your name in the top bar.
+1. Select your initials or photo in the top bar.
 2. Select **My Profile**.
 3. Select **Skills** in the sidebar.
+
+    ![The Skills page: the catalogue of skills in groups, each with a checkbox](01.png)
+
 4. Select every skill you are willing to use.
 5. Select **Save**.
 

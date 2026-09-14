@@ -20,6 +20,7 @@ use App\Models\GroupStewardship;
 use App\Models\HoursAdjustment;
 use App\Models\HoursRecord;
 use App\Models\Member;
+use App\Models\News;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
@@ -164,6 +165,7 @@ class DemoSeeder extends Seeder
         $this->scheduling();
         $this->afterShiftRecords();
         $this->hours();
+        $this->news();
     }
 
     /**
@@ -1511,6 +1513,54 @@ class DemoSeeder extends Seeder
         foreach (array_chunk($adjustments, self::HOURS_CHUNK) as $chunk) {
             HoursAdjustment::insert($chunk);
         }
+    }
+
+    /**
+     * A few items on the org-wide feed (#155), so the News page shows a feed rather
+     * than "No news yet" — the help screenshots (#528) read it. Posted by
+     * Communications, the standing committee with announcements on and the Group the
+     * news-editor Persona posts for. Keyed on (Group, title) so a reseed heals rather
+     * than duplicates; dated a few days apart so the feed shows a spread of dates.
+     */
+    private function news(): void
+    {
+        $communications = $this->findGroup('communications');
+
+        if ($communications === null) {
+            return;
+        }
+
+        $now = OrgTime::now();
+
+        foreach ($this->newsItems() as $index => [$title, $body]) {
+            $item = News::firstOrNew(['posting_group_id' => $communications->id, 'title' => $title]);
+            $item->body = $body;
+            $item->created_at ??= $now->subDays(1 + $index * 3);
+            $item->save();
+        }
+    }
+
+    /**
+     * The seeded feed, newest first. Plain notices a Group would really post.
+     *
+     * @return list<array{string, string}>
+     */
+    private function newsItems(): array
+    {
+        return [
+            [
+                'Fall orientation for new Volunteers',
+                'New Volunteers start the fall term with a morning orientation in the volunteer lounge. Returning Members are welcome to sit in. Coffee is ready from 9 a.m., and the session runs from 9:30 to noon.',
+            ],
+            [
+                'Add your photo to the Directory',
+                'The Directory now shows a photo beside every name. Open My Profile from your initials in the top bar and add a recent photo. A square head-and-shoulders shot works best.',
+            ],
+            [
+                'Extra hours are due at month end',
+                'Record any hours you worked outside your scheduled Shifts before the month closes. Open the Hours tab on your Group to add them. Scheduled Shifts and meetings are already counted.',
+            ],
+        ];
     }
 
     /**

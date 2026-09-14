@@ -15,23 +15,32 @@
 // chrome). Keep them small and self-contained — this file is injected whole.
 
 (function () {
-    // Log in as a seeded Persona with a fetch, the way the runner asks for. Prime
-    // the session so Laravel sets the XSRF-TOKEN cookie, then POST the credentials
-    // with that token echoed back in the header VerifyCsrfToken reads. The 302 to
-    // the dashboard is followed, so an ok response means we hold a session cookie.
+    // The XSRF-TOKEN cookie Laravel sets, echoed back in the header VerifyCsrfToken reads.
+    function csrfHeaders() {
+        const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+        return {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': match ? decodeURIComponent(match[1]) : '',
+        };
+    }
+
+    // Log in as a seeded Persona with a fetch, the way the runner asks for. The browser
+    // daemon keeps its cookies between articles, and the login form is guest-only, so a
+    // Persona left signed in by the previous article is signed out first — otherwise
+    // every article after the first would silently shoot as that Persona. Prime the
+    // session so Laravel sets the XSRF-TOKEN cookie (logout regenerates it), then POST
+    // the credentials. The 302 to the dashboard is followed, so an ok response means we
+    // hold a session cookie.
     async function login(email, password) {
         await fetch('/login', { credentials: 'same-origin' });
-        const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
-        const token = match ? decodeURIComponent(match[1]) : '';
+        await fetch('/logout', { method: 'POST', credentials: 'same-origin', headers: csrfHeaders() });
+        await fetch('/login', { credentials: 'same-origin' });
         const response = await fetch('/login', {
             method: 'POST',
             credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-XSRF-TOKEN': token,
-            },
+            headers: csrfHeaders(),
             body: JSON.stringify({ email, password }),
         });
         return response.ok || response.redirected;
@@ -90,5 +99,40 @@
         return true;
     }
 
-    window.__help = { login, highlightHelpLink, openLanguageSwitcher, openNewsComposer, openFirstSchedule };
+    // From the Directory, open the profile of the first Member in the roster who is
+    // not the signed-in Persona. Seeded ids are not stable across reseeds, so a
+    // script cannot `nav` to a peer's permalink; the roster's own name links are.
+    // The signed-in Member's id comes from the Inertia page props, read through the
+    // mounted Vue app's `$page` (Inertia clears the `data-page` attribute once it
+    // boots). The Inertia click navigates, so this resolves once the URL has changed
+    // (or gives up after five seconds) so the runner shoots the profile, not the roster.
+    function openAnotherMembersProfile() {
+        const page = document.getElementById('app')?.__vue_app__?.config.globalProperties.$page;
+        const self = String(page?.props?.auth?.user?.id ?? '');
+        const link = Array.from(document.querySelectorAll('a[href*="/members/"]')).find(
+            (element) => new URL(element.href).pathname.split('/').pop() !== self,
+        );
+        if (!link) return false;
+        const from = location.pathname;
+        link.click();
+        return new Promise((resolve) => {
+            const started = Date.now();
+            const poll = setInterval(() => {
+                const moved = location.pathname !== from;
+                if (moved || Date.now() - started > 5000) {
+                    clearInterval(poll);
+                    setTimeout(() => resolve(moved), 500);
+                }
+            }, 50);
+        });
+    }
+
+    window.__help = {
+        login,
+        highlightHelpLink,
+        openLanguageSwitcher,
+        openNewsComposer,
+        openFirstSchedule,
+        openAnotherMembersProfile,
+    };
 })();

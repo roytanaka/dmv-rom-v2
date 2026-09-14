@@ -15,6 +15,8 @@ Any signed-in Member sees these details on a profile:
 
 Email and phone numbers are not for everyone. You see them only when you are an officer of a Group the Member belongs to. If you may not see them, the profile reads "Contact details are not available to you."
 
+![A peer's profile: name, photo or initials, standing, and Groups, with the note that contact details are not available to you](01.png)
+
 ## What stays private
 
 Some details never show to a peer:
