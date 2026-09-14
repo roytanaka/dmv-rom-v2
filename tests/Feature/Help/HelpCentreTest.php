@@ -1,17 +1,39 @@
 <?php
 
+use App\Enums\ArticleStatus;
+use App\Enums\HelpSection;
+use App\Help\HelpArticle;
+use App\Help\HelpArticleRenderer;
+use App\Help\HelpManifest;
 use App\Models\Member;
 use Inertia\Testing\AssertableInertia as Assert;
 
-// Seam A (#517, ADR-0025) — the help index and one article at the HTTP/Inertia
+// Seam A (#517, #518, ADR-0025) — the help index and one article at the HTTP/Inertia
 // boundary, in both locales, as a logged-in Member. Login is required; an unknown
-// slug 404s; the `help` route no longer renders ComingSoon.
+// slug 404s. #518 adds the Required-role badge data, hides drafts from the index, and
+// keeps a draft reachable by URL.
+//
+// The real manifest ships only the two Getting started drafts, so the index-listing
+// tests bind a fixture manifest and renderer root (the seam the renderer already
+// established) to exercise published, published-open, and draft states side by side.
+
+function bindHelpFixtures(): void
+{
+    app()->instance(HelpArticleRenderer::class, new HelpArticleRenderer(base_path('tests/Fixtures/help')));
+    app()->instance(HelpManifest::class, new HelpManifest([
+        new HelpArticle('role-task', HelpSection::GettingStarted, isOverview: true, requires: ['scheduler', 'chair'], status: ArticleStatus::Published),
+        new HelpArticle('open-task', HelpSection::GettingStarted, status: ArticleStatus::Published),
+        new HelpArticle('draft-task', HelpSection::GettingStarted, status: ArticleStatus::Draft),
+    ]));
+}
 
 it('redirects a guest from the help index to login', function () {
     $this->get('/help')->assertRedirect('/login');
 });
 
-it('renders the help index for a member with the Getting started section, overview first', function () {
+it('lists published articles with their Required-role badge data and omits drafts', function () {
+    bindHelpFixtures();
+
     $this->actingAs(Member::factory()->create())
         ->get('/help')
         ->assertOk()
@@ -19,15 +41,17 @@ it('renders the help index for a member with the Getting started section, overvi
             ->component('help/Index')
             ->where('locale', 'en')
             ->where('sections.0.key', 'getting-started')
-            ->where('sections.0.labelKey', 'help.section.getting-started')
-            ->where('sections.0.articles.0.slug', 'getting-started')
-            ->where('sections.0.articles.0.title', 'Getting started')
-            ->where('sections.0.articles.0.href', '/help/getting-started')
-            ->where('sections.0.articles.1.slug', 'change-your-language')
-            ->where('sections.0.articles.1.title', 'Change your language'));
+            ->count('sections.0.articles', 2)
+            ->where('sections.0.articles.0.slug', 'role-task')
+            ->where('sections.0.articles.0.title', 'Role task')
+            ->where('sections.0.articles.0.requires', ['scheduler', 'chair'])
+            ->where('sections.0.articles.1.slug', 'open-task')
+            ->where('sections.0.articles.1.requires', []));
 });
 
-it('renders the help index in French at /fr/aide', function () {
+it('lists the index in French with translated titles and the badge data intact', function () {
+    bindHelpFixtures();
+
     $this->actingAs(Member::factory()->create());
 
     $this->withLocaleRoutes('fr', function () {
@@ -36,9 +60,34 @@ it('renders the help index in French at /fr/aide', function () {
             ->assertInertia(fn (Assert $page) => $page
                 ->component('help/Index')
                 ->where('locale', 'fr')
-                ->where('sections.0.articles.0.title', 'Pour commencer')
-                ->where('sections.0.articles.1.title', 'Changer votre langue'));
+                ->where('sections.0.articles.0.title', 'Tâche avec rôle')
+                ->where('sections.0.articles.0.requires', ['scheduler', 'chair'])
+                ->where('sections.0.articles.1.title', 'Tâche ouverte'));
     });
+});
+
+it('carries the required roles on the article page', function () {
+    bindHelpFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help/role-task')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('help/Article')
+            ->where('slug', 'role-task')
+            ->where('requires', ['scheduler', 'chair']));
+});
+
+it('renders a draft by URL though it is absent from the index', function () {
+    bindHelpFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help/draft-task')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('help/Article')
+            ->where('slug', 'draft-task')
+            ->where('requires', []));
 });
 
 it('renders an article with its title, breadcrumb, and rendered body HTML', function () {

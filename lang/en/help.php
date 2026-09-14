@@ -12,4 +12,26 @@ return [
     'section' => [
         'getting-started' => 'Getting started',
     ],
+
+    // Required-role badge (#518, ADR-0025 §6). The badge reads "Needs: Scheduler or
+    // Chair": the prefix, one label per required role, joined by "or". An article
+    // that needs no role shows no badge. One label per token in
+    // HelpManifest::requirableRoles() — every Role, plus the two non-Group tiers.
+    'required_role' => [
+        'prefix' => 'Needs:',
+        'or' => 'or',
+        'role' => [
+            'chair' => 'Chair',
+            'secretary' => 'Secretary',
+            'treasurer' => 'Treasurer',
+            'statistician' => 'Statistician',
+            'scheduler' => 'Scheduler',
+            'vetting' => 'Vetting',
+            'librarian' => 'Librarian',
+            'content_maintainer' => 'Content Maintainer',
+            'news_editor' => 'News Editor',
+            'super_tier' => 'Super-tier',
+            'support_operator' => 'Support operator',
+        ],
+    ],
 ];

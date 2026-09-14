@@ -1,14 +1,17 @@
 <?php
 
+use App\Enums\ArticleStatus;
+use App\Enums\FrenchState;
 use App\Help\HelpArticleRenderer;
 use App\Help\HelpManifest;
 
-// Seam B (#517, ADR-0025) — catalogue integrity, in the shape of ChromeCatalogueTest.
+// Seam B (#517, #518, ADR-0025) — catalogue integrity, in the shape of ChromeCatalogueTest.
 // The manifest and the files on disk must agree: a renamed slug, a missing locale
 // file, a duplicate slug, or a missing screenshot breaks the build, not the page.
+// #518 adds the badge, status, and French-state fields to the same wall.
 
 it('has an English and a French Markdown file for every article', function () {
-    foreach (HelpManifest::all() as $article) {
+    foreach ((new HelpManifest)->all() as $article) {
         expect(is_file(resource_path("help/en/{$article->slug}.md")))
             ->toBeTrue("Missing English file for '{$article->slug}'");
         expect(is_file(resource_path("help/fr/{$article->slug}.md")))
@@ -17,13 +20,13 @@ it('has an English and a French Markdown file for every article', function () {
 });
 
 it('has unique article slugs', function () {
-    $slugs = collect(HelpManifest::all())->map->slug;
+    $slugs = collect((new HelpManifest)->all())->map->slug;
 
     expect($slugs->duplicates()->all())->toBe([]);
 });
 
 it('has an English and a French label for every section', function () {
-    foreach (HelpManifest::sections() as $section) {
+    foreach ((new HelpManifest)->sections() as $section) {
         expect(__($section->labelKey(), [], 'en'))
             ->not->toBe($section->labelKey(), "Missing English label for section '{$section->value}'");
         expect(__($section->labelKey(), [], 'fr'))
@@ -35,7 +38,7 @@ it('has every referenced screenshot on disk', function () {
     $renderer = app(HelpArticleRenderer::class);
     $missing = [];
 
-    foreach (HelpManifest::all() as $article) {
+    foreach ((new HelpManifest)->all() as $article) {
         foreach (['en', 'fr'] as $locale) {
             foreach ($renderer->referencedImages($article->slug, $locale) as $image) {
                 $path = "help/{$article->slug}/{$image}";
@@ -50,4 +53,43 @@ it('has every referenced screenshot on disk', function () {
     // Empty in this slice — no article references an image yet — but the check runs,
     // so a later article's missing screenshot breaks this test, not the page.
     expect($missing)->toBe([]);
+});
+
+it('carries a valid status and French state on every entry', function () {
+    foreach ((new HelpManifest)->all() as $article) {
+        expect($article->status)->toBeInstanceOf(ArticleStatus::class);
+        expect($article->fr)->toBeInstanceOf(FrenchState::class);
+    }
+});
+
+it('keeps the two Getting started articles draft until their screenshots land', function () {
+    $drafts = collect((new HelpManifest)->all())
+        ->filter(fn ($article) => $article->status === ArticleStatus::Draft)
+        ->map->slug
+        ->all();
+
+    expect($drafts)->toContain('getting-started', 'change-your-language');
+});
+
+it('requires only known role tokens', function () {
+    $used = collect((new HelpManifest)->all())
+        ->flatMap(fn ($article) => $article->requires)
+        ->unique();
+
+    $unknown = $used->diff(HelpManifest::requirableRoles())->values()->all();
+
+    expect($unknown)->toBe([]);
+});
+
+it('has an English and a French label for every requirable role, plus the prefix and joiner', function () {
+    foreach (HelpManifest::requirableRoles() as $token) {
+        $key = "help.required_role.role.{$token}";
+        expect(__($key, [], 'en'))->not->toBe($key, "Missing English label for role '{$token}'");
+        expect(__($key, [], 'fr'))->not->toBe($key, "Missing French label for role '{$token}'");
+    }
+
+    foreach (['help.required_role.prefix', 'help.required_role.or'] as $key) {
+        expect(__($key, [], 'en'))->not->toBe($key, "Missing English string for '{$key}'");
+        expect(__($key, [], 'fr'))->not->toBe($key, "Missing French string for '{$key}'");
+    }
 });

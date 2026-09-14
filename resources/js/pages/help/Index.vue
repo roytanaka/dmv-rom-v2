@@ -5,6 +5,7 @@
 // Required-role badge lands in a later ticket). Section labels are chrome (ADR-0004),
 // resolved via trans(); article titles and hrefs come from the server, already
 // localized (ADR-0008).
+import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
@@ -14,6 +15,7 @@ import { computed } from 'vue';
 interface HelpIndexArticle {
     slug: string;
     title: string;
+    requires: string[];
     href: string;
 }
 
@@ -47,8 +49,12 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href
                 <h2 class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">{{ trans(section.labelKey) }}</h2>
                 <ul class="flex flex-col">
                     <li v-for="article in section.articles" :key="article.slug">
-                        <Link :href="article.href" class="text-rom-ink hover:bg-muted -mx-2 block rounded-md px-2 py-1.5 text-sm font-medium">
+                        <Link
+                            :href="article.href"
+                            class="text-rom-ink hover:bg-muted -mx-2 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium"
+                        >
                             {{ article.title }}
+                            <RequiredRoleBadge :requires="article.requires" />
                         </Link>
                     </li>
                 </ul>
