@@ -17,6 +17,7 @@ return [
         'news' => 'Nouvelles',
         'groups' => 'Groupes',
         'scheduling' => 'Horaire',
+        'hours-and-reports' => 'Heures et rapports',
         'settings' => 'Paramètres',
     ],
 
