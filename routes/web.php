@@ -8,6 +8,7 @@ use App\Http\Controllers\GroupEmptyDeskSettingsController;
 use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\GroupReminderSettingsController;
 use App\Http\Controllers\HelpController;
+use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\MailStatusController;
@@ -214,6 +215,13 @@ Route::get('design-system', function () {
 // super-tier Gate::before short-circuit.
 Route::get('mail-status', MailStatusController::class)
     ->middleware(['auth'])->name('mail-status');
+
+// The Help ledger page (#520, ADR-0025 §9). Non-localized and English-only like the
+// design-system and mail-status pages — a super-tier operations screen, not member-facing
+// chrome. Access is the `view-help-ledger` gate, which the controller authorizes: it denies
+// everyone but the super-tier Gate::before short-circuit.
+Route::get('help-status', HelpStatusController::class)
+    ->middleware(['auth'])->name('help-status');
 
 // Member administration (ADR-0017). Editing a member record is gated by the
 // MemberPolicy via the UpdateMemberRequest: self by default, Records or super-tier
