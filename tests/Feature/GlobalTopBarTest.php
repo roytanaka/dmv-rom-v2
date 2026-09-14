@@ -21,22 +21,23 @@ use Inertia\Testing\AssertableInertia as Assert;
  * in both locales (including the /fr/ twin of each link).
  */
 
-// The fixed global strip, in render order, with its English-canonical hrefs.
-function assertEnglishDestinations(Assert $page): Assert
+// The fixed global strip, in render order, with its English-canonical hrefs. The Help
+// href is the index unless a published article maps the page (the Dashboard's does).
+function assertEnglishDestinations(Assert $page, string $helpHref = '/help'): Assert
 {
     return $page
         ->where('chromeNav.destinations.0', ['key' => 'hours', 'labelKey' => 'nav.personal.hours', 'href' => '/hours'])
         ->where('chromeNav.destinations.1', ['key' => 'calendar', 'labelKey' => 'nav.personal.calendar', 'href' => '/calendar'])
         ->where('chromeNav.destinations.2', ['key' => 'news', 'labelKey' => 'nav.personal.news', 'href' => '/news'])
         ->where('chromeNav.destinations.3', ['key' => 'directory', 'labelKey' => 'nav.personal.directory', 'href' => '/directory'])
-        ->where('chromeNav.help', ['key' => 'help', 'labelKey' => 'nav.help', 'href' => '/help']);
+        ->where('chromeNav.help', ['key' => 'help', 'labelKey' => 'nav.help', 'href' => $helpHref]);
 }
 
 it('shares the fixed global destinations on the Dashboard', function () {
     $this->actingAs(Member::factory()->create())
         ->get('/dashboard')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => assertEnglishDestinations($page));
+        ->assertInertia(fn (Assert $page) => assertEnglishDestinations($page, '/help/getting-started'));
 });
 
 it('shares the same fixed global destinations on a Group page', function () {
@@ -60,8 +61,8 @@ it('shares the same fixed global destinations on a settings page', function () {
  * article for the page the Member is on: the middleware resolves the current route name
  * against the help manifest. A published article's mapping sets the href to that article
  * (localized); an unmapped page, or one mapped only by a draft, keeps the index. Bound
- * against a fixture manifest so a published mapping exists to exercise, since the real
- * catalogue ships only drafts.
+ * against a fixture manifest so the draft and unmapped cases exist to exercise
+ * independently of what the real catalogue ships.
  */
 
 // A fixture manifest with one published article mapped to the dashboard route, plus a

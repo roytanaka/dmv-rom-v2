@@ -4,10 +4,15 @@ The app works in English and French. You choose which one you see.
 
 ## Switch your language
 
-1. Select your name in the top bar.
+1. Select the globe in the top bar. It shows EN or FR, next to your initials.
+
+   ![The language menu open under the globe, with English checked and Français below it](01.png)
+
 2. Select the language you want.
 
 The page reloads in your language. Your choice stays until you change it again.
+
+![The same page in French: the top bar links, the rail headings, and Help all read in French](02.png)
 
 ## What changes
 

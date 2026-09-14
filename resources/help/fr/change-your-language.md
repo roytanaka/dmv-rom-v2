@@ -4,10 +4,15 @@ L'application fonctionne en anglais et en français. Vous choisissez celle que v
 
 ## Changer votre langue
 
-1. Sélectionnez votre nom dans la barre supérieure.
+1. Sélectionnez le globe dans la barre supérieure. Il affiche EN ou FR, à côté de vos initiales.
+
+   ![Le menu de langue ouvert sous le globe, avec English coché et Français en dessous](01.png)
+
 2. Sélectionnez la langue voulue.
 
 La page se recharge dans votre langue. Votre choix reste jusqu'à ce que vous le changiez de nouveau.
+
+![La même page en français : les liens de la barre supérieure, les titres du rail et l'aide sont tous en français](02.png)
 
 ## Ce qui change
 
