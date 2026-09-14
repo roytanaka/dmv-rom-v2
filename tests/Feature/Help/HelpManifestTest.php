@@ -42,7 +42,7 @@ it('has every referenced screenshot on disk', function () {
     foreach ((new HelpManifest)->all() as $article) {
         foreach (['en', 'fr'] as $locale) {
             foreach ($renderer->referencedImages($article->slug, $locale) as $image) {
-                $path = "help/{$article->slug}/{$image}";
+                $path = "help-images/{$article->slug}/{$image}";
 
                 if (! is_file(public_path($path))) {
                     $missing[] = $path;

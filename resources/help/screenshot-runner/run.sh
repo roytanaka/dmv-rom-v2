@@ -6,7 +6,7 @@
 #
 # Takes one article slug, logs in to the local app as that article's Persona,
 # walks its step script in a 1280 px desktop browser, and writes NN.png files
-# into the article's public screenshot folder (public/help/<slug>/).
+# into the article's public screenshot folder (public/help-images/<slug>/).
 #
 # It needs a running app and a browser, so it runs on a developer's machine, not
 # in the autonomous sandbox. It shoots English chrome only and draws no
@@ -90,7 +90,7 @@ if [[ ! -f "$STEP_FILE" ]]; then
     exit 1
 fi
 
-OUT_DIR="$REPO_ROOT/public/help/$SLUG"
+OUT_DIR="$REPO_ROOT/public/help-images/$SLUG"
 
 # shellcheck source=/dev/null
 source "$STEP_FILE"
@@ -100,7 +100,7 @@ if [[ -z "$PERSONA_EMAIL" ]]; then
     exit 1
 fi
 
-echo "Shooting '$SLUG' as $PERSONA_EMAIL into public/help/$SLUG/"
+echo "Shooting '$SLUG' as $PERSONA_EMAIL into public/help-images/$SLUG/"
 
 browser_login "$PERSONA_EMAIL" "$DEV_PASSWORD"
 browser_viewport "$VIEWPORT_WIDTH" "$VIEWPORT_HEIGHT"

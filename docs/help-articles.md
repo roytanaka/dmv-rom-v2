@@ -18,11 +18,17 @@ both locales. The English and Canadian-French files land together.
 | English article | `resources/help/en/<slug>.md`                      |
 | French article  | `resources/help/fr/<slug>.md`                      |
 | Step script     | `resources/help/screenshot-runner/<slug>.steps.sh` |
-| Screenshots     | `public/help/<slug>/NN.png`                        |
+| Screenshots     | `public/help-images/<slug>/NN.png`                 |
 
 The `slug` is one stable string. It names both Markdown files, the step script,
 and the screenshot folder. Use it in the manifest entry; do not invent a second
 name.
+
+The screenshot folder is `help-images`, not `help`, on purpose. A folder under
+`public/` that shares its name with a route shadows that route on Apache: the
+server redirects `/help` to `/help/`, finds a real directory, and answers 403
+before Laravel sees the request. A Pest test fails on any `public/` folder that
+matches the first segment of a route.
 
 ## Article shape
 

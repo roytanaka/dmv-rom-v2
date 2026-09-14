@@ -13,10 +13,12 @@ use Illuminate\Support\Str;
  * markup from a source file reaches the page. No new package.
  *
  * An image written `![Caption](01.png)` is a screenshot: the bare filename resolves
- * against the article's public folder (`/help/<slug>/01.png`) and the image renders
+ * against the article's public folder (`/help-images/<slug>/01.png`) and the image renders
  * as a `<figure>` with the caption as its `<figcaption>` — captions are the only
- * annotation. If a locale's file is missing, the English file renders (the manifest
- * test keeps that a dev-only fallback).
+ * annotation. The folder is `help-images`, not `help`: a `public/help/` directory
+ * shadows the `/help` route on Apache (403 before Laravel runs). If a locale's file
+ * is missing, the English file renders (the manifest test keeps that a dev-only
+ * fallback).
  */
 final class HelpArticleRenderer
 {
@@ -125,7 +127,7 @@ final class HelpArticleRenderer
             '/<img\s+src="([^"]*)"\s+alt="([^"]*)"\s*\/?>/',
             function (array $match) use ($slug) {
                 [, $src, $alt] = $match;
-                $resolved = $this->isScreenshot($src) ? "/help/{$slug}/{$src}" : $src;
+                $resolved = $this->isScreenshot($src) ? "/help-images/{$slug}/{$src}" : $src;
 
                 return sprintf(
                     '<figure><img src="%s" alt="%s"><figcaption>%s</figcaption></figure>',

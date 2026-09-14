@@ -66,7 +66,7 @@ class HelpStatusController extends Controller
             'frFile' => is_file(resource_path("help/fr/{$article->slug}.md")),
             'screenshotsReferenced' => $referenced->count(),
             'screenshotsPresent' => $referenced
-                ->filter(fn (string $image) => is_file(public_path("help/{$article->slug}/{$image}")))
+                ->filter(fn (string $image) => is_file(public_path("help-images/{$article->slug}/{$image}")))
                 ->count(),
         ];
     }
