@@ -62,3 +62,7 @@ Default canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `read
 ### Domain docs
 
 Single-context layout — `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Help articles
+
+A feature ships with a help article ([ADR-0025](docs/adr/0025-help-centre.md)). Run the `help-article` skill (`.claude/skills/help-article/`); write to `docs/help-articles.md`.
