@@ -203,19 +203,19 @@ final class HelpManifest
             new HelpArticle('post-a-news-item', HelpSection::News, requires: ['news_editor'], status: ArticleStatus::Published, route: 'news'),
 
             // Groups and Scheduling for members (#525) — what an ordinary Member of a Group does.
-            new HelpArticle('groups', HelpSection::Groups, isOverview: true, status: ArticleStatus::Draft, route: 'groups.show'),
-            new HelpArticle('find-your-group', HelpSection::Groups, status: ArticleStatus::Draft),
-            new HelpArticle('group-page-tabs', HelpSection::Groups, status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('groups', HelpSection::Groups, isOverview: true, route: 'groups.show'),
+            new HelpArticle('find-your-group', HelpSection::Groups),
+            new HelpArticle('group-page-tabs', HelpSection::Groups, route: 'groups.show'),
             // Groups, officer part (#526) — roster and meetings, run by a Group's officers.
             new HelpArticle('manage-your-groups-roster', HelpSection::Groups, requires: ['chair'], status: ArticleStatus::Draft, route: 'groups.show'),
             new HelpArticle('record-a-meeting', HelpSection::Groups, requires: ['secretary'], status: ArticleStatus::Draft, route: 'groups.show'),
 
-            new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
-            new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
-            new HelpArticle('cancel-a-sign-up', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
-            new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
-            new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
-            new HelpArticle('reminders', HelpSection::Scheduling, status: ArticleStatus::Draft),
+            new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
+            new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),
+            new HelpArticle('cancel-a-sign-up', HelpSection::Scheduling, route: 'groups.scheduling.show'),
+            new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, route: 'groups.scheduling.show'),
+            new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, route: 'groups.scheduling.show'),
+            new HelpArticle('reminders', HelpSection::Scheduling),
             // Scheduling, officer part (#526) — the schedule-admin tasks a Scheduler or Chair does.
             new HelpArticle('create-a-schedule-and-shifts', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
             new HelpArticle('add-or-remove-many-shifts', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),

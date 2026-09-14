@@ -8,6 +8,8 @@ Trouvez les quarts passés qui attendent encore un nombre de visiteur·euses de 
 2. Trouvez le panneau **Mes inscriptions** en haut.
 3. Il liste vos quarts à venir et tout quart récent qui attend encore un nombre.
 
+    ![Le panneau Mes inscriptions : un quart récent qui attend encore un nombre, avec la boîte Visiteur·euses servi·es et Terminer le quart](01.png)
+
 ## Noter le nombre
 
 1. Sélectionnez le quart qui attend un nombre.

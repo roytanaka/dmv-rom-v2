@@ -7,5 +7,5 @@
 persona amara.abara@dmv.test
 start /groups/docents/scheduling
 
-nav /groups/docents/scheduling 01   # the Scheduling tab: the list of schedules
-act openFirstSchedule 02            # a schedule's agenda: shifts with seats taken against capacity
+act showScheduleList 01             # the Scheduling tab: the list of schedules
+act openCurrentMonthSchedule 02     # a schedule's agenda: shifts with seats taken against capacity

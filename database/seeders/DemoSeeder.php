@@ -115,7 +115,7 @@ class DemoSeeder extends Seeder
     private const HOURS_CHUNK = 500;
 
     /** The name of the recent, all-past Schedule each collecting Group gets its sign-out seats on. */
-    private const RECENT_SCHEDULE_NAME = 'Recent shifts';
+    public const RECENT_SCHEDULE_NAME = 'Recent shifts';
 
     /** How far back the recent Schedule opens — comfortably past the last of its Shifts. */
     private const RECENT_SPAN_DAYS = 30;
@@ -916,6 +916,9 @@ class DemoSeeder extends Seeder
      * state both views must render — and every other Shift is left one seat short of
      * full, so a walkthrough always has somewhere to take a seat. Keyed on the
      * (Shift, Member) pair so a reseed neither duplicates nor over-fills.
+     *
+     * The Member Persona takes the first seat on the month's last Shift, so a walkthrough
+     * of her day has a seat to drop for as long as the month runs (#529).
      */
     private function placeSignUps(Group $group, Schedule $schedule): void
     {
@@ -925,17 +928,35 @@ class DemoSeeder extends Seeder
             return;
         }
 
-        $cursor = 0;
-        foreach ($schedule->shifts()->orderBy('starts_at')->get() as $index => $shift) {
-            $seats = $index === 0 ? $shift->capacity : max(0, $shift->capacity - 1);
+        $shifts = $schedule->shifts()->orderBy('starts_at')->get();
+        $memberPersona = collect($members)->first($this->isMemberPersona(...));
 
-            for ($k = 0; $k < $seats; $k++, $cursor++) {
-                SignUp::firstOrCreate([
+        if ($memberPersona !== null && $shifts->isNotEmpty()) {
+            SignUp::firstOrCreate(['shift_id' => $shifts->last()->id, 'member_id' => $memberPersona->id]);
+        }
+
+        $cursor = 0;
+        foreach ($shifts as $index => $shift) {
+            $seats = $index === 0 ? $shift->capacity : max(0, $shift->capacity - 1);
+            $taken = $shift->signUps()->count();
+
+            for ($k = 0; $k < $seats && $taken < $seats; $k++, $cursor++) {
+                $signUp = SignUp::firstOrCreate([
                     'shift_id' => $shift->id,
                     'member_id' => $members[$cursor % count($members)]->id,
                 ]);
+
+                if ($signUp->wasRecentlyCreated) {
+                    $taken++;
+                }
             }
         }
+    }
+
+    /** The Member Persona ({@see PersonaCatalogue::MEMBER_EMAIL}) — the seed's plain Docents Member. */
+    private function isMemberPersona(Member $member): bool
+    {
+        return $member->email === PersonaCatalogue::MEMBER_EMAIL;
     }
 
     /**
@@ -970,7 +991,10 @@ class DemoSeeder extends Seeder
 
         $rows = [];
         foreach ($groups as $group) {
-            $roster = $this->livingRoster($group);
+            // Member Persona first: the first seat lands on the first recent Shift, the one
+            // left unrecorded, so her My sign-ups panel always carries a past Shift still owed
+            // a number (#529, ADR-0023 §5).
+            $roster = $this->livingRoster($group, memberFirst: true);
             if ($roster === []) {
                 continue;
             }
@@ -993,18 +1017,24 @@ class DemoSeeder extends Seeder
     /**
      * The Group's living roster (Resigned / Deceased excluded — they cannot work a Shift),
      * id-ordered so the seated set is deterministic and the curated Personas, seeded first, take
-     * the earliest seats.
+     * the earliest seats. With `$memberFirst`, the Member Persona moves to the front where she
+     * belongs to the Group, so the first seat is hers (#529).
      *
      * @return list<Member>
      */
-    private function livingRoster(Group $group): array
+    private function livingRoster(Group $group, bool $memberFirst = false): array
     {
-        return Member::whereHas('memberships', fn ($query) => $query
+        $roster = Member::whereHas('memberships', fn ($query) => $query
             ->where('group_id', $group->id)
             ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased]))
             ->orderBy('id')
-            ->get()
-            ->all();
+            ->get();
+
+        if ($memberFirst) {
+            $roster = $roster->sortBy(fn (Member $member) => $this->isMemberPersona($member) ? 0 : 1);
+        }
+
+        return $roster->values()->all();
     }
 
     /**

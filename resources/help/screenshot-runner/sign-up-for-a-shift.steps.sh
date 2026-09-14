@@ -7,5 +7,6 @@
 persona amara.abara@dmv.test
 start /groups/docents/scheduling
 
-nav /groups/docents/scheduling 01   # the Scheduling tab: the list of schedules
-act openFirstSchedule 02            # the agenda: a shift with a free seat and its Sign up button
+act showScheduleList 01             # the Scheduling tab: the list of schedules
+act openCurrentMonthSchedule 02     # the agenda: the schedule's head and its first shifts
+act showFirstOpenShift 03           # a shift with a free seat and its Sign up button

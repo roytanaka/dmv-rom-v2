@@ -337,7 +337,7 @@ it('excludes the departed Persona from the Directory and My-Groups sources', fun
 });
 
 it('gives the multi-group no-office Persona Full standing in several programs', function () {
-    $member = Member::where('email', 'amara.abara@dmv.test')
+    $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)
         ->with('memberships.roles', 'memberships.group')
         ->firstOrFail();
 
@@ -567,6 +567,38 @@ it('leaves a persona an outstanding past Shift — a null count inside the windo
         ->exists();
 
     expect($outstanding)->toBeTrue();
+});
+
+it('seats the Member Persona on the outstanding Docents Shift, so her My sign-ups panel has a number to file', function () {
+    // The help screenshots and a Member walkthrough run as the Member Persona (#529). Her
+    // Scheduling tab must show a past Docents Shift still owed a count, and the sign-out form
+    // on it, so the seed hands her the first null seat rather than whoever has the lowest id.
+    $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)->firstOrFail();
+    $docents = Group::where('slug', 'docents')->firstOrFail();
+
+    $outstanding = SignUp::query()
+        ->where('member_id', $member->id)
+        ->whereNull('visitor_count')
+        ->whereHas('shift.schedule', fn ($query) => $query->where('group_id', $docents->id))
+        ->whereHas('shift', fn ($query) => $query
+            ->where('ends_at', '<', now())
+            ->where('ends_at', '>=', now()->subDays(SignUp::OUTSTANDING_WINDOW_DAYS)))
+        ->exists();
+
+    expect($outstanding)->toBeTrue();
+});
+
+it('seats the Member Persona on the last Shift of the Docents month, so she has a seat to drop', function () {
+    // The Cancel-a-sign-up walkthrough needs the Drop button on a Shift still ahead of her.
+    // The month's last Shift stays ahead for as long as the month runs, and stays one seat
+    // short of full like every Shift after the first, so the walkthrough can still take a seat.
+    $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)->firstOrFail();
+    $docents = Group::where('slug', 'docents')->firstOrFail();
+    $month = Schedule::where('group_id', $docents->id)->where('name', '!=', DemoSeeder::RECENT_SCHEDULE_NAME)->firstOrFail();
+    $last = $month->shifts()->orderByDesc('starts_at')->firstOrFail();
+
+    expect(SignUp::where('shift_id', $last->id)->where('member_id', $member->id)->exists())->toBeTrue()
+        ->and($last->signUps()->count())->toBe($last->capacity - 1);
 });
 
 it('splits every counted GDR Sign-up into five origins that sum to the count', function () {
