@@ -15,6 +15,8 @@ return [
         'my-hours' => 'My Hours',
         'directory' => 'Directory',
         'news' => 'News',
+        'groups' => 'Groups',
+        'scheduling' => 'Scheduling',
         'settings' => 'Settings',
     ],
 

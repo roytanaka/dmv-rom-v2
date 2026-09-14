@@ -197,6 +197,18 @@ final class HelpManifest
             new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Draft, route: 'news'),
             new HelpArticle('post-a-news-item', HelpSection::News, requires: ['news_editor'], status: ArticleStatus::Draft, route: 'news'),
 
+            // Groups and Scheduling for members (#525) — what an ordinary Member of a Group does.
+            new HelpArticle('groups', HelpSection::Groups, isOverview: true, status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('find-your-group', HelpSection::Groups, status: ArticleStatus::Draft),
+            new HelpArticle('group-page-tabs', HelpSection::Groups, status: ArticleStatus::Draft, route: 'groups.show'),
+
+            new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            new HelpArticle('cancel-a-sign-up', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            new HelpArticle('reminders', HelpSection::Scheduling, status: ArticleStatus::Draft),
+
             new HelpArticle('settings', HelpSection::Settings, isOverview: true, status: ArticleStatus::Draft, route: 'settings.profile'),
             new HelpArticle('update-your-profile', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.profile'),
             new HelpArticle('change-your-password', HelpSection::Settings, status: ArticleStatus::Draft, route: 'settings.password'),
