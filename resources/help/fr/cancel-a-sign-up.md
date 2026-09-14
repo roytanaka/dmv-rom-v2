@@ -13,13 +13,14 @@ Rendez une place sur un quart que vous ne pouvez plus travailler.
     ![L'agenda de l'horaire : son nom et ses dates, puis ses quarts par jour](02.png)
 
 3. Trouvez le quart où figure votre nom.
-4. Sélectionnez **Se désister**.
 
     ![Un quart où figure votre nom : le bouton Se désister à la place de S'inscrire](03.png)
 
+4. Sélectionnez **Se désister**.
+
 Votre nom quitte le quart, et la place s'ouvre pour quelqu'un d'autre.
 
-> **Astuce :** Le panneau **Mes inscriptions** en haut de l'onglet Horaire montre le même bouton **Se désister** sur chacun de vos quarts.
+> **Astuce :** Le panneau **Mes inscriptions** en haut de l'onglet montre aussi **Se désister** sur chacun de vos quarts.
 
 > **Note :** Vous pouvez rendre une place en tout temps. Le responsable horaire de votre groupe reçoit un courriel quand vous le faites.
 

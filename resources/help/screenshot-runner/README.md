@@ -39,7 +39,9 @@ act highlightHelpLink 02    # run one in-page helper, then shoot it
 - `persona <email>` — the seeded account to log in as (see the table below).
 - `start <path>` — the page to open before the first step.
 - `nav <path> <NN>` — navigate to a page, then take shot `NN`.
-- `act <helper> <NN>` — run one helper from `page-helpers.js`, then take shot `NN`.
+- `act <helper> <NN>` — run one helper from `page-helpers.js`, then take shot `NN`. A
+  helper opens an overlay, follows an in-page link, or scrolls the shot's subject under
+  the sticky tab strip; anything a plain `nav` cannot show.
 
 Keep an article to one screen of reading, so a handful of shots. The comment
 after each step is the note to yourself about what the shot should show; the

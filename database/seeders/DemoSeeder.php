@@ -115,7 +115,7 @@ class DemoSeeder extends Seeder
     private const HOURS_CHUNK = 500;
 
     /** The name of the recent, all-past Schedule each collecting Group gets its sign-out seats on. */
-    private const RECENT_SCHEDULE_NAME = 'Recent shifts';
+    public const RECENT_SCHEDULE_NAME = 'Recent shifts';
 
     /** How far back the recent Schedule opens — comfortably past the last of its Shifts. */
     private const RECENT_SPAN_DAYS = 30;
@@ -929,7 +929,7 @@ class DemoSeeder extends Seeder
         }
 
         $shifts = $schedule->shifts()->orderBy('starts_at')->get();
-        $memberPersona = collect($members)->first(fn (Member $member) => $member->email === PersonaCatalogue::MEMBER_EMAIL);
+        $memberPersona = collect($members)->first($this->isMemberPersona(...));
 
         if ($memberPersona !== null && $shifts->isNotEmpty()) {
             SignUp::firstOrCreate(['shift_id' => $shifts->last()->id, 'member_id' => $memberPersona->id]);
@@ -938,18 +938,25 @@ class DemoSeeder extends Seeder
         $cursor = 0;
         foreach ($shifts as $index => $shift) {
             $seats = $index === 0 ? $shift->capacity : max(0, $shift->capacity - 1);
+            $taken = $shift->signUps()->count();
 
-            for ($k = 0; $k < $seats; $k++, $cursor++) {
-                if ($shift->signUps()->count() >= $seats) {
-                    break;
-                }
-
-                SignUp::firstOrCreate([
+            for ($k = 0; $k < $seats && $taken < $seats; $k++, $cursor++) {
+                $signUp = SignUp::firstOrCreate([
                     'shift_id' => $shift->id,
                     'member_id' => $members[$cursor % count($members)]->id,
                 ]);
+
+                if ($signUp->wasRecentlyCreated) {
+                    $taken++;
+                }
             }
         }
+    }
+
+    /** The Member Persona ({@see PersonaCatalogue::MEMBER_EMAIL}) — the seed's plain Docents Member. */
+    private function isMemberPersona(Member $member): bool
+    {
+        return $member->email === PersonaCatalogue::MEMBER_EMAIL;
     }
 
     /**
@@ -1024,7 +1031,7 @@ class DemoSeeder extends Seeder
             ->get();
 
         if ($memberFirst) {
-            $roster = $roster->sortBy(fn (Member $member) => $member->email === PersonaCatalogue::MEMBER_EMAIL ? 0 : 1);
+            $roster = $roster->sortBy(fn (Member $member) => $this->isMemberPersona($member) ? 0 : 1);
         }
 
         return $roster->values()->all();

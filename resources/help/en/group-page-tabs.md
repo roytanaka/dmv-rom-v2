@@ -18,13 +18,13 @@ The Group's roster. It lists everyone in the Group and the role each person hold
 
 The Group's meetings, with their agendas and minutes. This tab shows only when the Group holds meetings.
 
-![The Meetings tab on a Group that holds meetings, with its own set of tabs](03.png)
+![The Meetings tab on a committee: a different set of tabs, and no meetings recorded yet](03.png)
 
 ## Scheduling
 
 The Group's schedules and shifts. Sign up for a shift here. This tab shows only when the Group runs scheduling.
 
-![The Scheduling tab: your sign-ups at the top, then the Group's schedules](04.png)
+![The Scheduling tab: the My sign-ups panel at the top, with your own shifts](04.png)
 
 ## Hours
 

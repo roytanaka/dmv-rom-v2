@@ -84,6 +84,15 @@
         return true;
     }
 
+    // The Group page's tab strip sticks to the top of the viewport once the page scrolls, so
+    // an element scrolled to `block: 'start'` lands under it. Back off by the strip's height,
+    // plus `lead` for any heading the shot should keep above the element.
+    const STICKY_STRIP_HEIGHT = 80;
+    function scrollUnderStickyStrip(element, lead = 0) {
+        element.scrollIntoView({ block: 'start' });
+        window.scrollBy(0, -(STICKY_STRIP_HEIGHT + lead));
+    }
+
     // Click an Inertia link and resolve once the URL has changed (or give up after five
     // seconds), so the runner shoots the page the link opens, not the page it left. A
     // short settle after the change lets the new page paint.
@@ -133,10 +142,7 @@
         const moved = await followLink(link);
         if (!moved) return false;
         const back = Array.from(document.querySelectorAll('a')).find((element) => /all schedules/i.test(element.textContent.trim()));
-        if (back) {
-            back.scrollIntoView({ block: 'start' });
-            window.scrollBy(0, -80);
-        }
+        if (back) scrollUnderStickyStrip(back);
         return true;
     }
 
@@ -145,9 +151,7 @@
     function showScheduleList() {
         const link = scheduleLinks()[0];
         if (!link) return false;
-        const card = link.closest('[data-slot="card"]') ?? link;
-        card.scrollIntoView({ block: 'start' });
-        window.scrollBy(0, -120);
+        scrollUnderStickyStrip(link.closest('[data-slot="card"]') ?? link, 40);
         return true;
     }
 
@@ -167,30 +171,30 @@
         return followLink(link);
     }
 
+    // The first button whose label matches, English chrome. `within` narrows the search to
+    // elements passing a predicate (say, outside a panel).
+    function buttonLabelled(pattern, within = () => true) {
+        return Array.from(document.querySelectorAll('button')).find((element) => pattern.test(element.textContent.trim()) && within(element));
+    }
+
     // Expand the rail's Browse Groups section. It is a reka-ui Collapsible, which toggles on
     // a plain click (unlike a menu, which needs the keyboard contract), but the step
-    // vocabulary is nav/act only, so the click comes through a helper. The trigger is the
-    // rail's one button whose label is the Browse Groups text.
+    // vocabulary is nav/act only, so the click comes through a helper.
     function openBrowseGroups() {
-        const trigger = Array.from(document.querySelectorAll('button')).find((element) => /browse groups/i.test(element.textContent.trim()));
+        const trigger = buttonLabelled(/browse groups/i);
         if (!trigger) return false;
         if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
         return true;
     }
 
-    // Scroll the first Agenda Shift card carrying the given button label to the top of the
-    // viewport, so the shot shows that card and its control rather than the page head. The
+    // Scroll the first Agenda Shift card carrying the given button label under the sticky
+    // strip, so the shot shows that card and its control rather than the page head. The
     // My sign-ups panel above the Agenda holds ShiftCards too, so its buttons are skipped:
-    // the walkthrough points at the Agenda. The sticky tab strip covers the top of the
-    // viewport, so the card lands just below it. Resolves after the scroll settles.
+    // the walkthrough points at the Agenda. Resolves after the scroll settles.
     function showShiftWithButton(pattern) {
-        const button = Array.from(document.querySelectorAll('button')).find(
-            (element) => pattern.test(element.textContent.trim()) && !element.closest('section[aria-label="My sign-ups"]'),
-        );
+        const button = buttonLabelled(pattern, (element) => !element.closest('section[aria-label="My sign-ups"]'));
         if (!button) return false;
-        const card = button.closest('[data-slot="card"]') ?? button;
-        card.scrollIntoView({ block: 'start' });
-        window.scrollBy(0, -80);
+        scrollUnderStickyStrip(button.closest('[data-slot="card"]') ?? button);
         return new Promise((resolve) => setTimeout(() => resolve(true), 300));
     }
 

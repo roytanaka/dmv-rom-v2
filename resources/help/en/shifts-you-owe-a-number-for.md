@@ -8,7 +8,7 @@ Find the past shifts that still need a visitor count from you.
 2. Find the **My sign-ups** panel at the top.
 3. It lists your upcoming shifts and any recent shift that still needs a count.
 
-    ![The My sign-ups panel: a recent shift still needs a count, so it shows the Visitors served box and Sign out](01.png)
+    ![The My sign-ups panel: a recent shift that still needs a count, with the Visitors served box and Sign out](01.png)
 
 ## Record the count
 

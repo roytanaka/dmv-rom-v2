@@ -14,9 +14,10 @@ Take a seat on a shift you want to work.
     ![The schedule's agenda: its name and dates, then its shifts by day](02.png)
 
 4. Find a shift with a free seat.
-5. Select **Sign up**.
 
     ![Shifts with a free seat, each with its Sign up button](03.png)
+
+5. Select **Sign up**.
 
 Your name joins the shift, and the seat count goes up by one.
 

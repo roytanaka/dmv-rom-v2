@@ -13,13 +13,14 @@ Give back a seat on a shift you can no longer work.
     ![The schedule's agenda: its name and dates, then its shifts by day](02.png)
 
 3. Find the shift with your name on it.
-4. Select **Drop**.
 
     ![A shift with your name on it: the Drop button in place of Sign up](03.png)
 
+4. Select **Drop**.
+
 Your name leaves the shift, and the seat opens for someone else.
 
-> **Tip:** The **My sign-ups** panel at the top of the Scheduling tab shows the same **Drop** button on each of your shifts.
+> **Tip:** The **My sign-ups** panel at the top of the tab also shows **Drop** on each of your shifts.
 
 > **Note:** You can drop a seat at any time. Your Group's Scheduler gets an email when you do.
 

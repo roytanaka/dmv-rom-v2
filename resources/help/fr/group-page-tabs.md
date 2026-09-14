@@ -18,13 +18,13 @@ La liste de membres du groupe. Elle liste chaque personne du groupe et le rôle 
 
 Les réunions du groupe, avec leurs ordres du jour et leurs procès-verbaux. Cet onglet apparaît seulement quand le groupe tient des réunions.
 
-![L'onglet Réunions sur un groupe qui tient des réunions, avec son propre ensemble d'onglets](03.png)
+![L'onglet Réunions sur un comité : un ensemble d'onglets différent, et aucune réunion notée encore](03.png)
 
 ## Horaire
 
 Les horaires et les quarts du groupe. Inscrivez-vous à un quart ici. Cet onglet apparaît seulement quand le groupe gère un horaire.
 
-![L'onglet Horaire : vos inscriptions en haut, puis les horaires du groupe](04.png)
+![L'onglet Horaire : le panneau Mes inscriptions en haut, avec vos propres quarts](04.png)
 
 ## Heures
 

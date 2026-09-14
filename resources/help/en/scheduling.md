@@ -6,7 +6,7 @@ Scheduling is how a Group staffs its shifts. You sign up for the shifts you want
 
 A Schedule is a named date range a Group publishes its shifts in, often one month. Open the **Scheduling** tab to see a Group's schedules.
 
-![The Scheduling tab: the list of schedules, one card each with its date range](01.png)
+![The Scheduling tab: the list of schedules below your sign-ups, one card each with its date range](01.png)
 
 ## Shifts
 

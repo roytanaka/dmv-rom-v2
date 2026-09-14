@@ -6,7 +6,7 @@ L'horaire est la façon dont un groupe dote ses quarts. Vous vous inscrivez aux 
 
 Un horaire est une plage de dates nommée dans laquelle un groupe publie ses quarts, souvent un mois. Ouvrez l'onglet **Horaire** pour voir les horaires d'un groupe.
 
-![L'onglet Horaire : la liste des horaires, une carte chacun avec sa plage de dates](01.png)
+![L'onglet Horaire : la liste des horaires sous vos inscriptions, une carte chacun avec sa plage de dates](01.png)
 
 ## Quarts
 

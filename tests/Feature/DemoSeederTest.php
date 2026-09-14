@@ -337,7 +337,7 @@ it('excludes the departed Persona from the Directory and My-Groups sources', fun
 });
 
 it('gives the multi-group no-office Persona Full standing in several programs', function () {
-    $member = Member::where('email', 'amara.abara@dmv.test')
+    $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)
         ->with('memberships.roles', 'memberships.group')
         ->firstOrFail();
 
@@ -594,7 +594,7 @@ it('seats the Member Persona on the last Shift of the Docents month, so she has 
     // short of full like every Shift after the first, so the walkthrough can still take a seat.
     $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)->firstOrFail();
     $docents = Group::where('slug', 'docents')->firstOrFail();
-    $month = Schedule::where('group_id', $docents->id)->where('name', '!=', 'Recent shifts')->firstOrFail();
+    $month = Schedule::where('group_id', $docents->id)->where('name', '!=', DemoSeeder::RECENT_SCHEDULE_NAME)->firstOrFail();
     $last = $month->shifts()->orderByDesc('starts_at')->firstOrFail();
 
     expect(SignUp::where('shift_id', $last->id)->where('member_id', $member->id)->exists())->toBeTrue()
