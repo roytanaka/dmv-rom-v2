@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
  * annotation. If a locale's file is missing, the English file renders (the manifest
  * test keeps that a dev-only fallback).
  */
-class HelpArticleRenderer
+final class HelpArticleRenderer
 {
     private readonly string $root;
 

@@ -7,22 +7,19 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
 
-const props = defineProps<{
+defineProps<{
     slug: string;
     title: string;
     html: string;
     breadcrumb: BreadcrumbItem[];
 }>();
-
-const breadcrumbs = computed<BreadcrumbItem[]>(() => props.breadcrumb);
 </script>
 
 <template>
     <Head :title="title" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumb">
         <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6">
             <article class="help-article max-w-2xl">
                 <h1 class="text-rom-ink mb-4 text-xl font-semibold">{{ title }}</h1>
