@@ -71,5 +71,11 @@ class AppServiceProvider extends ServiceProvider
         // grant, so Records stewardship or any Group role buys nothing. Shared as the coarse
         // `auth.can.viewMailStatus` hint for the user-menu item; the route re-checks it.
         Gate::define('view-mail-status', fn (Member $member) => false);
+
+        // The Help ledger at /help-status (ADR-0025 §9) is super-tier only, exactly like
+        // `view-mail-status` above. The definition denies everyone — only the Gate::before
+        // short-circuit grants it, so no Group role or stewardship reaches the ledger. The
+        // controller authorizes it; there is no coarse menu hint, the page is reached by URL.
+        Gate::define('view-help-ledger', fn (Member $member) => false);
     }
 }

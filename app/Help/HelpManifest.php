@@ -133,6 +133,44 @@ final class HelpManifest
     }
 
     /**
+     * Route names the ledger's gap list never counts as a page without an article
+     * (ADR-0025 §9). Three kinds of localized GET route are not task pages a Volunteer
+     * is walked through:
+     *  - the Coming Soon stubs, pages that are not built yet;
+     *  - the CSV export twins, each the download sibling of a report page an article covers;
+     *  - the auth GET routes, sign-in chrome no article documents.
+     * POST-only write seams never reach the gap list at all — it lists GET routes only.
+     * The ledger's integrity test keeps this list honest: every name here is a real route.
+     *
+     * @return list<string>
+     */
+    public static function ledgerRouteExclusions(): array
+    {
+        return [
+            // Coming Soon stubs (routes/web.php) — pages that do not exist yet.
+            'calendar', 'documents', 'profile', 'renew',
+            'officer.members', 'officer.communications', 'officer.reports',
+            'officer.flash-messages', 'officer.settings',
+            // CSV export twins — each rides behind a report page an article covers.
+            'groups.hours.report.csv',
+            'groups.hours.month.csv',
+            'groups.hours.member.csv',
+            'groups.hours.extra.csv',
+            'groups.hours.meetings.csv',
+            'hours.committee-summary.csv',
+            'hours.committee-detailed.csv',
+            'hours.visitor-summary.csv',
+            'hours.ranked.csv',
+            'hours.zero-hours.csv',
+            'hours.zero-shift-hours.csv',
+            'hours.zero-extra-hours.csv',
+            // Auth GET routes — sign-in chrome, not task pages.
+            'login', 'password.request', 'password.reset', 'password.confirm',
+            'verification.notice', 'verification.verify',
+        ];
+    }
+
+    /**
      * The real catalogue. The two Getting started articles stay draft until their
      * screenshots land (ADR-0025), so the index is empty until the backfill batches.
      *
