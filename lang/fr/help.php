@@ -11,6 +11,11 @@ return [
     // Une étiquette par cas de l'énumération HelpSection, indexée par le slug.
     'section' => [
         'getting-started' => 'Pour commencer',
+        'dashboard' => 'Tableau de bord',
+        'my-hours' => 'Mes heures',
+        'directory' => 'Répertoire',
+        'news' => 'Nouvelles',
+        'settings' => 'Paramètres',
     ],
 
     // Badge du rôle requis (#518, ADR-0025 §6). Le badge affiche « Requis :
