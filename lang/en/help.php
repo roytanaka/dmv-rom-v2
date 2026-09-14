@@ -17,6 +17,7 @@ return [
         'news' => 'News',
         'groups' => 'Groups',
         'scheduling' => 'Scheduling',
+        'hours-and-reports' => 'Hours and reports',
         'settings' => 'Settings',
     ],
 

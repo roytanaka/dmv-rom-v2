@@ -20,6 +20,7 @@ enum HelpSection: string
     case News = 'news';
     case Groups = 'groups';
     case Scheduling = 'scheduling';
+    case HoursAndReports = 'hours-and-reports';
     case Settings = 'settings';
 
     /** The lang key for this section's translated label (chrome, ADR-0004). */
