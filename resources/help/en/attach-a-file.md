@@ -4,9 +4,12 @@ Send a file with a Broadcast or a Direct message.
 
 ## Add an attachment
 
-1. Write your email to the **Message** step.
+1. Write your email as far as the **Message** step.
 2. Select **Add attachment**.
 3. Choose a file from your computer.
+
+    ![The Message step: the file's name and size under Attachments, with an × to remove it](01.png)
+
 4. Check the file name and size in the list.
 5. Select **Send**.
 

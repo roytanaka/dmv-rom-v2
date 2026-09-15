@@ -4,7 +4,15 @@ Check that the app is sending mail. You need the super-tier grant.
 
 ## Open the page
 
-Go to the Mail status page from its address. It shows the mail queue and the task that empties it.
+1. Select your avatar at the right of the top bar.
+
+    ![The avatar menu: Mail status between Renew Membership and Log out](01.png)
+
+2. Select **Mail status**.
+
+    ![The Mail status page: the four values, with no warning](02.png)
+
+The page shows the mail queue and the task that empties it.
 
 ## What the page shows
 

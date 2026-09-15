@@ -90,6 +90,13 @@ injects the whole file into the page.
 A dialog taller than the 800 px viewport comes out clipped. Hand-shoot that one
 PNG at a taller viewport and say so in the step script's header.
 
+## Shots that send mail
+
+The emailing scripts walk the composer to its Sent step, so they send for real. The
+local app queues the mail and runs no cron. Before you shoot the Mail status page,
+run `pnpm sail artisan mail:drain`. The page then shows a fresh
+scheduler time and no "Cron looks dead" warning.
+
 ## When a shot comes out wrong
 
 Replace that one PNG by hand and leave the step script as it is. The script
