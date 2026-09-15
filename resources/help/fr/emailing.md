@@ -2,13 +2,15 @@
 
 L'application envoie chaque message à votre place. Vous ne voyez jamais l'adresse d'un autre membre, et personne ne voit la vôtre.
 
+![Une page de groupe : la commande Courriel à l'extrémité droite de la barre d'onglets](01.png)
+
 ## Diffusion
 
 Un·e responsable écrit une diffusion et l'envoie à une audience. Texte enrichi, jusqu'à deux pièces jointes, dans une seule langue. La diffusion part sous le nom du groupe, et les réponses parviennent au ou à la responsable qui l'a écrite.
 
 ## Message direct
 
-Tout·e membre écrit un message direct à un·e autre membre, depuis le répertoire ou un profil. Il partage le même composeur qu'une diffusion. Son audience est ce seul membre.
+Tout·e membre écrit un message direct à un·e autre membre, depuis le profil de ce ou cette membre. Il partage le même composeur qu'une diffusion. Son audience est ce seul membre.
 
 ## Audience
 

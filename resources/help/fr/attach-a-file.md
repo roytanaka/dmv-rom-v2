@@ -7,6 +7,9 @@ Envoyez un fichier avec une diffusion ou un message direct.
 1. Rédigez votre courriel jusqu'à l'étape **Message**.
 2. Sélectionnez **Ajouter une pièce jointe**.
 3. Choisissez un fichier sur votre ordinateur.
+
+    ![L'étape Message : le nom et la taille du fichier sous Pièces jointes, avec un × pour le retirer](01.png)
+
 4. Vérifiez le nom et la taille du fichier dans la liste.
 5. Sélectionnez **Envoyer**.
 

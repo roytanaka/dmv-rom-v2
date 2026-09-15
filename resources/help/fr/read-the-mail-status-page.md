@@ -4,7 +4,15 @@ Vérifiez que l'application envoie le courriel. Vous avez besoin du grade super-
 
 ## Ouvrir la page
 
-Rendez-vous à la page d'état du courriel par son adresse. Elle montre la file d'attente du courriel et la tâche qui la vide.
+1. Sélectionnez votre avatar à droite de la barre du haut.
+
+    ![Le menu de l'avatar : État du courriel entre Renouveler l'adhésion et Se déconnecter](01.png)
+
+2. Sélectionnez **État du courriel**.
+
+    ![La page d'état du courriel : les quatre valeurs, sans avertissement](02.png)
+
+La page montre la file d'attente du courriel et la tâche qui la vide.
 
 ## Ce que montre la page
 
