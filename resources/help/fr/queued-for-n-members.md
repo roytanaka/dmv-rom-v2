@@ -4,7 +4,9 @@ Comprenez le message affiché après l'envoi d'un courriel.
 
 ## Après l'envoi
 
-L'application n'envoie pas votre courriel au moment où vous sélectionnez **Envoyer**. Elle met en file un courriel par membre et les envoie par lots. L'étape **Envoyé** indique **En file pour N membres**.
+L'application n'envoie pas votre courriel au moment où vous sélectionnez **Envoyer**. Elle met en file un courriel par membre et les envoie par lots. Le composeur affiche alors **En file pour N membres.**
+
+![Après un envoi aux responsables du groupe : En file pour 5 membres, et la note sur la livraison](01.png)
 
 ## Ce qui se passe ensuite
 

@@ -4,10 +4,13 @@
 # and the "Whole group" Audience resolves.
 # Run: resources/help/screenshot-runner/run.sh send-a-broadcast
 #
-# The Email menu and the composer sheet are Radix overlays the runner cannot open; a
-# developer captures the Audience menu and the Who → Message → Sent steps by hand.
+# The last step sends for real. See README.md, "Shots that send mail".
 
 persona oliver.bennett@dmv.test
 start /groups/docents
 
-nav /groups/docents 01   # the Group page: the "Email ▾" control in the sticky tab strip
+act openEmailMenu 01            # the Email menu open under the tab strip: each Audience and its count
+act openWholeGroupComposer 02   # the Who step: Whole group, a name with an × for each Member
+act goToMessageStep
+act writeSampleEmail 03         # the Message step: subject and message filled in, Send live
+act sendEmail 04                # the Sent step: "Queued for N members."

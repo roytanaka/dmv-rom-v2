@@ -4,7 +4,9 @@ Understand the message you see after you send an email.
 
 ## After you send
 
-The app does not send your email the moment you select **Send**. It lines up one email for each Member and sends them in batches. The **Sent** step reads **Queued for N Members**.
+The app does not send your email the moment you select **Send**. It lines up one email for each Member and sends them in batches. The composer then shows **Queued for N members.**
+
+![After a send to the Group's officers: Queued for 5 members, and the delivery note](01.png)
 
 ## What happens next
 

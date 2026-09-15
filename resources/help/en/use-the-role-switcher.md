@@ -5,7 +5,13 @@ Become a Persona to see the app as they do. This tool runs on staging and local 
 ## Switch to a Persona
 
 1. Find the Role-switcher button in the bottom-right corner.
+
+    ![The dashboard: the Role-switcher button in the bottom-right corner](01.png)
+
 2. Select it to open the list of Personas.
+
+    ![The list of Personas, in groups, each with a name and roles](02.png)
+
 3. Select the Persona you want to become.
 
 The app reloads as that Persona. You now see every page with their roles and standing.
