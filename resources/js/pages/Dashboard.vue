@@ -7,6 +7,8 @@ import { Head, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
+// `computed` so the label survives a full-page locale switch — the messages load
+// async, so a `trans()` snapshot taken at setup would capture the raw key.
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
         title: trans('nav.dashboard'),
