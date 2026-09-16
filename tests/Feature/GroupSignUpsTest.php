@@ -12,6 +12,11 @@ use App\Models\Shift;
 use App\Models\SignUp;
 use Inertia\Testing\AssertableInertia as Assert;
 
+// Freeze "now" to a fixed point early in the month so the default Shift (day 10) sits in the
+// future and the started-Shift helper (day 5) sits in the past, whatever date the suite runs
+// on. Both stay inside the published Schedule's this-month range (#554, ADR-0021 §Sign-up).
+beforeEach(fn () => $this->travelTo(now()->startOfMonth()->addDays(7)->setTime(9, 0)));
+
 /*
  * Taking and dropping a Shift (#357, PRD #352, ADR-0021 §Sign-up). Two seams: the HTTP write
  * seam (Form Request → SignUpPolicy) for who may take, drop, and the state rules; and the
@@ -63,6 +68,20 @@ function shiftOn(Schedule $schedule, array $overrides = []): Shift
         'schedule_id' => $schedule->id,
         'starts_at' => now()->startOfMonth()->addDays(9)->setTime(10, 0),
         'ends_at' => now()->startOfMonth()->addDays(9)->setTime(13, 0),
+        ...$overrides,
+    ]);
+}
+
+/**
+ * A Shift that has already started — placed before the frozen "now" (day 5), still inside the
+ * published Schedule's this-month range. Droppable and takeable only *until* it starts
+ * (#554, ADR-0021 §Sign-up).
+ */
+function startedShiftOn(Schedule $schedule, array $overrides = []): Shift
+{
+    return shiftOn($schedule, [
+        'starts_at' => now()->startOfMonth()->addDays(4)->setTime(10, 0),
+        'ends_at' => now()->startOfMonth()->addDays(4)->setTime(13, 0),
         ...$overrides,
     ]);
 }
@@ -247,6 +266,48 @@ it('forbids a Member from dropping someone else’s seat', function () {
         ->assertForbidden();
 
     expect(SignUp::find($signUp->id))->not->toBeNull();
+});
+
+// --- The Shift-has-started guard (#554, ADR-0021 §Sign-up) --------------------
+
+it('bars a member from taking a seat once the Shift has started', function () {
+    $group = signUpGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = startedShiftOn($schedule);
+    $member = signUpMemberOf($group);
+
+    $this->actingAs($member)
+        ->post(route('sign-ups.store', ['shift' => $shift->id]))
+        ->assertForbidden();
+
+    expect($shift->signUps()->count())->toBe(0);
+});
+
+it('bars a member from dropping their own seat once the Shift has started', function () {
+    $group = signUpGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = startedShiftOn($schedule);
+    $member = signUpMemberOf($group);
+    $signUp = SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => $member->id]);
+
+    $this->actingAs($member)
+        ->delete(route('sign-ups.destroy', ['signUp' => $signUp->id]))
+        ->assertForbidden();
+
+    expect(SignUp::find($signUp->id))->not->toBeNull();
+});
+
+it('flags a started Shift so the card can hide take and drop', function () {
+    $group = signUpGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    startedShiftOn($schedule);
+    shiftOn($schedule); // a later, not-yet-started Shift on the same Schedule
+
+    $this->actingAs(signUpMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open.shifts.0.has_started', true)
+            ->where('scheduling.open.shifts.1.has_started', false));
 });
 
 // --- The read seam: names, taken-count, and the affordance -------------------

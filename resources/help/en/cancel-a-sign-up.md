@@ -22,7 +22,7 @@ Your name leaves the shift, and the seat opens for someone else.
 
 > **Tip:** The **My sign-ups** panel at the top of the tab also shows **Drop** on each of your shifts.
 
-> **Note:** You can drop a seat at any time. Your Group's Scheduler gets an email when you do.
+> **Note:** You can drop a seat until the shift starts. Your Group's Scheduler gets an email when you do. After the shift starts, ask your Scheduler to remove you.
 
 ## What next
 

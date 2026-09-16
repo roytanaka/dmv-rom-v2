@@ -919,6 +919,10 @@ class GroupController extends Controller
             'capacity' => $shift->capacity,
             'taken' => $taken,
             'kind' => $shift->kind?->name,
+            // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up), so the card hides
+            // the Member's take and drop once it has — self-service closes at the start. The
+            // SignUpPolicy enforces the same bound on every write regardless.
+            'has_started' => $shift->hasStarted(),
             // The Shift's own authored fields the edit form round-trips: its `audience`
             // (the discovery filter) and the id of its chosen kind (null for Reception's
             // kind-less shape), so the form pre-selects both rather than guessing from the

@@ -617,6 +617,10 @@ export interface ShiftAgendaItem {
     shift_kind_id: number | null;
     signups: ShiftSignUp[];
     signup_id: number | null;
+    // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up). Once set, the card hides
+    // the Member's take and drop — self-service closes at the start; the sign-out box stays. The
+    // SignUpPolicy enforces the same bound on every write, so this is a hint, not the rule.
+    has_started: boolean;
     // The count the viewer recorded on their own seat here (#445, ADR-0023 §5) — null when
     // unrecorded, distinct from a recorded zero. Sent only to the seat-holder; a reader holding
     // no seat gets null.
