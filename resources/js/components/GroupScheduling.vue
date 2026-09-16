@@ -656,7 +656,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 v-for="shift in mine"
                 :key="shift.id"
                 :shift="shift"
-                :show-date="true"
+                show-date
                 :collects-visitor-count="collectsVisitorCount"
                 :collects-extra-interactions="collectsExtraInteractions"
                 :collects-visitor-provenance="collectsVisitorProvenance"
