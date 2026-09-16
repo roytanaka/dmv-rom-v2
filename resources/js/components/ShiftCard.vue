@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import EmailMenu from '@/emailing/EmailMenu.vue';
+import { formatShiftDate } from '@/scheduling/agenda';
 import { withinSignOutWindow } from '@/scheduling/signOut';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -34,6 +35,12 @@ const props = withDefaults(
         // of twenty Shifts would show twenty greyed buttons. Gates the Email control below,
         // on top of the seat-taken rule.
         canEmailSignups?: boolean;
+        // Name the Shift's date above the time (#553). Off by default, so the Agenda and the
+        // Calendar — where the day is already the heading over the card — read unchanged. The
+        // cross-Group "My sign-ups" panel turns it on: it lists Shifts across Schedules with no
+        // day heading of its own, so without the date two cards can share a time and mean
+        // different days.
+        showDate?: boolean;
     }>(),
     {
         collectsVisitorCount: false,
@@ -41,6 +48,7 @@ const props = withDefaults(
         collectsVisitorProvenance: false,
         emailGroupName: null,
         canEmailSignups: false,
+        showDate: false,
     },
 );
 
@@ -62,6 +70,11 @@ const timeZone = page.props.timezone;
 const formatTime = (iso: string) => new Intl.DateTimeFormat(page.props.locale, { timeStyle: 'short', timeZone }).format(new Date(iso));
 const timeRange = (starts: string, ends: string) =>
     trans('group.scheduling_panel.agenda.time_range', { start: formatTime(starts), end: formatTime(ends) });
+
+// The Shift's date, spelled the way the Agenda's day headings are, shown only where `showDate`
+// is set (the cross-Schedule My-sign-ups panel). Read on the org wall clock from the same
+// instant, so the card names the day the Agenda already filed the Shift under.
+const shiftDate = computed(() => formatShiftDate(props.shift.starts_at, page.props.locale, timeZone));
 
 const signUpName = (signUp: ShiftSignUp) => `${signUp.first_name} ${signUp.last_name}`;
 
@@ -203,6 +216,10 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
 <template>
     <Card>
         <CardContent class="flex flex-col gap-2 py-4">
+            <!-- The date, on the My-sign-ups panel only (#553): that panel crosses Schedules with
+                 no day heading of its own, so the card names its own day. Off in the Agenda and
+                 Calendar, where the day already heads the card. -->
+            <p v-if="showDate" class="text-muted-foreground text-sm font-medium">{{ shiftDate }}</p>
             <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span class="text-rom-ink font-medium">{{ timeRange(shift.starts_at, shift.ends_at) }}</span>
