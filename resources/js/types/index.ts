@@ -610,6 +610,10 @@ export interface ShiftAgendaItem {
     capacity: number;
     taken: number;
     kind: string | null;
+    // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up). Once set, the card hides
+    // the Member's take and drop — self-service closes at the start; the sign-out box stays. The
+    // SignUpPolicy enforces the same bound on every write, so this is a hint, not the rule.
+    has_started: boolean;
     // The Shift's own authored fields the edit form round-trips (#356 front end): its
     // `audience` (the discovery filter) and the id of its chosen kind (null for a kind-less
     // Shift), so the form pre-selects both rather than guessing from the display name.

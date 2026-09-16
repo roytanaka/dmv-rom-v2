@@ -22,7 +22,7 @@ Votre nom quitte le quart, et la place s'ouvre pour quelqu'un d'autre.
 
 > **Astuce :** Le panneau **Mes inscriptions** en haut de l'onglet montre aussi **Se désister** sur chacun de vos quarts.
 
-> **Note :** Vous pouvez rendre une place en tout temps. Le responsable horaire de votre groupe reçoit un courriel quand vous le faites.
+> **Note :** Vous pouvez rendre une place jusqu'au début du quart. Le responsable horaire de votre groupe reçoit un courriel quand vous le faites. Après le début du quart, demandez au responsable horaire de vous retirer.
 
 ## Et ensuite
 

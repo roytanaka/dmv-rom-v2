@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ShiftAudience;
+use Carbon\CarbonImmutable;
 use Database\Factories\ShiftFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -54,6 +55,17 @@ class Shift extends Model
             'capacity' => 'integer',
             'audience' => ShiftAudience::class,
         ];
+    }
+
+    /**
+     * Whether the Shift's start instant has passed on the org wall clock (#554, ADR-0021
+     * §Sign-up) — a seat is takeable and droppable by a Member only *until* the Shift
+     * starts. The comparison is instant-to-instant, so it is timezone-agnostic; there is
+     * no lead window, because the ADR has none.
+     */
+    public function hasStarted(): bool
+    {
+        return ! CarbonImmutable::now()->isBefore($this->starts_at);
     }
 
     /**

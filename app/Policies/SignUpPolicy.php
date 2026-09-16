@@ -60,6 +60,12 @@ class SignUpPolicy
             return false;
         }
 
+        // A seat is self-service only *until* the Shift starts (#554, ADR-0021 §Sign-up); an
+        // Officer who needs to seat a late arrival uses {@see assign}, which has no time bound.
+        if ($shift->hasStarted()) {
+            return false;
+        }
+
         if (! $actor->category->canSignUp()) {
             return false;
         }
@@ -147,17 +153,22 @@ class SignUpPolicy
     /**
      * Who may drop a seat: the Member who holds it, or a schedule admin of the owning Group
      * (officer removal, #359) — so a Scheduler can clear any Sign-up on her Group's Shifts,
-     * whoever created it, and a regular who stops coming is not stranded. Cancel has no
-     * deadline — a Member may drop for as long as they could have taken it (ADR-0021 follows
-     * live legacy, whose `+2 days` guard was commented out with "allow cancel ANY TIME") — so
-     * there is no temporal guard here. The email that a self-drop fires is gated on ownership
-     * in {@see SignUpController::destroy}, so an officer removal stays
-     * silent even though it reuses this ability.
+     * whoever created it, and a regular who stops coming is not stranded. A self-drop is bound
+     * to the Shift's start: a Member may drop for exactly as long as they could have taken the
+     * seat, *until the Shift starts* (#554, ADR-0021 §Sign-up — legacy's dead `+2 days` guard is
+     * gone, but dropping never extended past the start). A schedule admin's removal keeps no
+     * time bound: a no-show is a Scheduler removing the Sign-up after the fact (ADR-0023). The
+     * email that a self-drop fires is gated on ownership in {@see SignUpController::destroy}, so
+     * an officer removal stays silent even though it reuses this ability.
      */
     public function delete(Member $actor, SignUp $signUp): bool
     {
+        if ($this->administersSchedulingFor($actor, $signUp->shift->schedule->group)) {
+            return true;
+        }
+
         return $signUp->member_id === $actor->getKey()
-            || $this->administersSchedulingFor($actor, $signUp->shift->schedule->group);
+            && ! $signUp->shift->hasStarted();
     }
 
     /**

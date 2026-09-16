@@ -15,6 +15,10 @@ use App\Models\ShiftKind;
 use App\Models\SignUp;
 use Illuminate\Support\Facades\Mail;
 
+// Freeze "now" early in the month so a dropped seat's Shift has not yet started — a Member may
+// self-drop only until the Shift starts (#554, ADR-0021 §Sign-up), which is what fires the Notice.
+beforeEach(fn () => $this->travelTo(now()->startOfMonth()->addDays(7)->setTime(9, 0)));
+
 /*
  * The Sign-up cancellation Notice (#358, PRD #352, ADR-0021 §Sign-up "Notification"; moved
  * onto the Delivery queue in #481, ADR-0024). When a Member drops their own seat, every

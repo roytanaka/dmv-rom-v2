@@ -258,18 +258,22 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
 
             <!-- Take / drop, from the same place. `signup_id` means "I hold a seat";
                  `can.signUp` means "a free seat is offered to me". A full Shift the viewer has
-                 no seat on shows as full with neither button. The Scheduler's assign (#359)
-                 sits beside them — the officer path onto a Shift with a free seat. -->
+                 no seat on shows as full with neither button. Self-service closes once the Shift
+                 has started (#554), so take, drop, and the full label all hide then; the Officer's
+                 assign (#359) and the sign-out box below stay. The Scheduler's assign sits beside
+                 them — the officer path onto a Shift with a free seat. -->
             <div class="flex flex-wrap items-center gap-2">
-                <Button v-if="shift.signup_id !== null" type="button" variant="outline" size="sm" @click="emit('drop', shift)">
-                    {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
-                </Button>
-                <Button v-else-if="shift.can.signUp" type="button" size="sm" @click="emit('take', shift)">
-                    {{ trans('group.scheduling_panel.agenda.sign_up.take') }}
-                </Button>
-                <span v-else-if="shift.taken >= shift.capacity" class="text-muted-foreground text-sm font-medium">
-                    {{ trans('group.scheduling_panel.agenda.sign_up.full') }}
-                </span>
+                <template v-if="!shift.has_started">
+                    <Button v-if="shift.signup_id !== null" type="button" variant="outline" size="sm" @click="emit('drop', shift)">
+                        {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
+                    </Button>
+                    <Button v-else-if="shift.can.signUp" type="button" size="sm" @click="emit('take', shift)">
+                        {{ trans('group.scheduling_panel.agenda.sign_up.take') }}
+                    </Button>
+                    <span v-else-if="shift.taken >= shift.capacity" class="text-muted-foreground text-sm font-medium">
+                        {{ trans('group.scheduling_panel.agenda.sign_up.full') }}
+                    </span>
+                </template>
                 <Button v-if="shift.can.assign" type="button" variant="outline" size="sm" class="gap-1.5" @click="emit('assign', shift)">
                     <PhUserPlus class="size-4" />
                     {{ trans('group.scheduling_panel.agenda.assign.place') }}

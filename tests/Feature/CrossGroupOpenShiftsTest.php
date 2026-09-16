@@ -10,6 +10,10 @@ use App\Models\Shift;
 use App\Models\SignUp;
 use Inertia\Testing\AssertableInertia as Assert;
 
+// Freeze "now" early in the month so the default Shift (day 10) has not yet started — a seat is
+// takeable only until its Shift starts (#554, ADR-0021 §Sign-up), and these tests take one.
+beforeEach(fn () => $this->travelTo(now()->startOfMonth()->addDays(7)->setTime(9, 0)));
+
 /*
  * Cross-Group open Shifts (#361, PRD #352, ADR-0021 §Sign-up). A Member reading one Group's
  * Schedule discovers the `open` Shifts *other* Groups advertise, and can take one — resolved
