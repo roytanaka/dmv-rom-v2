@@ -3,11 +3,12 @@
 # Persona: the Chair of Docents — an officer, so the menu offers the Group's roster and
 # officer Audiences plus "Pick people…".
 # Run: resources/help/screenshot-runner/run.sh pick-an-audience
-#
-# The Email menu (the Audience list) and the composer's To field are Radix overlays the
-# runner cannot open; a developer captures the open menu and the To chips by hand.
 
 persona oliver.bennett@dmv.test
 start /groups/docents
 
-nav /groups/docents 01   # the Group page: the "Email ▾" control that opens the Audience menu
+act openEmailMenu 01            # the Email menu: each Audience with the number of Members it reaches
+act openWholeGroupComposer
+act removeFirstRecipient 02     # the Who step after one × : "Whole group, 1 removed"
+nav /groups/docents/roster      # the Members tab: its Email control sits in the roster toolbar
+act openHandPickComposer 03     # "Pick people…": an empty To field and the roster to tick from

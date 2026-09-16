@@ -4,11 +4,13 @@
 # "Message" button renders in another Member's profile header.
 # Run: resources/help/screenshot-runner/run.sh send-a-direct-message
 #
-# The composer sheet the Message button opens is a Radix overlay the runner cannot open;
-# a developer captures the Who → Message → Sent steps by hand against the live chrome.
+# The last step sends for real. See README.md, "Shots that send mail".
 
 persona amara.abara@dmv.test
 start /directory
 
-nav /directory 01     # the Directory: pick the Member to write to
-nav /members/2 02     # a Member's profile — the "Message" button in the header (swap the id for any seeded Member)
+act openAnotherMembersProfile 01   # a Member's profile: the "Message" button in the header
+act openMessageComposer 02         # the Who step: the one recipient and the reply-address note
+act goToMessageStep
+act writeSampleEmail 03            # the Message step: subject and message filled in, Send live
+act sendEmail 04                   # the Sent step: "Queued for 1 member."

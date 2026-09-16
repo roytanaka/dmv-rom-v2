@@ -4,10 +4,13 @@
 # "Add attachment" lives.
 # Run: resources/help/screenshot-runner/run.sh attach-a-file
 #
-# The Message step and its "Add attachment" control sit inside the composer sheet, a Radix
-# overlay the runner cannot open; a developer captures the attachment shots by hand.
+# The helper attaches a stand-in PDF through the hidden file input, as the file picker
+# would. Nothing is sent.
 
 persona oliver.bennett@dmv.test
 start /groups/docents
 
-nav /groups/docents 01   # the Group page: the "Email ▾" control that opens the composer
+act openWholeGroupComposer
+act goToMessageStep
+act writeSampleEmail
+act attachSampleFile 01   # the Message step: the file's name and size under Attachments, with its ×

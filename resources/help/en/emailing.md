@@ -2,13 +2,15 @@
 
 The app sends every message for you. You never see another Member's address, and no one sees yours.
 
+![A Group page: the Email control at the right end of the tab strip](01.png)
+
 ## Broadcast
 
 An officer writes a Broadcast and sends it to an Audience. Rich text, up to two attachments, in one language. The Broadcast goes out under the Group's name, and replies come to the officer who wrote it.
 
 ## Direct message
 
-Any Member writes a Direct message to one other Member, from the Directory or a profile. It shares the same composer as a Broadcast. Its Audience is the one Member.
+Any Member writes a Direct message to one other Member, from that Member's profile. It shares the same composer as a Broadcast. Its Audience is the one Member.
 
 ## Audience
 

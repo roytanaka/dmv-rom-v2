@@ -60,17 +60,20 @@
         return true;
     }
 
-    // Open the desktop locale switcher (the globe menu, shown at lg+). agent-browser
-    // cannot click it open, so we drive its keyboard contract: focus the trigger and
-    // press Enter, which reka-ui opens the menu on. The trigger is the only top-bar
-    // menu whose label is the current locale (EN or FR).
-    function openLanguageSwitcher() {
-        const triggers = Array.from(document.querySelectorAll('[aria-haspopup="menu"]'));
-        const trigger = triggers.find((element) => /^(EN|FR)\b/.test(element.textContent.trim().toUpperCase()));
+    // Open a Radix menu. agent-browser cannot click one open, so we drive its keyboard
+    // contract: focus the trigger and press Enter, which reka-ui opens the menu on.
+    function pressEnterOn(trigger) {
         if (!trigger) return false;
         trigger.focus();
         trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         return true;
+    }
+
+    // Open the desktop locale switcher (the globe menu, shown at lg+). The trigger is the
+    // only top-bar menu whose label is the current locale (EN or FR).
+    function openLanguageSwitcher() {
+        const triggers = Array.from(document.querySelectorAll('[aria-haspopup="menu"]'));
+        return pressEnterOn(triggers.find((element) => /^(EN|FR)\b/.test(element.textContent.trim().toUpperCase())));
     }
 
     // Reveal the "New post" form on the News page. The form is a plain v-if toggle, not a
@@ -105,22 +108,28 @@
         return !element.closest('section[aria-label="My sign-ups"]');
     }
 
-    // Click an Inertia link and resolve once the URL has changed (or give up after five
-    // seconds), so the runner shoots the page the link opens, not the page it left. A
-    // short settle after the change lets the new page paint.
-    function followLink(link) {
-        const from = location.pathname;
-        link.click();
+    // Resolve once `test` returns something truthy (or give up after five seconds), then settle
+    // so the change paints. For a step that waits on the page: a new URL, the Email menu's
+    // Audiences, the composer's recipients, or the Sent step after a send.
+    function waitFor(test) {
         return new Promise((resolve) => {
             const started = Date.now();
             const poll = setInterval(() => {
-                const moved = location.pathname !== from;
-                if (moved || Date.now() - started > 5000) {
+                const found = test();
+                if (found || Date.now() - started > 5000) {
                     clearInterval(poll);
-                    setTimeout(() => resolve(moved), 500);
+                    setTimeout(() => resolve(Boolean(found)), 500);
                 }
             }, 50);
         });
+    }
+
+    // Click an Inertia link and resolve once the URL has changed, so the runner shoots the
+    // page the link opens, not the page it left.
+    function followLink(link) {
+        const from = location.pathname;
+        link.click();
+        return waitFor(() => location.pathname !== from);
     }
 
     // The Scheduling tab's schedule links. A seeded Schedule's id is not stable across
@@ -233,11 +242,30 @@
 
     // Click a button, then give an overlay or inline form time to open before the shot. Dialogs
     // here are controlled by a plain click handler, so a DOM click opens them; only a Radix
-    // menu needs the keyboard contract (see openLanguageSwitcher).
+    // menu needs the keyboard contract (see pressEnterOn).
     function clickAndSettle(button) {
         if (!button) return false;
         button.click();
         return settle(500);
+    }
+
+    // Click, then wait for what the click opens rather than a fixed pause: a fetch or a send
+    // decides how long it takes.
+    function clickAndWaitFor(element, test) {
+        if (!element) return false;
+        element.click();
+        return waitFor(test);
+    }
+
+    // Open a Radix menu and give it time to paint.
+    function openMenuFrom(trigger) {
+        if (!pressEnterOn(trigger)) return false;
+        return settle(400);
+    }
+
+    // The items of the open Radix menu.
+    function menuItems() {
+        return Array.from(document.querySelectorAll('[role="menuitem"]'));
     }
 
     // The first button with this label outside the My sign-ups panel, so a walkthrough points at
@@ -339,18 +367,13 @@
     }
 
     function openRosterRowMenu() {
-        const trigger = document.querySelector('tbody [aria-haspopup="menu"]');
-        if (!trigger) return false;
-        trigger.focus();
-        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-        return settle(400);
+        return openMenuFrom(document.querySelector('tbody [aria-haspopup="menu"]'));
     }
 
     // Open the first row's menu, then pick Manage, which opens the Manage membership dialog.
     async function openManageMembershipDialog() {
         if (!(await openRosterRowMenu())) return false;
-        const item = Array.from(document.querySelectorAll('[role="menuitem"]')).find((element) => /^manage$/i.test(element.textContent.trim()));
-        return clickAndSettle(item);
+        return clickAndSettle(menuItems().find((element) => /^manage$/i.test(element.textContent.trim())));
     }
 
     // The Meetings tab's New meeting control, for a Secretary or Chair.
@@ -366,6 +389,118 @@
     // The first Shift the viewer holds a seat on — the one whose card shows Drop.
     function showMyShift() {
         return showShiftWithButton(/^drop$/i);
+    }
+
+    // The open dialog: the composer sheet, once the Email menu or the Message button opens it.
+    function openDialog() {
+        return document.querySelector('[role="dialog"]');
+    }
+
+    function dialogButtonLabelled(pattern) {
+        return buttonLabelled(pattern, (element) => openDialog()?.contains(element));
+    }
+
+    // Open the "Email ▾" menu, a Radix menu, and wait for its Audiences to load: the menu
+    // fetches them, with their counts, the first time it opens. Enter toggles the menu, so a
+    // menu a previous step left open is left alone.
+    function openEmailMenu() {
+        const trigger = Array.from(document.querySelectorAll('[aria-haspopup="menu"]')).find((element) =>
+            /^email$/i.test(element.textContent.trim()),
+        );
+        if (!trigger) return false;
+        if (trigger.getAttribute('aria-expanded') !== 'true') pressEnterOn(trigger);
+        return waitFor(() => menuItems().length);
+    }
+
+    // Open the menu, pick the Audience whose name matches, and wait for the composer's To field
+    // to fill. The name is an item's first span; its count is the second.
+    async function pickAudience(pattern) {
+        if (!(await openEmailMenu())) return false;
+        const item = menuItems().find((element) => pattern.test((element.querySelector('span') ?? element).textContent.trim()));
+        return clickAndWaitFor(item, () => openDialog()?.querySelector('button[aria-label^="Remove "]'));
+    }
+
+    function openWholeGroupComposer() {
+        return pickAudience(/^whole group$/i);
+    }
+
+    function openOfficersComposer() {
+        return pickAudience(/officers$/i);
+    }
+
+    // "Pick people…" opens the composer on an empty To field with the roster panel open.
+    async function openHandPickComposer() {
+        if (!(await openEmailMenu())) return false;
+        const item = menuItems().find((element) => /^pick people/i.test(element.textContent.trim()));
+        return clickAndWaitFor(item, () => openDialog()?.querySelector('input'));
+    }
+
+    // Remove the first name from the To field, so the Audience name gains its "1 removed" note.
+    function removeFirstRecipient() {
+        return clickAndSettle(openDialog()?.querySelector('button[aria-label^="Remove "]'));
+    }
+
+    // The profile header's Message button opens the composer on its one fixed recipient.
+    function openMessageComposer() {
+        return clickAndWaitFor(buttonLabelled(/^message\b/i), () => dialogButtonLabelled(/^next$/i));
+    }
+
+    function goToMessageStep() {
+        return clickAndWaitFor(dialogButtonLabelled(/^next$/i), () => document.getElementById('composer-subject'));
+    }
+
+    // Fill the Message step as a sender would. The subject is a v-model input and the body a
+    // contenteditable that emits on `input`, so each gets its value and then the event.
+    function writeSampleEmail() {
+        const subject = document.getElementById('composer-subject');
+        const body = openDialog()?.querySelector('[contenteditable="true"]');
+        if (!subject || !body) return false;
+        subject.value = 'Spring training dates';
+        subject.dispatchEvent(new Event('input', { bubbles: true }));
+        body.innerHTML =
+            '<p>Hello,</p><p>The spring training sessions are now on the Schedule. Please sign up for one session by the end of the month.</p><p>Thank you!</p>';
+        body.dispatchEvent(new Event('input', { bubbles: true }));
+        return settle();
+    }
+
+    // Attach a stand-in PDF through the hidden file input, as the file picker would.
+    function attachSampleFile() {
+        const input = openDialog()?.querySelector('input[type="file"]');
+        if (!input) return false;
+        const transfer = new DataTransfer();
+        transfer.items.add(new File([new Uint8Array(250 * 1024)], 'Spring training schedule.pdf', { type: 'application/pdf' }));
+        input.files = transfer.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        return settle();
+    }
+
+    // Send for real and wait for the Sent step. The local app queues the mail, so a shoot
+    // leaves pending Deliveries until the queue drains.
+    function sendEmail() {
+        return clickAndWaitFor(dialogButtonLabelled(/^send$/i), () => dialogButtonLabelled(/^done$/i));
+    }
+
+    // The avatar menu in the top bar, which holds My Profile, Mail status, and Log out.
+    function openAccountMenu() {
+        return openMenuFrom(document.querySelector('button[aria-label="Account menu"]'));
+    }
+
+    // The Role-switcher's menu trigger: the detective button when idle, "Switch ▾" while active.
+    function openRoleSwitcher() {
+        return openMenuFrom(document.querySelector('button[aria-label="Impersonate (dev)"]') ?? buttonLabelled(/^switch\b/i));
+    }
+
+    // Become Amara Abara, the Persona the Member walkthroughs shoot as, and wait for the active
+    // toolbar. The pick posts through Inertia, so the page reloads its props in place.
+    async function becomeAmaraAbara() {
+        if (!(await openRoleSwitcher())) return false;
+        const item = menuItems().find((element) => /amara abara/i.test(element.textContent));
+        return clickAndWaitFor(item, () => buttonLabelled(/^stop$/i));
+    }
+
+    // Stop impersonating, so the runner leaves the operator signed in as themself.
+    function stopImpersonating() {
+        return clickAndWaitFor(buttonLabelled(/^stop$/i), () => !buttonLabelled(/^stop$/i));
     }
 
     window.__help = {
@@ -396,5 +531,19 @@
         openRosterRowMenu,
         openManageMembershipDialog,
         openNewMeetingDialog,
+        openEmailMenu,
+        openWholeGroupComposer,
+        openOfficersComposer,
+        openHandPickComposer,
+        removeFirstRecipient,
+        openMessageComposer,
+        goToMessageStep,
+        writeSampleEmail,
+        attachSampleFile,
+        sendEmail,
+        openAccountMenu,
+        openRoleSwitcher,
+        becomeAmaraAbara,
+        stopImpersonating,
     };
 })();
