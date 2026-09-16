@@ -193,6 +193,13 @@ class GroupController extends Controller
                     $request->user(),
                     AudienceContext::group($group),
                 ),
+                // The hand-pick pool for "Pick people…" (#551, ADR-0024 §6). The Email
+                // control lives in the strip on every section, so the picker needs the
+                // Group's roster wherever it opens — not only on the Members tab. A slim
+                // row (identity, photo, within-Group standing; never an address) drawn
+                // from the already-loaded memberships; the server re-resolves who is
+                // actually reached at send time (§5).
+                'roster' => $this->emailRoster($group),
             ],
             // UI hints only — the server enforces in the Form Requests. `update`
             // drives the Overview's inline About Us edit and banner picker;
@@ -411,6 +418,35 @@ class GroupController extends Controller
                 'loa_start' => $membership->loa_start?->toDateString(),
                 'loa_end' => $membership->loa_end?->toDateString(),
                 'can_hard_remove' => $canManage && $membership->roles->isEmpty(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The Email control's hand-pick pool (#551, ADR-0024 §6) — the Group's roster in
+     * present standing, sent on every section so "Pick people…" has rows wherever the
+     * strip's Email control opens. A slim row per living member: identity, photo, and
+     * within-Group standing, never an address. Deceased and Resigned are excluded (the
+     * departed are not addressable); Inactive stays, matching the roster's default view.
+     *
+     * Built from the memberships already eager-loaded for the page, so it adds no query,
+     * and it skips the per-row contact gating the Roster tab's {@see roster} pays for —
+     * the pool is a standing hint the server re-resolves at send time, not a contact list.
+     *
+     * @return list<array{id: int, first_name: string, last_name: string, photo: string|null, standing: string}>
+     */
+    private function emailRoster(Group $group): array
+    {
+        return $group->memberships
+            ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
+            ->sortBy(fn (GroupMember $membership) => mb_strtolower($membership->member->last_name.' '.$membership->member->first_name))
+            ->map(fn (GroupMember $membership) => [
+                'id' => $membership->member->id,
+                'first_name' => $membership->member->first_name,
+                'last_name' => $membership->member->last_name,
+                'photo' => $membership->member->photo_url,
+                'standing' => $membership->status->value,
             ])
             ->values()
             ->all();
