@@ -1,13 +1,4 @@
-/**
- * The top-bar avatar reads the signed-in user reactively (#552). When the support
- * operator uses the Role-switcher to Become a Persona, the Inertia visit swaps
- * `auth.user` in place — the avatar initials, name, and photo must follow on that
- * visit, with no full page load.
- *
- * These cover the pure derivation. Vue's reactivity runs under Node's test runner
- * without a DOM, so we drive it with a `reactive` page stand-in and swap the user the
- * way an Inertia visit does, then read the derived values.
- */
+// Reactive derivation for the top-bar avatar: computed values follow auth.user swaps without a DOM or Inertia context (#552).
 import type { User } from '@/types';
 import assert from 'node:assert/strict';
 import test from 'node:test';

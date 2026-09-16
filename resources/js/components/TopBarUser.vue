@@ -9,8 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 import { useInitials } from '@/composables/useInitials';
 import { useTopBarUser } from '@/composables/useTopBarUser';
 
-// Reactive so a Become / Return visit that swaps auth.user re-renders the avatar and
-// menu header on that visit, with no full page load (#552).
+// Reactive: a Become / Return visit that swaps auth.user re-renders the avatar in place (#552).
 const { user, fullName, showAvatar } = useTopBarUser();
 
 const { getInitials } = useInitials();
