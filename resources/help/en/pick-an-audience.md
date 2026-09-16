@@ -30,13 +30,14 @@ The **To** field shows one name for each Member. Remove anyone with the × besid
 
 ## Pick people by hand
 
-1. Open your Group's **Members** tab.
-2. Select **Email**.
-3. Select **Pick people…**.
+The **Email** menu is on every tab of a Group page. Open **Pick people…** from any tab.
+
+1. Select **Email**.
+2. Select **Pick people…**.
 
     ![Pick people: an empty To field above the roster, each Member with a box to tick](03.png)
 
-4. Tick the Members you want. To find a Member fast, search by name.
+3. Tick the Members you want. To find a Member fast, search by name.
 
 ## What next
 

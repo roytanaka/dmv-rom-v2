@@ -106,7 +106,10 @@ const props = defineProps<{
     // The Email control's empty state (#513, ADR-0024 §6) — why the viewer can pick no
     // Audience on this Group-scoped surface, or null when at least one is pickable. Read
     // by every Email control on the page (the strip, the roster, the opened Schedule).
-    email: { reason: EmailReason | null };
+    // `roster` is the strip control's hand-pick pool (#551): the Group's roster shaped as
+    // the composer's Recipient (a standing hint, never an address), sent on every section
+    // so "Pick people…" has rows to tick wherever the strip opens, not only on Members.
+    email: { reason: EmailReason | null; roster: Recipient[] };
     roster: RosterMember[];
     rosterMeta: RosterMeta;
     meetings: Meeting[];
@@ -126,19 +129,6 @@ const formatDate = (iso: string) => new Intl.DateTimeFormat(page.props.locale, {
 // Lifecycle badge: Archived takes precedence; otherwise a time-boxed Group whose
 // window has closed reads "Ended <date>". An open or open-ended Group shows none.
 const ended = computed(() => !props.group.archived && props.group.end_date !== null && new Date(props.group.end_date) < new Date());
-
-// The page's roster as the composer's hand-pick pool (#489, ADR-0024 §6): the Add-people
-// panel and "Pick people…" tick from these rows. Shaped to the composer's Recipient (a
-// standing hint, never an address); the server re-resolves who is actually reached.
-const emailRoster = computed<Recipient[]>(() =>
-    props.roster.map((member) => ({
-        id: member.id,
-        first_name: member.first_name,
-        last_name: member.last_name,
-        photo: member.photo,
-        standing: member.group_standing,
-    })),
-);
 
 // The in-body section tabs. Overview · Roster are always present; Meetings is a real
 // tab when the Group runs meetings. The remaining capabilities render as muted "soon"
@@ -294,7 +284,7 @@ const pickBanner = (key: string | null) => {
                     context="group"
                     :context-subject="group.slug"
                     :group-name="group.name"
-                    :roster="emailRoster"
+                    :roster="email.roster"
                     :reason="email.reason"
                 />
             </div>

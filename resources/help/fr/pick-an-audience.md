@@ -30,13 +30,14 @@ Le champ **À** affiche un nom pour chaque membre. Retirez qui vous voulez avec 
 
 ## Choisir des personnes à la main
 
-1. Ouvrez l'onglet **Membres** de votre groupe.
-2. Sélectionnez **Courriel**.
-3. Sélectionnez **Choisir des personnes…**.
+Le menu **Courriel** se trouve sur chaque onglet d'une page de groupe. Ouvrez **Choisir des personnes…** depuis n'importe quel onglet.
+
+1. Sélectionnez **Courriel**.
+2. Sélectionnez **Choisir des personnes…**.
 
     ![Choisir des personnes : un champ À vide au-dessus de la liste, chaque membre avec une case à cocher](03.png)
 
-4. Cochez les membres que vous voulez. Pour trouver un·e membre vite, cherchez par nom.
+3. Cochez les membres que vous voulez. Pour trouver un·e membre vite, cherchez par nom.
 
 ## Et ensuite
 

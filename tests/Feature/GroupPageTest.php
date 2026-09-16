@@ -198,6 +198,47 @@ it('counts living members in the facts card, excluding the departed', function (
         ->assertInertia(fn (Assert $page) => $page->where('overview.facts.member_count', 2));
 });
 
+/*
+ * Email picker roster (#551, ADR-0024 §6). The Email control sits in the sticky
+ * section-tab strip on every section, so "Pick people…" needs the Group's roster to
+ * tick from wherever it opens — not only on the Members tab. The server sends a slim
+ * pool (identity, photo, within-Group standing; never an address) on every section.
+ */
+it('sends the Email picker roster on a non-roster section', function () {
+    $group = Group::factory()->create();
+    $ada = Member::factory()->create(['first_name' => 'Ada', 'last_name' => 'Adams']);
+    $zoe = Member::factory()->create(['first_name' => 'Zoe', 'last_name' => 'Young']);
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['group_id' => $group->id, 'member_id' => $ada->id]);
+    GroupMember::factory()->status(MembershipStatus::Inactive)->create(['group_id' => $group->id, 'member_id' => $zoe->id]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('section', 'overview')
+            ->where('email.roster', function (Collection $roster) use ($ada, $zoe) {
+                $adaRow = $roster->firstWhere('id', $ada->id);
+
+                return $roster->count() === 2
+                    && $roster->contains('id', $zoe->id)
+                    && $adaRow['first_name'] === 'Ada'
+                    && $adaRow['standing'] === MembershipStatus::Full->value
+                    && array_key_exists('photo', $adaRow);
+            }));
+});
+
+it('omits the departed from the Email picker roster', function () {
+    $group = Group::factory()->create();
+    $full = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create(['group_id' => $group->id, 'member_id' => $full->id]);
+    GroupMember::factory()->status(MembershipStatus::Resigned)->create(['group_id' => $group->id]);
+    GroupMember::factory()->status(MembershipStatus::Deceased)->create(['group_id' => $group->id]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('email.roster', fn (Collection $roster) => $roster->pluck('id')->all() === [$full->id]));
+});
+
 it('renders the French twin of the Group page', function () {
     $group = Group::factory()->create(['slug' => 'docents-program']);
     $this->actingAs(Member::factory()->create());

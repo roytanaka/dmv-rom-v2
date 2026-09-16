@@ -10,5 +10,5 @@ start /groups/docents
 act openEmailMenu 01            # the Email menu: each Audience with the number of Members it reaches
 act openWholeGroupComposer
 act removeFirstRecipient 02     # the Who step after one × : "Whole group, 1 removed"
-nav /groups/docents/roster      # the Members tab: its Email control sits in the roster toolbar
+nav /groups/docents             # back to Overview — "Pick people…" opens from any tab now (#551)
 act openHandPickComposer 03     # "Pick people…": an empty To field and the roster to tick from
