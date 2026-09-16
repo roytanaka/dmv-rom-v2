@@ -13,7 +13,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildAgenda, buildMonthGrid, groupShiftsByDay, monthsInRange, orgDayKey } from './agenda.ts';
+import { buildAgenda, buildMonthGrid, formatShiftDate, groupShiftsByDay, monthsInRange, orgDayKey } from './agenda.ts';
 
 const TORONTO = 'America/Toronto';
 
@@ -228,4 +228,14 @@ test('monthsInRange yields every month a range spans, across a year boundary', (
         { year: 2027, month: 1 },
         { year: 2027, month: 2 },
     ]);
+});
+
+test("formatShiftDate names a Shift's org-wall-clock day in the Agenda's long format", () => {
+    // 14:00 UTC on Aug 5 is 10:00 EDT — the Toronto day is Aug 5.
+    assert.equal(formatShiftDate('2026-08-05T14:00:00Z', 'en-CA', TORONTO), 'Wednesday, August 5');
+});
+
+test('formatShiftDate reads the date on the org wall clock, not UTC', () => {
+    // 01:00 UTC on Aug 6 is 21:00 EDT on Aug 5 in Toronto — the card names Aug 5, not Aug 6.
+    assert.equal(formatShiftDate('2026-08-06T01:00:00Z', 'en-CA', TORONTO), 'Wednesday, August 5');
 });

@@ -50,6 +50,18 @@ export function orgDayKey(iso: string, timeZone: string): string {
 }
 
 /**
+ * A Shift's date, read on the org wall clock and spelled the way the Agenda's day headings
+ * are (#553) — long weekday, long month, numeric day (`Wednesday, August 5`). The My-sign-ups
+ * panel lists a viewer's Shifts across Schedules with no day heading of its own, so each card
+ * there names its own day; two cards that share a time but not a day then read apart. Derived
+ * from the same UTC instant and org timezone {@link orgDayKey} groups on, so the date a card
+ * shows is the day the Agenda already filed the Shift under — the two can never drift.
+ */
+export function formatShiftDate(iso: string, locale: string, timeZone: string): string {
+    return new Intl.DateTimeFormat(locale, { weekday: 'long', month: 'long', day: 'numeric', timeZone }).format(new Date(iso));
+}
+
+/**
  * Group a flat list of Shifts into per-day buckets on the org wall clock, the days
  * ordered ascending. Shifts keep their delivered order within a day (the server ships
  * them start-ordered), so a 3-day occasion and a 30-day month read the same way.
