@@ -47,6 +47,10 @@ return [
     // Top-bar utility — the Help destination in the right cluster (#194).
     'help' => 'Help',
 
+    // The Dashboard title strip — breadcrumb + <Head> title (#541). Chrome, so it
+    // translates: hard-coded English previously leaked through under French chrome.
+    'dashboard' => 'Dashboard',
+
     // Zone C — officer/admin cluster (rail, pinned bottom, officer-only).
     'officer' => [
         'members' => 'Members',
