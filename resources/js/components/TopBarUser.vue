@@ -7,16 +7,13 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useInitials } from '@/composables/useInitials';
-import { type SharedData, type User } from '@/types';
-import { usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { useTopBarUser } from '@/composables/useTopBarUser';
 
-const page = usePage<SharedData>();
-const user = page.props.auth.user as User;
+// Reactive so a Become / Return visit that swaps auth.user re-renders the avatar and
+// menu header on that visit, with no full page load (#552).
+const { user, fullName, showAvatar } = useTopBarUser();
 
 const { getInitials } = useInitials();
-const fullName = computed(() => `${user.first_name} ${user.last_name}`);
-const showAvatar = computed(() => user.photo_url && user.photo_url !== '');
 </script>
 
 <template>
