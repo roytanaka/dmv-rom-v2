@@ -7,12 +7,14 @@ import { Head, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
-const breadcrumbs: BreadcrumbItem[] = [
+// `computed` so the label survives a full-page locale switch — the messages load
+// async, so a `trans()` snapshot taken at setup would capture the raw key.
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
-        title: 'Dashboard',
+        title: trans('nav.dashboard'),
         href: '/dashboard',
     },
-];
+]);
 
 const page = usePage<SharedData>();
 
@@ -34,7 +36,7 @@ const tileKey = (item: GroupNode) => item.href ?? item.name;
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head :title="trans('nav.dashboard')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-6">

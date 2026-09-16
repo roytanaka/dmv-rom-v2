@@ -44,6 +44,10 @@ return [
     // Utilitaire de la barre supérieure — la destination Aide (#194).
     'help' => 'Aide',
 
+    // Le bandeau de titre du tableau de bord — fil d'Ariane + titre <Head> (#541).
+    // Du chrome, donc traduit : l'anglais codé en dur transparaissait sous le chrome français.
+    'dashboard' => 'Tableau de bord',
+
     // Zone C — responsables/administration (rail, épinglé en bas).
     'officer' => [
         'members' => 'Membres',
