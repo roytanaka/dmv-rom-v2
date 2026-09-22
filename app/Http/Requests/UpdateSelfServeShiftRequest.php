@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ReservesObjects;
 use App\Models\Shift;
 use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,6 +20,8 @@ use Illuminate\Validation\Rule;
  */
 class UpdateSelfServeShiftRequest extends FormRequest
 {
+    use ReservesObjects;
+
     /**
      * Authorize against the ShiftPolicy: the actor owns the route-bound Shift by the derived
      * rule and it has not started.
@@ -61,7 +65,38 @@ class UpdateSelfServeShiftRequest extends FormRequest
             ],
             'starts_at' => ['required', 'date', $this->onGrid(), $this->notBeforeToday(), $this->withinRange()],
             'units' => ['required', 'integer', 'min:1', 'max:'.Shift::SELF_SERVE_MAX_UNITS],
+            ...$this->objectRules($schedule->group),
         ];
+    }
+
+    /**
+     * The Object double-booking block (ADR-0026 §3): the candidate is this Shift with its *new*
+     * derived interval and kind, so the hold matches what the update will store. The actor's own
+     * Sign-up on this Shift is excluded — keeping the same Object is not a clash with oneself.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $startsAt = $this->date('starts_at');
+
+            if ($startsAt === null) {
+                return;
+            }
+
+            $shift = $this->route('shift');
+            $group = $shift->schedule->group;
+            $units = max(1, (int) $this->input('units'));
+
+            $candidate = new Shift([
+                'starts_at' => $startsAt,
+                'ends_at' => Shift::deriveEndsAt($startsAt, $units, $group->self_serve_unit_minutes),
+                'shift_kind_id' => $this->input('shift_kind_id'),
+            ]);
+
+            $ownSignUp = $shift->signUps()->where('member_id', $this->user()->getKey())->first();
+
+            $this->addObjectClashErrors($validator, $candidate, $ownSignUp?->getKey());
+        });
     }
 
     /**

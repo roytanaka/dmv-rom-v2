@@ -31,7 +31,11 @@ class SignUpController extends Controller
      */
     public function store(StoreSignUpRequest $request, Shift $shift): RedirectResponse
     {
-        $shift->signUps()->create(['member_id' => $request->user()->getKey()]);
+        $signUp = $shift->signUps()->create(['member_id' => $request->user()->getKey()]);
+
+        // The Objects the taker is reserving on this seat (#586, ADR-0026 §3) — absent on a Group
+        // with no Objects; the Form Request has refused a retired or double-booked one.
+        $signUp->objects()->sync($request->validated('objects') ?? []);
 
         return back();
     }

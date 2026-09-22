@@ -229,6 +229,16 @@ return [
             'retired_badge' => 'Retiré',
             'move_up' => 'Monter',
             'move_down' => 'Descendre',
+            // Le sélecteur d’objets sur les flux créer / prendre / placer (#586, ADR-0026 §3) —
+            // un multi-sélecteur avec recherche, affiché seulement si le groupe a des objets actifs.
+            'field_label' => 'Objets',
+            'field_placeholder' => 'Choisissez les objets que vous prenez',
+            'search' => 'Rechercher un objet',
+            'no_matches' => 'Aucun objet ne correspond.',
+            'seat_label' => 'Objets',
+            // Refusé à l’écriture : l’objet est déjà sorti sur une autre inscription à une heure
+            // qui chevauche. Nomme l’objet et la date et l’heure de l’autre quart.
+            'clash' => ':object est déjà sorti le :when. Choisissez un autre objet.',
         ],
         // Rédaction (#354) — visible seulement pour un·e responsable horaire /
         // président·e / super-palier (contrôlé côté serveur via `can`). Publier /

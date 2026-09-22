@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ReservesObjects;
 use App\Models\SignUp;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -22,6 +23,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class StoreSignUpRequest extends FormRequest
 {
+    use ReservesObjects;
+
     /**
      * Authorize against the SignUpPolicy: the actor must be able to take the route-bound
      * Shift — clearing the DMV-wide floor, the per-Group floor, and the Shift's `audience`.
@@ -32,14 +35,24 @@ class StoreSignUpRequest extends FormRequest
     }
 
     /**
-     * No body fields accompany a self-service Sign-up: the seat is the current user on the
-     * route-bound Shift.
+     * Load the Shift's Schedule and Group once, so the Object rules and the clash check read them
+     * without lazy-loading under strict mode (the route binds the Shift alone).
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->route('shift')->loadMissing('schedule.group');
+    }
+
+    /**
+     * The only body a take carries is its Objects (#586, ADR-0026 §3) — the handling collection
+     * the taker is reserving on the seat. Required with at least one when the Group has active
+     * Objects, absent otherwise; each an active Object of the Group.
      *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
-        return [];
+        return $this->objectRules($this->route('shift')->schedule->group);
     }
 
     /**
@@ -61,7 +74,14 @@ class StoreSignUpRequest extends FormRequest
 
             if ($shift->signUps()->count() >= $shift->capacity) {
                 $validator->errors()->add('shift', trans('group.scheduling_panel.shift_full'));
+
+                return;
             }
+
+            // The Object double-booking block (ADR-0026 §3) — the taker may not reserve an Object
+            // another Sign-up holds at an overlapping time. The candidate is the route-bound Shift;
+            // a new seat excludes nothing.
+            $this->addObjectClashErrors($validator, $shift);
         });
     }
 }

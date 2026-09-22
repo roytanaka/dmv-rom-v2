@@ -149,7 +149,7 @@ it('leaves the scheduling prop empty on the Overview section', function () {
 
     $this->actingAs(schedulingMemberOf($group))
         ->get(route('groups.show', $group))
-        ->assertInertia(fn (Assert $page) => $page->where('scheduling', ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'mine' => []]));
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling', ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'objects' => [], 'mine' => []]));
 });
 
 // --- Navigation: always the list, whatever the Group holds -------------------

@@ -307,7 +307,7 @@ class GroupController extends Controller
             // visible Schedules and which one (if any) opens directly.
             'scheduling' => $section === 'scheduling'
                 ? $this->scheduling($request, $group, $schedule)
-                : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'mine' => []],
+                : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'objects' => [], 'mine' => []],
             // The Hours tab's payload, resolved only on that tab: the viewer's own records
             // for this Group and the two-month entry state (ADR-0022 §2). Never another
             // Member's hours — the roster is not a leaderboard (§4).
@@ -720,6 +720,11 @@ class GroupController extends Controller
                 'open' => $this->scheduleDetail($request, $schedule),
                 'roster' => $this->assignmentRoster($request, $group),
                 'shift_kinds' => $this->shiftKinds($request, $group, $schedule),
+                // The Group's active Objects for the write / take / place pickers (#586, ADR-0026
+                // §3) — id and name, in picker order. Present on the opened Schedule for every
+                // reader; the picker itself renders only when the list is non-empty and only on the
+                // flows that reserve Objects.
+                'objects' => $this->activeObjects($group),
                 // The outstanding-shifts panel rides on the tab regardless of which Schedule is
                 // open — it crosses Schedules, so it is not the opened Schedule's concern (#449).
                 'mine' => $this->mine($request, $group),
@@ -762,6 +767,7 @@ class GroupController extends Controller
             // neither.
             'roster' => [],
             'shift_kinds' => [],
+            'objects' => [],
             // The outstanding-shifts panel rides on the list view too — a volunteer landing on
             // the bare section URL sees what they still owe without opening any Schedule (#449).
             'mine' => $this->mine($request, $group),
@@ -808,6 +814,7 @@ class GroupController extends Controller
                 'shift.schedule.group',
                 'shift.signUps.member.memberships.group',
                 'shift.signUps.member.memberships.roles',
+                'shift.signUps.objects',
             ])
             ->get()
             ->sortBy(fn (SignUp $signUp) => $signUp->shift->starts_at)
@@ -886,7 +893,7 @@ class GroupController extends Controller
         $viewer = $request->user();
 
         $shifts = $schedule->shifts()
-            ->with(['kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles'])
+            ->with(['kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects'])
             ->orderBy('starts_at')
             ->get()
             // The per-Shift SignUpPolicy check reads `$shift->schedule` (and its Group); set
@@ -930,7 +937,7 @@ class GroupController extends Controller
             ->whereHas('schedule', fn (Builder $query) => $query
                 ->where('group_id', '!=', $schedule->group_id)
                 ->where('state', ScheduleState::Published))
-            ->with(['schedule.group', 'kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles'])
+            ->with(['schedule.group', 'kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects'])
             ->orderBy('starts_at')
             ->get();
 
@@ -995,6 +1002,14 @@ class GroupController extends Controller
             'signups' => $shift->signUps
                 ->map(function (SignUp $signUp) use ($request, $canManage) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
+
+                    // The Objects this seat reserves (#586, ADR-0026 §3) — named under the Member
+                    // on the card, visible to every reader like the seat itself. A retired Object
+                    // still names its old seat, so the list carries the name as-authored regardless
+                    // of the active flag.
+                    $seat['objects'] = $signUp->objects
+                        ->map(fn (HandlingObject $object) => ['id' => $object->id, 'name' => $object->name])
+                        ->all();
 
                     // Officer correction (#450, ADR-0023 §5) — a schedule admin gets, on *every*
                     // seat, the pencil's read side: the seat's Sign-up id (the write target, and
@@ -1127,6 +1142,26 @@ class GroupController extends Controller
             ->orderBy('sort_order')
             ->get()
             ->map(fn (ShiftKind $kind) => ['id' => $kind->id, 'name' => $kind->name])
+            ->all();
+    }
+
+    /**
+     * The Group's active Objects for the write / take / place pickers (#586, ADR-0026 §3) — id and
+     * name, in the Group's authored picker order. Only *active* Objects are offered; a retired
+     * Object still names the seats already holding it but is no longer put on new ones
+     * ({@see HandlingObject::scopeActive}). Returned to every reader of the opened Schedule — the
+     * picker itself renders only when the list is non-empty. Empty on a Group with no Objects,
+     * where no flow shows the field.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function activeObjects(Group $group): array
+    {
+        return $group->objects()
+            ->active()
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (HandlingObject $object) => ['id' => $object->id, 'name' => $object->name])
             ->all();
     }
 

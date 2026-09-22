@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ReservesObjects;
 use App\Models\Shift;
 use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,6 +25,8 @@ use Illuminate\Validation\Rule;
  */
 class StoreSelfServeShiftRequest extends FormRequest
 {
+    use ReservesObjects;
+
     /**
      * Authorize against the ShiftPolicy: the actor may write a self-serve Shift onto the
      * route-bound Schedule — its Group is self-serve, the Schedule is published and readable,
@@ -70,7 +74,36 @@ class StoreSelfServeShiftRequest extends FormRequest
             ],
             'starts_at' => ['required', 'date', $this->onGrid(), $this->notBeforeToday(), $this->withinRange()],
             'units' => ['required', 'integer', 'min:1', 'max:'.Shift::SELF_SERVE_MAX_UNITS],
+            ...$this->objectRules($schedule->group),
         ];
+    }
+
+    /**
+     * The Object double-booking block (ADR-0026 §3): an Object another Sign-up holds at an
+     * overlapping time is refused. The candidate is the Shift this store will write — its derived
+     * interval and chosen kind — so the hold matches what will be stored. No Sign-up is excluded:
+     * a store creates a new seat.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $startsAt = $this->date('starts_at');
+
+            if ($startsAt === null) {
+                return;
+            }
+
+            $group = $this->route('schedule')->group;
+            $units = max(1, (int) $this->input('units'));
+
+            $candidate = new Shift([
+                'starts_at' => $startsAt,
+                'ends_at' => Shift::deriveEndsAt($startsAt, $units, $group->self_serve_unit_minutes),
+                'shift_kind_id' => $this->input('shift_kind_id'),
+            ]);
+
+            $this->addObjectClashErrors($validator, $candidate);
+        });
     }
 
     /**
