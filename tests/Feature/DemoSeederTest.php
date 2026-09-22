@@ -692,6 +692,75 @@ it('fills Reception near half, with no visitor count on any seat', function () {
         ->and(SignUp::whereRelation('shift.schedule', 'group_id', $reception->id)->whereNotNull('visitor_count')->exists())->toBeFalse();
 });
 
+it('seeds the Wayfinders month: a five-seat Wayfinding shift every hour from 10:00 to 17:00', function () {
+    $wayfinders = Group::where('slug', DemoSeeder::VISITOR_WAYFINDERS)->firstOrFail();
+    $month = CarbonImmutable::instance(now())->startOfMonth();
+    $schedule = Schedule::where('group_id', $wayfinders->id)
+        ->where('name', 'Wayfinding - '.$month->format('F Y'))
+        ->with('shifts.kind')
+        ->firstOrFail();
+    $orgTimezone = config('app.org_timezone');
+
+    expect($schedule->state)->toBe(ScheduleState::Published)
+        ->and($schedule->starts_on->toDateString())->toBe($month->toDateString())
+        ->and($schedule->ends_on->toDateString())->toBe($month->endOfMonth()->toDateString());
+
+    $byDay = $schedule->shifts->groupBy(fn (Shift $s) => $s->starts_at->copy()->setTimezone($orgTimezone)->toDateString());
+    $summer = in_array($month->month, [7, 8], true);
+    $openDays = collect(range(0, $month->daysInMonth - 1))
+        ->map(fn (int $day) => $month->addDays($day))
+        ->filter(fn (CarbonImmutable $date) => $summer || ! $date->isMonday())
+        ->map->toDateString()
+        ->values()
+        ->all();
+    expect($byDay->keys()->sort()->values()->all())->toBe($openDays);
+
+    $byDay->each(fn ($shifts) => expect($shifts->sortBy('starts_at')->map(fn (Shift $s) => [
+        $s->starts_at->copy()->setTimezone($orgTimezone)->format('H:i'),
+        (int) $s->starts_at->diffInMinutes($s->ends_at),
+        $s->capacity,
+        $s->kind->name,
+    ])->values()->all())->toBe(collect(range(10, 16))->map(fn (int $h) => [sprintf('%02d:00', $h), 60, 5, 'Wayfinding'])->all()));
+});
+
+it('seeds the Wayfinders evening events as one-day Schedules staffed by station', function () {
+    $wayfinders = Group::where('slug', DemoSeeder::VISITOR_WAYFINDERS)->firstOrFail();
+    $month = CarbonImmutable::instance(now())->startOfMonth();
+
+    $events = Schedule::where('group_id', $wayfinders->id)
+        ->where('name', 'not like', 'Wayfinding - '.$month->format('F Y'))
+        ->where('name', 'not like', 'Wayfinding - '.$month->subMonth()->format('F Y'))
+        ->with('shifts.kind')
+        ->get();
+
+    // TTNF and ROM After Dark run both months; Members Evening only this month.
+    expect($events)->toHaveCount(5)
+        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Wayfinding - TTNF'))->count())->toBe(2)
+        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Members Evening'))->count())->toBe(1);
+
+    $events->each(function (Schedule $event) {
+        // One day, labelled by station, never the daytime Wayfinding label.
+        expect($event->starts_on->toDateString())->toBe($event->ends_on->toDateString())
+            ->and($event->shifts)->not->toBeEmpty()
+            ->and($event->shifts->contains(fn (Shift $s) => $s->kind->name === 'Wayfinding'))->toBeFalse()
+            ->and($event->shifts->every(fn (Shift $s) => $event->coversInterval($s->starts_at, $s->ends_at)))->toBeTrue();
+    });
+});
+
+it('fills the Wayfinders daytime roster thinly and the events well, as legacy does', function () {
+    $wayfinders = Group::where('slug', DemoSeeder::VISITOR_WAYFINDERS)->firstOrFail();
+    $shifts = Shift::whereRelation('schedule', 'group_id', $wayfinders->id)->with('kind')->withCount('signUps')->get();
+
+    [$daytime, $events] = $shifts->partition(fn (Shift $s) => $s->kind->name === 'Wayfinding');
+
+    $daytimeFill = $daytime->sum('sign_ups_count') / $daytime->sum('capacity');
+    $eventFill = $events->sum('sign_ups_count') / $events->sum('capacity');
+
+    expect($daytimeFill)->toBeGreaterThan(0.05)->toBeLessThan(0.3)
+        ->and($eventFill)->toBeGreaterThan(0.5)->toBeLessThan(0.95)
+        ->and(Schedule::where('group_id', $wayfinders->id)->where('name', DemoSeeder::RECENT_SCHEDULE_NAME)->exists())->toBeFalse();
+});
+
 it('seeds an active ShiftKind vocabulary for the Group and labels its Shifts', function () {
     $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
 
