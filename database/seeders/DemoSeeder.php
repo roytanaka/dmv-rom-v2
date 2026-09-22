@@ -194,6 +194,30 @@ class DemoSeeder extends Seeder
      */
     private const GDR_GROUP_TOUR_SATURDAY = 4;
 
+    /**
+     * The Reception roster, read off the legacy weekly template: three-hour shifts, one volunteer
+     * each, from 09:30 and 12:30 Tuesday to Friday, and the morning alone on the weekend. No
+     * shift on Monday. Keyed by ISO weekday, 1 (Monday) to 7 (Sunday).
+     *
+     * @var array<int, list<array{int, int}>>
+     */
+    private const RECEPTION_ROSTER = [
+        2 => [[9, 30], [12, 30]],
+        3 => [[9, 30], [12, 30]],
+        4 => [[9, 30], [12, 30]],
+        5 => [[9, 30], [12, 30]],
+        6 => [[9, 30]],
+        7 => [[9, 30]],
+    ];
+
+    /**
+     * The Reception shifts a regular volunteer holds every week, as `ISO weekday-hour`. Legacy
+     * fills these near always and leaves the rest mostly open, which puts a month near half full.
+     *
+     * @var list<string>
+     */
+    private const RECEPTION_REGULARS = ['2-12', '3-9', '4-9', '5-9', '5-12'];
+
     /** Tours that ended within this many days stay unrecorded: the sign-outs still to come. */
     private const UNRECORDED_DAYS = 2;
 
@@ -969,6 +993,8 @@ class DemoSeeder extends Seeder
         $this->visitorGuidesScheduling($lastMonth, $month);
 
         $this->guidesDuRomScheduling($lastMonth, $month);
+
+        $this->receptionScheduling($lastMonth, $month);
     }
 
     /**
@@ -1107,6 +1133,46 @@ class DemoSeeder extends Seeder
     }
 
     /**
+     * The Reception roster, on the same two published months as Docents ({@see RECEPTION_ROSTER}).
+     * The shifts carry no kind, as legacy Reception has no shift labels. A regular holds the same
+     * few shifts each week ({@see RECEPTION_REGULARS}); the others are mostly open, before and
+     * after the day alike. Reception collects no visitor count, so no seat carries one.
+     * Skipped silently if the Group is absent.
+     */
+    private function receptionScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month): void
+    {
+        $group = Group::where('slug', self::RECEPTION)->first();
+
+        if ($group === null) {
+            return;
+        }
+
+        $previous = $this->monthSchedule($group, $lastMonth, 'Last month\'s Reception roster.');
+        $current = $this->monthSchedule($group, $month, 'The current-month Reception roster. Sign up for a shift below.');
+
+        foreach ([[$previous, $lastMonth], [$current, $month]] as [$schedule, $start]) {
+            $specs = [];
+            for ($day = 0; $day < $start->daysInMonth; $day++) {
+                foreach (self::RECEPTION_ROSTER[$start->addDays($day)->dayOfWeekIso] ?? [] as $time) {
+                    $specs[] = ['day' => $day, 'start' => $time, 'minutes' => 180, 'capacity' => 1, 'kind' => null];
+                }
+            }
+            $this->writeShifts($schedule, $start, $specs, []);
+        }
+
+        $this->seatRoster(
+            $group,
+            [$previous, $current],
+            function (Shift $shift) {
+                $wallClock = $shift->starts_at->copy()->setTimezone(config('app.org_timezone'));
+                $regular = in_array($wallClock->dayOfWeekIso.'-'.$wallClock->hour, self::RECEPTION_REGULARS, true);
+
+                return $this->spread($shift->starts_at->timestamp, 0, 99) < ($regular ? 90 : 10) ? 1 : 0;
+            },
+        );
+    }
+
+    /**
      * A published month Schedule on the Group, keyed on (Group, name) so a reseed heals
      * rather than duplicates. Last month's seed drafted this month ahead
      * ({@see draftNextMonth()}), so a reseed without a fresh migrate finds that draft here;
@@ -1162,7 +1228,7 @@ class DemoSeeder extends Seeder
      * (start, kind) pairs not already on the Schedule are inserted, so a reseed heals rather
      * than duplicates.
      *
-     * @param  list<array{day: int, start: array{int, int}, minutes: int, capacity: int, kind: string}>  $specs
+     * @param  list<array{day: int, start: array{int, int}, minutes: int, capacity: int, kind: ?string}>  $specs
      * @param  array<string, ShiftKind>  $kinds
      */
     private function writeShifts(Schedule $schedule, CarbonImmutable $month, array $specs, array $kinds): void
@@ -1175,7 +1241,7 @@ class DemoSeeder extends Seeder
         foreach ($specs as $spec) {
             $start = $month->addDays($spec['day'])->setTime(...$spec['start']);
             $startsAt = OrgTime::toUtc($start->toDateTimeString());
-            $kindId = $kinds[$spec['kind']]->id;
+            $kindId = $spec['kind'] === null ? null : $kinds[$spec['kind']]->id;
 
             if ($existing->has($startsAt.'|'.$kindId)) {
                 continue;
@@ -1249,7 +1315,8 @@ class DemoSeeder extends Seeder
 
     /**
      * Seat a Group's roster on its month Schedules. `$seatsFor` says how many seats on a Shift
-     * are taken, and `$countRange` the visitor count range a worked seat carries.
+     * are taken, and `$countRange` the visitor count range a worked seat carries, where the
+     * Group collects one.
      *
      * Worked Shifts carry the numbers filed at sign-out ({@see seatRow()}), except Shifts
      * ended in the last {@see UNRECORDED_DAYS} days. Those seats stay null, the sign-outs
@@ -1266,9 +1333,9 @@ class DemoSeeder extends Seeder
      *
      * @param  list<Schedule>  $schedules  oldest first; the last is the current month
      * @param  callable(Shift): int  $seatsFor
-     * @param  callable(Shift): array{int, int}  $countRange
+     * @param  (callable(Shift): array{int, int})|null  $countRange  null for a Group that collects no count
      */
-    private function seatRoster(Group $group, array $schedules, callable $seatsFor, callable $countRange): void
+    private function seatRoster(Group $group, array $schedules, callable $seatsFor, ?callable $countRange = null): void
     {
         $current = end($schedules);
         $roster = $this->livingRoster($group);
@@ -1315,7 +1382,7 @@ class DemoSeeder extends Seeder
                 $members[] = $pool[$cursor++ % count($pool)];
             }
 
-            $recorded = $ended && $shift->ends_at->lessThan($unrecordedFrom);
+            $recorded = $group->collects_visitor_count && $ended && $shift->ends_at->lessThan($unrecordedFrom);
             foreach ($members as $seat => $member) {
                 $rows[] = $this->seatRow($group, $shift, $member, $seat, $recorded ? $countRange($shift) : null, $now);
             }

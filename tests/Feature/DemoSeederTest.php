@@ -650,6 +650,48 @@ it('drops the separate Recent shifts Schedule on Guides du ROM, who give one-hou
         ->where('name', DemoSeeder::RECENT_SCHEDULE_NAME)->exists())->toBeFalse();
 });
 
+it('seeds the Reception roster: three-hour shifts from 09:30 and 12:30 Tuesday to Friday, mornings on the weekend', function () {
+    $reception = Group::where('slug', DemoSeeder::RECEPTION)->firstOrFail();
+    $schedule = Schedule::where('group_id', $reception->id)
+        ->where('name', CarbonImmutable::instance(now())->format('F Y'))
+        ->firstOrFail();
+    $orgTimezone = config('app.org_timezone');
+    $month = CarbonImmutable::instance(now())->startOfMonth();
+
+    expect($schedule->state)->toBe(ScheduleState::Published);
+
+    $expected = [];
+    for ($day = 0; $day < $month->daysInMonth; $day++) {
+        $date = $month->addDays($day);
+        $times = match (true) {
+            $date->isMonday() => [],
+            $date->isWeekend() => ['09:30'],
+            default => ['09:30', '12:30'],
+        };
+        foreach ($times as $time) {
+            $expected[] = [$date->toDateString().' '.$time, 180, 1, null];
+        }
+    }
+
+    $shape = $schedule->shifts()->orderBy('starts_at')->get()->map(fn (Shift $s) => [
+        $s->starts_at->copy()->setTimezone($orgTimezone)->format('Y-m-d H:i'),
+        (int) $s->starts_at->diffInMinutes($s->ends_at),
+        $s->capacity,
+        $s->shift_kind_id,
+    ])->all();
+
+    expect($shape)->toBe($expected);
+});
+
+it('fills Reception near half, with no visitor count on any seat', function () {
+    $reception = Group::where('slug', DemoSeeder::RECEPTION)->firstOrFail();
+    $shifts = Shift::whereRelation('schedule', 'group_id', $reception->id)->withCount('signUps')->get();
+
+    $taken = $shifts->sum('sign_ups_count') / $shifts->count();
+    expect($taken)->toBeGreaterThan(0.3)->toBeLessThan(0.7)
+        ->and(SignUp::whereRelation('shift.schedule', 'group_id', $reception->id)->whereNotNull('visitor_count')->exists())->toBeFalse();
+});
+
 it('seeds an active ShiftKind vocabulary for the Group and labels its Shifts', function () {
     $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
 
