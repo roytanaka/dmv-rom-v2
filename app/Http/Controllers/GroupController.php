@@ -843,6 +843,12 @@ class GroupController extends Controller
                 // SignUps picker rule; the AudienceController re-checks on send regardless.
                 'emailSignups' => $request->user()->isAllDmv()
                     || $request->user()->canActAs(Role::Scheduler, $schedule->group),
+                // Whether this viewer may write their own Shift on this Schedule (#585, ADR-0026
+                // §1) — a Member of a self-serve Group who clears both sign-up floors, on a
+                // published Schedule they can read. Gates the "Write my shift" button and its
+                // dialog; the Form Request re-checks `createSelfServe` on POST. False everywhere
+                // self-serve is off, so Docents and Visitor Guides never see the button.
+                'createSelfServe' => $request->user()->can('createSelfServe', [Shift::class, $schedule]),
             ],
             'shifts' => $this->shifts($request, $schedule),
             // Other Groups' `open` Shifts the viewer can take, in this Schedule's day range —
@@ -1047,6 +1053,13 @@ class GroupController extends Controller
                 // Always false for a foreign Shift, which carries no authoring affordances.
                 'update' => $canManage,
                 'delete' => $canManage && $taken === 0,
+                // Whether the viewer may change or delete this Shift as its self-serve owner
+                // (#585, ADR-0026 §1) — the derived-ownership verdict: a self-serve Group, a
+                // capacity-1 Shift whose only seat is theirs, not yet started. Drives the Edit
+                // and Delete controls the author sees on their own card, beside take and drop;
+                // the Form Requests re-check `manageSelfServe` on write. Always false on a
+                // foreign Shift (open audience, never a self-serve owner's).
+                'manageSelfServe' => $viewer->can('manageSelfServe', $shift),
                 // The sign-out affordance (#445, #450, ADR-0023 §5) — the SignUpPolicy's verdict on
                 // the viewer's own seat: a schedule admin may record at any time; the seat-holder's
                 // own window opens five minutes before the Shift ends. False when the viewer holds
@@ -1101,7 +1114,11 @@ class GroupController extends Controller
      */
     private function shiftKinds(Request $request, Group $group, Schedule $schedule): array
     {
-        if (! $request->user()->can('create', [Shift::class, $schedule])) {
+        // The picker serves both authoring paths: the Scheduler's Shift form (`create`) and a
+        // self-serve Member's "Write my shift" dialog (`createSelfServe`, #585) — both offer the
+        // Group's active kinds as stations. A plain reader clears neither and gets no list.
+        if (! $request->user()->can('create', [Shift::class, $schedule])
+            && ! $request->user()->can('createSelfServe', [Shift::class, $schedule])) {
             return [];
         }
 

@@ -643,8 +643,11 @@ export interface ShiftAgendaItem {
     // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. `record` is the
     // sign-out verdict (#445, #450) — the viewer's own seat; a schedule admin may record
     // at any time, the seat-holder's own window opens five minutes before the Shift ends.
-    // All false on a foreign Shift, which carries no authoring affordances.
-    can: { signUp: boolean; assign: boolean; update: boolean; delete: boolean; record: boolean };
+    // All false on a foreign Shift, which carries no authoring affordances. `manageSelfServe`
+    // is the derived-ownership verdict (#585, ADR-0026 §1): true when the viewer owns this
+    // self-serve Shift (self-serve group, capacity 1, their own single seat, not yet started),
+    // driving the author's own Edit and Delete controls; false on a foreign Shift.
+    can: { signUp: boolean; assign: boolean; update: boolean; delete: boolean; record: boolean; manageSelfServe: boolean };
 }
 
 // A foreign open Shift (#361, ADR-0021 §Sign-up) — another Group's `open` Shift a reader
@@ -669,7 +672,10 @@ export interface ScheduleDetail {
     // The Schedule authoring hints, plus `emailSignups` (#513, ADR-0024 §6.4): whether the
     // viewer — a Chair or Scheduler of the Group — may email the Schedule's Sign-ups. One flag
     // per opened Schedule; the Shift cards read it to gate their Email button (never per Shift).
-    can: ScheduleAbilities & { emailSignups: boolean };
+    // `createSelfServe` (#585, ADR-0026 §1) is the Member verdict: whether this viewer may write
+    // their own Shift here (self-serve group, published schedule, both sign-up floors cleared),
+    // gating the "Write my shift" button.
+    can: ScheduleAbilities & { emailSignups: boolean; createSelfServe: boolean };
     shifts: ShiftAgendaItem[];
     foreign: ForeignShiftItem[];
 }

@@ -194,6 +194,27 @@ return [
             'description' => 'Let members write their own shifts on this group\'s published schedules. Each shift signs them up in the same step.',
             'enabled_label' => 'Let members write their own shifts',
             'unit_minutes_label' => 'Minutes per unit',
+            // Write my shift (#585, ADR-0026 §1, §2) — the member-facing create / edit / delete
+            // dialog and its validation, on a published schedule of a self-serve group.
+            'write' => 'Write my shift',
+            'create_title' => 'Write my shift',
+            'edit_title' => 'Edit my shift',
+            'confirm_delete' => 'Delete this shift? This removes you from it. You cannot undo this.',
+            'edit' => 'Edit',
+            'delete' => 'Delete',
+            'save' => 'Save',
+            'cancel' => 'Cancel',
+            'field' => [
+                'kind' => 'Station',
+                'kind_placeholder' => 'Choose a station',
+                'date' => 'Date',
+                'starts_at' => 'Start time',
+                'units' => 'Units',
+            ],
+            'ends_at_preview' => 'Ends at :time',
+            'units_option' => '{1} :count unit|[2,*] :count units',
+            'start_off_grid' => 'Choose a start time on the quarter hour.',
+            'start_before_today' => 'Choose today or a later day.',
         ],
         // Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin's add / rename / retire /
         // reinstate / reorder block, shown on the list view. A kind's name is officer-authored

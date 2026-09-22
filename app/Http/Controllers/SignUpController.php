@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\DeliveryKind;
-use App\Enums\DeliveryState;
 use App\Http\Requests\DeleteSignUpRequest;
 use App\Http\Requests\RecordSignUpVisitorsRequest;
 use App\Http\Requests\StoreSignUpRequest;
-use App\Models\Delivery;
-use App\Models\Member;
 use App\Models\Shift;
 use App\Models\SignUp;
+use App\Support\Notices\SignUpCancellationNoticeWriter;
 use Illuminate\Http\RedirectResponse;
 
 /**
@@ -51,12 +48,12 @@ class SignUpController extends Controller
      * already in contact with the person, and that silence is deliberate. Guarding on
      * ownership here keeps that silence true now that officer removal reuses this seam.
      *
-     * Nothing sends in the request (#481, ADR-0024). The controller writes one Notice
-     * {@see Delivery} per recipient and returns; the every-minute Drain sends them. The
-     * Sign-up is gone by drain time, so the row carries a payload snapshot of everything the
-     * mail names — the dropped Member, the Group, and the Shift's Schedule, times, and kind.
+     * Nothing sends in the request (#481, ADR-0024). The {@see SignUpCancellationNoticeWriter}
+     * writes one Notice Delivery per recipient and returns; the every-minute Drain sends them.
+     * The Sign-up is gone by drain time, so each row carries a payload snapshot of everything
+     * the mail names — the dropped Member, the Group, and the Shift's Schedule, times, and kind.
      */
-    public function destroy(DeleteSignUpRequest $request, SignUp $signUp): RedirectResponse
+    public function destroy(DeleteSignUpRequest $request, SignUp $signUp, SignUpCancellationNoticeWriter $notices): RedirectResponse
     {
         $isSelfCancellation = $signUp->member_id === $request->user()->getKey();
 
@@ -66,57 +63,15 @@ class SignUpController extends Controller
 
         $signUp->delete();
 
+        // A Member cancelling their own seat tells every Scheduler and Chair; a Scheduler
+        // removing a placed Member (officer removal, #359) stays silent — they are already in
+        // contact with the person. The Notice is written from one place ({@see
+        // SignUpCancellationNoticeWriter}) shared with the self-serve Shift delete (ADR-0026 §1).
         if ($isSelfCancellation) {
-            $snapshot = $this->cancellationSnapshot($shift, $member);
-
-            foreach ($shift->schedule->group->schedulers() as $scheduler) {
-                // The no-email flag silences every mail, checked once here — the sole
-                // point a Notice Delivery is written (#483, ADR-0024 §9).
-                if ($scheduler->no_email) {
-                    continue;
-                }
-
-                Delivery::create([
-                    'kind' => DeliveryKind::Notice,
-                    'member_id' => $scheduler->getKey(),
-                    'email' => $scheduler->email,
-                    'payload' => $snapshot,
-                    'state' => DeliveryState::Pending,
-                    'next_attempt_at' => now(),
-                ]);
-            }
+            $notices->write($shift, $member);
         }
 
         return back();
-    }
-
-    /**
-     * Freeze what a cancellation Notice names into a payload the Drain can render from without
-     * the Sign-up, which is already gone. Shape mirrors {@see SignUpCancelled::fromSnapshot}.
-     *
-     * @return array<string, mixed>
-     */
-    private function cancellationSnapshot(Shift $shift, Member $member): array
-    {
-        return [
-            'member' => [
-                'first_name' => $member->first_name,
-                'last_name' => $member->last_name,
-            ],
-            'group' => [
-                'name' => $shift->schedule->group->name,
-                'slug' => $shift->schedule->group->slug,
-            ],
-            'schedule' => [
-                'id' => $shift->schedule->id,
-                'name' => $shift->schedule->name,
-            ],
-            'shift' => [
-                'starts_at' => $shift->starts_at->toIso8601String(),
-                'ends_at' => $shift->ends_at->toIso8601String(),
-                'kind' => $shift->kind?->name,
-            ],
-        ];
     }
 
     /**

@@ -40,6 +40,10 @@ const emit = defineEmits<{
     remove: [signUpId: number];
     edit: [shift: ShiftAgendaItem];
     delete: [shift: ShiftAgendaItem];
+    // The self-serve owner's controls (#585) — threaded through to the parent, exactly as the
+    // Agenda's cards are, so a GI edits or deletes their own Shift from the Calendar sheet too.
+    editSelfServe: [shift: ShiftAgendaItem];
+    deleteSelfServe: [shift: ShiftAgendaItem];
 }>();
 
 const page = usePage<SharedData>();
@@ -183,12 +187,15 @@ const formatDay = (date: string) =>
                         :shift="shift"
                         :email-group-name="groupName"
                         :can-email-signups="canEmailSignups"
+                        allow-self-serve-controls
                         @take="emit('take', $event)"
                         @drop="emit('drop', $event)"
                         @assign="emit('assign', $event)"
                         @remove="emit('remove', $event)"
                         @edit="emit('edit', $event)"
                         @delete="emit('delete', $event)"
+                        @edit-self-serve="emit('editSelfServe', $event)"
+                        @delete-self-serve="emit('deleteSelfServe', $event)"
                     />
                     <!-- Foreign open Shifts on the day, banded and attributed — the same band the
                          Agenda shows, surfaced here where the grid cell had no room. -->

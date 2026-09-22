@@ -176,6 +176,27 @@ return [
             'description' => 'Permettre aux membres de créer leurs propres quarts sur les horaires publiés de ce groupe. Chaque quart les inscrit du même coup.',
             'enabled_label' => 'Permettre aux membres de créer leurs propres quarts',
             'unit_minutes_label' => 'Minutes par unité',
+            // Créer mon quart (#585, ADR-0026 §1, §2) — la boîte de dialogue créer / modifier /
+            // supprimer côté membre et sa validation, sur un horaire publié d'un groupe en libre-service.
+            'write' => 'Créer mon quart',
+            'create_title' => 'Créer mon quart',
+            'edit_title' => 'Modifier mon quart',
+            'confirm_delete' => 'Supprimer ce quart ? Cela vous en retire. Cette action est irréversible.',
+            'edit' => 'Modifier',
+            'delete' => 'Supprimer',
+            'save' => 'Enregistrer',
+            'cancel' => 'Annuler',
+            'field' => [
+                'kind' => 'Poste',
+                'kind_placeholder' => 'Choisir un poste',
+                'date' => 'Date',
+                'starts_at' => 'Heure de début',
+                'units' => 'Unités',
+            ],
+            'ends_at_preview' => 'Se termine à :time',
+            'units_option' => '{1} :count unité|[2,*] :count unités',
+            'start_off_grid' => 'Choisissez une heure de début au quart d’heure.',
+            'start_before_today' => 'Choisissez aujourd’hui ou un jour ultérieur.',
         ],
         // Gestion des types de quart (#567, ADR-0021 §3) — le bloc ajouter / renommer / retirer /
         // réactiver / réordonner de l'administrateur·rice de l'horaire, affiché dans la vue liste. Le

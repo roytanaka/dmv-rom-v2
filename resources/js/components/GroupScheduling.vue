@@ -31,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { buildAgenda } from '@/scheduling/agenda';
+import { deriveEndsAt } from '@/scheduling/selfServeShift';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import {
@@ -598,6 +599,109 @@ const submitShift = () => {
 const destroyShift = (shift: ShiftAgendaItem) => {
     if (window.confirm(trans('group.scheduling_panel.confirm_delete_shift'))) {
         router.delete(route('shifts.destroy', { shift: shift.id }), { preserveScroll: true });
+    }
+};
+
+// --- Write my shift (#585, PRD #576, ADR-0026 §1, §2) — a self-serve Member's own authoring ---
+
+// The Member write the Scheduler's authoring above is not: a Gallery Interpreter picks a station,
+// a start and a count of units, and their Shift and Sign-up are written in one step. Gated by the
+// server's `can.createSelfServe` (the button) and `can.manageSelfServe` (the owner's edit/delete);
+// every write is re-checked by the self-serve Form Requests regardless of what renders.
+
+// One unit setting, read from the Group (45 for GI). The dialog derives the end from it, so the
+// Member sees how long the shift runs before saving — the count is never stored (ADR-0026 §2).
+const unitMinutes = computed(() => props.selfServe.unitMinutes);
+
+// The unit picker's options: 1 to the fixed ceiling of 8 (Shift::SELF_SERVE_MAX_UNITS).
+const SELF_SERVE_MAX_UNITS = 8;
+const unitOptions = Array.from({ length: SELF_SERVE_MAX_UNITS }, (_, index) => index + 1);
+
+// Self-serve starts step in 15-minute grid slots (ADR-0026 §2) — coarser than the Scheduler
+// form's five minutes, and the same grid the server enforces, so the picker offers no off-grid
+// slot. In seconds for the native input's `step`.
+const SELF_SERVE_TIME_STEP_SECONDS = 900;
+
+// The open editor: 'create', the id of the Shift being edited, or null when closed.
+const selfServeMode = ref<'create' | number | null>(null);
+
+const writeShiftForm = useForm<{ shift_kind_id: number | null; starts_at: string; units: number }>({
+    shift_kind_id: null,
+    starts_at: '',
+    units: 1,
+});
+
+const selfServeDialogOpen = computed({
+    get: () => selfServeMode.value !== null,
+    set: (open: boolean) => {
+        if (!open) closeSelfServe();
+    },
+});
+
+const selfServeDialogTitle = computed(() =>
+    trans(selfServeMode.value === 'create' ? 'group.scheduling_panel.self_serve.create_title' : 'group.scheduling_panel.self_serve.edit_title'),
+);
+
+// The derived end, shown live beside the units picker. The datetime-local start carries no zone,
+// so it is read as a UTC instant purely for the minute arithmetic and formatted back in UTC — the
+// wall-clock end then matches the wall-clock start the Member typed. Empty until a start is set.
+const selfServeEnd = computed(() => {
+    if (writeShiftForm.starts_at === '') return '';
+
+    const start = new Date(`${writeShiftForm.starts_at}:00Z`);
+    if (Number.isNaN(start.getTime())) return '';
+
+    const end = deriveEndsAt(start, writeShiftForm.units, unitMinutes.value);
+
+    return trans('group.scheduling_panel.self_serve.ends_at_preview', {
+        time: new Intl.DateTimeFormat(page.props.locale, { timeStyle: 'short', timeZone: 'UTC' }).format(end),
+    });
+});
+
+// The default start: now rounded up to the next quarter hour, so the picker opens on a valid grid
+// slot the Member can save straight away (the desk case). Rounded on the instant, rendered on the
+// org wall clock like every other Shift time.
+const nextQuarterHourLocal = () => {
+    const step = 15 * 60 * 1000;
+    const rounded = new Date(Math.ceil(Date.now() / step) * step);
+    return toDateTimeLocal(rounded.toISOString());
+};
+
+const openSelfServeCreate = () => {
+    writeShiftForm.reset();
+    writeShiftForm.clearErrors();
+    writeShiftForm.starts_at = nextQuarterHourLocal();
+    selfServeMode.value = 'create';
+};
+
+const openSelfServeEdit = (shift: ShiftAgendaItem) => {
+    writeShiftForm.shift_kind_id = shift.shift_kind_id;
+    writeShiftForm.starts_at = toDateTimeLocal(shift.starts_at);
+    // The count is not stored, so recover it from the span and the Group's unit length.
+    const span = (new Date(shift.ends_at).getTime() - new Date(shift.starts_at).getTime()) / (unitMinutes.value * 60 * 1000);
+    writeShiftForm.units = Math.max(1, Math.round(span));
+    writeShiftForm.clearErrors();
+    selfServeMode.value = shift.id;
+};
+
+const closeSelfServe = () => {
+    selfServeMode.value = null;
+    writeShiftForm.reset();
+};
+
+const submitSelfServe = () => {
+    const onSuccess = () => closeSelfServe();
+    if (selfServeMode.value === 'create') {
+        if (props.scheduling.open === null) return;
+        writeShiftForm.post(route('self-serve-shifts.store', { schedule: props.scheduling.open.id }), { preserveScroll: true, onSuccess });
+    } else if (selfServeMode.value !== null) {
+        writeShiftForm.patch(route('self-serve-shifts.update', { shift: selfServeMode.value }), { preserveScroll: true, onSuccess });
+    }
+};
+
+const destroySelfServe = (shift: ShiftAgendaItem) => {
+    if (window.confirm(trans('group.scheduling_panel.self_serve.confirm_delete'))) {
+        router.delete(route('self-serve-shifts.destroy', { shift: shift.id }), { preserveScroll: true });
     }
 };
 
@@ -1186,6 +1290,17 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 </Button>
             </div>
 
+            <!-- Write my shift (#585, ADR-0026 §1) — the Member's own authoring, shown when the
+                 server says this viewer may write a self-serve Shift here (`can.createSelfServe`):
+                 a member of a self-serve group who clears both sign-up floors, on a published
+                 schedule. Docents and Visitor Guides, and any non-member, never see it. -->
+            <div v-if="scheduling.open.can.createSelfServe" class="flex flex-wrap justify-end gap-2">
+                <Button type="button" size="sm" class="gap-1.5" @click="openSelfServeCreate">
+                    <PhPlus class="size-4" />
+                    {{ trans('group.scheduling_panel.self_serve.write') }}
+                </Button>
+            </div>
+
             <!-- Bulk run report (#362 front end) — a run is N single writes plus this report:
                  how many were written or removed, and every skipped row with its reason, as
                  output rather than an error. Rides back in the shared `flash` prop; dismissable. -->
@@ -1326,12 +1441,15 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         :collects-visitor-provenance="collectsVisitorProvenance"
                         :email-group-name="groupName"
                         :can-email-signups="scheduling.open?.can.emailSignups ?? false"
+                        allow-self-serve-controls
                         @take="take"
                         @drop="drop"
                         @assign="openAssign"
                         @remove="removeSeat"
                         @edit="openShiftEdit"
                         @delete="destroyShift"
+                        @edit-self-serve="openSelfServeEdit"
+                        @delete-self-serve="destroySelfServe"
                         @record="record"
                     />
                     <!-- Foreign open Shifts other Groups advertise (#361) — always present but
@@ -1365,6 +1483,8 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 @remove="removeSeat"
                 @edit="openShiftEdit"
                 @delete="destroyShift"
+                @edit-self-serve="openSelfServeEdit"
+                @delete-self-serve="destroySelfServe"
             />
 
             <!-- Honest empty state — the Schedule is published but holds no Shifts yet. -->
@@ -1521,6 +1641,59 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         <Button type="submit" size="sm" :disabled="shiftForm.processing">{{ trans('group.scheduling_panel.save') }}</Button>
                         <Button type="button" variant="ghost" size="sm" :disabled="shiftForm.processing" @click="closeShift">
                             {{ trans('group.scheduling_panel.cancel') }}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Write my shift dialog (#585 front end, ADR-0026 §1, §2) — one form, reused for create
+             and edit. A GI picks a station (the Group's active kinds), a start on the 15-minute
+             grid, and a count of units; the end is derived and shown live, never entered. The
+             server derives and stores the same end, and rejects an off-grid or out-of-range start
+             per field. -->
+        <Dialog v-model:open="selfServeDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ selfServeDialogTitle }}</DialogTitle>
+                </DialogHeader>
+                <form class="flex flex-col gap-4" @submit.prevent="submitSelfServe">
+                    <div class="grid gap-2">
+                        <Label for="self-serve-kind">{{ trans('group.scheduling_panel.self_serve.field.kind') }}</Label>
+                        <select id="self-serve-kind" v-model="writeShiftForm.shift_kind_id" :class="SELECT_CLASS" required>
+                            <option :value="null" disabled>{{ trans('group.scheduling_panel.self_serve.field.kind_placeholder') }}</option>
+                            <option v-for="kind in scheduling.shift_kinds" :key="kind.id" :value="kind.id">{{ kind.name }}</option>
+                        </select>
+                        <InputError :message="writeShiftForm.errors.shift_kind_id" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="self-serve-starts-at">{{ trans('group.scheduling_panel.self_serve.field.starts_at') }}</Label>
+                        <Input
+                            id="self-serve-starts-at"
+                            v-model="writeShiftForm.starts_at"
+                            type="datetime-local"
+                            :step="SELF_SERVE_TIME_STEP_SECONDS"
+                            required
+                        />
+                        <InputError :message="writeShiftForm.errors.starts_at" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="self-serve-units">{{ trans('group.scheduling_panel.self_serve.field.units') }}</Label>
+                        <select id="self-serve-units" v-model.number="writeShiftForm.units" :class="SELECT_CLASS" required>
+                            <option v-for="count in unitOptions" :key="count" :value="count">
+                                {{ transChoice('group.scheduling_panel.self_serve.units_option', count, { count: String(count) }) }}
+                            </option>
+                        </select>
+                        <p v-if="selfServeEnd" class="text-muted-foreground text-sm">{{ selfServeEnd }}</p>
+                        <InputError :message="writeShiftForm.errors.units" />
+                    </div>
+
+                    <div class="flex gap-2">
+                        <Button type="submit" size="sm" :disabled="writeShiftForm.processing">{{
+                            trans('group.scheduling_panel.self_serve.save')
+                        }}</Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="writeShiftForm.processing" @click="closeSelfServe">
+                            {{ trans('group.scheduling_panel.self_serve.cancel') }}
                         </Button>
                     </div>
                 </form>
