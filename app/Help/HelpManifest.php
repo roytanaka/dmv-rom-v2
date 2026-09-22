@@ -123,8 +123,10 @@ final class HelpManifest
 
     /**
      * The role tokens a manifest entry may list in `requires`: every {@see Role}
-     * value, plus the two tiers that are not Group roles. The badge and its lang
-     * labels draw from this set; the integrity test rejects anything outside it.
+     * value, plus the tiers that are not Group Roles — `super_tier`,
+     * `support_operator`, and `records` (member-administration authority, held by
+     * membership in the Records Group, not a standalone Role). The badge and its
+     * lang labels draw from this set; the integrity test rejects anything outside it.
      *
      * @return list<string>
      */
@@ -134,6 +136,7 @@ final class HelpManifest
             ...array_map(fn (Role $role) => $role->value, Role::cases()),
             'super_tier',
             'support_operator',
+            'records',
         ];
     }
 
@@ -242,6 +245,7 @@ final class HelpManifest
             new HelpArticle('pick-an-audience', HelpSection::Emailing, status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('attach-a-file', HelpSection::Emailing, status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('queued-for-n-members', HelpSection::Emailing, status: ArticleStatus::Published),
+            new HelpArticle('set-the-no-email-flag', HelpSection::Emailing, requires: ['records'], status: ArticleStatus::Draft, route: 'members.show'),
             new HelpArticle('read-the-mail-status-page', HelpSection::Emailing, requires: ['super_tier'], status: ArticleStatus::Published, route: 'mail-status'),
 
             new HelpArticle('settings', HelpSection::Settings, isOverview: true, status: ArticleStatus::Published, route: 'settings.profile'),

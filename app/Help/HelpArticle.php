@@ -15,7 +15,8 @@ use App\Enums\Role;
  * first level-one heading of the Markdown file, read at render time.
  *
  * `requires` is the article's Required-role badge (ADR-0025 §6): each string is a
- * role token — a {@see Role} value, or `super_tier` / `support_operator`.
+ * role token — a {@see Role} value, or a non-Group tier (`super_tier`,
+ * `support_operator`, `records`).
  * An empty array means every Member. `status` hides drafts from the index; `fr`
  * tracks whether the French copy has been reviewed. Both are ledger state, invisible
  * to readers.

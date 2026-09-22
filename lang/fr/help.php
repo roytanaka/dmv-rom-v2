@@ -42,6 +42,7 @@ return [
             'news_editor' => 'Responsable des nouvelles',
             'super_tier' => 'Super-niveau',
             'support_operator' => 'Opérateur de soutien',
+            'records' => 'Records',
         ],
     ],
 ];
