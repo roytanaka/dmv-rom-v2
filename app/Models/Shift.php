@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ShiftAudience;
+use App\Support\Scheduling\ObjectHold;
 use Carbon\CarbonImmutable;
 use Database\Factories\ShiftFactory;
 use DateTimeInterface;
@@ -75,6 +76,20 @@ class Shift extends Model
     public static function deriveEndsAt(DateTimeInterface $startsAt, int $units, int $unitMinutes): CarbonImmutable
     {
         return CarbonImmutable::instance($startsAt)->addMinutes($units * $unitMinutes);
+    }
+
+    /**
+     * The window an Object on this Shift's seats counts as in use (#586, ADR-0026 §3, §4) — the
+     * single home of that arithmetic, read by the double-booking block. For an ordinary Shift it
+     * is the Shift's own `[starts_at, ends_at]`; an off-site kind widens it to the start of the
+     * day before and the end of the day after (#587), which lands here as one added branch.
+     */
+    public function objectHold(): ObjectHold
+    {
+        return new ObjectHold(
+            CarbonImmutable::instance($this->starts_at),
+            CarbonImmutable::instance($this->ends_at),
+        );
     }
 
     /**

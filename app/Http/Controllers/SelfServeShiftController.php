@@ -51,7 +51,12 @@ class SelfServeShiftController extends Controller
                 'audience' => ShiftAudience::Group,
             ]);
 
-            $shift->signUps()->create(['member_id' => $request->user()->getKey()]);
+            $signUp = $shift->signUps()->create(['member_id' => $request->user()->getKey()]);
+
+            // The Objects the author is taking onto the floor (#586, ADR-0026 §3) — reserved on
+            // their Sign-up. Absent on a Group with no Objects; the Form Request has already
+            // refused a retired or double-booked one.
+            $signUp->objects()->sync($data['objects'] ?? []);
         });
 
         return back();
@@ -72,11 +77,21 @@ class SelfServeShiftController extends Controller
             $shift->schedule->group->self_serve_unit_minutes,
         );
 
-        $shift->update([
-            'starts_at' => $data['starts_at'],
-            'ends_at' => $endsAt,
-            'shift_kind_id' => $data['shift_kind_id'],
-        ]);
+        DB::transaction(function () use ($request, $shift, $data, $endsAt) {
+            $shift->update([
+                'starts_at' => $data['starts_at'],
+                'ends_at' => $endsAt,
+                'shift_kind_id' => $data['shift_kind_id'],
+            ]);
+
+            // The Objects are replaced whole (#586, ADR-0026 §3): the owner's Sign-up carries
+            // exactly what the edit submitted. `sync` on the author's own seat leaves the Shift
+            // fields alone.
+            $shift->signUps()
+                ->where('member_id', $request->user()->getKey())
+                ->first()
+                ?->objects()->sync($data['objects'] ?? []);
+        });
 
         return back();
     }

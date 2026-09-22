@@ -549,6 +549,14 @@ export interface ScheduleListItem {
     can: ScheduleAbilities;
 }
 
+// One Object in a Group's handling collection (#586, ADR-0026 §3) — id and name, the shape the
+// write / take / place pickers offer and the shape a seat lists. A retired Object keeps its name
+// on old seats, so the seat list carries the name regardless of the active flag.
+export interface ObjectOption {
+    id: number;
+    name: string;
+}
+
 // One seated Member on a Shift (#357, ADR-0017 §6) — name only, routed through
 // MemberResource so contact PII stays gated. Visible to every reader who can read the
 // Schedule, non-members included: a Schedule is a roster of who is on the floor.
@@ -557,6 +565,9 @@ export interface ShiftSignUp {
     first_name: string;
     last_name: string;
     photo: string | null;
+    // The Objects this seat reserves (#586, ADR-0026 §3) — listed under the Member on the card,
+    // visible to every reader. Absent on a Group with no Objects.
+    objects?: ObjectOption[];
     // Officer removal (#359) — the seat's own Sign-up id, the remove target. Present only
     // for a schedule admin (a plain reader never learns another seat's id).
     signup_id?: number;
@@ -702,6 +713,11 @@ export interface Scheduling {
     // end) — id and name of each active ShiftKind. Present only for a schedule admin on an
     // opened Schedule; empty for a plain reader and on the list.
     shift_kinds: ShiftKind[];
+    // The Group's active Objects for the write / take / place pickers (#586, ADR-0026 §3) — id
+    // and name in picker order. Present on the opened Schedule for every reader; the picker itself
+    // renders only when the list is non-empty and only on the flows that reserve Objects. Empty on
+    // a Group with no Objects and on the list view.
+    objects: ObjectOption[];
     // The viewer's own outstanding-shifts panel (#449, ADR-0023 §5) — "my Sign-ups on this
     // Group": upcoming Shifts, plus any past Shift inside the 28-day window still owed a number.
     // It is date-ranged, so it crosses Schedules, and rides on the tab whether a Schedule is

@@ -17,6 +17,7 @@
 // (ADR-0004); everything else is translated chrome.
 import ForeignShiftBand from '@/components/ForeignShiftBand.vue';
 import InputError from '@/components/InputError.vue';
+import ObjectPicker from '@/components/ObjectPicker.vue';
 import ScheduleCalendar from '@/components/ScheduleCalendar.vue';
 import ShiftCard from '@/components/ShiftCard.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -152,6 +153,18 @@ watch(view, (value) => localStorage.setItem(VIEW_KEY, value));
 // filing a number here rides the same PATCH seam as the Agenda; a past Shift shows the sign-out
 // form (its window has no upper bound), an upcoming one just lists with its drop control.
 const mine = computed(() => props.scheduling.mine);
+
+// --- Objects (#586, ADR-0026 §3) — the handling collection reserved on a seat ------
+
+// The Group's active Objects for the write / take / place pickers, and whether any exist. The
+// picker renders only where the list is non-empty; a Group with no Objects (Reception, Docents)
+// shows no field, and the server does not require one there.
+const activeObjects = computed(() => props.scheduling.objects);
+const hasObjects = computed(() => activeObjects.value.length > 0);
+
+// A seat's reserved Object ids, for pre-filling the owner's edit — the only seat on a self-serve
+// Shift is theirs, so its Objects are the ones the edit round-trips.
+const seatObjectIds = (shift: ShiftAgendaItem): number[] => shift.signups[0]?.objects?.map((object) => object.id) ?? [];
 
 // The list arrives already ordered (current & upcoming first, then past). Splitting
 // here only heads the two blocks; an empty block is dropped rather than left bare.
@@ -404,9 +417,44 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
 
 // Take a free seat: the server re-checks both floors, the `audience`, capacity, and the
 // one-seat rule (StoreSignUpRequest → SignUpPolicy). `can.signUp` gates the button, so it
-// only shows where a Sign-up would take; the POST carries no body — the seat is the viewer.
+// only shows where a Sign-up would take. On a Group with Objects the taker first picks the
+// Objects they carry (#586, ADR-0026 §3), so the take opens a dialog; on a Group with none the
+// POST carries no body and seats them in one click.
+const takingShift = ref<ShiftAgendaItem | null>(null);
+const takeForm = useForm<{ objects: number[] }>({ objects: [] });
+
+const takeDialogOpen = computed({
+    get: () => takingShift.value !== null,
+    set: (open: boolean) => {
+        if (!open) closeTake();
+    },
+});
+
+const closeTake = () => {
+    takingShift.value = null;
+    takeForm.reset();
+    takeForm.clearErrors();
+};
+
 const take = (shift: ShiftAgendaItem) => {
-    router.post(route('sign-ups.store', { shift: shift.id }), {}, { preserveScroll: true });
+    if (!hasObjects.value) {
+        router.post(route('sign-ups.store', { shift: shift.id }), {}, { preserveScroll: true });
+
+        return;
+    }
+
+    takeForm.reset();
+    takeForm.clearErrors();
+    takingShift.value = shift;
+};
+
+const submitTake = () => {
+    if (takingShift.value === null) return;
+
+    takeForm.post(route('sign-ups.store', { shift: takingShift.value.id }), {
+        preserveScroll: true,
+        onSuccess: () => closeTake(),
+    });
 };
 
 // Drop the seat the viewer holds — one click from where they signed up. Cancel has no
@@ -453,12 +501,23 @@ const record = (payload: { signUpId: number; count: number; extra: number | null
 const assigningShift = ref<ShiftAgendaItem | null>(null);
 const assignFilter = ref('');
 
+// The placement's Objects (#586, ADR-0026 §3) — the Scheduler picks them before naming who sits,
+// so an assignment is as complete as a self-serve shift. A useForm so the server's object clash
+// and required errors bind and show in the dialog; `member_id` is set as the Scheduler clicks.
+const assignForm = useForm<{ member_id: number | null; objects: number[] }>({ member_id: null, objects: [] });
+
 const assignOpen = computed({
     get: () => assigningShift.value !== null,
     set: (open: boolean) => {
-        if (!open) assigningShift.value = null;
+        if (!open) closeAssign();
     },
 });
+
+const closeAssign = () => {
+    assigningShift.value = null;
+    assignForm.reset();
+    assignForm.clearErrors();
+};
 
 // The roster narrows to a name match as the Scheduler types — a Reception desk has a
 // handful of regulars, but a Friends Committee's roster is longer.
@@ -473,24 +532,22 @@ const filteredRoster = computed(() => {
 
 const openAssign = (shift: ShiftAgendaItem) => {
     assignFilter.value = '';
+    assignForm.reset();
+    assignForm.clearErrors();
     assigningShift.value = shift;
 };
 
-// Place the chosen Member on the open Shift. The picker carries the `member_id`; the server
-// authorises (schedule-admin gate) and validates (both floors, capacity, one seat) on POST.
+// Place the chosen Member on the open Shift, with the Objects picked above (#586). The server
+// authorises (schedule-admin gate) and validates (both floors, capacity, one seat, and the object
+// clash) on POST. On a Group with no Objects the picker is absent and `objects` rides empty.
 const assign = (candidateId: number) => {
     if (assigningShift.value === null) return;
 
-    router.post(
-        route('assignments.store', { shift: assigningShift.value.id }),
-        { member_id: candidateId },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                assigningShift.value = null;
-            },
-        },
-    );
+    assignForm.member_id = candidateId;
+    assignForm.post(route('assignments.store', { shift: assigningShift.value.id }), {
+        preserveScroll: true,
+        onSuccess: () => closeAssign(),
+    });
 };
 
 // Remove a seat the Scheduler administers — officer removal, so a placed regular who stops
@@ -622,10 +679,11 @@ const SELF_SERVE_TIME_STEP_SECONDS = 900;
 // The open editor: 'create', the id of the Shift being edited, or null when closed.
 const selfServeMode = ref<'create' | number | null>(null);
 
-const writeShiftForm = useForm<{ shift_kind_id: number | null; starts_at: string; units: number }>({
+const writeShiftForm = useForm<{ shift_kind_id: number | null; starts_at: string; units: number; objects: number[] }>({
     shift_kind_id: null,
     starts_at: '',
     units: 1,
+    objects: [],
 });
 
 const selfServeDialogOpen = computed({
@@ -677,6 +735,8 @@ const openSelfServeEdit = (shift: ShiftAgendaItem) => {
     // The count is not stored, so recover it from the span and the Group's unit length.
     const span = (new Date(shift.ends_at).getTime() - new Date(shift.starts_at).getTime()) / (props.selfServe.unitMinutes * 60 * 1000);
     writeShiftForm.units = Math.max(1, Math.round(span));
+    // The Objects are replaced whole (#586), so the edit round-trips the seat's current ones.
+    writeShiftForm.objects = seatObjectIds(shift);
     writeShiftForm.clearErrors();
     selfServeMode.value = shift.id;
 };
@@ -1684,6 +1744,18 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         <p v-if="selfServeEnd" class="text-muted-foreground text-sm">{{ selfServeEnd }}</p>
                         <InputError :message="writeShiftForm.errors.units" />
                     </div>
+                    <!-- The Objects the Member is taking onto the floor (#586, ADR-0026 §3) — shown
+                         only when the Group has active Objects; a Group with none never sees it. -->
+                    <div v-if="hasObjects" class="grid gap-2">
+                        <Label>{{ trans('group.scheduling_panel.objects.field_label') }}</Label>
+                        <ObjectPicker
+                            v-model="writeShiftForm.objects"
+                            :options="activeObjects"
+                            :search-placeholder="trans('group.scheduling_panel.objects.search')"
+                            :no-matches="trans('group.scheduling_panel.objects.no_matches')"
+                        />
+                        <InputError :message="writeShiftForm.errors.objects" />
+                    </div>
 
                     <div class="flex gap-2">
                         <Button type="submit" size="sm" :disabled="writeShiftForm.processing">{{
@@ -1872,6 +1944,19 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <DialogTitle>{{ trans('group.scheduling_panel.agenda.assign.title') }}</DialogTitle>
                 </DialogHeader>
                 <div class="flex flex-col gap-3">
+                    <!-- The Objects this placement reserves (#586, ADR-0026 §3) — picked before the
+                         Member, shown only when the Group has active Objects. The server refuses a
+                         double-booked or retired one, and the error binds here. -->
+                    <div v-if="hasObjects" class="grid gap-2">
+                        <Label>{{ trans('group.scheduling_panel.objects.field_label') }}</Label>
+                        <ObjectPicker
+                            v-model="assignForm.objects"
+                            :options="activeObjects"
+                            :search-placeholder="trans('group.scheduling_panel.objects.search')"
+                            :no-matches="trans('group.scheduling_panel.objects.no_matches')"
+                        />
+                        <InputError :message="assignForm.errors.objects" />
+                    </div>
                     <Input v-model="assignFilter" :placeholder="trans('group.scheduling_panel.agenda.assign.search')" />
                     <div class="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
                         <Button
@@ -1881,6 +1966,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                             variant="ghost"
                             size="sm"
                             class="justify-start"
+                            :disabled="assignForm.processing"
                             @click="assign(candidate.id)"
                         >
                             {{ candidate.first_name }} {{ candidate.last_name }}
@@ -1890,6 +1976,38 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         </p>
                     </div>
                 </div>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Take-with-Objects dialog (#586, ADR-0026 §3) — on a Group with active Objects, taking a
+             Shift first asks which Objects the taker carries. A Group with no Objects never opens
+             this: `take` posts in one click instead. The server refuses a double-booked or missing
+             Object, and the error binds here. -->
+        <Dialog v-model:open="takeDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ trans('group.scheduling_panel.agenda.sign_up.take') }}</DialogTitle>
+                </DialogHeader>
+                <form class="flex flex-col gap-4" @submit.prevent="submitTake">
+                    <div class="grid gap-2">
+                        <Label>{{ trans('group.scheduling_panel.objects.field_label') }}</Label>
+                        <ObjectPicker
+                            v-model="takeForm.objects"
+                            :options="activeObjects"
+                            :search-placeholder="trans('group.scheduling_panel.objects.search')"
+                            :no-matches="trans('group.scheduling_panel.objects.no_matches')"
+                        />
+                        <InputError :message="takeForm.errors.objects" />
+                    </div>
+                    <div class="flex gap-2">
+                        <Button type="submit" size="sm" :disabled="takeForm.processing">
+                            {{ trans('group.scheduling_panel.agenda.sign_up.take') }}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="takeForm.processing" @click="closeTake">
+                            {{ trans('group.scheduling_panel.cancel') }}
+                        </Button>
+                    </div>
+                </form>
             </DialogContent>
         </Dialog>
     </div>

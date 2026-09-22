@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * A Sign-up (#357, PRD #352, ADR-0021 §Sign-up) — one Member on one Shift. Created either
@@ -132,5 +133,20 @@ class SignUp extends Model
     public function member(): BelongsTo
     {
         return $this->belongsTo(Member::class);
+    }
+
+    /**
+     * The Objects this seat reserves (#586, ADR-0026 §3) — the handling collection the Member is
+     * taking onto the floor. Reservation lives on the Sign-up, not the Shift, because several
+     * volunteers may share one Shift and each reserves their own (ADR-0015). Replaced whole on an
+     * edit; a retired Object keeps its link, so an old seat still names it.
+     *
+     * @return BelongsToMany<HandlingObject, $this>
+     */
+    public function objects(): BelongsToMany
+    {
+        // The class is prefixed but the pivot columns follow the glossary term, so the keys are
+        // named explicitly rather than derived from the class name.
+        return $this->belongsToMany(HandlingObject::class, 'object_sign_up', 'sign_up_id', 'object_id');
     }
 }

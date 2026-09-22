@@ -247,6 +247,12 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                 <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span>
                 <Badge v-for="signUp in shift.signups" :key="signUp.id" variant="secondary" class="gap-1 font-normal">
                     {{ signUpName(signUp) }}
+                    <!-- The Objects on this seat (#586, ADR-0026 §3) — what the Member is taking
+                         onto the floor, named under them so a colleague sees what is already out
+                         before they pick. A retired Object still shows its name here. -->
+                    <span v-if="signUp.objects && signUp.objects.length" class="text-muted-foreground">
+                        · {{ signUp.objects.map((object) => object.name).join(', ') }}
+                    </span>
                     <!-- The recorded numbers read on the chip: the viewer's own seat (#445), and
                          every seat for an Officer (#450). Null (no value yet) shows nothing; a
                          recorded zero shows "0 visitors". The tour-leading extra count reads
