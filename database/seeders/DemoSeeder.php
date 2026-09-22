@@ -218,6 +218,64 @@ class DemoSeeder extends Seeder
      */
     private const RECEPTION_REGULARS = ['2-12', '3-9', '4-9', '5-9', '5-12'];
 
+    public const VISITOR_WAYFINDERS = 'visitor-wayfinders';
+
+    /** The Wayfinders' daytime label and their event stations, named as legacy names them. */
+    private const WAYFINDING = 'Wayfinding';
+
+    private const MAIN_INFO_DESK = 'Main Info Desk';
+
+    private const LEVEL_1_WAYFINDING = 'Level 1 Wayfinding';
+
+    private const LEVEL_2_MAIN_ELEVATOR = 'Level 2 Main Elevator';
+
+    private const LEVEL_3_WAYFINDING = 'Level 3 Wayfinding';
+
+    private const LEVEL_1_TOTEM_POLES = 'Level 1 Totem Poles';
+
+    private const LEVEL_3_ROTUNDA = 'Level 3 Rotunda/Europe';
+
+    /**
+     * The Wayfinders' evening events, read off a year of legacy events. Each is its own one-day
+     * Schedule, as legacy runs it: one-hour shifts at a few stations, one to three volunteers a
+     * station. `week` and `weekday` place the event in its month (the nth weekday; 0 is the
+     * last), and `past` marks the two that also run last month.
+     *
+     * @var list<array{name: string, week: int, weekday: int, hours: list<array{int, int}>, stations: array<string, int>, past: bool}>
+     */
+    private const WAYFINDER_EVENTS = [
+        [
+            'name' => 'Wayfinding - TTNF',
+            'week' => 3,
+            'weekday' => CarbonImmutable::TUESDAY,
+            'hours' => [[16, 0], [17, 0], [18, 0], [19, 0]],
+            'stations' => [self::MAIN_INFO_DESK => 2, self::LEVEL_1_WAYFINDING => 3, self::LEVEL_2_MAIN_ELEVATOR => 3, self::LEVEL_3_WAYFINDING => 3],
+            'past' => true,
+        ],
+        [
+            'name' => 'ROM After Dark',
+            'week' => 0,
+            'weekday' => CarbonImmutable::FRIDAY,
+            'hours' => [[19, 30], [20, 30], [21, 30]],
+            'stations' => [self::MAIN_INFO_DESK => 2, self::LEVEL_1_WAYFINDING => 3, self::LEVEL_2_MAIN_ELEVATOR => 3],
+            'past' => true,
+        ],
+        [
+            'name' => 'Members Evening',
+            'week' => 2,
+            'weekday' => CarbonImmutable::WEDNESDAY,
+            'hours' => [[18, 30], [19, 30], [20, 30]],
+            'stations' => [self::LEVEL_1_TOTEM_POLES => 1, self::LEVEL_2_MAIN_ELEVATOR => 1, self::LEVEL_3_ROTUNDA => 1],
+            'past' => false,
+        ],
+    ];
+
+    /** @var list<int> */
+    private const WAYFINDING_HOURS = [10, 11, 12, 13, 14, 15, 16];
+
+    /** Volunteers on each daytime Wayfinding hour. */
+    private const WAYFINDING_SEATS = 5;
+
     /** Tours that ended within this many days stay unrecorded: the sign-outs still to come. */
     private const UNRECORDED_DAYS = 2;
 
@@ -995,6 +1053,8 @@ class DemoSeeder extends Seeder
         $this->guidesDuRomScheduling($lastMonth, $month);
 
         $this->receptionScheduling($lastMonth, $month);
+
+        $this->wayfindersScheduling($lastMonth, $month);
     }
 
     /**
@@ -1073,14 +1133,124 @@ class DemoSeeder extends Seeder
             $chance -= 25;
         }
 
+        return $this->drawSeats($shift, $chance);
+    }
+
+    /**
+     * How many of the Shift's seats are taken when each is taken at `$chance` percent. The draw
+     * keys on the start, the kind and the seat, so Shifts at the same hour draw apart.
+     */
+    private function drawSeats(Shift $shift, int $chance): int
+    {
         $taken = 0;
         for ($seat = 0; $seat < $shift->capacity; $seat++) {
-            if ($this->spread($shift->starts_at->timestamp + $seat * 7919, 0, 99) < $chance) {
+            if ($this->spread($shift->starts_at->timestamp + (int) $shift->shift_kind_id * 104729 + $seat * 7919, 0, 99) < $chance) {
                 $taken++;
             }
         }
 
         return $taken;
+    }
+
+    /**
+     * The Visitor Wayfinders roster: a month Schedule each for last month and this month, named
+     * as legacy names them ("Wayfinding - September 2026"), and the evening events around them
+     * ({@see WAYFINDER_EVENTS}).
+     *
+     * The month has a five-seat Wayfinding shift on every hour from 10:00 to 17:00. The daytime
+     * roster closes on Mondays except in summer, as for Visitor Guides. Legacy fills only about
+     * one daytime seat in seven, most at midday. Events fill well, about three seats in four.
+     * Skipped silently if the Group is absent.
+     */
+    private function wayfindersScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month): void
+    {
+        $group = Group::where('slug', self::VISITOR_WAYFINDERS)->first();
+
+        if ($group === null) {
+            return;
+        }
+
+        $kinds = [];
+        foreach ([self::WAYFINDING, self::MAIN_INFO_DESK, self::LEVEL_1_WAYFINDING, self::LEVEL_2_MAIN_ELEVATOR, self::LEVEL_3_WAYFINDING, self::LEVEL_1_TOTEM_POLES, self::LEVEL_3_ROTUNDA] as $order => $name) {
+            $kinds[$name] = ShiftKind::firstOrCreate(
+                ['group_id' => $group->id, 'name' => $name],
+                ['active' => true, 'sort_order' => $order],
+            );
+        }
+
+        $schedules = [];
+        foreach ([$lastMonth, $month] as $start) {
+            $schedule = $this->daySchedule($group, 'Wayfinding - '.$start->format('F Y'), $start, $start->endOfMonth(), 'Daytime wayfinding across the galleries. Sign up for an hour below.');
+
+            $specs = [];
+            for ($day = 0; $day < $start->daysInMonth; $day++) {
+                $date = $start->addDays($day);
+                if ($date->isMonday() && ! in_array($date->month, self::DESK_SUMMER_MONTHS, true)) {
+                    continue;
+                }
+                foreach (self::WAYFINDING_HOURS as $hour) {
+                    $specs[] = ['day' => $day, 'start' => [$hour, 0], 'minutes' => 60, 'capacity' => self::WAYFINDING_SEATS, 'kind' => self::WAYFINDING];
+                }
+            }
+            $this->writeShifts($schedule, $start, $specs, $kinds);
+            $schedules[] = $schedule;
+
+            foreach (self::WAYFINDER_EVENTS as $event) {
+                if ($start->lessThan($month) && ! $event['past']) {
+                    continue;
+                }
+
+                $date = $event['week'] === 0
+                    ? $start->lastOfMonth($event['weekday'])
+                    : $start->nthOfMonth($event['week'], $event['weekday']);
+                $schedule = $this->daySchedule($group, $event['name'].' '.$date->format('F j, Y'), $date, $date, 'Evening event. Sign up for a station below.');
+
+                $specs = [];
+                foreach ($event['hours'] as $time) {
+                    foreach ($event['stations'] as $station => $capacity) {
+                        $specs[] = ['day' => $date->day - 1, 'start' => $time, 'minutes' => 60, 'capacity' => $capacity, 'kind' => $station];
+                    }
+                }
+                $this->writeShifts($schedule, $start, $specs, $kinds);
+                $schedules[] = $schedule;
+            }
+        }
+
+        $this->seatRoster(
+            $group,
+            $schedules,
+            function (Shift $shift) {
+                if ($shift->kind?->name !== self::WAYFINDING) {
+                    return $this->drawSeats($shift, 75);
+                }
+
+                $hour = $shift->starts_at->copy()->setTimezone(config('app.org_timezone'))->hour;
+
+                return $this->drawSeats($shift, match (true) {
+                    $hour >= 11 && $hour <= 13 => 22,
+                    $hour >= 16 => 3,
+                    default => 12,
+                });
+            },
+            fn (Shift $shift) => $shift->kind?->name === self::WAYFINDING ? [15, 90] : [30, 150],
+        );
+    }
+
+    /**
+     * A published Schedule on the Group spanning the given days, keyed on (Group, name) so a
+     * reseed heals rather than duplicates.
+     */
+    private function daySchedule(Group $group, string $name, CarbonImmutable $from, CarbonImmutable $to, string $description): Schedule
+    {
+        return Schedule::firstOrCreate(
+            ['group_id' => $group->id, 'name' => $name],
+            [
+                'starts_on' => $from->toDateString(),
+                'ends_on' => $to->toDateString(),
+                'state' => ScheduleState::Published,
+                'description' => $description,
+            ],
+        );
     }
 
     /**
@@ -1467,7 +1637,7 @@ class DemoSeeder extends Seeder
      * than restating the mapping: a Group collects a count, and on top of it the tour-leading split
      * ({@see seatRecord()}), precisely as its own flags say.
      *
-     * Each collecting Group but Docents, Visitor Guides and GDR gets one recent Schedule of ended
+     * Each collecting Group but Docents, Visitor Guides, GDR and Wayfinders gets one recent Schedule of ended
      * Shifts. The first is left unrecorded on purpose — null on every seat — so the outstanding-shifts panel has something to show the
      * personas seated there (the roster is id-ordered and personas, seeded first, sort ahead of the
      * generated pool); the rest carry counts, a few of them a deliberate recorded zero, never
@@ -1480,10 +1650,10 @@ class DemoSeeder extends Seeder
      */
     private function afterShiftRecords(): void
     {
-        // Docents, Visitor Guides and GDR record on their own month rosters instead
+        // Docents, Visitor Guides, GDR and Wayfinders record on their own month rosters instead
         // ({@see seatRoster()}): a separate Schedule of three-hour Shifts is not a shape they work.
         $groups = Group::where('collects_visitor_count', true)
-            ->whereNotIn('slug', [self::PROGRAM, self::VISITOR_GUIDES, self::GUIDES_DU_ROM])
+            ->whereNotIn('slug', [self::PROGRAM, self::VISITOR_GUIDES, self::GUIDES_DU_ROM, self::VISITOR_WAYFINDERS])
             ->orderBy('id')
             ->get();
 
