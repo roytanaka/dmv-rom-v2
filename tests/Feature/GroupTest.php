@@ -68,16 +68,23 @@ it('casts the capability flags and time_boxed to booleans', function () {
         ->and($fresh->time_boxed)->toBeTrue();
 });
 
-it('defaults the hours multiplier to 1 and casts it to an integer (ADR-0022 §7)', function () {
+it('defaults the hours multiplier to 1 and casts it to a three-place decimal (ADR-0022 §7)', function () {
     $group = Group::factory()->create();
 
-    expect($group->fresh()->hours_multiplier)->toBe(1);
+    expect($group->fresh()->hours_multiplier)->toBe('1.000');
 });
 
 it('stores a per-Group hours multiplier other than the default', function () {
     $group = Group::factory()->create(['hours_multiplier' => 2]);
 
-    expect($group->fresh()->hours_multiplier)->toBe(2);
+    expect($group->fresh()->hours_multiplier)->toBe('2.000');
+});
+
+it('stores a fractional hours multiplier, round-tripping as a three-place decimal (ADR-0026 §7)', function () {
+    // Gallery Interpreters credit one hour per 45-minute unit — 1.333 to three places.
+    $group = Group::factory()->create(['hours_multiplier' => 1.333]);
+
+    expect($group->fresh()->hours_multiplier)->toBe('1.333');
 });
 
 it('casts listing_visibility to its enum', function () {

@@ -836,12 +836,14 @@ it('turns self-serve shifts on with 45-minute units for Gallery Interpreters, of
         ->and(Group::where('slug', 'visitor-guides')->firstOrFail()->self_serve_shifts)->toBeFalse();
 });
 
-it('seeds the ROMWalks walks-to-hours multiplier at 2, every other Group at the default 1', function () {
-    // ROMWalks counts each walk as two hours (ADR-0022 §7) — the one Group whose
-    // multiplier differs; the Docents program keeps the org-wide default.
-    expect(Group::where('slug', 'romwalks')->firstOrFail()->hours_multiplier)->toBe(2)
-        ->and(Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail()->hours_multiplier)->toBe(1)
-        ->and(Group::where('slug', 'reception')->firstOrFail()->hours_multiplier)->toBe(1);
+it('seeds the walks-to-hours multipliers as decimals — ROMWalks 2, Gallery Interpreters 1.333, every other Group 1', function () {
+    // ROMWalks counts each walk as two hours; Gallery Interpreters credit one hour per
+    // 45-minute unit — 1.333 (ADR-0022 §7, ADR-0026 §7). Every other Group keeps the
+    // org-wide default. The multiplier round-trips as a three-place decimal.
+    expect(Group::where('slug', 'romwalks')->firstOrFail()->hours_multiplier)->toBe('2.000')
+        ->and(Group::where('slug', 'gallery-interpreters')->firstOrFail()->hours_multiplier)->toBe('1.333')
+        ->and(Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail()->hours_multiplier)->toBe('1.000')
+        ->and(Group::where('slug', 'reception')->firstOrFail()->hours_multiplier)->toBe('1.000');
 });
 
 /*

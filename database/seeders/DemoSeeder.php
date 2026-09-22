@@ -2353,7 +2353,8 @@ class DemoSeeder extends Seeder
                         // GI is the one self-serve Group: any Member authors their own gallery
                         // Shift, in 45-minute units (#582, ADR-0026 §1 and §2).
                         'self_serve_shifts' => true,
-                    ]),
+                        // One hour credited per 45-minute unit — a 1.333 multiplier (ADR-0026 §7).
+                    ], hoursMultiplier: 1.333),
                     // ROMForYou deliberately ships no mark — the visible generic
                     // fallback the launcher exercises on a top-level program (#257).
                     // ROMForYou runs desk-style presentations — one visitor count — and its
@@ -2508,14 +2509,14 @@ class DemoSeeder extends Seeder
      * launcher (PRD #253); most programs stay null and show the generic fallback.
      * `capabilities` overrides specific Kind-derived flags — ROMBus turns scheduling
      * off, since its only shape is group booking, deferred out of the first pass (#364).
-     * `hoursMultiplier` sets the walks-to-hours ratio (ADR-0022 §7); only ROMWalks
-     * passes a value other than the default 1.
+     * `hoursMultiplier` sets the walks-to-hours ratio (ADR-0022 §7, ADR-0026 §7); ROMWalks
+     * passes 2 and Gallery Interpreters 1.333, every other Group keeps the default 1.
      *
      * @param  array<int, array<string, mixed>>  $children
      * @param  array<string, bool>  $capabilities
      * @return array<string, mixed>
      */
-    private function program(string $name, array $children = [], ?GroupLogo $logo = null, array $capabilities = [], int $hoursMultiplier = 1): array
+    private function program(string $name, array $children = [], ?GroupLogo $logo = null, array $capabilities = [], float $hoursMultiplier = 1): array
     {
         return ['name' => $name, 'kind' => Kind::Program, 'children' => $children, 'logo' => $logo, 'capabilities' => $capabilities, 'hours_multiplier' => $hoursMultiplier];
     }
@@ -2617,8 +2618,9 @@ class DemoSeeder extends Seeder
             // Identity mark on the launcher (PRD #253); null → generic fallback,
             // which is the common case across the demo tree.
             'logo_key' => $node['logo'] ?? null,
-            // Walks-to-hours ratio (ADR-0022 §7): 1 everywhere but the walking tours,
-            // which count each walk as two hours.
+            // Walks-to-hours ratio (ADR-0022 §7, ADR-0026 §7): 1 everywhere but the walking
+            // tours (each walk is two hours) and Gallery Interpreters (one hour per 45-minute
+            // unit, 1.333).
             'hours_multiplier' => $node['hours_multiplier'] ?? 1,
         ] + $this->capabilitiesFor($kind);
 

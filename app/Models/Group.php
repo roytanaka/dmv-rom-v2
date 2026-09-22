@@ -112,7 +112,7 @@ class Group extends Model
             'collects_extra_interactions' => 'boolean',
             'collects_visitor_provenance' => 'boolean',
             'visitor_figures_await_booking' => 'boolean',
-            'hours_multiplier' => 'integer',
+            'hours_multiplier' => 'decimal:3',
             'reminders_enabled' => 'boolean',
             'reminder_lead_days' => 'integer',
             'empty_desk_alert_enabled' => 'boolean',
