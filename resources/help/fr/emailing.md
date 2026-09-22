@@ -1,4 +1,4 @@
-# Courriel
+# À quoi sert le courriel
 
 L'application envoie chaque message à votre place. Vous ne voyez jamais l'adresse d'un autre membre, et personne ne voit la vôtre.
 

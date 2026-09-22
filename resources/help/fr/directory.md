@@ -1,4 +1,4 @@
-# Répertoire
+# À quoi sert le répertoire
 
 Le répertoire est la liste des membres du DMV. Tout membre connecté peut le lire.
 

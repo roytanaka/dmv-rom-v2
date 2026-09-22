@@ -1,4 +1,4 @@
-# Scheduling
+# What Scheduling is for
 
 Scheduling is how a Group staffs its shifts. You sign up for the shifts you want to work.
 

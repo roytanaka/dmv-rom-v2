@@ -1,4 +1,4 @@
-# Paramètres
+# À quoi servent les paramètres
 
 Les paramètres sont l'endroit où vous gérez votre propre compte. Sélectionnez vos initiales ou votre photo dans la barre supérieure, puis **Mon profil**.
 

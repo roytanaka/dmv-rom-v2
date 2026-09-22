@@ -1,4 +1,4 @@
-# Directory
+# What the Directory is for
 
 The Directory is the roster of DMV Members. Every signed-in Member can read it.
 

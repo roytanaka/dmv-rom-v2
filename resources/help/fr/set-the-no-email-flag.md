@@ -23,4 +23,4 @@ Un·e membre visé·e par l'option ne reçoit aucun courriel :
 
 ## Et ensuite
 
-Lisez _Courriel_ pour voir les quatre types de courriel que l'option coupe.
+Lisez _À quoi sert le courriel_ pour voir les quatre types de courriel que l'option coupe.

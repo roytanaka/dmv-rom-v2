@@ -37,6 +37,28 @@ it('has an English and a French label for every section', function () {
     }
 });
 
+it('gives every overview a title that differs from its section label, so no breadcrumb repeats', function () {
+    // #565: a breadcrumb reads "Help › Getting started › <title>". An overview whose
+    // title equals its section label shows the same crumb twice. Guard both locales.
+    $renderer = app(HelpArticleRenderer::class);
+
+    foreach ((new HelpManifest)->all() as $article) {
+        if (! $article->isOverview) {
+            continue;
+        }
+
+        foreach (['en', 'fr'] as $locale) {
+            $title = $renderer->title($article->slug, $locale);
+            $label = __($article->section->labelKey(), [], $locale);
+
+            expect($title)->not->toBe(
+                $label,
+                "Overview '{$article->slug}' ({$locale}) repeats the section label '{$label}'"
+            );
+        }
+    }
+});
+
 it('has every referenced screenshot on disk', function () {
     $renderer = app(HelpArticleRenderer::class);
     $missing = [];

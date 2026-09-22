@@ -1,4 +1,4 @@
-# Tableau de bord
+# À quoi sert le tableau de bord
 
 Le tableau de bord est votre page d'accueil. Il s'ouvre quand vous vous connectez.
 

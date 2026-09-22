@@ -1,4 +1,4 @@
-# News
+# What News is for
 
 News is one feed for the whole DMV. Every signed-in Member reads the same feed.
 

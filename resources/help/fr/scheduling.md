@@ -1,4 +1,4 @@
-# Horaire
+# À quoi sert l'horaire
 
 L'horaire est la façon dont un groupe dote ses quarts. Vous vous inscrivez aux quarts que vous voulez travailler.
 

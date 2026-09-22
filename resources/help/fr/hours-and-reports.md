@@ -1,4 +1,4 @@
-# Heures et rapports
+# À quoi servent les heures et rapports
 
 Le DMV suit les heures de chaque membre par groupe et par mois. Les officier·ères relisent ces heures sous forme de rapports. Cette section vous montre comment.
 

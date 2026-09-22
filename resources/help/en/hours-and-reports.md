@@ -1,4 +1,4 @@
-# Hours and reports
+# What hours and reports are for
 
 DMV tracks each Member's hours by Group and month. Officers read those hours back as reports. This section shows you how.
 
