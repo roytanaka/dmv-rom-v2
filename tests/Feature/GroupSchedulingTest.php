@@ -88,15 +88,15 @@ it('withholds the manage-Reminders hint from a plain member', function () {
 it('carries the Group’s shift kinds — retired ones too — and a manage hint for a schedule admin (#567)', function () {
     $group = schedulingGroup();
     $active = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Desk', 'sort_order' => 0]);
-    $retired = ShiftKind::factory()->inactive()->create(['group_id' => $group->id, 'name' => 'Old tour', 'sort_order' => 1]);
+    $retired = ShiftKind::factory()->inactive()->create(['group_id' => $group->id, 'name' => 'Old tour', 'sort_order' => 1, 'off_site' => true]);
 
     $this->actingAs(schedulingMemberOf($group, role: Role::Scheduler))
         ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageShiftKinds', true)
             ->has('group.shiftKinds', 2)
-            ->where('group.shiftKinds.0', ['id' => $active->id, 'name' => 'Desk', 'active' => true, 'sortOrder' => 0])
-            ->where('group.shiftKinds.1', ['id' => $retired->id, 'name' => 'Old tour', 'active' => false, 'sortOrder' => 1]));
+            ->where('group.shiftKinds.0', ['id' => $active->id, 'name' => 'Desk', 'active' => true, 'offSite' => false, 'sortOrder' => 0])
+            ->where('group.shiftKinds.1', ['id' => $retired->id, 'name' => 'Old tour', 'active' => false, 'offSite' => true, 'sortOrder' => 1]));
 });
 
 it('withholds the shift-kind list and manage hint from a plain member (#567)', function () {

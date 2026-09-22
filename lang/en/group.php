@@ -221,7 +221,7 @@ return [
         // content (ADR-0004); everything here is translated chrome around it.
         'shift_kinds' => [
             'heading' => 'Shift kinds',
-            'description' => 'Name the kinds of shift this group runs. Retire a kind to keep it off new shifts. Its past shifts keep the name.',
+            'description' => 'Name the kinds of shift this group runs. Retire a kind to keep it off new shifts. Its past shifts keep the name. Mark a kind off-site to hold its objects from the day before to the day after. Use it for events such as the CNE.',
             'empty' => 'This group has no shift kinds yet.',
             'add_label' => 'Add a shift kind',
             'add' => 'Add',
@@ -229,6 +229,7 @@ return [
             'retire' => 'Retire',
             'reinstate' => 'Reinstate',
             'retired_badge' => 'Retired',
+            'off_site' => 'Off-site',
             'move_up' => 'Move up',
             'move_down' => 'Move down',
         ],
