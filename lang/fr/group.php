@@ -169,6 +169,14 @@ return [
             'watched_label' => 'Types de quart à surveiller',
             'no_kinds' => 'Ce groupe n’a pas encore de types de quart à surveiller.',
         ],
+        // Réglages du libre-service (#582, ADR-0026 §1 et §2) — l'interrupteur marche/arrêt du
+        // libre-service et la durée d'une unité en minutes, affichés sur la vue en liste.
+        'self_serve' => [
+            'heading' => 'Quarts en libre-service',
+            'description' => 'Permettre aux membres de créer leurs propres quarts sur les horaires publiés de ce groupe. Chaque quart les inscrit du même coup.',
+            'enabled_label' => 'Permettre aux membres de créer leurs propres quarts',
+            'unit_minutes_label' => 'Minutes par unité',
+        ],
         // Gestion des types de quart (#567, ADR-0021 §3) — le bloc ajouter / renommer / retirer /
         // réactiver / réordonner de l'administrateur·rice de l'horaire, affiché dans la vue liste. Le
         // nom d'un type est du contenu rédigé par un·e responsable (ADR-0004) ; le reste est de

@@ -133,6 +133,19 @@ class SchedulePolicy
     }
 
     /**
+     * Who may edit a Group's self-serve settings (#582, ADR-0026 §1 and §2): a schedule admin of
+     * the Group — the same Scheduler / Chair gate, with the scheduling-capability guard folded in.
+     * The switch and the unit length move through one endpoint (UpdateSelfServeSettingsRequest), so
+     * the one gate covers both; turning self-serve on when the Group runs no scheduling is refused
+     * here, before the write. Reached on a Group, so the caller resolves the policy by the class
+     * name.
+     */
+    public function updateSelfServe(Member $actor, Group $group): bool
+    {
+        return $this->administersSchedulingFor($actor, $group);
+    }
+
+    /**
      * Who may maintain a Group's shift kinds (#567, ADR-0021 §3): a schedule admin of the
      * Group — the same Scheduler / Chair gate, with the scheduling-capability guard folded in.
      * Add, rename, retire, reinstate and reorder all move through the one endpoint set, so the

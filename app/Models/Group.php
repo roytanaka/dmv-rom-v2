@@ -81,6 +81,8 @@ class Group extends Model
         'reminder_lead_days',
         'empty_desk_alert_enabled',
         'empty_desk_days_ahead',
+        'self_serve_shifts',
+        'self_serve_unit_minutes',
     ];
 
     /**
@@ -115,6 +117,8 @@ class Group extends Model
             'reminder_lead_days' => 'integer',
             'empty_desk_alert_enabled' => 'boolean',
             'empty_desk_days_ahead' => 'integer',
+            'self_serve_shifts' => 'boolean',
+            'self_serve_unit_minutes' => 'integer',
         ];
     }
 

@@ -86,6 +86,11 @@ const props = defineProps<{
             daysAhead: number;
             shiftKinds: { id: number; name: string; watched: boolean }[];
         };
+        // The Group's self-serve settings (#582) — the Scheduling tab's self-serve card reads them.
+        selfServe: {
+            enabled: boolean;
+            unitMinutes: number;
+        };
         // The Group's shift kinds for the maintenance block (#567) — the full roster in picker
         // order, retired ones included. Present only for a schedule admin (empty otherwise).
         shiftKinds: { id: number; name: string; active: boolean; sortOrder: number }[];
@@ -103,6 +108,7 @@ const props = defineProps<{
         createSchedule: boolean;
         manageReminders: boolean;
         manageEmptyDesk: boolean;
+        manageSelfServe: boolean;
         manageShiftKinds: boolean;
         enterHours: boolean;
         viewReports: boolean;
@@ -410,6 +416,8 @@ const pickBanner = (key: string | null) => {
                     :can-manage-reminders="can.manageReminders"
                     :empty-desk="group.emptyDesk"
                     :can-manage-empty-desk="can.manageEmptyDesk"
+                    :self-serve="group.selfServe"
+                    :can-manage-self-serve="can.manageSelfServe"
                     :manageable-shift-kinds="group.shiftKinds"
                     :can-manage-shift-kinds="can.manageShiftKinds"
                     :group-slug="group.slug"

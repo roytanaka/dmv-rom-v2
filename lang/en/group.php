@@ -187,6 +187,14 @@ return [
             'watched_label' => 'Shift kinds to watch',
             'no_kinds' => 'This group has no shift kinds to watch yet.',
         ],
+        // Self-serve settings (#582, ADR-0026 §1 and §2) — the schedule-admin's self-serve on/off
+        // switch and the unit length in minutes, shown on the list view.
+        'self_serve' => [
+            'heading' => 'Self-serve shifts',
+            'description' => 'Let members write their own shifts on this group\'s published schedules. Each shift signs them up in the same step.',
+            'enabled_label' => 'Let members write their own shifts',
+            'unit_minutes_label' => 'Minutes per unit',
+        ],
         // Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin's add / rename / retire /
         // reinstate / reorder block, shown on the list view. A kind's name is officer-authored
         // content (ADR-0004); everything here is translated chrome around it.

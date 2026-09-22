@@ -2350,6 +2350,9 @@ class DemoSeeder extends Seeder
                         $this->workingGroup('Events', 'gallery-interpreters-events', ListingVisibility::Private),
                     ], GroupLogo::GalleryInterpreters, capabilities: [
                         'collects_visitor_count' => true,
+                        // GI is the one self-serve Group: any Member authors their own gallery
+                        // Shift, in 45-minute units (#582, ADR-0026 §1 and §2).
+                        'self_serve_shifts' => true,
                     ]),
                     // ROMForYou deliberately ships no mark — the visible generic
                     // fallback the launcher exercises on a top-level program (#257).
