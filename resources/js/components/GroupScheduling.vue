@@ -70,6 +70,10 @@ const props = defineProps<{
     // retired kinds included. Present only for a schedule admin (`canManageShiftKinds`).
     manageableShiftKinds: { id: number; name: string; active: boolean; sortOrder: number }[];
     canManageShiftKinds: boolean;
+    // The Group's Objects for the maintenance block (#584) — the full handling collection in
+    // picker order, retired Objects included. Present only for a schedule admin (`canManageObjects`).
+    manageableObjects: { id: number; name: string; active: boolean; sortOrder: number }[];
+    canManageObjects: boolean;
     groupSlug: string;
     groupName: string;
     // The Email control's empty state for this Group (#513) — passed to the opened Schedule's
@@ -266,6 +270,60 @@ const moveKind = (index: number, delta: number) => {
     }
     [ids[index], ids[target]] = [ids[target], ids[index]];
     router.patch(route('groups.shift-kinds.reorder', { group: props.groupSlug }), { ids }, { preserveScroll: true });
+};
+
+// --- Objects maintenance (#584, ADR-0026 §3) — the schedule-admin adds, renames, retires,
+// reinstates and reorders the Group's handling collection, gated by `canManageObjects`. The same
+// shape as shift-kind maintenance: each action hits its own endpoint, the server re-checks the
+// gate, and the page reloads with the fresh list, so no local list state is kept.
+
+// Add an Object: name only. A new Object lands at the end of the order and is active.
+const addObjectForm = useForm<{ name: string }>({ name: '' });
+const addObject = () =>
+    addObjectForm.post(route('groups.objects.store', { group: props.groupSlug }), {
+        preserveScroll: true,
+        onSuccess: () => addObjectForm.reset('name'),
+    });
+
+// The name being edited inline, keyed by Object id, with its own error slot for a rejected rename.
+const objectNameDrafts = ref<Record<number, string>>({});
+const objectRenameError = ref<string | undefined>(undefined);
+
+const startObjectRename = (id: number, name: string) => {
+    objectRenameError.value = undefined;
+    objectNameDrafts.value = { ...objectNameDrafts.value, [id]: name };
+};
+
+const cancelObjectRename = (id: number) => {
+    const rest = { ...objectNameDrafts.value };
+    delete rest[id];
+    objectNameDrafts.value = rest;
+};
+
+const saveObjectRename = (id: number) => {
+    router.patch(
+        route('objects.update', { object: id }),
+        { name: objectNameDrafts.value[id] },
+        {
+            preserveScroll: true,
+            onSuccess: () => cancelObjectRename(id),
+            onError: (errors) => (objectRenameError.value = errors.name),
+        },
+    );
+};
+
+// Retire (active → false) or reinstate (false → true). One PATCH carrying the flag.
+const setObjectActive = (id: number, active: boolean) => router.patch(route('objects.update', { object: id }), { active }, { preserveScroll: true });
+
+// Reorder by swapping an Object with its neighbour, then sending the whole id list in the new order.
+const moveObject = (index: number, delta: number) => {
+    const ids = props.manageableObjects.map((object) => object.id);
+    const target = index + delta;
+    if (target < 0 || target >= ids.length) {
+        return;
+    }
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    router.patch(route('groups.objects.reorder', { group: props.groupSlug }), { ids }, { preserveScroll: true });
 };
 
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
@@ -939,6 +997,89 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         </Button>
                     </div>
                     <InputError :message="addKindForm.errors.name" />
+                </div>
+            </CardContent>
+        </Card>
+
+        <!-- Objects maintenance (#584, ADR-0026 §3) — the schedule-admin adds, renames, retires,
+             reinstates and reorders the Group's handling collection. Shown on the list view only,
+             and only to a Scheduler / Chair (`canManageObjects`); the server re-checks on every
+             write. There is no delete: an Object is retired, not removed, so its old Sign-ups keep
+             their name. -->
+        <Card v-if="canManageObjects && !scheduling.open">
+            <CardHeader>
+                <CardTitle>{{ trans('group.scheduling_panel.objects.heading') }}</CardTitle>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-4">
+                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.objects.description') }}</p>
+
+                <p v-if="manageableObjects.length === 0" class="text-muted-foreground text-sm">
+                    {{ trans('group.scheduling_panel.objects.empty') }}
+                </p>
+                <ul v-else class="flex flex-col gap-2">
+                    <li v-for="(object, index) in manageableObjects" :key="object.id" class="flex flex-wrap items-center gap-2">
+                        <div class="flex flex-col">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                class="size-6"
+                                :disabled="index === 0"
+                                :aria-label="trans('group.scheduling_panel.objects.move_up')"
+                                @click="moveObject(index, -1)"
+                            >
+                                <PhArrowUp class="size-4" />
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                class="size-6"
+                                :disabled="index === manageableObjects.length - 1"
+                                :aria-label="trans('group.scheduling_panel.objects.move_down')"
+                                @click="moveObject(index, 1)"
+                            >
+                                <PhArrowDown class="size-4" />
+                            </Button>
+                        </div>
+
+                        <!-- Inline rename: the name shows as text until the admin edits it. -->
+                        <template v-if="objectNameDrafts[object.id] !== undefined">
+                            <Input v-model="objectNameDrafts[object.id]" class="h-8 w-48" @keyup.enter="saveObjectRename(object.id)" />
+                            <Button type="button" size="sm" @click="saveObjectRename(object.id)">
+                                {{ trans('group.scheduling_panel.save') }}
+                            </Button>
+                            <Button type="button" size="sm" variant="ghost" @click="cancelObjectRename(object.id)">
+                                {{ trans('group.scheduling_panel.cancel') }}
+                            </Button>
+                        </template>
+                        <template v-else>
+                            <span class="text-sm" :class="{ 'text-muted-foreground line-through': !object.active }">{{ object.name }}</span>
+                            <Badge v-if="!object.active" variant="secondary">{{ trans('group.scheduling_panel.objects.retired_badge') }}</Badge>
+                            <Button type="button" size="sm" variant="ghost" @click="startObjectRename(object.id, object.name)">
+                                {{ trans('group.scheduling_panel.objects.rename') }}
+                            </Button>
+                            <Button v-if="object.active" type="button" size="sm" variant="ghost" @click="setObjectActive(object.id, false)">
+                                {{ trans('group.scheduling_panel.objects.retire') }}
+                            </Button>
+                            <Button v-else type="button" size="sm" variant="ghost" @click="setObjectActive(object.id, true)">
+                                {{ trans('group.scheduling_panel.objects.reinstate') }}
+                            </Button>
+                        </template>
+                    </li>
+                </ul>
+                <InputError :message="objectRenameError" />
+
+                <!-- Add an Object: name only. -->
+                <div class="flex flex-col gap-1.5">
+                    <Label for="new-object">{{ trans('group.scheduling_panel.objects.add_label') }}</Label>
+                    <div class="flex flex-wrap items-start gap-2">
+                        <Input id="new-object" v-model="addObjectForm.name" class="h-8 w-48" @keyup.enter="addObject" />
+                        <Button type="button" size="sm" :disabled="addObjectForm.processing" @click="addObject">
+                            {{ trans('group.scheduling_panel.objects.add') }}
+                        </Button>
+                    </div>
+                    <InputError :message="addObjectForm.errors.name" />
                 </div>
             </CardContent>
         </Card>

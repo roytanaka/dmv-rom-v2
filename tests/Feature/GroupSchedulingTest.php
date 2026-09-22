@@ -5,6 +5,7 @@ use App\Enums\ShiftAudience;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
+use App\Models\HandlingObject;
 use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
@@ -107,6 +108,31 @@ it('withholds the shift-kind list and manage hint from a plain member (#567)', f
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageShiftKinds', false)
             ->where('group.shiftKinds', []));
+});
+
+it('carries the Group’s Objects — retired ones too — and a manage hint for a schedule admin (#584)', function () {
+    $group = schedulingGroup();
+    $active = HandlingObject::factory()->create(['group_id' => $group->id, 'name' => 'Ammonite', 'sort_order' => 0]);
+    $retired = HandlingObject::factory()->inactive()->create(['group_id' => $group->id, 'name' => 'Old fossil', 'sort_order' => 1]);
+
+    $this->actingAs(schedulingMemberOf($group, role: Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageObjects', true)
+            ->has('group.objects', 2)
+            ->where('group.objects.0', ['id' => $active->id, 'name' => 'Ammonite', 'active' => true, 'sortOrder' => 0])
+            ->where('group.objects.1', ['id' => $retired->id, 'name' => 'Old fossil', 'active' => false, 'sortOrder' => 1]));
+});
+
+it('withholds the Object list and manage hint from a plain member (#584)', function () {
+    $group = schedulingGroup();
+    HandlingObject::factory()->create(['group_id' => $group->id]);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageObjects', false)
+            ->where('group.objects', []));
 });
 
 it('404s the Scheduling section on a Group that does not run scheduling', function () {

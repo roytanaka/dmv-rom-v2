@@ -18,6 +18,7 @@ use App\Enums\StewardshipFunction;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupStewardship;
+use App\Models\HandlingObject;
 use App\Models\HoursAdjustment;
 use App\Models\HoursRecord;
 use App\Models\Meeting;
@@ -90,6 +91,8 @@ class DemoSeeder extends Seeder
     public const PROGRAM = 'docents';
 
     public const RECEPTION = 'reception';
+
+    public const GALLERY_INTERPRETERS = 'gallery-interpreters';
 
     // Historical stable handles, now sourced from the persona catalogue (the
     // single source of truth for persona identities) so list and seed can't drift.
@@ -328,6 +331,7 @@ class DemoSeeder extends Seeder
         $this->roster();
         $this->bulkRoster();
         $this->scheduling();
+        $this->objects();
         $this->afterShiftRecords();
         $this->hours();
         $this->news();
@@ -1844,6 +1848,44 @@ class DemoSeeder extends Seeder
                     'visitors_other_countries',
                     'updated_at',
                 ],
+            );
+        }
+    }
+
+    /**
+     * The Gallery Interpreters' handling collection (#584, ADR-0026 §3) — the artefacts a GI takes
+     * onto the floor. Legacy's list runs to 144 named objects; the demo seeds a representative ~40.
+     * Only Gallery Interpreters carries Objects; every other Group has none.
+     */
+    private const GALLERY_INTERPRETER_OBJECTS = [
+        'Trilobite fossil', 'Ammonite shell', 'Shark tooth', 'Dinosaur bone cast', 'Amber with insect',
+        'Fool’s gold (pyrite)', 'Amethyst geode', 'Rose quartz', 'Meteorite fragment', 'Volcanic pumice',
+        'Petrified wood', 'Coral specimen', 'Sea urchin test', 'Nautilus shell', 'Sponge specimen',
+        'Beaver pelt', 'Bison horn', 'Turtle shell', 'Snake skin', 'Ostrich egg',
+        'Peacock feather', 'Butterfly display', 'Bird nest', 'Deer antler', 'Wolf skull replica',
+        'Egyptian scarab replica', 'Roman coin cast', 'Greek pottery shard', 'Cuneiform tablet cast', 'Mummy amulet replica',
+        'Inuit soapstone carving', 'First Nations beadwork', 'Woven basket', 'Silk textile sample', 'Cotton boll',
+        'Bamboo section', 'Cacao pod replica', 'Spice box', 'Hand mill (quern) stone', 'Clay oil lamp replica',
+    ];
+
+    /**
+     * Seed the Gallery Interpreters' handling collection (#584, ADR-0026 §3): the ~40 named Objects
+     * a GI takes onto the floor, all active, ordered as listed. Keyed on (Group, name) so a reseed
+     * heals rather than duplicates. Only Gallery Interpreters gets Objects; skipped silently if the
+     * Group is absent.
+     */
+    private function objects(): void
+    {
+        $group = Group::where('slug', self::GALLERY_INTERPRETERS)->first();
+
+        if ($group === null) {
+            return;
+        }
+
+        foreach (self::GALLERY_INTERPRETER_OBJECTS as $order => $name) {
+            HandlingObject::firstOrCreate(
+                ['group_id' => $group->id, 'name' => $name],
+                ['active' => true, 'sort_order' => $order],
             );
         }
     }

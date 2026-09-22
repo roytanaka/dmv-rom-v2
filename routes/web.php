@@ -17,6 +17,7 @@ use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
+use App\Http\Controllers\ObjectController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShiftKindController;
@@ -347,6 +348,22 @@ Route::patch('groups/{group}/shift-kinds/order', [ShiftKindController::class, 'r
 Route::patch('shift-kinds/{shiftKind}', [ShiftKindController::class, 'update'])
     ->middleware(['auth'])
     ->name('shift-kinds.update');
+
+// Objects maintenance (#584, ADR-0026 §3). The Scheduling section's Objects block — add, rename,
+// retire, reinstate and reorder a Group's handling collection — edited by a Scheduler or Chair,
+// mirroring the shift-kind endpoints one for one. There is no delete: an Object is retired and
+// reinstated, never removed. Add and reorder nest under the Group (bound by slug); rename / retire
+// / reinstate bind the Object by id. Each is structurally authorized in its Form Request, which
+// delegates to the SchedulePolicy's `manageObjects` gate.
+Route::post('groups/{group}/objects', [ObjectController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('groups.objects.store');
+Route::patch('groups/{group}/objects/order', [ObjectController::class, 'reorder'])
+    ->middleware(['auth'])
+    ->name('groups.objects.reorder');
+Route::patch('objects/{object}', [ObjectController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('objects.update');
 
 // Shift authoring (#356, PRD #352, ADR-0021 §2). The Scheduler's write seam for the
 // Shifts on a Schedule: add a Shift (times, capacity, optional kind, audience), edit it
