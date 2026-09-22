@@ -223,6 +223,9 @@ final class HelpManifest
             new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, route: 'groups.scheduling.show'),
             new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, route: 'groups.scheduling.show'),
             new HelpArticle('reminders', HelpSection::Scheduling),
+            // Self-serve Shifts for members (#590, ADR-0026 §1–§6) — a member of a self-serve
+            // Group writes their own Shift. No role: any Member of such a Group.
+            new HelpArticle('write-your-own-shift', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
             // Scheduling, officer part (#526) — the schedule-admin tasks a Scheduler or Chair does.
             new HelpArticle('create-a-schedule-and-shifts', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('add-or-remove-many-shifts', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
@@ -230,6 +233,9 @@ final class HelpManifest
             new HelpArticle('correct-a-visitor-count', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('set-reminders-and-the-empty-desk-alert', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('manage-your-groups-shift-kinds', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            // Self-serve maintenance for schedule admins (#590, ADR-0026 §3, §4, §8) — the Objects
+            // handling collection and the off-site kind that widens their hold.
+            new HelpArticle('objects-and-off-site-stations', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
 
             // Hours and reports (#526) — the officer reports and the entry that feeds them.
             new HelpArticle('hours-and-reports', HelpSection::HoursAndReports, isOverview: true, status: ArticleStatus::Published, route: 'groups.hours.report'),

@@ -331,6 +331,30 @@
         return showCardTitled(/^shift kinds/i);
     }
 
+    // The self-serve settings card on the Scheduling tab's list view (#590, ADR-0026 §1). Shows only
+    // to a schedule admin: the on/off switch and the minutes-per-unit field.
+    function showSelfServeSettings() {
+        return showCardTitled(/^self-serve shifts/i);
+    }
+
+    // The Objects maintenance card on the list view (#590, ADR-0026 §3): the group's handling
+    // collection, with its add / rename / retire / reorder controls.
+    function showObjects() {
+        return showCardTitled(/^objects/i);
+    }
+
+    // Open the "Write my shift" dialog a self-serve Group's Member sees on an opened Schedule
+    // (#590, ADR-0026 §1). A plain click handler opens it, so a DOM click is enough.
+    function openWriteMyShiftDialog() {
+        return clickAndSettle(pageButtonLabelled(/^write my shift$/i));
+    }
+
+    // A Shift the signed-in Member wrote for themselves — the Agenda card that carries Edit and
+    // Delete (#590, ADR-0026 §1). Frames the owner's own controls before the Shift starts.
+    function showMyWrittenShift() {
+        return showShiftWithButton(/^edit$/i);
+    }
+
     // The first Agenda Shift still ahead that a schedule admin can place a Member on, scrolled
     // so its day heading stays in frame. Each Agenda day is a block led by an h3 such as
     // "Tuesday, September 8", read against today in the current year.
@@ -555,6 +579,10 @@
         showShiftReminders,
         showEmptyDeskAlert,
         showShiftKinds,
+        showSelfServeSettings,
+        showObjects,
+        openWriteMyShiftDialog,
+        showMyWrittenShift,
         showUpcomingPlaceAMember,
         openPlaceAMemberDialog,
         showCorrectionPencil,
