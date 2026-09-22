@@ -16,6 +16,7 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\GroupStewardship;
+use App\Models\HandlingObject;
 use App\Models\HoursRecord;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
@@ -1017,11 +1018,23 @@ it('feeds the Detailed Committee Statistics fourth row with visitor numbers', fu
     expect($stats->org['ytd']['interactions'])->toBeGreaterThan(0);
 });
 
+it('gives Gallery Interpreters a handling collection and no other Group any Objects (#584)', function () {
+    $gi = Group::where('slug', DemoSeeder::GALLERY_INTERPRETERS)->firstOrFail();
+
+    // Gallery Interpreters carries about 40 named, active Objects in authored order.
+    expect($gi->objects()->count())->toBeGreaterThanOrEqual(35)
+        ->and($gi->objects()->where('active', true)->count())->toBe($gi->objects()->count());
+
+    // No other Group has any Object.
+    expect(HandlingObject::where('group_id', '!=', $gi->id)->count())->toBe(0);
+});
+
 it('is idempotent across the scheduling rows — re-seeding heals rather than duplicates', function () {
     $counts = fn () => [
         'schedules' => Schedule::count(),
         'shifts' => Shift::count(),
         'shiftKinds' => ShiftKind::count(),
+        'objects' => HandlingObject::count(),
         'signUps' => SignUp::count(),
     ];
     $before = $counts();
@@ -1030,6 +1043,7 @@ it('is idempotent across the scheduling rows — re-seeding heals rather than du
     expect($before['schedules'])->toBeGreaterThan(0)
         ->and($before['shifts'])->toBeGreaterThan(0)
         ->and($before['shiftKinds'])->toBeGreaterThan(0)
+        ->and($before['objects'])->toBeGreaterThan(0)
         ->and($before['signUps'])->toBeGreaterThan(0);
 
     $this->seed(DemoSeeder::class);

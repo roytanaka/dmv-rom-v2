@@ -194,6 +194,21 @@ return [
             'move_up' => 'Monter',
             'move_down' => 'Descendre',
         ],
+        // Maintenance des objets (#584, ADR-0026 §3) — la collection à manipuler qu’un·e
+        // interprète de galerie apporte sur le plancher. Même forme que les types de quart.
+        'objects' => [
+            'heading' => 'Objets',
+            'description' => 'Nommez les objets que ce groupe remet. Retirez un objet pour l’exclure des nouvelles inscriptions. Ses inscriptions passées gardent le nom.',
+            'empty' => 'Ce groupe n’a pas encore d’objets.',
+            'add_label' => 'Ajouter un objet',
+            'add' => 'Ajouter',
+            'rename' => 'Renommer',
+            'retire' => 'Retirer',
+            'reinstate' => 'Réactiver',
+            'retired_badge' => 'Retiré',
+            'move_up' => 'Monter',
+            'move_down' => 'Descendre',
+        ],
         // Rédaction (#354) — visible seulement pour un·e responsable horaire /
         // président·e / super-palier (contrôlé côté serveur via `can`). Publier /
         // dépublier sont les deux transitions d’état.

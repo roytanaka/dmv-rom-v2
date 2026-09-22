@@ -216,6 +216,18 @@ class Group extends Model
     }
 
     /**
+     * The Objects this Group hands out — its handling collection, the artefacts a Gallery
+     * Interpreter takes onto the floor (#584, ADR-0026 §3). Group-scoped, the same maintenance
+     * shape as {@see shiftKinds}. Present only when the Group runs scheduling.
+     *
+     * @return HasMany<HandlingObject, $this>
+     */
+    public function objects(): HasMany
+    {
+        return $this->hasMany(HandlingObject::class);
+    }
+
+    /**
      * The Members who run this Group's scheduling — the recipients of the Sign-up
      * cancellation email (#358, ADR-0021 §Sign-up "Notification"). These are the Group's
      * `Scheduler`-role holders, with Chair-implication folded in (a Chair acts as Scheduler

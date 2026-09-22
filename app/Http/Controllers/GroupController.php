@@ -14,6 +14,7 @@ use App\Http\Resources\MemberResource;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
+use App\Models\HandlingObject;
 use App\Models\HoursRecord;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
@@ -124,6 +125,7 @@ class GroupController extends Controller
         ]);
 
         $canManageShiftKinds = $request->user()->can('manageShiftKinds', [Schedule::class, $group]);
+        $canManageObjects = $request->user()->can('manageObjects', [Schedule::class, $group]);
 
         return Inertia::render('groups/Show', [
             'group' => [
@@ -205,6 +207,20 @@ class GroupController extends Controller
                             'sortOrder' => $kind->sort_order,
                         ])->all()
                     : [],
+                // The Group's Objects for the maintenance block (#584, ADR-0026 §3) — the full
+                // handling collection in picker order, retired Objects included, so the block can
+                // rename, retire, reinstate and reorder them. Only a schedule admin
+                // (`can.manageObjects`) gets the list; a plain reader gets an empty one and no
+                // block.
+                'objects' => $canManageObjects
+                    ? $group->objects()->orderBy('sort_order')->get()
+                        ->map(fn (HandlingObject $object): array => [
+                            'id' => $object->id,
+                            'name' => $object->name,
+                            'active' => $object->active,
+                            'sortOrder' => $object->sort_order,
+                        ])->all()
+                    : [],
             ],
             'section' => $section,
             // The Email control's empty state (#513, ADR-0024 §6) — the reason the viewer can
@@ -250,6 +266,10 @@ class GroupController extends Controller
                 // ADR-0021 §3) — the same Scheduler/Chair gate. UI hint only; the shift-kind Form
                 // Requests re-check the gate on write.
                 'manageShiftKinds' => $canManageShiftKinds,
+                // `manageObjects` drives the Scheduling tab's Objects maintenance block (#584,
+                // ADR-0026 §3) — the same Scheduler/Chair gate. UI hint only; the Object Form
+                // Requests re-check the gate on write.
+                'manageObjects' => $canManageObjects,
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.

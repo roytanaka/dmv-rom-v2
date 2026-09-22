@@ -211,6 +211,21 @@ return [
             'move_up' => 'Move up',
             'move_down' => 'Move down',
         ],
+        // Objects maintenance (#584, ADR-0026 §3) — the handling collection a Gallery
+        // Interpreter takes onto the floor. The same block shape as shift kinds.
+        'objects' => [
+            'heading' => 'Objects',
+            'description' => 'Name the objects this group hands out. Retire an object to keep it off new sign-ups. Its past sign-ups keep the name.',
+            'empty' => 'This group has no objects yet.',
+            'add_label' => 'Add an object',
+            'add' => 'Add',
+            'rename' => 'Rename',
+            'retire' => 'Retire',
+            'reinstate' => 'Reinstate',
+            'retired_badge' => 'Retired',
+            'move_up' => 'Move up',
+            'move_down' => 'Move down',
+        ],
         // Authoring (#354) — shown only to a Scheduler / Chair / super-tier
         // (server-gated via `can`). Publish / un-publish are the two state transitions.
         'new' => 'New schedule',
