@@ -197,6 +197,11 @@ return [
             'units_option' => '{1} :count unité|[2,*] :count unités',
             'start_off_grid' => 'Choisissez une heure de début au quart d’heure.',
             'start_before_today' => 'Choisissez aujourd’hui ou un jour ultérieur.',
+            // L'avertissement de conflit de poste (#588, ADR-0026 §5) — un·e autre interprète est
+            // déjà à ce poste à ce moment. Un avertissement, non un blocage : le membre peut passer outre.
+            'station_clash' => 'Un·e autre interprète est déjà à ce poste à ce moment.',
+            'station_clash_confirm' => 'Un·e autre interprète sera à ce poste à ce moment. Continuer ?',
+            'continue' => 'Continuer',
         ],
         // Gestion des types de quart (#567, ADR-0021 §3) — le bloc ajouter / renommer / retirer /
         // réactiver / réordonner de l'administrateur·rice de l'horaire, affiché dans la vue liste. Le

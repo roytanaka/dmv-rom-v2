@@ -65,4 +65,31 @@ final class ObjectClash
         // the same Object adds nothing the Member needs to pick again.
         return $clashes->unique(fn (array $clash) => $clash['object']->getKey())->values();
     }
+
+    /**
+     * The station clash warning (#588, ADR-0026 §5) — whether another Sign-up already sits on a
+     * Shift of the candidate's kind at an overlapping time. Unlike the Object hold, the window is
+     * the Shift's own `[starts_at, ends_at)` interval: two seats on one station overlap when their
+     * ranges do, half-open on the end so back-to-back seats do not clash. All kinds are checked;
+     * there is no skip list. The candidate's own Shift is excluded on an edit ({@see $excludeShiftId}).
+     *
+     * A soft warning, not a block: two GIs may share a gallery on purpose, so the caller offers an
+     * acknowledgement. The interval is a plain time-range column comparison — no widened hold to
+     * resolve — so the overlap is decided in the query and never depends on the DB engine. A shared
+     * kind id already confines this to the candidate's Group, since kinds are Group-scoped.
+     */
+    public static function station(Shift $candidate, ?int $excludeShiftId = null): bool
+    {
+        if ($candidate->shift_kind_id === null) {
+            return false;
+        }
+
+        return SignUp::query()
+            ->whereHas('shift', fn ($query) => $query
+                ->where('shift_kind_id', $candidate->shift_kind_id)
+                ->when($excludeShiftId !== null, fn ($query) => $query->whereKeyNot($excludeShiftId))
+                ->where('starts_at', '<', $candidate->ends_at)
+                ->where('ends_at', '>', $candidate->starts_at))
+            ->exists();
+    }
 }

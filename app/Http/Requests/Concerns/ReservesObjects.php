@@ -67,4 +67,23 @@ trait ReservesObjects
             ]));
         }
     }
+
+    /**
+     * Add the station clash warning on `shift_kind_id` when another seat overlaps the candidate's
+     * station ({@see ObjectClash::station}) — the self-serve store and update seams only. A soft
+     * warning the Member may wave through: `acknowledge_station_clash` skips it, so the resubmit
+     * with the acknowledgement lands the Shift (ADR-0026 §5). Skipped when a field rule already
+     * failed — a wrong kind is that error's to report — so the distinct key stands alone and the
+     * dialog can offer the confirm on it.
+     */
+    protected function addStationClashError(Validator $validator, Shift $candidate, ?int $excludeShiftId = null): void
+    {
+        if ($this->boolean('acknowledge_station_clash') || $validator->errors()->isNotEmpty()) {
+            return;
+        }
+
+        if (ObjectClash::station($candidate, $excludeShiftId)) {
+            $validator->errors()->add('shift_kind_id', trans('group.scheduling_panel.self_serve.station_clash'));
+        }
+    }
 }

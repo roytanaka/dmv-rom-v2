@@ -74,15 +74,19 @@ class StoreSelfServeShiftRequest extends FormRequest
             ],
             'starts_at' => ['required', 'date', $this->onGrid(), $this->notBeforeToday(), $this->withinRange()],
             'units' => ['required', 'integer', 'min:1', 'max:'.Shift::SELF_SERVE_MAX_UNITS],
+            // The Member waving through the station clash warning (ADR-0026 §5) — optional, absent
+            // on the first submit, true on the resubmit from the confirm dialog.
+            'acknowledge_station_clash' => ['sometimes', 'boolean'],
             ...$this->objectRules($schedule->group),
         ];
     }
 
     /**
-     * The Object double-booking block (ADR-0026 §3): an Object another Sign-up holds at an
-     * overlapping time is refused. The candidate is the Shift this store will write — its derived
-     * interval and chosen kind — so the hold matches what will be stored. No Sign-up is excluded:
-     * a store creates a new seat.
+     * The two overlap checks (ADR-0026 §3, §5): the Object double-booking block, and the station
+     * clash warning. The candidate is the Shift this store will write — its derived interval and
+     * chosen kind — so both match what will be stored. No Sign-up or Shift is excluded: a store
+     * creates a new seat. The Object block is a hard refusal; the station clash is a warning the
+     * Member may acknowledge past.
      */
     public function withValidator(Validator $validator): void
     {
@@ -103,6 +107,7 @@ class StoreSelfServeShiftRequest extends FormRequest
             ]);
 
             $this->addObjectClashErrors($validator, $candidate);
+            $this->addStationClashError($validator, $candidate);
         });
     }
 
