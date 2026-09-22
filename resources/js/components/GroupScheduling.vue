@@ -604,14 +604,11 @@ const destroyShift = (shift: ShiftAgendaItem) => {
 
 // --- Write my shift (#585, PRD #576, ADR-0026 §1, §2) — a self-serve Member's own authoring ---
 
-// The Member write the Scheduler's authoring above is not: a Gallery Interpreter picks a station,
-// a start and a count of units, and their Shift and Sign-up are written in one step. Gated by the
-// server's `can.createSelfServe` (the button) and `can.manageSelfServe` (the owner's edit/delete);
-// every write is re-checked by the self-serve Form Requests regardless of what renders.
-
-// One unit setting, read from the Group (45 for GI). The dialog derives the end from it, so the
-// Member sees how long the shift runs before saving — the count is never stored (ADR-0026 §2).
-const unitMinutes = computed(() => props.selfServe.unitMinutes);
+// What a Member writes — distinct from the Scheduler's authoring above: a Gallery Interpreter
+// picks a station, a start and a count of units, and their Shift and Sign-up are written in one
+// step. Gated by the server's `can.createSelfServe` (the button) and `can.manageSelfServe` (the
+// owner's edit/delete); every write is re-checked by the self-serve Form Requests regardless of
+// what renders.
 
 // The unit picker's options: 1 to the fixed ceiling of 8 (Shift::SELF_SERVE_MAX_UNITS).
 const SELF_SERVE_MAX_UNITS = 8;
@@ -651,7 +648,7 @@ const selfServeEnd = computed(() => {
     const start = new Date(`${writeShiftForm.starts_at}:00Z`);
     if (Number.isNaN(start.getTime())) return '';
 
-    const end = deriveEndsAt(start, writeShiftForm.units, unitMinutes.value);
+    const end = deriveEndsAt(start, writeShiftForm.units, props.selfServe.unitMinutes);
 
     return trans('group.scheduling_panel.self_serve.ends_at_preview', {
         time: new Intl.DateTimeFormat(page.props.locale, { timeStyle: 'short', timeZone: 'UTC' }).format(end),
@@ -678,7 +675,7 @@ const openSelfServeEdit = (shift: ShiftAgendaItem) => {
     writeShiftForm.shift_kind_id = shift.shift_kind_id;
     writeShiftForm.starts_at = toDateTimeLocal(shift.starts_at);
     // The count is not stored, so recover it from the span and the Group's unit length.
-    const span = (new Date(shift.ends_at).getTime() - new Date(shift.starts_at).getTime()) / (unitMinutes.value * 60 * 1000);
+    const span = (new Date(shift.ends_at).getTime() - new Date(shift.starts_at).getTime()) / (props.selfServe.unitMinutes * 60 * 1000);
     writeShiftForm.units = Math.max(1, Math.round(span));
     writeShiftForm.clearErrors();
     selfServeMode.value = shift.id;

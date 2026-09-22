@@ -69,7 +69,7 @@ class ShiftPolicy
 
     /**
      * Who may author their own Shift on a Schedule in a self-serve Group (#585, ADR-0026 §1)
-     * — the Member write the Scheduler-only {@see create} above is not. Distinct from a
+     * — the Member-side write that the Scheduler-only {@see create} above is not. Distinct from a
      * Scheduler adding a slot: this is a Member writing a record about themselves, and it
      * creates their Sign-up in the same action. Four gates, all met:
      *
