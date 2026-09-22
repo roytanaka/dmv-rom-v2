@@ -1552,9 +1552,11 @@ class DemoSeeder extends Seeder
      */
     private function galleryInterpreterUnits(int $seed): int
     {
+        $roll = $this->spread($seed, 0, 83);
+
         return match (true) {
-            $this->spread($seed, 0, 83) < 50 => 1,
-            $this->spread($seed, 0, 83) < 77 => 2,
+            $roll < 50 => 1,
+            $roll < 77 => 2,
             default => 3,
         };
     }
