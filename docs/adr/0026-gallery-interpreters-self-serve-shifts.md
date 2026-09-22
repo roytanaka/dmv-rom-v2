@@ -118,7 +118,7 @@ Recorded here because the shape was chosen partly to make it trivial; the legacy
 - **Two server-side checks** on Sign-up write: the Object overlap block and the station overlap warning. The warning needs a confirm step in the create form, which is new UI.
 - **The Objects maintenance screen** is #567's shape a second time. Build them together.
 - **Help articles**: the self-serve create flow for GIs, and Objects maintenance for their Scheduler (ADR-0025).
-- **Docents' "which tour did I give" question ([#568](https://github.com/roytanaka/dmv-rom-v2/issues/568)) is not answered here.** It is the opposite shape: a Scheduler-authored slot on which the taker names a sub-kind. Nothing in this ADR moves a kind onto the Sign-up, and #568 should not read it as precedent.
+- **Docents' "which tour did I give" question ([#568](https://github.com/roytanaka/dmv-rom-v2/issues/568)) is not answered here, and the two agree.** It is the opposite shape: a Scheduler-authored slot on which the taker names a sub-kind. The research that closed #568 (`docs/research/docents-tour-given.md`) keeps the kind on the Shift and parks the tour given as a future per-seat link from the Sign-up to a content-catalog Tour — the same side of the line Objects sit on. Nothing in either moves a kind onto the Sign-up, and #568 confirms GI needs no second layer because the station is the kind.
 - **Visitor Wayfinders is untouched.** Their kinds are places and the Scheduler authors every slot; ADR-0021 already fits.
 - **The demo seed** can now shape a GI month like the real roster: about 4.5 self-authored Shifts a day, one to three units, three objects each, and visitor counts on past days.
 
