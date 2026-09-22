@@ -19,6 +19,7 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\SelfServeShiftController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShiftKindController;
 use App\Http\Controllers\SignUpController;
@@ -404,6 +405,23 @@ Route::post('shifts/{shift}/sign-ups', [SignUpController::class, 'store'])
 Route::delete('sign-ups/{signUp}', [SignUpController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('sign-ups.destroy');
+
+// Self-serve Shift write seam (#585, PRD #576, ADR-0026 §1, §2). A Member of a self-serve
+// Group writing their own Shift — station, start and units — which creates their Sign-up in the
+// same step, and changing or deleting it until it starts. Distinct from the Scheduler-only
+// `shifts.*` seam above: each is structurally authorized in its Form Request, which delegates to
+// the ShiftPolicy's `createSelfServe` (on the Schedule) and `manageSelfServe` (on the Shift, the
+// derived-ownership rule). Store nests under the owning Schedule (bound by id); update/delete bind
+// the Shift by id.
+Route::post('schedules/{schedule}/self-serve-shifts', [SelfServeShiftController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('self-serve-shifts.store');
+Route::patch('self-serve-shifts/{shift}', [SelfServeShiftController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('self-serve-shifts.update');
+Route::delete('self-serve-shifts/{shift}', [SelfServeShiftController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('self-serve-shifts.destroy');
 
 // Sign-out write seam (#445, PRD #443, ADR-0023 §5). Recording the after-the-shift numbers on
 // a Sign-up — a Member filing how many visitors they served, from the inline Agenda panel and

@@ -41,6 +41,11 @@ const props = withDefaults(
         // day heading of its own, so without the date two cards can share a time and mean
         // different days.
         showDate?: boolean;
+        // Whether the self-serve owner's Edit / Delete controls may render (#585, ADR-0026 §1).
+        // On by the opened Schedule's Agenda and Calendar, where the station picker's kinds are in
+        // hand; off on the cross-Schedule "My sign-ups" panel, which carries no kind list to edit
+        // against. Combined with `shift.can.manageSelfServe` — both must hold to show the controls.
+        allowSelfServeControls?: boolean;
     }>(),
     {
         collectsVisitorCount: false,
@@ -49,6 +54,7 @@ const props = withDefaults(
         emailGroupName: null,
         canEmailSignups: false,
         showDate: false,
+        allowSelfServeControls: false,
     },
 );
 
@@ -59,6 +65,10 @@ const emit = defineEmits<{
     remove: [signUpId: number];
     edit: [shift: ShiftAgendaItem];
     delete: [shift: ShiftAgendaItem];
+    // The self-serve owner's own controls (#585, ADR-0026 §1) — distinct from the Scheduler's
+    // edit/delete above, because they route through the self-serve seam, not `shifts.*`.
+    editSelfServe: [shift: ShiftAgendaItem];
+    deleteSelfServe: [shift: ShiftAgendaItem];
     record: [payload: { signUpId: number; count: number; extra: number | null; provenance: VisitorProvenance | null }];
 }>();
 
@@ -306,6 +316,20 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                     <PhTrash class="size-4" />
                     {{ trans('group.scheduling_panel.delete') }}
                 </Button>
+                <!-- The self-serve owner's Edit / Delete (#585, ADR-0026 §1) — shown to the Member
+                     who wrote the Shift, until it starts (`can.manageSelfServe`). They route through
+                     the self-serve seam, so they are their own emits, not the Scheduler's above; a
+                     Member never sees both, since `can.update` needs the schedule-admin gate. -->
+                <template v-if="allowSelfServeControls && shift.can.manageSelfServe">
+                    <Button type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('editSelfServe', shift)">
+                        <PhPencilSimple class="size-4" />
+                        {{ trans('group.scheduling_panel.self_serve.edit') }}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('deleteSelfServe', shift)">
+                        <PhTrash class="size-4" />
+                        {{ trans('group.scheduling_panel.self_serve.delete') }}
+                    </Button>
+                </template>
                 <!-- Email control (#490, #513, ADR-0024 §6.4) — one Audience, "Sign-ups on this
                      Shift". Shown only on an opened Schedule (`emailGroupName` set), only once a
                      seat is taken, and only to a Chair or Scheduler (`canEmailSignups`): they

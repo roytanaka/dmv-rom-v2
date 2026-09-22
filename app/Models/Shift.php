@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ShiftAudience;
 use Carbon\CarbonImmutable;
 use Database\Factories\ShiftFactory;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,6 +28,13 @@ class Shift extends Model
 {
     /** @use HasFactory<ShiftFactory> */
     use HasFactory;
+
+    /**
+     * The most units a self-serve Shift may run (#585, ADR-0026 §2). A hard constant, not a
+     * Group setting: legacy's dropdown bound of 8 carried no meaning behind it, so it stays a
+     * ceiling the Form Requests enforce rather than a per-Group knob.
+     */
+    public const SELF_SERVE_MAX_UNITS = 8;
 
     /**
      * The attributes that are mass assignable.
@@ -55,6 +63,18 @@ class Shift extends Model
             'capacity' => 'integer',
             'audience' => ShiftAudience::class,
         ];
+    }
+
+    /**
+     * The end instant a self-serve Shift derives from its start, a unit count, and the
+     * Group's per-unit length (#585, ADR-0026 §2). A Gallery Interpreter picks units, not
+     * an end time — the count is never stored — so `ends_at` is always `starts_at` plus
+     * `units` × `unitMinutes`. The single server-side home of that arithmetic, mirroring
+     * the client's `deriveEndsAt` helper so the form's preview and the stored value agree.
+     */
+    public static function deriveEndsAt(DateTimeInterface $startsAt, int $units, int $unitMinutes): CarbonImmutable
+    {
+        return CarbonImmutable::instance($startsAt)->addMinutes($units * $unitMinutes);
     }
 
     /**
