@@ -117,6 +117,48 @@ class DemoSeeder extends Seeder
      */
     private const HOURS_CHUNK = 500;
 
+    /** The Docents' daily tour labels and the booked one, named as the Docents program names them. */
+    private const HIGHLIGHTS_TOUR = 'Museum Highlights';
+
+    private const GALLERY_TOUR = 'Gallery/Theme';
+
+    private const GROUP_TOUR = 'Group Tour';
+
+    /**
+     * The Docents' daily roster, start hour => tour label: five one-hour tours from 11:00,
+     * one Docent each, every day of the week, the label alternating by hour. This is the
+     * legacy weekly template every Docents month is generated from.
+     *
+     * @var array<int, string>
+     */
+    private const TOUR_HOURS = [
+        11 => self::HIGHLIGHTS_TOUR,
+        12 => self::GALLERY_TOUR,
+        13 => self::HIGHLIGHTS_TOUR,
+        14 => self::GALLERY_TOUR,
+        15 => self::HIGHLIGHTS_TOUR,
+    ];
+
+    /**
+     * A month's Group Tours, as day-offsets from the first (all ≤ 24, inside even February).
+     * Shaped on a year of legacy bookings: a free late-morning tour with one Docent, paid
+     * evening tours with two, and school groups at 10:00 with three or four. None starts on
+     * a daily tour's hour, so the (Schedule, start) key stays unique. The booking itself
+     * (client name, group size) is deferred (ADR-0021), so each is only its staffing.
+     *
+     * @var list<array{day: int, start: array{int, int}, minutes: int, capacity: int}>
+     */
+    private const GROUP_TOURS = [
+        ['day' => 3, 'start' => [10, 0], 'minutes' => 60, 'capacity' => 3],
+        ['day' => 8, 'start' => [18, 0], 'minutes' => 60, 'capacity' => 2],
+        ['day' => 14, 'start' => [11, 30], 'minutes' => 45, 'capacity' => 1],
+        ['day' => 19, 'start' => [18, 0], 'minutes' => 60, 'capacity' => 2],
+        ['day' => 24, 'start' => [10, 0], 'minutes' => 75, 'capacity' => 4],
+    ];
+
+    /** Tours that ended within this many days stay unrecorded: the sign-outs still to come. */
+    private const UNRECORDED_DAYS = 2;
+
     /** The name of the recent, all-past Schedule each collecting Group gets its sign-out seats on. */
     public const RECENT_SCHEDULE_NAME = 'Recent shifts';
 
@@ -849,54 +891,124 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Scheduling goes live (#364, PRD #352, ADR-0021). Seeded last — after every
-     * Member and membership exists — so Sign-ups can seat real Docents volunteers.
+     * Scheduling goes live (#364, PRD #352, ADR-0021), shaped like the real Docents roster.
+     * Seeded last, after every Member and membership exists, so Sign-ups can seat real
+     * Docents volunteers.
      *
-     * One published Schedule on Docents, the intended demo Group: the only demo Group
-     * carrying a Scheduler Persona (James Tremblay), so the drop-a-Shift cancellation
-     * email (#373) has a real recipient, and a kinded Group, so seeded {@see ShiftKind}
-     * rows have Shifts to label (Reception is deliberately kind-less). The Schedule
-     * covers the current month with Shifts across several days — a mix of capacities,
-     * two opened to the whole org — so both the Agenda and the month grid read well.
+     * Docents is the intended demo Group: the only demo Group carrying a Scheduler Persona
+     * (James Tremblay), so the drop-a-Shift cancellation email (#373) has a real recipient,
+     * and a kinded Group. It gets two published month Schedules, named for their month as
+     * legacy names them: last month, worked and signed out, and this month, part-way through.
+     * Next month follows as an empty draft.
      *
-     * Faker-free (fixed kinds, deterministic day offsets, now()-anchored month) and
-     * idempotent: the Schedule keys on (Group, name), Shifts on (Schedule, start),
-     * kinds on (Group, name), and Sign-ups on the (Shift, Member) pair.
+     * Each month is the roster Docents actually run, read off the legacy weekly template:
+     * five one-hour tours every day from 11:00 to 15:00, one Docent each, the label
+     * alternating by hour ({@see TOUR_HOURS}). A few Group Tours sit on top
+     * ({@see GROUP_TOURS}), the only Shifts with more than one seat.
+     *
+     * Faker-free and idempotent: Schedules and kinds key on (Group, name), Shifts on
+     * (Schedule, start), and Sign-ups on the (Shift, Member) pair.
      */
     private function scheduling(): void
     {
         $docents = Group::where('slug', self::PROGRAM)->firstOrFail();
 
         $month = CarbonImmutable::instance(now())->startOfMonth();
-
-        $schedule = Schedule::firstOrCreate(
-            ['group_id' => $docents->id, 'name' => $month->format('F Y')],
-            [
-                'starts_on' => $month->toDateString(),
-                'ends_on' => $month->endOfMonth()->toDateString(),
-                'state' => ScheduleState::Published,
-                'description' => 'The current-month docent tour roster — sign up for a shift below.',
-            ],
-        );
-
-        // Last month's seed drafted this month ahead ({@see draftNextMonth()}), so a reseed
-        // without a fresh migrate finds that draft here; publish it rather than leave it hidden.
-        if ($schedule->state !== ScheduleState::Published) {
-            $schedule->update(['state' => ScheduleState::Published]);
-        }
+        $lastMonth = $month->subMonth();
 
         $kinds = $this->shiftKinds($docents);
 
-        foreach ($this->shiftSpecs() as $spec) {
-            $kind = $spec['kind'] === null ? null : $kinds[$spec['kind']];
-            $this->shift($schedule, $month, $spec, $kind);
-        }
+        $previous = $this->monthSchedule($docents, $lastMonth, 'Last month\'s docent tour roster, worked and signed out.');
+        $current = $this->monthSchedule($docents, $month, 'The current-month docent tour roster — sign up for a tour below.');
 
-        $this->placeSignUps($docents, $schedule);
+        $this->tourShifts($previous, $lastMonth, $kinds);
+        $this->tourShifts($current, $month, $kinds);
+
+        $this->seatTours($docents, $previous, $current);
 
         $this->draftNextMonth($docents, $month);
 
         $this->watchVisitorGuidesDesk();
+    }
+
+    /**
+     * A published month Schedule on the Group, keyed on (Group, name) so a reseed heals
+     * rather than duplicates. Last month's seed drafted this month ahead
+     * ({@see draftNextMonth()}), so a reseed without a fresh migrate finds that draft here;
+     * publish it rather than leave it hidden.
+     */
+    private function monthSchedule(Group $group, CarbonImmutable $month, string $description): Schedule
+    {
+        $schedule = Schedule::firstOrCreate(
+            ['group_id' => $group->id, 'name' => $month->format('F Y')],
+            [
+                'starts_on' => $month->toDateString(),
+                'ends_on' => $month->endOfMonth()->toDateString(),
+                'state' => ScheduleState::Published,
+                'description' => $description,
+            ],
+        );
+
+        if ($schedule->state !== ScheduleState::Published) {
+            $schedule->update(['state' => ScheduleState::Published]);
+        }
+
+        return $schedule;
+    }
+
+    /**
+     * Write a month of tours onto the Schedule: the daily roster on every day of the month,
+     * then the month's Group Tours. Instants are built on the org wall clock and stored in
+     * UTC ({@see OrgTime}), the same path the authoring form takes, so an 11:00 tour reads
+     * as 11:00 for every viewer.
+     *
+     * A month is about 160 Shifts, so they go in one bulk insert rather than a
+     * `firstOrCreate` each (#431: the test suite seeds this class dozens of times). Only
+     * starts not already on the Schedule are inserted, so a reseed heals rather than
+     * duplicates.
+     *
+     * @param  array<string, ShiftKind>  $kinds
+     */
+    private function tourShifts(Schedule $schedule, CarbonImmutable $month, array $kinds): void
+    {
+        $specs = [];
+        for ($day = 0; $day < $month->daysInMonth; $day++) {
+            foreach (self::TOUR_HOURS as $hour => $kind) {
+                $specs[] = ['day' => $day, 'start' => [$hour, 0], 'minutes' => 60, 'capacity' => 1, 'kind' => $kind];
+            }
+        }
+        foreach (self::GROUP_TOURS as $tour) {
+            $specs[] = [...$tour, 'kind' => self::GROUP_TOUR];
+        }
+
+        $existing = $schedule->shifts()->pluck('starts_at')
+            ->mapWithKeys(fn ($startsAt) => [$startsAt->toDateTimeString() => true]);
+
+        $now = now();
+        $rows = [];
+        foreach ($specs as $spec) {
+            $start = $month->addDays($spec['day'])->setTime(...$spec['start']);
+            $startsAt = OrgTime::toUtc($start->toDateTimeString());
+
+            if ($existing->has($startsAt)) {
+                continue;
+            }
+
+            $rows[] = [
+                'schedule_id' => $schedule->id,
+                'starts_at' => $startsAt,
+                'ends_at' => OrgTime::toUtc($start->addMinutes($spec['minutes'])->toDateTimeString()),
+                'capacity' => $spec['capacity'],
+                'shift_kind_id' => $kinds[$spec['kind']]->id,
+                'audience' => ShiftAudience::Group->value,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        foreach (array_chunk($rows, self::HOURS_CHUNK) as $chunk) {
+            Shift::insert($chunk);
+        }
     }
 
     /**
@@ -942,48 +1054,141 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Seat some Docents volunteers on the Schedule's Shifts so the roster reads as a
-     * month already under way rather than an empty grid. Seats are drawn from the
-     * Group's living roster (never a departed Member), so every seat is a legitimate
-     * group-audience Sign-up. The earliest Shift is filled to capacity — the "full"
-     * state both views must render — and every other Shift is left one seat short of
-     * full, so a walkthrough always has somewhere to take a seat. Keyed on the
-     * (Shift, Member) pair so a reseed neither duplicates nor over-fills.
+     * Seat the Docents roster on its tours the way a real month fills. Every ended tour
+     * was worked, so it is full. An upcoming tour is taken or not by a deterministic draw
+     * weighted the way Docents sign up ({@see tourFillChance()}). An upcoming Group Tour is
+     * left one seat short, so a walkthrough always has a multi-seat Shift with room.
      *
-     * The Member Persona takes the first seat on the month's last Shift, so a walkthrough
-     * of her day has a seat to drop for as long as the month runs (#529).
+     * Worked tours carry the numbers filed at sign-out, near the legacy averages
+     * ({@see tourSeatRow()}), except tours ended in the last {@see UNRECORDED_DAYS} days.
+     * Those seats stay null, the sign-outs still to come, which is what the
+     * outstanding-shifts panel reads (ADR-0023 §5).
+     *
+     * The Member Persona is placed by hand, not by the draw (#529): on the latest ended
+     * tour, still owed a number, and on the month's last tour, a seat she can drop. The draw
+     * skips her, so her My sign-ups panel shows exactly those two.
+     *
+     * Seats are drawn from the Group's living roster (never a departed Member), so every
+     * seat is a legitimate group-audience Sign-up. Written in one bulk upsert on the
+     * (Shift, Member) grain, like {@see writeSeatRecords()}.
      */
-    private function placeSignUps(Group $group, Schedule $schedule): void
+    private function seatTours(Group $group, Schedule $previous, Schedule $current): void
     {
-        $members = $this->livingRoster($group);
+        $roster = $this->livingRoster($group);
+        $persona = collect($roster)->first($this->isMemberPersona(...));
+        $pool = array_values(array_filter($roster, fn (Member $member) => ! $this->isMemberPersona($member)));
 
-        if ($members === []) {
+        if ($pool === []) {
             return;
         }
 
-        $shifts = $schedule->shifts()->orderBy('starts_at')->get();
-        $memberPersona = collect($members)->first($this->isMemberPersona(...));
+        $now = CarbonImmutable::now();
+        $unrecordedFrom = $now->subDays(self::UNRECORDED_DAYS);
 
-        if ($memberPersona !== null && $shifts->isNotEmpty()) {
-            SignUp::firstOrCreate(['shift_id' => $shifts->last()->id, 'member_id' => $memberPersona->id]);
-        }
+        $shifts = Shift::whereIn('schedule_id', [$previous->id, $current->id])
+            ->with('kind')
+            ->orderBy('starts_at')
+            ->orderBy('id')
+            ->get();
 
-        $cursor = 0;
-        foreach ($shifts as $index => $shift) {
-            $seats = $index === 0 ? $shift->capacity : max(0, $shift->capacity - 1);
-            $taken = $shift->signUps()->count();
+        $personaShifts = [];
+        if ($persona !== null) {
+            $lastEnded = $shifts->filter(fn (Shift $shift) => $shift->ends_at->lessThan($now))->last();
+            $lastTour = $shifts->where('schedule_id', $current->id)->last();
 
-            for ($k = 0; $k < $seats && $taken < $seats; $k++, $cursor++) {
-                $signUp = SignUp::firstOrCreate([
-                    'shift_id' => $shift->id,
-                    'member_id' => $members[$cursor % count($members)]->id,
-                ]);
-
-                if ($signUp->wasRecentlyCreated) {
-                    $taken++;
+            foreach ([$lastEnded, $lastTour] as $shift) {
+                if ($shift !== null) {
+                    $personaShifts[$shift->id] = true;
                 }
             }
         }
+
+        $rows = [];
+        $cursor = 0;
+        foreach ($shifts as $shift) {
+            $ended = $shift->ends_at->lessThan($now);
+
+            $seats = match (true) {
+                $ended => $shift->capacity,
+                $shift->capacity > 1 => $shift->capacity - 1,
+                default => $this->spread($shift->starts_at->timestamp, 0, 99) < $this->tourFillChance($shift) ? 1 : 0,
+            };
+
+            $members = [];
+            if (isset($personaShifts[$shift->id])) {
+                $members[] = $persona;
+                $seats = max($seats, 1);
+            }
+            while (count($members) < $seats) {
+                $members[] = $pool[$cursor++ % count($pool)];
+            }
+
+            $recorded = $ended && $shift->ends_at->lessThan($unrecordedFrom);
+            foreach ($members as $seat => $member) {
+                $rows[] = $this->tourSeatRow($group, $shift, $member, $seat, $recorded, $now);
+            }
+        }
+
+        $this->writeSeatRecords($rows);
+    }
+
+    /**
+     * The chance, in percent, that an upcoming daily tour is already taken. Legacy's month
+     * in sign-up sat near 56% filled: weekday tours from 11:00 to 14:00 go first, 15:00
+     * and weekend tours last. These weights land the month near 58%.
+     */
+    private function tourFillChance(Shift $shift): int
+    {
+        $wallClock = $shift->starts_at->copy()->setTimezone(config('app.org_timezone'));
+        $late = $wallClock->hour >= 15;
+
+        return match (true) {
+            $wallClock->isWeekend() && $late => 20,
+            $wallClock->isWeekend(), $late => 45,
+            default => 70,
+        };
+    }
+
+    /**
+     * One tour seat as an upsert row, in the column set {@see writeSeatRecords()} writes.
+     * An unrecorded seat is null on every visitor column, the outstanding marker. A recorded
+     * one carries a count near the legacy averages: about 16 on a Museum Highlights tour
+     * (never empty), about 12 on a Gallery/Theme tour (sometimes a recorded zero), and a
+     * share of a group on a Group Tour. Extra interactions follow the Group's own switch.
+     * Deterministic ({@see spread()}), so a local reseed and a staging deploy read the same.
+     *
+     * @return array<string, int|CarbonImmutable|null>
+     */
+    private function tourSeatRow(Group $group, Shift $shift, Member $member, int $seat, bool $recorded, CarbonImmutable $now): array
+    {
+        $count = null;
+        $extra = null;
+
+        if ($recorded) {
+            $seed = $shift->starts_at->timestamp * 7 + $seat;
+            [$min, $max] = match ($shift->kind?->name) {
+                self::HIGHLIGHTS_TOUR => [5, 28],
+                self::GALLERY_TOUR => [0, 24],
+                default => [10, 25],
+            };
+
+            $count = $this->spread($seed, $min, $max);
+            $extra = $group->collects_extra_interactions ? $this->spread($seed + 1, 0, 12) : null;
+        }
+
+        return [
+            'shift_id' => $shift->id,
+            'member_id' => $member->id,
+            'visitor_count' => $count,
+            'extra_interaction_count' => $extra,
+            'visitors_france_europe' => null,
+            'visitors_quebec' => null,
+            'visitors_toronto' => null,
+            'visitors_rest_of_canada' => null,
+            'visitors_other_countries' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
     }
 
     /** The Member Persona ({@see PersonaCatalogue::MEMBER_EMAIL}) — the seed's plain Docents Member. */
@@ -1005,7 +1210,7 @@ class DemoSeeder extends Seeder
      * than restating the mapping: a Group collects a count, and on top of it the tour-leading split
      * ({@see seatRecord()}) or GDR's five origins, precisely as its own flags say.
      *
-     * Each collecting Group gets one recent Schedule of ended Shifts. The first is left unrecorded
+     * Each collecting Group but Docents gets one recent Schedule of ended Shifts. The first is left unrecorded
      * on purpose — null on every seat — so the outstanding-shifts panel has something to show the
      * personas seated there (the roster is id-ordered and personas, seeded first, sort ahead of the
      * generated pool); the rest carry counts, a few of them a deliberate recorded zero, never
@@ -1018,7 +1223,12 @@ class DemoSeeder extends Seeder
      */
     private function afterShiftRecords(): void
     {
-        $groups = Group::where('collects_visitor_count', true)->orderBy('id')->get();
+        // Docents records on its own month tours instead ({@see seatTours()}): a separate
+        // Schedule of three-hour Shifts is not a shape Docents work.
+        $groups = Group::where('collects_visitor_count', true)
+            ->where('slug', '!=', self::PROGRAM)
+            ->orderBy('id')
+            ->get();
 
         $now = OrgTime::now();
 
@@ -1222,80 +1432,25 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Seed the Group's small kind vocabulary (ADR-0021 §3) — a real table so a
-     * qualification requirement has somewhere to hang later; the first pass seeds the
-     * rows and builds no maintenance CRUD. Ordered by `sort_order`, all active, keyed
-     * on (Group, name) so a reseed heals rather than duplicates.
+     * Seed the Group's small kind vocabulary (ADR-0021 §3): the Docents' two daily tour
+     * labels and the booked Group Tour. A real table so a qualification requirement has
+     * somewhere to hang later; the first pass seeds the rows and builds no maintenance CRUD.
+     * Ordered by `sort_order`, all active, keyed on (Group, name) so a reseed heals rather
+     * than duplicates.
      *
-     * @return list<ShiftKind>
+     * @return array<string, ShiftKind>
      */
     private function shiftKinds(Group $group): array
     {
-        $names = ['Highlights Tour', 'Gallery Tour', 'School Group'];
-
         $kinds = [];
-        foreach ($names as $order => $name) {
-            $kinds[] = ShiftKind::firstOrCreate(
+        foreach ([self::HIGHLIGHTS_TOUR, self::GALLERY_TOUR, self::GROUP_TOUR] as $order => $name) {
+            $kinds[$name] = ShiftKind::firstOrCreate(
                 ['group_id' => $group->id, 'name' => $name],
                 ['active' => true, 'sort_order' => $order],
             );
         }
 
         return $kinds;
-    }
-
-    /**
-     * The curated Shifts, as day-offsets from the month's first day so the whole
-     * roster shifts with `now()` on every reseed and always lands inside the current
-     * month (offsets stay ≤ 24, within even a 28-day month). A spread of start times,
-     * durations and capacities, two Shifts opened to the whole org — enough variety
-     * that the Agenda list and the month grid both read as a real month's work.
-     *
-     * `kind` indexes {@see shiftKinds} (0-based), or null for a kind-less Shift —
-     * one is left null so the Agenda exercises both the kinded and the bare shapes.
-     *
-     * @return list<array{day: int, start: int, hours: int, capacity: int, audience: ShiftAudience, kind: int|null}>
-     */
-    private function shiftSpecs(): array
-    {
-        $group = ShiftAudience::Group;
-        $open = ShiftAudience::Open;
-
-        return [
-            ['day' => 2, 'start' => 10, 'hours' => 3, 'capacity' => 2, 'audience' => $group, 'kind' => 0],
-            ['day' => 4, 'start' => 13, 'hours' => 3, 'capacity' => 1, 'audience' => $group, 'kind' => 1],
-            ['day' => 7, 'start' => 10, 'hours' => 2, 'capacity' => 4, 'audience' => $open, 'kind' => 0],
-            ['day' => 9, 'start' => 14, 'hours' => 2, 'capacity' => 2, 'audience' => $group, 'kind' => null],
-            ['day' => 14, 'start' => 10, 'hours' => 3, 'capacity' => 3, 'audience' => $group, 'kind' => 2],
-            ['day' => 16, 'start' => 13, 'hours' => 2, 'capacity' => 1, 'audience' => $group, 'kind' => 1],
-            ['day' => 21, 'start' => 10, 'hours' => 3, 'capacity' => 2, 'audience' => $open, 'kind' => 2],
-            ['day' => 24, 'start' => 13, 'hours' => 3, 'capacity' => 4, 'audience' => $group, 'kind' => 0],
-        ];
-    }
-
-    /**
-     * Create (or heal) one Shift from a spec. Its instants are built on the org wall
-     * clock and stored in UTC ({@see OrgTime}) — the same path the authoring form
-     * takes — so a "10am" Shift reads as 10am for every viewer. Keyed on
-     * (Schedule, starts_at) so a reseed neither duplicates nor drifts.
-     *
-     * @param  array{day: int, start: int, hours: int, capacity: int, audience: ShiftAudience, kind: int|null}  $spec
-     */
-    private function shift(Schedule $schedule, CarbonImmutable $month, array $spec, ?ShiftKind $kind): Shift
-    {
-        $day = $month->addDays($spec['day']);
-        $startsAt = OrgTime::toUtc($day->setTime($spec['start'], 0)->toDateTimeString());
-        $endsAt = OrgTime::toUtc($day->setTime($spec['start'] + $spec['hours'], 0)->toDateTimeString());
-
-        return Shift::firstOrCreate(
-            ['schedule_id' => $schedule->id, 'starts_at' => $startsAt],
-            [
-                'ends_at' => $endsAt,
-                'capacity' => $spec['capacity'],
-                'audience' => $spec['audience'],
-                'shift_kind_id' => $kind?->id,
-            ],
-        );
     }
 
     /**
