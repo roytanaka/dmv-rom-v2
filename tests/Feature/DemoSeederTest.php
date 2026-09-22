@@ -32,6 +32,7 @@ use App\Support\VisitorInteractionStatistics;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -1027,6 +1028,164 @@ it('gives Gallery Interpreters a handling collection and no other Group any Obje
 
     // No other Group has any Object.
     expect(HandlingObject::where('group_id', '!=', $gi->id)->count())->toBe(0);
+});
+
+/** The Gallery Interpreters Schedule named for the current month, as the demo seed names it. */
+function galleryInterpretersCurrentMonth(): Schedule
+{
+    return Schedule::where('group_id', Group::where('slug', DemoSeeder::GALLERY_INTERPRETERS)->value('id'))
+        ->where('name', CarbonImmutable::instance(now())->format('F Y'))
+        ->firstOrFail();
+}
+
+/** Every Gallery Interpreters Sign-up, its Shift and kind and reserved Objects eager-loaded. */
+function galleryInterpreterSignUps(): Collection
+{
+    return SignUp::whereRelation('shift.schedule', 'group_id', Group::where('slug', DemoSeeder::GALLERY_INTERPRETERS)->value('id'))
+        ->with(['shift.kind', 'objects'])
+        ->get();
+}
+
+it('drops the separate Recent shifts Schedule on Gallery Interpreters, who author their own shifts', function () {
+    expect(Schedule::where('group_id', Group::where('slug', DemoSeeder::GALLERY_INTERPRETERS)->value('id'))
+        ->where('name', DemoSeeder::RECENT_SCHEDULE_NAME)->exists())->toBeFalse();
+});
+
+it('seeds a Gallery Interpreters month of self-serve shifts: about 4.5 a day, Tue–Sun, at distinct hourly and half-hourly starts', function () {
+    $schedule = galleryInterpretersCurrentMonth()->load('shifts.kind');
+    $orgTimezone = config('app.org_timezone');
+    $month = CarbonImmutable::instance(now())->startOfMonth();
+
+    expect($schedule->state)->toBe(ScheduleState::Published);
+
+    // The regular gallery shifts — the off-site event station is measured on its own below.
+    $regular = $schedule->shifts->filter(fn (Shift $s) => ! $s->kind->off_site);
+
+    // Tuesday to Sunday only: no gallery shift lands on a Monday.
+    $byDay = $regular->groupBy(fn (Shift $s) => $s->starts_at->copy()->setTimezone($orgTimezone)->toDateString());
+    expect($byDay->keys()->every(fn (string $date) => ! CarbonImmutable::parse($date)->isMonday()))->toBeTrue();
+
+    // About four and a half a working day.
+    $workingDays = collect(range(0, $month->daysInMonth - 1))
+        ->map(fn (int $day) => $month->addDays($day))
+        ->reject(fn (CarbonImmutable $date) => $date->isMonday())
+        ->count();
+    expect($regular->count() / $workingDays)->toBeGreaterThan(4.0)->toBeLessThan(5.0);
+
+    // Every shift is self-serve shaped: capacity 1, one Sign-up, a station kind, one to three units.
+    $regular->each(function (Shift $s) use ($orgTimezone) {
+        $wall = $s->starts_at->copy()->setTimezone($orgTimezone);
+        $units = (int) round($s->starts_at->diffInMinutes($s->ends_at) / 45);
+
+        expect($s->capacity)->toBe(1)
+            ->and($s->signUps()->count())->toBe(1)
+            ->and($units)->toBeGreaterThanOrEqual(1)->toBeLessThanOrEqual(3)
+            // Starts on the hour or half hour, from 10:00 to 16:00.
+            ->and($wall->hour)->toBeGreaterThanOrEqual(10)->toBeLessThanOrEqual(16)
+            ->and(in_array($wall->minute, [0, 30], true))->toBeTrue()
+            ->and(in_array($s->kind->name, DemoSeeder::GI_STATIONS, true))->toBeTrue();
+    });
+
+    // The busy front five carry more of the month than the quiet four (ADR-0026 §2).
+    $byStation = $regular->countBy(fn (Shift $s) => $s->kind->name);
+    $busy = collect(array_slice(DemoSeeder::GI_STATIONS, 0, 5))->sum(fn (string $name) => $byStation[$name] ?? 0);
+    $quiet = collect(array_slice(DemoSeeder::GI_STATIONS, 5))->sum(fn (string $name) => $byStation[$name] ?? 0);
+    expect($busy)->toBeGreaterThan($quiet)
+        // …but all nine stations are worked at least once.
+        ->and($byStation->keys()->sort()->values()->all())->toBe(collect(DemoSeeder::GI_STATIONS)->sort()->values()->all());
+});
+
+it('reserves three Objects on every GI Sign-up with none double-booked across overlapping holds', function () {
+    $signUps = galleryInterpreterSignUps();
+
+    expect($signUps)->not->toBeEmpty()
+        ->and($signUps->every(fn (SignUp $s) => $s->objects->count() === 3))->toBeTrue();
+
+    // The double-booking block the app runs on write: an Object may sit on two Sign-ups only when
+    // their Shifts' holds do not overlap ({@see App\Support\Scheduling\ObjectClash}).
+    $byObject = [];
+    foreach ($signUps as $signUp) {
+        foreach ($signUp->objects as $object) {
+            $byObject[$object->id][] = $signUp->shift;
+        }
+    }
+
+    foreach ($byObject as $shifts) {
+        foreach ($shifts as $i => $a) {
+            foreach (array_slice($shifts, $i + 1) as $b) {
+                expect($a->objectHold()->overlaps($b->objectHold()))->toBeFalse();
+            }
+        }
+    }
+});
+
+it('puts no GI station on two seats whose times overlap, so the seed clears the station-clash check', function () {
+    $signUps = galleryInterpreterSignUps();
+
+    // The station-clash warning the app raises: two Sign-ups on one kind whose Shift intervals
+    // overlap ({@see App\Support\Scheduling\ObjectClash::station}). The seed must raise none.
+    $byKind = $signUps->groupBy(fn (SignUp $s) => $s->shift->shift_kind_id);
+
+    $byKind->each(function ($seats) {
+        $shifts = $seats->pluck('shift')->values();
+        foreach ($shifts as $i => $a) {
+            foreach ($shifts->slice($i + 1) as $b) {
+                $overlap = $a->starts_at->lessThan($b->ends_at) && $b->starts_at->lessThan($a->ends_at);
+                expect($overlap)->toBeFalse();
+            }
+        }
+    });
+});
+
+it('records the worked GI past days and leaves the most recent shifts outstanding', function () {
+    $signUps = galleryInterpreterSignUps()->filter(fn (SignUp $s) => $s->shift->ends_at->isPast());
+
+    $older = $signUps->filter(fn (SignUp $s) => $s->shift->ends_at->lessThan(now()->subDays(2)));
+    $recent = $signUps->filter(fn (SignUp $s) => $s->shift->ends_at->greaterThanOrEqualTo(now()->subDays(2)));
+
+    // Past days carry the visitor numbers filed at sign-out, about 32 a 45-minute unit.
+    expect($older)->not->toBeEmpty()
+        ->and($older->every(fn (SignUp $s) => $s->visitor_count > 0))->toBeTrue()
+        ->and($older->every(function (SignUp $s) {
+            $units = (int) round($s->shift->starts_at->diffInMinutes($s->shift->ends_at) / 45);
+
+            return $s->visitor_count >= $units * 26 && $s->visitor_count <= $units * 38;
+        }))->toBeTrue()
+        // The recent shifts are still owed a number — the outstanding panel reads them (ADR-0023 §5).
+        ->and($recent)->not->toBeEmpty()
+        ->and($recent->every(fn (SignUp $s) => $s->visitor_count === null))->toBeTrue();
+});
+
+it('seeds one off-site GI event over consecutive days, its Objects held a day either side', function () {
+    $gi = Group::where('slug', DemoSeeder::GALLERY_INTERPRETERS)->firstOrFail();
+
+    // The off-site station is the one kind flagged off_site (ADR-0026 §4).
+    $offSite = ShiftKind::where('group_id', $gi->id)->where('off_site', true)->get();
+    expect($offSite)->toHaveCount(1);
+
+    $shifts = Shift::whereRelation('schedule', 'group_id', $gi->id)
+        ->where('shift_kind_id', $offSite->first()->id)
+        ->with(['kind', 'signUps.objects'])
+        ->orderBy('starts_at')
+        ->get();
+
+    $orgTimezone = config('app.org_timezone');
+    $days = $shifts->map(fn (Shift $s) => $s->starts_at->copy()->setTimezone($orgTimezone)->toDateString())->unique()->values();
+
+    // Consecutive days, each carrying seats with Objects on them.
+    expect($days->count())->toBe(DemoSeeder::GI_EVENT_DAYS)
+        ->and($shifts->every(fn (Shift $s) => $s->signUps->isNotEmpty()))->toBeTrue()
+        ->and($shifts->every(fn (Shift $s) => $s->signUps->every(fn (SignUp $u) => $u->objects->isNotEmpty())))->toBeTrue();
+
+    for ($i = 1; $i < $days->count(); $i++) {
+        expect(CarbonImmutable::parse($days[$i - 1])->addDay()->toDateString())->toBe($days[$i]);
+    }
+
+    // The off-site kind widens the Object hold beyond the shift — a day before to a day after.
+    $shifts->each(function (Shift $s) {
+        expect($s->objectHold()->start->lessThan($s->starts_at))->toBeTrue()
+            ->and($s->objectHold()->end->greaterThan($s->ends_at))->toBeTrue();
+    });
 });
 
 it('is idempotent across the scheduling rows — re-seeding heals rather than duplicates', function () {

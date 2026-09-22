@@ -37,6 +37,7 @@ use Carbon\CarbonImmutable;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -279,6 +280,53 @@ class DemoSeeder extends Seeder
     /** Volunteers on each daytime Wayfinding hour. */
     private const WAYFINDING_SEATS = 5;
 
+    /**
+     * The nine Gallery Interpreters stations (ADR-0026 §2), busiest five first. The month weights
+     * toward the front five, exactly as the legacy season leans on Teck Earth Sciences, China,
+     * Dawn of Life, Egypt and Age of Dinosaurs.
+     *
+     * @var list<string>
+     */
+    public const GI_STATIONS = [
+        'Teck Earth Sciences',
+        'China',
+        'Dawn of Life',
+        'Egypt',
+        'Age of Dinosaurs',
+        'Bat Cave',
+        'Mammals',
+        'Mesoamerica',
+        'Textiles & Fashions',
+    ];
+
+    /** How many of the nine stations carry the bulk of the roster — the weighted-toward front five. */
+    private const GI_BUSY_STATIONS = 5;
+
+    /** The weight a busy station's pick carries over a quiet one, so the front five fill more often. */
+    private const GI_BUSY_WEIGHT = 3;
+
+    /** The off-site event station (ADR-0026 §4): an off-site kind whose Objects hold a day either side. */
+    private const GI_OFF_SITE_STATION = 'CNE';
+
+    /** Day-offset of the off-site event's first day, and how many consecutive days it runs. */
+    private const GI_EVENT_DAY = 15;
+
+    public const GI_EVENT_DAYS = 3;
+
+    /** The off-site event's daily seats: one shift a start, back-to-back so the station never clashes. */
+    private const GI_EVENT_STARTS = [[10, 0], [13, 0]];
+
+    private const GI_EVENT_MINUTES = 180;
+
+    /** A GI unit is 45 minutes, one to three of them a shift, weighted about 50 / 27 / 7. */
+    private const GI_UNIT_MINUTES = 45;
+
+    /** Objects a self-serve GI shift reserves — three, as the legacy season's rows do. */
+    private const GI_OBJECTS_PER_SHIFT = 3;
+
+    /** About four and a half self-serve shifts a GI day: four or five, drawn even, average 4.5. */
+    private const GI_SHIFTS_PER_DAY = [4, 5];
+
     /** Tours that ended within this many days stay unrecorded: the sign-outs still to come. */
     private const UNRECORDED_DAYS = 2;
 
@@ -330,8 +378,8 @@ class DemoSeeder extends Seeder
         $this->build($this->tree(), null, 0);
         $this->roster();
         $this->bulkRoster();
-        $this->scheduling();
         $this->objects();
+        $this->scheduling();
         $this->afterShiftRecords();
         $this->hours();
         $this->news();
@@ -1059,6 +1107,8 @@ class DemoSeeder extends Seeder
         $this->receptionScheduling($lastMonth, $month);
 
         $this->wayfindersScheduling($lastMonth, $month);
+
+        $this->galleryInterpretersScheduling($month);
     }
 
     /**
@@ -1344,6 +1394,295 @@ class DemoSeeder extends Seeder
                 return $this->spread($shift->starts_at->timestamp, 0, 99) < ($regular ? 90 : 10) ? 1 : 0;
             },
         );
+    }
+
+    /**
+     * The Gallery Interpreters month (#589, ADR-0026), shaped like the real self-serve roster
+     * rather than the generic recent-shifts Schedule the other collecting Groups drop. Every Shift
+     * is self-serve shaped ({@see ADR-0026 §1}): capacity 1, one Sign-up on it — the author — a
+     * station for its kind, one to three 45-minute units for its length, and three Objects on the
+     * Sign-up. Written on the current month, so past days carry the visitor numbers filed at
+     * sign-out and future days read as advance sign-ups.
+     *
+     * The month passes the app's own two checks by construction ({@see reserveGalleryInterpreterObjects()}
+     * and the distinct-station-per-day rule of {@see galleryInterpreterSpecs()}): no Object sits on
+     * two overlapping holds and no station on two seats at the same start. One off-site event runs
+     * three days, its Objects held a day either side by the off-site kind. Skipped silently if the
+     * Group is absent.
+     */
+    private function galleryInterpretersScheduling(CarbonImmutable $month): void
+    {
+        $group = Group::where('slug', self::GALLERY_INTERPRETERS)->first();
+
+        if ($group === null) {
+            return;
+        }
+
+        $kinds = $this->galleryInterpreterKinds($group);
+
+        $schedule = $this->monthSchedule($group, $month, 'The Gallery Interpreters roster. Write your own shift below.');
+
+        $this->writeShifts($schedule, $month, $this->galleryInterpreterSpecs($month), $kinds);
+
+        // A self-serve Shift is capacity 1 with its author's Sign-up on it, so every seat is taken;
+        // the count a worked seat carries scales with its units, about 32 visitors a 45-minute unit.
+        $this->seatRoster(
+            $group,
+            [$schedule],
+            fn (Shift $shift) => $shift->capacity,
+            fn (Shift $shift) => $this->galleryInterpreterCount($shift),
+        );
+
+        $this->reserveGalleryInterpreterObjects($group, $schedule);
+    }
+
+    /**
+     * The GI shift-kind vocabulary: the nine stations ({@see GI_STATIONS}) and the off-site event
+     * station, the last flagged `off_site` so its Objects hold a day either side (ADR-0026 §4).
+     * Keyed on (Group, name) so a reseed heals rather than duplicates.
+     *
+     * @return array<string, ShiftKind>
+     */
+    private function galleryInterpreterKinds(Group $group): array
+    {
+        $kinds = [];
+        foreach (self::GI_STATIONS as $order => $name) {
+            $kinds[$name] = ShiftKind::firstOrCreate(
+                ['group_id' => $group->id, 'name' => $name],
+                ['active' => true, 'off_site' => false, 'sort_order' => $order],
+            );
+        }
+
+        $kinds[self::GI_OFF_SITE_STATION] = ShiftKind::firstOrCreate(
+            ['group_id' => $group->id, 'name' => self::GI_OFF_SITE_STATION],
+            ['active' => true, 'off_site' => true, 'sort_order' => count(self::GI_STATIONS)],
+        );
+
+        return $kinds;
+    }
+
+    /**
+     * A month of self-serve GI shift specs: about 4.5 a day, Tuesday to Sunday, at distinct starts
+     * on the hour and half hour from 10:00 to 16:00. Each day draws distinct start slots and
+     * distinct stations, so no two of a day's shifts share a start or a station — the seed passes
+     * the station-clash check without an acknowledgement. The off-site event is appended last.
+     *
+     * @return list<array{day: int, start: array{int, int}, minutes: int, capacity: int, kind: string}>
+     */
+    private function galleryInterpreterSpecs(CarbonImmutable $month): array
+    {
+        $slots = $this->galleryInterpreterStartSlots();
+
+        $specs = [];
+        for ($day = 0; $day < $month->daysInMonth; $day++) {
+            $date = $month->addDays($day);
+            if ($date->isMonday()) {
+                continue;
+            }
+
+            $seed = $date->timestamp;
+            [$few, $many] = self::GI_SHIFTS_PER_DAY;
+            $count = $this->spread($seed, 0, 1) === 0 ? $few : $many;
+
+            $slotPicks = $this->pickDistinct(count($slots), $count, $seed + 1);
+            sort($slotPicks);
+            $stations = $this->pickWeightedStations($count, $seed + 2);
+
+            foreach ($slotPicks as $i => $slotIndex) {
+                $specs[] = [
+                    'day' => $day,
+                    'start' => $slots[$slotIndex],
+                    'minutes' => $this->galleryInterpreterUnits($seed + 10 + $i) * self::GI_UNIT_MINUTES,
+                    'capacity' => 1,
+                    'kind' => $stations[$i],
+                ];
+            }
+        }
+
+        return array_merge($specs, $this->galleryInterpreterEventSpecs());
+    }
+
+    /**
+     * The self-serve start slots: every hour and half hour from 10:00 to 16:00 (thirteen in all,
+     * ending on 16:00, not 16:30). A GI picks one of these for a shift's start.
+     *
+     * @return list<array{int, int}>
+     */
+    private function galleryInterpreterStartSlots(): array
+    {
+        $slots = [];
+        for ($hour = 10; $hour <= 16; $hour++) {
+            $slots[] = [$hour, 0];
+            if ($hour < 16) {
+                $slots[] = [$hour, 30];
+            }
+        }
+
+        return $slots;
+    }
+
+    /**
+     * The off-site event's shift specs: two back-to-back seats a day ({@see GI_EVENT_STARTS}) for
+     * {@see GI_EVENT_DAYS} consecutive days from {@see GI_EVENT_DAY}, all on the off-site station.
+     * The two daily starts do not overlap, so the shared off-site kind never clashes with itself.
+     *
+     * @return list<array{day: int, start: array{int, int}, minutes: int, capacity: int, kind: string}>
+     */
+    private function galleryInterpreterEventSpecs(): array
+    {
+        $specs = [];
+        for ($offset = 0; $offset < self::GI_EVENT_DAYS; $offset++) {
+            foreach (self::GI_EVENT_STARTS as $start) {
+                $specs[] = [
+                    'day' => self::GI_EVENT_DAY + $offset,
+                    'start' => $start,
+                    'minutes' => self::GI_EVENT_MINUTES,
+                    'capacity' => 1,
+                    'kind' => self::GI_OFF_SITE_STATION,
+                ];
+            }
+        }
+
+        return $specs;
+    }
+
+    /**
+     * A shift's unit count, one to three, weighted about 50 / 27 / 7 as the legacy season runs
+     * (mostly one unit, a fair few two, a handful three).
+     */
+    private function galleryInterpreterUnits(int $seed): int
+    {
+        return match (true) {
+            $this->spread($seed, 0, 83) < 50 => 1,
+            $this->spread($seed, 0, 83) < 77 => 2,
+            default => 3,
+        };
+    }
+
+    /**
+     * The visitor-count range a worked GI seat carries — about 32 a 45-minute unit, so a longer
+     * shift reads higher. Returned as a range for {@see seatRow()} to draw within.
+     *
+     * @return array{int, int}
+     */
+    private function galleryInterpreterCount(Shift $shift): array
+    {
+        $units = max(1, (int) round($shift->starts_at->diffInMinutes($shift->ends_at) / self::GI_UNIT_MINUTES));
+
+        return [$units * 26, $units * 38];
+    }
+
+    /**
+     * Pick `$n` distinct indices from `0..$size - 1`, ordered by a seeded hash so the choice is
+     * deterministic and stable across reseeds ({@see spread()}'s faker-free rule).
+     *
+     * @return list<int>
+     */
+    private function pickDistinct(int $size, int $n, int $seed): array
+    {
+        $indices = range(0, $size - 1);
+        usort($indices, fn (int $a, int $b) => $this->hash($seed.':'.$a) <=> $this->hash($seed.':'.$b));
+
+        return array_slice($indices, 0, $n);
+    }
+
+    /**
+     * Pick `$n` distinct stations, weighted toward the busy front five ({@see GI_BUSY_WEIGHT}) but
+     * never excluding the quiet four, so all nine appear across the month and the front five lead.
+     * Each station's sort key is a seeded hash divided by its weight, so a heavier station sorts
+     * earlier more often. Deterministic and stable across reseeds.
+     *
+     * @return list<string>
+     */
+    private function pickWeightedStations(int $n, int $seed): array
+    {
+        $ordered = [];
+        foreach (self::GI_STATIONS as $i => $name) {
+            $weight = $i < self::GI_BUSY_STATIONS ? self::GI_BUSY_WEIGHT : 1;
+            $ordered[] = ['name' => $name, 'key' => ($this->hash($seed.':'.$i) % 1000) / $weight];
+        }
+
+        usort($ordered, fn (array $a, array $b) => $a['key'] <=> $b['key']);
+
+        return array_map(fn (array $station) => $station['name'], array_slice($ordered, 0, $n));
+    }
+
+    /**
+     * Put three Objects on every GI Sign-up (ADR-0026 §3) so no Object sits on two overlapping
+     * holds — the double-booking block the app runs on write ({@see App\Support\Scheduling\ObjectClash}).
+     * The handling collection splits in two: a regular pool and an off-site pool, disjoint, so an
+     * event Object (held a day either side) can never collide with a regular one on a nearby day.
+     *
+     * Within the regular pool, a day's shifts take successive, non-overlapping triples, so two
+     * shifts on one day never share an Object however their times overlap. The off-site seats all
+     * overlap each other (their holds span the whole event window), so each takes a distinct triple
+     * from the off-site pool. Written in one bulk upsert on the (Object, Sign-up) grain, so a reseed
+     * heals rather than doubles, the same reason the seat records upsert ({@see writeSeatRecords()}).
+     */
+    private function reserveGalleryInterpreterObjects(Group $group, Schedule $schedule): void
+    {
+        $objects = $group->objects()->orderBy('sort_order')->get();
+
+        if ($objects->isEmpty()) {
+            return;
+        }
+
+        $eventPoolSize = self::GI_EVENT_DAYS * count(self::GI_EVENT_STARTS) * self::GI_OBJECTS_PER_SHIFT;
+        $regularPool = $objects->slice(0, max(0, $objects->count() - $eventPoolSize))->values();
+        $eventPool = $objects->slice(max(0, $objects->count() - $eventPoolSize))->values();
+
+        $signUps = SignUp::whereRelation('shift', 'schedule_id', $schedule->id)
+            ->with('shift.kind')
+            ->get();
+
+        $timezone = config('app.org_timezone');
+        [$event, $regular] = $signUps->partition(fn (SignUp $signUp) => $signUp->shift->kind?->off_site);
+
+        $now = CarbonImmutable::now();
+        $rows = [];
+
+        // Each day's regular shifts take successive triples from the regular pool — distinct within
+        // the day, reused freely across days, which never overlap.
+        $regular->groupBy(fn (SignUp $signUp) => $signUp->shift->starts_at->copy()->setTimezone($timezone)->toDateString())
+            ->each(function (EloquentCollection $day) use ($regularPool, &$rows, $now) {
+                $ordered = $day->sortBy([['shift.starts_at', 'asc'], ['shift.id', 'asc']])->values();
+                foreach ($ordered as $index => $signUp) {
+                    $rows = array_merge($rows, $this->objectReservationRows($signUp, $regularPool, $index, $now));
+                }
+            });
+
+        // The off-site seats all overlap, so each takes a distinct triple from the off-site pool.
+        $event->sortBy([['shift.starts_at', 'asc'], ['shift.id', 'asc']])->values()
+            ->each(function (SignUp $signUp, int $index) use ($eventPool, &$rows, $now) {
+                $rows = array_merge($rows, $this->objectReservationRows($signUp, $eventPool, $index, $now));
+            });
+
+        foreach (array_chunk($rows, self::HOURS_CHUNK) as $chunk) {
+            DB::table('object_sign_up')->upsert($chunk, ['object_id', 'sign_up_id'], ['updated_at']);
+        }
+    }
+
+    /**
+     * The pivot rows for one Sign-up's three Objects, drawn as the `$index`-th successive triple
+     * from `$pool` (positions `3·index .. 3·index + 2`, wrapped as a guard the pool sizes never hit).
+     *
+     * @param  EloquentCollection<int, HandlingObject>  $pool
+     * @return list<array{object_id: int, sign_up_id: int, created_at: CarbonImmutable, updated_at: CarbonImmutable}>
+     */
+    private function objectReservationRows(SignUp $signUp, EloquentCollection $pool, int $index, CarbonImmutable $now): array
+    {
+        $rows = [];
+        for ($slot = 0; $slot < self::GI_OBJECTS_PER_SHIFT; $slot++) {
+            $object = $pool[($index * self::GI_OBJECTS_PER_SHIFT + $slot) % $pool->count()];
+            $rows[] = [
+                'object_id' => $object->id,
+                'sign_up_id' => $signUp->id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        return $rows;
     }
 
     /**
@@ -1654,10 +1993,11 @@ class DemoSeeder extends Seeder
      */
     private function afterShiftRecords(): void
     {
-        // Docents, Visitor Guides, GDR and Wayfinders record on their own month rosters instead
-        // ({@see seatRoster()}): a separate Schedule of three-hour Shifts is not a shape they work.
+        // Docents, Visitor Guides, GDR, Wayfinders and Gallery Interpreters record on their own
+        // month rosters instead ({@see seatRoster()}): a separate Schedule of three-hour Shifts is
+        // not a shape any of them works. GI writes its own self-serve month ({@see galleryInterpretersScheduling()}).
         $groups = Group::where('collects_visitor_count', true)
-            ->whereNotIn('slug', [self::PROGRAM, self::VISITOR_GUIDES, self::GUIDES_DU_ROM, self::VISITOR_WAYFINDERS])
+            ->whereNotIn('slug', [self::PROGRAM, self::VISITOR_GUIDES, self::GUIDES_DU_ROM, self::VISITOR_WAYFINDERS, self::GALLERY_INTERPRETERS])
             ->orderBy('id')
             ->get();
 
