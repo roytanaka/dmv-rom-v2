@@ -21,7 +21,7 @@ Votre quart rejoint l'horaire avec votre nom.
 
 ## Passer l'avertissement de poste
 
-Un·e autre interprète occupe peut-être déjà ce poste à ce moment. Le formulaire vous avertit et vous demande de continuer.
+Un·e autre membre occupe peut-être déjà ce poste à ce moment. Le formulaire vous avertit et vous demande de continuer.
 
 1. Lisez l'avertissement.
 2. Sélectionnez **Continuer** pour garder votre début, ou **Annuler** pour le changer.

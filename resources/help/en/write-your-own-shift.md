@@ -21,7 +21,7 @@ Your shift joins the Schedule with your name on it.
 
 ## Clear the station warning
 
-Another interpreter may already hold that station at that time. The form warns you and asks to continue.
+Another member may already hold that station at that time. The form warns you and asks to continue.
 
 1. Read the warning.
 2. Select **Continue** to keep your start, or **Cancel** to change it.
