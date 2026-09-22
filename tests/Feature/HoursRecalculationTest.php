@@ -35,7 +35,7 @@ function recalcNow(): CarbonImmutable
 const RECALC_MONTH = '202608';
 
 /** A Group that runs scheduling, listed org-wide, at the given walks-to-hours multiplier. */
-function recalcGroup(int $multiplier = 1): Group
+function recalcGroup(float $multiplier = 1): Group
 {
     return Group::factory()->publicListing()->create([
         'has_scheduling' => true,
@@ -65,6 +65,24 @@ function recalcSignUp(Group $group, Member $member, string $endsAtLocal, int $le
     $shift = Shift::factory()->create([
         'schedule_id' => $schedule->id,
         'starts_at' => $endsAt->subHours($lengthHours)->utc(),
+        'ends_at' => $endsAt->utc(),
+        'audience' => $audience,
+    ]);
+
+    return SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => $member->id]);
+}
+
+/**
+ * Seat a Member on a fresh Shift of the given length in minutes, ending at the given
+ * org-local datetime — for the self-serve Groups that schedule in sub-hour units.
+ */
+function recalcSignUpMinutes(Group $group, Member $member, string $endsAtLocal, int $lengthMinutes, ShiftAudience $audience = ShiftAudience::Group): SignUp
+{
+    $endsAt = CarbonImmutable::parse($endsAtLocal, 'America/Toronto');
+    $schedule = Schedule::factory()->create(['group_id' => $group->id]);
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'starts_at' => $endsAt->subMinutes($lengthMinutes)->utc(),
         'ends_at' => $endsAt->utc(),
         'audience' => $audience,
     ]);
@@ -107,6 +125,54 @@ it('applies the Group hours multiplier once (Walker doubles a 3h Shift to 6)', f
         ->assertRedirect();
 
     expect(HoursRecord::where('member_id', $worker->id)->sole()->scheduled_hours)->toBe(6);
+});
+
+it('credits a Gallery Interpreter one scheduled hour per 45-minute unit — six units make six hours (ADR-0026 §7)', function () {
+    // GI credit one hour per 45-minute unit: a 1.333 multiplier applied to the summed
+    // minutes, rounded once. Six units = 270 minutes × 1.333 ÷ 60 ≈ 6.
+    $group = recalcGroup(multiplier: 1.333);
+    $scheduler = recalcOfficer($group);
+    $worker = Member::factory()->create();
+    foreach ([5, 6, 7, 8, 9, 10] as $day) {
+        recalcSignUpMinutes($group, $worker, sprintf('2026-08-%02d 13:00', $day), 45);
+    }
+
+    $this->actingAs($scheduler)
+        ->post(route('hours.recalculate', $group), ['year_month' => RECALC_MONTH])
+        ->assertRedirect();
+
+    expect(HoursRecord::where('member_id', $worker->id)->sole()->scheduled_hours)->toBe(6);
+});
+
+it('credits a single 45-minute Gallery Interpreter unit as one scheduled hour', function () {
+    $group = recalcGroup(multiplier: 1.333);
+    $scheduler = recalcOfficer($group);
+    $worker = Member::factory()->create();
+    recalcSignUpMinutes($group, $worker, '2026-08-05 13:00', 45);
+
+    $this->actingAs($scheduler)
+        ->post(route('hours.recalculate', $group), ['year_month' => RECALC_MONTH])
+        ->assertRedirect();
+
+    expect(HoursRecord::where('member_id', $worker->id)->sole()->scheduled_hours)->toBe(1);
+});
+
+it('credits eight consecutive 45-minute Gallery Interpreter units on one day as eight scheduled hours', function () {
+    $group = recalcGroup(multiplier: 1.333);
+    $scheduler = recalcOfficer($group);
+    $worker = Member::factory()->create();
+    // Eight back-to-back units from 09:00 to 15:00 on one past day — 360 minutes.
+    $start = CarbonImmutable::parse('2026-08-05 09:00', 'America/Toronto');
+    for ($unit = 0; $unit < 8; $unit++) {
+        $endsAt = $start->addMinutes(45 * ($unit + 1));
+        recalcSignUpMinutes($group, $worker, $endsAt->format('Y-m-d H:i'), 45);
+    }
+
+    $this->actingAs($scheduler)
+        ->post(route('hours.recalculate', $group), ['year_month' => RECALC_MONTH])
+        ->assertRedirect();
+
+    expect(HoursRecord::where('member_id', $worker->id)->sole()->scheduled_hours)->toBe(8);
 });
 
 it('counts only past Shifts, never one still to be worked this month', function () {
