@@ -1,4 +1,4 @@
-# Settings
+# What Settings are for
 
 Settings is where you manage your own account. Select your initials or photo in the top bar, then **My Profile**.
 

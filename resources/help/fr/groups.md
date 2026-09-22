@@ -1,4 +1,4 @@
-# Groupes
+# À quoi servent les groupes
 
 Un groupe est la façon dont le DMV organise ses gens. Chaque comité, programme et projet est un groupe. Vous appartenez à certains, et vous pouvez consulter les autres.
 

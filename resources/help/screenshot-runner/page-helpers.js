@@ -217,6 +217,16 @@
         return followLink(link);
     }
 
+    // On a Member's profile, scroll the Member administration card — the No email checkbox —
+    // into view for the shot. The card renders only for a viewer with member-administration
+    // authority (a Records steward), whose payload carries the `no_email` field.
+    function showNoEmailControl() {
+        const checkbox = document.getElementById('no-email');
+        if (!checkbox) return false;
+        (checkbox.closest('[data-slot="card"]') ?? checkbox).scrollIntoView({ block: 'center' });
+        return settle();
+    }
+
     // The first button whose label matches, English chrome. `within` narrows the search to
     // elements passing a predicate (say, outside a panel).
     function buttonLabelled(pattern, within = () => true) {
@@ -317,6 +327,10 @@
         return showCardTitled(/^empty-desk alert/i);
     }
 
+    function showShiftKinds() {
+        return showCardTitled(/^shift kinds/i);
+    }
+
     // The first Agenda Shift still ahead that a schedule admin can place a Member on, scrolled
     // so its day heading stays in frame. Each Agenda day is a block led by an h3 such as
     // "Tuesday, September 8", read against today in the current year.
@@ -383,6 +397,18 @@
     // The Meetings tab's New meeting control, for a Secretary or Chair.
     function openNewMeetingDialog() {
         return clickAndSettle(pageButtonLabelled(/^new meeting$/i));
+    }
+
+    // The Overview tab's About Us edit control, for a Secretary or Chair. It is a plain v-if
+    // toggle, not a Radix overlay, so a DOM click reveals the text box, Save, and Cancel.
+    function openAboutEditForm() {
+        return clickAndSettle(buttonLabelled(/^edit$/i));
+    }
+
+    // The banner picker on the Group header, for a Secretary or Chair. A reka-ui Dialog whose
+    // trigger opens on a DOM click, so it comes through clickAndSettle like the other dialogs.
+    function openBannerPicker() {
+        return clickAndSettle(buttonLabelled(/^change banner$/i));
     }
 
     // The first Shift the viewer can still take a seat on — the one whose card shows Sign up.
@@ -516,6 +542,7 @@
         openCurrentMonthSchedule,
         showScheduleList,
         openAnotherMembersProfile,
+        showNoEmailControl,
         openBrowseGroups,
         showFirstOpenShift,
         showMyShift,
@@ -527,6 +554,7 @@
         openBulkShiftsDialog,
         showShiftReminders,
         showEmptyDeskAlert,
+        showShiftKinds,
         showUpcomingPlaceAMember,
         openPlaceAMemberDialog,
         showCorrectionPencil,
@@ -535,6 +563,8 @@
         openRosterRowMenu,
         openManageMembershipDialog,
         openNewMeetingDialog,
+        openAboutEditForm,
+        openBannerPicker,
         openEmailMenu,
         openWholeGroupComposer,
         openOfficersComposer,

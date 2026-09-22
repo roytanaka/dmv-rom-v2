@@ -1,4 +1,4 @@
-# Mes heures
+# À quoi sert Mes heures
 
 Mes heures rassemble en un seul endroit vos heures de tous vos groupes. Cette page répond à la question du renouvellement : combien d'heures avez-vous faites cette année ?
 

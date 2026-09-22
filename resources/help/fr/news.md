@@ -1,4 +1,4 @@
-# Nouvelles
+# À quoi servent les nouvelles
 
 Les nouvelles forment un seul fil pour tout le DMV. Chaque membre connecté lit le même fil.
 

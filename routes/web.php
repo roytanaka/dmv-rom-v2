@@ -18,6 +18,7 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\ShiftKindController;
 use App\Http\Controllers\SignUpController;
 use App\Http\Controllers\SuperTierController;
 use Illuminate\Http\Request;
@@ -321,6 +322,21 @@ Route::patch('groups/{group}/reminder-settings', [GroupReminderSettingsControlle
 Route::patch('groups/{group}/empty-desk-settings', [GroupEmptyDeskSettingsController::class, 'update'])
     ->middleware(['auth'])
     ->name('groups.empty-desk.update');
+
+// Shift-kind maintenance (#567, ADR-0021 §3). The Scheduling section's shift-kind block — add,
+// rename, retire, reinstate and reorder a Group's kinds — edited by a Scheduler or Chair. There
+// is no delete: a kind is retired and reinstated, never removed. Add and reorder nest under the
+// Group (bound by slug); rename / retire / reinstate bind the kind by id. Each is structurally
+// authorized in its Form Request, which delegates to the SchedulePolicy's `manageShiftKinds` gate.
+Route::post('groups/{group}/shift-kinds', [ShiftKindController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('groups.shift-kinds.store');
+Route::patch('groups/{group}/shift-kinds/order', [ShiftKindController::class, 'reorder'])
+    ->middleware(['auth'])
+    ->name('groups.shift-kinds.reorder');
+Route::patch('shift-kinds/{shiftKind}', [ShiftKindController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('shift-kinds.update');
 
 // Shift authoring (#356, PRD #352, ADR-0021 §2). The Scheduler's write seam for the
 // Shifts on a Schedule: add a Shift (times, capacity, optional kind, audience), edit it

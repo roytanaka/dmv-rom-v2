@@ -2,6 +2,8 @@
 
 use App\Enums\ArticleStatus;
 use App\Enums\FrenchState;
+use App\Enums\HelpSection;
+use App\Help\HelpArticle;
 use App\Help\HelpArticleRenderer;
 use App\Help\HelpManifest;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +34,28 @@ it('has an English and a French label for every section', function () {
             ->not->toBe($section->labelKey(), "Missing English label for section '{$section->value}'");
         expect(__($section->labelKey(), [], 'fr'))
             ->not->toBe($section->labelKey(), "Missing French label for section '{$section->value}'");
+    }
+});
+
+it('gives every overview a title that differs from its section label, so no breadcrumb repeats', function () {
+    // #565: a breadcrumb reads "Help › Getting started › <title>". An overview whose
+    // title equals its section label shows the same crumb twice. Guard both locales.
+    $renderer = app(HelpArticleRenderer::class);
+
+    foreach ((new HelpManifest)->all() as $article) {
+        if (! $article->isOverview) {
+            continue;
+        }
+
+        foreach (['en', 'fr'] as $locale) {
+            $title = $renderer->title($article->slug, $locale);
+            $label = __($article->section->labelKey(), [], $locale);
+
+            expect($title)->not->toBe(
+                $label,
+                "Overview '{$article->slug}' ({$locale}) repeats the section label '{$label}'"
+            );
+        }
     }
 });
 
@@ -81,10 +105,53 @@ it('requires only known role tokens', function () {
     expect($unknown)->toBe([]);
 });
 
+it('offers records as a requirable role, since member administration is not a Group Role', function () {
+    // The no-email flag is a Records stewardship decision (#564, #483, ADR-0024 §9), not
+    // a Group Role. It rides the badge as its own tier, beside super_tier / support_operator.
+    expect(HelpManifest::requirableRoles())->toContain('records');
+});
+
+it('lists the no-email-flag article as a Records draft in Emailing, mapped to the member page', function () {
+    // #564: a Records-only task article for the no-email switch on a Member's profile.
+    $article = (new HelpManifest)->find('set-the-no-email-flag');
+
+    expect($article)->not->toBeNull();
+    expect($article->section)->toBe(HelpSection::Emailing);
+    expect($article->requires)->toBe(['records']);
+    expect($article->route)->toBe('members.show');
+    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->fr)->toBe(FrenchState::MachineTranslated);
+});
+
+it('maps a secondary route to the article that lists it', function () {
+    // One article documents a page and its sibling views (#562): the primary route and
+    // every name in `routes` resolve the "?" to that article.
+    $manifest = new HelpManifest([
+        new HelpArticle('report', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.hours.report', routes: ['groups.hours.month']),
+    ]);
+
+    expect($manifest->publishedForRoute('groups.hours.report')?->slug)->toBe('report');
+    expect($manifest->publishedForRoute('groups.hours.month')?->slug)->toBe('report');
+});
+
+it('maps the ten report views onto their two articles', function () {
+    $manifest = new HelpManifest;
+
+    // The Group hours report and its four tab views (#562).
+    foreach (['groups.hours.month', 'groups.hours.member', 'groups.hours.extra', 'groups.hours.meetings'] as $route) {
+        expect($manifest->publishedForRoute($route)?->slug)->toBe('run-your-groups-hours-report');
+    }
+
+    // The org-wide committee summary and its six siblings (#562).
+    foreach (['hours.committee-detailed', 'hours.visitor-summary', 'hours.ranked', 'hours.zero-hours', 'hours.zero-shift-hours', 'hours.zero-extra-hours'] as $route) {
+        expect($manifest->publishedForRoute($route)?->slug)->toBe('the-org-wide-reports');
+    }
+});
+
 it('maps only route names that exist in the router', function () {
+    // Every mapped route counts — a primary `route` and any sibling in `routes` (#562).
     $unknown = collect((new HelpManifest)->all())
-        ->map->route
-        ->filter()
+        ->flatMap->mappedRoutes()
         ->reject(fn (string $name) => Route::has($name))
         ->values()
         ->all();

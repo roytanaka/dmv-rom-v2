@@ -1,4 +1,4 @@
-# Getting started
+# Your first login
 
 This app is where DMV Volunteers work online. You track your hours, sign up for Shifts, and keep up with your Groups.
 

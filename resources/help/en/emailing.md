@@ -1,4 +1,4 @@
-# Emailing
+# What emailing is for
 
 The app sends every message for you. You never see another Member's address, and no one sees yours.
 
@@ -27,6 +27,8 @@ A Notice is an automatic email that an event sends, such as a cancelled Sign-up.
 ## The no-email flag
 
 Records can switch off all mail to a Member. A Member with the flag gets no Broadcast, Direct message, Reminder, or Notice.
+
+Read _Turn off all email to a Member_ for the steps.
 
 ## When mail arrives
 

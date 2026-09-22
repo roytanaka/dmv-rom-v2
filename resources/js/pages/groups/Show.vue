@@ -86,6 +86,9 @@ const props = defineProps<{
             daysAhead: number;
             shiftKinds: { id: number; name: string; watched: boolean }[];
         };
+        // The Group's shift kinds for the maintenance block (#567) — the full roster in picker
+        // order, retired ones included. Present only for a schedule admin (empty otherwise).
+        shiftKinds: { id: number; name: string; active: boolean; sortOrder: number }[];
     };
     section: string;
     // UI hints from the policies — drive the officer affordances only; the server
@@ -100,6 +103,7 @@ const props = defineProps<{
         createSchedule: boolean;
         manageReminders: boolean;
         manageEmptyDesk: boolean;
+        manageShiftKinds: boolean;
         enterHours: boolean;
         viewReports: boolean;
     };
@@ -406,6 +410,8 @@ const pickBanner = (key: string | null) => {
                     :can-manage-reminders="can.manageReminders"
                     :empty-desk="group.emptyDesk"
                     :can-manage-empty-desk="can.manageEmptyDesk"
+                    :manageable-shift-kinds="group.shiftKinds"
+                    :can-manage-shift-kinds="can.manageShiftKinds"
                     :group-slug="group.slug"
                     :group-name="group.name"
                     :email-reason="email.reason"

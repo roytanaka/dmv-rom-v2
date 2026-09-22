@@ -54,7 +54,11 @@ class BulkStoreShiftRequest extends FormRequest
             'capacity' => ['sometimes', 'integer', 'min:1'],
             'shift_kind_id' => [
                 'nullable',
-                Rule::exists('shift_kinds', 'id')->where('group_id', $schedule->group_id),
+                // Only an *active* kind may go on a bulk-created Shift, as for a single add: a
+                // retired kind still labels its old Shifts but is off the picker (#567, ADR-0021 §3).
+                Rule::exists('shift_kinds', 'id')
+                    ->where('group_id', $schedule->group_id)
+                    ->where('active', true),
             ],
             'days_of_week' => ['required', 'array', 'min:1'],
             'days_of_week.*' => ['integer', 'between:0,6'],

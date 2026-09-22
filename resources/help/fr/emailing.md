@@ -1,4 +1,4 @@
-# Courriel
+# À quoi sert le courriel
 
 L'application envoie chaque message à votre place. Vous ne voyez jamais l'adresse d'un autre membre, et personne ne voit la vôtre.
 
@@ -27,6 +27,8 @@ Un avis est un courriel automatique déclenché par un événement, comme une in
 ## L'option sans courriel
 
 Records peut couper tout courriel destiné à un·e membre. Un·e membre visé·e par l'option ne reçoit ni diffusion, ni message direct, ni rappel, ni avis.
+
+Lisez _Couper tout courriel à un·e membre_ pour les étapes.
 
 ## Quand le courriel arrive
 

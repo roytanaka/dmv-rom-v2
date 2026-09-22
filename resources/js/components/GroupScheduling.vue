@@ -34,7 +34,9 @@ import { buildAgenda } from '@/scheduling/agenda';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import {
+    PhArrowDown,
     PhArrowLeft,
+    PhArrowUp,
     PhBinoculars,
     PhCalendarBlank,
     PhEye,
@@ -60,6 +62,10 @@ const props = defineProps<{
     canManageReminders: boolean;
     emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] };
     canManageEmptyDesk: boolean;
+    // The Group's shift kinds for the maintenance block (#567) — the full roster in picker order,
+    // retired kinds included. Present only for a schedule admin (`canManageShiftKinds`).
+    manageableShiftKinds: { id: number; name: string; active: boolean; sortOrder: number }[];
+    canManageShiftKinds: boolean;
     groupSlug: string;
     groupName: string;
     // The Email control's empty state for this Group (#513) — passed to the opened Schedule's
@@ -192,6 +198,61 @@ const toggleWatchedKind = (id: number, on: boolean) => {
 };
 
 const saveEmptyDesk = () => emptyDeskForm.patch(route('groups.empty-desk.update', { group: props.groupSlug }), { preserveScroll: true });
+
+// --- Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin adds, renames, retires,
+// reinstates and reorders the Group's kinds, gated by `canManageShiftKinds`. There is no delete.
+// Each action hits its own endpoint and the server re-checks the gate; the page reloads with the
+// fresh list, so no local list state is kept.
+
+// Add a kind: name only. A new kind lands at the end of the order and is active.
+const addKindForm = useForm<{ name: string }>({ name: '' });
+const addKind = () =>
+    addKindForm.post(route('groups.shift-kinds.store', { group: props.groupSlug }), {
+        preserveScroll: true,
+        onSuccess: () => addKindForm.reset('name'),
+    });
+
+// The name being edited inline, keyed by kind id, with its own error slot for a rejected rename.
+const kindNameDrafts = ref<Record<number, string>>({});
+const renameError = ref<string | undefined>(undefined);
+
+const startRename = (id: number, name: string) => {
+    renameError.value = undefined;
+    kindNameDrafts.value = { ...kindNameDrafts.value, [id]: name };
+};
+
+const cancelRename = (id: number) => {
+    const rest = { ...kindNameDrafts.value };
+    delete rest[id];
+    kindNameDrafts.value = rest;
+};
+
+const saveRename = (id: number) => {
+    router.patch(
+        route('shift-kinds.update', { shiftKind: id }),
+        { name: kindNameDrafts.value[id] },
+        {
+            preserveScroll: true,
+            onSuccess: () => cancelRename(id),
+            onError: (errors) => (renameError.value = errors.name),
+        },
+    );
+};
+
+// Retire (active → false) or reinstate (false → true). One PATCH carrying the flag.
+const setKindActive = (id: number, active: boolean) =>
+    router.patch(route('shift-kinds.update', { shiftKind: id }), { active }, { preserveScroll: true });
+
+// Reorder by swapping a kind with its neighbour, then sending the whole id list in the new order.
+const moveKind = (index: number, delta: number) => {
+    const ids = props.manageableShiftKinds.map((kind) => kind.id);
+    const target = index + delta;
+    if (target < 0 || target >= ids.length) {
+        return;
+    }
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    router.patch(route('groups.shift-kinds.reorder', { group: props.groupSlug }), { ids }, { preserveScroll: true });
+};
 
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
 
@@ -749,6 +810,88 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <Button type="button" size="sm" :disabled="emptyDeskForm.processing" @click="saveEmptyDesk">
                         {{ trans('group.scheduling_panel.save') }}
                     </Button>
+                </div>
+            </CardContent>
+        </Card>
+
+        <!-- Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin adds, renames, retires,
+             reinstates and reorders the Group's kinds. Shown on the list view only, and only to a
+             Scheduler / Chair (`canManageShiftKinds`); the server re-checks on every write. There is
+             no delete: a kind is retired, not removed, so its old Shifts keep their name. -->
+        <Card v-if="canManageShiftKinds && !scheduling.open">
+            <CardHeader>
+                <CardTitle>{{ trans('group.scheduling_panel.shift_kinds.heading') }}</CardTitle>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-4">
+                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.shift_kinds.description') }}</p>
+
+                <p v-if="manageableShiftKinds.length === 0" class="text-muted-foreground text-sm">
+                    {{ trans('group.scheduling_panel.shift_kinds.empty') }}
+                </p>
+                <ul v-else class="flex flex-col gap-2">
+                    <li v-for="(kind, index) in manageableShiftKinds" :key="kind.id" class="flex flex-wrap items-center gap-2">
+                        <div class="flex flex-col">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                class="size-6"
+                                :disabled="index === 0"
+                                :aria-label="trans('group.scheduling_panel.shift_kinds.move_up')"
+                                @click="moveKind(index, -1)"
+                            >
+                                <PhArrowUp class="size-4" />
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                class="size-6"
+                                :disabled="index === manageableShiftKinds.length - 1"
+                                :aria-label="trans('group.scheduling_panel.shift_kinds.move_down')"
+                                @click="moveKind(index, 1)"
+                            >
+                                <PhArrowDown class="size-4" />
+                            </Button>
+                        </div>
+
+                        <!-- Inline rename: the name shows as text until the admin edits it. -->
+                        <template v-if="kindNameDrafts[kind.id] !== undefined">
+                            <Input v-model="kindNameDrafts[kind.id]" class="h-8 w-48" @keyup.enter="saveRename(kind.id)" />
+                            <Button type="button" size="sm" @click="saveRename(kind.id)">
+                                {{ trans('group.scheduling_panel.save') }}
+                            </Button>
+                            <Button type="button" size="sm" variant="ghost" @click="cancelRename(kind.id)">
+                                {{ trans('group.scheduling_panel.cancel') }}
+                            </Button>
+                        </template>
+                        <template v-else>
+                            <span class="text-sm" :class="{ 'text-muted-foreground line-through': !kind.active }">{{ kind.name }}</span>
+                            <Badge v-if="!kind.active" variant="secondary">{{ trans('group.scheduling_panel.shift_kinds.retired_badge') }}</Badge>
+                            <Button type="button" size="sm" variant="ghost" @click="startRename(kind.id, kind.name)">
+                                {{ trans('group.scheduling_panel.shift_kinds.rename') }}
+                            </Button>
+                            <Button v-if="kind.active" type="button" size="sm" variant="ghost" @click="setKindActive(kind.id, false)">
+                                {{ trans('group.scheduling_panel.shift_kinds.retire') }}
+                            </Button>
+                            <Button v-else type="button" size="sm" variant="ghost" @click="setKindActive(kind.id, true)">
+                                {{ trans('group.scheduling_panel.shift_kinds.reinstate') }}
+                            </Button>
+                        </template>
+                    </li>
+                </ul>
+                <InputError :message="renameError" />
+
+                <!-- Add a kind: name only. -->
+                <div class="flex flex-col gap-1.5">
+                    <Label for="new-shift-kind">{{ trans('group.scheduling_panel.shift_kinds.add_label') }}</Label>
+                    <div class="flex flex-wrap items-start gap-2">
+                        <Input id="new-shift-kind" v-model="addKindForm.name" class="h-8 w-48" @keyup.enter="addKind" />
+                        <Button type="button" size="sm" :disabled="addKindForm.processing" @click="addKind">
+                            {{ trans('group.scheduling_panel.shift_kinds.add') }}
+                        </Button>
+                    </div>
+                    <InputError :message="addKindForm.errors.name" />
                 </div>
             </CardContent>
         </Card>

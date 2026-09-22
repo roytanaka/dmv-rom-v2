@@ -1,4 +1,4 @@
-# Groups
+# What Groups are for
 
 A Group is how DMV organizes its people. Every committee, program, and project is a Group. You belong to some, and you can look at the rest.
 

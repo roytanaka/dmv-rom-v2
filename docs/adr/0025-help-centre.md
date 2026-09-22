@@ -38,7 +38,7 @@ Browser automation in this repo is the `agent-browser` CLI, allowlisted but with
 
 8. **Screenshots are scripted and committed.** One `agent-browser` step script per article (persona to log in as, URL, clicks, shot names) plus one shared runner that logs in with the seeded persona and executes a script. Output is committed under `public/help-images/<slug>/`. English UI only, desktop width only, no drawn annotations; the caption carries the meaning. A wrong shot is replaced by hand; the script stays as the record of intent. When a feature changes, its article's script is re-run. No CI screenshot job yet.
 
-9. **A ledger page at `/help-status`**, super-tier only, English-only and non-localized like the Mail status page. It lists every manifest entry with its status, French state, screenshot count against references, and mapped route, then every page route with no article. This is the "what have I lost track of" view.
+9. **A ledger page at `/help-status`**, super-tier only, English-only and non-localized like the Mail status page. It lists every manifest entry with its status, French state, screenshot count against references, and mapped route, then every page route with no article. This is the "what have I lost track of" view. An article may map several page routes — a report page and its sibling views share one article — and every one counts as mapped.
 
 10. **The top-bar "?" is contextual.** It opens the article mapped to the current route, or the index when none is mapped.
 

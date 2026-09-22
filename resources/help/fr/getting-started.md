@@ -1,4 +1,4 @@
-# Pour commencer
+# Votre première connexion
 
 Cette application est l'endroit où les bénévoles du DMV travaillent en ligne. Vous y suivez vos heures, vous inscrivez à des quarts et restez au courant de vos groupes.
 

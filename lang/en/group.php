@@ -187,6 +187,22 @@ return [
             'watched_label' => 'Shift kinds to watch',
             'no_kinds' => 'This group has no shift kinds to watch yet.',
         ],
+        // Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin's add / rename / retire /
+        // reinstate / reorder block, shown on the list view. A kind's name is officer-authored
+        // content (ADR-0004); everything here is translated chrome around it.
+        'shift_kinds' => [
+            'heading' => 'Shift kinds',
+            'description' => 'Name the kinds of shift this group runs. Retire a kind to keep it off new shifts. Its past shifts keep the name.',
+            'empty' => 'This group has no shift kinds yet.',
+            'add_label' => 'Add a shift kind',
+            'add' => 'Add',
+            'rename' => 'Rename',
+            'retire' => 'Retire',
+            'reinstate' => 'Reinstate',
+            'retired_badge' => 'Retired',
+            'move_up' => 'Move up',
+            'move_down' => 'Move down',
+        ],
         // Authoring (#354) — shown only to a Scheduler / Chair / super-tier
         // (server-gated via `can`). Publish / un-publish are the two state transitions.
         'new' => 'New schedule',
