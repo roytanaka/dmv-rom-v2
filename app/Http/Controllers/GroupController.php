@@ -123,6 +123,8 @@ class GroupController extends Controller
             'memberships.roles',
         ]);
 
+        $canManageShiftKinds = $request->user()->can('manageShiftKinds', [Schedule::class, $group]);
+
         return Inertia::render('groups/Show', [
             'group' => [
                 'id' => $group->id,
@@ -186,7 +188,7 @@ class GroupController extends Controller
                 // full roster in picker order, retired kinds included, so the block can rename,
                 // retire, reinstate and reorder them. Only a schedule admin (`can.manageShiftKinds`)
                 // gets the list; a plain reader gets an empty one and no block.
-                'shiftKinds' => $request->user()->can('manageShiftKinds', [Schedule::class, $group])
+                'shiftKinds' => $canManageShiftKinds
                     ? $group->shiftKinds()->orderBy('sort_order')->get()
                         ->map(fn (ShiftKind $kind): array => [
                             'id' => $kind->id,
@@ -235,7 +237,7 @@ class GroupController extends Controller
                 // `manageShiftKinds` drives the Scheduling tab's shift-kind maintenance block (#567,
                 // ADR-0021 §3) — the same Scheduler/Chair gate. UI hint only; the shift-kind Form
                 // Requests re-check the gate on write.
-                'manageShiftKinds' => $request->user()->can('manageShiftKinds', [Schedule::class, $group]),
+                'manageShiftKinds' => $canManageShiftKinds,
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.
