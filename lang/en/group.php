@@ -215,6 +215,11 @@ return [
             'units_option' => '{1} :count unit|[2,*] :count units',
             'start_off_grid' => 'Choose a start time on the quarter hour.',
             'start_before_today' => 'Choose today or a later day.',
+            // The station clash warning (#588, ADR-0026 §5) — another interpreter is already on this
+            // station at that time. A warning, not a block: the confirm below lets the Member go ahead.
+            'station_clash' => 'Another interpreter is already at this station at that time.',
+            'station_clash_confirm' => 'Another interpreter will be at this station at that time. Continue?',
+            'continue' => 'Continue',
         ],
         // Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin's add / rename / retire /
         // reinstate / reorder block, shown on the list view. A kind's name is officer-authored

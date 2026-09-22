@@ -237,8 +237,14 @@ it('lets a different Object share the overlapping time', function () {
 
     seatedShift($schedule, $station, $holder, [$owl]);
 
+    // A second seat on the same station overlapping in time is a station clash (#588, ADR-0026 §5),
+    // acknowledged here so this asserts only the Object dimension: a *different* Object may share
+    // the overlapping time, whatever the station warning says.
     $this->actingAs($newcomer)
-        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), objectsBody($station, [$egg->id], ['starts_at' => '2026-06-16T11:00']))
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), objectsBody($station, [$egg->id], [
+            'starts_at' => '2026-06-16T11:00',
+            'acknowledge_station_clash' => true,
+        ]))
         ->assertRedirect()
         ->assertSessionHasNoErrors();
 

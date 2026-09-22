@@ -14,6 +14,7 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Support\OrgTime;
 use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -424,6 +425,198 @@ it('refuses a delete once the Shift has started', function () {
         ->assertForbidden();
 
     expect(Shift::whereKey($shift->id)->exists())->toBeTrue();
+});
+
+// --- store / update: the station clash warning (#588, ADR-0026 §5) ------------
+
+/**
+ * Another Member's seat on a Shift of the given kind over the given org-clock window. The times
+ * are stored as UTC instants the way the controller stores them (via {@see OrgTime::toUtc}), so
+ * the overlap check reads the seat on the same basis as a candidate the store derives.
+ */
+function seatOnStation(Schedule $schedule, ShiftKind $station, string $startsAt, string $endsAt): Shift
+{
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'shift_kind_id' => $station->id,
+        'capacity' => 1,
+        'audience' => ShiftAudience::Group,
+        'starts_at' => OrgTime::toUtc($startsAt),
+        'ends_at' => OrgTime::toUtc($endsAt),
+    ]);
+    SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => giMemberOf($schedule->group)->id]);
+
+    return $shift;
+}
+
+it('warns on the distinct key when another seat overlaps the same station', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $member = giMemberOf($group);
+    // An existing seat 11:00–12:00 overlaps the default 10:00–12:15 candidate on the same station.
+    seatOnStation($schedule, $station, '2026-06-16 11:00', '2026-06-16 12:00');
+
+    $this->actingAs($member)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($station))
+        ->assertSessionHasErrors(['shift_kind_id' => trans('group.scheduling_panel.self_serve.station_clash')]);
+
+    expect(Shift::where('schedule_id', $schedule->id)->count())->toBe(1);
+});
+
+it('warns on an exact same start on the same station', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $member = giMemberOf($group);
+    // Same start as the 10:00 candidate, on the same station.
+    seatOnStation($schedule, $station, '2026-06-16T10:00', '2026-06-16T10:45');
+
+    $this->actingAs($member)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($station))
+        ->assertSessionHasErrors('shift_kind_id');
+});
+
+it('warns on a 30-minute overlap on the same station', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $member = giMemberOf($group);
+    // Starts 30 minutes before the 10:00 candidate and runs into it — the case exact-start misses.
+    seatOnStation($schedule, $station, '2026-06-16T09:30', '2026-06-16T10:30');
+
+    $this->actingAs($member)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($station))
+        ->assertSessionHasErrors('shift_kind_id');
+});
+
+it('does not warn about a seat on a different station at the same time', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $otherStation = stationOf($group);
+    $member = giMemberOf($group);
+    // Overlaps the candidate in time, but a different station — a different place on the floor.
+    seatOnStation($schedule, $otherStation, '2026-06-16T10:00', '2026-06-16T11:00');
+
+    $this->actingAs($member)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($station))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+});
+
+it('does not warn about a back-to-back seat on the same station', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $member = giMemberOf($group);
+    // Starts exactly when the 10:00–12:15 candidate ends — touching ends do not overlap.
+    seatOnStation($schedule, $station, '2026-06-16T12:15', '2026-06-16T13:00');
+
+    $this->actingAs($member)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($station))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+});
+
+it('lands the Shift when the clash is acknowledged', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $member = giMemberOf($group);
+    seatOnStation($schedule, $station, '2026-06-16 11:00', '2026-06-16 12:00');
+
+    $this->actingAs($member)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($station, ['acknowledge_station_clash' => true]))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(Shift::where('schedule_id', $schedule->id)->count())->toBe(2);
+});
+
+it('warns when an update overlaps another seat on the station', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $owner = giMemberOf($group);
+    $shift = ownedShift($schedule, $station, $owner);
+    // Another interpreter's seat the edit will overlap once the start moves to 11:00.
+    seatOnStation($schedule, $station, '2026-06-16T11:00', '2026-06-16T12:00');
+
+    $this->actingAs($owner)
+        ->patch(route('self-serve-shifts.update', ['shift' => $shift->id]), [
+            'shift_kind_id' => $station->id,
+            'starts_at' => '2026-06-16T11:00',
+            'units' => 2,
+        ])
+        ->assertSessionHasErrors(['shift_kind_id' => trans('group.scheduling_panel.self_serve.station_clash')]);
+});
+
+it('does not warn about the Shift’s own seat when the owner edits it', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $owner = giMemberOf($group);
+    // The owner's own 10:00–12:15 seat is the only one on the station; shrinking the units keeps
+    // the same start, so it would overlap itself if its own seat were not excluded.
+    $shift = ownedShift($schedule, $station, $owner);
+
+    $this->actingAs($owner)
+        ->patch(route('self-serve-shifts.update', ['shift' => $shift->id]), [
+            'shift_kind_id' => $station->id,
+            'starts_at' => '2026-06-16T10:00',
+            'units' => 2,
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+});
+
+it('never warns when a Member takes a Scheduler-authored seat on the station', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $member = giMemberOf($group);
+    // The Scheduler-authored Shift the Member takes, and another same-kind seat it overlaps.
+    $target = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'shift_kind_id' => $station->id,
+        'capacity' => 1,
+        'audience' => ShiftAudience::Group,
+        'starts_at' => OrgTime::toUtc('2026-06-16T10:00'),
+        'ends_at' => OrgTime::toUtc('2026-06-16T11:00'),
+    ]);
+    seatOnStation($schedule, $station, '2026-06-16T10:00', '2026-06-16T11:00');
+
+    $this->actingAs($member)
+        ->post(route('sign-ups.store', ['shift' => $target->id]))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(SignUp::where(['shift_id' => $target->id, 'member_id' => $member->id])->exists())->toBeTrue();
+});
+
+it('never warns when a Scheduler places a Member on the station', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $scheduler = giMemberOf($group, role: Role::Scheduler);
+    $placed = giMemberOf($group);
+    $target = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'shift_kind_id' => $station->id,
+        'capacity' => 1,
+        'audience' => ShiftAudience::Group,
+        'starts_at' => OrgTime::toUtc('2026-06-16T10:00'),
+        'ends_at' => OrgTime::toUtc('2026-06-16T11:00'),
+    ]);
+    seatOnStation($schedule, $station, '2026-06-16T10:00', '2026-06-16T11:00');
+
+    $this->actingAs($scheduler)
+        ->post(route('assignments.store', ['shift' => $target->id]), ['member_id' => $placed->id])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(SignUp::where(['shift_id' => $target->id, 'member_id' => $placed->id])->exists())->toBeTrue();
 });
 
 // --- Inertia hints: the button and the owner’s controls -----------------------

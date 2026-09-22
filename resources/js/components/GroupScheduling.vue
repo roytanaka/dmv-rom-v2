@@ -684,12 +684,28 @@ const SELF_SERVE_TIME_STEP_SECONDS = 900;
 // The open editor: 'create', the id of the Shift being edited, or null when closed.
 const selfServeMode = ref<'create' | number | null>(null);
 
-const writeShiftForm = useForm<{ shift_kind_id: number | null; starts_at: string; units: number; objects: number[] }>({
+const writeShiftForm = useForm<{
+    shift_kind_id: number | null;
+    starts_at: string;
+    units: number;
+    objects: number[];
+    acknowledge_station_clash: boolean;
+}>({
     shift_kind_id: null,
     starts_at: '',
     units: 1,
     objects: [],
+    // Waves the station clash warning through (#588, ADR-0026 §5). False on the first submit;
+    // the confirm dialog sets it true and resubmits.
+    acknowledge_station_clash: false,
 });
+
+// The station clash confirm (#588, ADR-0026 §5) — open when the last submit came back with the
+// station's distinct warning on `shift_kind_id`. The Member confirms to go ahead or cancels back
+// to the form. Compared against the translated warning, the one `shift_kind_id` error that offers
+// a way through rather than a correction.
+const stationClashPending = ref(false);
+const isStationClash = (message: string | undefined) => message === trans('group.scheduling_panel.self_serve.station_clash');
 
 const selfServeDialogOpen = computed({
     get: () => selfServeMode.value !== null,
@@ -748,17 +764,38 @@ const openSelfServeEdit = (shift: ShiftAgendaItem) => {
 
 const closeSelfServe = () => {
     selfServeMode.value = null;
+    stationClashPending.value = false;
     writeShiftForm.reset();
 };
 
 const submitSelfServe = () => {
     const onSuccess = () => closeSelfServe();
+    // A station clash comes back as the distinct warning on `shift_kind_id`; open the confirm
+    // instead of leaving it as a plain field error, so Continue can wave it through.
+    const onError = (errors: Record<string, string>) => {
+        if (isStationClash(errors.shift_kind_id)) stationClashPending.value = true;
+    };
     if (selfServeMode.value === 'create') {
         if (props.scheduling.open === null) return;
-        writeShiftForm.post(route('self-serve-shifts.store', { schedule: props.scheduling.open.id }), { preserveScroll: true, onSuccess });
+        writeShiftForm.post(route('self-serve-shifts.store', { schedule: props.scheduling.open.id }), { preserveScroll: true, onSuccess, onError });
     } else if (selfServeMode.value !== null) {
-        writeShiftForm.patch(route('self-serve-shifts.update', { shift: selfServeMode.value }), { preserveScroll: true, onSuccess });
+        writeShiftForm.patch(route('self-serve-shifts.update', { shift: selfServeMode.value }), { preserveScroll: true, onSuccess, onError });
     }
+};
+
+// Continue past the warning: acknowledge and resubmit — the server skips the check this time.
+const confirmStationClash = () => {
+    stationClashPending.value = false;
+    writeShiftForm.acknowledge_station_clash = true;
+    submitSelfServe();
+};
+
+// Cancel: drop back to the form with the warning cleared, the acknowledgement reset so the next
+// submit is checked afresh.
+const cancelStationClash = () => {
+    stationClashPending.value = false;
+    writeShiftForm.acknowledge_station_clash = false;
+    writeShiftForm.clearErrors('shift_kind_id');
 };
 
 const destroySelfServe = (shift: ShiftAgendaItem) => {
@@ -1732,7 +1769,9 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                             <option :value="null" disabled>{{ trans('group.scheduling_panel.self_serve.field.kind_placeholder') }}</option>
                             <option v-for="kind in scheduling.shift_kinds" :key="kind.id" :value="kind.id">{{ kind.name }}</option>
                         </select>
-                        <InputError :message="writeShiftForm.errors.shift_kind_id" />
+                        <!-- The station clash warning takes over the actions below, so its message
+                             is not repeated as a field error here (#588, ADR-0026 §5). -->
+                        <InputError :message="stationClashPending ? undefined : writeShiftForm.errors.shift_kind_id" />
                     </div>
                     <div class="grid gap-2">
                         <Label for="self-serve-starts-at">{{ trans('group.scheduling_panel.self_serve.field.starts_at') }}</Label>
@@ -1768,7 +1807,21 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         <InputError :message="writeShiftForm.errors.objects" />
                     </div>
 
-                    <div class="flex gap-2">
+                    <!-- The station clash confirm (#588, ADR-0026 §5) — another interpreter is on
+                         this station at that time. Continue waves the warning through and resubmits;
+                         Cancel returns to the form. Replaces Save while the warning stands. -->
+                    <div v-if="stationClashPending" class="flex flex-col gap-2">
+                        <p class="text-sm">{{ trans('group.scheduling_panel.self_serve.station_clash_confirm') }}</p>
+                        <div class="flex gap-2">
+                            <Button type="button" size="sm" :disabled="writeShiftForm.processing" @click="confirmStationClash">
+                                {{ trans('group.scheduling_panel.self_serve.continue') }}
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" :disabled="writeShiftForm.processing" @click="cancelStationClash">
+                                {{ trans('group.scheduling_panel.self_serve.cancel') }}
+                            </Button>
+                        </div>
+                    </div>
+                    <div v-else class="flex gap-2">
                         <Button type="submit" size="sm" :disabled="writeShiftForm.processing">{{
                             trans('group.scheduling_panel.self_serve.save')
                         }}</Button>

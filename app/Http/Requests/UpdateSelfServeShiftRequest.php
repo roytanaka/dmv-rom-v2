@@ -65,14 +65,18 @@ class UpdateSelfServeShiftRequest extends FormRequest
             ],
             'starts_at' => ['required', 'date', $this->onGrid(), $this->notBeforeToday(), $this->withinRange()],
             'units' => ['required', 'integer', 'min:1', 'max:'.Shift::SELF_SERVE_MAX_UNITS],
+            // The Member waving through the station clash warning (ADR-0026 §5) — optional, true on
+            // the resubmit from the confirm dialog.
+            'acknowledge_station_clash' => ['sometimes', 'boolean'],
             ...$this->objectRules($schedule->group),
         ];
     }
 
     /**
-     * The Object double-booking block (ADR-0026 §3): the candidate is this Shift with its *new*
-     * derived interval and kind, so the hold matches what the update will store. The actor's own
-     * Sign-up on this Shift is excluded — keeping the same Object is not a clash with oneself.
+     * The two overlap checks (ADR-0026 §3, §5): the Object double-booking block and the station
+     * clash warning, both on this Shift's *new* derived interval and kind. The actor's own seat is
+     * excluded from the Object block, and the Shift itself from the station warning — keeping the
+     * same Object, or editing the units of one's own seat, is not a clash with oneself.
      */
     public function withValidator(Validator $validator): void
     {
@@ -96,6 +100,7 @@ class UpdateSelfServeShiftRequest extends FormRequest
             $ownSignUp = $shift->signUps()->where('member_id', $this->user()->getKey())->first();
 
             $this->addObjectClashErrors($validator, $candidate, $ownSignUp?->getKey());
+            $this->addStationClashError($validator, $candidate, $shift->getKey());
         });
     }
 
