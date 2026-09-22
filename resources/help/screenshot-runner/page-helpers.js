@@ -217,6 +217,16 @@
         return followLink(link);
     }
 
+    // On a Member's profile, scroll the Member administration card — the No email checkbox —
+    // into view for the shot. The card renders only for a viewer with member-administration
+    // authority (a Records steward), whose payload carries the `no_email` field.
+    function showNoEmailControl() {
+        const checkbox = document.getElementById('no-email');
+        if (!checkbox) return false;
+        (checkbox.closest('[data-slot="card"]') ?? checkbox).scrollIntoView({ block: 'center' });
+        return settle();
+    }
+
     // The first button whose label matches, English chrome. `within` narrows the search to
     // elements passing a predicate (say, outside a panel).
     function buttonLabelled(pattern, within = () => true) {
@@ -528,6 +538,7 @@
         openCurrentMonthSchedule,
         showScheduleList,
         openAnotherMembersProfile,
+        showNoEmailControl,
         openBrowseGroups,
         showFirstOpenShift,
         showMyShift,

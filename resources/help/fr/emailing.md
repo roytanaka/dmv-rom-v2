@@ -28,6 +28,8 @@ Un avis est un courriel automatique déclenché par un événement, comme une in
 
 Records peut couper tout courriel destiné à un·e membre. Un·e membre visé·e par l'option ne reçoit ni diffusion, ni message direct, ni rappel, ni avis.
 
+Lisez _Couper tout courriel à un·e membre_ pour les étapes.
+
 ## Quand le courriel arrive
 
 Le courriel part par lots, pas au moment où vous l'envoyez. Un petit message arrive en une minute. Une diffusion à tout votre groupe peut prendre jusqu'à une heure.

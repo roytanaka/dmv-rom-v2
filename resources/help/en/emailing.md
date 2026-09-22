@@ -28,6 +28,8 @@ A Notice is an automatic email that an event sends, such as a cancelled Sign-up.
 
 Records can switch off all mail to a Member. A Member with the flag gets no Broadcast, Direct message, Reminder, or Notice.
 
+Read _Turn off all email to a Member_ for the steps.
+
 ## When mail arrives
 
 Mail leaves in batches, not the moment you send. A small message lands within a minute. A Broadcast to your whole Group can take up to an hour.

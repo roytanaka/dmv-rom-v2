@@ -83,6 +83,24 @@ it('requires only known role tokens', function () {
     expect($unknown)->toBe([]);
 });
 
+it('offers records as a requirable role, since member administration is not a Group Role', function () {
+    // The no-email flag is a Records stewardship decision (#564, #483, ADR-0024 §9), not
+    // a Group Role. It rides the badge as its own tier, beside super_tier / support_operator.
+    expect(HelpManifest::requirableRoles())->toContain('records');
+});
+
+it('lists the no-email-flag article as a Records draft in Emailing, mapped to the member page', function () {
+    // #564: a Records-only task article for the no-email switch on a Member's profile.
+    $article = (new HelpManifest)->find('set-the-no-email-flag');
+
+    expect($article)->not->toBeNull();
+    expect($article->section)->toBe(HelpSection::Emailing);
+    expect($article->requires)->toBe(['records']);
+    expect($article->route)->toBe('members.show');
+    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->fr)->toBe(FrenchState::MachineTranslated);
+});
+
 it('maps a secondary route to the article that lists it', function () {
     // One article documents a page and its sibling views (#562): the primary route and
     // every name in `routes` resolve the "?" to that article.
