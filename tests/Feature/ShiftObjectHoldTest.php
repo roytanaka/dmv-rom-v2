@@ -42,5 +42,5 @@ it('widens an off-site Shift to the day before through the day after', function 
 
     // Start of the day before 16 June through the end of the day after.
     expect($hold->start->setTimezone(config('app.org_timezone'))->toDateTimeString())->toBe('2026-06-15 00:00:00')
-        ->and($hold->end->setTimezone(config('app.org_timezone'))->format('Y-m-d H:i'))->toBe('2026-06-17 23:59');
+        ->and($hold->end->setTimezone(config('app.org_timezone'))->toDateTimeString())->toBe('2026-06-17 23:59:59');
 });
