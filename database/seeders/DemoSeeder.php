@@ -181,6 +181,19 @@ class DemoSeeder extends Seeder
     /** Months the Visitor Guides also staff Mondays (legacy "2 Week Pattern Summer"). */
     private const DESK_SUMMER_MONTHS = [7, 8];
 
+    public const GUIDES_DU_ROM = 'guides-du-rom';
+
+    /** The Guides du ROM daily tour and the monthly group tour, named as legacy names them. */
+    private const GUIDES_CHOICE_TOUR = 'Le choix du guide';
+
+    private const GDR_GROUP_TOUR = 'Visite de groupe';
+
+    /**
+     * The monthly free group tour, read off a year of legacy bookings: one guide, 11:30 to 12:15,
+     * on a Saturday late in the month (the fourth Saturday here).
+     */
+    private const GDR_GROUP_TOUR_SATURDAY = 4;
+
     /** Tours that ended within this many days stay unrecorded: the sign-outs still to come. */
     private const UNRECORDED_DAYS = 2;
 
@@ -954,6 +967,8 @@ class DemoSeeder extends Seeder
         $this->draftNextMonth($docents, $month);
 
         $this->visitorGuidesScheduling($lastMonth, $month);
+
+        $this->guidesDuRomScheduling($lastMonth, $month);
     }
 
     /**
@@ -1040,6 +1055,55 @@ class DemoSeeder extends Seeder
         }
 
         return $taken;
+    }
+
+    /**
+     * The Guides du ROM tour roster, on the same two published months as Docents. Legacy runs one
+     * French tour a day at 14:00, one guide, every day but Monday, labelled "Le choix du guide".
+     * One free group tour a month sits on top, on a Saturday at 11:30 ({@see GDR_GROUP_TOUR_SATURDAY}).
+     *
+     * Ended tours are full. About nine upcoming tours in ten are already taken, as in the legacy
+     * months open for sign-up. Counts are small, often zero, and split into five origins.
+     * Skipped silently if the Group is absent.
+     */
+    private function guidesDuRomScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month): void
+    {
+        $group = Group::where('slug', self::GUIDES_DU_ROM)->first();
+
+        if ($group === null) {
+            return;
+        }
+
+        $kinds = [];
+        foreach ([self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR] as $order => $name) {
+            $kinds[$name] = ShiftKind::firstOrCreate(
+                ['group_id' => $group->id, 'name' => $name],
+                ['active' => true, 'sort_order' => $order],
+            );
+        }
+
+        $previous = $this->monthSchedule($group, $lastMonth, 'Le calendrier des visites du mois dernier, données et signées.');
+        $current = $this->monthSchedule($group, $month, 'Les visites du mois. Inscrivez-vous à une visite ci-dessous.');
+
+        foreach ([[$previous, $lastMonth], [$current, $month]] as [$schedule, $start]) {
+            $specs = [];
+            for ($day = 0; $day < $start->daysInMonth; $day++) {
+                if (! $start->addDays($day)->isMonday()) {
+                    $specs[] = ['day' => $day, 'start' => [14, 0], 'minutes' => 60, 'capacity' => 1, 'kind' => self::GUIDES_CHOICE_TOUR];
+                }
+            }
+            $saturday = $start->nthOfMonth(self::GDR_GROUP_TOUR_SATURDAY, CarbonImmutable::SATURDAY);
+            $specs[] = ['day' => $saturday->day - 1, 'start' => [11, 30], 'minutes' => 45, 'capacity' => 1, 'kind' => self::GDR_GROUP_TOUR];
+
+            $this->writeShifts($schedule, $start, $specs, $kinds);
+        }
+
+        $this->seatRoster(
+            $group,
+            [$previous, $current],
+            fn (Shift $shift) => $shift->ends_at->isPast() || $this->spread($shift->starts_at->timestamp, 0, 99) < 90 ? 1 : 0,
+            fn (Shift $shift) => $shift->kind?->name === self::GDR_GROUP_TOUR ? [15, 25] : [0, 6],
+        );
     }
 
     /**
@@ -1280,8 +1344,8 @@ class DemoSeeder extends Seeder
     /**
      * One seat as an upsert row, in the column set {@see writeSeatRecords()} writes. An
      * unrecorded seat (a null `$range`) is null on every visitor column, the outstanding
-     * marker. A recorded one carries a count drawn from `$range`. Extra interactions follow
-     * the Group's own switch. Deterministic ({@see spread()}), so a local reseed and a staging
+     * marker. A recorded one carries a count drawn from `$range`. Extra interactions and the
+     * five origins (ADR-0023 §3) follow the Group's own switches. Deterministic ({@see spread()}), so a local reseed and a staging
      * deploy read the same.
      *
      * @param  array{int, int}|null  $range
@@ -1291,6 +1355,7 @@ class DemoSeeder extends Seeder
     {
         $count = null;
         $extra = null;
+        $origins = array_fill(0, 5, null);
 
         if ($range !== null) {
             $seed = $shift->starts_at->timestamp * 7 + $seat;
@@ -1298,6 +1363,7 @@ class DemoSeeder extends Seeder
 
             $count = $this->spread($seed, $min, $max);
             $extra = $group->collects_extra_interactions ? $this->spread($seed + 1, 0, 12) : null;
+            $origins = $group->collects_visitor_provenance ? $this->splitProvenance($count, $seed + 2) : $origins;
         }
 
         return [
@@ -1305,11 +1371,11 @@ class DemoSeeder extends Seeder
             'member_id' => $member->id,
             'visitor_count' => $count,
             'extra_interaction_count' => $extra,
-            'visitors_france_europe' => null,
-            'visitors_quebec' => null,
-            'visitors_toronto' => null,
-            'visitors_rest_of_canada' => null,
-            'visitors_other_countries' => null,
+            'visitors_france_europe' => $origins[0],
+            'visitors_quebec' => $origins[1],
+            'visitors_toronto' => $origins[2],
+            'visitors_rest_of_canada' => $origins[3],
+            'visitors_other_countries' => $origins[4],
             'created_at' => $now,
             'updated_at' => $now,
         ];
@@ -1332,13 +1398,13 @@ class DemoSeeder extends Seeder
      * The switches themselves are set per Group in the curated tree (the capability overrides on
      * the program nodes, exactly as ROMBus turns scheduling off), so this reads them back rather
      * than restating the mapping: a Group collects a count, and on top of it the tour-leading split
-     * ({@see seatRecord()}) or GDR's five origins, precisely as its own flags say.
+     * ({@see seatRecord()}), precisely as its own flags say.
      *
-     * Each collecting Group but Docents and Visitor Guides gets one recent Schedule of ended Shifts. The first is left unrecorded
-     * on purpose — null on every seat — so the outstanding-shifts panel has something to show the
+     * Each collecting Group but Docents, Visitor Guides and GDR gets one recent Schedule of ended
+     * Shifts. The first is left unrecorded on purpose — null on every seat — so the outstanding-shifts panel has something to show the
      * personas seated there (the roster is id-ordered and personas, seeded first, sort ahead of the
      * generated pool); the rest carry counts, a few of them a deliberate recorded zero, never
-     * confused with the null. GDR's counted seats carry five origins that sum to the count (§3).
+     * confused with the null.
      *
      * Faker-free and idempotent: the Schedule keys on (Group, name), Shifts on (Schedule, start),
      * and every seat value is written in one bulk upsert on the (Shift, Member) grain — so a reseed
@@ -1347,10 +1413,10 @@ class DemoSeeder extends Seeder
      */
     private function afterShiftRecords(): void
     {
-        // Docents and Visitor Guides record on their own month rosters instead
+        // Docents, Visitor Guides and GDR record on their own month rosters instead
         // ({@see seatRoster()}): a separate Schedule of three-hour Shifts is not a shape they work.
         $groups = Group::where('collects_visitor_count', true)
-            ->whereNotIn('slug', [self::PROGRAM, self::VISITOR_GUIDES])
+            ->whereNotIn('slug', [self::PROGRAM, self::VISITOR_GUIDES, self::GUIDES_DU_ROM])
             ->orderBy('id')
             ->get();
 
@@ -1455,7 +1521,7 @@ class DemoSeeder extends Seeder
      * unrecorded — null on every column — because a null `visitor_count` is the outstanding marker
      * (ADR-0023 §5). Every later seat carries a count, a few of them a deliberate recorded zero
      * ("nobody came"), distinct from the null. A tour-leading Group also fills the second box
-     * ({@see Group::$collects_extra_interactions}); GDR also fills five origins that sum to the count.
+     * ({@see Group::$collects_extra_interactions}).
      *
      * Deterministic ({@see spread()}, not `fake()`) so a local reseed and a staging deploy read
      * identically. Every visitor column is present on every row — null where the Group does not
@@ -1492,16 +1558,6 @@ class DemoSeeder extends Seeder
 
         if ($group->collects_extra_interactions) {
             $row['extra_interaction_count'] = $this->spread($seed + 2, 0, 10);
-        }
-
-        if ($group->collects_visitor_provenance) {
-            [
-                $row['visitors_france_europe'],
-                $row['visitors_quebec'],
-                $row['visitors_toronto'],
-                $row['visitors_rest_of_canada'],
-                $row['visitors_other_countries'],
-            ] = $this->splitProvenance($count, $seed + 3);
         }
 
         return $row;
