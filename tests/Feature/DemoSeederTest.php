@@ -588,6 +588,68 @@ it('drops the separate Recent shifts Schedule on Visitor Guides, who work one-ho
         ->where('name', DemoSeeder::RECENT_SCHEDULE_NAME)->exists())->toBeFalse();
 });
 
+/** The Guides du ROM Schedule named for the current month, as the demo seed names it. */
+function guidesDuRomCurrentMonth(): Schedule
+{
+    return Schedule::where('group_id', Group::where('slug', DemoSeeder::GUIDES_DU_ROM)->value('id'))
+        ->where('name', CarbonImmutable::instance(now())->format('F Y'))
+        ->firstOrFail();
+}
+
+it('seeds the Guides du ROM roster: one 14:00 tour a day, every day but Monday, plus a monthly group tour', function () {
+    $schedule = guidesDuRomCurrentMonth()->load('shifts.kind');
+    $orgTimezone = config('app.org_timezone');
+    $month = CarbonImmutable::instance(now())->startOfMonth();
+
+    expect($schedule->state)->toBe(ScheduleState::Published);
+
+    $daily = $schedule->shifts->where('kind.name', 'Le choix du guide');
+    $openDays = collect(range(0, $month->daysInMonth - 1))
+        ->map(fn (int $day) => $month->addDays($day))
+        ->reject(fn (CarbonImmutable $date) => $date->isMonday())
+        ->map->toDateString()
+        ->values()
+        ->all();
+
+    expect($daily->map(fn (Shift $s) => $s->starts_at->copy()->setTimezone($orgTimezone)->toDateString())->sort()->values()->all())
+        ->toBe($openDays);
+
+    $daily->each(fn (Shift $s) => expect([
+        $s->starts_at->copy()->setTimezone($orgTimezone)->format('H:i'),
+        (int) $s->starts_at->diffInMinutes($s->ends_at),
+        $s->capacity,
+    ])->toBe(['14:00', 60, 1]));
+
+    // One free group tour a month, on a Saturday at 11:30, one guide.
+    $groupTours = $schedule->shifts->where('kind.name', 'Visite de groupe');
+    expect($groupTours)->toHaveCount(1);
+    $groupTour = $groupTours->first()->starts_at->copy()->setTimezone($orgTimezone);
+    expect($groupTour->isSaturday())->toBeTrue()
+        ->and($groupTour->format('H:i'))->toBe('11:30')
+        ->and($groupTours->first()->capacity)->toBe(1);
+});
+
+it('fills the Guides du ROM month: worked tours full, most upcoming tours already taken', function () {
+    $shifts = Shift::whereRelation('schedule', 'group_id', Group::where('slug', DemoSeeder::GUIDES_DU_ROM)->value('id'))
+        ->withCount('signUps')
+        ->get();
+
+    $ended = $shifts->filter(fn (Shift $s) => $s->ends_at->isPast());
+    expect($ended)->not->toBeEmpty()
+        ->and($ended->every(fn (Shift $s) => $s->sign_ups_count === 1))->toBeTrue();
+
+    $ahead = $shifts->filter(fn (Shift $s) => $s->starts_at->isFuture());
+    if ($ahead->count() >= 10) {
+        $taken = $ahead->where('sign_ups_count', 1)->count() / $ahead->count();
+        expect($taken)->toBeGreaterThan(0.7);
+    }
+});
+
+it('drops the separate Recent shifts Schedule on Guides du ROM, who give one-hour tours', function () {
+    expect(Schedule::where('group_id', Group::where('slug', DemoSeeder::GUIDES_DU_ROM)->value('id'))
+        ->where('name', DemoSeeder::RECENT_SCHEDULE_NAME)->exists())->toBeFalse();
+});
+
 it('seeds an active ShiftKind vocabulary for the Group and labels its Shifts', function () {
     $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
 
