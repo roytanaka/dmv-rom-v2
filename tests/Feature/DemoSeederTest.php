@@ -499,6 +499,95 @@ it('drops the separate Recent shifts Schedule on Docents, whose three-hour Shift
         ->where('name', DemoSeeder::RECENT_SCHEDULE_NAME)->exists())->toBeFalse();
 });
 
+/** The Visitor Guides Schedule named for the current month, as the demo seed names it. */
+function visitorGuidesCurrentMonth(): Schedule
+{
+    return Schedule::where('group_id', Group::where('slug', DemoSeeder::VISITOR_GUIDES)->value('id'))
+        ->where('name', CarbonImmutable::instance(now())->format('F Y'))
+        ->firstOrFail();
+}
+
+it('seeds the Visitor Guides desk roster: a two-seat Desk and a one-seat Shadow every hour from 10:00 to 15:00', function () {
+    $schedule = visitorGuidesCurrentMonth()->load('shifts.kind');
+    $orgTimezone = config('app.org_timezone');
+    $month = CarbonImmutable::instance(now())->startOfMonth();
+
+    expect($schedule->state)->toBe(ScheduleState::Published);
+
+    $byDay = $schedule->shifts->groupBy(fn (Shift $s) => $s->starts_at->copy()->setTimezone($orgTimezone)->toDateString());
+
+    // The desk closes on Mondays outside summer, as legacy runs it.
+    $summer = in_array($month->month, [7, 8], true);
+    $openDays = collect(range(0, $month->daysInMonth - 1))
+        ->map(fn (int $day) => $month->addDays($day))
+        ->filter(fn (CarbonImmutable $date) => $summer || ! $date->isMonday());
+    expect($byDay->keys()->sort()->values()->all())
+        ->toBe($openDays->map->toDateString()->values()->all());
+
+    $expected = [];
+    foreach (['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'] as $time) {
+        $expected[] = [$time, 60, 2, 'Desk'];
+        $expected[] = [$time, 60, 1, 'Shadow'];
+    }
+
+    $byDay->each(function ($shifts) use ($orgTimezone, $expected) {
+        $shape = $shifts->sortBy([['starts_at', 'asc'], ['capacity', 'desc']])->map(fn (Shift $s) => [
+            $s->starts_at->copy()->setTimezone($orgTimezone)->format('H:i'),
+            (int) $s->starts_at->diffInMinutes($s->ends_at),
+            $s->capacity,
+            $s->kind->name,
+        ])->values()->all();
+
+        expect($shape)->toBe($expected);
+    });
+});
+
+it('watches the Visitor Guides Desk kind for the empty-desk alert, and only that kind', function () {
+    $kinds = ShiftKind::where('group_id', Group::where('slug', DemoSeeder::VISITOR_GUIDES)->value('id'))
+        ->pluck('alert_when_empty', 'name')
+        ->all();
+
+    expect($kinds)->toBe(['Desk' => true, 'Shadow' => false]);
+});
+
+it('fills the Visitor Guides desk part-way, with some upcoming Desk shifts left empty for the alert', function () {
+    $group = Group::where('slug', DemoSeeder::VISITOR_GUIDES)->firstOrFail();
+    $desk = Shift::whereRelation('schedule', 'group_id', $group->id)
+        ->whereRelation('kind', 'name', 'Desk')
+        ->withCount('signUps')
+        ->get();
+
+    // Legacy summer months filled about three Desk seats in four.
+    $filled = $desk->sum('sign_ups_count') / $desk->sum('capacity');
+    expect($filled)->toBeGreaterThan(0.5)->toBeLessThan(0.9);
+
+    // An upcoming Desk shift nobody has taken is what the empty-desk alert reports.
+    $ahead = $desk->filter(fn (Shift $s) => $s->starts_at->isFuture());
+    if ($ahead->count() >= 20) {
+        expect($ahead->contains(fn (Shift $s) => $s->sign_ups_count === 0))->toBeTrue();
+    }
+});
+
+it('signs out the worked Visitor Guides desk hours, leaving only the last two days still owed a number', function () {
+    $signUps = SignUp::whereRelation('shift.schedule', 'group_id', Group::where('slug', DemoSeeder::VISITOR_GUIDES)->value('id'))
+        ->with('shift')
+        ->get()
+        ->filter(fn (SignUp $s) => $s->shift->ends_at->isPast());
+
+    $older = $signUps->filter(fn (SignUp $s) => $s->shift->ends_at->lessThan(now()->subDays(2)));
+    $recent = $signUps->filter(fn (SignUp $s) => $s->shift->ends_at->greaterThanOrEqualTo(now()->subDays(2)));
+
+    expect($older)->not->toBeEmpty()
+        ->and($older->every(fn (SignUp $s) => $s->visitor_count >= 10 && $s->visitor_count <= 70))->toBeTrue()
+        ->and($older->every(fn (SignUp $s) => $s->extra_interaction_count === null))->toBeTrue()
+        ->and($recent->every(fn (SignUp $s) => $s->visitor_count === null))->toBeTrue();
+});
+
+it('drops the separate Recent shifts Schedule on Visitor Guides, who work one-hour desk shifts', function () {
+    expect(Schedule::where('group_id', Group::where('slug', DemoSeeder::VISITOR_GUIDES)->value('id'))
+        ->where('name', DemoSeeder::RECENT_SCHEDULE_NAME)->exists())->toBeFalse();
+});
+
 it('seeds an active ShiftKind vocabulary for the Group and labels its Shifts', function () {
     $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
 
