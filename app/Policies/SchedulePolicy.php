@@ -133,6 +133,18 @@ class SchedulePolicy
     }
 
     /**
+     * Who may maintain a Group's shift kinds (#567, ADR-0021 §3): a schedule admin of the
+     * Group — the same Scheduler / Chair gate, with the scheduling-capability guard folded in.
+     * Add, rename, retire, reinstate and reorder all move through the one endpoint set, so the
+     * one gate covers them alike. Reached on a Group (or a kind's Group), so the caller resolves
+     * the policy by the class name (the shift-kind Form Requests).
+     */
+    public function manageShiftKinds(Member $actor, Group $group): bool
+    {
+        return $this->administersSchedulingFor($actor, $group);
+    }
+
+    /**
      * The schedule-admin gate: the Group runs scheduling *and* the actor can act as
      * its Scheduler (Chair-implication folded in by {@see Member::canActAs()}). The
      * capability guard matters because Chair-implication would otherwise grant schedule

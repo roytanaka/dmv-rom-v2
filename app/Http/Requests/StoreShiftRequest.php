@@ -70,7 +70,11 @@ class StoreShiftRequest extends FormRequest
             'capacity' => ['sometimes', 'integer', 'min:1'],
             'shift_kind_id' => [
                 'nullable',
-                Rule::exists('shift_kinds', 'id')->where('group_id', $schedule->group_id),
+                // Only an *active* kind may go on a new Shift — a retired kind still labels the
+                // Shifts already carrying it, but is no longer offered (#567, ADR-0021 §3).
+                Rule::exists('shift_kinds', 'id')
+                    ->where('group_id', $schedule->group_id)
+                    ->where('active', true),
             ],
             'audience' => ['sometimes', Rule::enum(ShiftAudience::class)],
         ];

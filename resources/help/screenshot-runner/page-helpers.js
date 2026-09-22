@@ -327,6 +327,10 @@
         return showCardTitled(/^empty-desk alert/i);
     }
 
+    function showShiftKinds() {
+        return showCardTitled(/^shift kinds/i);
+    }
+
     // The first Agenda Shift still ahead that a schedule admin can place a Member on, scrolled
     // so its day heading stays in frame. Each Agenda day is a block led by an h3 such as
     // "Tuesday, September 8", read against today in the current year.
@@ -550,6 +554,7 @@
         openBulkShiftsDialog,
         showShiftReminders,
         showEmptyDeskAlert,
+        showShiftKinds,
         showUpcomingPlaceAMember,
         openPlaceAMemberDialog,
         showCorrectionPencil,

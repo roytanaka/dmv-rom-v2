@@ -238,6 +238,28 @@ it('rejects a kind belonging to a different Group', function () {
     expect(Shift::count())->toBe(0);
 });
 
+it('rejects a retired kind on a new Shift (#567)', function () {
+    $schedule = augustSchedule();
+    $retired = ShiftKind::factory()->inactive()->create(['group_id' => $schedule->group_id]);
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.store', $schedule), shiftPayload(['shift_kind_id' => $retired->id]))
+        ->assertSessionHasErrors('shift_kind_id');
+
+    expect(Shift::count())->toBe(0);
+});
+
+it('rejects a retired kind on a bulk-created Shift (#567)', function () {
+    $schedule = augustSchedule();
+    $retired = ShiftKind::factory()->inactive()->create(['group_id' => $schedule->group_id]);
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload(['shift_kind_id' => $retired->id]))
+        ->assertSessionHasErrors('shift_kind_id');
+
+    expect(Shift::count())->toBe(0);
+});
+
 // --- Adding (store) — deny rows ---------------------------------------------
 
 it('forbids an ordinary member from adding a Shift', function () {
@@ -331,6 +353,29 @@ it('rejects moving a Shift outside the Schedule range', function () {
         ->assertSessionHasErrors('ends_at');
 
     expect($shift->fresh()->starts_at->toDateTimeString())->toBe('2026-08-10 10:00:00');
+});
+
+it('still accepts a Shift\'s own retired kind on edit, so an old Shift can be edited (#567)', function () {
+    $schedule = augustSchedule();
+    $retired = ShiftKind::factory()->inactive()->create(['group_id' => $schedule->group_id]);
+    $shift = Shift::factory()->create(['schedule_id' => $schedule->id, 'shift_kind_id' => $retired->id, 'capacity' => 1]);
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->patch(route('shifts.update', $shift), ['capacity' => 5, 'shift_kind_id' => $retired->id])
+        ->assertSessionHasNoErrors();
+
+    expect($shift->fresh()->capacity)->toBe(5);
+});
+
+it('rejects switching a Shift to a different retired kind (#567)', function () {
+    $schedule = augustSchedule();
+    $current = ShiftKind::factory()->create(['group_id' => $schedule->group_id]);
+    $otherRetired = ShiftKind::factory()->inactive()->create(['group_id' => $schedule->group_id]);
+    $shift = Shift::factory()->create(['schedule_id' => $schedule->id, 'shift_kind_id' => $current->id]);
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->patch(route('shifts.update', $shift), ['shift_kind_id' => $otherRetired->id])
+        ->assertSessionHasErrors('shift_kind_id');
 });
 
 it('forbids a Scheduler of another Group from editing a Shift', function () {
