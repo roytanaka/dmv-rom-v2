@@ -7,6 +7,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupEmptyDeskSettingsController;
 use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\GroupReminderSettingsController;
+use App\Http\Controllers\GroupSelfServeSettingsController;
 use App\Http\Controllers\HelpController;
 use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
@@ -322,6 +323,15 @@ Route::patch('groups/{group}/reminder-settings', [GroupReminderSettingsControlle
 Route::patch('groups/{group}/empty-desk-settings', [GroupEmptyDeskSettingsController::class, 'update'])
     ->middleware(['auth'])
     ->name('groups.empty-desk.update');
+
+// Group self-serve settings (#582, PRD #576, ADR-0026 §1 and §2). The Scheduling section's
+// self-serve card — self-serve shifts on/off and the unit length in minutes — edited by a
+// Scheduler or Chair. One dedicated endpoint, bound to the Group by slug, structurally authorized
+// in UpdateSelfServeSettingsRequest, which delegates to the SchedulePolicy's `updateSelfServe`
+// gate (scheduling on, actor a schedule admin). A plain member is refused before the write.
+Route::patch('groups/{group}/self-serve-settings', [GroupSelfServeSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('groups.self-serve.update');
 
 // Shift-kind maintenance (#567, ADR-0021 §3). The Scheduling section's shift-kind block — add,
 // rename, retire, reinstate and reorder a Group's kinds — edited by a Scheduler or Chair. There

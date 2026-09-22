@@ -824,6 +824,18 @@ it('turns Reminders on with 3 lead days for the five Reminder Groups, off elsewh
     expect(Group::where('slug', 'romwalks')->firstOrFail()->reminders_enabled)->toBeFalse();
 });
 
+it('turns self-serve shifts on with 45-minute units for Gallery Interpreters, off elsewhere', function () {
+    // Gallery Interpreters is the one self-serve Group (ADR-0026 §1), at the 45-minute unit
+    // every GI knows (§2).
+    $gi = Group::where('slug', 'gallery-interpreters')->firstOrFail();
+    expect($gi->self_serve_shifts)->toBeTrue()
+        ->and($gi->self_serve_unit_minutes)->toBe(45);
+
+    // Every other scheduling Group keeps self-serve off (the opt-in default).
+    expect(Group::where('slug', 'docents')->firstOrFail()->self_serve_shifts)->toBeFalse()
+        ->and(Group::where('slug', 'visitor-guides')->firstOrFail()->self_serve_shifts)->toBeFalse();
+});
+
 it('seeds the ROMWalks walks-to-hours multiplier at 2, every other Group at the default 1', function () {
     // ROMWalks counts each walk as two hours (ADR-0022 §7) — the one Group whose
     // multiplier differs; the Docents program keeps the org-wide default.

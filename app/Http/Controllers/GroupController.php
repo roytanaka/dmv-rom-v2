@@ -184,6 +184,14 @@ class GroupController extends Controller
                             'watched' => $kind->alert_when_empty,
                         ])->all(),
                 ],
+                // The Group's self-serve settings (#582, ADR-0026 §1 and §2) — the Scheduling
+                // section's self-serve card reads these to render its on/off switch and unit-length
+                // field. Present on every Group; the card renders only inside Scheduling, and only
+                // to a schedule admin (`can.manageSelfServe`).
+                'selfServe' => [
+                    'enabled' => $group->self_serve_shifts,
+                    'unitMinutes' => $group->self_serve_unit_minutes,
+                ],
                 // The Group's shift kinds for the maintenance block (#567, ADR-0021 §3) — the
                 // full roster in picker order, retired kinds included, so the block can rename,
                 // retire, reinstate and reorder them. Only a schedule admin (`can.manageShiftKinds`)
@@ -234,6 +242,10 @@ class GroupController extends Controller
                 // ADR-0024 §7) — the same Scheduler/Chair gate as Reminders. UI hint only;
                 // UpdateEmptyDeskSettingsRequest re-checks the gate on PATCH.
                 'manageEmptyDesk' => $request->user()->can('updateEmptyDeskAlert', [Schedule::class, $group]),
+                // `manageSelfServe` drives the Scheduling tab's self-serve settings card (#582,
+                // ADR-0026 §1 and §2) — the same Scheduler/Chair gate. UI hint only;
+                // UpdateSelfServeSettingsRequest re-checks the gate on PATCH.
+                'manageSelfServe' => $request->user()->can('updateSelfServe', [Schedule::class, $group]),
                 // `manageShiftKinds` drives the Scheduling tab's shift-kind maintenance block (#567,
                 // ADR-0021 §3) — the same Scheduler/Chair gate. UI hint only; the shift-kind Form
                 // Requests re-check the gate on write.

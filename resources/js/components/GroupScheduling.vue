@@ -62,6 +62,10 @@ const props = defineProps<{
     canManageReminders: boolean;
     emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] };
     canManageEmptyDesk: boolean;
+    // The Group's self-serve settings (#582) — the self-serve card reads them, gated by
+    // `canManageSelfServe`.
+    selfServe: { enabled: boolean; unitMinutes: number };
+    canManageSelfServe: boolean;
     // The Group's shift kinds for the maintenance block (#567) — the full roster in picker order,
     // retired kinds included. Present only for a schedule admin (`canManageShiftKinds`).
     manageableShiftKinds: { id: number; name: string; active: boolean; sortOrder: number }[];
@@ -198,6 +202,16 @@ const toggleWatchedKind = (id: number, on: boolean) => {
 };
 
 const saveEmptyDesk = () => emptyDeskForm.patch(route('groups.empty-desk.update', { group: props.groupSlug }), { preserveScroll: true });
+
+// --- Self-serve settings (#582, ADR-0026 §1 and §2) — the schedule-admin's self-serve on/off
+// switch and the unit length in minutes, gated by `canManageSelfServe`. One PATCH to the dedicated
+// endpoint; the server re-checks the gate. The form seeds from the Group's current settings.
+const selfServeForm = useForm<{ self_serve_shifts: boolean; self_serve_unit_minutes: number }>({
+    self_serve_shifts: props.selfServe.enabled,
+    self_serve_unit_minutes: props.selfServe.unitMinutes,
+});
+
+const saveSelfServe = () => selfServeForm.patch(route('groups.self-serve.update', { group: props.groupSlug }), { preserveScroll: true });
 
 // --- Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin adds, renames, retires,
 // reinstates and reorders the Group's kinds, gated by `canManageShiftKinds`. There is no delete.
@@ -808,6 +822,39 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 </div>
                 <div class="flex justify-end">
                     <Button type="button" size="sm" :disabled="emptyDeskForm.processing" @click="saveEmptyDesk">
+                        {{ trans('group.scheduling_panel.save') }}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+
+        <!-- Self-serve settings (#582, ADR-0026 §1 and §2) — the schedule-admin's self-serve
+             on/off switch and the unit length in minutes. Shown on the list view only, and only to
+             a Scheduler / Chair (`canManageSelfServe`); the server re-checks on save. -->
+        <Card v-if="canManageSelfServe && !scheduling.open">
+            <CardHeader>
+                <CardTitle>{{ trans('group.scheduling_panel.self_serve.heading') }}</CardTitle>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-4">
+                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.self_serve.description') }}</p>
+                <label class="flex items-center gap-2 text-sm">
+                    <Checkbox :checked="selfServeForm.self_serve_shifts" @update:checked="(on: boolean) => (selfServeForm.self_serve_shifts = on)" />
+                    {{ trans('group.scheduling_panel.self_serve.enabled_label') }}
+                </label>
+                <div class="flex flex-col gap-1.5">
+                    <Label for="self-serve-unit-minutes">{{ trans('group.scheduling_panel.self_serve.unit_minutes_label') }}</Label>
+                    <Input
+                        id="self-serve-unit-minutes"
+                        v-model.number="selfServeForm.self_serve_unit_minutes"
+                        type="number"
+                        min="15"
+                        max="240"
+                        class="w-24"
+                    />
+                    <InputError :message="selfServeForm.errors.self_serve_unit_minutes" />
+                </div>
+                <div class="flex justify-end">
+                    <Button type="button" size="sm" :disabled="selfServeForm.processing" @click="saveSelfServe">
                         {{ trans('group.scheduling_panel.save') }}
                     </Button>
                 </div>
