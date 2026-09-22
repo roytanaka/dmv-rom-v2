@@ -386,10 +386,16 @@ it('allowlists exactly the catalogued Personas', function () {
  * demo month changing.
  */
 
-it('seeds one published Schedule on the Docents Group covering the current month', function () {
-    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+/** The Docents Schedule named for the current month, as the demo seed names it. */
+function docentsCurrentMonth(): Schedule
+{
+    return Schedule::where('group_id', Group::where('slug', DemoSeeder::PROGRAM)->value('id'))
+        ->where('name', CarbonImmutable::instance(now())->format('F Y'))
+        ->firstOrFail();
+}
 
-    $schedule = Schedule::where('group_id', $docents->id)->firstOrFail();
+it('seeds one published Schedule on the Docents Group covering the current month', function () {
+    $schedule = docentsCurrentMonth();
 
     expect($schedule->state)->toBe(ScheduleState::Published)
         ->and($schedule->isCurrent(now()))->toBeTrue()
@@ -411,29 +417,86 @@ it('seeds an empty next-month draft Schedule on Docents, so a Scheduler has one 
         ->and($draft->shifts()->count())->toBe(0);
 });
 
-it('spreads the Schedule across several days with a mix of capacities and an open Shift', function () {
-    $schedule = Schedule::where('group_id', Group::where('slug', DemoSeeder::PROGRAM)->value('id'))
-        ->with('shifts')
-        ->firstOrFail();
+it('seeds the real Docents roster: five one-hour, one-Docent tours from 11:00 every day of the month', function () {
+    $schedule = docentsCurrentMonth()->load('shifts.kind');
+    $orgTimezone = config('app.org_timezone');
 
-    $shifts = $schedule->shifts;
-
-    // Several distinct days so the month grid is not a single stack on one square.
-    $distinctDays = $shifts->map(fn (Shift $s) => $s->starts_at->toDateString())->unique();
-    expect($distinctDays->count())->toBeGreaterThanOrEqual(4);
-
-    // Every Shift sits inside its Schedule's range (ADR-0021 §2), and durations are real.
-    $shifts->each(function (Shift $shift) use ($schedule) {
+    // Every Shift sits inside its Schedule's range (ADR-0021 §2), for the Docents only.
+    $schedule->shifts->each(function (Shift $shift) use ($schedule) {
         expect($schedule->coversInterval($shift->starts_at, $shift->ends_at))->toBeTrue()
-            ->and($shift->ends_at->greaterThan($shift->starts_at))->toBeTrue();
+            ->and($shift->audience)->toBe(ShiftAudience::Group);
     });
 
-    // A mix of capacities, not a uniform single-seat roster.
-    expect($shifts->pluck('capacity')->unique()->count())->toBeGreaterThanOrEqual(2)
-        ->and($shifts->contains(fn (Shift $s) => $s->capacity > 1))->toBeTrue();
+    $daily = $schedule->shifts->filter(fn (Shift $s) => $s->kind->name !== 'Group Tour');
 
-    // At least one Shift opened to the whole org (ADR-0021 §4).
-    expect($shifts->contains(fn (Shift $s) => $s->audience === ShiftAudience::Open))->toBeTrue();
+    // Each day of the month carries the same five tours: 11:00 to 15:00 on the hour,
+    // one hour long, one seat, the label alternating Highlights and Gallery by hour.
+    $byDay = $daily->groupBy(fn (Shift $s) => $s->starts_at->copy()->setTimezone($orgTimezone)->toDateString());
+    expect($byDay)->toHaveCount(CarbonImmutable::instance(now())->daysInMonth);
+
+    $byDay->each(function ($tours) use ($orgTimezone) {
+        $shape = $tours->sortBy('starts_at')->map(fn (Shift $s) => [
+            $s->starts_at->copy()->setTimezone($orgTimezone)->format('H:i'),
+            (int) $s->starts_at->diffInMinutes($s->ends_at),
+            $s->capacity,
+            $s->kind->name,
+        ])->values()->all();
+
+        expect($shape)->toBe([
+            ['11:00', 60, 1, 'Museum Highlights'],
+            ['12:00', 60, 1, 'Gallery/Theme'],
+            ['13:00', 60, 1, 'Museum Highlights'],
+            ['14:00', 60, 1, 'Gallery/Theme'],
+            ['15:00', 60, 1, 'Museum Highlights'],
+        ]);
+    });
+});
+
+it('adds a few Group Tours, the only Docents Shifts with more than one seat', function () {
+    $groupTours = docentsCurrentMonth()->shifts()->whereRelation('kind', 'name', 'Group Tour')->get();
+
+    expect($groupTours->count())->toBeGreaterThanOrEqual(3)
+        ->and($groupTours->contains(fn (Shift $s) => $s->capacity > 1))->toBeTrue()
+        ->and(docentsCurrentMonth()->shifts()->where('capacity', '>', 1)
+            ->whereRelation('kind', 'name', '!=', 'Group Tour')->exists())->toBeFalse();
+});
+
+it('fills the Docents month the way a real one fills: worked tours full, upcoming ones part-taken', function () {
+    $shifts = Shift::whereRelation('schedule', 'group_id', Group::where('slug', DemoSeeder::PROGRAM)->value('id'))
+        ->withCount('signUps')
+        ->get();
+
+    // Every tour that has ended was worked, so it is full …
+    $ended = $shifts->filter(fn (Shift $s) => $s->ends_at->isPast());
+    expect($ended)->not->toBeEmpty()
+        ->and($ended->every(fn (Shift $s) => $s->sign_ups_count === $s->capacity))->toBeTrue();
+
+    // … and the month still ahead is part-taken, neither empty nor sold out.
+    $ahead = docentsCurrentMonth()->shifts()->withCount('signUps')->get()
+        ->filter(fn (Shift $s) => $s->starts_at->isFuture() && $s->capacity === 1);
+
+    if ($ahead->count() >= 20) {
+        $taken = $ahead->where('sign_ups_count', 1)->count() / $ahead->count();
+        expect($taken)->toBeGreaterThan(0.3)->toBeLessThan(0.85);
+    }
+});
+
+it('signs out the worked Docents tours, leaving only the last two days still owed a number', function () {
+    $signUps = SignUp::whereRelation('shift.schedule', 'group_id', Group::where('slug', DemoSeeder::PROGRAM)->value('id'))
+        ->with('shift')
+        ->get()
+        ->filter(fn (SignUp $s) => $s->shift->ends_at->isPast());
+
+    $older = $signUps->filter(fn (SignUp $s) => $s->shift->ends_at->lessThan(now()->subDays(2)));
+    $recent = $signUps->filter(fn (SignUp $s) => $s->shift->ends_at->greaterThanOrEqualTo(now()->subDays(2)));
+
+    expect($older->every(fn (SignUp $s) => $s->visitor_count !== null && $s->extra_interaction_count !== null))->toBeTrue()
+        ->and($recent->every(fn (SignUp $s) => $s->visitor_count === null))->toBeTrue();
+});
+
+it('drops the separate Recent shifts Schedule on Docents, whose three-hour Shifts Docents never work', function () {
+    expect(Schedule::where('group_id', Group::where('slug', DemoSeeder::PROGRAM)->value('id'))
+        ->where('name', DemoSeeder::RECENT_SCHEDULE_NAME)->exists())->toBeFalse();
 });
 
 it('seeds an active ShiftKind vocabulary for the Group and labels its Shifts', function () {
@@ -446,7 +509,7 @@ it('seeds an active ShiftKind vocabulary for the Group and labels its Shifts', f
         ->and($kinds->every(fn (ShiftKind $k) => $k->active))->toBeTrue();
 
     // The kinds label real Shifts on the Group's Schedule — the Agenda shows a kind,
-    // not a bare time — while at least one Shift stays kind-less so both shapes show.
+    // not a bare time.
     $shifts = Shift::whereRelation('schedule', 'group_id', $docents->id)->get();
     expect($shifts->contains(fn (Shift $s) => $s->shift_kind_id !== null))->toBeTrue();
 
@@ -608,15 +671,11 @@ it('seats the Member Persona on the outstanding Docents Shift, so her My sign-up
 
 it('seats the Member Persona on the last Shift of the Docents month, so she has a seat to drop', function () {
     // The Cancel-a-sign-up walkthrough needs the Drop button on a Shift still ahead of her.
-    // The month's last Shift stays ahead for as long as the month runs, and stays one seat
-    // short of full like every Shift after the first, so the walkthrough can still take a seat.
+    // The month's last tour stays ahead for as long as the month runs.
     $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)->firstOrFail();
-    $docents = Group::where('slug', 'docents')->firstOrFail();
-    $month = Schedule::where('group_id', $docents->id)->where('name', '!=', DemoSeeder::RECENT_SCHEDULE_NAME)->firstOrFail();
-    $last = $month->shifts()->orderByDesc('starts_at')->firstOrFail();
+    $last = docentsCurrentMonth()->shifts()->orderByDesc('starts_at')->firstOrFail();
 
-    expect(SignUp::where('shift_id', $last->id)->where('member_id', $member->id)->exists())->toBeTrue()
-        ->and($last->signUps()->count())->toBe($last->capacity - 1);
+    expect(SignUp::where('shift_id', $last->id)->where('member_id', $member->id)->exists())->toBeTrue();
 });
 
 it('splits every counted GDR Sign-up into five origins that sum to the count', function () {

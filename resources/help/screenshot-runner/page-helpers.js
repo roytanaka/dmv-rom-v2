@@ -182,10 +182,14 @@
         return openSchedule(scheduleLinks().find(isDraft));
     }
 
-    // Open the recent, all-past Schedule the demo seed names "Recent shifts": its seats carry
-    // the visitor counts filed at sign-out, so the correction walkthrough shoots here.
-    function openRecentSchedule() {
-        return openSchedule(scheduleLinks().find((element) => /^recent shifts$/i.test(element.textContent.trim())));
+    // Open last month's Schedule — named for last month and year, as the demo seed names it.
+    // Every tour on it was worked and signed out, so its seats carry filed visitor counts and
+    // the correction walkthrough shoots here.
+    function openLastMonthSchedule() {
+        const now = new Date();
+        const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const name = `${last.toLocaleString('en-CA', { month: 'long' })} ${last.getFullYear()}`;
+        return openSchedule(scheduleLinks().find((element) => element.textContent.trim() === name));
     }
 
     // Scroll the Scheduling tab's list of schedules into view, below the My sign-ups panel.
@@ -516,7 +520,7 @@
         showFirstOpenShift,
         showMyShift,
         openDraftSchedule,
-        openRecentSchedule,
+        openLastMonthSchedule,
         showNewScheduleButton,
         openNewScheduleDialog,
         openNewShiftDialog,
