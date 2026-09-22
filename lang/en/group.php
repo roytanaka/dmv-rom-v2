@@ -249,10 +249,8 @@ return [
             // The Object picker on the write / take / place flows (#586, ADR-0026 §3) — a
             // searchable multi-select shown only when the group has active objects.
             'field_label' => 'Objects',
-            'field_placeholder' => 'Choose the objects you are taking',
             'search' => 'Search objects',
             'no_matches' => 'No objects match.',
-            'seat_label' => 'Objects',
             // Refused on write: the object is already out on another sign-up at an overlapping
             // time. Names the object and the other shift's date and time.
             'clash' => ':object is already out at :when. Choose a different object.',

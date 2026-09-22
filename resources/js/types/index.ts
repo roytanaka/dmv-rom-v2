@@ -549,9 +549,6 @@ export interface ScheduleListItem {
     can: ScheduleAbilities;
 }
 
-// One seated Member on a Shift (#357, ADR-0017 §6) — name only, routed through
-// MemberResource so contact PII stays gated. Visible to every reader who can read the
-// Schedule, non-members included: a Schedule is a roster of who is on the floor.
 // One Object in a Group's handling collection (#586, ADR-0026 §3) — id and name, the shape the
 // write / take / place pickers offer and the shape a seat lists. A retired Object keeps its name
 // on old seats, so the seat list carries the name regardless of the active flag.
@@ -560,6 +557,9 @@ export interface ObjectOption {
     name: string;
 }
 
+// One seated Member on a Shift (#357, ADR-0017 §6) — name only, routed through
+// MemberResource so contact PII stays gated. Visible to every reader who can read the
+// Schedule, non-members included: a Schedule is a roster of who is on the floor.
 export interface ShiftSignUp {
     id: number;
     first_name: string;
