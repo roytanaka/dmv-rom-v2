@@ -86,10 +86,16 @@ class Shift extends Model
      */
     public function objectHold(): ObjectHold
     {
-        return new ObjectHold(
-            CarbonImmutable::instance($this->starts_at),
-            CarbonImmutable::instance($this->ends_at),
-        );
+        $start = CarbonImmutable::instance($this->starts_at);
+        $end = CarbonImmutable::instance($this->ends_at);
+
+        if ($this->kind?->off_site) {
+            $timezone = config('app.org_timezone');
+            $start = $start->setTimezone($timezone)->startOfDay()->subDay();
+            $end = $end->setTimezone($timezone)->endOfDay()->addDay();
+        }
+
+        return new ObjectHold($start, $end);
     }
 
     /**

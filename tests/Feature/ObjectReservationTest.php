@@ -245,6 +245,148 @@ it('lets a different Object share the overlapping time', function () {
     expect(Shift::count())->toBe(2);
 });
 
+// --- the off-site hold: an Object is held a day either side (ADR-0026 §4) -----
+
+/** An active off-site station kind of the Group — its holds widen a day each side. */
+function offSiteStation(Group $group): ShiftKind
+{
+    return ShiftKind::factory()->create(['group_id' => $group->id, 'off_site' => true]);
+}
+
+it('holds an off-site Object from the day before through the day after, refusing an overlapping seat', function () {
+    $group = objectsGroup();
+    $schedule = objectsSchedule($group);
+    $offSite = offSiteStation($group);
+    $station = objectsStation($group);
+    $owl = handlingObject($group, 'Owl Skull');
+    $holder = objectsMember($group);
+    $newcomer = objectsMember($group);
+
+    // The Owl is out on an off-site event on 17 June (D). Its hold runs 16 June through 18 June.
+    seatedShift($schedule, $offSite, $holder, [$owl], '2026-06-17 10:00', '2026-06-17 12:15');
+
+    // A gallery seat the day before (D−1) is refused the Owl.
+    $this->actingAs($newcomer)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), objectsBody($station, [$owl->id], ['starts_at' => '2026-06-16T10:00']))
+        ->assertSessionHasErrors('objects');
+
+    // A gallery seat the day after (D+1) is refused it too.
+    $this->actingAs($newcomer)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), objectsBody($station, [$owl->id], ['starts_at' => '2026-06-18T10:00']))
+        ->assertSessionHasErrors('objects');
+
+    expect(Shift::count())->toBe(1);
+});
+
+it('frees an off-site Object two days out, accepting a seat on D−2 and D+2', function () {
+    $group = objectsGroup();
+    $schedule = objectsSchedule($group);
+    $offSite = offSiteStation($group);
+    $station = objectsStation($group);
+    $owl = handlingObject($group, 'Owl Skull');
+    $holder = objectsMember($group);
+    $newcomer = objectsMember($group);
+
+    // The Owl is out on an off-site event on 17 June (D); the hold stops at the end of 18 June.
+    seatedShift($schedule, $offSite, $holder, [$owl], '2026-06-17 10:00', '2026-06-17 12:15');
+
+    // Two days before (D−2, today) and two days after (D+2) are outside the hold.
+    $this->actingAs($newcomer)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), objectsBody($station, [$owl->id], ['starts_at' => '2026-06-15T10:00']))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($newcomer)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), objectsBody($station, [$owl->id], ['starts_at' => '2026-06-19T10:00']))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(Shift::count())->toBe(3);
+});
+
+it('refuses an off-site seat an Object held on an in-building seat the day before', function () {
+    $group = objectsGroup();
+    $schedule = objectsSchedule($group);
+    $offSite = offSiteStation($group);
+    $station = objectsStation($group);
+    $owl = handlingObject($group, 'Owl Skull');
+    $holder = objectsMember($group);
+    $newcomer = objectsMember($group);
+
+    // The Owl is held on a gallery seat on 16 June (D−1) — an ordinary same-day hold.
+    seatedShift($schedule, $station, $holder, [$owl], '2026-06-16 10:00', '2026-06-16 12:15');
+
+    // An off-site seat on 17 June (D) widens to cover 16 June, so it cannot take the Owl.
+    $this->actingAs($newcomer)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), objectsBody($offSite, [$owl->id], ['starts_at' => '2026-06-17T10:00']))
+        ->assertSessionHasErrors('objects');
+
+    expect(Shift::count())->toBe(1);
+});
+
+it('applies the widened hold when a GI takes an off-site event seat', function () {
+    $group = objectsGroup();
+    $schedule = objectsSchedule($group);
+    $offSite = offSiteStation($group);
+    $station = objectsStation($group);
+    $owl = handlingObject($group, 'Owl Skull');
+    $holder = objectsMember($group);
+    $taker = objectsMember($group);
+
+    // The Owl is held on a gallery seat on 16 June; the event runs 17 June.
+    seatedShift($schedule, $station, $holder, [$owl], '2026-06-16 10:00', '2026-06-16 12:15');
+    $event = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'shift_kind_id' => $offSite->id,
+        'capacity' => 1,
+        'audience' => ShiftAudience::Group,
+        'starts_at' => Carbon::parse('2026-06-17 10:00', config('app.org_timezone'))->utc(),
+        'ends_at' => Carbon::parse('2026-06-17 12:15', config('app.org_timezone'))->utc(),
+    ]);
+
+    // Taking the event seat with the Owl is refused: the event's hold widens to cover 16 June.
+    $this->actingAs($taker)
+        ->post(route('sign-ups.store', ['shift' => $event->id]), ['objects' => [$owl->id]])
+        ->assertSessionHasErrors('objects');
+
+    expect(SignUp::where('shift_id', $event->id)->count())->toBe(0);
+});
+
+it('lets two seats on one off-site Shift each carry their own Object', function () {
+    $group = objectsGroup();
+    $schedule = objectsSchedule($group);
+    $offSite = offSiteStation($group);
+    $owl = handlingObject($group, 'Owl Skull');
+    $egg = handlingObject($group, 'Ostrich Egg');
+    $scheduler = objectsMember($group, Role::Scheduler);
+    $first = objectsMember($group);
+    $second = objectsMember($group);
+
+    // A two-seat Scheduler-authored event seat, the shape §8 gives an off-site event.
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'shift_kind_id' => $offSite->id,
+        'capacity' => 2,
+        'audience' => ShiftAudience::Group,
+        'starts_at' => Carbon::parse('2026-06-17 10:00', config('app.org_timezone'))->utc(),
+        'ends_at' => Carbon::parse('2026-06-17 12:15', config('app.org_timezone'))->utc(),
+    ]);
+
+    $this->actingAs($scheduler)
+        ->post(route('assignments.store', ['shift' => $shift->id]), ['member_id' => $first->id, 'objects' => [$owl->id]])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+    $this->actingAs($scheduler)
+        ->post(route('assignments.store', ['shift' => $shift->id]), ['member_id' => $second->id, 'objects' => [$egg->id]])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $firstSeat = SignUp::where(['shift_id' => $shift->id, 'member_id' => $first->id])->firstOrFail();
+    $secondSeat = SignUp::where(['shift_id' => $shift->id, 'member_id' => $second->id])->firstOrFail();
+    expect($firstSeat->objects()->pluck('objects.id')->all())->toBe([$owl->id])
+        ->and($secondSeat->objects()->pluck('objects.id')->all())->toBe([$egg->id]);
+});
+
 // --- self-serve update: Objects replaced whole, own seat excluded from the clash ---
 
 it('replaces the Objects on an owner’s update', function () {

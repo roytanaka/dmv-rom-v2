@@ -85,6 +85,32 @@ it('lets a Scheduler reorder kinds, setting the picker order', function () {
     expect($first->refresh()->sort_order)->toBe(1);
 });
 
+it('lets a schedule admin set and clear the off-site flag on a kind', function () {
+    $group = Group::factory()->program()->create();
+    $kind = ShiftKind::factory()->create(['group_id' => $group->id, 'off_site' => false]);
+    $scheduler = shiftKindMemberOf($group, role: Role::Scheduler);
+
+    $this->actingAs($scheduler)
+        ->patch(route('shift-kinds.update', ['shiftKind' => $kind]), ['off_site' => true])
+        ->assertRedirect();
+    expect($kind->refresh()->off_site)->toBeTrue();
+
+    $this->actingAs($scheduler)
+        ->patch(route('shift-kinds.update', ['shiftKind' => $kind]), ['off_site' => false])
+        ->assertRedirect();
+    expect($kind->refresh()->off_site)->toBeFalse();
+});
+
+it('forbids a plain member from setting the off-site flag', function () {
+    $group = Group::factory()->program()->create();
+    $kind = ShiftKind::factory()->create(['group_id' => $group->id]);
+    $plain = shiftKindMemberOf($group);
+
+    $this->actingAs($plain)
+        ->patch(route('shift-kinds.update', ['shiftKind' => $kind]), ['off_site' => true])
+        ->assertForbidden();
+});
+
 it('rejects a duplicate name in the same Group but allows it in a different Group', function () {
     $group = Group::factory()->program()->create();
     ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Highlights']);

@@ -204,6 +204,7 @@ class GroupController extends Controller
                             'id' => $kind->id,
                             'name' => $kind->name,
                             'active' => $kind->active,
+                            'offSite' => $kind->off_site,
                             'sortOrder' => $kind->sort_order,
                         ])->all()
                     : [],

@@ -93,7 +93,7 @@ const props = defineProps<{
         };
         // The Group's shift kinds for the maintenance block (#567) — the full roster in picker
         // order, retired ones included. Present only for a schedule admin (empty otherwise).
-        shiftKinds: { id: number; name: string; active: boolean; sortOrder: number }[];
+        shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[];
         // The Group's Objects for the maintenance block (#584) — the full handling collection in
         // picker order, retired ones included. Present only for a schedule admin (empty otherwise).
         objects: { id: number; name: string; active: boolean; sortOrder: number }[];

@@ -70,7 +70,7 @@ const props = defineProps<{
     canManageSelfServe: boolean;
     // The Group's shift kinds for the maintenance block (#567) — the full roster in picker order,
     // retired kinds included. Present only for a schedule admin (`canManageShiftKinds`).
-    manageableShiftKinds: { id: number; name: string; active: boolean; sortOrder: number }[];
+    manageableShiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[];
     canManageShiftKinds: boolean;
     // The Group's Objects for the maintenance block (#584) — the full handling collection in
     // picker order, retired Objects included. Present only for a schedule admin (`canManageObjects`).
@@ -274,6 +274,11 @@ const saveRename = (id: number) => {
 // Retire (active → false) or reinstate (false → true). One PATCH carrying the flag.
 const setKindActive = (id: number, active: boolean) =>
     router.patch(route('shift-kinds.update', { shiftKind: id }), { active }, { preserveScroll: true });
+
+// Set or clear the off-site flag (#587, ADR-0026 §4) — it widens the kind's Object hold a day
+// either side. One PATCH carrying the flag, the same seam as retire / reinstate.
+const setKindOffSite = (id: number, offSite: boolean) =>
+    router.patch(route('shift-kinds.update', { shiftKind: id }), { off_site: offSite }, { preserveScroll: true });
 
 // Reorder by swapping a kind with its neighbour, then sending the whole id list in the new order.
 const moveKind = (index: number, delta: number) => {
@@ -1143,6 +1148,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                             <Button v-else type="button" size="sm" variant="ghost" @click="setKindActive(kind.id, true)">
                                 {{ trans('group.scheduling_panel.shift_kinds.reinstate') }}
                             </Button>
+                            <!-- Off-site (#587, ADR-0026 §4): flag an event station so its Objects are held a day
+                                 either side. -->
+                            <label class="text-muted-foreground ml-auto flex items-center gap-1.5 text-sm">
+                                <Checkbox :checked="kind.offSite" @update:checked="(on: boolean) => setKindOffSite(kind.id, on)" />
+                                {{ trans('group.scheduling_panel.shift_kinds.off_site') }}
+                            </label>
                         </template>
                     </li>
                 </ul>

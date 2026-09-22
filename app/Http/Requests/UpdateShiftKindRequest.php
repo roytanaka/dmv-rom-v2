@@ -30,7 +30,8 @@ class UpdateShiftKindRequest extends FormRequest
 
     /**
      * The whitelist of editable fields. `name`, when sent, is required and unique among the
-     * Group's other kinds; `active` is the retire / reinstate flag.
+     * Group's other kinds; `active` is the retire / reinstate flag; `off_site` is the flag that
+     * widens the Object hold to a day either side (#587, ADR-0026 §4).
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -49,6 +50,7 @@ class UpdateShiftKindRequest extends FormRequest
                     ->ignore($kind->getKey()),
             ],
             'active' => ['sometimes', 'boolean'],
+            'off_site' => ['sometimes', 'boolean'],
         ];
     }
 }

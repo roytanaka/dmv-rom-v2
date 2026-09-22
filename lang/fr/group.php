@@ -204,7 +204,7 @@ return [
         // l'habillage traduit.
         'shift_kinds' => [
             'heading' => 'Types de quart',
-            'description' => 'Nommez les types de quart de ce groupe. Retirez un type pour l’exclure des nouveaux quarts. Ses quarts passés gardent le nom.',
+            'description' => 'Nommez les types de quart de ce groupe. Retirez un type pour l’exclure des nouveaux quarts. Ses quarts passés gardent le nom. Marquez un type hors site pour retenir ses objets de la veille au lendemain. Utilisez-le pour des événements comme la CNE.',
             'empty' => 'Ce groupe n’a pas encore de types de quart.',
             'add_label' => 'Ajouter un type de quart',
             'add' => 'Ajouter',
@@ -212,6 +212,7 @@ return [
             'retire' => 'Retirer',
             'reinstate' => 'Réactiver',
             'retired_badge' => 'Retiré',
+            'off_site' => 'Hors site',
             'move_up' => 'Monter',
             'move_down' => 'Descendre',
         ],
