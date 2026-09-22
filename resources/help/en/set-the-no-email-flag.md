@@ -5,7 +5,7 @@ Records can silence every email to one Member. You set it from the Member's prof
 ## Set the No email flag
 
 1. Open the Directory from the top bar.
-2. Select the Member you want to reach.
+2. Select the Member.
 3. Find the **Member administration** card. It sits below the Member's Groups.
 4. Select the **No email** checkbox to silence all mail to the Member.
 5. Clear the checkbox to let mail reach the Member again.

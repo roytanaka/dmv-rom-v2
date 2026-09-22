@@ -5,7 +5,7 @@ Records peut couper tout courriel à un·e membre. Vous le faites depuis le prof
 ## Activer l'option sans courriel
 
 1. Ouvrez le Répertoire depuis la barre du haut.
-2. Sélectionnez le·la membre que vous voulez joindre.
+2. Sélectionnez le·la membre.
 3. Trouvez la carte **Administration des membres**. Elle se trouve sous les groupes du membre.
 4. Cochez la case **Aucun courriel** pour couper tout courriel au membre.
 5. Décochez la case pour laisser le courriel revenir au membre.
