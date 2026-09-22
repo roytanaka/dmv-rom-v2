@@ -57,6 +57,11 @@ manifest. It orients the reader; it does not walk a task. Keep it to a short
 intro line and one short paragraph per area of the section. `getting-started` is
 the model: see `resources/help/en/getting-started.md`.
 
+An overview title never repeats its section label. The breadcrumb reads
+"Help › <section> › <title>", so a title equal to the section label shows the
+same crumb twice. Name what the section is for — "What Scheduling is for", not
+"Scheduling". A catalogue-integrity test enforces this in both locales.
+
 ## Sentence rules
 
 Instructional copy follows Simplified Technical English:

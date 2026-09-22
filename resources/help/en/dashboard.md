@@ -1,4 +1,4 @@
-# Dashboard
+# What the Dashboard is for
 
 The Dashboard is your home page. It opens when you sign in.
 

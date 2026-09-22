@@ -1,4 +1,4 @@
-# Emailing
+# What emailing is for
 
 The app sends every message for you. You never see another Member's address, and no one sees yours.
 

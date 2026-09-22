@@ -1,4 +1,4 @@
-# My Hours
+# What My Hours is for
 
 My Hours gathers your hours from every Group into one place. It answers the renewal question: how many hours have you put in this year?
 
