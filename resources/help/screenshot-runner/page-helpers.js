@@ -385,6 +385,18 @@
         return clickAndSettle(pageButtonLabelled(/^new meeting$/i));
     }
 
+    // The Overview tab's About Us edit control, for a Secretary or Chair. It is a plain v-if
+    // toggle, not a Radix overlay, so a DOM click reveals the text box, Save, and Cancel.
+    function openAboutEditForm() {
+        return clickAndSettle(buttonLabelled(/^edit$/i));
+    }
+
+    // The banner picker on the Group header, for a Secretary or Chair. A reka-ui Dialog whose
+    // trigger opens on a DOM click, so it comes through clickAndSettle like the other dialogs.
+    function openBannerPicker() {
+        return clickAndSettle(buttonLabelled(/^change banner$/i));
+    }
+
     // The first Shift the viewer can still take a seat on — the one whose card shows Sign up.
     function showFirstOpenShift() {
         return showShiftWithButton(/^sign up$/i);
@@ -535,6 +547,8 @@
         openRosterRowMenu,
         openManageMembershipDialog,
         openNewMeetingDialog,
+        openAboutEditForm,
+        openBannerPicker,
         openEmailMenu,
         openWholeGroupComposer,
         openOfficersComposer,
