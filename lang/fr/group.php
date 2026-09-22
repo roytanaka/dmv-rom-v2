@@ -169,6 +169,23 @@ return [
             'watched_label' => 'Types de quart à surveiller',
             'no_kinds' => 'Ce groupe n’a pas encore de types de quart à surveiller.',
         ],
+        // Gestion des types de quart (#567, ADR-0021 §3) — le bloc ajouter / renommer / retirer /
+        // réactiver / réordonner de l'administrateur·rice de l'horaire, affiché dans la vue liste. Le
+        // nom d'un type est du contenu rédigé par un·e responsable (ADR-0004) ; le reste est de
+        // l'habillage traduit.
+        'shift_kinds' => [
+            'heading' => 'Types de quart',
+            'description' => 'Nommez les types de quart de ce groupe. Retirez un type pour l’exclure des nouveaux quarts. Ses quarts passés gardent le nom.',
+            'empty' => 'Ce groupe n’a pas encore de types de quart.',
+            'add_label' => 'Ajouter un type de quart',
+            'add' => 'Ajouter',
+            'rename' => 'Renommer',
+            'retire' => 'Retirer',
+            'reinstate' => 'Réactiver',
+            'retired_badge' => 'Retiré',
+            'move_up' => 'Monter',
+            'move_down' => 'Descendre',
+        ],
         // Rédaction (#354) — visible seulement pour un·e responsable horaire /
         // président·e / super-palier (contrôlé côté serveur via `can`). Publier /
         // dépublier sont les deux transitions d’état.

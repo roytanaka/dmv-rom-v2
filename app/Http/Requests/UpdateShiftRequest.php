@@ -73,7 +73,8 @@ class UpdateShiftRequest extends FormRequest
      */
     public function rules(): array
     {
-        $groupId = $this->route('shift')->schedule->group_id;
+        $shift = $this->route('shift');
+        $groupId = $shift->schedule->group_id;
 
         return [
             'starts_at' => ['sometimes', 'required', 'date'],
@@ -82,7 +83,12 @@ class UpdateShiftRequest extends FormRequest
             'shift_kind_id' => [
                 'sometimes',
                 'nullable',
-                Rule::exists('shift_kinds', 'id')->where('group_id', $groupId),
+                // An active kind, or the Shift's own current kind even when it is retired — so an
+                // old Shift stays editable, but a new one can never be moved onto a *different*
+                // retired kind (#567, ADR-0021 §3).
+                Rule::exists('shift_kinds', 'id')
+                    ->where('group_id', $groupId)
+                    ->where(fn ($query) => $query->where('active', true)->orWhere('id', $shift->shift_kind_id)),
             ],
             'audience' => ['sometimes', Rule::enum(ShiftAudience::class)],
         ];

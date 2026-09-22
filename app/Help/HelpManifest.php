@@ -229,6 +229,7 @@ final class HelpManifest
             new HelpArticle('assign-a-member-to-a-shift', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('correct-a-visitor-count', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('set-reminders-and-the-empty-desk-alert', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
+            new HelpArticle('manage-your-groups-shift-kinds', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
 
             // Hours and reports (#526) — the officer reports and the entry that feeds them.
             new HelpArticle('hours-and-reports', HelpSection::HoursAndReports, isOverview: true, status: ArticleStatus::Published, route: 'groups.hours.report'),
