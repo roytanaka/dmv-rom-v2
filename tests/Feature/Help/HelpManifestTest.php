@@ -2,6 +2,8 @@
 
 use App\Enums\ArticleStatus;
 use App\Enums\FrenchState;
+use App\Enums\HelpSection;
+use App\Help\HelpArticle;
 use App\Help\HelpArticleRenderer;
 use App\Help\HelpManifest;
 use Illuminate\Support\Facades\Route;
@@ -81,10 +83,35 @@ it('requires only known role tokens', function () {
     expect($unknown)->toBe([]);
 });
 
+it('maps a secondary route to the article that lists it', function () {
+    // One article documents a page and its sibling views (#562): the primary route and
+    // every name in `routes` resolve the "?" to that article.
+    $manifest = new HelpManifest([
+        new HelpArticle('report', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.hours.report', routes: ['groups.hours.month']),
+    ]);
+
+    expect($manifest->publishedForRoute('groups.hours.report')?->slug)->toBe('report');
+    expect($manifest->publishedForRoute('groups.hours.month')?->slug)->toBe('report');
+});
+
+it('maps the ten report views onto their two articles', function () {
+    $manifest = new HelpManifest;
+
+    // The Group hours report and its four tab views (#562).
+    foreach (['groups.hours.month', 'groups.hours.member', 'groups.hours.extra', 'groups.hours.meetings'] as $route) {
+        expect($manifest->publishedForRoute($route)?->slug)->toBe('run-your-groups-hours-report');
+    }
+
+    // The org-wide committee summary and its six siblings (#562).
+    foreach (['hours.committee-detailed', 'hours.visitor-summary', 'hours.ranked', 'hours.zero-hours', 'hours.zero-shift-hours', 'hours.zero-extra-hours'] as $route) {
+        expect($manifest->publishedForRoute($route)?->slug)->toBe('the-org-wide-reports');
+    }
+});
+
 it('maps only route names that exist in the router', function () {
+    // Every mapped route counts — a primary `route` and any sibling in `routes` (#562).
     $unknown = collect((new HelpManifest)->all())
-        ->map->route
-        ->filter()
+        ->flatMap->mappedRoutes()
         ->reject(fn (string $name) => Route::has($name))
         ->values()
         ->all();
