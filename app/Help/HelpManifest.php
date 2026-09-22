@@ -107,7 +107,7 @@ final class HelpManifest
     public function publishedForRoute(string $routeName): ?HelpArticle
     {
         return $this->collect()
-            ->filter(fn (HelpArticle $article) => $article->route === $routeName
+            ->filter(fn (HelpArticle $article) => in_array($routeName, $article->mappedRoutes(), true)
                 && $article->status === ArticleStatus::Published)
             ->sortByDesc(fn (HelpArticle $article) => $article->isOverview)
             ->first();
@@ -139,11 +139,12 @@ final class HelpManifest
 
     /**
      * Route names the ledger's gap list never counts as a page without an article
-     * (ADR-0025 §9). Three kinds of localized GET route are not task pages a Volunteer
+     * (ADR-0025 §9). Four kinds of localized GET route are not task pages a Volunteer
      * is walked through:
      *  - the Coming Soon stubs, pages that are not built yet;
      *  - the CSV export twins, each the download sibling of a report page an article covers;
-     *  - the auth GET routes, sign-in chrome no article documents.
+     *  - the auth GET routes, sign-in chrome no article documents;
+     *  - the help centre's own pages, the index and article reader themselves.
      * POST-only write seams never reach the gap list at all — it lists GET routes only.
      * The ledger's integrity test keeps this list honest: every name here is a real route.
      *
@@ -172,6 +173,8 @@ final class HelpManifest
             // Auth GET routes — sign-in chrome, not task pages.
             'login', 'password.request', 'password.reset', 'password.confirm',
             'verification.notice', 'verification.verify',
+            // The help centre's own pages — the index and the article reader.
+            'help', 'help.show',
         ];
     }
 
@@ -225,10 +228,10 @@ final class HelpManifest
 
             // Hours and reports (#526) — the officer reports and the entry that feeds them.
             new HelpArticle('hours-and-reports', HelpSection::HoursAndReports, isOverview: true, status: ArticleStatus::Published, route: 'groups.hours.report'),
-            new HelpArticle('run-your-groups-hours-report', HelpSection::HoursAndReports, requires: ['statistician', 'chair'], status: ArticleStatus::Published, route: 'groups.hours.report'),
+            new HelpArticle('run-your-groups-hours-report', HelpSection::HoursAndReports, requires: ['statistician', 'chair'], status: ArticleStatus::Published, route: 'groups.hours.report', routes: ['groups.hours.month', 'groups.hours.member', 'groups.hours.extra', 'groups.hours.meetings']),
             new HelpArticle('export-a-report-as-csv', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.hours.report'),
             new HelpArticle('enter-and-correct-hours', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.show'),
-            new HelpArticle('the-org-wide-reports', HelpSection::HoursAndReports, requires: ['super_tier'], status: ArticleStatus::Published, route: 'hours.committee-summary'),
+            new HelpArticle('the-org-wide-reports', HelpSection::HoursAndReports, requires: ['super_tier'], status: ArticleStatus::Published, route: 'hours.committee-summary', routes: ['hours.committee-detailed', 'hours.visitor-summary', 'hours.ranked', 'hours.zero-hours', 'hours.zero-shift-hours', 'hours.zero-extra-hours']),
 
             // Emailing and support (#527, ADR-0024) — the composer, its Audiences, and the Mail
             // status ledger; then the dev Role-switcher, its own small section.

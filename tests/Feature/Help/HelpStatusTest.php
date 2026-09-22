@@ -66,20 +66,40 @@ it('carries one row per manifest entry with the ledger fields', function () {
                 ->hasAll(['published', 'drafts', 'frenchReviewed'])));
 });
 
-it('lists an unmapped page route as a gap and omits mapped, excluded, and stub routes', function () {
+it('lists an unmapped page route as a gap and omits excluded and stub routes', function () {
+    // A manifest that maps nothing, so a real localized route surfaces as a gap and the
+    // exclusion list is all that filters — including the help centre's own pages (#562).
+    app()->instance(HelpManifest::class, new HelpManifest([]));
+
     $this->actingAs(Member::factory()->superTier()->create());
 
     $this->get('/help-status')
         ->assertInertia(fn (Assert $page) => $page
             ->where('gaps', fn (Collection $gaps) => $gaps
-                // A real localized page route no article maps yet.
-                ->contains('groups.hours.month')
-                // directory is mapped by the volunteer-basics article, even as a draft.
-                && ! $gaps->contains('directory')
-                // A CSV export twin from the exclusion list — the report page's sibling.
+                // A real localized page route the empty manifest maps nothing to.
+                ->contains('directory')
+                // A CSV export twin from the exclusion list — a report page's sibling.
                 && ! $gaps->contains('groups.hours.report.csv')
                 // A Coming Soon stub from the exclusion list.
-                && ! $gaps->contains('calendar')));
+                && ! $gaps->contains('calendar')
+                // The help centre's own pages, now excluded (#562).
+                && ! $gaps->contains('help')
+                && ! $gaps->contains('help.show')));
+});
+
+it('counts a secondary route as mapped, so no report view is a gap', function () {
+    $this->actingAs(Member::factory()->superTier()->create());
+
+    $reportViews = [
+        'groups.hours.month', 'groups.hours.member', 'groups.hours.extra', 'groups.hours.meetings',
+        'hours.committee-detailed', 'hours.visitor-summary', 'hours.ranked',
+        'hours.zero-hours', 'hours.zero-shift-hours', 'hours.zero-extra-hours',
+    ];
+
+    $this->get('/help-status')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('gaps', fn (Collection $gaps) => collect($reportViews)
+                ->every(fn (string $route) => ! $gaps->contains($route))));
 });
 
 it('names only real routes in the ledger exclusion list', function () {

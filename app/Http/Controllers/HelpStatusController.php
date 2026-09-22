@@ -81,7 +81,7 @@ class HelpStatusController extends Controller
      */
     private function gaps(HelpManifest $manifest): array
     {
-        $mapped = collect($manifest->all())->map->route->filter()->unique();
+        $mapped = collect($manifest->all())->flatMap->mappedRoutes()->unique();
         $excluded = collect(HelpManifest::ledgerRouteExclusions());
 
         return collect(Route::getRoutes()->getRoutes())
