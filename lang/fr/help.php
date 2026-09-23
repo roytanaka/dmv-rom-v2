@@ -41,12 +41,11 @@ return [
         'support' => 'Soutien',
     ],
 
-    // Badge du rôle requis (#518, ADR-0025 §6). Le badge affiche « Requis :
-    // Responsable horaire ou Président·e » : le préfixe, une étiquette par rôle
+    // Badge du rôle requis (#518, ADR-0025 §6). Le badge affiche
+    // « Responsable horaire ou Président·e » : une étiquette par rôle
     // requis, jointes par « ou ». Un article sans rôle requis n'affiche aucun badge.
     // Une étiquette par jeton de HelpManifest::requirableRoles().
     'required_role' => [
-        'prefix' => 'Requis :',
         'or' => 'ou',
         'role' => [
             'chair' => 'Président·e',

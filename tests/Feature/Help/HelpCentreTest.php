@@ -164,7 +164,7 @@ it('renders an article with its title, breadcrumb, and rendered body HTML', func
             ->where('slug', 'change-your-language')
             ->where('title', 'Change your language')
             ->where('breadcrumb.0', ['title' => 'Help', 'href' => '/help'])
-            ->where('breadcrumb.1', ['title' => 'Getting started', 'href' => '/help/getting-started'])
+            ->where('breadcrumb.1', ['title' => 'Getting started', 'href' => '/help#getting-started'])
             ->where('breadcrumb.2', ['title' => 'Change your language', 'href' => '/help/change-your-language'])
             ->where('html', fn (string $html) => str_contains($html, '<h2 id="') && str_contains($html, 'Switch your language')));
 });

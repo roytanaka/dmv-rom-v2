@@ -3,7 +3,7 @@
 // published section, each a Collapsible: the current section opens, the current
 // article is highlighted, and the other sections open and close. Inside a section the
 // overview row leads ("Overview"), then the task articles grouped under their Required
-// role — the badge's role labels joined by "or", without its "Needs:" prefix. Titles
+// role — the badge's role labels joined by "or". Titles
 // and hrefs arrive resolved at the request locale (ADR-0008); the rows follow the
 // settings-sidebar pattern (ghost Buttons, `bg-muted` on the current one).
 import TextLink from '@/components/TextLink.vue';

@@ -283,17 +283,15 @@ it('maps only route names that exist in the router', function () {
     expect($unknown)->toBe([]);
 });
 
-it('has an English and a French label for every requirable role, plus the prefix and joiner', function () {
+it('has an English and a French label for every requirable role, plus the joiner', function () {
     foreach (HelpManifest::requirableRoles() as $token) {
         $key = "help.required_role.role.{$token}";
         expect(__($key, [], 'en'))->not->toBe($key, "Missing English label for role '{$token}'");
         expect(__($key, [], 'fr'))->not->toBe($key, "Missing French label for role '{$token}'");
     }
 
-    foreach (['help.required_role.prefix', 'help.required_role.or'] as $key) {
-        expect(__($key, [], 'en'))->not->toBe($key, "Missing English string for '{$key}'");
-        expect(__($key, [], 'fr'))->not->toBe($key, "Missing French string for '{$key}'");
-    }
+    expect(__('help.required_role.or', [], 'en'))->not->toBe('help.required_role.or');
+    expect(__('help.required_role.or', [], 'fr'))->not->toBe('help.required_role.or');
 });
 
 it('builds the Help topics tree from published articles, overview first, grouped by Required role', function () {
