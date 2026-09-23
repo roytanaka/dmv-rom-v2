@@ -8,6 +8,10 @@ return [
     'title' => 'Aide',
     'intro' => 'Des guides étape par étape pour les tâches que vous faites ici.',
 
+    // Boutons Précédent et Suivant à la fin d'un article (#620).
+    'previous' => 'Précédent',
+    'next' => 'Suivant',
+
     // Une étiquette par cas de l'énumération HelpSection, indexée par le slug.
     'section' => [
         'getting-started' => 'Pour commencer',
