@@ -302,6 +302,68 @@ it('carries French headings and ids on a French article', function () {
     });
 });
 
+it('carries the Help topics tree with the current article marked', function () {
+    // #619: published sections and articles only, overview first, tasks grouped by role.
+    bindHelpFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help/open-task')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('help/Article')
+            ->count('topics', 1)
+            ->where('topics.0.key', 'getting-started')
+            ->where('topics.0.label', 'Getting started')
+            ->where('topics.0.current', true)
+            ->where('topics.0.overview', ['title' => 'Role task', 'href' => '/help/role-task', 'current' => false])
+            ->count('topics.0.groups', 1)
+            ->where('topics.0.groups.0.requires', [])
+            ->where('topics.0.groups.0.articles', [
+                ['slug' => 'open-task', 'title' => 'Open task', 'href' => '/help/open-task', 'current' => true],
+            ]));
+});
+
+it('marks the overview as current on an overview article', function () {
+    bindHelpFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help/role-task')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('topics.0.current', true)
+            ->where('topics.0.overview.current', true)
+            ->where('topics.0.groups.0.articles.0.current', false));
+});
+
+it('gives a draft opened by URL the Help topics tree with nothing marked', function () {
+    bindHelpFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help/draft-task')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('topics.0.current', false)
+            ->where('topics.0.overview.current', false)
+            ->count('topics.0.groups.0.articles', 1)
+            ->where('topics.0.groups.0.articles.0.current', false));
+});
+
+it('carries the Help topics tree in French with French titles and hrefs', function () {
+    bindHelpFixtures();
+
+    $this->actingAs(Member::factory()->create());
+
+    $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/aide/open-task')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('topics.0.label', 'Pour commencer')
+                ->where('topics.0.overview.title', 'Tâche avec rôle')
+                ->where('topics.0.overview.href', '/fr/aide/role-task')
+                ->where('topics.0.groups.0.articles.0.title', 'Tâche ouverte')
+                ->where('topics.0.groups.0.articles.0.href', '/fr/aide/open-task'));
+    });
+});
+
 it('returns 404 for an unknown article slug', function () {
     $this->actingAs(Member::factory()->create())
         ->get('/help/does-not-exist')

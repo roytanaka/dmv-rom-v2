@@ -8,14 +8,18 @@
 // Previous and Next (#620) follow the manifest's published order across sections;
 // their titles, hrefs and section labels arrive localized from the server.
 // "On this page" (#621) lists the level-two headings, by the ids the server gave
-// them, when an article has three or more.
+// them, when an article has three or more. The Help topics list (#619) sits in a
+// right column pushed to the far edge and stays in view while the page scrolls;
+// below `lg` it folds into one outline button above the article.
+import HelpTopics from '@/components/HelpTopics.vue';
 import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type HelpTopic } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
+import { PhCaretDown, PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 
 interface HelpHeading {
@@ -38,6 +42,7 @@ defineProps<{
     headings: HelpHeading[];
     previous: HelpNeighbour | null;
     next: HelpNeighbour | null;
+    topics: HelpTopic[];
 }>();
 
 // Two-line large outline buttons: the label and section on top, the title below.
@@ -48,51 +53,71 @@ const neighbourClass = 'h-auto w-full flex-col gap-1 py-3 whitespace-normal';
     <Head :title="title" />
 
     <AppLayout :breadcrumbs="breadcrumb">
-        <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6">
-            <article class="help-article max-w-2xl">
-                <div class="mb-4 flex flex-wrap items-center gap-2">
-                    <h1 class="text-rom-ink text-xl font-semibold">{{ title }}</h1>
-                    <RequiredRoleBadge :requires="requires" />
-                </div>
-                <nav v-if="headings.length >= 3" :aria-label="trans('help.on_this_page')" class="bg-muted mb-6 p-4">
-                    <p class="eyebrow mb-2">{{ trans('help.on_this_page') }}</p>
-                    <ul class="flex flex-col gap-1">
-                        <li v-for="heading in headings" :key="heading.id">
-                            <TextLink :href="`#${heading.id}`">{{ heading.text }}</TextLink>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- eslint-disable-next-line vue/no-v-html -- body is server-sanitized chrome (ADR-0025) -->
-                <div class="text-rom-ink flex flex-col gap-4 text-base" v-html="html" />
-            </article>
+        <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
+            <Collapsible class="group/topics lg:hidden">
+                <CollapsibleTrigger as-child>
+                    <Button variant="outline" class="w-full justify-between">
+                        {{ trans('help.topics.title') }}
+                        <PhCaretDown class="transition-transform group-data-[state=open]/topics:rotate-180" aria-hidden="true" />
+                    </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <HelpTopics :topics="topics" class="border-x border-b p-3" />
+                </CollapsibleContent>
+            </Collapsible>
 
-            <!-- Desktop: Previous left, Next right. Phone: stacked, Next first. -->
-            <nav v-if="previous || next" class="grid max-w-2xl gap-3 sm:grid-cols-2">
-                <Button v-if="previous" as-child variant="outline" size="lg" :class="[neighbourClass, 'items-start text-left']">
-                    <Link :href="previous.href">
-                        <span class="text-muted-foreground flex items-center gap-1 text-sm">
-                            <PhCaretLeft aria-hidden="true" />
-                            {{ trans('help.previous') }} · {{ previous.section }}
-                        </span>
-                        <span class="text-rom-ink font-semibold">{{ previous.title }}</span>
-                    </Link>
-                </Button>
-                <Button
-                    v-if="next"
-                    as-child
-                    variant="outline"
-                    size="lg"
-                    :class="[neighbourClass, 'order-first items-end text-right sm:order-none sm:col-start-2']"
-                >
-                    <Link :href="next.href">
-                        <span class="text-muted-foreground flex items-center gap-1 text-sm">
-                            {{ trans('help.next') }} · {{ next.section }}
-                            <PhCaretRight aria-hidden="true" />
-                        </span>
-                        <span class="text-rom-ink font-semibold">{{ next.title }}</span>
-                    </Link>
-                </Button>
-            </nav>
+            <div class="flex max-w-2xl min-w-0 flex-1 flex-col gap-6">
+                <article class="help-article">
+                    <div class="mb-4 flex flex-wrap items-center gap-2">
+                        <h1 class="text-rom-ink text-xl font-semibold">{{ title }}</h1>
+                        <RequiredRoleBadge :requires="requires" />
+                    </div>
+                    <nav v-if="headings.length >= 3" :aria-label="trans('help.on_this_page')" class="bg-muted mb-6 p-4">
+                        <p class="eyebrow mb-2">{{ trans('help.on_this_page') }}</p>
+                        <ul class="flex flex-col gap-1">
+                            <li v-for="heading in headings" :key="heading.id">
+                                <TextLink :href="`#${heading.id}`">{{ heading.text }}</TextLink>
+                            </li>
+                        </ul>
+                    </nav>
+                    <!-- eslint-disable-next-line vue/no-v-html -- body is server-sanitized chrome (ADR-0025) -->
+                    <div class="text-rom-ink flex flex-col gap-4 text-base" v-html="html" />
+                </article>
+
+                <!-- Desktop: Previous left, Next right. Phone: stacked, Next first. -->
+                <nav v-if="previous || next" class="grid gap-3 sm:grid-cols-2">
+                    <Button v-if="previous" as-child variant="outline" size="lg" :class="[neighbourClass, 'items-start text-left']">
+                        <Link :href="previous.href">
+                            <span class="text-muted-foreground flex items-center gap-1 text-sm">
+                                <PhCaretLeft aria-hidden="true" />
+                                {{ trans('help.previous') }} · {{ previous.section }}
+                            </span>
+                            <span class="text-rom-ink font-semibold">{{ previous.title }}</span>
+                        </Link>
+                    </Button>
+                    <Button
+                        v-if="next"
+                        as-child
+                        variant="outline"
+                        size="lg"
+                        :class="[neighbourClass, 'order-first items-end text-right sm:order-none sm:col-start-2']"
+                    >
+                        <Link :href="next.href">
+                            <span class="text-muted-foreground flex items-center gap-1 text-sm">
+                                {{ trans('help.next') }} · {{ next.section }}
+                                <PhCaretRight aria-hidden="true" />
+                            </span>
+                            <span class="text-rom-ink font-semibold">{{ next.title }}</span>
+                        </Link>
+                    </Button>
+                </nav>
+            </div>
+
+            <aside
+                class="sticky top-[calc(var(--header-height)+1.5rem)] hidden max-h-[calc(100svh-var(--header-height)-3rem)] w-72 shrink-0 overflow-y-auto lg:block"
+            >
+                <HelpTopics :topics="topics" />
+            </aside>
         </div>
     </AppLayout>
 </template>

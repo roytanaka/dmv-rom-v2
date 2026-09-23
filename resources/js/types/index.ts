@@ -60,6 +60,26 @@ export interface BreadcrumbItem {
     href: string;
 }
 
+// The Help topics list beside a Help article (#619): one published section, its
+// overview row (null when none is published), and its task articles grouped by
+// Required role. Titles and hrefs are resolved at the request locale on the server.
+export interface HelpTopicLink {
+    title: string;
+    href: string;
+    current: boolean;
+}
+
+export interface HelpTopic {
+    key: string;
+    label: string;
+    current: boolean;
+    overview: HelpTopicLink | null;
+    groups: {
+        requires: string[];
+        articles: (HelpTopicLink & { slug: string })[];
+    }[];
+}
+
 export interface NavItem {
     title: string;
     href: string;

@@ -116,6 +116,43 @@ final class HelpManifest
     }
 
     /**
+     * The Help topics tree for the article page (#619): each published section with its
+     * published overview (null when it has none published) and its published task
+     * articles grouped by Required role. Drafts never appear.
+     *
+     * @return list<array{section: HelpSection, overview: HelpArticle|null, groups: list<array{requires: list<string>, articles: list<HelpArticle>}>}>
+     */
+    public function topics(): array
+    {
+        return array_map(fn (HelpSection $section) => [
+            'section' => $section,
+            'overview' => collect($this->publishedIn($section))->firstWhere('isOverview', true),
+            'groups' => $this->publishedTasksByRole($section),
+        ], $this->publishedSections());
+    }
+
+    /**
+     * A section's published task articles grouped by Required role: the articles that
+     * need no role first, then each distinct role set in order of first appearance.
+     * Within a group, articles keep display order.
+     *
+     * @return list<array{requires: list<string>, articles: list<HelpArticle>}>
+     */
+    public function publishedTasksByRole(HelpSection $section): array
+    {
+        return collect($this->publishedIn($section))
+            ->reject(fn (HelpArticle $article) => $article->isOverview)
+            ->groupBy(fn (HelpArticle $article) => implode(',', $article->requires))
+            ->sortBy(fn (Collection $articles) => $articles->first()->requires === [] ? 0 : 1)
+            ->map(fn (Collection $articles) => [
+                'requires' => $articles->first()->requires,
+                'articles' => $articles->values()->all(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * The published article a route name maps to, or null. Drives the top-bar "?"
      * (ADR-0025): a match yields the article, anything else the index. Drafts never
      * match, so a route mapped only by a draft resolves to null. When several
