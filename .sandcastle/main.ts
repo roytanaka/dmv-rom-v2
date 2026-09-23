@@ -2,9 +2,9 @@
 //
 // Per iteration (one issue):
 //   1. Host forks a fresh branch off the latest `staging`.
-//   2. Implementer (Opus) picks the highest-priority `ready-for-agent` issue,
+//   2. Implementer (Opus 5.5) picks the highest-priority `ready-for-agent` issue,
 //      implements it red-green-refactor, runs the full CI gate, commits.
-//   3. Reviewer (Sonnet) reviews + fixes in the SAME sandbox, re-runs the gate,
+//   3. Reviewer (Opus 5.5) reviews + fixes in the SAME sandbox, re-runs the gate,
 //      pushes the branch, and opens a PR into `staging`.
 //   4. Host owns the merge gate: waits for CI (`gh pr checks --watch`), and on
 //      green squash-merges; otherwise leaves the PR open for manual review.
@@ -203,7 +203,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
         const implement = await sandbox.run({
             name: 'implementer',
             maxIterations: 1,
-            agent: sandcastle.claudeCode('claude-opus-4-8'),
+            agent: sandcastle.claudeCode('claude-opus-5-5'),
             promptFile: './.sandcastle/implement-prompt.md',
             completionSignal: COMPLETION_SIGNAL,
         });
@@ -220,7 +220,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
         const review = await sandbox.run({
             name: 'reviewer',
             maxIterations: 1,
-            agent: sandcastle.claudeCode('claude-sonnet-4-6'),
+            agent: sandcastle.claudeCode('claude-opus-5-5'),
             promptFile: './.sandcastle/review-prompt.md',
             promptArgs: { BRANCH: branch },
             completionSignal: COMPLETION_SIGNAL,
