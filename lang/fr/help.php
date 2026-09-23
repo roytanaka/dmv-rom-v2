@@ -8,6 +8,14 @@ return [
     'title' => 'Aide',
     'intro' => 'Des guides étape par étape pour les tâches que vous faites ici.',
 
+    // L'index (#623) : l'encadré « Commencez ici », et le lien de fin de chaque carte de section.
+    'start_here' => [
+        'heading' => "Vous découvrez l'application ? Commencez ici.",
+        'line' => "Ce court guide vous fait faire le tour de l'application.",
+    ],
+    'all_articles' => 'Tous les articles : :section (:count)',
+    'read_about' => 'En savoir plus : :section',
+
     // Liste « Sur cette page » des titres d'un article (#621).
     'on_this_page' => 'Sur cette page',
 

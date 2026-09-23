@@ -31,8 +31,28 @@ it('redirects a guest from the help index to login', function () {
     $this->get('/help')->assertRedirect('/login');
 });
 
-it('lists published articles with their Required-role badge data and omits drafts', function () {
-    bindHelpFixtures();
+// #623: the index — a Start here box fed by Getting started, then one card per other
+// section with its overview, lead line, up to three published tasks, and a task count.
+function bindIndexFixtures(): void
+{
+    app()->instance(HelpArticleRenderer::class, new HelpArticleRenderer(base_path('tests/Fixtures/help')));
+    app()->instance(HelpManifest::class, new HelpManifest([
+        new HelpArticle('role-task', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Published),
+        new HelpArticle('open-task', HelpSection::GettingStarted, status: ArticleStatus::Published),
+        new HelpArticle('link-fixture', HelpSection::Dashboard, isOverview: true, status: ArticleStatus::Published),
+        new HelpArticle('figure-fixture', HelpSection::Scheduling, isOverview: true, status: ArticleStatus::Published),
+        new HelpArticle('callout-fixture', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published),
+        new HelpArticle('draft-task', HelpSection::Scheduling, status: ArticleStatus::Draft),
+        new HelpArticle('raw-html-fixture', HelpSection::Scheduling, status: ArticleStatus::Published),
+        new HelpArticle('headings-fixture', HelpSection::Scheduling, status: ArticleStatus::Published),
+        new HelpArticle('extra-task', HelpSection::Scheduling, status: ArticleStatus::Published),
+        new HelpArticle('draft-overview', HelpSection::Support, isOverview: true, status: ArticleStatus::Draft),
+        new HelpArticle('support-task', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Published),
+    ]));
+}
+
+it('feeds the Start here box from Getting started, not a card', function () {
+    bindIndexFixtures();
 
     $this->actingAs(Member::factory()->create())
         ->get('/help')
@@ -40,17 +60,58 @@ it('lists published articles with their Required-role badge data and omits draft
         ->assertInertia(fn (Assert $page) => $page
             ->component('help/Index')
             ->where('locale', 'en')
-            ->where('sections.0.key', 'getting-started')
-            ->count('sections.0.articles', 2)
-            ->where('sections.0.articles.0.slug', 'role-task')
-            ->where('sections.0.articles.0.title', 'Role task')
-            ->where('sections.0.articles.0.requires', ['scheduler', 'chair'])
-            ->where('sections.0.articles.1.slug', 'open-task')
-            ->where('sections.0.articles.1.requires', []));
+            ->where('startHere.overview', ['title' => 'Role task', 'href' => '/help/role-task'])
+            ->where('startHere.articles.0.title', 'Open task')
+            ->where('startHere.articles.0.href', '/help/open-task')
+            ->count('sections', 3)
+            ->where('sections.0.key', 'dashboard'));
 });
 
-it('lists the index in French with translated titles and the badge data intact', function () {
-    bindHelpFixtures();
+it('gives each section card its overview, lead line and published task count', function () {
+    bindIndexFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sections.0.overview', ['title' => 'Link fixture', 'href' => '/help/link-fixture'])
+            ->where('sections.0.lead', 'Read Sign up for a shift next.')
+            ->where('sections.0.count', 0)
+            ->where('sections.0.articles', [])
+            ->where('sections.1.key', 'scheduling')
+            ->where('sections.1.lead', 'This article references a screenshot.')
+            // Four published tasks; the draft is left out of the count.
+            ->where('sections.1.count', 4));
+});
+
+it('lists at most three published task articles on a card, with their Required-role badge data', function () {
+    bindIndexFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help')
+        ->assertInertia(fn (Assert $page) => $page
+            ->count('sections.1.articles', 3)
+            ->where('sections.1.articles.0', ['slug' => 'callout-fixture', 'title' => 'Callout fixture', 'requires' => ['scheduler', 'chair'], 'href' => '/help/callout-fixture'])
+            ->where('sections.1.articles.1.slug', 'raw-html-fixture')
+            ->where('sections.1.articles.1.requires', [])
+            ->where('sections.1.articles.2.slug', 'headings-fixture'));
+});
+
+it('gives a section with a draft overview no lead line', function () {
+    bindIndexFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sections.2.key', 'support')
+            ->where('sections.2.lead', null)
+            // The title still opens the overview by URL, like the section crumb.
+            ->where('sections.2.overview.href', '/help/draft-overview')
+            ->where('sections.2.count', 1)
+            ->where('sections.2.articles.0.requires', ['support_operator']));
+});
+
+it('lists the index in French with French titles, leads and /fr/aide/ hrefs', function () {
+    bindIndexFixtures();
 
     $this->actingAs(Member::factory()->create());
 
@@ -60,9 +121,13 @@ it('lists the index in French with translated titles and the badge data intact',
             ->assertInertia(fn (Assert $page) => $page
                 ->component('help/Index')
                 ->where('locale', 'fr')
-                ->where('sections.0.articles.0.title', 'Tâche avec rôle')
-                ->where('sections.0.articles.0.requires', ['scheduler', 'chair'])
-                ->where('sections.0.articles.1.title', 'Tâche ouverte'));
+                ->where('startHere.overview', ['title' => 'Tâche avec rôle', 'href' => '/fr/aide/role-task'])
+                ->where('startHere.articles.0.title', 'Tâche ouverte')
+                ->where('sections.0.overview', ['title' => 'Lien fixture', 'href' => '/fr/aide/link-fixture'])
+                ->where('sections.0.lead', "Lisez ensuite S'inscrire à un quart.")
+                ->where('sections.1.articles.0.title', 'Fixture des encadrés')
+                ->where('sections.1.articles.0.href', '/fr/aide/callout-fixture')
+                ->where('sections.1.articles.0.requires', ['scheduler', 'chair']));
     });
 });
 

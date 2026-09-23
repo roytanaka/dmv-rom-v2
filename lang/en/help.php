@@ -8,6 +8,14 @@ return [
     'title' => 'Help',
     'intro' => 'Step-by-step guides for the tasks you do here.',
 
+    // The index (#623): the Start here box, and the closing link of each section card.
+    'start_here' => [
+        'heading' => 'New to the app? Start here.',
+        'line' => 'This short guide shows you around the app.',
+    ],
+    'all_articles' => 'All :section articles (:count)',
+    'read_about' => 'Read about :section',
+
     // "On this page" list of an article's headings (#621).
     'on_this_page' => 'On this page',
 
