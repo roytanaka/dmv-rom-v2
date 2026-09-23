@@ -33,7 +33,7 @@ ADR-0021 §6 rejected a Group admin tab on one ground: "no admin-tab precedent a
 
 ### 1. One Settings tab per Group, officers only
 
-**A section tab labelled `Settings`, last in the strip, at `/groups/{slug}/settings`.** It renders when the viewer holds at least one Group-scoped configuration right on that Group. Today that is any of `can.update`, `manageReminders`, `manageEmptyDesk`, `manageSelfServe`, `manageShiftKinds` or `manageObjects`. A Member with none of them never sees the tab, and the route answers 403, the Meetings shape, because the Group exists and they may open it.
+**A section tab labelled `Settings`, last in the strip, at `/groups/{slug}/settings`.** It renders when the viewer holds at least one Group-scoped configuration right on that Group. Today that is any of `manageReminders`, `manageEmptyDesk`, `manageSelfServe`, `manageShiftKinds` or `manageObjects`, so today the tab appears only on a scheduling Group. It is a Group tab, not a scheduling one: the next Group-scoped setting from any capability lands on it. A Member with none of them never sees the tab, and the route answers 403, the Meetings shape, because the Group exists and they may open it.
 
 The tab appears with authority, not with data. ADR-0021 §6's rule that a tab must not come and go with content still holds: a Chair sees Settings on every visit, empty or full.
 
@@ -47,7 +47,6 @@ Moves to the Settings tab, as cards, each rendered only when its own gate passes
 
 | Card                        | Today                          | Gate                |
 | --------------------------- | ------------------------------ | ------------------- |
-| About text and banner       | Overview, inline edit          | `can.update`        |
 | Reminders                   | Scheduling list view           | `manageReminders`   |
 | Empty-desk alert            | Scheduling list view           | `manageEmptyDesk`   |
 | Self-serve shifts and unit  | Scheduling list view           | `manageSelfServe`   |
@@ -58,6 +57,7 @@ The scheduling cards render only while `has_scheduling` is on, the same conditio
 
 Stays inline, unchanged:
 
+- Overview: the About text edit and the banner picker.
 - Scheduling: new Schedule, edit, publish, delete; new Shift, bulk Shifts, bulk place; place a Member; the officer's visitor-count correction; recalculate this month.
 - Roster: add a Member, edit roles, remove.
 - Meetings: new meeting, per-row edit.
@@ -65,7 +65,7 @@ Stays inline, unchanged:
 
 These are frequent, and each acts on a record the officer is looking at. Moving them out would send a Chair to another page to place one Member on one Shift. The inline pattern was right for them and stays.
 
-About text and the banner are the one judgment call in the table. They are content Members read, not behaviour, and an inline edit on the Overview is defensible. They move because the Overview is the Group's front door and the edit controls are the only officer-only thing on it. With them gone, every section tab renders the same page for an officer as for a Member, apart from record authoring. That is the division the tab exists to create.
+About text and the banner were weighed and stay on the Overview. They are content Members read, not behaviour, and the officer edits them in the place they are read, which is the same reason a Shift is edited on the Schedule. A setting changes what the app does. The About text changes what the page says.
 
 ### 3. One page, cards in order
 
@@ -84,7 +84,7 @@ Two super-tier pages exist today with no home in this model: `/mail-status` (ADR
 ## Considered alternatives
 
 - **All administration in the rail's Officer Tools cluster**, the proposal that opened the conversation. Rejected for Group-scoped administration: the rail is where a Member picks a Group, and a Group-scoped tool in it needs a second Group picker. Kept for org-wide administration, where it already lives.
-- **A nested route under Scheduling, `/groups/{slug}/scheduling/edit`**, ADR-0021 §6's own fallback. Rejected: it needs a gear button somewhere on the Scheduling tab as its entry point, it covers only scheduling settings, and a second such route for the Overview's edit would follow. The tab is the entry point, covers the Group, and is one fewer thing to build.
+- **A nested route under Scheduling, `/groups/{slug}/scheduling/edit`**, ADR-0021 §6's own fallback. Rejected: it needs a gear button somewhere on the Scheduling tab as its entry point, and it ties Group settings to one capability. The tab is the entry point, covers the Group, and is one fewer thing to build.
 - **A per-section Settings sub-tab** (Scheduling → Settings). Rejected: it puts a second tab strip inside a tab strip, which is what ADR-0013 was written to keep simple on a phone.
 - **A mode switch on the Scheduling tab** ("Manage" on/off). Rejected: it keeps the 2,078-line component and adds a state to it. The problem is what is on the page, not when it shows.
 - **Keep everything inline and reorder the page**, cards below the Schedules. Rejected: it fixes the scroll and nothing else. The officer still reads five settings cards on every visit, and the Objects screen ADR-0026 §3 asks for has nowhere better to land.
@@ -92,8 +92,8 @@ Two super-tier pages exist today with no home in this model: `/mail-status` (ADR
 ## Consequences
 
 - **Amends ADR-0021 §6 and ADR-0023 §5.** "Never a sibling tab" is withdrawn for Group-scoped settings. Inline authoring of records is unchanged.
-- **A new section `settings`** on `GroupController::show`, gated 403 by any of the six `can` values, and a French path segment per ADR-0008. The controller loads shift kinds and Objects for the Settings section, not the Scheduling one.
-- **`GroupScheduling.vue` loses five cards** and the six props that drive them. `Show.vue` loses the About edit and the banner picker. A new `GroupSettings.vue` gains them. The write endpoints are unchanged.
+- **A new section `settings`** on `GroupController::show`, gated 403 by any of the five `can` values, and a French path segment per ADR-0008. The controller loads shift kinds and Objects for the Settings section, not the Scheduling one.
+- **`GroupScheduling.vue` loses five cards** and the five props that drive them. A new `GroupSettings.vue` gains them. `Show.vue` keeps the About edit and the banner picker. The write endpoints are unchanged.
 - **The Group Menu fixture's `schedule_admin` stub** is retired; the Settings tab is what it was a placeholder for.
 - **`/mail-status` and `/help-status` move from the user menu and from nowhere** into the Officer Tools rail cluster, super-tier gated. `RailNavTest` grows two items.
 - **Help articles** (ADR-0025): the Objects and shift-kind maintenance articles ([#600](https://github.com/roytanaka/dmv-rom-v2/pull/600)) and any reminder or empty-desk article re-shoot on the Settings tab. One new article for the tab itself.
