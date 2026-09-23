@@ -16,6 +16,7 @@ return [
         'scheduling' => 'Scheduling',
         'content' => 'Content',
         'hours' => 'Hours',
+        'settings' => 'Settings',
     ],
     // Marker on a capability tab whose feature has not shipped yet.
     'soon' => 'Soon',
@@ -159,6 +160,8 @@ return [
     ],
 
     // Section panels not yet built in this slice.
+    // The Settings tab (#604, ADR-0027) when none of its cards applies to the viewer.
+    'settings_empty' => 'This group has no settings you can change.',
     'coming_soon' => 'This section is coming soon.',
 
     // Scheduling tab (#353, ADR-0021 §1) — the Schedule read surface.

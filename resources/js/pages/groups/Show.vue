@@ -14,6 +14,7 @@ import GroupHours from '@/components/GroupHours.vue';
 import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
 import GroupScheduling from '@/components/GroupScheduling.vue';
+import GroupSettings from '@/components/GroupSettings.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -74,11 +75,6 @@ const props = defineProps<{
             collectsExtraInteractions: boolean;
             collectsVisitorProvenance: boolean;
         };
-        // The Group's Reminder settings (#486) — the Scheduling tab's Reminders block reads them.
-        reminders: {
-            enabled: boolean;
-            leadDays: number;
-        };
         // The Group's empty-desk settings (#487) — the Scheduling tab's empty-desk block reads
         // them, its watch-tick rows drawn from the Group's shift kinds.
         emptyDesk: {
@@ -103,12 +99,14 @@ const props = defineProps<{
     // enforces every mutation regardless. `update` gates the Overview edits (#191);
     // `createMeeting` gates the Meetings tab's "New meeting" control (#193);
     // `manageRoster` gates the Roster tab's officer CRUD (#192);
-    // `createSchedule` gates the Scheduling tab's "New schedule" control (#354).
+    // `createSchedule` gates the Scheduling tab's "New schedule" control (#354);
+    // `manageSettings` gates the Settings tab (ADR-0027 §1).
     can: {
         update: boolean;
         createMeeting: boolean;
         manageRoster: boolean;
         createSchedule: boolean;
+        manageSettings: boolean;
         manageReminders: boolean;
         manageEmptyDesk: boolean;
         manageSelfServe: boolean;
@@ -129,6 +127,11 @@ const props = defineProps<{
     meetings: Meeting[];
     scheduling: Scheduling;
     hours: GroupHoursData;
+    // The Settings tab's payload (ADR-0027), resolved only on that tab. Each card's values ride
+    // only with that card's right; the Reminders card (#486) reads `reminders`.
+    settings: {
+        reminders: { enabled: boolean; leadDays: number } | null;
+    };
     overview: {
         description: string | null;
         children: ChildGroup[];
@@ -148,8 +151,9 @@ const ended = computed(() => !props.group.archived && props.group.end_date !== n
 // tab when the Group runs meetings. The remaining capabilities render as muted "soon"
 // stubs only when their flag is on — the feature itself lands in a later slice. Hours
 // is always-on (ADR-0022 §3): its tab renders on every Group and sub-Group, now a real
-// tab carrying the extra-hours entry surface (#408). Hrefs are English-canonical;
-// SectionTabs localises them to the active locale (ADR-0008).
+// tab carrying the extra-hours entry surface (#408). Settings comes last, only for a viewer
+// holding a configuration right, on every visit, empty or not (ADR-0027 §1). Hrefs are
+// English-canonical; SectionTabs localises them to the active locale (ADR-0008).
 const tabs = computed<NavNode[]>(() => {
     const href = (section?: string) => (section ? `/groups/${props.group.slug}/${section}` : `/groups/${props.group.slug}`);
     const list: NavNode[] = [
@@ -161,6 +165,7 @@ const tabs = computed<NavNode[]>(() => {
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
     if (props.group.capabilities.content) list.push({ href: href('content'), labelKey: 'group.tab.content', soon: true });
     list.push({ href: href('hours'), labelKey: 'group.tab.hours' });
+    if (props.can.manageSettings) list.push({ href: href('settings'), labelKey: 'group.tab.settings' });
     return list;
 });
 
@@ -416,8 +421,6 @@ const pickBanner = (key: string | null) => {
                     :collects-visitor-count="group.capabilities.collectsVisitorCount"
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
                     :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"
-                    :reminders="group.reminders"
-                    :can-manage-reminders="can.manageReminders"
                     :empty-desk="group.emptyDesk"
                     :can-manage-empty-desk="can.manageEmptyDesk"
                     :self-serve="group.selfServe"
@@ -438,6 +441,16 @@ const pickBanner = (key: string | null) => {
                     :hours="hours"
                     :can-enter="can.enterHours"
                     :can-view-reports="can.viewReports"
+                    :group-slug="group.slug"
+                />
+
+                <!-- Settings (#604, ADR-0027) — one page of the Group's settings cards, each behind
+                     its own `can` hint. The tab and the route answer only to a configuration right. -->
+                <GroupSettings
+                    v-else-if="section === 'settings'"
+                    :runs-scheduling="group.capabilities.scheduling"
+                    :reminders="settings.reminders"
+                    :can-manage-reminders="can.manageReminders"
                     :group-slug="group.slug"
                 />
 

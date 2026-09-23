@@ -12,10 +12,10 @@ use App\Models\GroupMember;
 use App\Models\Member;
 use App\Personas\Persona;
 use App\Personas\PersonaCatalogue;
+use App\Support\RouteSegments;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 use Inertia\Middleware;
@@ -69,7 +69,7 @@ class HandleInertiaRequests extends Middleware
             // nav hrefs (the fixture authors them English-canonical) so in-app
             // navigation stays in the active locale instead of reverting to English
             // (ADR-0008). Keyed by non-default locale → { englishSegment: localised }.
-            'routeSegments' => $this->routeSegments(),
+            'routeSegments' => RouteSegments::table(),
             // Top-bar language switcher (ADR-0013): the active locale plus every
             // supported locale's twin URL for the current page. Each option's url
             // is the page's twin in that locale, or null when no twin is
@@ -839,57 +839,5 @@ class HandleInertiaRequests extends Middleware
             'en' => 'English',
             'fr' => 'Français',
         ][$code] ?? Str::ucfirst($props['native'] ?? $code);
-    }
-
-    /**
-     * URI-segment translation table per non-default locale, derived from the route
-     * tables (lang/{locale}/routes.php) so the segment words stay single-sourced.
-     *
-     * The frontend localises English-canonical nav hrefs by mapping each path
-     * segment through this table (slugs and {params} pass through unchanged), so a
-     * Volunteer on /fr/… navigates to /fr/… twins rather than reverting to English.
-     *
-     * Derived purely from static config (the route lang files + supported locales),
-     * so it's the same for every request — cached forever and rebuilt on deploy when
-     * the cache is cleared, rather than recomputed on every Inertia response.
-     *
-     * @return array<string, array<string, string>>
-     */
-    private function routeSegments(): array
-    {
-        return Cache::rememberForever('inertia.route_segments', function (): array {
-            $default = LaravelLocalization::getDefaultLocale();
-            $base = Lang::get('routes', [], $default);
-
-            $out = [];
-
-            foreach (array_keys(LaravelLocalization::getSupportedLocales()) as $locale) {
-                if ($locale === $default) {
-                    continue;
-                }
-
-                $target = Lang::get('routes', [], $locale);
-                $dict = [];
-
-                foreach ($base as $key => $basePattern) {
-                    $baseSegs = explode('/', $basePattern);
-                    $targetSegs = explode('/', $target[$key] ?? $basePattern);
-
-                    foreach ($baseSegs as $i => $segment) {
-                        $localised = $targetSegs[$i] ?? $segment;
-
-                        // Only record words that actually differ; skip {param}
-                        // placeholders (group slugs are content, never translated).
-                        if ($segment !== $localised && ! str_starts_with($segment, '{')) {
-                            $dict[$segment] = $localised;
-                        }
-                    }
-                }
-
-                $out[$locale] = $dict;
-            }
-
-            return $out;
-        });
     }
 }
