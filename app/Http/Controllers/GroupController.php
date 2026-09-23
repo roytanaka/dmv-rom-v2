@@ -138,6 +138,8 @@ class GroupController extends Controller
         ]);
 
         $canManageReminders = $request->user()->can('updateReminders', [Schedule::class, $group]);
+        $canManageEmptyDesk = $request->user()->can('updateEmptyDeskAlert', [Schedule::class, $group]);
+        $canManageSelfServe = $request->user()->can('updateSelfServe', [Schedule::class, $group]);
         $canManageShiftKinds = $request->user()->can('manageShiftKinds', [Schedule::class, $group]);
         $canManageObjects = $request->user()->can('manageObjects', [Schedule::class, $group]);
 
@@ -178,28 +180,10 @@ class GroupController extends Controller
                     // Group leaves it off and its sign-out panel shows no origin boxes.
                     'collectsVisitorProvenance' => $group->collects_visitor_provenance,
                 ],
-                // The Group's empty-desk settings (#487, ADR-0024 §7) — the Scheduling section's
-                // empty-desk block reads these to render its on/off switch, look-ahead field, and
-                // the roster of watch-tick rows, one per shift kind. Only to a schedule admin
-                // (`can.manageEmptyDesk`); the alert needs kinds to watch, so the kinds ride here.
-                'emptyDesk' => [
-                    'enabled' => $group->empty_desk_alert_enabled,
-                    'daysAhead' => $group->empty_desk_days_ahead,
-                    'shiftKinds' => $group->shiftKinds()->orderBy('sort_order')->get()
-                        ->map(fn (ShiftKind $kind): array => [
-                            'id' => $kind->id,
-                            'name' => $kind->name,
-                            'watched' => $kind->alert_when_empty,
-                        ])->all(),
-                ],
-                // The Group's self-serve settings (#582, ADR-0026 §1 and §2) — the Scheduling
-                // section's self-serve card reads these to render its on/off switch and unit-length
-                // field. Present on every Group; the card renders only inside Scheduling, and only
-                // to a schedule admin (`can.manageSelfServe`).
-                'selfServe' => [
-                    'enabled' => $group->self_serve_shifts,
-                    'unitMinutes' => $group->self_serve_unit_minutes,
-                ],
+                // The Group's self-serve unit length (#585, ADR-0026 §2). The Scheduling tab's
+                // "Write my shift" dialog derives a Shift's end from it and recovers the unit count
+                // on edit, so it rides on every section. The setting's card is on the Settings tab.
+                'selfServeUnitMinutes' => $group->self_serve_unit_minutes,
                 // The Group's shift kinds for the maintenance block (#567, ADR-0021 §3) — the
                 // full roster in picker order, retired kinds included, so the block can rename,
                 // retire, reinstate and reorder them. Only a schedule admin (`can.manageShiftKinds`)
@@ -264,14 +248,14 @@ class GroupController extends Controller
                 // — a Scheduler or Chair of the scheduling Group. UI hint only;
                 // UpdateReminderSettingsRequest re-checks the gate on PATCH.
                 'manageReminders' => $canManageReminders,
-                // `manageEmptyDesk` drives the Scheduling tab's empty-desk settings block (#487,
+                // `manageEmptyDesk` drives the Settings tab's Empty-desk alert card (#487,
                 // ADR-0024 §7) — the same Scheduler/Chair gate as Reminders. UI hint only;
                 // UpdateEmptyDeskSettingsRequest re-checks the gate on PATCH.
-                'manageEmptyDesk' => $request->user()->can('updateEmptyDeskAlert', [Schedule::class, $group]),
-                // `manageSelfServe` drives the Scheduling tab's self-serve settings card (#582,
+                'manageEmptyDesk' => $canManageEmptyDesk,
+                // `manageSelfServe` drives the Settings tab's Self-serve shifts card (#582,
                 // ADR-0026 §1 and §2) — the same Scheduler/Chair gate. UI hint only;
                 // UpdateSelfServeSettingsRequest re-checks the gate on PATCH.
-                'manageSelfServe' => $request->user()->can('updateSelfServe', [Schedule::class, $group]),
+                'manageSelfServe' => $canManageSelfServe,
                 // `manageShiftKinds` drives the Scheduling tab's shift-kind maintenance block (#567,
                 // ADR-0021 §3) — the same Scheduler/Chair gate. UI hint only; the shift-kind Form
                 // Requests re-check the gate on write.
@@ -327,8 +311,8 @@ class GroupController extends Controller
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'
-                ? $this->settings($group, $canManageReminders)
-                : ['reminders' => null],
+                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe)
+                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -363,18 +347,39 @@ class GroupController extends Controller
     }
 
     /**
-     * The Settings tab's cards (ADR-0027 §2). The Reminders card (#486, ADR-0024 §7) reads the
-     * on/off switch and lead days. It is a scheduling card, so it is null on a Group that runs
-     * no scheduling, and null for a viewer without `updateReminders`.
+     * The Settings tab's cards (ADR-0027 §2), in page order. All three are scheduling cards, so
+     * each is null on a Group that runs no scheduling, and null for a viewer without its right.
+     * The Reminders card (#486, ADR-0024 §7) reads the on/off switch and lead days. The Empty-desk
+     * alert card (#487, ADR-0024 §7) reads its switch, look-ahead, and one watch-tick row per
+     * shift kind in picker order. The Self-serve shifts card (#582, ADR-0026 §1 and §2) reads its
+     * switch and unit length.
      *
-     * @return array{reminders: array{enabled: bool, leadDays: int}|null}
+     * @return array{
+     *     reminders: array{enabled: bool, leadDays: int}|null,
+     *     emptyDesk: array{enabled: bool, daysAhead: int, shiftKinds: list<array{id: int, name: string, watched: bool}>}|null,
+     *     selfServe: array{enabled: bool, unitMinutes: int}|null,
+     * }
      */
-    private function settings(Group $group, bool $canManageReminders): array
+    private function settings(Group $group, bool $canManageReminders, bool $canManageEmptyDesk, bool $canManageSelfServe): array
     {
         return [
             'reminders' => $group->has_scheduling && $canManageReminders ? [
                 'enabled' => $group->reminders_enabled,
                 'leadDays' => $group->reminder_lead_days,
+            ] : null,
+            'emptyDesk' => $group->has_scheduling && $canManageEmptyDesk ? [
+                'enabled' => $group->empty_desk_alert_enabled,
+                'daysAhead' => $group->empty_desk_days_ahead,
+                'shiftKinds' => $group->shiftKinds()->orderBy('sort_order')->get()
+                    ->map(fn (ShiftKind $kind): array => [
+                        'id' => $kind->id,
+                        'name' => $kind->name,
+                        'watched' => $kind->alert_when_empty,
+                    ])->all(),
+            ] : null,
+            'selfServe' => $group->has_scheduling && $canManageSelfServe ? [
+                'enabled' => $group->self_serve_shifts,
+                'unitMinutes' => $group->self_serve_unit_minutes,
             ] : null,
         ];
     }

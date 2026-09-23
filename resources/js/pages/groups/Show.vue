@@ -75,18 +75,9 @@ const props = defineProps<{
             collectsExtraInteractions: boolean;
             collectsVisitorProvenance: boolean;
         };
-        // The Group's empty-desk settings (#487) — the Scheduling tab's empty-desk block reads
-        // them, its watch-tick rows drawn from the Group's shift kinds.
-        emptyDesk: {
-            enabled: boolean;
-            daysAhead: number;
-            shiftKinds: { id: number; name: string; watched: boolean }[];
-        };
-        // The Group's self-serve settings (#582) — the Scheduling tab's self-serve card reads them.
-        selfServe: {
-            enabled: boolean;
-            unitMinutes: number;
-        };
+        // The Group's self-serve unit length (#585) — the Scheduling tab's "Write my shift" dialog
+        // derives a Shift's end from it.
+        selfServeUnitMinutes: number;
         // The Group's shift kinds for the maintenance block (#567) — the full roster in picker
         // order, retired ones included. Present only for a schedule admin (empty otherwise).
         shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[];
@@ -128,9 +119,12 @@ const props = defineProps<{
     scheduling: Scheduling;
     hours: GroupHoursData;
     // The Settings tab's payload (ADR-0027), resolved only on that tab. Each card's values ride
-    // only with that card's right; the Reminders card (#486) reads `reminders`.
+    // only with that card's right: the Reminders card (#486) reads `reminders`, the Empty-desk
+    // alert card (#487) `emptyDesk`, and the Self-serve shifts card (#582) `selfServe`.
     settings: {
         reminders: { enabled: boolean; leadDays: number } | null;
+        emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] } | null;
+        selfServe: { enabled: boolean; unitMinutes: number } | null;
     };
     overview: {
         description: string | null;
@@ -421,10 +415,7 @@ const pickBanner = (key: string | null) => {
                     :collects-visitor-count="group.capabilities.collectsVisitorCount"
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
                     :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"
-                    :empty-desk="group.emptyDesk"
-                    :can-manage-empty-desk="can.manageEmptyDesk"
-                    :self-serve="group.selfServe"
-                    :can-manage-self-serve="can.manageSelfServe"
+                    :self-serve-unit-minutes="group.selfServeUnitMinutes"
                     :manageable-shift-kinds="group.shiftKinds"
                     :can-manage-shift-kinds="can.manageShiftKinds"
                     :manageable-objects="group.objects"
@@ -451,6 +442,10 @@ const pickBanner = (key: string | null) => {
                     :runs-scheduling="group.capabilities.scheduling"
                     :reminders="settings.reminders"
                     :can-manage-reminders="can.manageReminders"
+                    :empty-desk="settings.emptyDesk"
+                    :can-manage-empty-desk="can.manageEmptyDesk"
+                    :self-serve="settings.selfServe"
+                    :can-manage-self-serve="can.manageSelfServe"
                     :group-slug="group.slug"
                 />
 
