@@ -137,6 +137,7 @@ class GroupController extends Controller
             'memberships.roles',
         ]);
 
+        $canManageReminders = $request->user()->can('updateReminders', [Schedule::class, $group]);
         $canManageShiftKinds = $request->user()->can('manageShiftKinds', [Schedule::class, $group]);
         $canManageObjects = $request->user()->can('manageObjects', [Schedule::class, $group]);
 
@@ -262,7 +263,7 @@ class GroupController extends Controller
                 // `manageReminders` drives the Settings tab's Reminders card (#486, ADR-0024 §7)
                 // — a Scheduler or Chair of the scheduling Group. UI hint only;
                 // UpdateReminderSettingsRequest re-checks the gate on PATCH.
-                'manageReminders' => $request->user()->can('updateReminders', [Schedule::class, $group]),
+                'manageReminders' => $canManageReminders,
                 // `manageEmptyDesk` drives the Scheduling tab's empty-desk settings block (#487,
                 // ADR-0024 §7) — the same Scheduler/Chair gate as Reminders. UI hint only;
                 // UpdateEmptyDeskSettingsRequest re-checks the gate on PATCH.
@@ -326,7 +327,7 @@ class GroupController extends Controller
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'
-                ? $this->settings($request, $group)
+                ? $this->settings($group, $canManageReminders)
                 : ['reminders' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
@@ -368,10 +369,10 @@ class GroupController extends Controller
      *
      * @return array{reminders: array{enabled: bool, leadDays: int}|null}
      */
-    private function settings(Request $request, Group $group): array
+    private function settings(Group $group, bool $canManageReminders): array
     {
         return [
-            'reminders' => $group->has_scheduling && $request->user()->can('updateReminders', [Schedule::class, $group]) ? [
+            'reminders' => $group->has_scheduling && $canManageReminders ? [
                 'enabled' => $group->reminders_enabled,
                 'leadDays' => $group->reminder_lead_days,
             ] : null,

@@ -105,7 +105,9 @@ it('resolves the Hours section under its French path segment /fr/groupes/{group}
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('groups/Show')
-                ->where('locale', 'fr'));
+                ->where('locale', 'fr')
+                // The French segment reads back to its English section key (ADR-0008).
+                ->where('section', 'hours'));
     });
 });
 
