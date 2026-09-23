@@ -48,3 +48,29 @@ it('falls back to the English file when the locale file is missing', function ()
 it('returns null for a slug with no source file', function () {
     expect(fixtureRenderer()->render('does-not-exist', 'en'))->toBeNull();
 });
+
+it('renders a Tip blockquote as a Tip callout in both locales', function (string $locale, string $label) {
+    $html = fixtureRenderer()->render('callout-fixture', $locale)->html;
+
+    expect($html)->toContain("<div class=\"callout\" data-callout=\"tip\">\n<p><strong>{$label}</strong>");
+})->with([
+    'English' => ['en', 'Tip:'],
+    'French' => ['fr', 'Astuce :'],
+]);
+
+it('renders a Note blockquote as a Note callout in both locales', function (string $locale, string $label) {
+    $html = fixtureRenderer()->render('callout-fixture', $locale)->html;
+
+    expect($html)->toContain("<div class=\"callout\" data-callout=\"note\">\n<p><strong>{$label}</strong>");
+})->with([
+    'English' => ['en', 'Note:'],
+    'French' => ['fr', 'Note :'],
+]);
+
+it('renders a blockquote without a Tip or Note label as a plain blockquote', function () {
+    $html = fixtureRenderer()->render('callout-fixture', 'en')->html;
+
+    expect($html)
+        ->toContain("<blockquote>\n<p>A plain quote with no label.</p>\n</blockquote>")
+        ->and(substr_count($html, 'class="callout"'))->toBe(2);
+});
