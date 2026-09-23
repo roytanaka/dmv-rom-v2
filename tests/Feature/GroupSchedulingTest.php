@@ -79,54 +79,39 @@ it('withholds the manage-Reminders hint from a plain member', function () {
         ->assertInertia(fn (Assert $page) => $page->where('can.manageReminders', false));
 });
 
-it('carries the Group’s shift kinds — retired ones too — and a manage hint for a schedule admin (#567)', function () {
+it('carries the manage hints for shift kinds and Objects but no maintenance lists (ADR-0027 §2)', function () {
+    // The Shift kinds and Objects cards live on the Settings tab (GroupSettingsTest); the
+    // Scheduling section keeps only the active lists its pickers read, on an opened Schedule.
     $group = schedulingGroup();
-    $active = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Desk', 'sort_order' => 0]);
-    $retired = ShiftKind::factory()->inactive()->create(['group_id' => $group->id, 'name' => 'Old tour', 'sort_order' => 1, 'off_site' => true]);
+    ShiftKind::factory()->create(['group_id' => $group->id]);
+    HandlingObject::factory()->create(['group_id' => $group->id]);
 
     $this->actingAs(schedulingMemberOf($group, role: Role::Scheduler))
         ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageShiftKinds', true)
-            ->has('group.shiftKinds', 2)
-            ->where('group.shiftKinds.0', ['id' => $active->id, 'name' => 'Desk', 'active' => true, 'offSite' => false, 'sortOrder' => 0])
-            ->where('group.shiftKinds.1', ['id' => $retired->id, 'name' => 'Old tour', 'active' => false, 'offSite' => true, 'sortOrder' => 1]));
+            ->where('can.manageObjects', true)
+            ->missing('group.shiftKinds')
+            ->missing('group.objects')
+            ->where('settings.shiftKinds', null)
+            ->where('settings.objects', null)
+            ->where('scheduling.shift_kinds', [])
+            ->where('scheduling.objects', []));
 });
 
-it('withholds the shift-kind list and manage hint from a plain member (#567)', function () {
+it('gives an opened Schedule only the active shift kinds and Objects (ADR-0027 §2)', function () {
     $group = schedulingGroup();
-    ShiftKind::factory()->create(['group_id' => $group->id]);
-
-    $this->actingAs(schedulingMemberOf($group))
-        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('can.manageShiftKinds', false)
-            ->where('group.shiftKinds', []));
-});
-
-it('carries the Group’s Objects — retired ones too — and a manage hint for a schedule admin (#584)', function () {
-    $group = schedulingGroup();
-    $active = HandlingObject::factory()->create(['group_id' => $group->id, 'name' => 'Ammonite', 'sort_order' => 0]);
-    $retired = HandlingObject::factory()->inactive()->create(['group_id' => $group->id, 'name' => 'Old fossil', 'sort_order' => 1]);
+    $kind = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Desk', 'sort_order' => 0]);
+    ShiftKind::factory()->inactive()->create(['group_id' => $group->id, 'sort_order' => 1]);
+    $object = HandlingObject::factory()->create(['group_id' => $group->id, 'name' => 'Ammonite', 'sort_order' => 0]);
+    HandlingObject::factory()->inactive()->create(['group_id' => $group->id, 'sort_order' => 1]);
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
 
     $this->actingAs(schedulingMemberOf($group, role: Role::Scheduler))
-        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('can.manageObjects', true)
-            ->has('group.objects', 2)
-            ->where('group.objects.0', ['id' => $active->id, 'name' => 'Ammonite', 'active' => true, 'sortOrder' => 0])
-            ->where('group.objects.1', ['id' => $retired->id, 'name' => 'Old fossil', 'active' => false, 'sortOrder' => 1]));
-});
-
-it('withholds the Object list and manage hint from a plain member (#584)', function () {
-    $group = schedulingGroup();
-    HandlingObject::factory()->create(['group_id' => $group->id]);
-
-    $this->actingAs(schedulingMemberOf($group))
-        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('can.manageObjects', false)
-            ->where('group.objects', []));
+            ->where('scheduling.shift_kinds', [['id' => $kind->id, 'name' => 'Desk']])
+            ->where('scheduling.objects', [['id' => $object->id, 'name' => 'Ammonite']]));
 });
 
 it('404s the Scheduling section on a Group that does not run scheduling', function () {

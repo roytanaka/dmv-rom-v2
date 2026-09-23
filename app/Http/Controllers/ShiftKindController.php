@@ -10,9 +10,9 @@ use App\Models\ShiftKind;
 use Illuminate\Http\RedirectResponse;
 
 /**
- * Maintaining a Group's shift kinds (#567, ADR-0021 §3) — the Scheduling section's shift-kind
- * block: add, rename, retire, reinstate and reorder the small per-Group vocabulary of kinds,
- * edited by a Scheduler or Chair. Every mutation is structurally authorized in its Form
+ * Maintaining a Group's shift kinds (#567, ADR-0021 §3) — the Settings tab's Shift kinds card
+ * (ADR-0027 §2): add, rename, retire, reinstate and reorder the small per-Group vocabulary of
+ * kinds, edited by a Scheduler or Chair. Every mutation is structurally authorized in its Form
  * Request, which delegates to the SchedulePolicy's `manageShiftKinds` gate. There is no
  * delete: legacy never removes a kind, it retires and reinstates one, so the Shifts already
  * carrying a kind keep their name.

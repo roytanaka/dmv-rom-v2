@@ -184,34 +184,6 @@ class GroupController extends Controller
                 // "Write my shift" dialog derives a Shift's end from it and recovers the unit count
                 // on edit, so it rides on every section. The setting's card is on the Settings tab.
                 'selfServeUnitMinutes' => $group->self_serve_unit_minutes,
-                // The Group's shift kinds for the maintenance block (#567, ADR-0021 §3) — the
-                // full roster in picker order, retired kinds included, so the block can rename,
-                // retire, reinstate and reorder them. Only a schedule admin (`can.manageShiftKinds`)
-                // gets the list; a plain reader gets an empty one and no block.
-                'shiftKinds' => $canManageShiftKinds
-                    ? $group->shiftKinds()->orderBy('sort_order')->get()
-                        ->map(fn (ShiftKind $kind): array => [
-                            'id' => $kind->id,
-                            'name' => $kind->name,
-                            'active' => $kind->active,
-                            'offSite' => $kind->off_site,
-                            'sortOrder' => $kind->sort_order,
-                        ])->all()
-                    : [],
-                // The Group's Objects for the maintenance block (#584, ADR-0026 §3) — the full
-                // handling collection in picker order, retired Objects included, so the block can
-                // rename, retire, reinstate and reorder them. Only a schedule admin
-                // (`can.manageObjects`) gets the list; a plain reader gets an empty one and no
-                // block.
-                'objects' => $canManageObjects
-                    ? $group->objects()->orderBy('sort_order')->get()
-                        ->map(fn (HandlingObject $object): array => [
-                            'id' => $object->id,
-                            'name' => $object->name,
-                            'active' => $object->active,
-                            'sortOrder' => $object->sort_order,
-                        ])->all()
-                    : [],
             ],
             'section' => $section,
             // The Email control's empty state (#513, ADR-0024 §6) — the reason the viewer can
@@ -256,13 +228,13 @@ class GroupController extends Controller
                 // ADR-0026 §1 and §2) — the same Scheduler/Chair gate. UI hint only;
                 // UpdateSelfServeSettingsRequest re-checks the gate on PATCH.
                 'manageSelfServe' => $canManageSelfServe,
-                // `manageShiftKinds` drives the Scheduling tab's shift-kind maintenance block (#567,
-                // ADR-0021 §3) — the same Scheduler/Chair gate. UI hint only; the shift-kind Form
-                // Requests re-check the gate on write.
+                // `manageShiftKinds` drives the Settings tab's Shift kinds card (#567, ADR-0021 §3)
+                // — the same Scheduler/Chair gate. UI hint only; the shift-kind Form Requests
+                // re-check the gate on write.
                 'manageShiftKinds' => $canManageShiftKinds,
-                // `manageObjects` drives the Scheduling tab's Objects maintenance block (#584,
-                // ADR-0026 §3) — the same Scheduler/Chair gate. UI hint only; the Object Form
-                // Requests re-check the gate on write.
+                // `manageObjects` drives the Settings tab's Objects card (#584, ADR-0026 §3) — the
+                // same Scheduler/Chair gate. UI hint only; the Object Form Requests re-check the
+                // gate on write.
                 'manageObjects' => $canManageObjects,
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
@@ -311,8 +283,8 @@ class GroupController extends Controller
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'
-                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe)
-                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null],
+                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects)
+                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -347,21 +319,32 @@ class GroupController extends Controller
     }
 
     /**
-     * The Settings tab's cards (ADR-0027 §2), in page order. All three are scheduling cards, so
+     * The Settings tab's cards (ADR-0027 §2), in page order. All five are scheduling cards, so
      * each is null on a Group that runs no scheduling, and null for a viewer without its right.
      * The Reminders card (#486, ADR-0024 §7) reads the on/off switch and lead days. The Empty-desk
      * alert card (#487, ADR-0024 §7) reads its switch, look-ahead, and one watch-tick row per
      * shift kind in picker order. The Self-serve shifts card (#582, ADR-0026 §1 and §2) reads its
-     * switch and unit length.
+     * switch and unit length. The Shift kinds card (#567, #587, ADR-0021 §3) and the Objects card
+     * (#584, ADR-0026 §3) read their full lists in picker order, retired rows included, so the card
+     * can rename, retire, reinstate and reorder them. The Scheduling tab's pickers read only the
+     * active rows, from its own payload.
      *
      * @return array{
      *     reminders: array{enabled: bool, leadDays: int}|null,
      *     emptyDesk: array{enabled: bool, daysAhead: int, shiftKinds: list<array{id: int, name: string, watched: bool}>}|null,
      *     selfServe: array{enabled: bool, unitMinutes: int}|null,
+     *     shiftKinds: list<array{id: int, name: string, active: bool, offSite: bool, sortOrder: int}>|null,
+     *     objects: list<array{id: int, name: string, active: bool, sortOrder: int}>|null,
      * }
      */
-    private function settings(Group $group, bool $canManageReminders, bool $canManageEmptyDesk, bool $canManageSelfServe): array
-    {
+    private function settings(
+        Group $group,
+        bool $canManageReminders,
+        bool $canManageEmptyDesk,
+        bool $canManageSelfServe,
+        bool $canManageShiftKinds,
+        bool $canManageObjects,
+    ): array {
         return [
             'reminders' => $group->has_scheduling && $canManageReminders ? [
                 'enabled' => $group->reminders_enabled,
@@ -381,6 +364,25 @@ class GroupController extends Controller
                 'enabled' => $group->self_serve_shifts,
                 'unitMinutes' => $group->self_serve_unit_minutes,
             ] : null,
+            'shiftKinds' => $group->has_scheduling && $canManageShiftKinds
+                ? $group->shiftKinds()->orderBy('sort_order')->get()
+                    ->map(fn (ShiftKind $kind): array => [
+                        'id' => $kind->id,
+                        'name' => $kind->name,
+                        'active' => $kind->active,
+                        'offSite' => $kind->off_site,
+                        'sortOrder' => $kind->sort_order,
+                    ])->all()
+                : null,
+            'objects' => $group->has_scheduling && $canManageObjects
+                ? $group->objects()->orderBy('sort_order')->get()
+                    ->map(fn (HandlingObject $object): array => [
+                        'id' => $object->id,
+                        'name' => $object->name,
+                        'active' => $object->active,
+                        'sortOrder' => $object->sort_order,
+                    ])->all()
+                : null,
         ];
     }
 
