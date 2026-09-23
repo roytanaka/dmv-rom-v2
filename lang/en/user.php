@@ -8,6 +8,5 @@ return [
     'profile' => 'My Profile',
     'renew' => 'Renew Membership', // account-menu only, not a primary nav destination (#196)
     'language' => 'Language',
-    'mail_status' => 'Mail status', // super-tier only (#492, ADR-0024 §10); hidden otherwise
     'logout' => 'Log out',
 ];

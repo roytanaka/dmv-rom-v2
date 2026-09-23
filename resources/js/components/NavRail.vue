@@ -11,7 +11,7 @@ import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, Side
 import type { GroupNode, NavNode, RailNode } from '@/chrome/types';
 import type { PhosphorIcon, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { PhBuildings, PhCaretDown, PhChartBar, PhChatCircleDots, PhGear, PhMegaphone } from '@phosphor-icons/vue';
+import { PhBuildings, PhCaretDown, PhChartBar, PhChatCircleDots, PhEnvelopeSimple, PhGear, PhMegaphone, PhQuestion } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -43,6 +43,8 @@ const OFFICER_ICONS: Record<string, PhosphorIcon> = {
     reports: PhChartBar,
     'flash-messages': PhChatCircleDots,
     settings: PhGear,
+    'mail-status': PhEnvelopeSimple,
+    'help-status': PhQuestion,
 };
 const officerSection = computed(() => page.props.rail.officer);
 const officerItems = computed<NavNode[]>(() =>

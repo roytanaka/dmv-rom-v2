@@ -101,9 +101,6 @@ class HandleInertiaRequests extends Middleware
                 // are computed by the relevant policy on each page.
                 'can' => [
                     'administerMembers' => (bool) $request->user()?->can('administer-members'),
-                    // Super-tier-only Mail status page (ADR-0024 §10). Coarse hint for the
-                    // user-menu item; the route re-checks the gate on every visit.
-                    'viewMailStatus' => (bool) $request->user()?->can('view-mail-status'),
                 ],
             ],
             // Persisted sidebar state. The cookie is written client-side by the
@@ -308,6 +305,10 @@ class HandleInertiaRequests extends Middleware
      * Super-tier passes the abilities too via the Gate::before short-circuit, so it sees
      * all five.
      *
+     * Mail status and Help status close the cluster (ADR-0027 §4). They are org-wide
+     * operations pages behind the super-tier-only gates their routes already authorize,
+     * and their hrefs are the non-localized routes: the pages have no French twin.
+     *
      * @return array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}|null
      */
     private function officer(Member $member): ?array
@@ -320,13 +321,17 @@ class HandleInertiaRequests extends Middleware
             ['key' => 'reports', 'route' => 'officer.reports', 'labelKey' => 'nav.officer.reports'],
             ['key' => 'flash-messages', 'route' => 'officer.flash-messages', 'labelKey' => 'nav.officer.flash_messages'],
             ['key' => 'settings', 'route' => 'officer.settings', 'labelKey' => 'nav.officer.dmv_settings'],
+            ['key' => 'mail-status', 'href' => route('mail-status', absolute: false), 'labelKey' => 'nav.officer.mail_status', 'gate' => 'view-mail-status'],
+            ['key' => 'help-status', 'href' => route('help-status', absolute: false), 'labelKey' => 'nav.officer.help_status', 'gate' => 'view-help-ledger'],
         ];
 
         $visible = collect($items)
             ->filter(fn (array $spec) => isset($spec['gate'])
                 ? $member->can($spec['gate'])
                 : $member->isAllDmv())
-            ->map(fn (array $spec) => $this->destination($spec))
+            ->map(fn (array $spec) => isset($spec['href'])
+                ? ['key' => $spec['key'], 'labelKey' => $spec['labelKey'], 'href' => $spec['href']]
+                : $this->destination($spec))
             ->values();
 
         if ($visible->isEmpty()) {

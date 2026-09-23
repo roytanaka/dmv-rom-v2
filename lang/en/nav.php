@@ -58,6 +58,8 @@ return [
         'reports' => 'Reports',
         'flash_messages' => 'Flash Messages',
         'dmv_settings' => 'DMV Settings',
+        'mail_status' => 'Mail status',
+        'help_status' => 'Help status',
     ],
 
     // Accessible name for the split-rail chevron that expands/collapses a Group's

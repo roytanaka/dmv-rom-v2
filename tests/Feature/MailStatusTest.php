@@ -129,22 +129,4 @@ class MailStatusTest extends TestCase
         $this->get('/mail-status')
             ->assertInertia(fn (Assert $page) => $page->where('warnings.cannotSend', false));
     }
-
-    public function test_the_menu_hint_is_true_for_super_tier()
-    {
-        $this->actingAs(Member::factory()->superTier()->create());
-
-        $this->get('/dashboard')
-            ->assertInertia(fn (Assert $page) => $page->where('auth.can.viewMailStatus', true));
-    }
-
-    public function test_the_menu_hint_is_false_for_a_records_member()
-    {
-        $records = $this->recordsMember();
-        $this->assertTrue($records->hasMemberAdminAuthority());
-        $this->actingAs($records);
-
-        $this->get('/dashboard')
-            ->assertInertia(fn (Assert $page) => $page->where('auth.can.viewMailStatus', false));
-    }
 }
