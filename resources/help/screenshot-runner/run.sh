@@ -108,7 +108,9 @@ browser_login "$PERSONA_EMAIL" "$DEV_PASSWORD"
 browser_viewport "$VIEWPORT_WIDTH" "$VIEWPORT_HEIGHT"
 [[ -n "$START_PATH" ]] && browser_goto "$BASE_URL$START_PATH"
 
-for entry in "${STEPS[@]}"; do
+# An article with no chrome to shoot (Reminders) has no steps. macOS bash 3.2 reads an
+# empty array as unbound under `set -u`, so expand it only when it has entries.
+for entry in ${STEPS[@]+"${STEPS[@]}"}; do
     IFS='|' read -r kind arg shot <<<"$entry"
     case "$kind" in
     goto) browser_goto "$BASE_URL$arg" ;;
