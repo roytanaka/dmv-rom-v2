@@ -14,6 +14,7 @@
         "lint": "eslint . --fix",
         "prepare": "husky",
         "sandcastle": "npx tsx .sandcastle/main.ts",
+        "sandcastle:rebuild": "docker build --no-cache --build-arg AGENT_UID=$(id -u) --build-arg AGENT_GID=$(id -g) -t sandcastle:dmv-rom-v2 -f .sandcastle/Dockerfile .",
         "sail": "sh vendor/bin/sail",
         "test:unit": "node --test 'resources/js/**/*.test.ts'",
         "db:seed": "sh vendor/bin/sail artisan db:seed",

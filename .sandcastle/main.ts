@@ -13,6 +13,8 @@
 // See docs/adr/0016-autonomous-agent-loop.md for the why.
 //
 // Run:  pnpm run sandcastle   (= npx tsx .sandcastle/main.ts)
+// Rebuild the sandbox image (e.g. when a new model needs a newer Claude Code
+// CLI, which is baked into the image): pnpm run sandcastle:rebuild
 // Needs: Docker Desktop running, .sandcastle/.env filled, a clean `staging`,
 //        and at least one `ready-for-agent` issue.
 
