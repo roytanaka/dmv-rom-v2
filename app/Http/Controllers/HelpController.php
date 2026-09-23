@@ -90,11 +90,11 @@ class HelpController extends Controller
             'topics' => $this->topics($manifest, $renderer, $entry, $locale),
             'sectionArticles' => $entry->isOverview ? $this->sectionArticles($manifest, $renderer, $entry, $locale) : null,
             // Breadcrumb resolved server-side at the request locale (Help › Section ›
-            // Title): the section crumb points at that section's overview article.
+            // Title): the section crumb opens the index scrolled to that section's card.
             // Hrefs are path-only (absolute: false) so Inertia navigates client-side.
             'breadcrumb' => [
                 ['title' => __('help.title'), 'href' => route('help', absolute: false)],
-                ['title' => __($entry->section->labelKey()), 'href' => route('help.show', [$manifest->overviewSlug($entry->section)], false)],
+                ['title' => __($entry->section->labelKey()), 'href' => route('help', absolute: false).'#'.$entry->section->value],
                 ['title' => $rendered->title, 'href' => route('help.show', [$entry->slug], false)],
             ],
             'previous' => $neighbour($previous),

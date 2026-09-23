@@ -41,12 +41,11 @@ return [
         'support' => 'Support',
     ],
 
-    // Required-role badge (#518, ADR-0025 §6). The badge reads "Needs: Scheduler or
-    // Chair": the prefix, one label per required role, joined by "or". An article
+    // Required-role badge (#518, ADR-0025 §6). The badge reads "Scheduler or
+    // Chair": one label per required role, joined by "or". An article
     // that needs no role shows no badge. One label per token in
     // HelpManifest::requirableRoles() — every Role, plus the non-Group tiers.
     'required_role' => [
-        'prefix' => 'Needs:',
         'or' => 'or',
         'role' => [
             'chair' => 'Chair',

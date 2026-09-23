@@ -68,7 +68,11 @@ function closingLabel(section: HelpIndexSection): string {
                 <p class="text-muted-foreground text-sm">{{ trans('help.intro') }}</p>
             </header>
 
-            <section v-if="startHere?.overview" class="bg-rom-slate-50 border-rom-slate-300 flex flex-col items-start gap-3 border p-6">
+            <section
+                v-if="startHere?.overview"
+                :id="startHere.key"
+                class="bg-rom-slate-50 border-rom-slate-300 flex scroll-mt-20 flex-col items-start gap-3 border p-6"
+            >
                 <h2 class="text-rom-ink text-lg font-semibold">{{ trans('help.start_here.heading') }}</h2>
                 <p class="text-rom-ink text-base">{{ trans('help.start_here.line') }}</p>
                 <Button as-child size="lg">
@@ -78,7 +82,7 @@ function closingLabel(section: HelpIndexSection): string {
             </section>
 
             <div class="grid gap-4 md:grid-cols-2">
-                <Card v-for="section in sections" :key="section.key" class="flex flex-col">
+                <Card v-for="section in sections" :id="section.key" :key="section.key" class="flex scroll-mt-20 flex-col">
                     <CardHeader>
                         <CardTitle class="text-lg">
                             <TextLink v-if="section.overview" :href="section.overview.href">{{ trans(section.labelKey) }}</TextLink>
