@@ -185,6 +185,14 @@ _Avoid_: the calendar year, and "FY26"-style shorthand; the reports say _Fiscal 
 The application's persistent **frame** — the top bar, side rail, breadcrumb strip, and footer that wrap every screen and stay put while the page content changes. A UI term (after [GUI chrome](https://www.nngroup.com/articles/browser-and-gui-chrome/)), unrelated to the web browser. The Part 3 app shell _is_ the chrome; product screens render inside it.
 _Avoid_: confusing with the Google Chrome browser. Synonyms "shell" / "frame" are fine.
 
+**Officer Tools**:
+The rail's bottom cluster of **org-wide** administration: Members, Communications, Reports, Flash Messages, DMV Settings, plus the super-tier status pages. Built and gated on the server per rail item ([ADR-0018 §4](docs/adr/0018-server-driven-grouping-rail.md), [ADR-0027 §4](docs/adr/0027-group-settings-tab.md)). Nothing **Group**-scoped lives here.
+_Avoid_: reading "officer" here as a Group's **Officer**; the two senses are unrelated. Do not put a Group's tools in the rail.
+
+**Group Settings** (the Settings tab):
+The last section tab on a **Group** page, shown only to a Member with at least one configuration right on that Group. Holds the Group's **settings**: reminders, empty-desk alert, self-serve shifts, **Shift kinds**, **Objects**. A setting is a value an **Officer** sets once and the app reads later. See [ADR-0027](docs/adr/0027-group-settings-tab.md).
+_Avoid_: putting **records** or content work here. A **Schedule**, a **Shift**, a **Sign-up**, a **Meeting**, a roster line, the About text or the banner is edited inline on the tab where it is read. "Settings" names three scopes in the app: Account settings (the user menu), Group Settings (this tab), DMV Settings (**Officer Tools**).
+
 **Locale**:
 The technical identifier for a language + regional convention pair. The app supports two locales: `en` (English, default) and `fr` (Canadian French, `fr-CA`). A **Member**'s `locale` column captures their saved preference. Laravel's `app()->setLocale()` consumes it.
 _Avoid_: Language (the user-facing label is "Language" or "Langue," but in code and ADRs, use **Locale**).
