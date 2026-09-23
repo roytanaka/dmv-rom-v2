@@ -32,8 +32,11 @@
     // every article after the first would silently shoot as that Persona. Prime the
     // session so Laravel sets the XSRF-TOKEN cookie (logout regenerates it), then POST
     // the credentials. The 302 to the dashboard is followed, so an ok response means we
-    // hold a session cookie.
+    // hold a session cookie. The daemon keeps localStorage too, so a view choice a
+    // previous run left behind (the Schedule's Agenda/Calendar toggle) is cleared, and
+    // every run shoots the default chrome.
     async function login(email, password) {
+        localStorage.clear();
         await fetch('/login', { credentials: 'same-origin' });
         await fetch('/logout', { method: 'POST', credentials: 'same-origin', headers: csrfHeaders() });
         await fetch('/login', { credentials: 'same-origin' });
