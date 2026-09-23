@@ -78,12 +78,6 @@ const props = defineProps<{
         // The Group's self-serve unit length (#585) — the Scheduling tab's "Write my shift" dialog
         // derives a Shift's end from it.
         selfServeUnitMinutes: number;
-        // The Group's shift kinds for the maintenance block (#567) — the full roster in picker
-        // order, retired ones included. Present only for a schedule admin (empty otherwise).
-        shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[];
-        // The Group's Objects for the maintenance block (#584) — the full handling collection in
-        // picker order, retired ones included. Present only for a schedule admin (empty otherwise).
-        objects: { id: number; name: string; active: boolean; sortOrder: number }[];
     };
     section: string;
     // UI hints from the policies — drive the officer affordances only; the server
@@ -120,11 +114,14 @@ const props = defineProps<{
     hours: GroupHoursData;
     // The Settings tab's payload (ADR-0027), resolved only on that tab. Each card's values ride
     // only with that card's right: the Reminders card (#486) reads `reminders`, the Empty-desk
-    // alert card (#487) `emptyDesk`, and the Self-serve shifts card (#582) `selfServe`.
+    // alert card (#487) `emptyDesk`, the Self-serve shifts card (#582) `selfServe`, the Shift kinds
+    // card (#567) `shiftKinds`, and the Objects card (#584) `objects`.
     settings: {
         reminders: { enabled: boolean; leadDays: number } | null;
         emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] } | null;
         selfServe: { enabled: boolean; unitMinutes: number } | null;
+        shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[] | null;
+        objects: { id: number; name: string; active: boolean; sortOrder: number }[] | null;
     };
     overview: {
         description: string | null;
@@ -416,10 +413,6 @@ const pickBanner = (key: string | null) => {
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
                     :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"
                     :self-serve-unit-minutes="group.selfServeUnitMinutes"
-                    :manageable-shift-kinds="group.shiftKinds"
-                    :can-manage-shift-kinds="can.manageShiftKinds"
-                    :manageable-objects="group.objects"
-                    :can-manage-objects="can.manageObjects"
                     :group-slug="group.slug"
                     :group-name="group.name"
                     :email-reason="email.reason"
@@ -446,6 +439,10 @@ const pickBanner = (key: string | null) => {
                     :can-manage-empty-desk="can.manageEmptyDesk"
                     :self-serve="settings.selfServe"
                     :can-manage-self-serve="can.manageSelfServe"
+                    :shift-kinds="settings.shiftKinds"
+                    :can-manage-shift-kinds="can.manageShiftKinds"
+                    :objects="settings.objects"
+                    :can-manage-objects="can.manageObjects"
                     :group-slug="group.slug"
                 />
 

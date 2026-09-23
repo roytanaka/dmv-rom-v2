@@ -4,6 +4,7 @@ use App\Enums\Role;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
+use App\Models\HandlingObject;
 use App\Models\Member;
 use App\Models\ShiftKind;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -11,10 +12,10 @@ use Inertia\Testing\AssertableInertia as Assert;
 /*
  * The Group Settings tab (#604, spec #603, ADR-0027 §1). A section of the Group page, shown
  * only to a viewer holding a Group-scoped configuration right, holding one page of settings
- * cards. So far it carries the Reminders, Empty-desk alert and Self-serve shifts cards, moved off
- * the Scheduling tab (#604, #606). Asserted at the Inertia prop seam per actor. Prior art:
- * GroupPageTest, GroupSchedulingTest, ReminderSettingsTest, EmptyDeskSettingsTest,
- * SelfServeSettingsTest.
+ * cards. It carries the Reminders, Empty-desk alert, Self-serve shifts, Shift kinds and Objects
+ * cards, moved off the Scheduling tab (#604, #606, #607). Asserted at the Inertia prop seam per
+ * actor. Prior art: GroupPageTest, GroupSchedulingTest, ReminderSettingsTest, EmptyDeskSettingsTest,
+ * SelfServeSettingsTest, ShiftKindManagementTest, ObjectManagementTest.
  */
 
 /** A Member of $group carrying an optional role. */
@@ -159,6 +160,48 @@ it('gives no Empty-desk or Self-serve payload on a Group that runs no scheduling
             ->where('settings.selfServe', null));
 });
 
+// --- The Shift kinds and Objects cards (#607) ---------------------------------
+
+it('carries the full shift-kind list, retired kinds too, on the Settings section', function () {
+    $group = settingsGroup();
+    $active = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Desk', 'sort_order' => 0]);
+    $retired = ShiftKind::factory()->inactive()->create(['group_id' => $group->id, 'name' => 'Old tour', 'sort_order' => 1, 'off_site' => true]);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageShiftKinds', true)
+            ->where('settings.shiftKinds', [
+                ['id' => $active->id, 'name' => 'Desk', 'active' => true, 'offSite' => false, 'sortOrder' => 0],
+                ['id' => $retired->id, 'name' => 'Old tour', 'active' => false, 'offSite' => true, 'sortOrder' => 1],
+            ]));
+});
+
+it('carries the full Object list, retired Objects too, on the Settings section', function () {
+    $group = settingsGroup();
+    $active = HandlingObject::factory()->create(['group_id' => $group->id, 'name' => 'Ammonite', 'sort_order' => 0]);
+    $retired = HandlingObject::factory()->inactive()->create(['group_id' => $group->id, 'name' => 'Old fossil', 'sort_order' => 1]);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Chair))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageObjects', true)
+            ->where('settings.objects', [
+                ['id' => $active->id, 'name' => 'Ammonite', 'active' => true, 'sortOrder' => 0],
+                ['id' => $retired->id, 'name' => 'Old fossil', 'active' => false, 'sortOrder' => 1],
+            ]));
+});
+
+it('gives no shift-kind or Object list on a Group that runs no scheduling', function () {
+    $group = Group::factory()->publicListing()->create(['has_scheduling' => false]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('settings.shiftKinds', null)
+            ->where('settings.objects', null));
+});
+
 // --- The hint and the payload on other sections -----------------------------
 
 it('carries the manage-Settings hint on every section, and the card payloads only on Settings', function () {
@@ -172,6 +215,8 @@ it('carries the manage-Settings hint on every section, and the card payloads onl
             ->where('settings.reminders', null)
             ->where('settings.emptyDesk', null)
             ->where('settings.selfServe', null)
+            ->where('settings.shiftKinds', null)
+            ->where('settings.objects', null)
             ->missing('group.reminders')
             ->missing('group.emptyDesk')
             ->missing('group.selfServe')
@@ -188,7 +233,9 @@ it('withholds the manage-Settings hint from an ordinary Member', function () {
             ->where('can.manageSettings', false)
             ->where('settings.reminders', null)
             ->where('settings.emptyDesk', null)
-            ->where('settings.selfServe', null));
+            ->where('settings.selfServe', null)
+            ->where('settings.shiftKinds', null)
+            ->where('settings.objects', null));
 });
 
 // --- Saving returns to the Settings tab -------------------------------------
@@ -277,6 +324,79 @@ it('returns a Self-serve validation error to the Settings tab', function () {
         ])
         ->assertRedirect($settingsUrl)
         ->assertSessionHasErrors('self_serve_unit_minutes');
+});
+
+it('returns the Scheduler to the Settings tab after every shift-kind write', function () {
+    $group = settingsGroup();
+    $kind = ShiftKind::factory()->create(['group_id' => $group->id, 'sort_order' => 0]);
+    $other = ShiftKind::factory()->create(['group_id' => $group->id, 'sort_order' => 1]);
+    $scheduler = settingsMemberOf($group, role: Role::Scheduler);
+    $settingsUrl = route('groups.show', ['group' => $group, 'section' => 'settings']);
+
+    $writes = [
+        ['post', route('groups.shift-kinds.store', ['group' => $group]), ['name' => 'Highlights tour']],
+        ['patch', route('shift-kinds.update', ['shiftKind' => $kind]), ['name' => 'Front desk']],
+        ['patch', route('shift-kinds.update', ['shiftKind' => $kind]), ['active' => false]],
+        ['patch', route('shift-kinds.update', ['shiftKind' => $kind]), ['active' => true]],
+        ['patch', route('shift-kinds.update', ['shiftKind' => $kind]), ['off_site' => true]],
+        ['patch', route('groups.shift-kinds.reorder', ['group' => $group]), ['ids' => [$other->id, $kind->id]]],
+    ];
+
+    foreach ($writes as [$method, $url, $body]) {
+        $this->actingAs($scheduler)
+            ->from($settingsUrl)
+            ->{$method}($url, $body)
+            ->assertRedirect($settingsUrl)
+            ->assertSessionHasNoErrors();
+    }
+});
+
+it('returns a shift-kind validation error to the Settings tab', function () {
+    $group = settingsGroup();
+    ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Desk']);
+    $settingsUrl = route('groups.show', ['group' => $group, 'section' => 'settings']);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
+        ->from($settingsUrl)
+        ->post(route('groups.shift-kinds.store', ['group' => $group]), ['name' => 'Desk'])
+        ->assertRedirect($settingsUrl)
+        ->assertSessionHasErrors('name');
+});
+
+it('returns the Scheduler to the Settings tab after every Object write', function () {
+    $group = settingsGroup();
+    $object = HandlingObject::factory()->create(['group_id' => $group->id, 'sort_order' => 0]);
+    $other = HandlingObject::factory()->create(['group_id' => $group->id, 'sort_order' => 1]);
+    $scheduler = settingsMemberOf($group, role: Role::Scheduler);
+    $settingsUrl = route('groups.show', ['group' => $group, 'section' => 'settings']);
+
+    $writes = [
+        ['post', route('groups.objects.store', ['group' => $group]), ['name' => 'Trilobite fossil']],
+        ['patch', route('objects.update', ['object' => $object]), ['name' => 'Ammonite shell']],
+        ['patch', route('objects.update', ['object' => $object]), ['active' => false]],
+        ['patch', route('objects.update', ['object' => $object]), ['active' => true]],
+        ['patch', route('groups.objects.reorder', ['group' => $group]), ['ids' => [$other->id, $object->id]]],
+    ];
+
+    foreach ($writes as [$method, $url, $body]) {
+        $this->actingAs($scheduler)
+            ->from($settingsUrl)
+            ->{$method}($url, $body)
+            ->assertRedirect($settingsUrl)
+            ->assertSessionHasNoErrors();
+    }
+});
+
+it('returns an Object validation error to the Settings tab', function () {
+    $group = settingsGroup();
+    HandlingObject::factory()->create(['group_id' => $group->id, 'name' => 'Meteorite']);
+    $settingsUrl = route('groups.show', ['group' => $group, 'section' => 'settings']);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
+        ->from($settingsUrl)
+        ->post(route('groups.objects.store', ['group' => $group]), ['name' => 'Meteorite'])
+        ->assertRedirect($settingsUrl)
+        ->assertSessionHasErrors('name');
 });
 
 // --- The French path ----------------------------------------------------------

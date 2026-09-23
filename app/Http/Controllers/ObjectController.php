@@ -10,9 +10,9 @@ use App\Models\HandlingObject;
 use Illuminate\Http\RedirectResponse;
 
 /**
- * Maintaining a Group's Objects (#584, ADR-0026 §3) — the Scheduling section's Objects block:
- * add, rename, retire, reinstate and reorder the handling collection a Gallery Interpreter takes
- * onto the floor, edited by a Scheduler or Chair. The endpoints mirror the shift-kind ones of
+ * Maintaining a Group's Objects (#584, ADR-0026 §3) — the Settings tab's Objects card (ADR-0027
+ * §2): add, rename, retire, reinstate and reorder the handling collection a Gallery Interpreter
+ * takes onto the floor, edited by a Scheduler or Chair. The endpoints mirror the shift-kind ones of
  * #567 one for one. Every mutation is structurally authorized in its Form Request, which
  * delegates to the SchedulePolicy's `manageObjects` gate. There is no delete: an Object is
  * retired and reinstated, never removed, so the Sign-ups already reserving it keep their name.
