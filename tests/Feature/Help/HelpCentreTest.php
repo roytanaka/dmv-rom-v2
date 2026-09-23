@@ -101,7 +101,7 @@ it('renders an article with its title, breadcrumb, and rendered body HTML', func
             ->where('breadcrumb.0', ['title' => 'Help', 'href' => '/help'])
             ->where('breadcrumb.1', ['title' => 'Getting started', 'href' => '/help/getting-started'])
             ->where('breadcrumb.2', ['title' => 'Change your language', 'href' => '/help/change-your-language'])
-            ->where('html', fn (string $html) => str_contains($html, '<h2>') && str_contains($html, 'Switch your language')));
+            ->where('html', fn (string $html) => str_contains($html, '<h2 id="') && str_contains($html, 'Switch your language')));
 });
 
 it('renders an article in French at /fr/aide/... with a French breadcrumb', function () {
@@ -194,6 +194,46 @@ it('links French neighbours by French title and /fr/aide/ href', function () {
             ->assertInertia(fn (Assert $page) => $page
                 ->where('previous', ['title' => 'Tâche avec rôle', 'href' => '/fr/aide/role-task', 'section' => 'Pour commencer'])
                 ->where('next', ['title' => 'Lien fixture', 'href' => '/fr/aide/link-fixture', 'section' => 'Tableau de bord']));
+    });
+});
+
+// #621: the "On this page" list — the article's level-two headings, in order, with
+// ids the page links to.
+function bindHeadingFixtures(): void
+{
+    app()->instance(HelpArticleRenderer::class, new HelpArticleRenderer(base_path('tests/Fixtures/help')));
+    app()->instance(HelpManifest::class, new HelpManifest([
+        new HelpArticle('headings-fixture', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Published),
+        new HelpArticle('open-task', HelpSection::GettingStarted, status: ArticleStatus::Published),
+    ]));
+}
+
+it('carries the article headings in order with their ids', function () {
+    bindHeadingFixtures();
+
+    $this->actingAs(Member::factory()->create());
+
+    $this->get('/help/headings-fixture')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->count('headings', 4)
+            ->where('headings.0', ['text' => 'Before you start', 'id' => 'before-you-start'])
+            ->where('headings.3', ['text' => 'Fix a mistake', 'id' => 'fix-a-mistake-2']));
+
+    $this->get('/help/open-task')
+        ->assertInertia(fn (Assert $page) => $page->where('headings', []));
+});
+
+it('carries French headings and ids on a French article', function () {
+    bindHeadingFixtures();
+
+    $this->actingAs(Member::factory()->create());
+
+    $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/aide/headings-fixture')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('headings.1', ['text' => "Ouvrir l'onglet « Quarts »", 'id' => 'ouvrir-longlet-quarts']));
     });
 });
 

@@ -61,6 +61,8 @@ class HelpController extends Controller
             'slug' => $entry->slug,
             'title' => $rendered->title,
             'html' => $rendered->html,
+            // "On this page" (#621): the level-two headings (text and id), in order.
+            'headings' => $rendered->headings,
             // The Required-role badge's tokens (ADR-0025 §6); empty means every Member.
             'requires' => $entry->requires,
             // Breadcrumb resolved server-side at the request locale (Help › Section ›

@@ -22,7 +22,9 @@ use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
  * `<div class="callout" data-callout="tip|note">`. A link written `[Title](slug)`
  * with a bare slug is an article link: it resolves to that article's help URL in
  * the requested locale (`/help/<slug>` or `/fr/aide/<slug>`); anchors, absolute
- * paths and full URLs stay as they are. If a locale's file
+ * paths and full URLs stay as they are. Each level-two heading gets a stable id
+ * (its text as a slug) and the rendered article lists the headings for the page's
+ * "On this page" list. If a locale's file
  * is missing, the English file renders (the manifest test keeps that a dev-only
  * fallback).
  */
@@ -53,8 +55,9 @@ final class HelpArticleRenderer
 
         $html = $this->renderScreenshots($html, $slug);
         $html = $this->renderArticleLinks($html, $locale);
+        [$html, $headings] = $this->renderHeadings($html);
 
-        return new RenderedArticle($title, $this->renderCallouts($html));
+        return new RenderedArticle($title, $this->renderCallouts($html), $headings);
     }
 
     /** An article's title (its first level-one heading), or null when it is missing. */
@@ -193,6 +196,35 @@ final class HelpArticleRenderer
             },
             $html,
         );
+    }
+
+    /**
+     * Give each level-two heading a stable id — its text as a slug, suffixed `-2`,
+     * `-3` on a repeat — and list the headings (text and id) in order, for the
+     * page's "On this page" list.
+     *
+     * @return array{0: string, 1: list<array{text: string, id: string}>}
+     */
+    private function renderHeadings(string $html): array
+    {
+        $headings = [];
+        $seen = [];
+
+        $html = preg_replace_callback(
+            '#<h2>(.*?)</h2>#s',
+            function (array $match) use (&$headings, &$seen) {
+                $text = html_entity_decode(strip_tags($match[1]), ENT_QUOTES | ENT_HTML5);
+                $base = Str::slug($text) ?: 'section';
+                $seen[$base] = ($seen[$base] ?? 0) + 1;
+                $id = $seen[$base] === 1 ? $base : "{$base}-{$seen[$base]}";
+                $headings[] = ['text' => $text, 'id' => $id];
+
+                return "<h2 id=\"{$id}\">{$match[1]}</h2>";
+            },
+            $html,
+        );
+
+        return [$html, $headings];
     }
 
     /**

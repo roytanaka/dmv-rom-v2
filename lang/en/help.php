@@ -8,6 +8,9 @@ return [
     'title' => 'Help',
     'intro' => 'Step-by-step guides for the tasks you do here.',
 
+    // "On this page" list of an article's headings (#621).
+    'on_this_page' => 'On this page',
+
     // Previous and Next buttons at the end of an article (#620).
     'previous' => 'Previous',
     'next' => 'Next',
