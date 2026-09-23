@@ -164,6 +164,8 @@ Two entry points, not one form with a mode toggle: they take different inputs an
 
 ### 6. One surface, and how a reader gets to a Schedule
 
+> **Amendment (2026-09-22, [ADR-0027](0027-group-settings-tab.md)).** "Never a sibling tab" is **withdrawn for Group-scoped settings**. A Group now has a **Settings** section tab that only officers see, and the Scheduling tab's five configuration cards (reminders, empty desk, self-serve, shift kinds, Objects) move there. **Inline authoring of records is unchanged**: Schedules, Shifts, placements and corrections stay on this tab, gated by `can` as below. The "no admin-tab precedent" ground was wrong on its own terms: the Group Menu fixture has carried a Chair-gated `schedule_admin` stub since ADR-0018. Rail placement remains unavailable; ADR-0018 §4 stands.
+
 **A single `Scheduling` section tab on the Group page.** The Scheduler — and the Chair, by implication — sees authoring affordances **inline**, gated by a `can` prop. There is no `Scheduler` tab, and manage-schedule does **not** go in the rail.
 
 This is application of [ADR-0013](0013-app-shell-section-nav.md) plus [ADR-0017 §9](0017-authorization-enforcement.md), not a new pattern: Overview (inline About-Us edit, `can.update`), Roster (add-member / edit dialogs, `canManage`) and Meetings ("New meeting" + per-row edit, `meeting.can.update`) all already work this way, and there is **no admin-tab precedent anywhere in the repo**. Rail placement was never available: [ADR-0018 §4](0018-server-driven-grouping-rail.md) reserves "Officer Tools" for _org-wide_ administration and forbids conflating it with a Group's officers.

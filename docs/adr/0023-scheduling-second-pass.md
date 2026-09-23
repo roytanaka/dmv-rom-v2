@@ -98,6 +98,8 @@ no roster join. no audience test. no membership test.
 
 **No new route, no new top-bar destination, no admin tab.** This is ADR-0021 §6 applied unchanged: authoring inline, gated by `can` props, the same shape as Overview, Roster and Meetings.
 
+> **Amendment (2026-09-22, [ADR-0027](0027-group-settings-tab.md)).** "No admin tab" no longer holds for Group-scoped **settings**: a Group gains an officers-only **Settings** tab. Nothing in this section moves. The sign-out panel, the outstanding-shifts panel and the officer's correction are records work and stay on the Scheduling tab.
+
 **The volunteer has two ways in, both on that tab.**
 
 1. **Inline on the Agenda.** A Shift the viewer holds a Sign-up on grows a sign-out panel from five minutes before its `ends_at`: the number boxes, and the Sign Out button disabled until a number is typed.
