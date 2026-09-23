@@ -8,6 +8,10 @@ return [
     'title' => 'Help',
     'intro' => 'Step-by-step guides for the tasks you do here.',
 
+    // Previous and Next buttons at the end of an article (#620).
+    'previous' => 'Previous',
+    'next' => 'Next',
+
     // One label per HelpSection enum case, keyed by the section slug.
     'section' => [
         'getting-started' => 'Getting started',

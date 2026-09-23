@@ -45,8 +45,17 @@ class HelpController extends Controller
         abort_if($entry === null, 404);
 
         // Drafts render here for any logged-in Member with the URL (ADR-0025 §7).
-        $rendered = $renderer->render($entry->slug, app()->getLocale());
+        $locale = app()->getLocale();
+        $rendered = $renderer->render($entry->slug, $locale);
         abort_if($rendered === null, 404);
+
+        // Previous and Next (#620): the published neighbours in display order, or null.
+        $neighbour = fn (?HelpArticle $article) => $article === null ? null : [
+            'title' => $renderer->title($article->slug, $locale),
+            'href' => route('help.show', $article->slug, false),
+            'section' => __($article->section->labelKey()),
+        ];
+        [$previous, $next] = $manifest->publishedNeighbours($entry->slug);
 
         return Inertia::render('help/Article', [
             'slug' => $entry->slug,
@@ -62,6 +71,8 @@ class HelpController extends Controller
                 ['title' => __($entry->section->labelKey()), 'href' => route('help.show', [$manifest->overviewSlug($entry->section)], false)],
                 ['title' => $rendered->title, 'href' => route('help.show', [$entry->slug], false)],
             ],
+            'previous' => $neighbour($previous),
+            'next' => $neighbour($next),
         ]);
     }
 }

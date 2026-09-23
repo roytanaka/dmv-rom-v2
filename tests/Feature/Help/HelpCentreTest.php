@@ -131,6 +131,72 @@ it('links a French article to the French articles it names', function () {
     });
 });
 
+// #620: Previous and Next follow the manifest's published display order across the
+// whole help centre. This fixture spans two sections, with a draft in each.
+function bindNeighbourFixtures(): void
+{
+    app()->instance(HelpArticleRenderer::class, new HelpArticleRenderer(base_path('tests/Fixtures/help')));
+    app()->instance(HelpManifest::class, new HelpManifest([
+        new HelpArticle('role-task', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Published),
+        new HelpArticle('draft-task', HelpSection::GettingStarted, status: ArticleStatus::Draft),
+        new HelpArticle('open-task', HelpSection::GettingStarted, status: ArticleStatus::Published),
+        new HelpArticle('link-fixture', HelpSection::Dashboard, isOverview: true, status: ArticleStatus::Published),
+        new HelpArticle('callout-fixture', HelpSection::Dashboard, status: ArticleStatus::Draft),
+    ]));
+}
+
+it('links an article to its published neighbours, skipping drafts', function () {
+    bindNeighbourFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help/open-task')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('previous', ['title' => 'Role task', 'href' => '/help/role-task', 'section' => 'Getting started'])
+            ->where('next', ['title' => 'Link fixture', 'href' => '/help/link-fixture', 'section' => 'Dashboard']));
+});
+
+it('gives the first article no Previous and the last no Next', function () {
+    bindNeighbourFixtures();
+
+    $this->actingAs(Member::factory()->create());
+
+    $this->get('/help/role-task')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('previous', null)
+            ->where('next.href', '/help/open-task'));
+
+    $this->get('/help/link-fixture')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('previous', ['title' => 'Open task', 'href' => '/help/open-task', 'section' => 'Getting started'])
+            ->where('next', null));
+});
+
+it('gives a draft opened by URL neither Previous nor Next', function () {
+    bindNeighbourFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help/draft-task')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('previous', null)
+            ->where('next', null));
+});
+
+it('links French neighbours by French title and /fr/aide/ href', function () {
+    bindNeighbourFixtures();
+
+    $this->actingAs(Member::factory()->create());
+
+    $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/aide/open-task')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('previous', ['title' => 'Tâche avec rôle', 'href' => '/fr/aide/role-task', 'section' => 'Pour commencer'])
+                ->where('next', ['title' => 'Lien fixture', 'href' => '/fr/aide/link-fixture', 'section' => 'Tableau de bord']));
+    });
+});
+
 it('returns 404 for an unknown article slug', function () {
     $this->actingAs(Member::factory()->create())
         ->get('/help/does-not-exist')

@@ -5,10 +5,21 @@
 // the time it reaches v-html. The breadcrumb (Help › Section › Title) is resolved at
 // the request locale on the server, so it needs no client-side translation. Tip and
 // Note blockquotes arrive as `.callout` blocks carrying `data-callout` (#617).
+// Previous and Next (#620) follow the manifest's published order across sections;
+// their titles, hrefs and section labels arrive localized from the server.
 import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
+import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
+import { trans } from 'laravel-vue-i18n';
+
+interface HelpNeighbour {
+    title: string;
+    href: string;
+    section: string;
+}
 
 defineProps<{
     slug: string;
@@ -16,7 +27,12 @@ defineProps<{
     html: string;
     requires: string[];
     breadcrumb: BreadcrumbItem[];
+    previous: HelpNeighbour | null;
+    next: HelpNeighbour | null;
 }>();
+
+// Two-line large outline buttons: the label and section on top, the title below.
+const neighbourClass = 'h-auto w-full flex-col gap-1 py-3 whitespace-normal';
 </script>
 
 <template>
@@ -32,6 +48,34 @@ defineProps<{
                 <!-- eslint-disable-next-line vue/no-v-html -- body is server-sanitized chrome (ADR-0025) -->
                 <div class="text-rom-ink flex flex-col gap-4 text-base" v-html="html" />
             </article>
+
+            <!-- Desktop: Previous left, Next right. Phone: stacked, Next first. -->
+            <nav v-if="previous || next" class="grid max-w-2xl gap-3 sm:grid-cols-2">
+                <Button v-if="previous" as-child variant="outline" size="lg" :class="[neighbourClass, 'items-start text-left']">
+                    <Link :href="previous.href">
+                        <span class="text-muted-foreground flex items-center gap-1 text-sm">
+                            <PhCaretLeft aria-hidden="true" />
+                            {{ trans('help.previous') }} · {{ previous.section }}
+                        </span>
+                        <span class="text-rom-ink font-semibold">{{ previous.title }}</span>
+                    </Link>
+                </Button>
+                <Button
+                    v-if="next"
+                    as-child
+                    variant="outline"
+                    size="lg"
+                    :class="[neighbourClass, 'order-first items-end text-right sm:order-none sm:col-start-2']"
+                >
+                    <Link :href="next.href">
+                        <span class="text-muted-foreground flex items-center gap-1 text-sm">
+                            {{ trans('help.next') }} · {{ next.section }}
+                            <PhCaretRight aria-hidden="true" />
+                        </span>
+                        <span class="text-rom-ink font-semibold">{{ next.title }}</span>
+                    </Link>
+                </Button>
+            </nav>
         </div>
     </AppLayout>
 </template>

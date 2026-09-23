@@ -97,6 +97,28 @@ final class HelpManifest
     }
 
     /**
+     * The published articles either side of a slug in display order, across section
+     * boundaries — the article page's Previous and Next (#620). Drafts are never
+     * neighbours, and a draft (or unknown slug) has none: [null, null].
+     *
+     * @return array{0: ?HelpArticle, 1: ?HelpArticle}
+     */
+    public function publishedNeighbours(string $slug): array
+    {
+        $published = $this->collect()
+            ->filter(fn (HelpArticle $article) => $article->status === ArticleStatus::Published)
+            ->values();
+
+        $index = $published->search(fn (HelpArticle $article) => $article->slug === $slug);
+
+        if ($index === false) {
+            return [null, null];
+        }
+
+        return [$published->get($index - 1), $published->get($index + 1)];
+    }
+
+    /**
      * The published article a route name maps to, or null. Drives the top-bar "?"
      * (ADR-0025): a match yields the article, anything else the index. Drafts never
      * match, so a route mapped only by a draft resolves to null. When several
