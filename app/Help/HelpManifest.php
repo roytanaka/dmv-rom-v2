@@ -75,8 +75,7 @@ final class HelpManifest
      */
     public function publishedSections(): array
     {
-        return $this->collect()
-            ->filter(fn (HelpArticle $article) => $article->status === ArticleStatus::Published)
+        return $this->collectPublished()
             ->map(fn (HelpArticle $article) => $article->section)
             ->unique()
             ->values()
@@ -90,8 +89,8 @@ final class HelpManifest
      */
     public function publishedIn(HelpSection $section): array
     {
-        return $this->collect()
-            ->filter(fn (HelpArticle $article) => $article->section === $section && $article->status === ArticleStatus::Published)
+        return $this->collectPublished()
+            ->filter(fn (HelpArticle $article) => $article->section === $section)
             ->values()
             ->all();
     }
@@ -105,9 +104,7 @@ final class HelpManifest
      */
     public function publishedNeighbours(string $slug): array
     {
-        $published = $this->collect()
-            ->filter(fn (HelpArticle $article) => $article->status === ArticleStatus::Published)
-            ->values();
+        $published = $this->collectPublished()->values();
 
         $index = $published->search(fn (HelpArticle $article) => $article->slug === $slug);
 
@@ -128,9 +125,8 @@ final class HelpManifest
      */
     public function publishedForRoute(string $routeName): ?HelpArticle
     {
-        return $this->collect()
-            ->filter(fn (HelpArticle $article) => in_array($routeName, $article->mappedRoutes(), true)
-                && $article->status === ArticleStatus::Published)
+        return $this->collectPublished()
+            ->filter(fn (HelpArticle $article) => in_array($routeName, $article->mappedRoutes(), true))
             ->sortByDesc(fn (HelpArticle $article) => $article->isOverview)
             ->first();
     }
@@ -297,5 +293,11 @@ final class HelpManifest
     private function collect(): Collection
     {
         return collect($this->all());
+    }
+
+    /** @return Collection<int, HelpArticle> Published articles only, in display order; keys are not reindexed. */
+    private function collectPublished(): Collection
+    {
+        return $this->collect()->filter(fn (HelpArticle $article) => $article->status === ArticleStatus::Published);
     }
 }

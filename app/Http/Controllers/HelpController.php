@@ -50,12 +50,12 @@ class HelpController extends Controller
         abort_if($rendered === null, 404);
 
         // Previous and Next (#620): the published neighbours in display order, or null.
+        [$previous, $next] = $manifest->publishedNeighbours($entry->slug);
         $neighbour = fn (?HelpArticle $article) => $article === null ? null : [
             'title' => $renderer->title($article->slug, $locale),
             'href' => route('help.show', $article->slug, false),
             'section' => __($article->section->labelKey()),
         ];
-        [$previous, $next] = $manifest->publishedNeighbours($entry->slug);
 
         return Inertia::render('help/Article', [
             'slug' => $entry->slug,
