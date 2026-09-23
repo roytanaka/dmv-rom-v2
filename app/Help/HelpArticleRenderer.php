@@ -24,9 +24,8 @@ use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
  * the requested locale (`/help/<slug>` or `/fr/aide/<slug>`); anchors, absolute
  * paths and full URLs stay as they are. Each level-two heading gets a stable id
  * (its text as a slug) and the rendered article lists the headings for the page's
- * "On this page" list. If a locale's file
- * is missing, the English file renders (the manifest test keeps that a dev-only
- * fallback).
+ * "On this page" list. If a locale's file is missing, the English file renders
+ * (the manifest test keeps that a dev-only fallback).
  */
 final class HelpArticleRenderer
 {

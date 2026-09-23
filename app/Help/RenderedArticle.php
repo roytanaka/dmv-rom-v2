@@ -13,6 +13,6 @@ final class RenderedArticle
         public readonly string $title,
         public readonly string $html,
         /** @var list<array{text: string, id: string}> */
-        public readonly array $headings = [],
+        public readonly array $headings,
     ) {}
 }
