@@ -44,6 +44,8 @@ act highlightHelpLink 02    # run one in-page helper, then shoot it
   the sticky tab strip; anything a plain `nav` cannot show.
 - Leave `NN` off a `nav` or `act` line to take no shot. Use it to reload a page and
   close a dialog, or to open a Schedule before the helper that frames the shot.
+- An article with nothing to shoot keeps its script with no steps. The script
+  records why, and the runner signs in and takes no shots.
 
 Keep an article to one screen of reading, so a handful of shots. The comment
 after each step is the note to yourself about what the shot should show; the
@@ -55,7 +57,9 @@ Shoot each article as the account that does the task, so the chrome in the shot
 matches the reader's. All Personas share the dev password `password`. The
 browser keeps its cookies between runs, so the runner signs the previous Persona
 out before it signs the script's Persona in; two articles shot back to back never
-share a session.
+share a session. The browser keeps localStorage too, so the runner clears it at
+sign-in. A view choice from an earlier run, such as the Schedule's Calendar
+view, never carries into a shot.
 
 | Article kind                 | Persona                 | Email                     |
 | ---------------------------- | ----------------------- | ------------------------- |

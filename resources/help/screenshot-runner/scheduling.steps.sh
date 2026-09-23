@@ -8,4 +8,5 @@ persona amara.abara@dmv.test
 start /groups/docents/scheduling
 
 act showScheduleList 01             # the Scheduling tab: the list of schedules
-act openCurrentMonthSchedule 02     # a schedule's agenda: shifts with seats taken against capacity
+act openCurrentMonthSchedule        # open the month's Schedule
+act showUpcomingFullShift 02        # an upcoming day: seats taken against capacity, and a full shift says Full

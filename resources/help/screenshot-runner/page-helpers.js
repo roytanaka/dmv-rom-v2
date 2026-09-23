@@ -358,21 +358,43 @@
         return showShiftWithButton(/^edit$/i);
     }
 
-    // The first Agenda Shift still ahead that a schedule admin can place a Member on, scrolled
-    // so its day heading stays in frame. Each Agenda day is a block led by an h3 such as
-    // "Tuesday, September 8", read against today in the current year.
-    function showUpcomingPlaceAMember() {
+    // Each Agenda day is a block led by an h3 such as "Tuesday, September 8", read against
+    // today in the current year. A day still ahead is one whose Shifts show live controls.
+    function agendaDayHeading(element) {
+        return element.closest('[data-slot="card"]')?.parentElement?.querySelector('h3') ?? null;
+    }
+
+    function isUpcomingDay(heading) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        return new Date(`${heading.textContent.trim()} ${today.getFullYear()}`) >= today;
+    }
+
+    // The first Agenda Shift still ahead that a schedule admin can place a Member on, scrolled
+    // so its day heading stays in frame.
+    function showUpcomingPlaceAMember() {
         const button = Array.from(document.querySelectorAll('button'))
             .filter((element) => /^place a member$/i.test(element.textContent.trim()) && outsideMySignUps(element))
             .find((element) => {
-                const heading = element.closest('[data-slot="card"]')?.parentElement?.querySelector('h3');
-                return heading && new Date(`${heading.textContent.trim()} ${today.getFullYear()}`) >= today;
+                const heading = agendaDayHeading(element);
+                return heading && isUpcomingDay(heading);
             });
         if (!button) return false;
-        const heading = button.closest('[data-slot="card"]').parentElement.querySelector('h3');
-        scrollUnderStickyStrip(heading, 16);
+        scrollUnderStickyStrip(agendaDayHeading(button), 16);
+        return settle();
+    }
+
+    // The first Agenda day still ahead with a full Shift on it, scrolled so its heading stays in
+    // frame. A past Shift shows its seats but no Full tag, so the overview shot starts here: the
+    // day shows seats taken against capacity, and a full Shift beside one still open.
+    function showUpcomingFullShift() {
+        const full = Array.from(document.querySelectorAll('[data-slot="card"] *')).find((element) => {
+            if (element.children.length || element.textContent.trim() !== 'Full' || !outsideMySignUps(element)) return false;
+            const heading = agendaDayHeading(element);
+            return heading && isUpcomingDay(heading);
+        });
+        if (!full) return false;
+        scrollUnderStickyStrip(agendaDayHeading(full), 16);
         return settle();
     }
 
@@ -587,6 +609,7 @@
         openWriteMyShiftDialog,
         showMyWrittenShift,
         showUpcomingPlaceAMember,
+        showUpcomingFullShift,
         openPlaceAMemberDialog,
         showCorrectionPencil,
         openCorrectionForm,
