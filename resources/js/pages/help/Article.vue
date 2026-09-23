@@ -4,11 +4,19 @@
 // server (HTML input stripped, unsafe links off), so the body is trusted chrome by
 // the time it reaches v-html. The breadcrumb (Help › Section › Title) is resolved at
 // the request locale on the server, so it needs no client-side translation. Tip and
-// Note blockquotes arrive as `.callout` blocks carrying `data-callout` (#617).
+// Note blockquotes arrive as `.callout` blocks carrying `data-callout` (#617). The
+// Help topics list sits in a right column pushed to the far edge and stays in view
+// while the page scrolls; below `lg` it folds into one outline button above the
+// article (#619).
+import HelpTopics from '@/components/HelpTopics.vue';
 import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type HelpTopic } from '@/types';
 import { Head } from '@inertiajs/vue3';
+import { PhCaretDown } from '@phosphor-icons/vue';
+import { trans } from 'laravel-vue-i18n';
 
 defineProps<{
     slug: string;
@@ -16,6 +24,7 @@ defineProps<{
     html: string;
     requires: string[];
     breadcrumb: BreadcrumbItem[];
+    topics: HelpTopic[];
 }>();
 </script>
 
@@ -23,8 +32,20 @@ defineProps<{
     <Head :title="title" />
 
     <AppLayout :breadcrumbs="breadcrumb">
-        <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6">
-            <article class="help-article max-w-2xl">
+        <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
+            <Collapsible class="group/topics lg:hidden">
+                <CollapsibleTrigger as-child>
+                    <Button variant="outline" class="w-full justify-between">
+                        {{ trans('help.topics.title') }}
+                        <PhCaretDown class="transition-transform group-data-[state=open]/topics:rotate-180" aria-hidden="true" />
+                    </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <HelpTopics :topics="topics" class="border-x border-b p-3" />
+                </CollapsibleContent>
+            </Collapsible>
+
+            <article class="help-article max-w-2xl min-w-0 flex-1">
                 <div class="mb-4 flex flex-wrap items-center gap-2">
                     <h1 class="text-rom-ink text-xl font-semibold">{{ title }}</h1>
                     <RequiredRoleBadge :requires="requires" />
@@ -32,6 +53,12 @@ defineProps<{
                 <!-- eslint-disable-next-line vue/no-v-html -- body is server-sanitized chrome (ADR-0025) -->
                 <div class="text-rom-ink flex flex-col gap-4 text-base" v-html="html" />
             </article>
+
+            <aside
+                class="sticky top-[calc(var(--header-height)+1.5rem)] hidden max-h-[calc(100svh-var(--header-height)-3rem)] w-72 shrink-0 overflow-y-auto lg:block"
+            >
+                <HelpTopics :topics="topics" />
+            </aside>
         </div>
     </AppLayout>
 </template>

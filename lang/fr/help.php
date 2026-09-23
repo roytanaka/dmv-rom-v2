@@ -45,4 +45,12 @@ return [
             'records' => 'Records',
         ],
     ],
+
+    // La liste des sujets d'aide à côté d'un article (#619) : son titre, le lien
+    // vers l'index et l'étiquette de la ligne d'aperçu de chaque section.
+    'topics' => [
+        'title' => 'Sujets d’aide',
+        'all' => 'Tous les sujets d’aide',
+        'overview' => 'Aperçu',
+    ],
 ];

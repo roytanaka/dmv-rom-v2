@@ -45,4 +45,12 @@ return [
             'records' => 'Records',
         ],
     ],
+
+    // The Help topics list beside an article (#619): its heading, the link back to
+    // the index, and the label of each section's overview row.
+    'topics' => [
+        'title' => 'Help topics',
+        'all' => 'All help topics',
+        'overview' => 'Overview',
+    ],
 ];

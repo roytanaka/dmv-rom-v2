@@ -271,3 +271,33 @@ it('has an English and a French label for every requirable role, plus the prefix
         expect(__($key, [], 'fr'))->not->toBe($key, "Missing French string for '{$key}'");
     }
 });
+
+it('builds the Help topics tree from published articles, overview first, grouped by Required role', function () {
+    // #619: no-role tasks first, then each distinct role set in order of first appearance.
+    // Drafts never appear, and a section of only drafts is left out.
+    $manifest = new HelpManifest([
+        new HelpArticle('basics', HelpSection::GettingStarted, isOverview: true),
+        new HelpArticle('officer-one', HelpSection::GettingStarted, requires: ['scheduler', 'chair']),
+        new HelpArticle('member-one', HelpSection::GettingStarted),
+        new HelpArticle('editor-one', HelpSection::GettingStarted, requires: ['news_editor']),
+        new HelpArticle('officer-two', HelpSection::GettingStarted, requires: ['scheduler', 'chair']),
+        new HelpArticle('draft-one', HelpSection::GettingStarted, status: ArticleStatus::Draft),
+        new HelpArticle('operator-one', HelpSection::Support, requires: ['support_operator']),
+        new HelpArticle('draft-overview', HelpSection::News, isOverview: true, status: ArticleStatus::Draft),
+    ]);
+
+    $slugs = fn (array $articles) => array_map(fn (HelpArticle $article) => $article->slug, $articles);
+
+    $topics = $manifest->topics();
+
+    expect($topics)->toHaveCount(2)
+        ->and($topics[0]['section'])->toBe(HelpSection::GettingStarted)
+        ->and($topics[0]['overview']->slug)->toBe('basics')
+        ->and(array_column($topics[0]['groups'], 'requires'))->toBe([[], ['scheduler', 'chair'], ['news_editor']])
+        ->and($slugs($topics[0]['groups'][0]['articles']))->toBe(['member-one'])
+        ->and($slugs($topics[0]['groups'][1]['articles']))->toBe(['officer-one', 'officer-two'])
+        ->and($slugs($topics[0]['groups'][2]['articles']))->toBe(['editor-one'])
+        ->and($topics[1]['section'])->toBe(HelpSection::Support)
+        ->and($topics[1]['overview'])->toBeNull()
+        ->and(array_column($topics[1]['groups'], 'requires'))->toBe([['support_operator']]);
+});
