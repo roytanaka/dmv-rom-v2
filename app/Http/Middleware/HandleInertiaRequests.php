@@ -314,7 +314,8 @@ class HandleInertiaRequests extends Middleware
     private function officer(Member $member): ?array
     {
         // Each item, in render order, with the authority that gates it: a Gate ability
-        // (`gate`) or the interim super-tier-only check (no ability yet).
+        // (`gate`) or the interim super-tier-only check (no ability yet). A localized
+        // `route` resolves per locale; a fixed `href` is emitted as-is.
         $items = [
             ['key' => 'members', 'route' => 'officer.members', 'labelKey' => 'nav.officer.members', 'gate' => 'administer-members'],
             ['key' => 'communications', 'route' => 'officer.communications', 'labelKey' => 'nav.officer.communications', 'gate' => 'post-news'],
@@ -329,9 +330,7 @@ class HandleInertiaRequests extends Middleware
             ->filter(fn (array $spec) => isset($spec['gate'])
                 ? $member->can($spec['gate'])
                 : $member->isAllDmv())
-            ->map(fn (array $spec) => isset($spec['href'])
-                ? ['key' => $spec['key'], 'labelKey' => $spec['labelKey'], 'href' => $spec['href']]
-                : $this->destination($spec))
+            ->map(fn (array $spec) => $this->destination($spec))
             ->values();
 
         if ($visible->isEmpty()) {
@@ -742,9 +741,10 @@ class HandleInertiaRequests extends Middleware
     /**
      * Resolve one global destination to its shareable shape: a stable key, its chrome
      * label key (translated client-side via the i18n bridge), and the active locale's
-     * localized path for the destination's route (ADR-0008).
+     * localized path for the destination's route (ADR-0008). A spec carrying a fixed
+     * `href` instead — a non-localized page with no French twin — keeps it verbatim.
      *
-     * @param  array{key: string, route: string, labelKey: string}  $spec
+     * @param  array{key: string, labelKey: string, route?: string, href?: string}  $spec
      * @return array{key: string, labelKey: string, href: string}
      */
     private function destination(array $spec): array
@@ -752,7 +752,7 @@ class HandleInertiaRequests extends Middleware
         return [
             'key' => $spec['key'],
             'labelKey' => $spec['labelKey'],
-            'href' => $this->localizedPath("routes.{$spec['route']}"),
+            'href' => $spec['href'] ?? $this->localizedPath("routes.{$spec['route']}"),
         ];
     }
 
