@@ -4,7 +4,7 @@ Change the description on your Group's page and pick its banner image. You need 
 
 ## Edit the About Us text
 
-1. Open your Group from the rail.
+1. Open your Group from the Left Side Bar.
 2. Stay on the **Overview** tab.
 3. Select **Edit** in the **About Us** card.
 4. Type your description in the box.

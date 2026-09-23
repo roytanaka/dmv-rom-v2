@@ -4,7 +4,7 @@ Set up self-serve scheduling for your Group. You name the Objects Members hand o
 
 ## Turn on self-serve shifts
 
-1. Open your Group from the rail.
+1. Open your Group from the Left Side Bar.
 2. Select the **Settings** tab.
 3. Find the **Self-serve shifts** card.
 4. Turn on **Let members write their own shifts**.

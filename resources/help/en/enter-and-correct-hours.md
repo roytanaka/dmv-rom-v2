@@ -12,7 +12,7 @@ You do not enter every kind of hour:
 
 ## Enter extra hours
 
-1. Open the Group from the rail.
+1. Open the Group from the Left Side Bar.
 2. Select the **Hours** tab.
 3. Find the month you want under **Record extra hours**.
 

@@ -10,7 +10,7 @@ L'application fonctionne en anglais et en français. Vous choisissez celle que v
 
 2. Sélectionnez la langue voulue.
 
-    ![La même page en français : les liens de la barre supérieure, les titres du rail et l'aide sont tous en français](02.png)
+    ![La même page en français : les liens de la barre supérieure, les titres de la barre latérale gauche et l'aide sont tous en français](02.png)
 
 La page se recharge dans votre langue. Votre choix reste jusqu'à ce que vous le changiez de nouveau.
 

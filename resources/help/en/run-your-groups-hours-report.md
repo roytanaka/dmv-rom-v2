@@ -4,7 +4,7 @@ Read every Member's hours for your Group across a fiscal year. You need the Stat
 
 ## Open the report
 
-1. Open your Group from the rail.
+1. Open your Group from the Left Side Bar.
 2. Select the **Hours** tab.
 
     ![The Hours tab, as a Statistician: View the group hours report above the entry form](01.png)
