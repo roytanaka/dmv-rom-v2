@@ -16,7 +16,9 @@ use Illuminate\Support\Str;
  * against the article's public folder (`/help-images/<slug>/01.png`) and the image renders
  * as a `<figure>` with the caption as its `<figcaption>` — captions are the only
  * annotation. The folder is `help-images`, not `help`: a `public/help/` directory
- * shadows the `/help` route on Apache (403 before Laravel runs). If a locale's file
+ * shadows the `/help` route on Apache (403 before Laravel runs). A blockquote that
+ * opens with a bold `Tip:`/`Astuce :` or `Note:` label renders as a callout
+ * `<div class="callout" data-callout="tip|note">`. If a locale's file
  * is missing, the English file renders (the manifest test keeps that a dev-only
  * fallback).
  */
@@ -45,7 +47,9 @@ final class HelpArticleRenderer
             'allow_unsafe_links' => false,
         ]);
 
-        return new RenderedArticle($title, $this->renderCallouts($this->renderScreenshots($html, $slug)));
+        $html = $this->renderScreenshots($html, $slug);
+
+        return new RenderedArticle($title, $this->renderCallouts($html));
     }
 
     /** An article's title (its first level-one heading), or null when it is missing. */
@@ -150,11 +154,11 @@ final class HelpArticleRenderer
     private function renderCallouts(string $html): string
     {
         return preg_replace_callback(
-            '#<blockquote>\n(<p><strong>(Tip|Astuce|Note)\s*:</strong>.*?)</blockquote>#s',
+            '#<blockquote>\n(?<body><p><strong>(?<label>Tip|Astuce|Note)\s*:</strong>.*?)</blockquote>#s',
             function (array $match) {
-                $kind = $match[2] === 'Note' ? 'note' : 'tip';
+                $kind = $match['label'] === 'Note' ? 'note' : 'tip';
 
-                return "<div class=\"callout\" data-callout=\"{$kind}\">\n{$match[1]}</div>";
+                return "<div class=\"callout\" data-callout=\"{$kind}\">\n{$match['body']}</div>";
             },
             $html,
         );
