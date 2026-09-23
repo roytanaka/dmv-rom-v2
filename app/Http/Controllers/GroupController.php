@@ -345,6 +345,12 @@ class GroupController extends Controller
         bool $canManageShiftKinds,
         bool $canManageObjects,
     ): array {
+        // The Empty-desk and Shift kinds cards both read the Group's kinds in picker order, so
+        // they share one query.
+        $shiftKinds = $group->has_scheduling && ($canManageEmptyDesk || $canManageShiftKinds)
+            ? $group->shiftKinds()->orderBy('sort_order')->get()
+            : collect();
+
         return [
             'reminders' => $group->has_scheduling && $canManageReminders ? [
                 'enabled' => $group->reminders_enabled,
@@ -353,7 +359,7 @@ class GroupController extends Controller
             'emptyDesk' => $group->has_scheduling && $canManageEmptyDesk ? [
                 'enabled' => $group->empty_desk_alert_enabled,
                 'daysAhead' => $group->empty_desk_days_ahead,
-                'shiftKinds' => $group->shiftKinds()->orderBy('sort_order')->get()
+                'shiftKinds' => $shiftKinds
                     ->map(fn (ShiftKind $kind): array => [
                         'id' => $kind->id,
                         'name' => $kind->name,
@@ -365,7 +371,7 @@ class GroupController extends Controller
                 'unitMinutes' => $group->self_serve_unit_minutes,
             ] : null,
             'shiftKinds' => $group->has_scheduling && $canManageShiftKinds
-                ? $group->shiftKinds()->orderBy('sort_order')->get()
+                ? $shiftKinds
                     ->map(fn (ShiftKind $kind): array => [
                         'id' => $kind->id,
                         'name' => $kind->name,
