@@ -11,7 +11,7 @@ use Inertia\Response;
 
 /**
  * The help centre (ADR-0025, PRD #516) — in-app Markdown articles, chrome for every
- * logged-in Member. The index lists the manifest's sections and published articles;
+ * logged-in Member. The index shows a Start here box and one card per section;
  * the article page renders one article's Markdown to a breadcrumb, title, and body.
  * Both are localized (ADR-0008): `/help` ↔ `/fr/aide`, `/help/{article}` ↔
  * `/fr/aide/{article}`, with the article slug the same string in both locales.
@@ -22,21 +22,42 @@ class HelpController extends Controller
     {
         $locale = app()->getLocale();
 
-        // Drafts are hidden from the index (ADR-0025 §7); they open only by URL.
-        $sections = collect($manifest->publishedSections())->map(fn (HelpSection $section) => [
-            'key' => $section->value,
-            'labelKey' => $section->labelKey(),
-            'articles' => collect($manifest->publishedIn($section))->map(fn (HelpArticle $article) => [
-                'slug' => $article->slug,
-                'title' => $renderer->title($article->slug, $locale),
-                // The Required-role badge's tokens (ADR-0025 §6); empty means every Member.
-                'requires' => $article->requires,
-                // Path-only (absolute: false) so Inertia navigates client-side, like chromeNav.
-                'href' => route('help.show', $article->slug, false),
-            ])->all(),
-        ])->all();
+        // Path-only (absolute: false) so Inertia navigates client-side, like chromeNav.
+        $link = fn (string $slug) => [
+            'title' => $renderer->title($slug, $locale),
+            'href' => route('help.show', $slug, false),
+        ];
 
-        return Inertia::render('help/Index', ['sections' => $sections]);
+        // One card per section (#623): its overview, the overview's lead line as the
+        // summary, up to three task articles, and the task count. Drafts are hidden
+        // from the index (ADR-0025 §7), so a draft overview gives no lead; its title
+        // still opens the overview by URL, as the section crumb does.
+        $cards = collect($manifest->publishedSections())->mapWithKeys(function (HelpSection $section) use ($manifest, $renderer, $locale, $link) {
+            $overview = $manifest->overviewSlug($section);
+            $published = collect($manifest->publishedIn($section));
+            $overviewIsPublished = $published->contains('isOverview', true);
+            $tasks = $published->reject(fn (HelpArticle $article) => $article->isOverview)->values();
+
+            return [$section->value => [
+                'key' => $section->value,
+                'labelKey' => $section->labelKey(),
+                'overview' => $overview === null ? null : $link($overview),
+                'lead' => $overviewIsPublished ? $renderer->lead($overview, $locale) : null,
+                'articles' => $tasks->take(3)->map(fn (HelpArticle $article) => [
+                    'slug' => $article->slug,
+                    ...$link($article->slug),
+                    // The Required-role badge's tokens (ADR-0025 §6); empty means every Member.
+                    'requires' => $article->requires,
+                ])->all(),
+                'count' => $tasks->count(),
+            ]];
+        });
+
+        // Getting started feeds the "Start here" box, not a card.
+        return Inertia::render('help/Index', [
+            'startHere' => $cards->get(HelpSection::GettingStarted->value),
+            'sections' => $cards->except(HelpSection::GettingStarted->value)->values()->all(),
+        ]);
     }
 
     public function show(string $article, HelpManifest $manifest, HelpArticleRenderer $renderer): Response
