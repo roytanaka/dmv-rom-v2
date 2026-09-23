@@ -110,7 +110,7 @@ it('links the articles it names instead of naming them in italics or quotes', fu
         foreach (['en', 'fr'] as $locale) {
             $source = file_get_contents(resource_path("help/{$locale}/{$article->slug}.md"));
 
-            preg_match_all('/(?<![\\w\\\\])_(?=\\S)[^_\\n]+(?<=\\S)_(?!\\w)/u', $source, $italics);
+            preg_match_all('/(?<![\w\\\\])_(?=\S)[^_\n]+(?<=\S)_(?!\w)/u', $source, $italics);
             foreach ($italics[0] as $italic) {
                 $unlinked[] = "{$locale}/{$article->slug}.md: {$italic}";
             }

@@ -180,11 +180,13 @@ final class HelpArticleRenderer
         return preg_replace_callback(
             '/<a href="([^"]*)"/',
             function (array $match) use ($locale) {
-                if (! $this->isArticleSlug($match[1])) {
-                    return $match[0];
+                [$openingTag, $href] = $match;
+
+                if (! $this->isArticleSlug($href)) {
+                    return $openingTag;
                 }
 
-                $url = LaravelLocalization::getURLFromRouteNameTranslated($locale, 'routes.help.show', ['article' => $match[1]]);
+                $url = LaravelLocalization::getURLFromRouteNameTranslated($locale, 'routes.help.show', ['article' => $href]);
 
                 // Path-only, like the breadcrumb, so the link stays on this host.
                 return sprintf('<a href="%s"', parse_url($url, PHP_URL_PATH));
