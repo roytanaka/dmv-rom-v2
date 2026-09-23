@@ -30,4 +30,4 @@ Some Groups collect more than one number:
 
 ## What next
 
-The count feeds your Group's visitor reports, not its hours. Read _The org-wide reports_ to see where visitor counts appear.
+The count feeds your Group's visitor reports, not its hours. Read [The org-wide reports](the-org-wide-reports) to see where visitor counts appear.

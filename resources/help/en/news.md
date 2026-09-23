@@ -10,4 +10,4 @@ Select **News** in the top bar. Each item shows a title, the message, the Group 
 
 ## Posting news
 
-Most Members read the feed but do not post to it. A News Editor posts on behalf of a Group. The article "Post a news item" covers posting.
+Most Members read the feed but do not post to it. A News Editor posts on behalf of a Group. Read [Post a news item](post-a-news-item) for the steps.

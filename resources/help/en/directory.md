@@ -14,4 +14,4 @@ Search by name, or filter the list to one Group. Sort by last name or first name
 
 ## What you can see
 
-The Directory never shows contact details. What you see on a profile depends on your role. The article "What you can and cannot see about a Member" explains the tiers.
+The Directory never shows contact details. What you see on a profile depends on your role. Read [What you can and cannot see about a Member](what-you-can-see-about-a-member) for the tiers.

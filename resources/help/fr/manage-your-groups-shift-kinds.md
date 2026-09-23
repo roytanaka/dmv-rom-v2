@@ -37,4 +37,4 @@ Un type retiré n'est pas offert aux nouveaux quarts. Ses quarts passés gardent
 
 ## Et ensuite
 
-Lisez _Créer un horaire et des quarts_ pour attribuer un type à un quart.
+Lisez [Créer un horaire et ses quarts](create-a-schedule-and-shifts) pour attribuer un type à un quart.

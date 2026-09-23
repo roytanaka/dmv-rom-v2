@@ -19,4 +19,4 @@ La page confirme par « Enregistré » quand vos choix passent.
 
 ## Et ensuite
 
-Vous pouvez changer vos choix à tout moment. Pour mettre à jour vos autres renseignements, lisez « Mettre à jour votre profil et votre photo ».
+Vous pouvez changer vos choix à tout moment. Pour mettre à jour vos autres renseignements, lisez [Mettre à jour votre profil et votre photo](update-your-profile).

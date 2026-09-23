@@ -48,4 +48,4 @@ A Member takes a seat and picks their Objects. The off-site hold does the rest.
 
 ## What next
 
-Read _Create a Schedule and its Shifts_ for the authoring steps. Read _Write your own shift_ to see what a Member does.
+Read [Create a Schedule and its Shifts](create-a-schedule-and-shifts) for the authoring steps. Read [Write your own shift](write-your-own-shift) to see what a Member does.

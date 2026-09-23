@@ -22,4 +22,4 @@ La capacité est le nombre de membres qu'un quart accueille. Un quart montre ses
 
 Une inscription est votre place sur un quart. Vous prenez une place en vous inscrivant, et vous la rendez en vous désistant. Le panneau **Mes inscriptions** en haut de l'onglet Horaire liste vos quarts à venir.
 
-Chaque autre article de cette section couvre une tâche. Commencez par _S'inscrire à un quart_.
+Chaque autre article de cette section couvre une tâche. Commencez par [S'inscrire à un quart](sign-up-for-a-shift).

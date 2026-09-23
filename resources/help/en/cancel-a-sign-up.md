@@ -26,4 +26,4 @@ Your name leaves the shift, and the seat opens for someone else.
 
 ## What next
 
-Sign up for another shift, or read _The shifts you still owe a number for_.
+Sign up for another shift, or read [The shifts you still owe a number for](shifts-you-owe-a-number-for).

@@ -21,4 +21,4 @@ Sélectionnez une année dans le sélecteur **Année financière** en haut. La p
 
 ## Et ensuite
 
-Pour ajouter des heures à un groupe, lisez « Enregistrer des heures supplémentaires pour un mois ».
+Pour ajouter des heures à un groupe, lisez [Enregistrer des heures supplémentaires pour un mois](record-extra-hours).

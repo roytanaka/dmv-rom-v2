@@ -21,4 +21,4 @@ If no Group has posted yet, the feed reads "No news yet."
 
 ## What next
 
-Do you post news for a Group? Read "Post a news item".
+Do you post news for a Group? Read [Post a news item](post-a-news-item).

@@ -35,7 +35,7 @@ L'horaire commence comme brouillon. Seuls les Responsables horaire et les Prési
 6. Choisissez l'**Audience** : **Membres du groupe** ou **Ouvert à tous**.
 7. Sélectionnez **Enregistrer**.
 
-Répétez pour chaque quart. Pour en ajouter plusieurs à la fois, lisez _Ajouter ou retirer plusieurs quarts à la fois_.
+Répétez pour chaque quart. Pour en ajouter plusieurs à la fois, lisez [Ajouter ou retirer plusieurs quarts à la fois](add-or-remove-many-shifts).
 
 ## Publier l'horaire
 
@@ -45,4 +45,4 @@ Sélectionnez **Publier** en haut de l'horaire quand les quarts sont prêts. Les
 
 ## Et ensuite
 
-Les membres s'inscrivent d'eux-mêmes. Pour placer un·e membre nommé·e vous-même, lisez _Affecter un·e membre à un quart_.
+Les membres s'inscrivent d'eux-mêmes. Pour placer un·e membre nommé·e vous-même, lisez [Affecter un·e membre à un quart](assign-a-member-to-a-shift).

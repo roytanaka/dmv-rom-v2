@@ -21,4 +21,4 @@ Ouvrez le CSV dans Excel, Numbers ou Google Sheets. Les colonnes reprennent le r
 
 ## Et ensuite
 
-Chaque page de rapport a son propre **Exporter en CSV**. Lisez _Les rapports à l'échelle de l'organisation_ pour voir lesquels vous pouvez exporter.
+Chaque page de rapport a son propre **Exporter en CSV**. Lisez [Les rapports à l'échelle de l'organisation](the-org-wide-reports) pour voir lesquels vous pouvez exporter.

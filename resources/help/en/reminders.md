@@ -14,4 +14,4 @@ You get one reminder for each shift you signed up for. The email comes in the la
 
 ## What next
 
-Read _Sign up for a shift_ if you have not taken one yet.
+Read [Sign up for a shift](sign-up-for-a-shift) if you have not taken one yet.

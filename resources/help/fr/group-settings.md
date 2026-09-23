@@ -31,4 +31,4 @@ Les horaires, les quarts et les inscriptions restent dans l'onglet **Horaire**. 
 
 ## Et ensuite
 
-Lisez _Configurer les rappels et l'alerte de poste vacant de votre groupe_ pour remplir les deux premières cartes.
+Lisez [Configurer les rappels et l'alerte de poste vacant de votre groupe](set-reminders-and-the-empty-desk-alert) pour remplir les deux premières cartes.

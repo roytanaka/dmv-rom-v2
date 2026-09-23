@@ -22,4 +22,4 @@ Capacity is how many Members a Shift holds. A Shift shows its seats taken agains
 
 A Sign-up is your place on a Shift. You take a seat by signing up, and you give it back by dropping it. The **My sign-ups** panel at the top of the Scheduling tab lists your upcoming shifts.
 
-Each other article in this section covers one task. Start with _Sign up for a shift_.
+Each other article in this section covers one task. Start with [Sign up for a shift](sign-up-for-a-shift).

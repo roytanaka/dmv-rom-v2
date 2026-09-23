@@ -27,4 +27,4 @@ Open the page for a Group you belong to, or one you want to read about.
 
 ## What next
 
-On a Group page, read _The tabs on a Group page_ to learn what each tab holds.
+On a Group page, read [The tabs on a Group page](group-page-tabs) to learn what each tab holds.

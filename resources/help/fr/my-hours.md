@@ -14,4 +14,4 @@ Les heures sont groupées par année financière. L'année va du 1er avril au 31
 
 ## D'où viennent les chiffres
 
-Les heures planifiées proviennent des quarts auxquels vous vous inscrivez. Les heures supplémentaires sont celles que vous enregistrez à la main dans un groupe. Lisez les articles de tâche de cette section pour enregistrer et lire vos heures.
+Les heures planifiées proviennent des quarts auxquels vous vous inscrivez. Les heures supplémentaires sont celles que vous enregistrez à la main dans un groupe. Lisez [Enregistrer des heures supplémentaires pour un mois](record-extra-hours) et [Lire vos heures pour l'année financière](read-your-hours) pour les étapes.

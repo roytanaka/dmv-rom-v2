@@ -19,4 +19,4 @@ Le fichier part avec votre courriel. Pour retirer un fichier avant l'envoi, sél
 
 ## Et ensuite
 
-Lisez _Ce que veut dire « En file pour N membres »_ pour voir ce qui se passe après l'envoi.
+Lisez [Ce que veut dire « En file pour N membres »](queued-for-n-members) pour voir ce qui se passe après l'envoi.

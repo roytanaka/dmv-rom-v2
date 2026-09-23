@@ -10,4 +10,4 @@ Sélectionnez **Nouvelles** dans la barre supérieure. Chaque élément affiche 
 
 ## Publier des nouvelles
 
-La plupart des membres lisent le fil sans y publier. Un responsable des nouvelles publie au nom d'un groupe. L'article « Publier une nouvelle » couvre la publication.
+La plupart des membres lisent le fil sans y publier. Un responsable des nouvelles publie au nom d'un groupe. Lisez [Publier une nouvelle](post-a-news-item) pour les étapes.

@@ -19,4 +19,4 @@ The file goes out with your email. To drop a file before you send, select the ×
 
 ## What next
 
-Read _What "queued for N Members" means_ to see what happens after you send.
+Read [What "queued for N Members" means](queued-for-n-members) to see what happens after you send.

@@ -28,4 +28,4 @@ Only the Member themselves and DMV Records see these. Your own home address and 
 
 ## What next
 
-To find a Member, read "Find a Member".
+To find a Member, read [Find a Member](find-a-member).

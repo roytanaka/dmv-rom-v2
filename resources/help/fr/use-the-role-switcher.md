@@ -20,4 +20,4 @@ L'application se recharge en tant que cette persona. Vous voyez maintenant chaqu
 
 ## Et ensuite
 
-Lisez _Revenir à soi après une usurpation_ pour retrouver votre propre compte.
+Lisez [Revenir à soi après une usurpation](return-to-yourself) pour retrouver votre propre compte.

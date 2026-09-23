@@ -28,7 +28,7 @@ A Notice is an automatic email that an event sends, such as a cancelled Sign-up.
 
 Records can switch off all mail to a Member. A Member with the flag gets no Broadcast, Direct message, Reminder, or Notice.
 
-Read _Turn off all email to a Member_ for the steps.
+Read [Turn off all email to a Member](set-the-no-email-flag) for the steps.
 
 ## When mail arrives
 

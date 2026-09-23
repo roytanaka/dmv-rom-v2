@@ -48,4 +48,4 @@ Un·e membre prend un siège et choisit ses objets. La retenue hors site fait le
 
 ## Et ensuite
 
-Lisez _Créer un horaire et ses quarts_ pour les étapes de rédaction. Lisez _Créer votre propre quart_ pour voir ce que fait un·e membre.
+Lisez [Créer un horaire et ses quarts](create-a-schedule-and-shifts) pour les étapes de rédaction. Lisez [Créer votre propre quart](write-your-own-shift) pour voir ce que fait un·e membre.

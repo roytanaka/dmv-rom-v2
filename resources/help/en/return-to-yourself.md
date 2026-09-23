@@ -22,4 +22,4 @@ To become someone else without stopping first, select **Switch** in the toolbar.
 
 ## What next
 
-Read _Use the Role-switcher_ for the full list of Personas you can become.
+Read [Use the Role-switcher](use-the-role-switcher) for the full list of Personas you can become.

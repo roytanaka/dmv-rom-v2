@@ -20,4 +20,4 @@ Votre nombre est enregistré sur votre place. Il n'y a aucune date limite, donc 
 
 ## Et ensuite
 
-Lisez _Les quarts pour lesquels vous devez encore un nombre_ pour repérer tout quart auquel il manque encore un nombre.
+Lisez [Les quarts pour lesquels vous devez encore un nombre](shifts-you-owe-a-number-for) pour repérer tout quart auquel il manque encore un nombre.

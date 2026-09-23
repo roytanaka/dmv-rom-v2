@@ -21,4 +21,4 @@ Si aucun groupe n'a encore publié, le fil indique « Aucune nouvelle pour le mo
 
 ## Et ensuite
 
-Vous publiez des nouvelles pour un groupe ? Lisez « Publier une nouvelle ».
+Vous publiez des nouvelles pour un groupe ? Lisez [Publier une nouvelle](post-a-news-item).

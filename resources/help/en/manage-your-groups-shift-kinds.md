@@ -37,4 +37,4 @@ A retired kind is not offered for new Shifts. Its past Shifts keep the name.
 
 ## What next
 
-Read _Create a schedule and shifts_ to put a kind on a Shift.
+Read [Create a Schedule and its Shifts](create-a-schedule-and-shifts) to put a kind on a Shift.

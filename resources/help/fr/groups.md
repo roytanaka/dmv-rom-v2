@@ -18,4 +18,4 @@ Une page de groupe rassemble ce que ce groupe fait. Des onglets en haut contienn
 
 ![Une page de groupe : la bannière, puis les onglets en haut](02.png)
 
-Chaque autre article de cette section couvre une tâche. Commencez par _Trouver la page de votre groupe_.
+Chaque autre article de cette section couvre une tâche. Commencez par [Trouver la page de votre groupe](find-your-group).

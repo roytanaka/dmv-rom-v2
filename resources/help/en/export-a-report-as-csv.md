@@ -21,4 +21,4 @@ Open the CSV in Excel, Numbers, or Google Sheets. The columns match the report: 
 
 ## What next
 
-Every report page has its own **Export CSV**. Read _The org-wide reports_ to see which DMV-wide reports you can export.
+Every report page has its own **Export CSV**. Read [The org-wide reports](the-org-wide-reports) to see which DMV-wide reports you can export.

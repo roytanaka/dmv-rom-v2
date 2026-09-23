@@ -34,4 +34,4 @@ The alert goes out every third day of the month.
 
 ## What next
 
-The app sends both emails on its own. Read _Reminders_ to see what a Member receives.
+The app sends both emails on its own. Read [Reminders](reminders) to see what a Member receives.

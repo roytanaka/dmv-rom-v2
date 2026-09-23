@@ -28,4 +28,4 @@ The app delivers your message. Your own address rides along as the reply address
 
 ## What next
 
-Read _Send a Broadcast to your Group_ to email several Members at once. Read _What "queued for N Members" means_ to see what happens after you send.
+Read [Send a Broadcast to your Group](send-a-broadcast) to email several Members at once. Read [What "queued for N Members" means](queued-for-n-members) to see what happens after you send.

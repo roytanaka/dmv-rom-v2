@@ -33,4 +33,4 @@ Each meeting card carries **Edit** and **Delete**. Select **Edit** to change any
 
 ## What next
 
-Members read the meeting on the **Meetings** tab. To manage who is in the Group, read _Manage your Group's roster_.
+Members read the meeting on the **Meetings** tab. To manage who is in the Group, read [Manage your Group's roster](manage-your-groups-roster).

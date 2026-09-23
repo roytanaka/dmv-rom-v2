@@ -32,10 +32,10 @@ Chaque rapport couvre une année financière. Réglez l'année sous **Année fin
 
 ## Exporter ou imprimer
 
-Sélectionnez **Exporter en CSV** pour un tableur, ou **Imprimer** pour une copie papier. Lisez _Exporter un rapport en CSV_ pour en savoir plus.
+Sélectionnez **Exporter en CSV** pour un tableur, ou **Imprimer** pour une copie papier. Lisez [Exporter un rapport en CSV](export-a-report-as-csv) pour en savoir plus.
 
 > **Note :** Un chiffre marqué **Incomplet** est sous-évalué. Les réservations de groupe ne sont pas encore comptées.
 
 ## Et ensuite
 
-Pour relire un seul groupe plutôt que tout le département, lisez _Générer le rapport des heures de votre groupe_.
+Pour relire un seul groupe plutôt que tout le département, lisez [Générer le rapport des heures de votre groupe](run-your-groups-hours-report).

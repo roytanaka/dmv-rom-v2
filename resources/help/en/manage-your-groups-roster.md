@@ -43,4 +43,4 @@ Open the three-dot menu at the end of the Member's row.
 
 ## What next
 
-Roles you set here decide what each Member can do in the Group. To record a meeting, read _Record a meeting_.
+Roles you set here decide what each Member can do in the Group. To record a meeting, read [Record a meeting](record-a-meeting).

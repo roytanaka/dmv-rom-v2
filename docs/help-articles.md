@@ -47,8 +47,20 @@ A task article has this shape:
    result. The caption carries the meaning (see [Screenshots](#screenshots)).
    The image links land with the shots at publish time, not in the draft (a
    Pest test fails on a link to a screenshot that is not on disk).
-5. **A closing "what next" line.** One sentence at the end. It points the reader
+5. **A closing "what next" line.** One sentence at the end. It links the reader
    to the next article or tells them the task is done.
+
+### Linking another article
+
+Link an article by its slug: `[Sign up for a shift](sign-up-for-a-shift)`. The
+renderer turns a bare slug into that article's help URL in the reader's language
+(`/help/<slug>` or `/fr/aide/<slug>`). Use the article's title as the link text.
+Both locales link the same slug, with the title in that locale.
+
+Never name an article in italics or quotes. A Member opens a link in one step, but
+not a name. A Pest test fails on an italic span, on an article title in quotes, and
+on a link to a slug the manifest does not list. A section overview's closing
+line links its first task article the same way.
 
 ### Section overview shape
 

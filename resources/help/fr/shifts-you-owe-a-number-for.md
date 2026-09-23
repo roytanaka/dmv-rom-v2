@@ -22,4 +22,4 @@ Le quart quitte la liste une fois son nombre enregistré.
 
 ## Et ensuite
 
-Lisez _Rappels : ce que vous recevez et quand_ pour voir comment l'application vous rappelle vos quarts.
+Lisez [Rappels : ce que vous recevez et quand](reminders) pour voir comment l'application vous rappelle vos quarts.

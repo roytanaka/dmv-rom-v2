@@ -33,4 +33,4 @@ L'application retire chaque quart vide qui correspond au filtre. Un quart compta
 
 ## Et ensuite
 
-Les membres s'inscrivent d'eux-mêmes. Pour placer un·e membre nommé·e vous-même, lisez _Affecter un·e membre à un quart_.
+Les membres s'inscrivent d'eux-mêmes. Pour placer un·e membre nommé·e vous-même, lisez [Affecter un·e membre à un quart](assign-a-member-to-a-shift).

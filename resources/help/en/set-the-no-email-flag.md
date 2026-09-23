@@ -23,4 +23,4 @@ A Member with the flag gets no mail of any kind:
 
 ## What next
 
-Read _What emailing is for_ to see the four kinds of mail the flag stops.
+Read [What emailing is for](emailing) to see the four kinds of mail the flag stops.

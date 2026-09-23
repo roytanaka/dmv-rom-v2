@@ -24,4 +24,4 @@ Your own posts carry **Edit** and **Delete** controls. Select **Edit** to change
 
 ## What next
 
-Your post shows in the feed like any other. Read "Read news" to see the reader's view.
+Your post shows in the feed like any other. Read [Read news](read-news) to see the reader's view.

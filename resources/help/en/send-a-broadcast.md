@@ -29,4 +29,4 @@ The app sends one email to each Member. You get a copy once delivery is done.
 
 ## What next
 
-Read _Pick an Audience_ to reach a different set of Members. Read _Attach a file to an email_ to send a file with it.
+Read [Pick an Audience](pick-an-audience) to reach a different set of Members. Read [Attach a file to an email](attach-a-file) to send a file with it.

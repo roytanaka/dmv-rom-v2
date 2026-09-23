@@ -26,4 +26,4 @@ Votre nom quitte le quart, et la place s'ouvre pour quelqu'un d'autre.
 
 ## Et ensuite
 
-Inscrivez-vous à un autre quart, ou lisez _Les quarts pour lesquels vous devez encore un nombre_.
+Inscrivez-vous à un autre quart, ou lisez [Les quarts pour lesquels vous devez encore un nombre](shifts-you-owe-a-number-for).

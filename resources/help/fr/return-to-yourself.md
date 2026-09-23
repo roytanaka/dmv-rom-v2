@@ -22,4 +22,4 @@ Pour devenir quelqu'un d'autre sans arrêter d'abord, sélectionnez **Switch** d
 
 ## Et ensuite
 
-Lisez _Utiliser le sélecteur de rôle_ pour la liste complète des personas que vous pouvez devenir.
+Lisez [Utiliser le sélecteur de rôle](use-the-role-switcher) pour la liste complète des personas que vous pouvez devenir.

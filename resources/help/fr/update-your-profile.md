@@ -26,4 +26,4 @@ Pour retirer votre photo, sélectionnez **Supprimer la photo**.
 
 ## Et ensuite
 
-Votre nom et votre photo apparaissent dans le répertoire et sur votre profil. Pour changer votre mot de passe, lisez « Changer votre mot de passe ».
+Votre nom et votre photo apparaissent dans le répertoire et sur votre profil. Pour changer votre mot de passe, lisez [Changer votre mot de passe](change-your-password).

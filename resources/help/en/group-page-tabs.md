@@ -36,4 +36,4 @@ Your hours in this Group, month by month. You can also record extra hours here.
 
 ## What next
 
-Open the **Scheduling** tab, then read _Sign up for a shift_.
+Open the **Scheduling** tab, then read [Sign up for a shift](sign-up-for-a-shift).

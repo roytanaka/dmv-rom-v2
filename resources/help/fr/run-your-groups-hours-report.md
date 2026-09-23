@@ -38,4 +38,4 @@ Les liens en haut ouvrent d'autres coupes des mêmes heures : **Par mois**, **Hi
 
 ## Et ensuite
 
-Sélectionnez **Imprimer** pour une copie papier, ou lisez _Exporter un rapport en CSV_ pour ouvrir les nombres dans un tableur.
+Sélectionnez **Imprimer** pour une copie papier, ou lisez [Exporter un rapport en CSV](export-a-report-as-csv) pour ouvrir les nombres dans un tableur.

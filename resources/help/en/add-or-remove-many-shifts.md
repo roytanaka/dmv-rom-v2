@@ -33,4 +33,4 @@ The app removes every empty Shift that matches the filter. A Shift with Members 
 
 ## What next
 
-Members sign up on their own. To place a named Member yourself, read _Assign a Member to a Shift_.
+Members sign up on their own. To place a named Member yourself, read [Assign a Member to a Shift](assign-a-member-to-a-shift).

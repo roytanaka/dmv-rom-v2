@@ -18,4 +18,4 @@ The Skills page records the skills you are willing to use for the DMV. Your choi
 
 ## Moving between them
 
-The sidebar lists Profile, Password, and Skills. Select one to open it. Read the task articles in this section for each page.
+The sidebar lists Profile, Password, and Skills. Select one to open it. Read [Update your profile and photo](update-your-profile), [Change your password](change-your-password), and [Record your skills](record-your-skills) for the steps on each page.

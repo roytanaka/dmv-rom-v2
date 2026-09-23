@@ -14,4 +14,4 @@ Recherchez par nom, ou filtrez la liste à un seul groupe. Triez par nom ou par 
 
 ## Ce que vous pouvez voir
 
-Le répertoire n'affiche jamais les coordonnées. Ce que vous voyez sur un profil dépend de votre rôle. L'article « Ce que vous pouvez voir ou non sur un membre » explique les niveaux.
+Le répertoire n'affiche jamais les coordonnées. Ce que vous voyez sur un profil dépend de votre rôle. Lisez [Ce que vous pouvez voir ou non sur un membre](what-you-can-see-about-a-member) pour les niveaux.
