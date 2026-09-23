@@ -5,14 +5,16 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\Member;
+use App\Models\ShiftKind;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
  * The Group Settings tab (#604, spec #603, ADR-0027 §1). A section of the Group page, shown
  * only to a viewer holding a Group-scoped configuration right, holding one page of settings
- * cards. This slice carries the Reminders card, moved off the Scheduling tab. Asserted at the
- * Inertia prop seam per actor. Prior art: GroupPageTest, GroupSchedulingTest,
- * ReminderSettingsTest.
+ * cards. So far it carries the Reminders, Empty-desk alert and Self-serve shifts cards, moved off
+ * the Scheduling tab (#604, #606). Asserted at the Inertia prop seam per actor. Prior art:
+ * GroupPageTest, GroupSchedulingTest, ReminderSettingsTest, EmptyDeskSettingsTest,
+ * SelfServeSettingsTest.
  */
 
 /** A Member of $group carrying an optional role. */
@@ -114,17 +116,67 @@ it('forbids the Settings section to the Chair of a Group that runs no scheduling
         ->assertForbidden();
 });
 
+// --- The Empty-desk and Self-serve cards (#606) ------------------------------
+
+it('carries the Empty-desk payload with its watched shift kinds on the Settings section', function () {
+    $group = settingsGroup();
+    $group->update(['empty_desk_alert_enabled' => true, 'empty_desk_days_ahead' => 4]);
+    $desk = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Desk', 'sort_order' => 1, 'alert_when_empty' => true]);
+    $tour = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Tour', 'sort_order' => 2, 'alert_when_empty' => false]);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageEmptyDesk', true)
+            ->where('settings.emptyDesk', [
+                'enabled' => true,
+                'daysAhead' => 4,
+                'shiftKinds' => [
+                    ['id' => $desk->id, 'name' => 'Desk', 'watched' => true],
+                    ['id' => $tour->id, 'name' => 'Tour', 'watched' => false],
+                ],
+            ]));
+});
+
+it('carries the Self-serve payload on the Settings section', function () {
+    $group = settingsGroup();
+    $group->update(['self_serve_shifts' => true, 'self_serve_unit_minutes' => 45]);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Chair))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageSelfServe', true)
+            ->where('settings.selfServe', ['enabled' => true, 'unitMinutes' => 45]));
+});
+
+it('gives no Empty-desk or Self-serve payload on a Group that runs no scheduling', function () {
+    $group = Group::factory()->publicListing()->create(['has_scheduling' => false]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('settings.emptyDesk', null)
+            ->where('settings.selfServe', null));
+});
+
 // --- The hint and the payload on other sections -----------------------------
 
-it('carries the manage-Settings hint on every section, and the Reminders payload only on Settings', function () {
+it('carries the manage-Settings hint on every section, and the card payloads only on Settings', function () {
     $group = settingsGroup();
+    $group->update(['self_serve_unit_minutes' => 45]);
 
     $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
         ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageSettings', true)
             ->where('settings.reminders', null)
-            ->missing('group.reminders'));
+            ->where('settings.emptyDesk', null)
+            ->where('settings.selfServe', null)
+            ->missing('group.reminders')
+            ->missing('group.emptyDesk')
+            ->missing('group.selfServe')
+            // The self-serve write dialog on the Scheduling tab still derives a Shift's end.
+            ->where('group.selfServeUnitMinutes', 45));
 });
 
 it('withholds the manage-Settings hint from an ordinary Member', function () {
@@ -134,7 +186,9 @@ it('withholds the manage-Settings hint from an ordinary Member', function () {
         ->get(route('groups.show', $group))
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageSettings', false)
-            ->where('settings.reminders', null));
+            ->where('settings.reminders', null)
+            ->where('settings.emptyDesk', null)
+            ->where('settings.selfServe', null));
 });
 
 // --- Saving returns to the Settings tab -------------------------------------
@@ -165,6 +219,64 @@ it('returns a validation error to the Settings tab', function () {
         ])
         ->assertRedirect($settingsUrl)
         ->assertSessionHasErrors('reminder_lead_days');
+});
+
+it('returns the Scheduler to the Settings tab after saving the Empty-desk settings', function () {
+    $group = settingsGroup();
+    $settingsUrl = route('groups.show', ['group' => $group, 'section' => 'settings']);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
+        ->from($settingsUrl)
+        ->patch(route('groups.empty-desk.update', ['group' => $group]), [
+            'empty_desk_alert_enabled' => true,
+            'empty_desk_days_ahead' => 3,
+            'watched_shift_kinds' => [],
+        ])
+        ->assertRedirect($settingsUrl)
+        ->assertSessionHasNoErrors();
+});
+
+it('returns an Empty-desk validation error to the Settings tab', function () {
+    $group = settingsGroup();
+    $settingsUrl = route('groups.show', ['group' => $group, 'section' => 'settings']);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
+        ->from($settingsUrl)
+        ->patch(route('groups.empty-desk.update', ['group' => $group]), [
+            'empty_desk_alert_enabled' => true,
+            'empty_desk_days_ahead' => 0,
+            'watched_shift_kinds' => [],
+        ])
+        ->assertRedirect($settingsUrl)
+        ->assertSessionHasErrors('empty_desk_days_ahead');
+});
+
+it('returns the Scheduler to the Settings tab after saving the Self-serve settings', function () {
+    $group = settingsGroup();
+    $settingsUrl = route('groups.show', ['group' => $group, 'section' => 'settings']);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
+        ->from($settingsUrl)
+        ->patch(route('groups.self-serve.update', ['group' => $group]), [
+            'self_serve_shifts' => true,
+            'self_serve_unit_minutes' => 45,
+        ])
+        ->assertRedirect($settingsUrl)
+        ->assertSessionHasNoErrors();
+});
+
+it('returns a Self-serve validation error to the Settings tab', function () {
+    $group = settingsGroup();
+    $settingsUrl = route('groups.show', ['group' => $group, 'section' => 'settings']);
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
+        ->from($settingsUrl)
+        ->patch(route('groups.self-serve.update', ['group' => $group]), [
+            'self_serve_shifts' => true,
+            'self_serve_unit_minutes' => 5,
+        ])
+        ->assertRedirect($settingsUrl)
+        ->assertSessionHasErrors('self_serve_unit_minutes');
 });
 
 // --- The French path ----------------------------------------------------------

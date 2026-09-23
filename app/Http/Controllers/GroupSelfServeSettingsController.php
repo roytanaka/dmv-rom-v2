@@ -8,8 +8,8 @@ use Illuminate\Http\RedirectResponse;
 
 /**
  * The Group's self-serve settings write seam (#582, spec #576, ADR-0026 §1 and §2) — the
- * Scheduling section's self-serve card: self-serve shifts on/off and the unit length in minutes,
- * edited by a Scheduler or Chair. A dedicated endpoint, parallel to
+ * Settings tab's Self-serve shifts card (ADR-0027 §2): self-serve shifts on/off and the unit
+ * length in minutes, edited by a Scheduler or Chair. A dedicated endpoint, parallel to
  * {@see GroupEmptyDeskSettingsController}, structurally authorized in its Form Request (the
  * SchedulePolicy `updateSelfServe` gate). The `can` hint on the page is a UI hint only — the
  * server enforces here regardless.

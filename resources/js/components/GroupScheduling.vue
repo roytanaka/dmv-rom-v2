@@ -60,12 +60,9 @@ const props = defineProps<{
     collectsVisitorCount: boolean;
     collectsExtraInteractions: boolean;
     collectsVisitorProvenance: boolean;
-    emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] };
-    canManageEmptyDesk: boolean;
-    // The Group's self-serve settings (#582) — the self-serve card reads them, gated by
-    // `canManageSelfServe`.
-    selfServe: { enabled: boolean; unitMinutes: number };
-    canManageSelfServe: boolean;
+    // The Group's self-serve unit length (#585) — the "Write my shift" dialog derives a Shift's
+    // end from it. The setting itself is edited on the Settings tab (ADR-0027 §2).
+    selfServeUnitMinutes: number;
     // The Group's shift kinds for the maintenance block (#567) — the full roster in picker order,
     // retired kinds included. Present only for a schedule admin (`canManageShiftKinds`).
     manageableShiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[];
@@ -190,34 +187,6 @@ const emailRoster = computed<Recipient[]>(() =>
         standing: candidate.standing,
     })),
 );
-
-// --- Empty-desk settings (#487, ADR-0024 §7) — the schedule-admin's on/off switch, look-ahead,
-// and the tick-rows marking which shift kinds to watch, gated by `canManageEmptyDesk`. One PATCH
-// to the dedicated endpoint; the server re-checks the gate. The form seeds from the Group's
-// current settings, its watched-kinds set drawn from the kinds already flagged.
-const emptyDeskForm = useForm<{ empty_desk_alert_enabled: boolean; empty_desk_days_ahead: number; watched_shift_kinds: number[] }>({
-    empty_desk_alert_enabled: props.emptyDesk.enabled,
-    empty_desk_days_ahead: props.emptyDesk.daysAhead,
-    watched_shift_kinds: props.emptyDesk.shiftKinds.filter((kind) => kind.watched).map((kind) => kind.id),
-});
-
-const toggleWatchedKind = (id: number, on: boolean) => {
-    emptyDeskForm.watched_shift_kinds = on
-        ? [...emptyDeskForm.watched_shift_kinds, id]
-        : emptyDeskForm.watched_shift_kinds.filter((kindId) => kindId !== id);
-};
-
-const saveEmptyDesk = () => emptyDeskForm.patch(route('groups.empty-desk.update', { group: props.groupSlug }), { preserveScroll: true });
-
-// --- Self-serve settings (#582, ADR-0026 §1 and §2) — the schedule-admin's self-serve on/off
-// switch and the unit length in minutes, gated by `canManageSelfServe`. One PATCH to the dedicated
-// endpoint; the server re-checks the gate. The form seeds from the Group's current settings.
-const selfServeForm = useForm<{ self_serve_shifts: boolean; self_serve_unit_minutes: number }>({
-    self_serve_shifts: props.selfServe.enabled,
-    self_serve_unit_minutes: props.selfServe.unitMinutes,
-});
-
-const saveSelfServe = () => selfServeForm.patch(route('groups.self-serve.update', { group: props.groupSlug }), { preserveScroll: true });
 
 // --- Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin adds, renames, retires,
 // reinstates and reorders the Group's kinds, gated by `canManageShiftKinds`. There is no delete.
@@ -715,7 +684,7 @@ const selfServeEnd = computed(() => {
     const start = new Date(`${writeShiftForm.starts_at}:00Z`);
     if (Number.isNaN(start.getTime())) return '';
 
-    const end = deriveEndsAt(start, writeShiftForm.units, props.selfServe.unitMinutes);
+    const end = deriveEndsAt(start, writeShiftForm.units, props.selfServeUnitMinutes);
 
     return trans('group.scheduling_panel.self_serve.ends_at_preview', {
         time: new Intl.DateTimeFormat(page.props.locale, { timeStyle: 'short', timeZone: 'UTC' }).format(end),
@@ -742,7 +711,7 @@ const openSelfServeEdit = (shift: ShiftAgendaItem) => {
     writeShiftForm.shift_kind_id = shift.shift_kind_id;
     writeShiftForm.starts_at = toDateTimeLocal(shift.starts_at);
     // The count is not stored, so recover it from the span and the Group's unit length.
-    const span = (new Date(shift.ends_at).getTime() - new Date(shift.starts_at).getTime()) / (props.selfServe.unitMinutes * 60 * 1000);
+    const span = (new Date(shift.ends_at).getTime() - new Date(shift.starts_at).getTime()) / (props.selfServeUnitMinutes * 60 * 1000);
     writeShiftForm.units = Math.max(1, Math.round(span));
     // The Objects are replaced whole (#586), so the edit round-trips the seat's current ones.
     writeShiftForm.objects = seatObjectIds(shift);
@@ -1000,89 +969,6 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 {{ trans('group.scheduling_panel.new') }}
             </Button>
         </div>
-
-        <!-- Empty-desk settings (#487, ADR-0024 §7) — the schedule-admin's on/off switch,
-             look-ahead, and the tick-rows marking which shift kinds the alert watches. Shown on
-             the list view only, and only to a Scheduler / Chair (`canManageEmptyDesk`); the
-             server re-checks on save. -->
-        <Card v-if="canManageEmptyDesk && !scheduling.open">
-            <CardHeader>
-                <CardTitle>{{ trans('group.scheduling_panel.empty_desk.heading') }}</CardTitle>
-            </CardHeader>
-            <CardContent class="flex flex-col gap-4">
-                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.empty_desk.description') }}</p>
-                <label class="flex items-center gap-2 text-sm">
-                    <Checkbox
-                        :checked="emptyDeskForm.empty_desk_alert_enabled"
-                        @update:checked="(on: boolean) => (emptyDeskForm.empty_desk_alert_enabled = on)"
-                    />
-                    {{ trans('group.scheduling_panel.empty_desk.enabled_label') }}
-                </label>
-                <div class="flex flex-col gap-1.5">
-                    <Label for="empty-desk-days-ahead">{{ trans('group.scheduling_panel.empty_desk.days_ahead_label') }}</Label>
-                    <Input
-                        id="empty-desk-days-ahead"
-                        v-model.number="emptyDeskForm.empty_desk_days_ahead"
-                        type="number"
-                        min="1"
-                        max="90"
-                        class="w-24"
-                    />
-                    <InputError :message="emptyDeskForm.errors.empty_desk_days_ahead" />
-                </div>
-                <div class="flex flex-col gap-1.5">
-                    <span class="text-sm font-medium">{{ trans('group.scheduling_panel.empty_desk.watched_label') }}</span>
-                    <p v-if="emptyDesk.shiftKinds.length === 0" class="text-muted-foreground text-sm">
-                        {{ trans('group.scheduling_panel.empty_desk.no_kinds') }}
-                    </p>
-                    <label v-for="kind in emptyDesk.shiftKinds" :key="kind.id" class="flex items-center gap-2 text-sm">
-                        <Checkbox
-                            :checked="emptyDeskForm.watched_shift_kinds.includes(kind.id)"
-                            @update:checked="(on: boolean) => toggleWatchedKind(kind.id, on)"
-                        />
-                        {{ kind.name }}
-                    </label>
-                </div>
-                <div class="flex justify-end">
-                    <Button type="button" size="sm" :disabled="emptyDeskForm.processing" @click="saveEmptyDesk">
-                        {{ trans('group.scheduling_panel.save') }}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-
-        <!-- Self-serve settings (#582, ADR-0026 §1 and §2) — the schedule-admin's self-serve
-             on/off switch and the unit length in minutes. Shown on the list view only, and only to
-             a Scheduler / Chair (`canManageSelfServe`); the server re-checks on save. -->
-        <Card v-if="canManageSelfServe && !scheduling.open">
-            <CardHeader>
-                <CardTitle>{{ trans('group.scheduling_panel.self_serve.heading') }}</CardTitle>
-            </CardHeader>
-            <CardContent class="flex flex-col gap-4">
-                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.self_serve.description') }}</p>
-                <label class="flex items-center gap-2 text-sm">
-                    <Checkbox :checked="selfServeForm.self_serve_shifts" @update:checked="(on: boolean) => (selfServeForm.self_serve_shifts = on)" />
-                    {{ trans('group.scheduling_panel.self_serve.enabled_label') }}
-                </label>
-                <div class="flex flex-col gap-1.5">
-                    <Label for="self-serve-unit-minutes">{{ trans('group.scheduling_panel.self_serve.unit_minutes_label') }}</Label>
-                    <Input
-                        id="self-serve-unit-minutes"
-                        v-model.number="selfServeForm.self_serve_unit_minutes"
-                        type="number"
-                        min="15"
-                        max="240"
-                        class="w-24"
-                    />
-                    <InputError :message="selfServeForm.errors.self_serve_unit_minutes" />
-                </div>
-                <div class="flex justify-end">
-                    <Button type="button" size="sm" :disabled="selfServeForm.processing" @click="saveSelfServe">
-                        {{ trans('group.scheduling_panel.save') }}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
 
         <!-- Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin adds, renames, retires,
              reinstates and reorders the Group's kinds. Shown on the list view only, and only to a
