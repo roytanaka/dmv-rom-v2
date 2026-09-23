@@ -5,7 +5,7 @@ Configurez l'horaire en libre-service pour votre groupe. Vous nommez les objets 
 ## Activer les quarts en libre-service
 
 1. Ouvrez votre groupe depuis la barre latérale.
-2. Sélectionnez l'onglet **Horaire**.
+2. Sélectionnez l'onglet **Paramètres**.
 3. Trouvez la carte **Quarts en libre-service**.
 4. Activez **Permettre aux membres de créer leurs propres quarts**.
 5. Réglez les **Minutes par unité**. Les interprètes de galerie utilisent 45.
@@ -39,9 +39,10 @@ La retenue court maintenant de la veille au lendemain de chaque quart sur ce pos
 
 Un événement est un ensemble de quarts sur un poste hors site.
 
-1. Ouvrez l'horaire de l'événement.
-2. Ajoutez un quart pour chaque créneau. Choisissez le poste hors site comme **Type**.
-3. Réglez la capacité à un pour chaque siège qu'un·e membre prend.
+1. Sélectionnez l'onglet **Horaire**.
+2. Ouvrez l'horaire de l'événement.
+3. Ajoutez un quart pour chaque créneau. Choisissez le poste hors site comme **Type**.
+4. Réglez la capacité à un pour chaque siège qu'un·e membre prend.
 
 Un·e membre prend un siège et choisit ses objets. La retenue hors site fait le reste.
 

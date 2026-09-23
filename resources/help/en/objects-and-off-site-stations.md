@@ -5,7 +5,7 @@ Set up self-serve scheduling for your Group. You name the Objects Members hand o
 ## Turn on self-serve shifts
 
 1. Open your Group from the rail.
-2. Select the **Scheduling** tab.
+2. Select the **Settings** tab.
 3. Find the **Self-serve shifts** card.
 4. Turn on **Let members write their own shifts**.
 5. Set the **Minutes per unit**. Gallery Interpreters use 45.
@@ -39,9 +39,10 @@ The hold now runs from the day before to the day after each shift on that statio
 
 An event is a set of shifts on an off-site station.
 
-1. Open the Schedule for the event.
-2. Add a shift for each slot. Choose the off-site station as the **Kind**.
-3. Set the capacity to one for each seat a Member takes.
+1. Select the **Scheduling** tab.
+2. Open the Schedule for the event.
+3. Add a shift for each slot. Choose the off-site station as the **Kind**.
+4. Set the capacity to one for each seat a Member takes.
 
 A Member takes a seat and picks their Objects. The off-site hold does the rest.
 

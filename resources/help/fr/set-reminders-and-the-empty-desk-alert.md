@@ -6,7 +6,7 @@ Activez les deux courriels que votre groupe envoie au sujet de ses quarts. Vous 
 
 Un rappel envoie un courriel à un·e membre quelques jours avant un quart auquel il·elle s'est inscrit·e.
 
-1. Ouvrez l'onglet **Horaire** de votre groupe.
+1. Ouvrez l'onglet **Paramètres** de votre groupe.
 2. Trouvez la carte **Rappels de quart**.
 
     ![La carte Rappels de quart : Envoyer les rappels de quart et Jours avant le quart](01.png)

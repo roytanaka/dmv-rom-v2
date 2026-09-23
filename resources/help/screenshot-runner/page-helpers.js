@@ -289,7 +289,7 @@
     }
 
     // The Scheduling tab's list view, as a schedule admin: the New schedule button, then the
-    // Shift reminders and Empty-desk alert cards below it.
+    // list of schedules below it.
     function showNewScheduleButton() {
         const button = pageButtonLabelled(/^new schedule$/i);
         if (!button) return false;
@@ -310,8 +310,8 @@
         return clickAndSettle(pageButtonLabelled(/^bulk shifts$/i));
     }
 
-    // A settings card on the Scheduling tab's list view, found by its title. The Shift
-    // reminders and Empty-desk alert cards show only to a schedule admin.
+    // A settings card on the Group Settings tab (ADR-0027 §2), found by its title. The tab and
+    // its cards show only to a schedule admin.
     function showCardTitled(pattern) {
         const card = Array.from(document.querySelectorAll('[data-slot="card"]')).find((element) => pattern.test(element.textContent.trim()));
         if (!card) return false;
@@ -331,13 +331,13 @@
         return showCardTitled(/^shift kinds/i);
     }
 
-    // The self-serve settings card on the Scheduling tab's list view (#590, ADR-0026 §1). Shows only
+    // The self-serve settings card on the Group Settings tab (#590, ADR-0026 §1). Shows only
     // to a schedule admin: the on/off switch and the minutes-per-unit field.
     function showSelfServeSettings() {
         return showCardTitled(/^self-serve shifts/i);
     }
 
-    // The Objects maintenance card on the list view (#590, ADR-0026 §3): the group's handling
+    // The Objects maintenance card on the Group Settings tab (#590, ADR-0026 §3): the group's handling
     // collection, with its add / rename / retire / reorder controls.
     function showObjects() {
         return showCardTitled(/^objects/i);
