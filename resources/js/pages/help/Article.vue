@@ -10,7 +10,9 @@
 // "On this page" (#621) lists the level-two headings, by the ids the server gave
 // them, when an article has three or more. The Help topics list (#619) sits in a
 // right column pushed to the far edge and stays in view while the page scrolls;
-// below `lg` it folds into one outline button above the article.
+// below `lg` it folds into one outline button above the article. An overview ends
+// with a linked list of its section's published articles (#622), officer groups
+// under their Required-role badge.
 import HelpTopics from '@/components/HelpTopics.vue';
 import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -33,6 +35,14 @@ interface HelpNeighbour {
     section: string;
 }
 
+interface HelpSectionArticles {
+    label: string;
+    groups: {
+        requires: string[];
+        articles: { slug: string; title: string; href: string }[];
+    }[];
+}
+
 defineProps<{
     slug: string;
     title: string;
@@ -43,6 +53,7 @@ defineProps<{
     previous: HelpNeighbour | null;
     next: HelpNeighbour | null;
     topics: HelpTopic[];
+    sectionArticles: HelpSectionArticles | null;
 }>();
 
 // Two-line large outline buttons: the label and section on top, the title below.
@@ -83,6 +94,20 @@ const neighbourClass = 'h-auto w-full flex-col gap-1 py-3 whitespace-normal';
                     <!-- eslint-disable-next-line vue/no-v-html -- body is server-sanitized chrome (ADR-0025) -->
                     <div class="text-rom-ink flex flex-col gap-4 text-base" v-html="html" />
                 </article>
+
+                <section v-if="sectionArticles?.groups.length" class="flex flex-col gap-4">
+                    <h2 class="text-rom-ink text-lg font-semibold">
+                        {{ trans('help.section_articles', { section: sectionArticles.label }) }}
+                    </h2>
+                    <div v-for="group in sectionArticles.groups" :key="group.requires.join(',')" class="flex flex-col gap-2">
+                        <RequiredRoleBadge :requires="group.requires" class="self-start" />
+                        <ul class="flex flex-col gap-1">
+                            <li v-for="article in group.articles" :key="article.slug">
+                                <TextLink :href="article.href">{{ article.title }}</TextLink>
+                            </li>
+                        </ul>
+                    </div>
+                </section>
 
                 <!-- Desktop: Previous left, Next right. Phone: stacked, Next first. -->
                 <nav v-if="previous || next" class="grid gap-3 sm:grid-cols-2">

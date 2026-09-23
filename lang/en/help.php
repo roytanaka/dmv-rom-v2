@@ -23,6 +23,9 @@ return [
     'previous' => 'Previous',
     'next' => 'Next',
 
+    // The linked list of a section's articles at the end of its overview (#622).
+    'section_articles' => 'All :section articles',
+
     // One label per HelpSection enum case, keyed by the section slug.
     'section' => [
         'getting-started' => 'Getting started',

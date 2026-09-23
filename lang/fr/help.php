@@ -23,6 +23,9 @@ return [
     'previous' => 'Précédent',
     'next' => 'Suivant',
 
+    // La liste des articles d'une section à la fin de son aperçu (#622).
+    'section_articles' => 'Tous les articles : :section',
+
     // Une étiquette par cas de l'énumération HelpSection, indexée par le slug.
     'section' => [
         'getting-started' => 'Pour commencer',

@@ -88,6 +88,7 @@ class HelpController extends Controller
             // The Required-role badge's tokens (ADR-0025 §6); empty means every Member.
             'requires' => $entry->requires,
             'topics' => $this->topics($manifest, $renderer, $entry, $locale),
+            'sectionArticles' => $entry->isOverview ? $this->sectionArticles($manifest, $renderer, $entry, $locale) : null,
             // Breadcrumb resolved server-side at the request locale (Help › Section ›
             // Title): the section crumb points at that section's overview article.
             // Hrefs are path-only (absolute: false) so Inertia navigates client-side.
@@ -99,6 +100,27 @@ class HelpController extends Controller
             'previous' => $neighbour($previous),
             'next' => $neighbour($next),
         ]);
+    }
+
+    /**
+     * The list at the end of an overview (#622): the section's published task articles,
+     * grouped by Required role the same way as the Help topics list.
+     *
+     * @return array{label: string, groups: list<array<string, mixed>>}
+     */
+    private function sectionArticles(HelpManifest $manifest, HelpArticleRenderer $renderer, HelpArticle $overview, string $locale): array
+    {
+        return [
+            'label' => __($overview->section->labelKey()),
+            'groups' => array_map(fn (array $group) => [
+                'requires' => $group['requires'],
+                'articles' => array_map(fn (HelpArticle $article) => [
+                    'slug' => $article->slug,
+                    'title' => $renderer->title($article->slug, $locale),
+                    'href' => route('help.show', $article->slug, false),
+                ], $group['articles']),
+            ], $manifest->publishedTasksByRole($overview->section)),
+        ];
     }
 
     /**
