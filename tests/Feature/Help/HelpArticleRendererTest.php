@@ -96,3 +96,48 @@ it('leaves anchor, absolute-path and full-URL links as they are', function () {
 it('lists the article slugs an article links to', function () {
     expect(fixtureRenderer()->referencedArticles('link-fixture', 'en'))->toBe(['sign-up-for-a-shift']);
 });
+
+it('gives each level-two heading a stable id in both locales', function (string $locale, array $ids) {
+    $html = fixtureRenderer()->render('headings-fixture', $locale)->html;
+
+    foreach ($ids as $id) {
+        expect($html)->toContain("<h2 id=\"{$id}\">");
+    }
+
+    // Only level-two headings get an id.
+    expect($html)->toContain('<h3>');
+})->with([
+    'English' => ['en', ['before-you-start', 'open-the-shifts-tab', 'fix-a-mistake', 'fix-a-mistake-2']],
+    'French' => ['fr', ['avant-de-commencer', 'ouvrir-longlet-quarts', 'corriger-une-erreur', 'corriger-une-erreur-2']],
+]);
+
+it('lists the level-two headings in order with their text and id', function () {
+    expect(fixtureRenderer()->render('headings-fixture', 'en')->headings)->toBe([
+        ['text' => 'Before you start', 'id' => 'before-you-start'],
+        ['text' => 'Open the Shifts tab', 'id' => 'open-the-shifts-tab'],
+        ['text' => 'Fix a mistake', 'id' => 'fix-a-mistake'],
+        ['text' => 'Fix a mistake', 'id' => 'fix-a-mistake-2'],
+    ]);
+});
+
+it('lists no headings for an article without level-two headings', function () {
+    expect(fixtureRenderer()->render('open-task', 'en')->headings)->toBe([]);
+});
+
+// #623: the lead line — the first body paragraph as plain text, the index card's summary.
+it('reads the lead line as the first body paragraph in plain text', function (string $locale, string $lead) {
+    expect(fixtureRenderer()->lead('link-fixture', $locale))->toBe($lead);
+})->with([
+    'English' => ['en', 'Read Sign up for a shift next.'],
+    'French' => ['fr', "Lisez ensuite S'inscrire à un quart."],
+]);
+
+it('skips headings and screenshots to reach the lead line', function () {
+    expect(fixtureRenderer()->lead('headings-fixture', 'en'))->toBe('A short lead line.')
+        ->and(fixtureRenderer()->lead('figure-fixture', 'en'))->toBe('This article references a screenshot.');
+});
+
+it('reads no lead line from an article with no body paragraph outside a blockquote', function () {
+    expect(fixtureRenderer()->lead('callout-fixture', 'en'))->toBeNull()
+        ->and(fixtureRenderer()->lead('does-not-exist', 'en'))->toBeNull();
+});

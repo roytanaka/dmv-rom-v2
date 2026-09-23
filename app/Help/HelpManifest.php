@@ -75,8 +75,7 @@ final class HelpManifest
      */
     public function publishedSections(): array
     {
-        return $this->collect()
-            ->filter(fn (HelpArticle $article) => $article->status === ArticleStatus::Published)
+        return $this->collectPublished()
             ->map(fn (HelpArticle $article) => $article->section)
             ->unique()
             ->values()
@@ -90,10 +89,30 @@ final class HelpManifest
      */
     public function publishedIn(HelpSection $section): array
     {
-        return $this->collect()
-            ->filter(fn (HelpArticle $article) => $article->section === $section && $article->status === ArticleStatus::Published)
+        return $this->collectPublished()
+            ->filter(fn (HelpArticle $article) => $article->section === $section)
             ->values()
             ->all();
+    }
+
+    /**
+     * The published articles either side of a slug in display order, across section
+     * boundaries — the article page's Previous and Next (#620). Drafts are never
+     * neighbours, and a draft (or unknown slug) has none: [null, null].
+     *
+     * @return array{0: ?HelpArticle, 1: ?HelpArticle}
+     */
+    public function publishedNeighbours(string $slug): array
+    {
+        $published = $this->collectPublished()->values();
+
+        $index = $published->search(fn (HelpArticle $article) => $article->slug === $slug);
+
+        if ($index === false) {
+            return [null, null];
+        }
+
+        return [$published->get($index - 1), $published->get($index + 1)];
     }
 
     /**
@@ -143,9 +162,8 @@ final class HelpManifest
      */
     public function publishedForRoute(string $routeName): ?HelpArticle
     {
-        return $this->collect()
-            ->filter(fn (HelpArticle $article) => in_array($routeName, $article->mappedRoutes(), true)
-                && $article->status === ArticleStatus::Published)
+        return $this->collectPublished()
+            ->filter(fn (HelpArticle $article) => in_array($routeName, $article->mappedRoutes(), true))
             ->sortByDesc(fn (HelpArticle $article) => $article->isOverview)
             ->first();
     }
@@ -303,6 +321,8 @@ final class HelpManifest
             new HelpArticle('record-your-skills', HelpSection::Settings, status: ArticleStatus::Published, route: 'settings.skills'),
 
             // Support (#527, ADR-0009) — the non-production dev Role-switcher, an operator tool.
+            // Its overview (#623, ADR-0025 §5) stays a draft until its screenshots land.
+            new HelpArticle('support', HelpSection::Support, isOverview: true, requires: ['support_operator'], status: ArticleStatus::Draft),
             new HelpArticle('use-the-role-switcher', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Published),
             new HelpArticle('return-to-yourself', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Published),
         ];
@@ -312,5 +332,11 @@ final class HelpManifest
     private function collect(): Collection
     {
         return collect($this->all());
+    }
+
+    /** @return Collection<int, HelpArticle> Published articles only, in display order; keys are not reindexed. */
+    private function collectPublished(): Collection
+    {
+        return $this->collect()->filter(fn (HelpArticle $article) => $article->status === ArticleStatus::Published);
     }
 }

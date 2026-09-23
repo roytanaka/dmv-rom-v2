@@ -4,19 +4,34 @@
 // server (HTML input stripped, unsafe links off), so the body is trusted chrome by
 // the time it reaches v-html. The breadcrumb (Help › Section › Title) is resolved at
 // the request locale on the server, so it needs no client-side translation. Tip and
-// Note blockquotes arrive as `.callout` blocks carrying `data-callout` (#617). The
-// Help topics list sits in a right column pushed to the far edge and stays in view
-// while the page scrolls; below `lg` it folds into one outline button above the
-// article (#619).
+// Note blockquotes arrive as `.callout` blocks carrying `data-callout` (#617).
+// Previous and Next (#620) follow the manifest's published order across sections;
+// their titles, hrefs and section labels arrive localized from the server.
+// "On this page" (#621) lists the level-two headings, by the ids the server gave
+// them, when an article has three or more. The Help topics list (#619) sits in a
+// right column pushed to the far edge and stays in view while the page scrolls;
+// below `lg` it folds into one outline button above the article.
 import HelpTopics from '@/components/HelpTopics.vue';
 import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
+import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type HelpTopic } from '@/types';
-import { Head } from '@inertiajs/vue3';
-import { PhCaretDown } from '@phosphor-icons/vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { PhCaretDown, PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
+
+interface HelpHeading {
+    text: string;
+    id: string;
+}
+
+interface HelpNeighbour {
+    title: string;
+    href: string;
+    section: string;
+}
 
 defineProps<{
     slug: string;
@@ -24,8 +39,14 @@ defineProps<{
     html: string;
     requires: string[];
     breadcrumb: BreadcrumbItem[];
+    headings: HelpHeading[];
+    previous: HelpNeighbour | null;
+    next: HelpNeighbour | null;
     topics: HelpTopic[];
 }>();
+
+// Two-line large outline buttons: the label and section on top, the title below.
+const neighbourClass = 'h-auto w-full flex-col gap-1 py-3 whitespace-normal';
 </script>
 
 <template>
@@ -45,14 +66,52 @@ defineProps<{
                 </CollapsibleContent>
             </Collapsible>
 
-            <article class="help-article max-w-2xl min-w-0 flex-1">
-                <div class="mb-4 flex flex-wrap items-center gap-2">
-                    <h1 class="text-rom-ink text-xl font-semibold">{{ title }}</h1>
-                    <RequiredRoleBadge :requires="requires" />
-                </div>
-                <!-- eslint-disable-next-line vue/no-v-html -- body is server-sanitized chrome (ADR-0025) -->
-                <div class="text-rom-ink flex flex-col gap-4 text-base" v-html="html" />
-            </article>
+            <div class="flex max-w-2xl min-w-0 flex-1 flex-col gap-6">
+                <article class="help-article">
+                    <div class="mb-4 flex flex-wrap items-center gap-2">
+                        <h1 class="text-rom-ink text-xl font-semibold">{{ title }}</h1>
+                        <RequiredRoleBadge :requires="requires" />
+                    </div>
+                    <nav v-if="headings.length >= 3" :aria-label="trans('help.on_this_page')" class="bg-muted mb-6 p-4">
+                        <p class="eyebrow mb-2">{{ trans('help.on_this_page') }}</p>
+                        <ul class="flex flex-col gap-1">
+                            <li v-for="heading in headings" :key="heading.id">
+                                <TextLink :href="`#${heading.id}`">{{ heading.text }}</TextLink>
+                            </li>
+                        </ul>
+                    </nav>
+                    <!-- eslint-disable-next-line vue/no-v-html -- body is server-sanitized chrome (ADR-0025) -->
+                    <div class="text-rom-ink flex flex-col gap-4 text-base" v-html="html" />
+                </article>
+
+                <!-- Desktop: Previous left, Next right. Phone: stacked, Next first. -->
+                <nav v-if="previous || next" class="grid gap-3 sm:grid-cols-2">
+                    <Button v-if="previous" as-child variant="outline" size="lg" :class="[neighbourClass, 'items-start text-left']">
+                        <Link :href="previous.href">
+                            <span class="text-muted-foreground flex items-center gap-1 text-sm">
+                                <PhCaretLeft aria-hidden="true" />
+                                {{ trans('help.previous') }} · {{ previous.section }}
+                            </span>
+                            <span class="text-rom-ink font-semibold">{{ previous.title }}</span>
+                        </Link>
+                    </Button>
+                    <Button
+                        v-if="next"
+                        as-child
+                        variant="outline"
+                        size="lg"
+                        :class="[neighbourClass, 'order-first items-end text-right sm:order-none sm:col-start-2']"
+                    >
+                        <Link :href="next.href">
+                            <span class="text-muted-foreground flex items-center gap-1 text-sm">
+                                {{ trans('help.next') }} · {{ next.section }}
+                                <PhCaretRight aria-hidden="true" />
+                            </span>
+                            <span class="text-rom-ink font-semibold">{{ next.title }}</span>
+                        </Link>
+                    </Button>
+                </nav>
+            </div>
 
             <aside
                 class="sticky top-[calc(var(--header-height)+1.5rem)] hidden max-h-[calc(100svh-var(--header-height)-3rem)] w-72 shrink-0 overflow-y-auto lg:block"
@@ -69,6 +128,8 @@ defineProps<{
    utilities (Tailwind v4), so these use the theme's CSS variables directly. */
 .help-article :deep(h2) {
     margin-top: 0.5rem;
+    /* Clear the sticky top bar (h-16) when "On this page" jumps to a heading. */
+    scroll-margin-top: 5rem;
     color: var(--rom-ink);
     font-size: var(--text-lg);
     font-weight: 600;

@@ -213,6 +213,30 @@ it('lists the group-settings article as a Scheduler/Chair Groups draft, mapped t
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 
+it('leads every section with exactly one overview article', function () {
+    // ADR-0025 §5: one short overview per section. #623 adds the missing Support one.
+    $manifest = new HelpManifest;
+
+    foreach ($manifest->sections() as $section) {
+        $overviews = collect($manifest->articlesIn($section))->filter(fn (HelpArticle $article) => $article->isOverview);
+
+        expect($overviews)->toHaveCount(1, $section->value)
+            ->and($manifest->articlesIn($section)[0]->isOverview)->toBeTrue($section->value);
+    }
+});
+
+it('lists the Support overview as a Support-operator draft', function () {
+    // #623: a draft until its screenshots land, so its index card shows no summary yet.
+    $article = (new HelpManifest)->find('support');
+
+    expect($article)->not->toBeNull();
+    expect($article->section)->toBe(HelpSection::Support);
+    expect($article->isOverview)->toBeTrue();
+    expect($article->requires)->toBe(['support_operator']);
+    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->fr)->toBe(FrenchState::MachineTranslated);
+});
+
 it('maps the articles for cards on the Group Settings tab to the Group page, not the Scheduling tab', function () {
     // #608, ADR-0027 §2: the Reminders, Empty-desk, Shift kinds and Objects cards left the
     // Scheduling tab for the Settings tab, which renders on the Group page's own route.
