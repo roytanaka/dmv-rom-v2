@@ -8,8 +8,8 @@ The Dashboard shows a tile for each Group you belong to. Each tile carries the G
 
 If you belong to no Group, this area stays empty.
 
-![The Dashboard: your Groups as tiles in the middle, with the rail of Groups down the left](01.png)
+![The Dashboard: your Groups as tiles in the middle, with the Left Side Bar listing your Groups](01.png)
 
 ## The rest of the app
 
-The top bar holds My Hours, My Calendar, News, and Directory. The rail on the left lists your Groups too. Your initials sit on the right. Help, marked with a "?", sits beside them.
+The top bar holds My Hours, My Calendar, News, and Directory. The Left Side Bar lists your Groups too. Your initials sit on the right. Help, marked with a "?", sits beside them.

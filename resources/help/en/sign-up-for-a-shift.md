@@ -4,7 +4,7 @@ Take a seat on a shift you want to work.
 
 ## Sign up
 
-1. Open a Group from the rail.
+1. Open a Group from the Left Side Bar.
 2. Select the **Scheduling** tab.
 
     ![The Scheduling tab: the list of schedules](01.png)

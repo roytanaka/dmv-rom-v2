@@ -4,7 +4,7 @@ Enregistrez les heures passées à aider un groupe en dehors de vos quarts plani
 
 ## Enregistrer vos heures
 
-1. Ouvrez un groupe depuis le tableau de bord ou le rail.
+1. Ouvrez un groupe depuis le tableau de bord ou la barre latérale gauche.
 2. Sélectionnez l'onglet **Heures**.
 
     ![L'onglet Heures d'un groupe : le formulaire Enregistrer des heures supplémentaires, avec Heures à ajouter et Ajouter les heures pour ce mois-ci et le mois dernier](01.png)

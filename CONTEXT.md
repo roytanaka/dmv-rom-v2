@@ -185,6 +185,10 @@ _Avoid_: the calendar year, and "FY26"-style shorthand; the reports say _Fiscal 
 The application's persistent **frame** — the top bar, side rail, breadcrumb strip, and footer that wrap every screen and stay put while the page content changes. A UI term (after [GUI chrome](https://www.nngroup.com/articles/browser-and-gui-chrome/)), unrelated to the web browser. The Part 3 app shell _is_ the chrome; product screens render inside it.
 _Avoid_: confusing with the Google Chrome browser. Synonyms "shell" / "frame" are fine.
 
+**Rail** (reader-facing: **Left Side Bar**):
+The **Chrome**'s left-hand navigation: My Groups, Browse Groups, and **Officer Tools** at the bottom. Built on the server ([ADR-0018](docs/adr/0018-server-driven-grouping-rail.md)). "Rail" is the code and ADR name. **Help articles** and other text a **Member** reads say **Left Side Bar** (French: _barre latérale gauche_).
+_Avoid_: "the rail" in Help articles; bare "sidebar" there too, because the Account settings page has its own sidebar. And the Directory's **A–Z jump rail** (the letter bar) is a different thing.
+
 **Officer Tools**:
 The rail's bottom cluster of **org-wide** administration: Members, Communications, Reports, Flash Messages, DMV Settings, plus the super-tier status pages. Built and gated on the server per rail item ([ADR-0018 §4](docs/adr/0018-server-driven-grouping-rail.md), [ADR-0027 §4](docs/adr/0027-group-settings-tab.md)). Nothing **Group**-scoped lives here.
 _Avoid_: reading "officer" here as a Group's **Officer**; the two senses are unrelated. Do not put a Group's tools in the rail.

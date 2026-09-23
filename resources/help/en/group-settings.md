@@ -4,7 +4,7 @@ Open the **Settings** tab to change how your Group runs. You need the Scheduler 
 
 ## Open the Settings tab
 
-1. Open your Group from the rail.
+1. Open your Group from the Left Side Bar.
 2. Select the **Settings** tab. It is the last tab in the strip.
 
 The tab shows one card for each setting you can change.

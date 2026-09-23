@@ -4,7 +4,7 @@ Write a shift for yourself when your Group lets its Members schedule their own. 
 
 ## Write the shift
 
-1. Open your Group from the rail.
+1. Open your Group from the Left Side Bar.
 2. Select the **Scheduling** tab.
 3. Open a published Schedule.
 4. Select **Write my shift**.
