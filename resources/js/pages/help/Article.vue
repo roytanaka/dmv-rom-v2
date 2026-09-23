@@ -7,13 +7,21 @@
 // Note blockquotes arrive as `.callout` blocks carrying `data-callout` (#617).
 // Previous and Next (#620) follow the manifest's published order across sections;
 // their titles, hrefs and section labels arrive localized from the server.
+// "On this page" (#621) lists the level-two headings, by the ids the server gave
+// them, when an article has three or more.
 import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
+import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
+
+interface HelpHeading {
+    text: string;
+    id: string;
+}
 
 interface HelpNeighbour {
     title: string;
@@ -27,6 +35,7 @@ defineProps<{
     html: string;
     requires: string[];
     breadcrumb: BreadcrumbItem[];
+    headings: HelpHeading[];
     previous: HelpNeighbour | null;
     next: HelpNeighbour | null;
 }>();
@@ -45,6 +54,14 @@ const neighbourClass = 'h-auto w-full flex-col gap-1 py-3 whitespace-normal';
                     <h1 class="text-rom-ink text-xl font-semibold">{{ title }}</h1>
                     <RequiredRoleBadge :requires="requires" />
                 </div>
+                <nav v-if="headings.length >= 3" :aria-label="trans('help.on_this_page')" class="bg-muted mb-6 p-4">
+                    <p class="eyebrow mb-2">{{ trans('help.on_this_page') }}</p>
+                    <ul class="flex flex-col gap-1">
+                        <li v-for="heading in headings" :key="heading.id">
+                            <TextLink :href="`#${heading.id}`">{{ heading.text }}</TextLink>
+                        </li>
+                    </ul>
+                </nav>
                 <!-- eslint-disable-next-line vue/no-v-html -- body is server-sanitized chrome (ADR-0025) -->
                 <div class="text-rom-ink flex flex-col gap-4 text-base" v-html="html" />
             </article>
@@ -86,6 +103,8 @@ const neighbourClass = 'h-auto w-full flex-col gap-1 py-3 whitespace-normal';
    utilities (Tailwind v4), so these use the theme's CSS variables directly. */
 .help-article :deep(h2) {
     margin-top: 0.5rem;
+    /* Clear the sticky top bar (h-16) when "On this page" jumps to a heading. */
+    scroll-margin-top: 5rem;
     color: var(--rom-ink);
     font-size: var(--text-lg);
     font-weight: 600;

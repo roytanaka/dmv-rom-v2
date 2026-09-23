@@ -8,6 +8,9 @@ return [
     'title' => 'Aide',
     'intro' => 'Des guides étape par étape pour les tâches que vous faites ici.',
 
+    // Liste « Sur cette page » des titres d'un article (#621).
+    'on_this_page' => 'Sur cette page',
+
     // Boutons Précédent et Suivant à la fin d'un article (#620).
     'previous' => 'Précédent',
     'next' => 'Suivant',

@@ -96,3 +96,30 @@ it('leaves anchor, absolute-path and full-URL links as they are', function () {
 it('lists the article slugs an article links to', function () {
     expect(fixtureRenderer()->referencedArticles('link-fixture', 'en'))->toBe(['sign-up-for-a-shift']);
 });
+
+it('gives each level-two heading a stable id in both locales', function (string $locale, array $ids) {
+    $html = fixtureRenderer()->render('headings-fixture', $locale)->html;
+
+    foreach ($ids as $id) {
+        expect($html)->toContain("<h2 id=\"{$id}\">");
+    }
+
+    // Only level-two headings get an id.
+    expect($html)->toContain('<h3>');
+})->with([
+    'English' => ['en', ['before-you-start', 'open-the-shifts-tab', 'fix-a-mistake', 'fix-a-mistake-2']],
+    'French' => ['fr', ['avant-de-commencer', 'ouvrir-longlet-quarts', 'corriger-une-erreur', 'corriger-une-erreur-2']],
+]);
+
+it('lists the level-two headings in order with their text and id', function () {
+    expect(fixtureRenderer()->render('headings-fixture', 'en')->headings)->toBe([
+        ['text' => 'Before you start', 'id' => 'before-you-start'],
+        ['text' => 'Open the Shifts tab', 'id' => 'open-the-shifts-tab'],
+        ['text' => 'Fix a mistake', 'id' => 'fix-a-mistake'],
+        ['text' => 'Fix a mistake', 'id' => 'fix-a-mistake-2'],
+    ]);
+});
+
+it('lists no headings for an article without level-two headings', function () {
+    expect(fixtureRenderer()->render('open-task', 'en')->headings)->toBe([]);
+});
