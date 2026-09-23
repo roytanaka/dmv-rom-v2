@@ -364,6 +364,55 @@ it('carries the Help topics tree in French with French titles and hrefs', functi
     });
 });
 
+it('lists the section articles on an overview, grouped by Required role, drafts left out', function () {
+    // #622: no-role articles first, then each role set; the overview itself is not listed.
+    bindIndexFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help/figure-fixture')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sectionArticles.label', 'Scheduling')
+            ->count('sectionArticles.groups', 2)
+            ->where('sectionArticles.groups.0.requires', [])
+            ->where('sectionArticles.groups.0.articles', [
+                ['slug' => 'raw-html-fixture', 'title' => 'Raw HTML fixture', 'href' => '/help/raw-html-fixture'],
+                ['slug' => 'headings-fixture', 'title' => 'Headings fixture', 'href' => '/help/headings-fixture'],
+                ['slug' => 'extra-task', 'title' => 'Extra task', 'href' => '/help/extra-task'],
+            ])
+            ->where('sectionArticles.groups.1.requires', ['scheduler', 'chair'])
+            ->where('sectionArticles.groups.1.articles', [
+                ['slug' => 'callout-fixture', 'title' => 'Callout fixture', 'href' => '/help/callout-fixture'],
+            ]));
+});
+
+it('gives a task article no section articles list', function () {
+    bindIndexFixtures();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/help/extra-task')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('sectionArticles', null));
+});
+
+it('lists the section articles in French with French titles and /fr/aide/ hrefs', function () {
+    bindHelpFixtures();
+
+    $this->actingAs(Member::factory()->create());
+
+    $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/aide/role-task')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('sectionArticles.label', 'Pour commencer')
+                ->where('sectionArticles.groups', [
+                    ['requires' => [], 'articles' => [
+                        ['slug' => 'open-task', 'title' => 'Tâche ouverte', 'href' => '/fr/aide/open-task'],
+                    ]],
+                ]));
+    });
+});
+
 it('returns 404 for an unknown article slug', function () {
     $this->actingAs(Member::factory()->create())
         ->get('/help/does-not-exist')
