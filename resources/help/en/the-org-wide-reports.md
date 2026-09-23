@@ -32,10 +32,10 @@ Every report covers one fiscal year. Set the year under **Fiscal year**.
 
 ## Export or print
 
-Select **Export CSV** for a spreadsheet, or **Print** for a paper copy. Read _Export a report as CSV_ for more.
+Select **Export CSV** for a spreadsheet, or **Print** for a paper copy. Read [Export a report as CSV](export-a-report-as-csv) for more.
 
 > **Note:** A figure marked **Incomplete** reads low. Group bookings are not counted yet.
 
 ## What next
 
-To read one Group instead of the whole department, read _Run your Group's hours report_.
+To read one Group instead of the whole department, read [Run your Group's hours report](run-your-groups-hours-report).

@@ -26,4 +26,4 @@ To take your photo down, select **Remove photo**.
 
 ## What next
 
-Your name and photo show in the Directory and on your profile. To change your password, read "Change your password".
+Your name and photo show in the Directory and on your profile. To change your password, read [Change your password](change-your-password).

@@ -18,4 +18,4 @@ A Group page gathers what that Group does. Tabs across the top hold its roster, 
 
 ![A Group page: the banner, then the tabs across the top](02.png)
 
-Each other article in this section covers one task. Start with _Find your Group's page_.
+Each other article in this section covers one task. Start with [Find your Group's page](find-your-group).

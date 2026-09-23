@@ -25,4 +25,4 @@ Votre nom rejoint le quart, et le nombre de places occupées augmente de un.
 
 ## Et ensuite
 
-Lisez _Annuler une inscription_ si vos plans changent. Après le quart, lisez _Noter votre nombre de visiteur·euses après un quart_.
+Lisez [Annuler une inscription](cancel-a-sign-up) si vos plans changent. Après le quart, lisez [Noter votre nombre de visiteur·euses après un quart](record-your-visitor-count).

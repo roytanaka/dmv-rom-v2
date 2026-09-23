@@ -26,4 +26,4 @@ Sélectionnez le × à côté du nom du·de la membre sur le quart. Confirmez qu
 
 ## Et ensuite
 
-Le·la membre ne reçoit aucun courriel quand vous le·la placez. Prévenez-le·la vous-même, ou lisez _Configurer les rappels et l'alerte de poste vacant de votre groupe_ pour activer les rappels.
+Le·la membre ne reçoit aucun courriel quand vous le·la placez. Prévenez-le·la vous-même, ou lisez [Configurer les rappels et l'alerte de poste vacant de votre groupe](set-reminders-and-the-empty-desk-alert) pour activer les rappels.

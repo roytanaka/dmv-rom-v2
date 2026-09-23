@@ -41,4 +41,4 @@ The **Email** menu is on every tab of a Group page. Open **Pick people…** from
 
 ## What next
 
-Read _Attach a file to an email_ to send a file with your Broadcast.
+Read [Attach a file to an email](attach-a-file) to send a file with your Broadcast.

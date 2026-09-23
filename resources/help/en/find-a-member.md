@@ -25,4 +25,4 @@ Select a Member's name to open their profile.
 
 ## What next
 
-To learn which details a profile shows you, read "What you can and cannot see about a Member".
+To learn which details a profile shows you, read [What you can and cannot see about a Member](what-you-can-see-about-a-member).

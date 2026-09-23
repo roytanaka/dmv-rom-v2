@@ -119,6 +119,18 @@ it('renders an article in French at /fr/aide/... with a French breadcrumb', func
     });
 });
 
+it('links a French article to the French articles it names', function () {
+    // #618: a "What next" link resolves in the request's language, so the Member stays in French.
+    $this->actingAs(Member::factory()->create());
+
+    $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/aide/sign-up-for-a-shift')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('html', fn (string $html) => str_contains($html, '<a href="/fr/aide/cancel-a-sign-up">Annuler une inscription</a>')));
+    });
+});
+
 it('returns 404 for an unknown article slug', function () {
     $this->actingAs(Member::factory()->create())
         ->get('/help/does-not-exist')

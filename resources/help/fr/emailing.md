@@ -28,7 +28,7 @@ Un avis est un courriel automatique déclenché par un événement, comme une in
 
 Records peut couper tout courriel destiné à un·e membre. Un·e membre visé·e par l'option ne reçoit ni diffusion, ni message direct, ni rappel, ni avis.
 
-Lisez _Couper tout courriel à un·e membre_ pour les étapes.
+Lisez [Couper tout courriel à un·e membre](set-the-no-email-flag) pour les étapes.
 
 ## Quand le courriel arrive
 

@@ -30,4 +30,4 @@ Certains groupes recueillent plus d'un nombre :
 
 ## Et ensuite
 
-Le nombre alimente les rapports de visiteur·euses de votre groupe, pas ses heures. Lisez _Les rapports à l'échelle de l'organisation_ pour voir où les nombres de visiteur·euses apparaissent.
+Le nombre alimente les rapports de visiteur·euses de votre groupe, pas ses heures. Lisez [Les rapports à l'échelle de l'organisation](the-org-wide-reports) pour voir où les nombres de visiteur·euses apparaissent.

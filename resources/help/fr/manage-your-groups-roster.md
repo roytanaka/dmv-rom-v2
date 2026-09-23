@@ -43,4 +43,4 @@ Ouvrez le menu à trois points au bout de la ligne du·de la membre.
 
 ## Et ensuite
 
-Les rôles que vous réglez ici décident ce que chaque membre peut faire dans le groupe. Pour consigner une réunion, lisez _Consigner une réunion_.
+Les rôles que vous réglez ici décident ce que chaque membre peut faire dans le groupe. Pour consigner une réunion, lisez [Consigner une réunion](record-a-meeting).

@@ -28,4 +28,4 @@ Seuls le membre lui-même et les Archives du DMV les voient. Votre propre adress
 
 ## Et ensuite
 
-Pour trouver un membre, lisez « Trouver un membre ».
+Pour trouver un membre, lisez [Trouver un membre](find-a-member).

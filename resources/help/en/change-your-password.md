@@ -20,4 +20,4 @@ The page confirms with "Saved" when the change goes through.
 
 ## What next
 
-Your new password takes effect at once. To update your other details, read "Update your profile and photo".
+Your new password takes effect at once. To update your other details, read [Update your profile and photo](update-your-profile).

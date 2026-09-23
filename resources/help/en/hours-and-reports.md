@@ -14,18 +14,18 @@ Three kinds of hours land on a Member's record:
 - **Meeting hours** come from meetings the Member attended.
 - **Extra hours** come from work a Member enters outside Shifts and meetings.
 
-Read _Enter and correct hours_ for how the numbers get on file.
+Read [Enter and correct hours](enter-and-correct-hours) for how the numbers get on file.
 
 ## Your Group's report
 
-A Chair or Statistician reads their own Group's hours report. It lists every Member's hours this fiscal year and totals the Group. Read _Run your Group's hours report_.
+A Chair or Statistician reads their own Group's hours report. It lists every Member's hours this fiscal year and totals the Group. Read [Run your Group's hours report](run-your-groups-hours-report).
 
 ![A Group's hours report: one row per Member, one column per month, and the Group's totals](01.png)
 
 ## The org-wide reports
 
-DMV-wide reports answer questions across every Group: hours by committee, visitor counts, ranked totals, and who has no hours yet. The DMV's Chair, Secretary, and Statistician read them. So do Records members and super-tier officers. Read _The org-wide reports_.
+DMV-wide reports answer questions across every Group: hours by committee, visitor counts, ranked totals, and who has no hours yet. The DMV's Chair, Secretary, and Statistician read them. So do Records members and super-tier officers. Read [The org-wide reports](the-org-wide-reports).
 
 ## What next
 
-Start with _Run your Group's hours report_. To take a report into a spreadsheet, read _Export a report as CSV_.
+Start with [Run your Group's hours report](run-your-groups-hours-report). To take a report into a spreadsheet, read [Export a report as CSV](export-a-report-as-csv).

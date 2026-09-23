@@ -36,4 +36,4 @@ Vos heures dans ce groupe, mois par mois. Vous pouvez aussi noter des heures sup
 
 ## Et ensuite
 
-Ouvrez l'onglet **Horaire**, puis lisez _S'inscrire à un quart_.
+Ouvrez l'onglet **Horaire**, puis lisez [S'inscrire à un quart](sign-up-for-a-shift).

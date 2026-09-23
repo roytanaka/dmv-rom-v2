@@ -31,4 +31,4 @@ Schedules, Shifts and sign-ups stay on the **Scheduling** tab. You still create 
 
 ## What next
 
-Read _Set Reminders and the empty-desk alert for your Group_ to fill in the first two cards.
+Read [Set Reminders and the empty-desk alert for your Group](set-reminders-and-the-empty-desk-alert) to fill in the first two cards.

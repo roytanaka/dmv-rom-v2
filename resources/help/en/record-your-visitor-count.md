@@ -20,4 +20,4 @@ Your count is saved on your seat. There is no deadline, so you can file it later
 
 ## What next
 
-Read _The shifts you still owe a number for_ to catch any shift still missing a count.
+Read [The shifts you still owe a number for](shifts-you-owe-a-number-for) to catch any shift still missing a count.

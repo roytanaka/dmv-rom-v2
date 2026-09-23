@@ -20,4 +20,4 @@ La page confirme par « Enregistré » quand le changement passe.
 
 ## Et ensuite
 
-Votre nouveau mot de passe prend effet aussitôt. Pour mettre à jour vos autres renseignements, lisez « Mettre à jour votre profil et votre photo ».
+Votre nouveau mot de passe prend effet aussitôt. Pour mettre à jour vos autres renseignements, lisez [Mettre à jour votre profil et votre photo](update-your-profile).

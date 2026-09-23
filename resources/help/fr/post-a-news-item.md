@@ -24,4 +24,4 @@ Vos propres publications portent les commandes **Modifier** et **Supprimer**. S�
 
 ## Et ensuite
 
-Votre publication apparaît dans le fil comme les autres. Lisez « Lire les nouvelles » pour voir la vue du lecteur.
+Votre publication apparaît dans le fil comme les autres. Lisez [Lire les nouvelles](read-news) pour voir la vue du lecteur.

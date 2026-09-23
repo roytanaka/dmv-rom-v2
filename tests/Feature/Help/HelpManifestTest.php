@@ -79,6 +79,57 @@ it('has every referenced screenshot on disk', function () {
     expect($missing)->toBe([]);
 });
 
+it('links only to articles in the manifest', function () {
+    // #618: a "What next" link is `[Title](slug)`. A renamed or removed article
+    // breaks this test, not the link.
+    $renderer = app(HelpArticleRenderer::class);
+    $manifest = new HelpManifest;
+    $unknown = [];
+
+    foreach ($manifest->all() as $article) {
+        foreach (['en', 'fr'] as $locale) {
+            foreach ($renderer->referencedArticles($article->slug, $locale) as $target) {
+                if ($manifest->find($target) === null) {
+                    $unknown[] = "{$locale}/{$article->slug}.md → {$target}";
+                }
+            }
+        }
+    }
+
+    expect($unknown)->toBe([]);
+});
+
+it('links the articles it names instead of naming them in italics or quotes', function () {
+    // #618: an article name in an article is a link, so the Member opens it in one step.
+    // Italics are left for nothing else, so any italic span is an unlinked name.
+    $renderer = app(HelpArticleRenderer::class);
+    $articles = (new HelpManifest)->all();
+    $unlinked = [];
+
+    foreach ($articles as $article) {
+        foreach (['en', 'fr'] as $locale) {
+            $source = file_get_contents(resource_path("help/{$locale}/{$article->slug}.md"));
+
+            preg_match_all('/(?<![\w\\\\])_(?=\S)[^_\n]+(?<=\S)_(?!\w)/u', $source, $italics);
+            foreach ($italics[0] as $italic) {
+                $unlinked[] = "{$locale}/{$article->slug}.md: {$italic}";
+            }
+
+            foreach ($articles as $named) {
+                $title = $renderer->title($named->slug, $locale);
+
+                foreach (["\"{$title}\"", "« {$title} »"] as $quoted) {
+                    if (str_contains($source, $quoted)) {
+                        $unlinked[] = "{$locale}/{$article->slug}.md: {$quoted}";
+                    }
+                }
+            }
+        }
+    }
+
+    expect($unlinked)->toBe([]);
+});
+
 it('carries a valid status and French state on every entry', function () {
     foreach ((new HelpManifest)->all() as $article) {
         expect($article->status)->toBeInstanceOf(ArticleStatus::class);

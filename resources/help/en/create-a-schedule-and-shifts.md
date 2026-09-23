@@ -35,7 +35,7 @@ The Schedule starts as a draft. Only your Group's Schedulers and Chairs can see 
 6. Choose the **Audience**: **Group members** or **Open to all**.
 7. Select **Save**.
 
-Repeat for each Shift. To add many at once, read _Add or remove many Shifts at once_.
+Repeat for each Shift. To add many at once, read [Add or remove many Shifts at once](add-or-remove-many-shifts).
 
 ## Publish the Schedule
 
@@ -45,4 +45,4 @@ Select **Publish** at the top of the Schedule when the Shifts are ready. Members
 
 ## What next
 
-Members sign up on their own. To place a named Member yourself, read _Assign a Member to a Shift_.
+Members sign up on their own. To place a named Member yourself, read [Assign a Member to a Shift](assign-a-member-to-a-shift).

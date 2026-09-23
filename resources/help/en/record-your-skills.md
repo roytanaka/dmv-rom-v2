@@ -19,4 +19,4 @@ The page confirms with "Saved" when your choices go through.
 
 ## What next
 
-You can change your choices any time. To update your other details, read "Update your profile and photo".
+You can change your choices any time. To update your other details, read [Update your profile and photo](update-your-profile).

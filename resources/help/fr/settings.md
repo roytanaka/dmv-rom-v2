@@ -18,4 +18,4 @@ La page Compétences enregistre les compétences que vous êtes prêt à mettre 
 
 ## Passer de l'une à l'autre
 
-La barre latérale liste Profil, Mot de passe et Compétences. Sélectionnez-en une pour l'ouvrir. Lisez les articles de tâche de cette section pour chaque page.
+La barre latérale liste Profil, Mot de passe et Compétences. Sélectionnez-en une pour l'ouvrir. Lisez [Mettre à jour votre profil et votre photo](update-your-profile), [Changer votre mot de passe](change-your-password) et [Enregistrer vos compétences](record-your-skills) pour les étapes de chaque page.

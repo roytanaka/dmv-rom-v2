@@ -34,4 +34,4 @@ L'alerte part tous les trois jours du mois.
 
 ## Et ensuite
 
-L'application envoie les deux courriels d'elle-même. Lisez _Rappels : ce que vous recevez et quand_ pour voir ce qu'un·e membre reçoit.
+L'application envoie les deux courriels d'elle-même. Lisez [Rappels : ce que vous recevez et quand](reminders) pour voir ce qu'un·e membre reçoit.

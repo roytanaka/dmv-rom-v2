@@ -26,4 +26,4 @@ Select the × beside the Member's name on the Shift. Confirm when the app asks. 
 
 ## What next
 
-The Member gets no email when you place them. Tell them yourself, or read _Set Reminders and the empty-desk alert for your Group_ to turn on reminders.
+The Member gets no email when you place them. Tell them yourself, or read [Set Reminders and the empty-desk alert for your Group](set-reminders-and-the-empty-desk-alert) to turn on reminders.

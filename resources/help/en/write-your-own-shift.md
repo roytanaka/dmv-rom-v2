@@ -47,4 +47,4 @@ Your shift ends at the start plus its units. The sign-out panel opens near that 
 
 ## What next
 
-Read _Cancel a sign-up_ for shifts a Scheduler wrote. Read _Record your visitor count after a shift_ for the sign-out details.
+Read [Cancel a sign-up](cancel-a-sign-up) for shifts a Scheduler wrote. Read [Record your visitor count after a shift](record-your-visitor-count) for the sign-out details.

@@ -50,7 +50,9 @@ order (overview first). Use the fields from step 2.
 ## 4. Write the English article
 
 Write `resources/help/en/<slug>.md` to the shape in the guide: H1 title, one-line
-purpose, numbered steps, a closing "what next" line. Follow the sentence rules —
+purpose, numbered steps, a closing "what next" line. The "what next" line links
+each article it names as `[Title](slug)`, never an italic or quoted name — see
+"Linking another article" in the guide. Follow the sentence rules —
 under 20 words, active voice, present tense, one instruction per sentence. Use
 `**Note:**` / `**Tip:**` callouts sparingly.
 

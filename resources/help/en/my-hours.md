@@ -14,4 +14,4 @@ Hours are grouped by fiscal year. The year runs 1 April to 31 March. The picker 
 
 ## Where the numbers come from
 
-Scheduled hours come from the Shifts you sign up for. Extra hours are the ones you record by hand on a Group. Read the task articles in this section to record and read your hours.
+Scheduled hours come from the Shifts you sign up for. Extra hours are the ones you record by hand on a Group. Read [Record extra hours for a month](record-extra-hours) and [Read your hours for the fiscal year](read-your-hours) for the steps.

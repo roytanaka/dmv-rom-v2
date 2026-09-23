@@ -20,4 +20,4 @@ The app reloads as that Persona. You now see every page with their roles and sta
 
 ## What next
 
-Read _Return to yourself after impersonating_ to get back to your own account.
+Read [Return to yourself after impersonating](return-to-yourself) to get back to your own account.

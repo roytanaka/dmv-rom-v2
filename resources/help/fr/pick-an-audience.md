@@ -41,4 +41,4 @@ Le menu **Courriel** se trouve sur chaque onglet d'une page de groupe. Ouvrez **
 
 ## Et ensuite
 
-Lisez _Joindre un fichier à un courriel_ pour envoyer un fichier avec votre diffusion.
+Lisez [Joindre un fichier à un courriel](attach-a-file) pour envoyer un fichier avec votre diffusion.

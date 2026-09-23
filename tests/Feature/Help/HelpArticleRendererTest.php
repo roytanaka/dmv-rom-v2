@@ -74,3 +74,25 @@ it('renders a blockquote without a Tip or Note label as a plain blockquote', fun
         ->toContain("<blockquote>\n<p>A plain quote with no label.</p>\n</blockquote>")
         ->and(substr_count($html, 'class="callout"'))->toBe(2);
 });
+
+it('renders a bare-slug link as the article help URL in the request language', function (string $locale, string $href) {
+    $html = fixtureRenderer()->render('link-fixture', $locale)->html;
+
+    expect($html)->toContain("<a href=\"{$href}\">");
+})->with([
+    'English' => ['en', '/help/sign-up-for-a-shift'],
+    'French' => ['fr', '/fr/aide/sign-up-for-a-shift'],
+]);
+
+it('leaves anchor, absolute-path and full-URL links as they are', function () {
+    $html = fixtureRenderer()->render('link-fixture', 'en')->html;
+
+    expect($html)
+        ->toContain('<a href="#steps">')
+        ->toContain('<a href="/directory">')
+        ->toContain('<a href="https://www.rom.on.ca">');
+});
+
+it('lists the article slugs an article links to', function () {
+    expect(fixtureRenderer()->referencedArticles('link-fixture', 'en'))->toBe(['sign-up-for-a-shift']);
+});

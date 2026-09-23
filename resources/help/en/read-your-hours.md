@@ -21,4 +21,4 @@ Select a year in the **Fiscal year** picker at the top. The page reloads on that
 
 ## What next
 
-To add hours to a Group, read "Record extra hours for a month".
+To add hours to a Group, read [Record extra hours for a month](record-extra-hours).

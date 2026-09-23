@@ -29,4 +29,4 @@ L'application envoie un courriel à chaque membre. Vous recevez une copie une fo
 
 ## Et ensuite
 
-Lisez _Choisir une audience_ pour joindre un autre ensemble de membres. Lisez _Joindre un fichier à un courriel_ pour envoyer un fichier avec.
+Lisez [Choisir une audience](pick-an-audience) pour joindre un autre ensemble de membres. Lisez [Joindre un fichier à un courriel](attach-a-file) pour envoyer un fichier avec.

@@ -33,4 +33,4 @@ Chaque carte de réunion porte **Modifier** et **Supprimer**. Sélectionnez **Mo
 
 ## Et ensuite
 
-Les membres lisent la réunion sur l'onglet **Réunions**. Pour gérer qui est dans le groupe, lisez _Gérer la liste des membres de votre groupe_.
+Les membres lisent la réunion sur l'onglet **Réunions**. Pour gérer qui est dans le groupe, lisez [Gérer la liste des membres de votre groupe](manage-your-groups-roster).

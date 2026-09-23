@@ -3,6 +3,7 @@
 namespace App\Help;
 
 use Illuminate\Support\Str;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 /**
  * Renders a Help article's Markdown to a title and sanitized HTML (ADR-0025).
@@ -18,7 +19,10 @@ use Illuminate\Support\Str;
  * annotation. The folder is `help-images`, not `help`: a `public/help/` directory
  * shadows the `/help` route on Apache (403 before Laravel runs). A blockquote that
  * opens with a bold `Tip:`/`Astuce :` or `Note:` label renders as a callout
- * `<div class="callout" data-callout="tip|note">`. If a locale's file
+ * `<div class="callout" data-callout="tip|note">`. A link written `[Title](slug)`
+ * with a bare slug is an article link: it resolves to that article's help URL in
+ * the requested locale (`/help/<slug>` or `/fr/aide/<slug>`); anchors, absolute
+ * paths and full URLs stay as they are. If a locale's file
  * is missing, the English file renders (the manifest test keeps that a dev-only
  * fallback).
  */
@@ -48,6 +52,7 @@ final class HelpArticleRenderer
         ]);
 
         $html = $this->renderScreenshots($html, $slug);
+        $html = $this->renderArticleLinks($html, $locale);
 
         return new RenderedArticle($title, $this->renderCallouts($html));
     }
@@ -76,6 +81,28 @@ final class HelpArticleRenderer
 
         return collect($matches[1])
             ->filter(fn (string $src) => $this->isScreenshot($src))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The article slugs an article's source links to, for the manifest-integrity test
+     * that every article link names an article in the manifest.
+     *
+     * @return list<string>
+     */
+    public function referencedArticles(string $slug, string $locale): array
+    {
+        $source = $this->read($slug, $locale);
+
+        if ($source === null) {
+            return [];
+        }
+
+        preg_match_all('/(?<!!)\[[^\]]*\]\(([^)]+)\)/', $source[1], $matches);
+
+        return collect($matches[1])
+            ->filter(fn (string $href) => $this->isArticleSlug($href))
             ->values()
             ->all();
     }
@@ -147,6 +174,27 @@ final class HelpArticleRenderer
         return preg_replace('#<p>(<figure>.*?</figure>)</p>#s', '$1', $html);
     }
 
+    /** Point each bare-slug link at that article's help URL in the locale. */
+    private function renderArticleLinks(string $html, string $locale): string
+    {
+        return preg_replace_callback(
+            '/<a href="([^"]*)"/',
+            function (array $match) use ($locale) {
+                [$openingTag, $href] = $match;
+
+                if (! $this->isArticleSlug($href)) {
+                    return $openingTag;
+                }
+
+                $url = LaravelLocalization::getURLFromRouteNameTranslated($locale, 'routes.help.show', ['article' => $href]);
+
+                // Path-only, like the breadcrumb, so the link stays on this host.
+                return sprintf('<a href="%s"', parse_url($url, PHP_URL_PATH));
+            },
+            $html,
+        );
+    }
+
     /**
      * Turn each blockquote that opens with a bold Tip or Note label (either locale)
      * into a callout that carries its kind. Any other blockquote stays as it is.
@@ -162,6 +210,12 @@ final class HelpArticleRenderer
             },
             $html,
         );
+    }
+
+    /** An article link's target is a bare slug: lowercase words joined by hyphens. */
+    private function isArticleSlug(string $href): bool
+    {
+        return preg_match('/^[a-z0-9]+(-[a-z0-9]+)*$/', $href) === 1;
     }
 
     /** A screenshot is a bare filename, not an absolute path or external URL. */

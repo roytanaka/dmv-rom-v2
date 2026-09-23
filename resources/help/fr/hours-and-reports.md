@@ -14,18 +14,18 @@ Trois sortes d'heures figurent sur le dossier d'un·e membre :
 - Les **heures de réunion** viennent des réunions auxquelles le·la membre a assisté.
 - Les **heures supplémentaires** qu'un·e membre saisit pour du travail hors des quarts et des réunions.
 
-Lisez _Saisir et corriger des heures_ pour savoir comment les nombres arrivent au dossier.
+Lisez [Saisir et corriger des heures](enter-and-correct-hours) pour savoir comment les nombres arrivent au dossier.
 
 ## Le rapport de votre groupe
 
-Un·e Président·e ou Statisticien·ne relit le rapport des heures de son propre groupe. Il liste les heures de chaque membre pour cette année financière et totalise le groupe. Lisez _Générer le rapport des heures de votre groupe_.
+Un·e Président·e ou Statisticien·ne relit le rapport des heures de son propre groupe. Il liste les heures de chaque membre pour cette année financière et totalise le groupe. Lisez [Générer le rapport des heures de votre groupe](run-your-groups-hours-report).
 
 ![Le rapport des heures d'un groupe : une ligne par membre, une colonne par mois, et les totaux du groupe](01.png)
 
 ## Les rapports à l'échelle de l'organisation
 
-Les rapports à l'échelle de l'organisation répondent à des questions sur tous les groupes : heures par comité, nombres de visiteur·euses, totaux classés, et qui n'a pas encore d'heures. Les Président·e, Secrétaire et Statisticien·ne du DMV les relisent. Les membres de Records et les officier·ères du super-niveau aussi. Lisez _Les rapports à l'échelle de l'organisation_.
+Les rapports à l'échelle de l'organisation répondent à des questions sur tous les groupes : heures par comité, nombres de visiteur·euses, totaux classés, et qui n'a pas encore d'heures. Les Président·e, Secrétaire et Statisticien·ne du DMV les relisent. Les membres de Records et les officier·ères du super-niveau aussi. Lisez [Les rapports à l'échelle de l'organisation](the-org-wide-reports).
 
 ## Et ensuite
 
-Commencez par _Générer le rapport des heures de votre groupe_. Pour verser un rapport dans un tableur, lisez _Exporter un rapport en CSV_.
+Commencez par [Générer le rapport des heures de votre groupe](run-your-groups-hours-report). Pour verser un rapport dans un tableur, lisez [Exporter un rapport en CSV](export-a-report-as-csv).

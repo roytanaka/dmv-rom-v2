@@ -28,4 +28,4 @@ L'application livre votre message. Votre propre adresse l'accompagne comme adres
 
 ## Et ensuite
 
-Lisez _Envoyer une diffusion à votre groupe_ pour écrire à plusieurs membres à la fois. Lisez _Ce que veut dire « En file pour N membres »_ pour voir ce qui se passe après l'envoi.
+Lisez [Envoyer une diffusion à votre groupe](send-a-broadcast) pour écrire à plusieurs membres à la fois. Lisez [Ce que veut dire « En file pour N membres »](queued-for-n-members) pour voir ce qui se passe après l'envoi.

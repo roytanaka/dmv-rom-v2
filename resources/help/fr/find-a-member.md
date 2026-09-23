@@ -25,4 +25,4 @@ Sélectionnez le nom d'un membre pour ouvrir son profil.
 
 ## Et ensuite
 
-Pour savoir quels renseignements un profil vous affiche, lisez « Ce que vous pouvez voir ou non sur un membre ».
+Pour savoir quels renseignements un profil vous affiche, lisez [Ce que vous pouvez voir ou non sur un membre](what-you-can-see-about-a-member).

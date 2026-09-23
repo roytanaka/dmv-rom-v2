@@ -14,4 +14,4 @@ Vous recevez un rappel pour chaque quart auquel vous vous êtes inscrit·e. Le c
 
 ## Et ensuite
 
-Lisez _S'inscrire à un quart_ si vous n'en avez pas encore pris un.
+Lisez [S'inscrire à un quart](sign-up-for-a-shift) si vous n'en avez pas encore pris un.

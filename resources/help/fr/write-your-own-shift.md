@@ -47,4 +47,4 @@ Votre quart se termine au début plus ses unités. Le panneau de sortie s'ouvre 
 
 ## Et ensuite
 
-Lisez _Annuler une inscription_ pour les quarts écrits par un·e Responsable horaire. Lisez _Noter votre nombre de visiteur·euses après un quart_ pour les détails de la sortie.
+Lisez [Annuler une inscription](cancel-a-sign-up) pour les quarts écrits par un·e Responsable horaire. Lisez [Noter votre nombre de visiteur·euses après un quart](record-your-visitor-count) pour les détails de la sortie.

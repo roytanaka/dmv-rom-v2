@@ -25,4 +25,4 @@ Your name joins the shift, and the seat count goes up by one.
 
 ## What next
 
-Read _Cancel a sign-up_ if your plans change. After the shift, read _Record your visitor count after a shift_.
+Read [Cancel a sign-up](cancel-a-sign-up) if your plans change. After the shift, read [Record your visitor count after a shift](record-your-visitor-count).

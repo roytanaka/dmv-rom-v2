@@ -27,4 +27,4 @@ Ouvrez la page d'un groupe auquel vous appartenez, ou d'un groupe que vous voule
 
 ## Et ensuite
 
-Sur une page de groupe, lisez _Les onglets d'une page de groupe_ pour apprendre ce que chaque onglet contient.
+Sur une page de groupe, lisez [Les onglets d'une page de groupe](group-page-tabs) pour apprendre ce que chaque onglet contient.

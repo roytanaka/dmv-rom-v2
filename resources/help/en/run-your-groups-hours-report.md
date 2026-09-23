@@ -38,4 +38,4 @@ The links across the top open other cuts of the same hours: **By month**, **Memb
 
 ## What next
 
-Select **Print** for a paper copy, or read _Export a report as CSV_ to open the numbers in a spreadsheet.
+Select **Print** for a paper copy, or read [Export a report as CSV](export-a-report-as-csv) to open the numbers in a spreadsheet.

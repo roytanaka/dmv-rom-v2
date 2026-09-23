@@ -22,4 +22,4 @@ The shift leaves the list once its count is saved.
 
 ## What next
 
-Read _Reminders: what you get and when_ to see how the app reminds you about your shifts.
+Read [Reminders: what you get and when](reminders) to see how the app reminds you about your shifts.
