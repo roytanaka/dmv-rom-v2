@@ -33,6 +33,9 @@ class LocaleRouteSegmentsTest extends TestCase
                 ->where('routeSegments.fr.officer', 'officier')
                 ->where('routeSegments.fr.members', 'membres')
                 ->where('routeSegments.fr.reports', 'rapports')
+                // The Group Settings tab (#604, ADR-0027 §1) links to /groups/{slug}/settings,
+                // so its French twin rides the same word as Account settings.
+                ->where('routeSegments.fr.settings', 'parametres')
         );
     }
 

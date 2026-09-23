@@ -14,6 +14,7 @@ return [
         'scheduling' => 'Horaire',
         'content' => 'Contenu',
         'hours' => 'Heures',
+        'settings' => 'Paramètres',
     ],
     'soon' => 'Bientôt',
 
@@ -141,6 +142,8 @@ return [
         ],
     ],
 
+    // L'onglet Paramètres (#604, ADR-0027) quand aucune de ses cartes ne s'applique.
+    'settings_empty' => 'Ce groupe n’a aucun paramètre que vous pouvez modifier.',
     'coming_soon' => 'Cette section arrive bientôt.',
 
     // Onglet Horaire (#353, ADR-0021 §1) — la surface de lecture des horaires.

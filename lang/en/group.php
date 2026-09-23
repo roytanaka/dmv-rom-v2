@@ -16,6 +16,7 @@ return [
         'scheduling' => 'Scheduling',
         'content' => 'Content',
         'hours' => 'Hours',
+        'settings' => 'Settings',
     ],
     // Marker on a capability tab whose feature has not shipped yet.
     'soon' => 'Soon',
@@ -157,6 +158,9 @@ return [
             'totem' => 'Totem',
         ],
     ],
+
+    // The Settings tab (#604, ADR-0027) when none of its cards applies to the viewer.
+    'settings_empty' => 'This group has no settings you can change.',
 
     // Section panels not yet built in this slice.
     'coming_soon' => 'This section is coming soon.',

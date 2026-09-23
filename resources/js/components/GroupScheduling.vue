@@ -60,8 +60,6 @@ const props = defineProps<{
     collectsVisitorCount: boolean;
     collectsExtraInteractions: boolean;
     collectsVisitorProvenance: boolean;
-    reminders: { enabled: boolean; leadDays: number };
-    canManageReminders: boolean;
     emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] };
     canManageEmptyDesk: boolean;
     // The Group's self-serve settings (#582) — the self-serve card reads them, gated by
@@ -192,16 +190,6 @@ const emailRoster = computed<Recipient[]>(() =>
         standing: candidate.standing,
     })),
 );
-
-// --- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and lead
-// days, gated by `canManageReminders`. One PATCH to the dedicated endpoint; the server
-// re-checks the gate. The form seeds from the Group's current settings.
-const reminderForm = useForm<{ reminders_enabled: boolean; reminder_lead_days: number }>({
-    reminders_enabled: props.reminders.enabled,
-    reminder_lead_days: props.reminders.leadDays,
-});
-
-const saveReminders = () => reminderForm.patch(route('groups.reminders.update', { group: props.groupSlug }), { preserveScroll: true });
 
 // --- Empty-desk settings (#487, ADR-0024 §7) — the schedule-admin's on/off switch, look-ahead,
 // and the tick-rows marking which shift kinds to watch, gated by `canManageEmptyDesk`. One PATCH
@@ -1012,32 +1000,6 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 {{ trans('group.scheduling_panel.new') }}
             </Button>
         </div>
-
-        <!-- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and
-             lead days for this Group's shift Reminders. Shown on the list view only, and only to
-             a Scheduler / Chair (`canManageReminders`); the server re-checks on save. -->
-        <Card v-if="canManageReminders && !scheduling.open">
-            <CardHeader>
-                <CardTitle>{{ trans('group.scheduling_panel.reminders.heading') }}</CardTitle>
-            </CardHeader>
-            <CardContent class="flex flex-col gap-4">
-                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.reminders.description') }}</p>
-                <label class="flex items-center gap-2 text-sm">
-                    <Checkbox :checked="reminderForm.reminders_enabled" @update:checked="(on: boolean) => (reminderForm.reminders_enabled = on)" />
-                    {{ trans('group.scheduling_panel.reminders.enabled_label') }}
-                </label>
-                <div class="flex flex-col gap-1.5">
-                    <Label for="reminder-lead-days">{{ trans('group.scheduling_panel.reminders.lead_days_label') }}</Label>
-                    <Input id="reminder-lead-days" v-model.number="reminderForm.reminder_lead_days" type="number" min="1" max="90" class="w-24" />
-                    <InputError :message="reminderForm.errors.reminder_lead_days" />
-                </div>
-                <div class="flex justify-end">
-                    <Button type="button" size="sm" :disabled="reminderForm.processing" @click="saveReminders">
-                        {{ trans('group.scheduling_panel.save') }}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
 
         <!-- Empty-desk settings (#487, ADR-0024 §7) — the schedule-admin's on/off switch,
              look-ahead, and the tick-rows marking which shift kinds the alert watches. Shown on

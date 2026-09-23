@@ -17,6 +17,5 @@ return [
         'publications' => 'Publications',
         'meetings' => 'Meetings',
         'statistics' => 'Statistics',
-        'schedule_admin' => 'Schedule Admin',
     ],
 ];

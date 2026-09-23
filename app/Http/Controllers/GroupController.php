@@ -26,6 +26,7 @@ use App\Models\SignUp;
 use App\Support\Audiences\AudienceContext;
 use App\Support\Audiences\AudienceResolver;
 use App\Support\OrgTime;
+use App\Support\RouteSegments;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -49,11 +50,14 @@ class GroupController extends Controller
     /**
      * The Group page. The {section} segment selects the active tab; a bare slug
      * lands on Overview. The Group is bound by slug ({@see Group::getRouteKeyName}),
-     * so an unknown slug 404s before this runs.
+     * so an unknown slug 404s before this runs. Under /fr/ the segment arrives in French
+     * (`parametres`) and is read back to its English section key (ADR-0008).
      */
     public function show(Request $request, Group $group, ?string $section = null): Response
     {
-        return $this->render($request, $group, $section ?? 'overview', null);
+        $section = $section === null ? 'overview' : RouteSegments::canonical($section, app()->getLocale());
+
+        return $this->render($request, $group, $section, null);
     }
 
     /**
@@ -113,6 +117,15 @@ class GroupController extends Controller
             abort_unless($request->user()->can('viewAny', [Schedule::class, $group]), 404);
         }
 
+        // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
+        // configuration right. Anyone else gets 403 — the Meetings shape: the Group exists and
+        // they may open it, but not this tab.
+        $canManageSettings = $this->canManageSettings($request, $group);
+
+        if ($section === 'settings') {
+            abort_unless($canManageSettings, 403);
+        }
+
         $group->load([
             'parent',
             // Only active children are navigable — an archived child still renders
@@ -124,6 +137,7 @@ class GroupController extends Controller
             'memberships.roles',
         ]);
 
+        $canManageReminders = $request->user()->can('updateReminders', [Schedule::class, $group]);
         $canManageShiftKinds = $request->user()->can('manageShiftKinds', [Schedule::class, $group]);
         $canManageObjects = $request->user()->can('manageObjects', [Schedule::class, $group]);
 
@@ -163,14 +177,6 @@ class GroupController extends Controller
                     // the provenance split that must sum to the count. GDR alone is on; every other
                     // Group leaves it off and its sign-out panel shows no origin boxes.
                     'collectsVisitorProvenance' => $group->collects_visitor_provenance,
-                ],
-                // The Group's Reminder settings (#486, ADR-0024 §7) — the Scheduling section's
-                // Reminders block reads these to render its on/off switch and lead-days field.
-                // Present on every Group; the block itself renders only inside Scheduling, and
-                // only to a schedule admin (`can.manageReminders`).
-                'reminders' => [
-                    'enabled' => $group->reminders_enabled,
-                    'leadDays' => $group->reminder_lead_days,
                 ],
                 // The Group's empty-desk settings (#487, ADR-0024 §7) — the Scheduling section's
                 // empty-desk block reads these to render its on/off switch, look-ahead field, and
@@ -251,10 +257,13 @@ class GroupController extends Controller
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $request->user()->can('create', [GroupMember::class, $group]),
                 'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
-                // `manageReminders` drives the Scheduling tab's Reminders settings block (#486,
-                // ADR-0024 §7) — a Scheduler or Chair of the scheduling Group. UI hint only;
+                // `manageSettings` drives the Settings tab (ADR-0027 §1) — true when any of the
+                // five configuration rights below holds. UI hint only; the section re-checks it.
+                'manageSettings' => $canManageSettings,
+                // `manageReminders` drives the Settings tab's Reminders card (#486, ADR-0024 §7)
+                // — a Scheduler or Chair of the scheduling Group. UI hint only;
                 // UpdateReminderSettingsRequest re-checks the gate on PATCH.
-                'manageReminders' => $request->user()->can('updateReminders', [Schedule::class, $group]),
+                'manageReminders' => $canManageReminders,
                 // `manageEmptyDesk` drives the Scheduling tab's empty-desk settings block (#487,
                 // ADR-0024 §7) — the same Scheduler/Chair gate as Reminders. UI hint only;
                 // UpdateEmptyDeskSettingsRequest re-checks the gate on PATCH.
@@ -315,6 +324,11 @@ class GroupController extends Controller
             'hours' => $section === 'hours'
                 ? $this->hours($request, $group)
                 : ['records' => [], 'months' => []],
+            // The Settings tab's payload, resolved only on that tab and past its gate above. Each
+            // card's values ride only with that card's right.
+            'settings' => $section === 'settings'
+                ? $this->settings($group, $canManageReminders)
+                : ['reminders' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -336,6 +350,33 @@ class GroupController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Whether the viewer holds any Group-scoped configuration right — the Settings tab's gate
+     * (ADR-0027 §1). The tab appears with authority, not with data: a Chair sees it empty or full.
+     */
+    private function canManageSettings(Request $request, Group $group): bool
+    {
+        return collect(['updateReminders', 'updateEmptyDeskAlert', 'updateSelfServe', 'manageShiftKinds', 'manageObjects'])
+            ->contains(fn (string $ability): bool => $request->user()->can($ability, [Schedule::class, $group]));
+    }
+
+    /**
+     * The Settings tab's cards (ADR-0027 §2). The Reminders card (#486, ADR-0024 §7) reads the
+     * on/off switch and lead days. It is a scheduling card, so it is null on a Group that runs
+     * no scheduling, and null for a viewer without `updateReminders`.
+     *
+     * @return array{reminders: array{enabled: bool, leadDays: int}|null}
+     */
+    private function settings(Group $group, bool $canManageReminders): array
+    {
+        return [
+            'reminders' => $group->has_scheduling && $canManageReminders ? [
+                'enabled' => $group->reminders_enabled,
+                'leadDays' => $group->reminder_lead_days,
+            ] : null,
+        ];
     }
 
     /**
