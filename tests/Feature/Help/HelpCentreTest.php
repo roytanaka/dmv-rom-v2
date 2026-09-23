@@ -27,10 +27,6 @@ function bindHelpFixtures(): void
     ]));
 }
 
-it('redirects a guest from the help index to login', function () {
-    $this->get('/help')->assertRedirect('/login');
-});
-
 // #623: the index — a Start here box fed by Getting started, then one card per other
 // section with its overview, lead line, up to three published tasks, and a task count.
 function bindIndexFixtures(): void
@@ -50,6 +46,10 @@ function bindIndexFixtures(): void
         new HelpArticle('support-task', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Published),
     ]));
 }
+
+it('redirects a guest from the help index to login', function () {
+    $this->get('/help')->assertRedirect('/login');
+});
 
 it('feeds the Start here box from Getting started, not a card', function () {
     bindIndexFixtures();

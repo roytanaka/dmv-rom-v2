@@ -35,13 +35,14 @@ class HelpController extends Controller
         $cards = collect($manifest->publishedSections())->mapWithKeys(function (HelpSection $section) use ($manifest, $renderer, $locale, $link) {
             $overview = $manifest->overviewSlug($section);
             $published = collect($manifest->publishedIn($section));
+            $overviewIsPublished = $published->contains('isOverview', true);
             $tasks = $published->reject(fn (HelpArticle $article) => $article->isOverview)->values();
 
             return [$section->value => [
                 'key' => $section->value,
                 'labelKey' => $section->labelKey(),
                 'overview' => $overview === null ? null : $link($overview),
-                'lead' => $published->contains('isOverview', true) ? $renderer->lead($overview, $locale) : null,
+                'lead' => $overviewIsPublished ? $renderer->lead($overview, $locale) : null,
                 'articles' => $tasks->take(3)->map(fn (HelpArticle $article) => [
                     'slug' => $article->slug,
                     ...$link($article->slug),

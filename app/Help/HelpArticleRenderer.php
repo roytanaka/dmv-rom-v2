@@ -25,8 +25,8 @@ use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
  * paths and full URLs stay as they are. Each level-two heading gets a stable id
  * (its text as a slug) and the rendered article lists the headings for the page's
  * "On this page" list. The lead line is the first body paragraph as plain text,
- * the section summary on the index cards. If a locale's file is missing, the English file renders
- * (the manifest test keeps that a dev-only fallback).
+ * the section summary on the index cards. If a locale's file is missing, the
+ * English file renders (the manifest test keeps that a dev-only fallback).
  */
 final class HelpArticleRenderer
 {

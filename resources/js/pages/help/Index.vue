@@ -2,9 +2,10 @@
 // The help centre index (#517, #518, #623, PRD #516, PRD #615, ADR-0025). A "Start
 // here" box fed by the Getting started section, then one card per other published
 // section: its title linked to its overview, the overview's lead line as the summary,
-// up to three published task articles, and a closing link to all of them. Drafts
-// never reach this page. Every logged-in Member sees every published article — the
-// Required-role badge informs but does not gate. Section labels are chrome
+// up to three published task articles, and a closing link to all of them. Draft
+// articles are never listed, though a draft overview still backs its card's links.
+// Every logged-in Member sees every published article — the Required-role badge
+// informs but does not gate. Section labels are chrome
 // (ADR-0004), resolved via trans(); titles, leads and hrefs come from the server,
 // already localized (ADR-0008).
 import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
