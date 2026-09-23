@@ -55,6 +55,8 @@ return [
         'reports' => 'Rapports',
         'flash_messages' => 'Messages éclair',
         'dmv_settings' => 'Paramètres du DMV',
+        'mail_status' => 'État du courriel',
+        'help_status' => 'État de l’aide',
     ],
 
     // Nom accessible du chevron qui ouvre/ferme les sous-groupes d'un groupe (#91).

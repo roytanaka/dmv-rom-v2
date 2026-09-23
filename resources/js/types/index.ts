@@ -13,7 +13,6 @@ export interface Auth {
      */
     can: {
         administerMembers: boolean;
-        viewMailStatus: boolean;
     };
 }
 

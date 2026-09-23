@@ -101,9 +101,6 @@ class HandleInertiaRequests extends Middleware
                 // are computed by the relevant policy on each page.
                 'can' => [
                     'administerMembers' => (bool) $request->user()?->can('administer-members'),
-                    // Super-tier-only Mail status page (ADR-0024 §10). Coarse hint for the
-                    // user-menu item; the route re-checks the gate on every visit.
-                    'viewMailStatus' => (bool) $request->user()?->can('view-mail-status'),
                 ],
             ],
             // Persisted sidebar state. The cookie is written client-side by the
@@ -308,18 +305,25 @@ class HandleInertiaRequests extends Middleware
      * Super-tier passes the abilities too via the Gate::before short-circuit, so it sees
      * all five.
      *
+     * Mail status and Help status close the cluster (ADR-0027 §4). They are org-wide
+     * operations pages behind the super-tier-only gates their routes already authorize,
+     * and their hrefs are the non-localized routes: the pages have no French twin.
+     *
      * @return array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}|null
      */
     private function officer(Member $member): ?array
     {
         // Each item, in render order, with the authority that gates it: a Gate ability
-        // (`gate`) or the interim super-tier-only check (no ability yet).
+        // (`gate`) or the interim super-tier-only check (no ability yet). A localized
+        // `route` resolves per locale; a fixed `href` is emitted as-is.
         $items = [
             ['key' => 'members', 'route' => 'officer.members', 'labelKey' => 'nav.officer.members', 'gate' => 'administer-members'],
             ['key' => 'communications', 'route' => 'officer.communications', 'labelKey' => 'nav.officer.communications', 'gate' => 'post-news'],
             ['key' => 'reports', 'route' => 'officer.reports', 'labelKey' => 'nav.officer.reports'],
             ['key' => 'flash-messages', 'route' => 'officer.flash-messages', 'labelKey' => 'nav.officer.flash_messages'],
             ['key' => 'settings', 'route' => 'officer.settings', 'labelKey' => 'nav.officer.dmv_settings'],
+            ['key' => 'mail-status', 'href' => route('mail-status', absolute: false), 'labelKey' => 'nav.officer.mail_status', 'gate' => 'view-mail-status'],
+            ['key' => 'help-status', 'href' => route('help-status', absolute: false), 'labelKey' => 'nav.officer.help_status', 'gate' => 'view-help-ledger'],
         ];
 
         $visible = collect($items)
@@ -737,9 +741,10 @@ class HandleInertiaRequests extends Middleware
     /**
      * Resolve one global destination to its shareable shape: a stable key, its chrome
      * label key (translated client-side via the i18n bridge), and the active locale's
-     * localized path for the destination's route (ADR-0008).
+     * localized path for the destination's route (ADR-0008). A spec carrying a fixed
+     * `href` instead — a non-localized page with no French twin — keeps it verbatim.
      *
-     * @param  array{key: string, route: string, labelKey: string}  $spec
+     * @param  array{key: string, labelKey: string, route?: string, href?: string}  $spec
      * @return array{key: string, labelKey: string, href: string}
      */
     private function destination(array $spec): array
@@ -747,7 +752,7 @@ class HandleInertiaRequests extends Middleware
         return [
             'key' => $spec['key'],
             'labelKey' => $spec['labelKey'],
-            'href' => $this->localizedPath("routes.{$spec['route']}"),
+            'href' => $spec['href'] ?? $this->localizedPath("routes.{$spec['route']}"),
         ];
     }
 
