@@ -1108,7 +1108,7 @@ class DemoSeeder extends Seeder
 
         $this->wayfindersScheduling($lastMonth, $month);
 
-        $this->galleryInterpretersScheduling($month);
+        $this->galleryInterpretersScheduling($lastMonth, $month);
     }
 
     /**
@@ -1401,8 +1401,9 @@ class DemoSeeder extends Seeder
      * rather than the generic recent-shifts Schedule the other collecting Groups drop. Every Shift
      * is self-serve shaped ({@see ADR-0026 §1}): capacity 1, one Sign-up on it — the author — a
      * station for its kind, one to three 45-minute units for its length, and three Objects on the
-     * Sign-up. Written on the current month, so past days carry the visitor numbers filed at
-     * sign-out and future days read as advance sign-ups.
+     * Sign-up. Written on last month and this month, as the other rostered Groups are: last
+     * month is worked and signed out throughout, and this month carries the numbers filed on its
+     * past days while its future days read as advance sign-ups.
      *
      * The month passes the app's own two checks by construction ({@see reserveGalleryInterpreterObjects()}
      * and the distinct-station-per-day rule of {@see galleryInterpreterSpecs()}): no Object sits on
@@ -1410,7 +1411,7 @@ class DemoSeeder extends Seeder
      * three days, its Objects held a day either side by the off-site kind. Skipped silently if the
      * Group is absent.
      */
-    private function galleryInterpretersScheduling(CarbonImmutable $month): void
+    private function galleryInterpretersScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month): void
     {
         $group = Group::where('slug', self::GALLERY_INTERPRETERS)->first();
 
@@ -1420,20 +1421,35 @@ class DemoSeeder extends Seeder
 
         $kinds = $this->galleryInterpreterKinds($group);
 
-        $schedule = $this->monthSchedule($group, $month, 'The Gallery Interpreters roster. Write your own shift below.');
+        $schedules = [];
+        foreach ([$lastMonth, $month] as $start) {
+            $schedule = $this->monthSchedule(
+                $group,
+                $start,
+                $start->lessThan($month)
+                    ? 'Last month\'s Gallery Interpreters roster, worked and signed out.'
+                    : 'The Gallery Interpreters roster. Write your own shift below.',
+            );
 
-        $this->writeShifts($schedule, $month, $this->galleryInterpreterSpecs($month), $kinds);
+            $this->writeShifts($schedule, $start, $this->galleryInterpreterSpecs($start), $kinds);
+
+            $schedules[] = $schedule;
+        }
 
         // A self-serve Shift is capacity 1 with its author's Sign-up on it, so every seat is taken;
         // the count a worked seat carries scales with its units, about 32 visitors a 45-minute unit.
         $this->seatRoster(
             $group,
-            [$schedule],
+            $schedules,
             fn (Shift $shift) => $shift->capacity,
             fn (Shift $shift) => $this->galleryInterpreterCount($shift),
         );
 
-        $this->reserveGalleryInterpreterObjects($group, $schedule);
+        // Objects are reserved once the seats exist, a month at a time: a hold never reaches past
+        // its own month, since a shift ends on its own day and an off-site event sits mid-month.
+        foreach ($schedules as $schedule) {
+            $this->reserveGalleryInterpreterObjects($group, $schedule);
+        }
     }
 
     /**
