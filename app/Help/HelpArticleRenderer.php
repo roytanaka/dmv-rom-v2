@@ -45,7 +45,7 @@ final class HelpArticleRenderer
             'allow_unsafe_links' => false,
         ]);
 
-        return new RenderedArticle($title, $this->renderScreenshots($html, $slug));
+        return new RenderedArticle($title, $this->renderCallouts($this->renderScreenshots($html, $slug)));
     }
 
     /** An article's title (its first level-one heading), or null when it is missing. */
@@ -141,6 +141,23 @@ final class HelpArticleRenderer
 
         // Unwrap the paragraph CommonMark put a lone image in, so the figure is a block.
         return preg_replace('#<p>(<figure>.*?</figure>)</p>#s', '$1', $html);
+    }
+
+    /**
+     * Turn each blockquote that opens with a bold Tip or Note label (either locale)
+     * into a callout that carries its kind. Any other blockquote stays as it is.
+     */
+    private function renderCallouts(string $html): string
+    {
+        return preg_replace_callback(
+            '#<blockquote>\n(<p><strong>(Tip|Astuce|Note)\s*:</strong>.*?)</blockquote>#s',
+            function (array $match) {
+                $kind = $match[2] === 'Note' ? 'note' : 'tip';
+
+                return "<div class=\"callout\" data-callout=\"{$kind}\">\n{$match[1]}</div>";
+            },
+            $html,
+        );
     }
 
     /** A screenshot is a bare filename, not an absolute path or external URL. */
