@@ -4,19 +4,19 @@ Cette application est l'endroit où les bénévoles du DMV travaillent en ligne.
 
 Cette page vous fait faire le tour. Chaque autre article couvre une seule tâche.
 
-![Le tableau de bord : la barre noire en haut, le rail des groupes à gauche et vos groupes au centre](01.png)
+![Le tableau de bord : la barre noire en haut, la barre latérale gauche avec vos groupes et vos groupes au centre](01.png)
 
 ## La barre supérieure
 
 La barre noire reste en haut de chaque page. Elle contient vos liens principaux : Mes heures, Mon calendrier, Nouvelles et Répertoire. Vos initiales se trouvent à droite. L'aide, marquée d'un « ? », se trouve à côté.
 
-## Le rail
+## La barre latérale gauche
 
-Le rail descend le long du côté gauche. Il liste les groupes auxquels vous appartenez. Sélectionnez un groupe pour ouvrir ses pages.
+La barre latérale gauche liste les groupes auxquels vous appartenez. Sélectionnez un groupe pour ouvrir ses pages.
 
 ## Vos groupes
 
-Vos groupes se trouvent dans le rail, sous Mes groupes. Chaque groupe a ses propres nouvelles, son horaire et son effectif. Ouvrez un groupe pour voir un quart que vous pouvez prendre.
+Vos groupes se trouvent dans la barre latérale gauche, sous Mes groupes. Chaque groupe a ses propres nouvelles, son horaire et son effectif. Ouvrez un groupe pour voir un quart que vous pouvez prendre.
 
 ## Où trouver de l'aide
 

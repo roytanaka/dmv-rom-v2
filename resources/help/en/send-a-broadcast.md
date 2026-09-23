@@ -4,7 +4,7 @@ Email everyone in your Group at once.
 
 ## Send the Broadcast
 
-1. Open your Group from the rail.
+1. Open your Group from the Left Side Bar.
 2. Select **Email** in the tab strip.
 
     ![The Email menu open under the tab strip: each Audience with the number of Members it reaches](01.png)

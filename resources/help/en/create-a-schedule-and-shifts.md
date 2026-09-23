@@ -4,7 +4,7 @@ Open a Schedule for your Group, then add the Shifts Members sign up to staff. Yo
 
 ## Create the Schedule
 
-1. Open your Group from the rail.
+1. Open your Group from the Left Side Bar.
 2. Select the **Scheduling** tab.
 
     ![The Scheduling tab, as a Scheduler: the New schedule button above the list of schedules](01.png)

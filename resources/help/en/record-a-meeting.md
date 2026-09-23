@@ -4,7 +4,7 @@ Post a meeting for your Group, with its time, place, and links. You need the Sec
 
 ## Add a meeting
 
-1. Open your Group from the rail.
+1. Open your Group from the Left Side Bar.
 2. Select the **Meetings** tab.
 
     ![The Meetings tab: New meeting above the Upcoming and Past meetings, each with Edit and Delete](01.png)

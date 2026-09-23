@@ -4,7 +4,7 @@ Record the hours you spent helping a Group outside your scheduled Shifts.
 
 ## Record your hours
 
-1. Open a Group from the Dashboard or the rail.
+1. Open a Group from the Dashboard or the Left Side Bar.
 2. Select the **Hours** tab.
 
     ![The Hours tab of a Group: the Record extra hours form, with Hours to add and Add hours for this month and last month](01.png)

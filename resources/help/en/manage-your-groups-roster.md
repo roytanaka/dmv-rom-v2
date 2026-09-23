@@ -4,7 +4,7 @@ Add Members to your Group, set the roles they hold, and remove those who leave. 
 
 ## Add a Member
 
-1. Open your Group from the rail.
+1. Open your Group from the Left Side Bar.
 2. Select the **Members** tab.
 
     ![The Members tab: Show past members and Add member above the roster, and a menu at the end of each row](01.png)
