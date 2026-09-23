@@ -6,7 +6,7 @@ A shift kind is the label on a Shift, such as "Museum Highlights" or "Desk".
 
 ## Add a shift kind
 
-1. Open your Group's **Scheduling** tab.
+1. Open your Group's **Settings** tab.
 2. Find the **Shift kinds** card.
 3. Type the new name under **Add a shift kind**.
 4. Select **Add**.

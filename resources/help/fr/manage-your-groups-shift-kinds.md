@@ -6,7 +6,7 @@ Un type de quart est l'étiquette d'un quart, comme « Faits saillants du Musée
 
 ## Ajouter un type de quart
 
-1. Ouvrez l'onglet **Horaires** de votre groupe.
+1. Ouvrez l'onglet **Paramètres** de votre groupe.
 2. Trouvez la carte **Types de quart**.
 3. Saisissez le nouveau nom sous **Ajouter un type de quart**.
 4. Sélectionnez **Ajouter**.

@@ -6,7 +6,7 @@ Turn on the two emails your Group sends about its Shifts. You need the Scheduler
 
 A reminder emails a Member a few days before a Shift they signed up for.
 
-1. Open your Group's **Scheduling** tab.
+1. Open your Group's **Settings** tab.
 2. Find the **Shift reminders** card.
 
     ![The Shift reminders card: Send shift reminders and Days before the shift](01.png)

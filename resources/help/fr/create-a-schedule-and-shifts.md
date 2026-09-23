@@ -7,7 +7,7 @@ Ouvrez un horaire pour votre groupe, puis ajoutez les quarts que les membres vie
 1. Ouvrez votre groupe depuis la barre latérale.
 2. Sélectionnez l'onglet **Horaire**.
 
-    ![L'onglet Horaire, vu par un·e Responsable horaire : le bouton Nouvel horaire au-dessus de la carte Rappels de quart](01.png)
+    ![L'onglet Horaire, vu par un·e Responsable horaire : le bouton Nouvel horaire au-dessus de la liste des horaires](01.png)
 
 3. Sélectionnez **Nouvel horaire**.
 
