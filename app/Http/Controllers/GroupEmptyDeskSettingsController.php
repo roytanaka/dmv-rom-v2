@@ -8,8 +8,8 @@ use Illuminate\Http\RedirectResponse;
 
 /**
  * The Group's empty-desk settings write seam (#487, spec #479, ADR-0024 §7) — the Settings
- * tab's Empty-desk alert card (ADR-0027 §2): the alert on/off, the look-ahead days, and which shift kinds to
- * watch, edited by a Scheduler or Chair. A dedicated endpoint, parallel to
+ * tab's Empty-desk alert card (ADR-0027 §2): the alert on/off, the look-ahead days, and which
+ * shift kinds to watch, edited by a Scheduler or Chair. A dedicated endpoint, parallel to
  * {@see GroupReminderSettingsController}, structurally authorized in its Form Request (the
  * SchedulePolicy `updateEmptyDeskAlert` gate). The `can` hint on the page is a UI hint only — the
  * server enforces here regardless.

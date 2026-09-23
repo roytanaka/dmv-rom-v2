@@ -33,6 +33,7 @@ const props = defineProps<{
 const showReminders = computed(() => props.canManageReminders && props.runsScheduling && props.reminders !== null);
 const showEmptyDesk = computed(() => props.canManageEmptyDesk && props.runsScheduling && props.emptyDesk !== null);
 const showSelfServe = computed(() => props.canManageSelfServe && props.runsScheduling && props.selfServe !== null);
+const showAnyCard = computed(() => showReminders.value || showEmptyDesk.value || showSelfServe.value);
 
 // --- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and lead
 // days, gated by `canManageReminders`. One PATCH to the dedicated endpoint; the server
@@ -75,10 +76,10 @@ const saveSelfServe = () => selfServeForm.patch(route('groups.self-serve.update'
 
 <template>
     <div class="flex flex-col gap-4">
-        <!-- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and
-             lead days for this Group's shift Reminders. Shown only to a Scheduler / Chair
-             (`canManageReminders`) of a scheduling Group; the server re-checks on save. -->
-        <template v-if="showReminders || showEmptyDesk || showSelfServe">
+        <template v-if="showAnyCard">
+            <!-- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and
+                 lead days for this Group's shift Reminders. Shown only to a Scheduler / Chair
+                 (`canManageReminders`) of a scheduling Group; the server re-checks on save. -->
             <Card v-if="showReminders">
                 <CardHeader>
                     <CardTitle>{{ trans('group.scheduling_panel.reminders.heading') }}</CardTitle>
@@ -106,9 +107,10 @@ const saveSelfServe = () => selfServeForm.patch(route('groups.self-serve.update'
             </Card>
 
             <!-- Empty-desk settings (#487, ADR-0024 §7) — the schedule-admin's on/off switch,
-             look-ahead, and the tick-rows marking which shift kinds the alert watches. Shown only
-             to a Scheduler / Chair (`canManageEmptyDesk`) of a scheduling Group; the server
-             re-checks on save. -->
+                 look-ahead, and the tick-rows marking which shift kinds the alert watches. Shown
+                 only to a Scheduler / Chair (`canManageEmptyDesk`) of a scheduling Group; the
+                 server re-checks on save. The `emptyDesk` test narrows the prop's type for the
+                 tick-rows below. -->
             <Card v-if="showEmptyDesk && emptyDesk">
                 <CardHeader>
                     <CardTitle>{{ trans('group.scheduling_panel.empty_desk.heading') }}</CardTitle>
@@ -156,8 +158,8 @@ const saveSelfServe = () => selfServeForm.patch(route('groups.self-serve.update'
             </Card>
 
             <!-- Self-serve settings (#582, ADR-0026 §1 and §2) — the schedule-admin's self-serve
-             on/off switch and the unit length in minutes. Shown only to a Scheduler / Chair
-             (`canManageSelfServe`) of a scheduling Group; the server re-checks on save. -->
+                 on/off switch and the unit length in minutes. Shown only to a Scheduler / Chair
+                 (`canManageSelfServe`) of a scheduling Group; the server re-checks on save. -->
             <Card v-if="showSelfServe">
                 <CardHeader>
                     <CardTitle>{{ trans('group.scheduling_panel.self_serve.heading') }}</CardTitle>
