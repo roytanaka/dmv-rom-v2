@@ -372,10 +372,24 @@ class DemoSeeder extends Seeder
      */
     private array $seenSlugs = [];
 
+    /**
+     * Real "About Us" text by Group slug, copied from legacy (data/group-about-us.php).
+     *
+     * @var array<string, string>
+     */
+    private array $aboutUs = [];
+
     public function run(): void
     {
         $this->seenSlugs = [];
+        $this->aboutUs = require __DIR__.'/data/group-about-us.php';
         $this->build($this->tree(), null, 0);
+
+        $unused = array_diff_key($this->aboutUs, $this->seenSlugs);
+        if ($unused !== []) {
+            throw new RuntimeException('About Us text for unknown demo Group slugs: '.implode(', ', array_keys($unused)));
+        }
+
         $this->roster();
         $this->bulkRoster();
         $this->objects();
@@ -2975,7 +2989,7 @@ class DemoSeeder extends Seeder
         }
         $this->seenSlugs[$slug] = true;
 
-        $group = $this->group($slug, $this->attributesFor($node, $parent?->id, $order));
+        $group = $this->group($slug, $this->attributesFor($node, $slug, $parent?->id, $order));
 
         foreach (array_values($node['children'] ?? []) as $i => $child) {
             $this->build($child, $group, $i);
@@ -2992,15 +3006,16 @@ class DemoSeeder extends Seeder
      * @param  array<string, mixed>  $node
      * @return array<string, mixed>
      */
-    private function attributesFor(array $node, ?int $parentId, int $order): array
+    private function attributesFor(array $node, string $slug, ?int $parentId, int $order): array
     {
         $kind = $node['kind'];
 
         $attributes = [
             'parent_id' => $parentId,
             'name' => $node['name'],
-            // A container has no page, so no auto-generated About blurb (PRD #289).
-            'description' => $node['description'] ?? ($kind === Kind::Container ? null : $this->aboutFor($node)),
+            // Real legacy About Us text where the Group had one; otherwise null, so
+            // the page shows its empty state rather than invented copy.
+            'description' => $node['description'] ?? $this->aboutUs[$slug] ?? null,
             'kind' => $kind,
             'scope' => $this->scopeFor($kind),
             // Listing visibility (PRD #268, ADR-0019). The recruiting/scaffold nodes
@@ -3050,57 +3065,6 @@ class DemoSeeder extends Seeder
         }
 
         return $attributes;
-    }
-
-    /**
-     * A deterministic fake "About Us" blurb (the Group's `description`, rendered
-     * verbatim on the Group page). A Kind-aware opening line plus two sentences drawn
-     * from rotating pools by a hash of the slug, so the ~80 demo Groups don't all read
-     * the same yet reseed identically. Real content overrides it (`description` on the
-     * node); this only fills the gap so every Group page has something to show.
-     *
-     * @param  array<string, mixed>  $node
-     */
-    private function aboutFor(array $node): string
-    {
-        $name = $node['name'];
-        $kind = $node['kind'];
-
-        $opener = match ($kind) {
-            Kind::Program => "{$name} is one of the Department of Museum Volunteers' front-line programs at the Royal Ontario Museum.",
-            Kind::StandingCommittee => "The {$name} committee is part of the Department of Museum Volunteers at the Royal Ontario Museum.",
-            Kind::WorkingGroup => "{$name} is a working group within the DMV, supporting the day-to-day work of its program.",
-            Kind::Project => "{$name} is a time-limited special project staffed by DMV volunteers.",
-            Kind::Cohort => "{$name} was a trained docent cohort supporting a past ROM exhibition.",
-            // A container has no page and so no About blurb; {@see attributesFor}
-            // gives it a null description. This arm only keeps the match exhaustive.
-            Kind::Container => '',
-        };
-
-        $mission = [
-            'Its volunteers bring the Museum\'s collections to life for visitors of all ages.',
-            'Members meet regularly to plan activities, share training, and support one another.',
-            'The group welcomes new volunteers who bring curiosity, warmth, and a love of learning.',
-            'Together its members help the ROM connect people with art, culture, and nature.',
-            'Volunteers here contribute their time, expertise, and enthusiasm throughout the season.',
-            'The team works closely with Museum staff to deliver memorable visitor experiences.',
-        ];
-
-        $activity = [
-            'Activities range from gallery tours to behind-the-scenes projects and community outreach.',
-            'New members receive mentoring and hands-on training before taking on their roles.',
-            'Reach out to the group\'s Chair to learn how to get involved.',
-            'Meeting notes, schedules, and resources are shared with members through this page.',
-            'The group takes pride in the ROM\'s mission and the community it serves.',
-        ];
-
-        $hash = crc32($node['slug'] ?? Str::slug($name));
-
-        return implode(' ', [
-            $opener,
-            $mission[$hash % count($mission)],
-            $activity[intdiv($hash, count($mission)) % count($activity)],
-        ]);
     }
 
     private function scopeFor(Kind $kind): Scope
