@@ -375,11 +375,7 @@ class HandleInertiaRequests extends Middleware
         $member->loadMissing('memberships.group');
 
         $belonged = $member->memberships
-            ->filter(fn (GroupMember $membership) => in_array(
-                $membership->status,
-                [MembershipStatus::Full, MembershipStatus::Loa],
-                true,
-            ))
+            ->filter(fn (GroupMember $membership) => $membership->status->countsAsBelonging())
             ->map(fn (GroupMember $membership) => $membership->group)
             // The org root appears as a leaf via dmvNode(); exclude it from the membership path.
             ->reject(fn (Group $group) => $group->slug === Group::ROOT_SLUG)
@@ -534,10 +530,11 @@ class HandleInertiaRequests extends Middleware
      * - **Private** — kept only for the node's own members.
      *
      * Super-tier sees everything, everywhere, so it short-circuits before any filter.
-     * "Member of" resolves from current participation (Full / LOA); departed standings
-     * grant nothing — the same standing rule My Groups applies. Pruning the flat set
-     * before the tree is rebuilt from its roots drops any visible node orphaned by a
-     * pruned ancestor, so a hidden branch takes its whole subtree with it.
+     * "Member of" resolves from current participation
+     * ({@see MembershipStatus::countsAsBelonging()}) — the same standing rule My Groups
+     * applies. Pruning the flat set before the tree is rebuilt from its roots drops any
+     * visible node orphaned by a pruned ancestor, so a hidden branch takes its whole
+     * subtree with it.
      *
      * @param  Collection<int, Group>  $active
      * @return Collection<int, Group>
@@ -561,9 +558,8 @@ class HandleInertiaRequests extends Middleware
      * The own-Groups prune (ADR-0020 §A, §E): with listing-visibility pruning done, drop
      * from the browse set every Group the Member belongs to, so My Groups and Other Groups
      * become a true partition — every visible Group lands in exactly one zone. Membership
-     * resolves from current participation (Full / LOA), the same standing rule My Groups and
-     * {@see pruneListingVisibility()} apply; departed standings grant nothing and so prune
-     * nothing.
+     * resolves from current participation ({@see MembershipStatus::countsAsBelonging()}),
+     * the same standing rule My Groups and {@see pruneListingVisibility()} apply.
      *
      * Removing a belonged Group from the flat set before the tree is rebuilt takes its whole
      * subtree out of Other Groups with it; ADR-0020 §F re-homes those children under the
@@ -587,9 +583,9 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The ids of the Groups this Member currently participates in — Full or on-leave
-     * (LOA) standing only. Departed standings (Resigned, Deceased, and every other
-     * non-participating status) contribute nothing, mirroring {@see myGroups()}.
+     * The ids of the Groups this Member currently participates in — any present standing
+     * or LOA ({@see MembershipStatus::countsAsBelonging()}). The departed standings
+     * (Inactive, Resigned, Deceased) contribute nothing, mirroring {@see myGroups()}.
      *
      * @return list<int>
      */
@@ -598,11 +594,7 @@ class HandleInertiaRequests extends Middleware
         $member->loadMissing('memberships');
 
         return $member->memberships
-            ->filter(fn (GroupMember $membership) => in_array(
-                $membership->status,
-                [MembershipStatus::Full, MembershipStatus::Loa],
-                true,
-            ))
+            ->filter(fn (GroupMember $membership) => $membership->status->countsAsBelonging())
             ->pluck('group_id')
             ->all();
     }

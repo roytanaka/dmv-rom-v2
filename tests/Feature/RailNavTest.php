@@ -16,7 +16,7 @@ use Inertia\Testing\AssertableInertia as Assert;
  * The grouping rail (PRD #209), built server-side and server-pruned in
  * HandleInertiaRequests alongside chromeNav, and shared as the `rail` Inertia prop.
  * This slice (#210) wires one zone end-to-end — My Groups: the Groups the signed-in
- * Member belongs to with Full or LOA standing, flat and alphabetical, omitted whole
+ * Member belongs to in a present or LOA standing, flat and alphabetical, omitted whole
  * when the Member belongs to none. Asserted at the shared-prop seam (mirrors
  * GlobalTopBarTest), including the /fr/ twin hrefs.
  */
@@ -592,7 +592,7 @@ it('emits Officer Tools hrefs as French twins under /fr/', function () {
  * server-pruned rail also prunes on `listing_visibility`, composing beneath the
  * active-tree prune: a `Group`-visibility node is emitted only to members of its
  * parent Group; a `Private` node only to its own members; `Public` to everyone;
- * super-tier sees all. Visibility resolves from current participation (Full / LOA);
+ * super-tier sees all. Visibility resolves from current participation (present or LOA);
  * departed standings contribute nothing — the same standing rule My Groups applies.
  * This is the flag-driven depth of ADR-0020 §D — a peer bottoms out because its
  * working groups are pruned, not from a positional cap. Asserted at the shared-prop
@@ -716,6 +716,23 @@ it('prunes a belonged Group from Other Groups even on leave (LOA)', function () 
             ->where('rail.myGroups.items.1.groupId', 'docents'));
 });
 
+it('grants parent-member visibility to a Trainee, as to a Full member', function () {
+    ['docents' => $docents] = seedVisibilityTree();
+
+    // #635: a Trainee belongs to Docents, so the Group-visibility Training team nests
+    // under Docents in My Groups. The Private Events team stays hidden.
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Trainee)->create(['member_id' => $member->id, 'group_id' => $docents->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.myGroups.items.1.groupId', 'docents')
+            ->where('rail.myGroups.items.1.children.0.groupId', 'docents-training')
+            ->count('rail.myGroups.items.1.children', 1));
+});
+
 it('grants no visibility from a departed membership', function () {
     ['docents' => $docents] = seedVisibilityTree();
 
@@ -753,7 +770,7 @@ it('prunes a Private Group from Other Groups — the launcher grid reads this sa
 /*
  * The own-Groups prune (#278, ADR-0020 §A, §E): My Groups and Other Groups form a true
  * partition — every visible Group the Member may see lands in exactly one zone. After the
- * listing_visibility prune, a Group the Member belongs to (Full / LOA) is dropped from
+ * listing_visibility prune, a Group the Member belongs to (present or LOA) is dropped from
  * Other Groups (it lives in My Groups); a visible Group they don't belong to stays there.
  * Container peers carry no roster, so they always remain — only the roster-bearing Groups
  * beneath them vanish. Departed standings prune nothing. The prune is a partition concern, so
@@ -842,6 +859,46 @@ it('leaves a Group in Other Groups when the Member only ever departed it', funct
             ->count('rail.otherGroups.items.0.children', 2)
             // ...and contributes nothing to My Groups, which holds only the DMV org node the
             // active Member's Category grants (the departed Awards adds nothing).
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->count('rail.myGroups.items', 1));
+});
+
+it('moves a Group to My Groups for any present standing, not only Full', function (MembershipStatus $status) {
+    seedFourPeerTree();
+
+    // #635: a Trainee signs up for the Group's Shifts, so the Group is theirs. The same
+    // holds for every present standing, Donor included.
+    $member = Member::factory()->create();
+    $awards = Group::where('slug', 'awards')->firstOrFail();
+    GroupMember::factory()->status($status)->create(['member_id' => $member->id, 'group_id' => $awards->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'communications')
+            ->count('rail.otherGroups.items.0.children', 1)
+            ->where('rail.myGroups.items.0.groupId', 'dmv')
+            ->where('rail.myGroups.items.1.groupId', 'awards')
+            ->count('rail.myGroups.items', 2));
+})->with([
+    'Trainee' => [MembershipStatus::Trainee],
+    'Donor' => [MembershipStatus::Donor],
+]);
+
+it('leaves a Group in Other Groups when the Member is Inactive in it', function () {
+    seedFourPeerTree();
+
+    $member = Member::factory()->create();
+    $awards = Group::where('slug', 'awards')->firstOrFail();
+    GroupMember::factory()->status(MembershipStatus::Inactive)->create(['member_id' => $member->id, 'group_id' => $awards->id]);
+
+    $this->actingAs($member)
+        ->get('/dashboard')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rail.otherGroups.items.0.children.0.groupId', 'awards')
+            ->count('rail.otherGroups.items.0.children', 2)
             ->where('rail.myGroups.items.0.groupId', 'dmv')
             ->count('rail.myGroups.items', 1));
 });
