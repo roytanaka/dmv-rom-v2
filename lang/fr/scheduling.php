@@ -23,4 +23,12 @@ return [
         'footer' => 'Merci de votre bénévolat. Si vous ne pouvez plus vous présenter, veuillez annuler votre inscription afin que la place puisse être comblée.',
         'view_schedule' => 'Voir l’horaire',
     ],
+    // L'erreur de grille des minutes (#639, ADR-0028) — une heure de quart ou de réunion
+    // hors de son pas de 5 minutes (ou de 15 minutes en libre-service).
+    'time_off_grid' => 'Choisissez une heure par tranches de :minutes minutes.',
+    // Les noms accessibles des listes du sélecteur d'heure (#639).
+    'time_field' => [
+        'hour' => 'Heure',
+        'minute' => 'Minute',
+    ],
 ];

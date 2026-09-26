@@ -6,8 +6,11 @@ Records peut couper tout courriel à un·e membre. Vous le faites depuis le prof
 
 1. Ouvrez le Répertoire depuis la barre du haut.
 2. Sélectionnez le·la membre.
-3. Trouvez la carte **Administration des membres**. Elle se trouve sous les groupes du membre.
+3. Trouvez la carte **Administration des membres**. Elle se trouve sous les cartes **Coordonnées** et **Groupes et rôles**.
 4. Cochez la case **Aucun courriel** pour couper tout courriel au membre.
+
+    ![La carte Administration des membres avec la case Aucun courriel](01.png)
+
 5. Décochez la case pour laisser le courriel revenir au membre.
 
 ## Ce que l'option coupe

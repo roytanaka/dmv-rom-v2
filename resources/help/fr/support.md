@@ -6,6 +6,8 @@ Le soutien regroupe les outils qu'un opérateur de soutien utilise pour tester l
 
 Le sélecteur de rôle est un bouton dans le coin inférieur droit de chaque page. Sélectionnez-le pour devenir une persona. Vous voyez alors l'application avec les rôles de cette persona.
 
+![Le tableau de bord avec le bouton du sélecteur de rôle dans le coin inférieur droit](01.png)
+
 ## Les personas
 
 Une persona est un membre fictif qui n'existe que pour les tests. Les personas couvrent chaque rôle et chaque statut de l'application.

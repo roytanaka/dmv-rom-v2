@@ -17,6 +17,8 @@ Créez un quart pour vous-même quand votre groupe permet aux membres de gérer 
 8. Ajoutez un ou plusieurs **Objets** si votre groupe en remet.
 9. Sélectionnez **Enregistrer**.
 
+    ![La fenêtre Créer mon quart : Poste, Heure de début, Unités, Objets, Enregistrer et Annuler](01.png)
+
 Votre quart rejoint l'horaire avec votre nom.
 
 ## Passer l'avertissement de poste
@@ -35,6 +37,8 @@ Le quart vous appartient jusqu'à son début.
 1. Trouvez votre quart sur l'horaire.
 2. Sélectionnez **Modifier** pour changer le poste, le début, les unités ou les objets.
 3. Sélectionnez **Supprimer** pour retirer le quart. Cela vous en retire aussi.
+
+    ![Un quart que vous avez créé, avec Modifier et Supprimer sous votre nom](02.png)
 
 Après le début, demandez à un·e Responsable horaire de faire tout changement.
 

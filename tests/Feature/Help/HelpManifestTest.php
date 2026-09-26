@@ -162,7 +162,7 @@ it('offers records as a requirable role, since member administration is not a Gr
     expect(HelpManifest::requirableRoles())->toContain('records');
 });
 
-it('lists the no-email-flag article as a Records draft in Emailing, mapped to the member page', function () {
+it('lists the no-email-flag article as a Records article in Emailing, mapped to the member page', function () {
     // #564: a Records-only task article for the no-email switch on a Member's profile.
     $article = (new HelpManifest)->find('set-the-no-email-flag');
 
@@ -170,11 +170,11 @@ it('lists the no-email-flag article as a Records draft in Emailing, mapped to th
     expect($article->section)->toBe(HelpSection::Emailing);
     expect($article->requires)->toBe(['records']);
     expect($article->route)->toBe('members.show');
-    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->status)->toBe(ArticleStatus::Published);
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 
-it('lists the write-your-own-shift article as a no-role Scheduling draft, mapped to the schedule page', function () {
+it('lists the write-your-own-shift article as a no-role Scheduling article, mapped to the schedule page', function () {
     // #590, ADR-0026 §1: a self-serve Group's Member writes their own Shift on the
     // Group Scheduling page. No required role — any Member of a self-serve Group.
     $article = (new HelpManifest)->find('write-your-own-shift');
@@ -183,7 +183,7 @@ it('lists the write-your-own-shift article as a no-role Scheduling draft, mapped
     expect($article->section)->toBe(HelpSection::Scheduling);
     expect($article->requires)->toBe([]);
     expect($article->route)->toBe('groups.scheduling.show');
-    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->status)->toBe(ArticleStatus::Published);
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 
@@ -227,15 +227,14 @@ it('leads every section with exactly one overview article', function () {
     }
 });
 
-it('lists the Support overview as a Support-operator draft', function () {
-    // #623: a draft until its screenshots land, so its index card shows no summary yet.
+it('lists the Support overview as a Support-operator article', function () {
     $article = (new HelpManifest)->find('support');
 
     expect($article)->not->toBeNull();
     expect($article->section)->toBe(HelpSection::Support);
     expect($article->isOverview)->toBeTrue();
     expect($article->requires)->toBe(['support_operator']);
-    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->status)->toBe(ArticleStatus::Published);
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 

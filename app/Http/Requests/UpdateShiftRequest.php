@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\ShiftAudience;
+use App\Rules\OnMinuteGrid;
 use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -77,8 +78,8 @@ class UpdateShiftRequest extends FormRequest
         $groupId = $shift->schedule->group_id;
 
         return [
-            'starts_at' => ['sometimes', 'required', 'date'],
-            'ends_at' => ['sometimes', 'required', 'date', 'after:starts_at', $this->withinRange()],
+            'starts_at' => ['sometimes', 'required', 'date', new OnMinuteGrid],
+            'ends_at' => ['sometimes', 'required', 'date', 'after:starts_at', new OnMinuteGrid, $this->withinRange()],
             'capacity' => ['sometimes', 'integer', 'min:1', $this->coversSignUps()],
             'shift_kind_id' => [
                 'sometimes',

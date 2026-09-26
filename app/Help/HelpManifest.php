@@ -270,7 +270,7 @@ final class HelpManifest
             // Groups, officer part (#526) — roster and meetings, run by a Group's officers.
             new HelpArticle('manage-your-groups-roster', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('record-a-meeting', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
-            new HelpArticle('edit-your-groups-about-us-and-banner', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('edit-your-groups-about-us-and-banner', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             // Group Settings tab (#608, ADR-0027) — the officers-only tab that holds a Group's settings.
             // Today every configuration right is a schedule admin's, so the badge reads Scheduler or Chair.
             new HelpArticle('group-settings', HelpSection::Groups, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
@@ -283,7 +283,7 @@ final class HelpManifest
             new HelpArticle('reminders', HelpSection::Scheduling),
             // Self-serve Shifts for members (#590, ADR-0026 §1–§6) — a member of a self-serve
             // Group writes their own Shift. No role: any Member of such a Group.
-            new HelpArticle('write-your-own-shift', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            new HelpArticle('write-your-own-shift', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             // Scheduling, officer part (#526) — the schedule-admin tasks a Scheduler or Chair does. The
             // Reminders, Empty-desk, Shift kinds and Objects cards sit on the Group Settings tab
             // (ADR-0027 §2), so their articles map to the Group page, not the Scheduling tab.
@@ -312,7 +312,7 @@ final class HelpManifest
             new HelpArticle('pick-an-audience', HelpSection::Emailing, status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('attach-a-file', HelpSection::Emailing, status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('queued-for-n-members', HelpSection::Emailing, status: ArticleStatus::Published),
-            new HelpArticle('set-the-no-email-flag', HelpSection::Emailing, requires: ['records'], status: ArticleStatus::Draft, route: 'members.show'),
+            new HelpArticle('set-the-no-email-flag', HelpSection::Emailing, requires: ['records'], status: ArticleStatus::Published, route: 'members.show'),
             new HelpArticle('read-the-mail-status-page', HelpSection::Emailing, requires: ['super_tier'], status: ArticleStatus::Published, route: 'mail-status'),
 
             new HelpArticle('settings', HelpSection::Settings, isOverview: true, status: ArticleStatus::Published, route: 'settings.profile'),
@@ -322,7 +322,7 @@ final class HelpManifest
 
             // Support (#527, ADR-0009) — the non-production dev Role-switcher, an operator tool.
             // Its overview (#623, ADR-0025 §5) stays a draft until its screenshots land.
-            new HelpArticle('support', HelpSection::Support, isOverview: true, requires: ['support_operator'], status: ArticleStatus::Draft),
+            new HelpArticle('support', HelpSection::Support, isOverview: true, requires: ['support_operator'], status: ArticleStatus::Published),
             new HelpArticle('use-the-role-switcher', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Published),
             new HelpArticle('return-to-yourself', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Published),
         ];
