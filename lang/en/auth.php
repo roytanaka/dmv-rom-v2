@@ -23,6 +23,9 @@ return [
         'forgot' => 'Forgot your password?',
         'submit' => 'Sign in',
 
+        // Shown after an expired session sends a member back to sign in.
+        'session_expired' => 'Your session expired. Sign in again to continue.',
+
         // Accessible names for the password show/hide toggle.
         'show_password' => 'Show password',
         'hide_password' => 'Hide password',

@@ -20,7 +20,11 @@ class AuthenticatedSessionController extends Controller
     {
         return Inertia::render('auth/Login', [
             'canResetPassword' => Route::has('password.request'),
-            'status' => $request->session()->get('status'),
+            // A 419 handler (bootstrap/app.php) flashes sessionExpired when a
+            // stale form sends a guest here; say why they have to sign in again.
+            'status' => $request->session()->get('sessionExpired')
+                ? __('auth.login.session_expired')
+                : $request->session()->get('status'),
         ]);
     }
 
