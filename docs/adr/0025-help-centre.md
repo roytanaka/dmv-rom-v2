@@ -6,6 +6,8 @@ accepted: 2026-09-13
 
 # Help centre: in-app Markdown articles, treated as chrome
 
+> **Amendment 2026-09-26 (help menu):** the top-bar "?" is now a menu, not a link ([ADR-0029 §12](0029-tester-feedback.md)). Items: Help for this page (only when the current route maps to a published article), Help centre (`/help`), and, outside production only, Send feedback and See all feedback. It is always a menu, even with one item. Reason: a Member on a page with an article had no one-click way to the index. §10 is refined below.
+
 From a grilling session on 2026-09-13. The app has a `/help` link in the top bar that lands on a Coming Soon stub, no user-facing documentation anywhere, and features shipping faster than one person can track. This ADR decides where help lives, what it is made of, who sees it, how screenshots get made, and how an article becomes part of a feature's definition of done.
 
 **No product code ships from this ADR.** The spec does.
@@ -40,7 +42,7 @@ Browser automation in this repo is the `agent-browser` CLI, allowlisted but with
 
 9. **A ledger page at `/help-status`**, super-tier only, English-only and non-localized like the Mail status page. It lists every manifest entry with its status, French state, screenshot count against references, and mapped route, then every page route with no article. This is the "what have I lost track of" view. An article may map several page routes — a report page and its sibling views share one article — and every one counts as mapped.
 
-10. **The top-bar "?" is contextual.** It opens the article mapped to the current route, or the index when none is mapped.
+10. **The top-bar "?" is contextual.** ~~It opens the article mapped to the current route, or the index when none is mapped.~~ *(Amended 2026-09-26:* it opens a menu with Help for this page, when the current route maps to a published article, and Help centre. See the amendment banner.*)*
 
 11. **Definition of done is a soft rule.** A pull request template gains a checkbox: help article added or not applicable. `CLAUDE.md` points agents at the convention. A repo skill, `help-article`, written with the `writing-for-agents` skill, does the whole job in one invocation: manifest entry, English article, French article, screenshot script, run, PR checkbox. No CI gate on routes without articles; the ledger page shows them instead.
 

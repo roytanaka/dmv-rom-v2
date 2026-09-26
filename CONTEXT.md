@@ -63,6 +63,14 @@ _Avoid_: equating it with super-tier or bare "admin"; it confers no org authorit
 The Role-switcher's escape hatch back to the original operator, from any impersonated Persona. Keyed on the operator id stored in the session at the start of impersonation, so it works regardless of the impersonated Persona's tier.
 _Avoid_: "return to super" — the mechanism keys on the stored impersonator id, not on tier; and the operator is the **Support-operator** who began the session, who is deliberately _not_ super-tier (that split is the point — [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
 
+**Tester**:
+A person trying out the app outside production and sending **Feedback items**. A Tester is known by the name they type, not by the account they log in with: testers share seeded logins and switch **Personas**, so the account says nothing about who they are.
+_Avoid_: using "Member" or "user" for this person — the Member on the request may be a **Persona** the Tester is impersonating.
+
+**Feedback item**:
+One thing a **Tester** sends from a non-production app: a bug, a feature request, a translation problem, a legacy feature that is missing, something confusing, or other. Every Tester can read every Feedback item and comment on it. The **Support-operator** sets its status.
+_Avoid_: "report" (taken by Officer reports and the post-shift report), "issue" and "ticket" (GitHub issues, where the work is tracked), "bug" for the whole set (a bug is one type).
+
 **Group**:
 The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, content, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
 
