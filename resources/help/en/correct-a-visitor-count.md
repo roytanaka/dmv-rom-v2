@@ -6,20 +6,26 @@ Set or fix the number of visitors a Member served on a Shift. You need the Sched
 
 1. Open your Group's **Scheduling** tab.
 2. Open the Schedule that holds the Shift.
-3. Find the Shift and the Member's seat.
+3. Find the Shift and its **Post-shift report** section.
 
-    ![An ended Shift: each seat shows its count, a pencil, and an ×](01.png)
+    ![The Post-shift report on an ended Shift: each entry shows its count and Change](01.png)
 
-4. Select the pencil beside their name.
+4. Select **Change** on the Member's entry.
 
-    ![The correction form under the Shift, naming whose visitors you are correcting](02.png)
+    ![The correction form in the Post-shift report, naming whose visitors you are correcting](02.png)
 
 5. Type the number in **Visitors served**.
-6. Select **Save**.
+6. Select **Save changes**.
 
-The seat now shows the count you entered. You can change it again at any time.
+The entry now shows your count. Its **Last edited by** line shows your name and the time, so the Member can see who changed it. You can change it again at any time.
 
-> **Note:** A Member records their own count at sign-out. You correct it here when it is wrong or missing.
+> **Note:** A Member records their own count after the shift. You correct it here when it is wrong. You can also fill in an entry that says **No count yet**.
+
+## Comments
+
+A Member can add a comment to their own entry. You see a one-line preview of each comment in the section.
+
+The correction form has no comment box. A correction never changes a Member's own words.
 
 ## Groups that split the count
 

@@ -8,18 +8,18 @@ Find the past shifts that still need a visitor count from you.
 2. Find the **My sign-ups** panel at the top.
 3. It lists your upcoming shifts and any recent shift that still needs a count.
 
-    ![The My sign-ups panel: a recent shift that still needs a count, with the Visitors served box and Sign out](01.png)
+    ![The My sign-ups panel: a recent shift whose Post-shift report still needs your count](01.png)
 
 ## Record the count
 
-1. Select the shift that needs a number.
+1. Go to the shift's **Post-shift report** section. Your form is already open there.
 2. Type your count in **Visitors served**.
-3. Select **Sign out**.
+3. Select **Record shift**.
 
 The shift leaves the list once its count is saved.
 
-> **Note:** A past shift stays on the list for a few weeks. After that, ask a Group officer to enter the count for you.
+> **Note:** A past shift stays on the list for four weeks. After that, ask your Group's Scheduler or Chair to enter the count for you.
 
 ## What next
 
-Read [Reminders: what you get and when](reminders) to see how the app reminds you about your shifts.
+Read [Record your visitor count after a shift](record-your-visitor-count) to add a comment or change a count. Read [Reminders: what you get and when](reminders) to see how the app reminds you about your shifts.

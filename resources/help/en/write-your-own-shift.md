@@ -42,13 +42,13 @@ You own the shift until it starts.
 
 After the start, ask a Scheduler to make any change.
 
-## Sign out after the shift
+## Record your visitors after the shift
 
-Your shift ends at the start plus its units. The sign-out panel opens near that time.
+Your shift ends at the start plus its units. The **Post-shift report** form opens five minutes before that time.
 
 1. Type the number of visitors you served.
-2. Select **Sign out**.
+2. Select **Record shift**.
 
 ## What next
 
-Read [Cancel a sign-up](cancel-a-sign-up) for shifts a Scheduler wrote. Read [Record your visitor count after a shift](record-your-visitor-count) for the sign-out details.
+Read [Cancel a sign-up](cancel-a-sign-up) for shifts a Scheduler wrote. Read [Record your visitor count after a shift](record-your-visitor-count) to add a comment or change your count.

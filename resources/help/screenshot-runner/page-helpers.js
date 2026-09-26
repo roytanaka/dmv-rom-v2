@@ -436,21 +436,88 @@
         return clickAndSettle(button);
     }
 
-    // The pencil a schedule admin sees on every seat of an opened Schedule, outside the My
-    // sign-ups panel. It is an icon button, so it is found by its accessible label.
-    function correctionPencil() {
-        return Array.from(document.querySelectorAll('button[aria-label="Correct visitor count"]')).find(outsideMySignUps);
+    // The Post-shift report (#652, #656) — the section under an ended Shift's details, one entry
+    // per seat. Sections are found by their heading, inside or outside the My sign-ups panel.
+    function postShiftReports() {
+        return Array.from(document.querySelectorAll('section')).filter((section) =>
+            /^post-shift report$/i.test(section.querySelector('h4')?.textContent.trim() ?? ''),
+        );
     }
 
-    function showCorrectionPencil() {
-        const pencil = correctionPencil();
-        if (!pencil) return false;
-        scrollUnderStickyStrip(pencil.closest('[data-slot="card"]') ?? pencil, 40);
+    function buttonIn(root, pattern) {
+        return Array.from(root.querySelectorAll('button')).find((element) => pattern.test(element.textContent.trim()));
+    }
+
+    // The viewer's own open form: the report in My sign-ups that holds a Record shift button.
+    function ownPostShiftReport() {
+        return postShiftReports().find((section) => !outsideMySignUps(section) && buttonIn(section, /^record shift$/i));
+    }
+
+    // Frame a report with its Shift card, so the shot shows the shift details above it.
+    function frameReport(section) {
+        scrollUnderStickyStrip(section.closest('[data-slot="card"]') ?? section, 16);
+    }
+
+    function showOwnPostShiftForm() {
+        const section = ownPostShiftReport();
+        if (!section) return false;
+        frameReport(section);
         return settle();
     }
 
-    function openCorrectionForm() {
-        return clickAndSettle(correctionPencil());
+    // Type into a v-model field: set the value, then fire `input` so Vue picks it up.
+    function typeInto(field, value) {
+        if (!field) return false;
+        field.value = value;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+    }
+
+    // Fill the viewer's own form with a count and a comment, select Record shift, and wait for
+    // the save. A recorded shift leaves My sign-ups, so its summary is shot afterwards from the
+    // Schedule that holds it (showOwnSavedEntry).
+    async function recordOwnShift() {
+        const section = ownPostShiftReport();
+        if (!section) return false;
+        typeInto(section.querySelector('input[type="number"]'), '18');
+        typeInto(section.querySelector('textarea'), 'A visitor asked for the nearest elevator. The floor map could show it more clearly.');
+        await settle(200);
+        return clickAndWaitFor(buttonIn(section, /^record shift$/i), () => !buttonIn(document, /^record shift$/i));
+    }
+
+    // The viewer's own saved entry in an opened Schedule: the one marked "(you)" with a Last
+    // edited by line and a comment preview.
+    function showOwnSavedEntry() {
+        const entry = postShiftReports()
+            .filter(outsideMySignUps)
+            .flatMap((section) => Array.from(section.querySelectorAll('li')))
+            .find((item) => /\(you\)/.test(item.textContent) && /last edited by/i.test(item.textContent) && item.querySelector('.italic'));
+        if (!entry) return false;
+        frameReport(entry.closest('section'));
+        return settle();
+    }
+
+    // A schedule admin's Change on another Member's entry, outside the My sign-ups panel. The
+    // viewer's own entry reads "(you)", so it is skipped and the shot shows a correction.
+    function correctionChange() {
+        for (const section of postShiftReports().filter(outsideMySignUps)) {
+            const entry = Array.from(section.querySelectorAll('li')).find((item) => !/\(you\)/.test(item.textContent) && buttonIn(item, /^change$/i));
+            if (entry) return { section, button: buttonIn(entry, /^change$/i) };
+        }
+        return null;
+    }
+
+    function showPostShiftChange() {
+        const found = correctionChange();
+        if (!found) return false;
+        frameReport(found.section);
+        return settle();
+    }
+
+    function openPostShiftCorrection() {
+        const found = correctionChange();
+        if (!found) return false;
+        return clickAndWaitFor(found.button, () => /^correcting /i.test(found.section.querySelector('form p')?.textContent.trim() ?? ''));
     }
 
     // The roster's officer controls: Add member opens a dialog on a plain click; each row's
@@ -639,8 +706,11 @@
         showUpcomingPlaceAMember,
         showUpcomingFullShift,
         openPlaceAMemberDialog,
-        showCorrectionPencil,
-        openCorrectionForm,
+        showOwnPostShiftForm,
+        recordOwnShift,
+        showOwnSavedEntry,
+        showPostShiftChange,
+        openPostShiftCorrection,
         openAddMemberDialog,
         openRosterRowMenu,
         openManageMembershipDialog,

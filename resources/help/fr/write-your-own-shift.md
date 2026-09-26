@@ -42,13 +42,13 @@ Le quart vous appartient jusqu'à son début.
 
 Après le début, demandez à un·e Responsable horaire de faire tout changement.
 
-## Terminer le quart après coup
+## Noter vos visiteur·euses après le quart
 
-Votre quart se termine au début plus ses unités. Le panneau de sortie s'ouvre près de ce moment.
+Votre quart se termine au début plus ses unités. Le formulaire **Rapport après le quart** s'ouvre cinq minutes avant ce moment.
 
 1. Saisissez le nombre de visiteur·euses que vous avez servi·es.
-2. Sélectionnez **Terminer le quart**.
+2. Sélectionnez **Enregistrer le quart**.
 
 ## Et ensuite
 
-Lisez [Annuler une inscription](cancel-a-sign-up) pour les quarts écrits par un·e Responsable horaire. Lisez [Noter votre nombre de visiteur·euses après un quart](record-your-visitor-count) pour les détails de la sortie.
+Lisez [Annuler une inscription](cancel-a-sign-up) pour les quarts écrits par un·e Responsable horaire. Lisez [Noter votre nombre de visiteur·euses après un quart](record-your-visitor-count) pour ajouter un commentaire ou changer votre nombre.
