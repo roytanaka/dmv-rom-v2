@@ -283,7 +283,7 @@ final class HelpManifest
             new HelpArticle('reminders', HelpSection::Scheduling),
             // Self-serve Shifts for members (#590, ADR-0026 §1–§6) — a member of a self-serve
             // Group writes their own Shift. No role: any Member of such a Group.
-            new HelpArticle('write-your-own-shift', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            new HelpArticle('write-your-own-shift', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             // Scheduling, officer part (#526) — the schedule-admin tasks a Scheduler or Chair does. The
             // Reminders, Empty-desk, Shift kinds and Objects cards sit on the Group Settings tab
             // (ADR-0027 §2), so their articles map to the Group page, not the Scheduling tab.
