@@ -236,7 +236,13 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                  remove (×) on every seat (officer removal, #359). An honest empty line otherwise. -->
             <div v-if="shift.signups.length" class="flex flex-wrap items-center gap-1.5">
                 <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span>
-                <Badge v-for="signUp in shift.signups" :key="signUp.id" variant="secondary" class="gap-1 font-normal">
+                <!-- A chip wraps inside the card on a phone (#648) rather than running off-screen. -->
+                <Badge
+                    v-for="signUp in shift.signups"
+                    :key="signUp.id"
+                    variant="secondary"
+                    class="max-w-full flex-wrap gap-1 font-normal whitespace-normal"
+                >
                     {{ signUpName(signUp) }}
                     <!-- The Objects on this seat (#586, ADR-0026 §3) — what the Member is taking
                          onto the floor, named under them so a colleague sees what is already out
@@ -261,20 +267,20 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                     <button
                         v-if="signUp.can_record"
                         type="button"
-                        class="hover:text-rom-ink -mr-0.5 rounded-full transition-colors"
+                        class="hover:text-rom-ink -my-1 inline-flex size-6 items-center justify-center rounded-full transition-colors"
                         :aria-label="trans('group.scheduling_panel.agenda.sign_out.correct')"
                         @click="openCorrection(signUp)"
                     >
-                        <PhPencilSimple class="size-3" />
+                        <PhPencilSimple class="size-4" />
                     </button>
                     <button
                         v-if="signUp.signup_id"
                         type="button"
-                        class="hover:text-destructive -mr-0.5 rounded-full transition-colors"
+                        class="hover:text-destructive -my-1 -mr-1.5 inline-flex size-6 items-center justify-center rounded-full transition-colors"
                         :aria-label="trans('group.scheduling_panel.agenda.assign.remove')"
                         @click="emit('remove', signUp.signup_id)"
                     >
-                        <PhX class="size-3" />
+                        <PhX class="size-4" />
                     </button>
                 </Badge>
             </div>

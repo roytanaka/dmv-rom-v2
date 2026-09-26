@@ -421,7 +421,7 @@ return [
             'sign_out' => [
                 'count_label' => 'Visitors served',
                 'submit' => 'Sign out',
-                'placeholder' => 'Number of visitors',
+                'placeholder' => 'Number',
                 'recorded' => ':count visitors',
                 'whole_number' => 'Enter a whole number of visitors.',
                 'not_negative' => 'The number of visitors cannot be negative.',
