@@ -529,6 +529,20 @@ it('refuses a comment on an officer’s correction of another seat', function ()
         ->comment->toBe('My own words.');
 });
 
+it('refuses an empty comment on an officer’s correction, so it cannot wipe the volunteer’s', function (?string $empty) {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $signUp = postShiftCommentSeat(postShiftShift($schedule), postShiftMemberOf($group), 'My own words.');
+
+    $this->actingAs(postShiftMemberOf($group, Role::Scheduler))
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 14, 'comment' => $empty])
+        ->assertSessionHasErrors('comment');
+
+    expect($signUp->fresh()->comment)->toBe('My own words.');
+})->with(['null' => [null], 'empty string' => ['']]);
+
 it('keeps the volunteer’s comment when an officer corrects the count', function () {
     $this->travelTo(postShiftNow());
 

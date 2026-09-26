@@ -317,9 +317,10 @@ const drop = (shift: ShiftAgendaItem) => {
 // and carries null when its box is blank, distinct from a recorded zero (#447, ADR-0023 §2). GDR's
 // five origins ride only where the Group collects provenance (#448, ADR-0023 §3); everywhere else
 // the server refuses them, so they are never sent. The comment rides only from the viewer's own
-// seat (#655); a correction leaves it out, and the server refuses one there. A refusal goes back to the card that submitted
-// (#649) through its own callbacks, never the page's shared error bag: the same Shift can render
-// twice (My sign-ups and the Agenda), and only the submitted copy shows the errors.
+// seat (#655); a correction leaves it out, and the server refuses one there. A refusal goes back
+// to the card that submitted (#649) through its own callbacks, never the page's shared error bag:
+// the same Shift can render twice (My sign-ups and the Agenda), and only the submitted copy shows
+// the errors.
 const record = (payload: { signUpId: number } & RecordPayload, callbacks: RecordCallbacks) => {
     const body: { visitor_count: number; extra_interaction_count?: number | null; comment?: string | null } & Partial<VisitorProvenance> = {
         visitor_count: payload.count,

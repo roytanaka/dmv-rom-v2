@@ -40,7 +40,8 @@ use Illuminate\Validation\Validator;
  * Every other Group — GDR is the only one — **rejects** a provenance value rather than storing it.
  *
  * `comment` (#655, PRD #651) is the seat-holder's optional note, at most 2,000 characters, where
- * the Group collects a count. It is **prohibited** on an officer's correction of another seat.
+ * the Group collects a count. It must be **missing** on an officer's correction of another seat,
+ * even as an empty value.
  */
 class RecordSignUpVisitorsRequest extends FormRequest
 {
@@ -101,9 +102,11 @@ class RecordSignUpVisitorsRequest extends FormRequest
             // collects a count. Only the seat-holder may write it. An officer correcting another
             // seat has it refused, so a correction never changes a volunteer's words; leaving it
             // out keeps the saved comment. The count stays required, so no comment goes alone.
+            // `missing`, not `prohibited`: `prohibited` lets an empty value through, and an empty
+            // comment on the officer path would wipe the volunteer's words.
             'comment' => $group->collects_visitor_count && $this->route('signUp')->member_id === $this->user()->getKey()
                 ? ['nullable', 'string', 'max:2000']
-                : ['prohibited'],
+                : ['missing'],
         ];
     }
 
