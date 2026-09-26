@@ -444,6 +444,9 @@ return [
                 'correcting' => 'Correcting :name’s visitors',
                 'save' => 'Save changes',
                 'cancel' => 'Cancel',
+                // Who last saved an entry and when (#654) — the seat-holder or an officer's
+                // correction. `:time` is the org wall clock, in the viewer's locale.
+                'last_edited' => 'Last edited by :name · :time',
                 // The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
                 // tour, optional. The label says "outside the tour" so it is never confused with
                 // the count beside it; `extra_recorded` reads in the Post-shift report summary.

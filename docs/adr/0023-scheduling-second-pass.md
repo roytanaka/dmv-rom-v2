@@ -52,6 +52,8 @@ Both are columns on `sign_ups`. **No new entity, no new table, no lifecycle.** A
 
 **No authorship column.** [#334](https://github.com/roytanaka/dmv-rom-v2/issues/334) stays app-wide. ADR-0022 §6 could afford `created_by` on `hours_adjustments` because an Hours record is overwritten in place, so a mistyped 200 is otherwise unattributable. Neither reason holds here: this is one number on one row, corrected by retyping it, and the prior value carries no reporting weight.
 
+> **Amendment (2026-09-26, [#654](https://github.com/roytanaka/dmv-rom-v2/issues/654), PRD [#651](https://github.com/roytanaka/dmv-rom-v2/issues/651)).** A Sign-up now stores who last saved its numbers and when: `last_edited_by_id` and `last_edited_at`, both nullable. The server stamps both on every save, the volunteer's own and an officer's correction. The request body cannot set them. The reason is trust: once co-volunteers see each other's counts (#652), a volunteer must be able to see when an officer changed theirs. Each entry in the Post-shift report shows "Last edited by [name] · [time]". This is the last save only, not a history. [#334](https://github.com/roytanaka/dmv-rom-v2/issues/334) stays app-wide.
+
 **Two rather than one, because `Visitors` does not mean the same thing across Groups.** On a Visitor Guide's row it is _people I talked to at the desk_. On a Docent's row it is _people on my tour_, with the talked-to number in a second column beside it. Docents and GDR have typed that second number for years — 2,533 and 364 rows in 24 months — into a column no legacy report has ever read.
 
 Both names are new on purpose. Two legacy words name four columns and both words are spent; see the `Visitors` / `Interactions` entry in `CONTEXT.md`.

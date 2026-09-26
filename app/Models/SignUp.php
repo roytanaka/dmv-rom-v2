@@ -75,21 +75,28 @@ class SignUp extends Model
             'visitors_toronto' => 'integer',
             'visitors_rest_of_canada' => 'integer',
             'visitors_other_countries' => 'integer',
+            'last_edited_at' => 'datetime',
         ];
     }
 
     /**
      * Record the after-the-shift numbers on this seat (#445, ADR-0023 §Model layer). Takes the
      * already-validated values — the Form Request owns every rule (required, whole, non-negative,
-     * whose seat) — and saves. No transaction: it is one row, corrected by retyping, with no
-     * authorship column ([#334] stays app-wide). A re-file overwrites; a recorded zero sticks
-     * as zero, distinct from an untouched null.
+     * whose seat) — and saves. No transaction: it is one row, corrected by retyping. A re-file
+     * overwrites; a recorded zero sticks as zero, distinct from an untouched null.
+     *
+     * Every save stamps `$editor` and the current time (#654, PRD #651), so the Post-shift report
+     * shows who last edited the entry — the seat-holder or an officer correcting it. The stamp is
+     * set here, never filled: no request value reaches it.
      *
      * @param  array<string, mixed>  $values
      */
-    public function record(array $values): void
+    public function record(array $values, Member $editor): void
     {
-        $this->fill($values)->save();
+        $this->fill($values);
+        $this->last_edited_by_id = $editor->getKey();
+        $this->last_edited_at = CarbonImmutable::now();
+        $this->save();
     }
 
     /**
@@ -133,6 +140,16 @@ class SignUp extends Model
     public function member(): BelongsTo
     {
         return $this->belongsTo(Member::class);
+    }
+
+    /**
+     * The Member who last saved this seat's post-shift numbers (#654); null until someone does.
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function lastEditedBy(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'last_edited_by_id');
     }
 
     /**

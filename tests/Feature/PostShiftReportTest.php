@@ -321,3 +321,93 @@ it('refuses a co-volunteer’s hand-made correction of another seat', function (
 
     expect($peerSeat->fresh()->visitor_count)->toBeNull();
 });
+
+/*
+ * "Last edited by" (#654, PRD #651). Every save stamps the acting Member and the time on the
+ * server, on the volunteer's own save and an officer's correction alike. The request body never
+ * sets them. Every reader of an entry's numbers receives its stamp; an unstamped seat sends null.
+ */
+it('stamps a volunteer’s own save with the volunteer and the time', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftSeat(postShiftShift($schedule), $me);
+
+    $this->actingAs($me)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 12])
+        ->assertRedirect();
+
+    $signUp->refresh();
+    expect($signUp->last_edited_by_id)->toBe($me->id)
+        ->and($signUp->last_edited_at->equalTo(postShiftNow()))->toBeTrue();
+});
+
+it('stamps an officer’s correction with the officer, and the volunteer sees the officer’s name', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftSeat(postShiftShift($schedule), $me, 12);
+    $scheduler = postShiftMemberOf($group, Role::Scheduler);
+
+    $this->actingAs($scheduler)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 14])
+        ->assertRedirect();
+
+    expect($signUp->fresh()->last_edited_by_id)->toBe($scheduler->id);
+
+    viewPostShiftReport($me, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.signups.0.last_edited', [
+            'name' => $scheduler->fullName(),
+            'at' => postShiftNow()->toIso8601String(),
+        ]));
+});
+
+it('ignores a who or when value in the request body', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftSeat(postShiftShift($schedule), $me);
+    $other = postShiftMemberOf($group);
+
+    $this->actingAs($me)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), [
+            'visitor_count' => 12,
+            'last_edited_by_id' => $other->id,
+            'last_edited_at' => '2020-01-01 00:00:00',
+        ])
+        ->assertRedirect();
+
+    $signUp->refresh();
+    expect($signUp->last_edited_by_id)->toBe($me->id)
+        ->and($signUp->last_edited_at->equalTo(postShiftNow()))->toBeTrue();
+});
+
+it('sends a null stamp for a seat nobody has saved', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    postShiftSeat(postShiftShift($schedule), $me, 12);
+
+    viewPostShiftReport($me, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.signups.0.last_edited', null));
+});
+
+it('sends no stamp to a plain reader with no seat', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $signUp = postShiftSeat(postShiftShift($schedule), postShiftMemberOf($group), 12);
+    $signUp->record(['visitor_count' => 12], postShiftMemberOf($group, Role::Scheduler));
+
+    viewPostShiftReport(postShiftMemberOf($group), $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->missing('scheduling.open.shifts.0.signups.0.last_edited'));
+});

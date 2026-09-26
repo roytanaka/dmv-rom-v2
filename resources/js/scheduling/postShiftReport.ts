@@ -11,10 +11,16 @@
  */
 
 /**
- * The part of a seat these rules read: the Member id, the recorded count (null = none), and the
- * server's verdict that the viewer may change this entry (#653; absent = no).
+ * The part of a seat these rules read: the Member id, the recorded count (null = none), the
+ * server's verdict that the viewer may change this entry (#653; absent = no), and who last saved
+ * the numbers and when (#654; null or absent = nobody yet).
  */
-export type ReportSeat = { id: number; visitor_count?: number | null; can_record?: boolean };
+export type ReportSeat = {
+    id: number;
+    visitor_count?: number | null;
+    can_record?: boolean;
+    last_edited?: { name: string; at: string } | null;
+};
 
 export type EntryState = 'form' | 'summary' | 'no-count';
 
@@ -65,4 +71,17 @@ export function recordedTally(seats: ReportSeat[]): { recorded: number; total: n
         recorded: seats.filter(hasCount).length,
         total: seats.length,
     };
+}
+
+/**
+ * The parts of an entry's "Last edited by [name] · [time]" line (#654): the editor's name, and the
+ * save time on the org wall clock in the viewer's locale. Null for an entry nobody has saved, which
+ * shows no line.
+ */
+export function lastEditedLine(seat: ReportSeat, locale: string, timeZone: string): { name: string; time: string } | null {
+    if (!seat.last_edited) return null;
+
+    const time = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone }).format(new Date(seat.last_edited.at));
+
+    return { name: seat.last_edited.name, time };
 }

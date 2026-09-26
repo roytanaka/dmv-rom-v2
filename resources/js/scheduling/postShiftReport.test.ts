@@ -4,11 +4,12 @@
  * Runs on Node's built-in test runner (`pnpm test:unit`). Prior art: `recordDraft.test.ts`.
  *
  * The rules under test: which seat, if any, shows the form (one per card); whether every other
- * seat reads as a summary or "No count yet"; and the "N of M recorded" tally.
+ * seat reads as a summary or "No count yet"; the "N of M recorded" tally; and the parts of the
+ * "Last edited by" line (#654).
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { entryState, openFormSeat, recordedTally, showsChange } from './postShiftReport.ts';
+import { entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from './postShiftReport.ts';
 
 const me = { id: 1, visitor_count: null };
 const peer = { id: 2, visitor_count: 9 };
@@ -65,4 +66,23 @@ test('Change hides on the entry that already shows the form', () => {
 test('the tally counts seats with a count, zero included', () => {
     assert.deepEqual(recordedTally([me, peer, { id: 4, visitor_count: 0 }]), { recorded: 2, total: 3 });
     assert.deepEqual(recordedTally([]), { recorded: 0, total: 0 });
+});
+
+const stamped = { id: 4, visitor_count: 14, last_edited: { name: 'Ada Lovelace', at: '2026-09-10T18:05:00+00:00' } };
+
+// ICU versions differ on the space before AM/PM (plain or narrow no-break), so compare with
+// every space made plain.
+const plain = (line: { name: string; time: string } | null) => line && { ...line, time: line.time.replace(/\s/g, ' ') };
+
+test('the last-edited line names the editor and shows the time on the org wall clock', () => {
+    assert.deepEqual(plain(lastEditedLine(stamped, 'en', 'America/Toronto')), { name: 'Ada Lovelace', time: 'Sep 10, 2026, 2:05 PM' });
+});
+
+test('the last-edited time follows the viewer’s locale', () => {
+    assert.deepEqual(plain(lastEditedLine(stamped, 'fr', 'America/Toronto')), { name: 'Ada Lovelace', time: '10 sept. 2026, 14:05' });
+});
+
+test('an entry with no stamp has no last-edited line', () => {
+    assert.equal(lastEditedLine({ id: 5, visitor_count: 3, last_edited: null }, 'en', 'America/Toronto'), null);
+    assert.equal(lastEditedLine({ id: 6, visitor_count: 3 }, 'en', 'America/Toronto'), null);
 });

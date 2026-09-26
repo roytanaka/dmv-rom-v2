@@ -87,7 +87,7 @@ class SignUpController extends Controller
      */
     public function record(RecordSignUpVisitorsRequest $request, SignUp $signUp): RedirectResponse
     {
-        $signUp->record($request->validated());
+        $signUp->record($request->validated(), $request->user());
 
         return back();
     }

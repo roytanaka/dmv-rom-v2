@@ -870,6 +870,7 @@ class GroupController extends Controller
                 'shift.signUps.member.memberships.group',
                 'shift.signUps.member.memberships.roles',
                 'shift.signUps.objects',
+                'shift.signUps.lastEditedBy',
             ])
             ->get()
             ->sortBy(fn (SignUp $signUp) => $signUp->shift->starts_at)
@@ -948,7 +949,7 @@ class GroupController extends Controller
         $viewer = $request->user();
 
         $shifts = $schedule->shifts()
-            ->with(['kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects'])
+            ->with(['kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get()
             // The per-Shift SignUpPolicy check reads `$shift->schedule` (and its Group); set
@@ -992,7 +993,7 @@ class GroupController extends Controller
             ->whereHas('schedule', fn (Builder $query) => $query
                 ->where('group_id', '!=', $schedule->group_id)
                 ->where('state', ScheduleState::Published))
-            ->with(['schedule.group', 'kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects'])
+            ->with(['schedule.group', 'kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get();
 
@@ -1097,6 +1098,13 @@ class GroupController extends Controller
                         $seat['visitors_toronto'] = $signUp->visitors_toronto;
                         $seat['visitors_rest_of_canada'] = $signUp->visitors_rest_of_canada;
                         $seat['visitors_other_countries'] = $signUp->visitors_other_countries;
+                        // Who last saved these numbers and when (#654), so a volunteer sees an
+                        // officer's correction. Null on a seat nobody has saved yet, or whose
+                        // editor's Member row is gone.
+                        $seat['last_edited'] = $signUp->last_edited_at === null || $signUp->lastEditedBy === null ? null : [
+                            'name' => $signUp->lastEditedBy->fullName(),
+                            'at' => $signUp->last_edited_at->toIso8601String(),
+                        ];
                     }
 
                     return $seat;

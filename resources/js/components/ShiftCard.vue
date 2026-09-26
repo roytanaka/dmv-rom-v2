@@ -22,7 +22,7 @@ import {
     type RecordCallbacks,
     type RecordErrors,
 } from '@/scheduling/recordDraft';
-import { entryState, openFormSeat, recordedTally, showsChange } from '@/scheduling/postShiftReport';
+import { entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from '@/scheduling/postShiftReport';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
@@ -265,6 +265,14 @@ const entrySummary = (signUp: ShiftSignUp): string => {
     });
 
     return parts.join(' · ');
+};
+
+// "Last edited by [name] · [time]" under a saved entry (#654), on the org wall clock; null for an
+// entry nobody has saved, which shows no line.
+const lastEdited = (signUp: ShiftSignUp): string | null => {
+    const line = lastEditedLine(signUp, page.props.locale, timeZone);
+
+    return line && trans('group.scheduling_panel.agenda.sign_out.last_edited', line);
 };
 
 const entryName = (signUp: ShiftSignUp): string =>
@@ -529,6 +537,7 @@ const formId = useId();
                                 <span class="text-muted-foreground text-sm tabular-nums">
                                     {{ state === 'summary' ? entrySummary(signUp) : trans('group.scheduling_panel.agenda.sign_out.no_count') }}
                                 </span>
+                                <span v-if="lastEdited(signUp)" class="text-muted-foreground text-sm">{{ lastEdited(signUp) }}</span>
                             </div>
                             <Button v-if="showsChange(signUp, state)" type="button" variant="outline" class="h-11 sm:h-8" @click="openForm(signUp)">
                                 {{ trans('group.scheduling_panel.agenda.sign_out.change') }}
