@@ -423,18 +423,21 @@ return [
                 // shift details. `record` is the first save's button: "Record shift", because "Sign
                 // out" read as logging out of the site. `record_needs_count` explains the disabled
                 // button; `count_help` asks for the viewer's own visitors only, against double counts.
+                // `progress` and `recorded` are counted strings (`transChoice`, #668).
                 'heading' => 'Post-shift report',
                 'progress' => ':recorded of :total recorded',
                 'you' => ':name (you)',
                 'no_count' => 'No count yet',
                 'count_label' => 'Visitors served',
                 'count_help' => 'Count only the visitors you served.',
+                'count_help_correcting' => 'Count only the visitors :name served.',
                 'record' => 'Record shift',
                 'record_needs_count' => 'Type the number of visitors to record the shift.',
                 'record_needs_provenance' => 'Type the number of visitors and all five origins to record the shift.',
                 'change' => 'Change',
                 'placeholder' => 'Number',
-                'recorded' => ':count visitors',
+                'recorded' => ':count visitor|:count visitors',
+                'count_required' => 'Enter the number of visitors.',
                 'whole_number' => 'Enter a whole number of visitors.',
                 'not_negative' => 'The number of visitors cannot be negative.',
                 // The Officer's correction (#450, #653, ADR-0023 §5) — Change on every entry in the
@@ -443,7 +446,13 @@ return [
                 // reopened form, a correction or the viewer's own Change.
                 'correcting' => 'Correcting :name’s visitors',
                 'save' => 'Save changes',
+                'save_needs_count' => 'Type the number of visitors to save your changes.',
+                'save_needs_provenance' => 'Type the number of visitors and all five origins to save your changes.',
                 'cancel' => 'Cancel',
+                // After a save (#668): "Saved." beside the entry, and the hint on another entry's
+                // Change while the open form has unsaved changes.
+                'saved' => 'Saved.',
+                'change_blocked' => 'Save or cancel your changes first.',
                 // Who last saved an entry and when (#654) — the seat-holder or an officer's
                 // correction. `:time` is the org wall clock, in the viewer's locale.
                 'last_edited' => 'Last edited by :name · :time',
@@ -452,6 +461,8 @@ return [
                 'comment_label' => 'Comment (optional)',
                 'comment_help' => 'Visitor questions, how the shift went, or anything you noticed on the floor',
                 'comment_max' => 'The comment can be at most 2,000 characters.',
+                'comment_count' => ':count of :max characters',
+                'comment_officer' => 'Only the volunteer can write a comment on their entry.',
                 // The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
                 // tour, optional. The label says "outside the tour" so it is never confused with
                 // the count beside it; `extra_recorded` reads in the Post-shift report summary.
@@ -464,6 +475,7 @@ return [
                 // count, GDR alone. The five must sum to the count; `provenance_sum` names both
                 // totals so the volunteer sees where the numbers disagree. The five labels carry
                 // the French wording legacy has shown at sign-out since 2020.
+                'provenance_heading' => 'Where the visitors came from',
                 'provenance_france_europe' => 'France and Europe',
                 'provenance_quebec' => 'Quebec',
                 'provenance_toronto' => 'Toronto',

@@ -21,9 +21,9 @@ Notez combien de visiteur·euses vous avez servi·es sur un quart, et ajoutez un
 
 **Enregistrer le quart** reste désactivé tant que vous n'avez pas tapé de nombre. Vous pouvez enregistrer un nombre sans commentaire, mais pas un commentaire sans nombre.
 
-Le quart quitte **Mes inscriptions** une fois terminé. Sur le quart dans son horaire, votre entrée se referme en un résumé. Il montre votre nombre et la première ligne de votre commentaire. **Dernière modification par** montre votre nom et l'heure.
+Votre entrée se referme en un résumé, et **Enregistré.** apparaît à côté de votre nom. Le résumé montre votre nombre et la première ligne de votre commentaire. **Dernière modification par** montre votre nom et l'heure. Le quart reste dans **Mes inscriptions** jusqu'à ce que vous rechargiez ou quittiez la page. Ensuite, retrouvez-le dans son horaire.
 
-![Votre entrée enregistrée dans l'horaire : le nombre, le début de votre commentaire, la ligne Dernière modification par et Modifier](02.png)
+![Votre entrée enregistrée dans Mes inscriptions : Enregistré., le nombre, le début de votre commentaire, la ligne Dernière modification par et Modifier](02.png)
 
 ## Modifier votre entrée
 
@@ -49,7 +49,7 @@ La section liste une entrée pour chaque membre du quart.
 
 ## Qui lit votre commentaire
 
-Seul·es vous, le·la Responsable horaire et le·la Président·e de votre groupe lisez votre commentaire. Les autres membres du quart ne le voient jamais, et aucun rapport ne le montre.
+Vous, le·la Responsable horaire et le·la Président·e de votre groupe, et les membres qui ont le grade super-niveau lisez votre commentaire. Les autres membres du quart ne le voient jamais, et aucun rapport ne le montre.
 
 ## Les groupes qui recueillent plus de nombres
 

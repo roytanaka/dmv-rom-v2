@@ -21,9 +21,9 @@ Record how many visitors you served on a shift, and add a note about it if you w
 
 **Record shift** stays off until you type a number. You can save a count with no comment, but not a comment with no count.
 
-The shift leaves **My sign-ups** once it has ended. On the shift in its Schedule, your entry closes to a summary. It shows your count and the first line of your comment. **Last edited by** shows your name and the time.
+Your entry closes to a summary, and **Saved.** shows beside your name. The summary shows your count and the first line of your comment. **Last edited by** shows your name and the time. The shift stays in **My sign-ups** until you reload or leave the page. After that, find it in its Schedule.
 
-![Your saved entry in the Schedule: the count, the start of your comment, the Last edited by line, and Change](02.png)
+![Your saved entry in My sign-ups: Saved., the count, the start of your comment, the Last edited by line, and Change](02.png)
 
 ## Change your entry
 
@@ -49,7 +49,7 @@ The section lists one entry for each Member on the shift.
 
 ## Who reads your comment
 
-Only you and your Group's Scheduler and Chair read your comment. Other Members on the shift never see it, and no report shows it.
+You, your Group's Scheduler and Chair, and Members with the super-tier grant read your comment. Other Members on the shift never see it, and no report shows it.
 
 ## Groups that collect more numbers
 

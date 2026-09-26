@@ -423,14 +423,16 @@ Route::delete('self-serve-shifts/{shift}', [SelfServeShiftController::class, 'de
     ->middleware(['auth'])
     ->name('self-serve-shifts.destroy');
 
-// Sign-out write seam (#445, PRD #443, ADR-0023 §5). Recording the after-the-shift numbers on
-// a Sign-up — a Member filing how many visitors they served, from the inline Agenda panel and
-// (later) the outstanding panel and an Officer's correction, all onto this one route. Bound by
-// the Sign-up id; structurally authorized in its Form Request, which delegates to
-// SignUpPolicy::record — the seat-holder's own seat, from five minutes before the Shift ends —
-// and whitelists the fields, so whose seat is written is the route binding, never the body.
+// Post-shift report write seam (#445, #652, PRD #651, ADR-0023 §5). Recording the after-the-shift
+// numbers on a Sign-up — a Member filing how many visitors they served, or an Officer's
+// correction, from the Post-shift report on the shift card in the Agenda or My sign-ups, all onto
+// this one route. Bound by the Sign-up id; structurally authorized in its Form Request, which
+// delegates to SignUpPolicy::record — the seat-holder's own seat from five minutes before the
+// Shift ends, or any seat for a schedule admin — and whitelists the fields, so whose seat is
+// written is the route binding, never the body. Non-localized, so it takes the language of the
+// page that sent it for its messages (#668).
 Route::patch('sign-ups/{signUp}', [SignUpController::class, 'record'])
-    ->middleware(['auth'])
+    ->middleware(['auth', 'localizeFromReferer'])
     ->name('sign-ups.record');
 
 // Officer assignment write seam (#359, PRD #352, ADR-0021 §Sign-up). A Scheduler placing a

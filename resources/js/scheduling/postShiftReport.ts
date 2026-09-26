@@ -31,9 +31,9 @@ const hasCount = (seat: ReportSeat): boolean => (seat.visitor_count ?? null) !==
 
 /**
  * The one seat whose entry shows the form, or null for none. A seat opened by Change (the
- * viewer's own, or any seat for an Officer, #653) wins. Otherwise the viewer's own seat opens
- * by itself when its window is open and it has no count yet. One seat at most, so a card never
- * shows two forms.
+ * viewer's own, or any seat for an Officer, #653) wins while it is still on the Shift; a seat that
+ * has gone opens nothing (#668). Otherwise the viewer's own seat opens by itself when its window
+ * is open and it has no count yet. One seat at most, so a card never shows two forms.
  */
 export function openFormSeat(options: {
     seats: ReportSeat[];
@@ -43,7 +43,7 @@ export function openFormSeat(options: {
 }): number | null {
     const { seats, ownSeatId, canRecordOwn, editingSeatId } = options;
 
-    if (editingSeatId !== null) return editingSeatId;
+    if (editingSeatId !== null && seats.some((seat) => seat.id === editingSeatId)) return editingSeatId;
     if (ownSeatId === null || !canRecordOwn) return null;
 
     const own = seats.find((seat) => seat.id === ownSeatId);
@@ -65,6 +65,14 @@ export function entryState(seat: ReportSeat, formSeatId: number | null): EntrySt
  */
 export function showsChange(seat: ReportSeat, state: EntryState): boolean {
     return state !== 'form' && seat.can_record === true;
+}
+
+/**
+ * Whether an entry's Change is disabled (#668): the open form has unsaved changes, so moving the
+ * form to another entry would lose them. The entry shows "Save or cancel your changes first."
+ */
+export function changeIsDisabled(state: EntryState, formHasUnsavedChanges: boolean): boolean {
+    return state !== 'form' && formHasUnsavedChanges;
 }
 
 /** The header's "N of M recorded": seats with a count (a zero counts) out of all seats. */

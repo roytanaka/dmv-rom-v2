@@ -869,7 +869,7 @@ it('turns the four visitor switches on per Group, with Reception collecting noth
         ->and(Group::where('collects_visitor_provenance', true)->count())->toBe(1);
 
     // A tour-leading Group collects the split; Reception, the tenth scheduling Group,
-    // collects nothing at all (ADR-0023 §5) so it renders no sign-out panel.
+    // collects nothing at all (ADR-0023 §5) so it renders no Post-shift report.
     expect($docents->collects_visitor_count)->toBeTrue()
         ->and($docents->collects_extra_interactions)->toBeTrue()
         ->and($reception->collects_visitor_count)->toBeFalse()
@@ -930,7 +930,7 @@ it('leaves a persona an outstanding past Shift — a null count inside the windo
 
 it('seats the Member Persona on the outstanding Docents Shift, so her My sign-ups panel has a number to file', function () {
     // The help screenshots and a Member walkthrough run as the Member Persona (#529). Her
-    // Scheduling tab must show a past Docents Shift still owed a count, and the sign-out form
+    // Scheduling tab must show a past Docents Shift still owed a count, and the post-shift form
     // on it, so the seed hands her the first null seat rather than whoever has the lowest id.
     $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)->firstOrFail();
     $docents = Group::where('slug', 'docents')->firstOrFail();
@@ -1168,7 +1168,7 @@ it('records the worked GI past days and leaves the most recent shifts outstandin
 
             return $s->visitor_count >= $units * 26 && $s->visitor_count <= $units * 38;
         }))->toBeTrue()
-        // The recent shifts are still owed a number — the outstanding panel reads them (ADR-0023 §5).
+        // The recent shifts are still owed a number — the My sign-ups panel reads them (ADR-0023 §5).
         ->and($recent)->not->toBeEmpty()
         ->and($recent->every(fn (SignUp $s) => $s->visitor_count === null))->toBeTrue();
 });

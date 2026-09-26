@@ -26,8 +26,8 @@ use Illuminate\Validation\Validator;
  *
  * `extra_interaction_count` is the tour-leading second box (#447, ADR-0023 §2) — visitors served
  * outside the tour. It is **optional where the visitor count is required**: a tour with no extra
- * interactions is a real zero the volunteer may leave blank, and the Sign Out button does not
- * wait for it. Same whole-number, non-negative shape. Only a Group that collects the split accepts
+ * interactions is a real zero the volunteer may leave blank, and the Record shift button does
+ * not wait for it. Same whole-number, non-negative shape. Only a Group that collects the split accepts
  * it; every other Group — including one that collects the count but not the split — **rejects** a
  * value rather than folding it into the count or dropping it silently.
  *
@@ -41,12 +41,12 @@ use Illuminate\Validation\Validator;
  *
  * `comment` (#655, PRD #651) is the seat-holder's optional note, at most 2,000 characters, where
  * the Group collects a count. It must be **missing** on an officer's correction of another seat,
- * even as an empty value.
+ * even as an empty value, and the refusal says why (#668).
  */
 class RecordSignUpVisitorsRequest extends FormRequest
 {
     /**
-     * The five origin fields, in the order GDR's sign-out panel lists them. Named once so the
+     * The five origin fields, in the order GDR's post-shift form lists them. Named once so the
      * whitelist, the prohibition on other Groups, and the sum check all read the same list.
      *
      * @var list<string>
@@ -69,7 +69,7 @@ class RecordSignUpVisitorsRequest extends FormRequest
     }
 
     /**
-     * The whitelist of fields a sign-out records. `visitor_count` is required where the Group
+     * The whitelist of fields a post-shift entry records. `visitor_count` is required where the Group
      * collects it and prohibited where it does not; `extra_interaction_count` is optional where
      * the Group collects the split and prohibited where it does not. Either way each is a whole
      * number at or above zero. No member id and no sign-up id — the seat comes from the route,
@@ -115,7 +115,7 @@ class RecordSignUpVisitorsRequest extends FormRequest
      * Legacy enforced it in a browser alert only; here the server refuses the write when they
      * disagree. Runs only once the basic rules have passed, so every value is known to be a whole
      * number — a decimal or a missing field fails on its own rule first and never reaches here.
-     * The error hangs on the first origin field (where the panel shows it) and names both totals.
+     * The error hangs on the first origin field (where the form shows it) and names both totals.
      */
     public function withValidator(Validator $validator): void
     {
@@ -149,11 +149,14 @@ class RecordSignUpVisitorsRequest extends FormRequest
     public function messages(): array
     {
         $messages = [
+            'visitor_count.required' => trans('group.scheduling_panel.agenda.sign_out.count_required'),
             'visitor_count.integer' => trans('group.scheduling_panel.agenda.sign_out.whole_number'),
             'visitor_count.min' => trans('group.scheduling_panel.agenda.sign_out.not_negative'),
             'extra_interaction_count.integer' => trans('group.scheduling_panel.agenda.sign_out.extra_whole_number'),
             'extra_interaction_count.min' => trans('group.scheduling_panel.agenda.sign_out.extra_not_negative'),
             'comment.max' => trans('group.scheduling_panel.agenda.sign_out.comment_max'),
+            // An officer's correction carries no comment (#668): say so, not Laravel's default.
+            'comment.missing' => trans('group.scheduling_panel.agenda.sign_out.comment_officer'),
         ];
 
         foreach (self::PROVENANCE_FIELDS as $field) {

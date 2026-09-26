@@ -262,7 +262,7 @@ it('refuses the write on a Group that collects no visitor count', function () {
     expect($signUp->fresh()->visitor_count)->toBeNull();
 });
 
-// --- The read surface: the sign-out panel's props -------------------------------
+// --- The read surface: the Post-shift report's props -------------------------------
 
 it('exposes the collecting switch as a Group capability', function () {
     $this->travelTo(visitorNow());

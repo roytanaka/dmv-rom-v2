@@ -26,13 +26,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * `visitors_other_countries`) that must sum to `visitor_count`. **Null means nobody recorded a
  * value; zero means someone recorded zero** — the two never collapse, and the extra column is
  * stored apart from the count, folded only where a report asks for total interactions. The
- * Member's name is exposed to any viewer who can read the
- * Schedule ({@see MemberResource}, ADR-0017 §6); the counts only to the seat-holder and a
- * schedule admin.
+ * Member's name is exposed to any viewer who can read the Schedule ({@see MemberResource},
+ * ADR-0017 §6); the counts to every Member holding a seat on the Shift and to a schedule admin,
+ * the readers of the Post-shift report (#652, ADR-0023 §5).
  *
  * The seat-holder may add an optional `comment` to their entry (#655, PRD #651): visitor
  * questions, how the shift went, or issues from the floor. Only the author and a schedule admin
- * read it ({@see SignUpPolicy::viewComment}); no report reads it.
+ * read it ({@see SignUpPolicy::viewComment}); no report reads it. It is hidden when the model is
+ * serialized (#668), so an export or API that sends a Sign-up whole never sends the comment.
  */
 class SignUp extends Model
 {
@@ -49,6 +50,18 @@ class SignUp extends Model
     public const OUTSTANDING_WINDOW_DAYS = 28;
 
     /**
+     * The session flash naming the Sign-ups post-shift saves just wrote (#668). My sign-ups keeps
+     * their Shifts on the page load after the save only, so a first save shows its summary there.
+     */
+    public const JUST_SAVED_FLASH = 'post_shift_just_saved';
+
+    /**
+     * The session key holding the saved Sign-ups the last page load kept (#668), so a second save
+     * before any other page load keeps the first seat too. Every My sign-ups load rewrites it.
+     */
+    public const SHOWN_SAVED_KEY = 'post_shift_shown_saved';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -63,6 +76,16 @@ class SignUp extends Model
         'visitors_toronto',
         'visitors_rest_of_canada',
         'visitors_other_countries',
+        'comment',
+    ];
+
+    /**
+     * The attributes hidden when the model is serialized. The comment is private to its author
+     * and a schedule admin (#655, #668); the Post-shift report adds it per reader.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
         'comment',
     ];
 
