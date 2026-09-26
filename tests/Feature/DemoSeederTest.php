@@ -50,7 +50,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 // the initials fallback, which these tests don't assert against.
 beforeEach(function () {
     Http::fake();
-    $this->seed(DemoSeeder::class);
+    $this->seedDemoOnce();
 });
 
 it('builds a tree whose relationships resolve from the root', function () {
