@@ -312,7 +312,7 @@ final class HelpManifest
             new HelpArticle('pick-an-audience', HelpSection::Emailing, status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('attach-a-file', HelpSection::Emailing, status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('queued-for-n-members', HelpSection::Emailing, status: ArticleStatus::Published),
-            new HelpArticle('set-the-no-email-flag', HelpSection::Emailing, requires: ['records'], status: ArticleStatus::Draft, route: 'members.show'),
+            new HelpArticle('set-the-no-email-flag', HelpSection::Emailing, requires: ['records'], status: ArticleStatus::Published, route: 'members.show'),
             new HelpArticle('read-the-mail-status-page', HelpSection::Emailing, requires: ['super_tier'], status: ArticleStatus::Published, route: 'mail-status'),
 
             new HelpArticle('settings', HelpSection::Settings, isOverview: true, status: ArticleStatus::Published, route: 'settings.profile'),

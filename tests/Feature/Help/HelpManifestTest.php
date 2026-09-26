@@ -162,7 +162,7 @@ it('offers records as a requirable role, since member administration is not a Gr
     expect(HelpManifest::requirableRoles())->toContain('records');
 });
 
-it('lists the no-email-flag article as a Records draft in Emailing, mapped to the member page', function () {
+it('lists the no-email-flag article as a Records article in Emailing, mapped to the member page', function () {
     // #564: a Records-only task article for the no-email switch on a Member's profile.
     $article = (new HelpManifest)->find('set-the-no-email-flag');
 
@@ -170,7 +170,7 @@ it('lists the no-email-flag article as a Records draft in Emailing, mapped to th
     expect($article->section)->toBe(HelpSection::Emailing);
     expect($article->requires)->toBe(['records']);
     expect($article->route)->toBe('members.show');
-    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->status)->toBe(ArticleStatus::Published);
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 
