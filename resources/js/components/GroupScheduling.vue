@@ -15,12 +15,14 @@
 // PATCH carrying the new `state`. Every mutation is enforced by the SchedulePolicy
 // regardless of what renders. Names and descriptions are as-authored content
 // (ADR-0004); everything else is translated chrome.
+import DateTimeField from '@/components/DateTimeField.vue';
 import ForeignShiftBand from '@/components/ForeignShiftBand.vue';
 import InputError from '@/components/InputError.vue';
 import ObjectPicker from '@/components/ObjectPicker.vue';
 import ScheduleCalendar from '@/components/ScheduleCalendar.vue';
 import ShiftCard from '@/components/ShiftCard.vue';
 import TextLink from '@/components/TextLink.vue';
+import TimeField from '@/components/TimeField.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -407,17 +409,11 @@ const removeSeat = (signUpId: number) => {
 // offers, labelled from the lang file. `group` is the default; `open` invites the whole org.
 const AUDIENCES = ['group', 'open'] as const;
 
-// The granularity every Shift time is entered at, in seconds. Shifts are scheduled to the
-// five minutes, never to the minute, so the native picker steps in fives rather than making
-// the Scheduler scroll sixty entries to reach half past. Browsers also validate against it,
-// so a time off the grid is rejected before it reaches the form.
-const TIME_STEP_SECONDS = 300;
-
 // The native-select styling, matching the Roster's pickers (no shadcn Select in the repo yet).
 const SELECT_CLASS =
     'border-input bg-background focus-visible:border-rom-slate focus-visible:ring-rom-slate-50 flex h-11 w-full rounded-none border px-3 py-2 text-base focus-visible:ring-2 focus-visible:outline-hidden';
 
-// A Shift's times are instants on the org wall clock, like a Meeting's. A datetime-local input
+// A Shift's times are instants on the org wall clock, like a Meeting's. A DateTimeField value
 // has no zone of its own, so pre-fill renders the UTC instant on the org wall clock and the
 // server reads what it sends back as org-local (App\Support\OrgTime) — saving an unedited Shift
 // is a no-op. (Prior art: GroupMeetings' held_at.)
@@ -509,9 +505,8 @@ const SELF_SERVE_MAX_UNITS = 8;
 const unitOptions = Array.from({ length: SELF_SERVE_MAX_UNITS }, (_, index) => index + 1);
 
 // Self-serve starts step in 15-minute grid slots (ADR-0026 §2) — coarser than the Scheduler
-// form's five minutes, and the same grid the server enforces, so the picker offers no off-grid
-// slot. In seconds for the native input's `step`.
-const SELF_SERVE_TIME_STEP_SECONDS = 900;
+// form's five minutes, and the same grid the server enforces (`OnMinuteGrid(15)`).
+const SELF_SERVE_STEP_MINUTES = 15;
 
 // The open editor: 'create', the id of the Shift being edited, or null when closed.
 const selfServeMode = ref<'create' | number | null>(null);
@@ -550,7 +545,7 @@ const selfServeDialogTitle = computed(() =>
     trans(selfServeMode.value === 'create' ? 'group.scheduling_panel.self_serve.create_title' : 'group.scheduling_panel.self_serve.edit_title'),
 );
 
-// The derived end, shown live beside the units picker. The datetime-local start carries no zone,
+// The derived end, shown live beside the units picker. The DateTimeField start carries no zone,
 // so it is read as a UTC instant purely for the minute arithmetic and formatted back in UTC — the
 // wall-clock end then matches the wall-clock start the Member typed. Empty until a start is set.
 const selfServeEnd = computed(() => {
@@ -1263,12 +1258,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 <form class="flex flex-col gap-4" @submit.prevent="submitShift">
                     <div class="grid gap-2">
                         <Label for="shift-starts-at">{{ trans('group.scheduling_panel.shift_field.starts_at') }}</Label>
-                        <Input id="shift-starts-at" v-model="shiftForm.starts_at" type="datetime-local" :step="TIME_STEP_SECONDS" required />
+                        <DateTimeField id="shift-starts-at" v-model="shiftForm.starts_at" required />
                         <InputError :message="shiftForm.errors.starts_at" />
                     </div>
                     <div class="grid gap-2">
                         <Label for="shift-ends-at">{{ trans('group.scheduling_panel.shift_field.ends_at') }}</Label>
-                        <Input id="shift-ends-at" v-model="shiftForm.ends_at" type="datetime-local" :step="TIME_STEP_SECONDS" required />
+                        <DateTimeField id="shift-ends-at" v-model="shiftForm.ends_at" required />
                         <InputError :message="shiftForm.errors.ends_at" />
                     </div>
                     <div class="grid gap-2">
@@ -1327,11 +1322,10 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     </div>
                     <div class="grid gap-2">
                         <Label for="self-serve-starts-at">{{ trans('group.scheduling_panel.self_serve.field.starts_at') }}</Label>
-                        <Input
+                        <DateTimeField
                             id="self-serve-starts-at"
                             v-model="writeShiftForm.starts_at"
-                            type="datetime-local"
-                            :step="SELF_SERVE_TIME_STEP_SECONDS"
+                            :step-minutes="SELF_SERVE_STEP_MINUTES"
                             required
                         />
                         <InputError :message="writeShiftForm.errors.starts_at" />
@@ -1411,12 +1405,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="grid gap-2">
                             <Label for="bulk-starts-time">{{ trans('group.scheduling_panel.bulk.field.starts_time') }}</Label>
-                            <Input id="bulk-starts-time" v-model="bulkForm.starts_time" type="time" :step="TIME_STEP_SECONDS" required />
+                            <TimeField id="bulk-starts-time" v-model="bulkForm.starts_time" required />
                             <InputError :message="bulkForm.errors.starts_time" />
                         </div>
                         <div class="grid gap-2">
                             <Label for="bulk-ends-time">{{ trans('group.scheduling_panel.bulk.field.ends_time') }}</Label>
-                            <Input id="bulk-ends-time" v-model="bulkForm.ends_time" type="time" :step="TIME_STEP_SECONDS" required />
+                            <TimeField id="bulk-ends-time" v-model="bulkForm.ends_time" required />
                             <InputError :message="bulkForm.errors.ends_time" />
                         </div>
                         <div class="grid gap-2">
@@ -1499,12 +1493,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="grid gap-2">
                             <Label for="bulk-assign-starts-time">{{ trans('group.scheduling_panel.bulk_assign.field.starts_time') }}</Label>
-                            <Input id="bulk-assign-starts-time" v-model="bulkAssignForm.starts_time" type="time" :step="TIME_STEP_SECONDS" required />
+                            <TimeField id="bulk-assign-starts-time" v-model="bulkAssignForm.starts_time" required />
                             <InputError :message="bulkAssignForm.errors.starts_time" />
                         </div>
                         <div class="grid gap-2">
                             <Label for="bulk-assign-ends-time">{{ trans('group.scheduling_panel.bulk_assign.field.ends_time') }}</Label>
-                            <Input id="bulk-assign-ends-time" v-model="bulkAssignForm.ends_time" type="time" :step="TIME_STEP_SECONDS" required />
+                            <TimeField id="bulk-assign-ends-time" v-model="bulkAssignForm.ends_time" required />
                             <InputError :message="bulkAssignForm.errors.ends_time" />
                         </div>
                         <div class="grid gap-2">
