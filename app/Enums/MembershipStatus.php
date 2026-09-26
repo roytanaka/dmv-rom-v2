@@ -41,4 +41,16 @@ enum MembershipStatus: string
             self::Loa, self::Inactive, self::Resigned, self::Deceased => false,
         };
     }
+
+    /**
+     * Whether a membership in this within-Group standing makes the Group the Member's own
+     * — the rule My Groups and the Other Groups prune both read (ADR-0020, #635). A present
+     * standing ({@see canSignUp()}) belongs, and so does `loa`: a Member on leave cannot
+     * sign up, but the Group is still theirs. Only the departed standings — `inactive`,
+     * `resigned`, `deceased` — do not belong.
+     */
+    public function countsAsBelonging(): bool
+    {
+        return $this->canSignUp() || $this === self::Loa;
+    }
 }
