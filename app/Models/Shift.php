@@ -110,6 +110,16 @@ class Shift extends Model
     }
 
     /**
+     * Whether the seat-holders' sign-out window has opened (#445, ADR-0023 §5): from five
+     * minutes before `ends_at`, with no upper bound. The SignUpPolicy's seat-holder rule and the
+     * card's own-seat form (#652) both read this one bound.
+     */
+    public function signOutWindowIsOpen(): bool
+    {
+        return ! CarbonImmutable::now()->isBefore($this->ends_at->subMinutes(5));
+    }
+
+    /**
      * Whether the Member may change or delete this self-authored Shift (#585, ADR-0026 §1) —
      * the derived ownership rule, since no column records who wrote a row (#334 stays open).
      * A Member owns a Shift, and may edit or delete it, exactly while:

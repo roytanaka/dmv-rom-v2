@@ -290,7 +290,7 @@ it('carries the seat-holder’s own recorded count and a record verdict on their
     $this->actingAs($member)
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scheduling.open.shifts.0.visitor_count', 15)
+            ->where('scheduling.open.shifts.0.signups.0.visitor_count', 15)
             ->where('scheduling.open.shifts.0.can.record', true));
 });
 
@@ -308,7 +308,7 @@ it('withholds the count and record verdict from a reader holding no seat', funct
     $this->actingAs(seatMemberOf($group))
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scheduling.open.shifts.0.visitor_count', null)
+            ->missing('scheduling.open.shifts.0.signups.0.visitor_count')
             ->where('scheduling.open.shifts.0.can.record', false));
 });
 

@@ -1,6 +1,6 @@
 /**
- * The sign-out form's boxes (#646, ADR-0023) — the client's copy of the rules that decide when
- * **Sign out** / **Save** is enabled and what the write sends.
+ * The record form's boxes (#646, #652, ADR-0023) — the client's copy of the rules that decide when
+ * **Record shift** / **Save changes** is enabled and what the write sends.
  *
  * A `type="number"` box holds a string until the user types, then Vue's v-model hands back a
  * number. A pre-filled box holds a string; an empty one holds `''`. Every box here is therefore
@@ -23,7 +23,7 @@ export type RecordDraft = {
     provenance: Record<keyof VisitorProvenance, BoxValue>;
 };
 
-/** What the Group collects on sign-out, beyond the count. */
+/** What the Group collects after a shift, beyond the count. */
 export type RecordFlags = {
     collectsExtraInteractions: boolean;
     collectsVisitorProvenance: boolean;
@@ -38,7 +38,7 @@ export type RecordPayload = {
 /** An untouched or cleared box. A typed `0` is not blank. */
 const isBlank = (value: BoxValue): boolean => String(value).trim() === '';
 
-/** GDR's five origin fields, in the order the sign-out panel lists them. */
+/** GDR's five origin fields, in the order the record form lists them. */
 export const PROVENANCE_KEYS = [
     'visitors_france_europe',
     'visitors_quebec',

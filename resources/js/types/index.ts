@@ -590,11 +590,13 @@ export interface ShiftSignUp {
     // Officer removal (#359) — the seat's own Sign-up id, the remove target. Present only
     // for a schedule admin (a plain reader never learns another seat's id).
     signup_id?: number;
-    // Officer correction (#450, ADR-0023 §5) — a schedule admin gets, on every seat: the
-    // verdict that they may correct it (the schedule-admin gate, no time bound), and the numbers
-    // already recorded so the pencil pre-fills. Null throughout for a seat with nothing filed
-    // yet, distinct from a recorded zero. All absent for a plain reader, who sees no pencil.
+    // Officer correction (#450, ADR-0023 §5) — the verdict that a schedule admin may correct
+    // this seat (the schedule-admin gate, no time bound). Absent for everyone else.
     can_record?: boolean;
+    // The seat's recorded numbers, for the Post-shift report (#652) — sent to every Member
+    // holding a seat on the Shift and to a schedule admin, where the Group collects a count.
+    // Null for a seat with nothing filed yet, distinct from a recorded zero. Absent for a
+    // plain reader.
     visitor_count?: number | null;
     extra_interaction_count?: number | null;
     visitors_france_europe?: number | null;
@@ -651,33 +653,26 @@ export interface ShiftAgendaItem {
     shift_kind_id: number | null;
     signups: ShiftSignUp[];
     signup_id: number | null;
-    // The count the viewer recorded on their own seat here (#445, ADR-0023 §5) — null when
-    // unrecorded, distinct from a recorded zero. Sent only to the seat-holder; a reader holding
-    // no seat gets null.
-    visitor_count: number | null;
-    // The extra-interaction count the viewer recorded on their own seat (#447, ADR-0023 §2) —
-    // visitors served outside the tour they led, on a tour-leading Group. Stored apart from the
-    // count, never folded in. Same null/zero/seat-holder-only rules as `visitor_count`.
-    extra_interaction_count: number | null;
-    // GDR's five visitor origins the viewer recorded on their own seat (#448, ADR-0023 §3) — where
-    // their visitors came from, summing to `visitor_count`. GDR alone; same seat-holder-only,
-    // null-when-unrecorded rules as the count, and null throughout on every other Group.
-    visitors_france_europe: number | null;
-    visitors_quebec: number | null;
-    visitors_toronto: number | null;
-    visitors_rest_of_canada: number | null;
-    visitors_other_countries: number | null;
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
     // schedule-admin gate plus a free seat (capacity binds the Scheduler too, #359).
     // `update` / `delete` are the Shift authoring hints (#356 front end): `update` is the
-    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. `record` is the
-    // sign-out verdict (#445, #450) — the viewer's own seat; a schedule admin may record
-    // at any time, the seat-holder's own window opens five minutes before the Shift ends.
+    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. `readReport` says the
+    // Post-shift report renders (#652): a seat-holder or schedule admin, on a Group that
+    // collects a count. `record` says the viewer's own seat may show the record form: they hold
+    // a seat and its sign-out window has opened, five minutes before the end (#445, #652).
     // All false on a foreign Shift, which carries no authoring affordances. `manageSelfServe`
     // is the derived-ownership verdict (#585, ADR-0026 §1): true when the viewer owns this
     // self-serve Shift (self-serve group, capacity 1, their own single seat, not yet started),
     // driving the author's own Edit and Delete controls; false on a foreign Shift.
-    can: { signUp: boolean; assign: boolean; update: boolean; delete: boolean; record: boolean; manageSelfServe: boolean };
+    can: {
+        signUp: boolean;
+        assign: boolean;
+        update: boolean;
+        delete: boolean;
+        readReport: boolean;
+        record: boolean;
+        manageSelfServe: boolean;
+    };
 }
 
 // A foreign open Shift (#361, ADR-0021 §Sign-up) — another Group's `open` Shift a reader

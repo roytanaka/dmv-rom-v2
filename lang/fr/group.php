@@ -410,19 +410,31 @@ return [
             // de cinq minutes avant la fin. Le bouton reste désactivé tant qu’aucun nombre
             // n’est saisi ; le serveur applique le reste.
             'sign_out' => [
+                // La section Rapport après le quart (#652, PRD #651) — une entrée par siège sous
+                // les détails du quart. `record` est le bouton du premier enregistrement ;
+                // `record_needs_count` explique le bouton désactivé ; `count_help` demande de ne
+                // compter que ses propres visiteur·euses, contre le double comptage.
+                'heading' => 'Rapport après le quart',
+                'progress' => ':recorded sur :total enregistrés',
+                'you' => ':name (vous)',
+                'no_count' => 'Aucun nombre pour l’instant',
                 'count_label' => 'Visiteur·euses servi·es',
-                'submit' => 'Terminer le quart',
+                'count_help' => 'Comptez seulement les visiteur·euses que vous avez servi·es.',
+                'record' => 'Enregistrer le quart',
+                'record_needs_count' => 'Saisissez le nombre de visiteur·euses pour enregistrer le quart.',
+                'record_needs_provenance' => 'Saisissez le nombre de visiteur·euses et les cinq provenances pour enregistrer le quart.',
+                'change' => 'Modifier',
                 'placeholder' => 'Nombre',
                 'recorded' => ':count visiteur·euses',
                 'whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
                 'not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
                 // La correction de l’officier·ère (#450, ADR-0023 §5) — le crayon sur chaque
                 // siège, sans échéance. `correct` étiquette le crayon ; `correcting` nomme le
-                // siège ouvert pour ne pas confondre une correction avec un sign-out ; `save` et
-                // `cancel` sont ses boutons (le sign-out garde `submit` et n’a pas d’annulation).
+                // siège ouvert pour ne pas confondre une correction avec son propre siège. `save`
+                // et `cancel` ferment tout formulaire rouvert, correction ou Modifier.
                 'correct' => 'Corriger le nombre de visiteur·euses',
                 'correcting' => 'Correction des visiteur·euses de :name',
-                'save' => 'Enregistrer',
+                'save' => 'Enregistrer les modifications',
                 'cancel' => 'Annuler',
                 // La seconde case des groupes qui mènent des circuits (#447, ADR-0023 §2) —
                 // visiteur·euses servi·es en dehors du circuit, facultatif.

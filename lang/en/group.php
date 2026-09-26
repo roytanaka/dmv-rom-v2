@@ -414,28 +414,40 @@ return [
                 'remove' => 'Remove from shift',
                 'confirm_remove' => 'Remove this member from the shift?',
             ],
-            // Sign-out (#445, PRD #443, ADR-0023 §5) — the seat-holder records how many
+            // Recording after the shift (#445, #652, ADR-0023 §5) — the seat-holder records how many
             // visitors they served, on their own Shift, from five minutes before it ends. The
-            // Sign Out button stays disabled until a number is typed; the server enforces the
-            // rest. `count` labels the box and its chip; the messages carry the server's refusals.
+            // Record shift button stays disabled until a number is typed; the server enforces the
+            // rest. The messages carry the server’s refusals.
             'sign_out' => [
+                // The Post-shift report section (#652, PRD #651) — one entry per seat under the
+                // shift details. `record` is the first save's button: "Record shift", because "Sign
+                // out" read as logging out of the site. `record_needs_count` explains the disabled
+                // button; `count_help` asks for the viewer's own visitors only, against double counts.
+                'heading' => 'Post-shift report',
+                'progress' => ':recorded of :total recorded',
+                'you' => ':name (you)',
+                'no_count' => 'No count yet',
                 'count_label' => 'Visitors served',
-                'submit' => 'Sign out',
+                'count_help' => 'Count only the visitors you served.',
+                'record' => 'Record shift',
+                'record_needs_count' => 'Type the number of visitors to record the shift.',
+                'record_needs_provenance' => 'Type the number of visitors and all five origins to record the shift.',
+                'change' => 'Change',
                 'placeholder' => 'Number',
                 'recorded' => ':count visitors',
                 'whole_number' => 'Enter a whole number of visitors.',
                 'not_negative' => 'The number of visitors cannot be negative.',
                 // The Officer's correction (#450, ADR-0023 §5) — the pencil on every seat, with no
                 // deadline. `correct` labels the pencil; `correcting` names whose seat is open so a
-                // correction is never mistaken for a self sign-out; `save` and `cancel` are its
-                // buttons (the own-seat sign-out keeps `submit` and has no cancel).
+                // correction is never mistaken for the viewer's own. `save` and `cancel` close any
+                // reopened form, a correction or the viewer's own Change.
                 'correct' => 'Correct visitor count',
                 'correcting' => 'Correcting :name’s visitors',
-                'save' => 'Save',
+                'save' => 'Save changes',
                 'cancel' => 'Cancel',
                 // The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
                 // tour, optional. The label says "outside the tour" so it is never confused with
-                // the count beside it; `extra_recorded` reads on the chip where both are recorded.
+                // the count beside it; `extra_recorded` reads in the Post-shift report summary.
                 'extra_label' => 'Visitors served outside the tour',
                 'extra_placeholder' => 'Optional',
                 'extra_recorded' => ':count outside the tour',
