@@ -198,7 +198,6 @@ return [
             ],
             'ends_at_preview' => 'Se termine à :time',
             'units_option' => '{1} :count unité|[2,*] :count unités',
-            'start_off_grid' => 'Choisissez une heure de début au quart d’heure.',
             'start_before_today' => 'Choisissez aujourd’hui ou un jour ultérieur.',
             // L'avertissement de conflit de poste (#588, ADR-0026 §5) — un·e autre interprète est
             // déjà à ce poste à ce moment. Un avertissement, non un blocage : le membre peut passer outre.

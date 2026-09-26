@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\MeetingLinkKind;
+use App\Rules\OnMinuteGrid;
 use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -49,7 +50,7 @@ class UpdateMeetingRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:10000'],
-            'held_at' => ['required', 'date'],
+            'held_at' => ['required', 'date', new OnMinuteGrid],
             'location' => ['nullable', 'string', 'max:255'],
             'video_url' => ['nullable', 'url', 'max:2048'],
             'is_published' => ['sometimes', 'boolean'],
