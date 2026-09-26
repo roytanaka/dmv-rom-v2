@@ -1,5 +1,5 @@
 /**
- * Unit tests for the sign-out form's boxes (#646, ADR-0023).
+ * Unit tests for the record form's boxes (#646, ADR-0023).
  *
  * Runs on Node's built-in test runner (`node --test resources/js/scheduling/recordDraft.test.ts`,
  * or `pnpm test:unit`). Prior art: `resources/js/scheduling/agenda.test.ts`.
@@ -32,11 +32,11 @@ const draft = (overrides: Partial<RecordDraft> = {}): RecordDraft => ({
     ...overrides,
 });
 
-test('an empty count box keeps Sign out disabled', () => {
+test('an empty count box keeps Record shift disabled', () => {
     assert.equal(canSubmitRecord(draft(), PLAIN), false);
 });
 
-test('typing a count enables Sign out and sends it', () => {
+test('typing a count enables Record shift and sends it', () => {
     const typed = draft({ count: 12 });
 
     assert.equal(canSubmitRecord(typed, PLAIN), true);
@@ -92,7 +92,7 @@ test('typed origins that sum to the count submit on GDR', () => {
     });
 });
 
-test('a blank origin box blocks Sign out on GDR', () => {
+test('a blank origin box blocks Record shift on GDR', () => {
     const typed = draft({ count: 6, provenance: { ...emptyProvenance, visitors_quebec: 6 } });
 
     assert.equal(canSubmitRecord(typed, GDR), false);

@@ -107,6 +107,8 @@ const isOwnSeat = (signUp: ShiftSignUp) => signUp.id === page.props.auth.user.id
 
 // The section renders where the Group collects a count and the server says this viewer reads the
 // report (a seat-holder or a schedule admin). The server sends the seat numbers on the same rule.
+// `collectsVisitorCount` is only set where the parent handles `record` (the Agenda and My
+// sign-ups), so the Calendar day sheet and the foreign band show no section they cannot save.
 const showsReport = computed(() => props.collectsVisitorCount && props.shift.can.readReport);
 
 const tally = computed(() => recordedTally(props.shift.signups));
@@ -128,6 +130,9 @@ const formSeatId = computed(() =>
         : null,
 );
 
+// Each seat with how its entry reads: the form, a summary, or "No count yet".
+const entries = computed(() => props.shift.signups.map((signUp) => ({ signUp, state: entryState(signUp, formSeatId.value) })));
+
 const formSeat = computed(() => props.shift.signups.find((signUp) => signUp.id === formSeatId.value) ?? null);
 
 // An Officer's correction of another Member's seat — named above the form so it is never
@@ -138,7 +143,7 @@ const correctingSeat = computed(() => (formSeat.value && !isOwnSeat(formSeat.val
 // Officer's way in to other seats stays the chip pencil until #653.
 const canChange = (signUp: ShiftSignUp) => isOwnSeat(signUp) && props.shift.can.record;
 
-// GDR's five origin fields, in the order the sign-out panel lists them.
+// GDR's five origin fields, in the order the record form lists them.
 // Each label key is the field key with `visitors_` swapped for `provenance_`.
 const provenanceFields = PROVENANCE_KEYS.map((key) => ({
     key,
@@ -251,14 +256,19 @@ const submitRecord = () => {
     );
 };
 
-// A recorded entry's summary: the count, and the extra count beside it where one is recorded.
-const entrySummary = (signUp: ShiftSignUp): string =>
-    [
-        trans('group.scheduling_panel.agenda.sign_out.recorded', { count: String(signUp.visitor_count) }),
-        ...(signUp.extra_interaction_count !== null && signUp.extra_interaction_count !== undefined
-            ? [trans('group.scheduling_panel.agenda.sign_out.extra_recorded', { count: String(signUp.extra_interaction_count) })]
-            : []),
-    ].join(' · ');
+// A recorded entry's summary: the count, then the extra count and GDR's five origins where
+// they are recorded.
+const entrySummary = (signUp: ShiftSignUp): string => {
+    const parts = [trans('group.scheduling_panel.agenda.sign_out.recorded', { count: String(signUp.visitor_count) })];
+    const extra = signUp.extra_interaction_count ?? null;
+    if (extra !== null) parts.push(trans('group.scheduling_panel.agenda.sign_out.extra_recorded', { count: String(extra) }));
+    provenanceFields.forEach((field) => {
+        const value = signUp[field.key] ?? null;
+        if (value !== null) parts.push(`${trans(field.labelKey)} ${value}`);
+    });
+
+    return parts.join(' · ');
+};
 
 const entryName = (signUp: ShiftSignUp): string =>
     isOwnSeat(signUp) ? trans('group.scheduling_panel.agenda.sign_out.you', { name: signUpName(signUp) }) : signUpName(signUp);
@@ -420,13 +430,13 @@ const formId = useId();
                     </span>
                 </div>
                 <ul class="flex flex-col gap-3">
-                    <li v-for="signUp in shift.signups" :key="signUp.id">
+                    <li v-for="{ signUp, state } in entries" :key="signUp.id">
                         <!-- The form. `novalidate` lets a decimal or negative reach the server,
                              whose message shows under the box in the app's language (#649),
                              instead of the browser's own popup. The server requires, whole-checks,
                              bounds and re-authorises every write regardless. -->
                         <form
-                            v-if="entryState(signUp, formSeatId) === 'form'"
+                            v-if="state === 'form'"
                             class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
                             novalidate
                             @submit.prevent="submitRecord"
@@ -534,15 +544,11 @@ const formId = useId();
                             <div class="flex min-w-0 flex-col">
                                 <span class="text-rom-ink text-sm font-medium">{{ entryName(signUp) }}</span>
                                 <span class="text-muted-foreground text-sm tabular-nums">
-                                    {{
-                                        entryState(signUp, formSeatId) === 'summary'
-                                            ? entrySummary(signUp)
-                                            : trans('group.scheduling_panel.agenda.sign_out.no_count')
-                                    }}
+                                    {{ state === 'summary' ? entrySummary(signUp) : trans('group.scheduling_panel.agenda.sign_out.no_count') }}
                                 </span>
                             </div>
                             <Button
-                                v-if="canChange(signUp) && entryState(signUp, formSeatId) === 'summary'"
+                                v-if="canChange(signUp) && state === 'summary'"
                                 type="button"
                                 variant="outline"
                                 class="h-11 sm:h-8"

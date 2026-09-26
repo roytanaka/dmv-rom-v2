@@ -15,6 +15,9 @@ export type ReportSeat = { id: number; visitor_count?: number | null };
 
 export type EntryState = 'form' | 'summary' | 'no-count';
 
+/** Whether a seat has a count on file. A recorded zero counts; null or absent does not. */
+const hasCount = (seat: ReportSeat): boolean => (seat.visitor_count ?? null) !== null;
+
 /**
  * The one seat whose entry shows the form, or null for none. A seat opened by Change (or an
  * Officer's pencil) wins. Otherwise the viewer's own seat opens by itself when its window is
@@ -33,20 +36,20 @@ export function openFormSeat(options: {
 
     const own = seats.find((seat) => seat.id === ownSeatId);
 
-    return own && (own.visitor_count ?? null) === null ? ownSeatId : null;
+    return own && !hasCount(own) ? ownSeatId : null;
 }
 
 /** How one seat's entry reads: the open form, a summary of its numbers, or "No count yet". */
 export function entryState(seat: ReportSeat, formSeatId: number | null): EntryState {
     if (seat.id === formSeatId) return 'form';
 
-    return (seat.visitor_count ?? null) === null ? 'no-count' : 'summary';
+    return hasCount(seat) ? 'summary' : 'no-count';
 }
 
 /** The header's "N of M recorded": seats with a count (a zero counts) out of all seats. */
 export function recordedTally(seats: ReportSeat[]): { recorded: number; total: number } {
     return {
-        recorded: seats.filter((seat) => (seat.visitor_count ?? null) !== null).length,
+        recorded: seats.filter(hasCount).length,
         total: seats.length,
     };
 }
