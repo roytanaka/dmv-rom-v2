@@ -61,6 +61,7 @@ Member::canActAs(Role $role, Group $group): bool
 - **Ad-hoc grants decoupled from any Group** (e.g. `initiate-support-session`, [ADR-0009](0009-user-switching-and-support-impersonation.md)) stay **standalone gates**.
 - A **generic named-permission table is not built** until a third case proves the need.
 - _(Amended 2026-07-02 — one exception to "standalone gates": a cross-cutting check that must_ **exclude** _super-tier cannot be a gate at all. §1's `Gate::before` short-circuits super-tier to `true` before any gate runs, so a gate ability can never_ deny _super-tier. The dev switcher's `support_operator` marker ([ADR-0009](0009-user-switching-and-support-impersonation.md)) is therefore read as a direct `Member::isSupportOperator()` predicate,_ **outside the Gate system** _— the only way to stop the President's org authority from conferring the maintainer's impersonation power. Standalone_ gates _remain correct for ad-hoc grants that super-tier may legitimately hold, such as the production `initiate-support-session`.)_
+- _(Amended 2026-09-26, [#647](https://github.com/roytanaka/dmv-rom-v2/issues/647) — a second example: the self-serve Shift ownership rule ([ADR-0026](0026-gallery-interpreters-self-serve-shifts.md) §1) is an ownership-and-timing rule, not a permission. As a policy ability it gave the President the owner's Edit and Delete on every Shift. It is now read as a direct `Shift::isSelfServeOwnedBy()` predicate, outside the Gate system.)_
 
 ### 6. Field-level visibility — allowlist, least privilege
 

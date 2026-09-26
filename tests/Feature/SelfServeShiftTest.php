@@ -21,7 +21,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 /*
  * A Member writing their own Shift in a self-serve Group (#585, PRD #576, ADR-0026 §1, §2). The
  * write seam — three routes on one controller (self-serve-shifts.store / .update / .destroy),
- * authorized in their Form Requests via the ShiftPolicy's createSelfServe and manageSelfServe —
+ * authorized in their Form Requests via the ShiftPolicy's createSelfServe and Shift::isSelfServeOwnedBy —
  * and the Inertia hints that reveal the button and the owner's edit/delete. No Objects and no
  * clash checks here; those are #586 and #588. Prior art: GroupSignUpsTest, GroupSchedulingTest.
  */
@@ -427,6 +427,88 @@ it('refuses a delete once the Shift has started', function () {
     expect(Shift::whereKey($shift->id)->exists())->toBeTrue();
 });
 
+// --- super-tier: the owner rule binds everyone (#647) --------------------------
+
+it('refuses a super-tier Member’s update and delete of a Shift they do not own', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $shift = ownedShift($schedule, $station, giMemberOf($group));
+    $superTier = Member::factory()->superTier()->create();
+
+    $this->actingAs($superTier)
+        ->patch(route('self-serve-shifts.update', ['shift' => $shift->id]), [
+            'shift_kind_id' => $station->id,
+            'starts_at' => '2026-06-17T10:00',
+            'units' => 2,
+        ])
+        ->assertForbidden();
+
+    $this->actingAs($superTier)
+        ->delete(route('self-serve-shifts.destroy', ['shift' => $shift->id]))
+        ->assertForbidden();
+
+    expect(Shift::whereKey($shift->id)->exists())->toBeTrue();
+});
+
+it('refuses a super-tier owner’s update and delete once their Shift has started', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $superTier = Member::factory()->superTier()->create();
+    $shift = ownedShift($schedule, $station, $superTier, [
+        'starts_at' => Carbon::parse('2026-06-14 10:00', config('app.org_timezone')),
+        'ends_at' => Carbon::parse('2026-06-14 12:15', config('app.org_timezone')),
+    ]);
+
+    $this->actingAs($superTier)
+        ->patch(route('self-serve-shifts.update', ['shift' => $shift->id]), [
+            'shift_kind_id' => $station->id,
+            'starts_at' => '2026-06-16T10:00',
+            'units' => 2,
+        ])
+        ->assertForbidden();
+
+    $this->actingAs($superTier)
+        ->delete(route('self-serve-shifts.destroy', ['shift' => $shift->id]))
+        ->assertForbidden();
+
+    expect(Shift::whereKey($shift->id)->exists())->toBeTrue();
+});
+
+it('lets a super-tier owner change their Shift before it starts', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $superTier = Member::factory()->superTier()->create();
+    $shift = ownedShift($schedule, $station, $superTier);
+
+    $this->actingAs($superTier)
+        ->patch(route('self-serve-shifts.update', ['shift' => $shift->id]), [
+            'shift_kind_id' => $station->id,
+            'starts_at' => '2026-06-17T13:00',
+            'units' => 2,
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($shift->refresh()->starts_at->equalTo(Carbon::parse('2026-06-17 13:00', config('app.org_timezone'))))->toBeTrue();
+});
+
+it('lets a super-tier owner delete their Shift before it starts', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $superTier = Member::factory()->superTier()->create();
+    $shift = ownedShift($schedule, $station, $superTier);
+
+    $this->actingAs($superTier)
+        ->delete(route('self-serve-shifts.destroy', ['shift' => $shift->id]))
+        ->assertRedirect();
+
+    expect(Shift::whereKey($shift->id)->exists())->toBeFalse();
+});
+
 // --- store / update: the station clash warning (#588, ADR-0026 §5) ------------
 
 /**
@@ -656,4 +738,51 @@ it('marks the author’s own Shift manageable and no one else’s', function () 
     $this->actingAs($other)
         ->get(route('groups.scheduling.show', ['group' => $group->slug, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.shifts.0.can.manageSelfServe', false));
+});
+
+it('hides the owner’s controls from a super-tier non-owner but keeps the Scheduler’s Edit', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    ownedShift($schedule, $station, giMemberOf($group));
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.scheduling.show', ['group' => $group->slug, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open.shifts.0.can.manageSelfServe', false)
+            ->where('scheduling.open.shifts.0.can.update', true));
+});
+
+it('keeps the Scheduler’s Delete for a super-tier Member on an empty Shift', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'shift_kind_id' => stationOf($group)->id,
+        'audience' => ShiftAudience::Group,
+        'starts_at' => Carbon::parse('2026-06-16 10:00', config('app.org_timezone')),
+        'ends_at' => Carbon::parse('2026-06-16 12:15', config('app.org_timezone')),
+    ]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.scheduling.show', ['group' => $group->slug, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open.shifts.0.can.manageSelfServe', false)
+            ->where('scheduling.open.shifts.0.can.update', true)
+            ->where('scheduling.open.shifts.0.can.delete', true));
+});
+
+it('marks a super-tier owner’s own Shift manageable only before it starts', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $superTier = Member::factory()->superTier()->create();
+    $upcoming = ownedShift($schedule, $station, $superTier);
+    $started = ownedShift($schedule, $station, $superTier, [
+        'starts_at' => Carbon::parse('2026-06-14 10:00', config('app.org_timezone')),
+        'ends_at' => Carbon::parse('2026-06-14 12:15', config('app.org_timezone')),
+    ]);
+
+    expect($upcoming->isSelfServeOwnedBy($superTier))->toBeTrue()
+        ->and($started->isSelfServeOwnedBy($superTier))->toBeFalse();
 });

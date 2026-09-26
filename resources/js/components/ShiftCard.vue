@@ -315,8 +315,9 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                 </Button>
                 <!-- The self-serve owner's Edit / Delete (#585, ADR-0026 §1) — shown to the Member
                      who wrote the Shift, until it starts (`can.manageSelfServe`). They route through
-                     the self-serve seam, so they are their own emits, not the Scheduler's above; a
-                     Member never sees both, since `can.update` needs the schedule-admin gate. -->
+                     the self-serve seam, so they are their own emits, not the Scheduler's above.
+                     The owner rule binds super-tier too (#647), so an officer sees both only on a
+                     Shift they own themselves. -->
                 <template v-if="allowSelfServeControls && shift.can.manageSelfServe">
                     <Button type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('editSelfServe', shift)">
                         <PhPencilSimple class="size-4" />

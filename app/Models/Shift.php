@@ -110,6 +110,42 @@ class Shift extends Model
     }
 
     /**
+     * Whether the Member may change or delete this self-authored Shift (#585, ADR-0026 §1) —
+     * the derived ownership rule, since no column records who wrote a row (#334 stays open).
+     * A Member owns a Shift, and may edit or delete it, exactly while:
+     *
+     * - the owning Group is **self-serve**;
+     * - the Shift's **capacity is 1** (a Member never authors a wider slot, so a wider one
+     *   is a Scheduler's and off-limits);
+     * - the Shift's **only Sign-up is the Member's** (they hold the one seat, so the Shift is
+     *   theirs); and
+     * - the Shift **has not started** — edit and delete close at the start, the same bound
+     *   take and drop answer to (#554, ADR-0026 §6). After the start only the Scheduler acts.
+     *
+     * The accepted edge (ADR-0026 §1): a capacity-1 Shift a Scheduler authored and placed
+     * this Member on is editable by them too, because ownership is derived, not authored.
+     *
+     * Read directly, never as a Gate ability, on purpose (#647, ADR-0017 §5): the
+     * `Gate::before` super-tier short-circuit would grant it to the President on every
+     * Shift. This is an ownership rule, not a permission, so it binds super-tier too;
+     * officers edit other people's Shifts through the Scheduler's Edit.
+     */
+    public function isSelfServeOwnedBy(Member $member): bool
+    {
+        // Read the seats from the loaded relation when the caller already has them (the Agenda
+        // payload loads every Shift's Sign-ups), and query once when it does not (a route-bound
+        // Shift in a Form Request) — so this never lazy-loads under strict mode nor N+1s a page.
+        $this->loadMissing('signUps');
+        $signUps = $this->signUps;
+
+        return $this->schedule->group->self_serve_shifts
+            && $this->capacity === 1
+            && $signUps->count() === 1
+            && $signUps->first()->member_id === $member->getKey()
+            && ! $this->hasStarted();
+    }
+
+    /**
      * The Schedule this Shift belongs to — the source of everything it inherits.
      *
      * @return BelongsTo<Schedule, $this>

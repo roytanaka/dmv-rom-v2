@@ -15,21 +15,22 @@ use Illuminate\Validation\Rule;
  * A Member changing their own self-authored Shift (#585, ADR-0026 §1) — station, start, or
  * units, until it starts. It accepts the same three fields as {@see StoreSelfServeShiftRequest}
  * and derives `ends_at` the same way; the unit count is never stored. Authorization is
- * structural — `authorize()` delegates to the ShiftPolicy's `manageSelfServe`, which resolves
+ * structural — `authorize()` delegates to {@see Shift::isSelfServeOwnedBy()}, which resolves
  * the derived-ownership rule (self-serve Group, capacity 1, the actor's own single seat, not
- * yet started). The controller writes only the derived Shift fields; the Sign-up is untouched.
+ * yet started). It binds super-tier too (#647). The controller writes only the derived Shift
+ * fields; the Sign-up is untouched.
  */
 class UpdateSelfServeShiftRequest extends FormRequest
 {
     use ReservesObjects;
 
     /**
-     * Authorize against the ShiftPolicy: the actor owns the route-bound Shift by the derived
-     * rule and it has not started.
+     * Authorize by ownership: the actor owns the route-bound Shift by the derived rule and it
+     * has not started.
      */
     public function authorize(): bool
     {
-        return $this->user()->can('manageSelfServe', $this->route('shift'));
+        return $this->route('shift')->isSelfServeOwnedBy($this->user());
     }
 
     /**

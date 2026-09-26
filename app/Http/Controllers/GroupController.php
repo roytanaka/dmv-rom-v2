@@ -1127,9 +1127,10 @@ class GroupController extends Controller
                 // (#585, ADR-0026 §1) — the derived-ownership verdict: a self-serve Group, a
                 // capacity-1 Shift whose only seat is theirs, not yet started. Drives the Edit
                 // and Delete controls the author sees on their own card, beside take and drop;
-                // the Form Requests re-check `manageSelfServe` on write. Always false on a
-                // foreign Shift (open audience, never a self-serve owner's).
-                'manageSelfServe' => $viewer->can('manageSelfServe', $shift),
+                // the Form Requests re-check it on write. Read directly, not through the Gate,
+                // so it binds super-tier too (#647). Always false on a foreign Shift (open
+                // audience, never a self-serve owner's).
+                'manageSelfServe' => $shift->isSelfServeOwnedBy($viewer),
                 // The sign-out affordance (#445, #450, ADR-0023 §5) — the SignUpPolicy's verdict on
                 // the viewer's own seat: a schedule admin may record at any time; the seat-holder's
                 // own window opens five minutes before the Shift ends. False when the viewer holds
