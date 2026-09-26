@@ -12,7 +12,16 @@ import { Input } from '@/components/ui/input';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { formatShiftDate } from '@/scheduling/agenda';
 import InputError from '@/components/InputError.vue';
-import { buildRecordPayload, canSubmitRecord, recordErrorsFrom, type BoxValue, type RecordCallbacks } from '@/scheduling/recordDraft';
+import {
+    buildRecordPayload,
+    canSubmitRecord,
+    NO_RECORD_ERRORS,
+    PROVENANCE_KEYS,
+    recordErrorsFrom,
+    type BoxValue,
+    type RecordCallbacks,
+    type RecordErrors,
+} from '@/scheduling/recordDraft';
 import { withinSignOutWindow } from '@/scheduling/signOut';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -110,13 +119,11 @@ const showSignOut = computed(
 const correctingSeat = ref<ShiftSignUp | null>(null);
 
 // GDR's five origin fields, in the order the sign-out panel lists them.
-const provenanceFields = [
-    { key: 'visitors_france_europe', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_france_europe' },
-    { key: 'visitors_quebec', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_quebec' },
-    { key: 'visitors_toronto', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_toronto' },
-    { key: 'visitors_rest_of_canada', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_rest_of_canada' },
-    { key: 'visitors_other_countries', labelKey: 'group.scheduling_panel.agenda.sign_out.provenance_other_countries' },
-] as const;
+// Each label key is the field key with `visitors_` swapped for `provenance_`.
+const provenanceFields = PROVENANCE_KEYS.map((key) => ({
+    key,
+    labelKey: `group.scheduling_panel.agenda.sign_out.${key.replace('visitors_', 'provenance_')}`,
+}));
 
 // The five origins already recorded on a seat (own or a corrected one), null-safe, so the form
 // pre-fills a correction rather than making anyone retype.
@@ -165,15 +172,21 @@ const draft = ref<BoxValue>('');
 const extraDraft = ref<BoxValue>('');
 const provenanceDrafts = ref(Object.fromEntries(provenanceFields.map((f) => [f.key, ''])) as Record<keyof VisitorProvenance, BoxValue>);
 
+// The server's refusal of this card's last save (#649), one message per box. It lives on the card,
+// not the page's shared error bag, so the other copy of the same Shift never shows it.
+const recordErrors = ref<RecordErrors>(NO_RECORD_ERRORS);
+
 // Reseed on what the target holds, not on its identity: every page reload builds a fresh object,
 // and a refused save (#649) reloads the page with the seat unchanged. Watching the object would
-// wipe the typed values the person is about to correct.
+// wipe the typed values the person is about to correct. A different seat, or new recorded values,
+// also starts with no errors.
 const recordTargetKey = computed(() => JSON.stringify(recordTarget.value));
 
 watch(
     recordTargetKey,
     () => {
         const target = recordTarget.value;
+        recordErrors.value = NO_RECORD_ERRORS;
         draft.value = target && target.visitor_count !== null ? String(target.visitor_count) : '';
         extraDraft.value = target && target.extra_interaction_count !== null ? String(target.extra_interaction_count) : '';
         provenanceFields.forEach((field) => {
@@ -191,7 +204,7 @@ const recordFlags = computed(() => ({
     collectsVisitorProvenance: props.collectsVisitorProvenance,
 }));
 
-// The count is required; on GDR the five origins must be filled and add up to it.
+// The count is required; on GDR the five origins must be filled (the server checks their sum).
 const canSubmit = computed(() => canSubmitRecord(recordDraft.value, recordFlags.value));
 
 // Open the pencil on a seat (#450) — a schedule admin corrects any seat; `can_record` gates the
@@ -205,17 +218,8 @@ const cancelCorrection = () => {
     correctingSeat.value = null;
 };
 
-// The server's refusal of this card's last save (#649), one message per box. It lives on the card,
-// not the page's shared error bag, so the other copy of the same Shift never shows it. The typed
-// values stay in the boxes (a PATCH keeps page state) so the person corrects rather than retypes.
-const recordErrors = ref(recordErrorsFrom({}));
-
-// A different seat in the form (a correction opened, cancelled, or saved) starts clean.
-watch(recordTargetKey, () => {
-    recordErrors.value = recordErrorsFrom({});
-});
-
-// A correction stays open until the server accepts it, so a refusal shows inside it.
+// A refusal fills this card's errors and leaves the typed values in the boxes (a PATCH keeps page
+// state). A correction stays open until the server accepts it, so a refusal shows inside it.
 const submitRecord = () => {
     if (!canSubmit.value || recordTarget.value === null) return;
 
@@ -224,7 +228,7 @@ const submitRecord = () => {
         { signUpId: recordTarget.value.signUpId, ...buildRecordPayload(recordDraft.value, recordFlags.value) },
         {
             onSuccess: () => {
-                recordErrors.value = recordErrorsFrom({});
+                recordErrors.value = NO_RECORD_ERRORS;
                 correctingSeat.value = null;
             },
             onError: (errors) => {
@@ -421,8 +425,8 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                 </label>
                 <!-- GDR's five visitor origins (#448, ADR-0023 §3) — where the tour's visitors came
                      from, one box each. Shown only where the Group collects provenance; the five are
-                     required together and must sum to the count, which the button below enforces as
-                     the client's copy of the server rule. -->
+                     required together (the button below waits for all five) and must sum to the
+                     count, which the server checks and names in its message (#649). -->
                 <template v-if="collectsVisitorProvenance">
                     <label v-for="field in provenanceFields" :key="field.key" class="flex flex-col gap-1">
                         <span class="text-muted-foreground text-sm font-medium">{{ trans(field.labelKey) }}</span>
