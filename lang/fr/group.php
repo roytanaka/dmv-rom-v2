@@ -435,6 +435,9 @@ return [
                 'correcting' => 'Correction des visiteur·euses de :name',
                 'save' => 'Enregistrer les modifications',
                 'cancel' => 'Annuler',
+                // Qui a enregistré une entrée en dernier, et quand (#654) — le ou la titulaire du
+                // siège, ou la correction d’un·e officier·ère. `:time` suit l’heure de l’organisme.
+                'last_edited' => 'Dernière modification par :name · :time',
                 // La seconde case des groupes qui mènent des circuits (#447, ADR-0023 §2) —
                 // visiteur·euses servi·es en dehors du circuit, facultatif.
                 'extra_label' => 'Visiteur·euses servi·es hors du circuit',
