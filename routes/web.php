@@ -47,7 +47,7 @@ Route::group([
 ], function () {
     Route::get(LaravelLocalization::transRoute('routes.dashboard'), function () {
         return Inertia::render('Dashboard');
-    })->middleware(['auth', 'verified'])->name('dashboard');
+    })->middleware('auth')->name('dashboard');
 
     // Route stubs (#109). Representative Zone A (personal) and Zone C (officer)
     // routes, each with a French twin whose segments are translated words —
