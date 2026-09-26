@@ -225,15 +225,14 @@ it('leads every section with exactly one overview article', function () {
     }
 });
 
-it('lists the Support overview as a Support-operator draft', function () {
-    // #623: a draft until its screenshots land, so its index card shows no summary yet.
+it('lists the Support overview as a Support-operator article', function () {
     $article = (new HelpManifest)->find('support');
 
     expect($article)->not->toBeNull();
     expect($article->section)->toBe(HelpSection::Support);
     expect($article->isOverview)->toBeTrue();
     expect($article->requires)->toBe(['support_operator']);
-    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->status)->toBe(ArticleStatus::Published);
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 

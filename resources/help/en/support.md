@@ -6,6 +6,8 @@ Support holds the tools a Support operator uses to test the app. They run on sta
 
 The Role-switcher is a button in the bottom-right corner of every page. Select it to become a Persona. You then see the app with that Persona's roles.
 
+![The dashboard with the Role-switcher button in the bottom-right corner](01.png)
+
 ## Personas
 
 A Persona is a made-up Member who exists only for testing. The Personas cover every role and standing in the app.
