@@ -277,8 +277,8 @@ final class HelpManifest
             new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
             new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),
             new HelpArticle('cancel-a-sign-up', HelpSection::Scheduling, route: 'groups.scheduling.show'),
-            new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, route: 'groups.scheduling.show'),
-            new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, route: 'groups.scheduling.show'),
+            new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
+            new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('reminders', HelpSection::Scheduling),
             // Self-serve Shifts for members (#590, ADR-0026 §1–§6) — a member of a self-serve
             // Group writes their own Shift. No role: any Member of such a Group.

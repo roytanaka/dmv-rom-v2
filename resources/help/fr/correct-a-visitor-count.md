@@ -6,26 +6,32 @@ Réglez ou corrigez le nombre de visiteur·euses qu'un·e membre a servi·es sur
 
 1. Ouvrez l'onglet **Horaire** de votre groupe.
 2. Ouvrez l'horaire qui contient le quart.
-3. Trouvez le quart et la place du·de la membre.
+3. Trouvez le quart et sa section **Rapport après le quart**.
 
-    ![Un quart terminé : chaque place affiche son nombre, un crayon et un ×](01.png)
+    ![Le rapport après le quart sur un quart terminé : chaque entrée montre son nombre et Modifier](01.png)
 
-4. Sélectionnez le crayon à côté de son nom.
+4. Sélectionnez **Modifier** sur l'entrée du·de la membre.
 
-    ![Le formulaire de correction sous le quart, qui nomme le·la membre dont vous corrigez les visiteur·euses](02.png)
+    ![Le formulaire de correction dans le rapport après le quart, qui nomme le·la membre dont vous corrigez les visiteur·euses](02.png)
 
 5. Saisissez le nombre dans **Visiteur·euses servi·es**.
-6. Sélectionnez **Enregistrer**.
+6. Sélectionnez **Enregistrer les modifications**.
 
-La place affiche maintenant le nombre que vous avez saisi. Vous pouvez le changer de nouveau à tout moment.
+L'entrée montre maintenant votre nombre. Sa ligne **Dernière modification par** montre votre nom et l'heure, donc le·la membre voit qui l'a changé. Vous pouvez le changer de nouveau à tout moment.
 
-> **Note :** Un·e membre note son propre nombre à la fin du quart. Vous le corrigez ici quand il est erroné ou manquant.
+> **Note :** Vous corrigez un nombre ici quand il est erroné. Vous pouvez aussi remplir une entrée qui indique **Aucun nombre pour l'instant**.
+
+## Les commentaires
+
+Un·e membre peut ajouter un commentaire à sa propre entrée. Vous voyez un aperçu d'une ligne de chaque commentaire dans la section.
+
+Le formulaire de correction n'a pas de case de commentaire. Une correction ne change jamais les mots d'un·e membre.
 
 ## Les groupes qui divisent le nombre
 
 Certains groupes recueillent plus d'un nombre :
 
-- Les groupes de circuits montrent aussi **Visiteur·euses servi·es hors du circuit**. Ce champ est facultatif.
+- **Visiteur·euses servi·es hors du circuit** est facultatif.
 - GDR demande d'où venaient les visiteur·euses. Remplissez les cinq champs d'origine pour qu'ils totalisent **Visiteur·euses servi·es**.
 
 ## Et ensuite
