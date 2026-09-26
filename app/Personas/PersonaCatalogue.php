@@ -155,11 +155,49 @@ final class PersonaCatalogue
             new Persona('diego.costa@dmv.test', 'Diego', 'Costa', PersonaGroup::Standings, 'Transitional · Reception', placements: [
                 new PersonaPlacement(self::RECEPTION, MembershipStatus::Transitional),
             ]),
-            new Persona(self::MEMBER_EMAIL, 'Amara', 'Abara', PersonaGroup::Standings, 'Member · Docents + Reception', placements: [
-                new PersonaPlacement(self::DOCENTS),
-                new PersonaPlacement(self::RECEPTION),
-            ]),
 
+            // Members — plain Full memberships with no roles and no super-tier, each
+            // spanning several top-level Groups the way a real volunteer does. The
+            // descriptor lists every top-level Group (abbreviated) so a tester can find
+            // "a Visitor Guides member" in the picker; each Persona also holds all
+            // sub-groups beneath those Groups. Between them they cover every active Group
+            // except Executive (the super-tier trio and officers cover it) and Records
+            // (the Records steward covers it); archived cohorts are left out. Awards confers org-wide mail by membership
+            // (ADR-0024 §5), so it sits on Julien, keeping Amara (the help-shoot
+            // Member) a plain member.
+            new Persona(self::MEMBER_EMAIL, 'Amara', 'Abara', PersonaGroup::Members, 'Docents, Reception', placements: self::plain([
+                self::DOCENTS, self::RECEPTION,
+            ])),
+            new Persona('julien.gagnon@dmv.test', 'Julien', 'Gagnon', PersonaGroup::Members, 'GDR, LAF, Hands-on Tours, Comms, Membership, Chairs\' Corner, Sys Services, Awards', placements: self::plain([
+                'guides-du-rom', 'les-amis-francophiles',
+                'dmv-hands-on-tours', 'hands-on-tours-social', 'hands-on-tours-training', 'vetting',
+                self::COMMUNICATIONS, 'membership', 'chairs-corner', 'system-services', 'awards',
+            ])),
+            new Persona('mei.lin@dmv.test', 'Mei', 'Lin', PersonaGroup::Members, 'GI, Visitor Guides, Visitor Wayfinders, Reception', placements: self::plain([
+                self::GALLERY_INTERPRETERS, 'gallery-interpreters-events',
+                self::VISITOR_GUIDES,
+                self::VISITOR_WAYFINDERS, 'documentation', 'shadow-shift-vetting-volunteers', 'social-committee', 'osiris-rex-volunteers',
+                self::RECEPTION, 'library',
+            ])),
+            new Persona('fiona.macleod@dmv.test', 'Fiona', 'MacLeod', PersonaGroup::Members, 'ROMWalks, ROMForYou, Social, DEI, Health & Safety', placements: self::plain([
+                self::ROMWALKS, 'brochure-committee', 'education', 'pr-committee', 'script-vetting',
+                'statistical', 'romwalks-training', 'walker-vetting',
+                self::ROMFORYOU, 'content-development', 'team-leads-adult-presentations', 'outreach', 'adapted-presentations',
+                'social', 'dei-committee', 'health-safety',
+            ])),
+            new Persona('beatriz.silva@dmv.test', 'Beatriz', 'Silva', PersonaGroup::Members, 'ROMTravel, ROMBus, Special Projects, Governance, Nominations, Endowments', placements: self::plain([
+                'romtravel', 'admin-committee', 'feasibility-committee', 'support-roles', 'rombus',
+                'special-projects', 'auschwitz-exhibition-tours', 'burton-lim-fieldnotes', 'dmv-archive-inventory',
+                'lady-bird-beetle', 'osiris-rex-return', 'palaeo-field-notes', 'rom-ebird-records', 'transcribe-interview-tapes',
+                'governance', 'nominations', 'endowments',
+            ])),
+            new Persona('leah.friedman@dmv.test', 'Leah', 'Friedman', PersonaGroup::Members, 'FEA, FSA, Textiles, FOP, FES, Assoc. Friends, First Magnitude', placements: self::plain([
+                'bishop-white-fea', 'friends-of-global-south-asia-fsa',
+                'friends-of-textiles-costume', 'adopt-a-journal', 'donor-friends', 'education-subcommittee',
+                'newsletter-subcommittee', 'programs-events',
+                'friends-of-palaeontology-fop', 'vertebrate-palaeontology', 'friends-of-earth-space-fes',
+                'associated-friends', 'first-magnitude',
+            ])),
             // Negative — no-authority accounts. The departed Persona is Resigned
             // both DMV-wide (Category) and within its Group (standing), exercising
             // both exclusion axes (Directory keys on Category; My-Groups on standing).
@@ -167,6 +205,17 @@ final class PersonaCatalogue
                 new PersonaPlacement(self::DOCENTS, MembershipStatus::Resigned),
             ]),
         ];
+    }
+
+    /**
+     * Plain Full placements, no roles, in each of the given Groups.
+     *
+     * @param  list<string>  $slugs
+     * @return list<PersonaPlacement>
+     */
+    private static function plain(array $slugs): array
+    {
+        return array_map(fn (string $slug) => new PersonaPlacement($slug), $slugs);
     }
 
     /**
