@@ -270,7 +270,7 @@ final class HelpManifest
             // Groups, officer part (#526) — roster and meetings, run by a Group's officers.
             new HelpArticle('manage-your-groups-roster', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('record-a-meeting', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
-            new HelpArticle('edit-your-groups-about-us-and-banner', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('edit-your-groups-about-us-and-banner', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             // Group Settings tab (#608, ADR-0027) — the officers-only tab that holds a Group's settings.
             // Today every configuration right is a schedule admin's, so the badge reads Scheduler or Chair.
             new HelpArticle('group-settings', HelpSection::Groups, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.show'),
@@ -283,7 +283,7 @@ final class HelpManifest
             new HelpArticle('reminders', HelpSection::Scheduling),
             // Self-serve Shifts for members (#590, ADR-0026 §1–§6) — a member of a self-serve
             // Group writes their own Shift. No role: any Member of such a Group.
-            new HelpArticle('write-your-own-shift', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            new HelpArticle('write-your-own-shift', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             // Scheduling, officer part (#526) — the schedule-admin tasks a Scheduler or Chair does. The
             // Reminders, Empty-desk, Shift kinds and Objects cards sit on the Group Settings tab
             // (ADR-0027 §2), so their articles map to the Group page, not the Scheduling tab.
