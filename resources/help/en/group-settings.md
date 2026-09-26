@@ -7,6 +7,8 @@ Open the **Settings** tab to change how your Group runs. You need the Scheduler 
 1. Open your Group from the Left Side Bar.
 2. Select the **Settings** tab. It is the last tab in the strip.
 
+    ![The Settings tab, last in the tab strip, with the Shift reminders card on top](01.png)
+
 The tab shows one card for each setting you can change.
 
 ## What the tab holds

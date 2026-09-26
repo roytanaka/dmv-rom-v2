@@ -13,7 +13,8 @@ start /groups/gallery-interpreters/settings
 
 act showSelfServeSettings 01        # the Self-serve shifts card: the toggle and Minutes per unit
 act showObjects 02                  # the Objects card: add, rename, retire, and reorder
-act showShiftKinds 03               # the Shift kinds card: the Off-site checkbox on a station
+act showOffSiteStation 03           # the Shift kinds card: the CNE station with Off-site checked
 nav /groups/gallery-interpreters/scheduling    # back to the Scheduling tab (no shot)
 act openCurrentMonthSchedule        # open the GI month (no shot)
-act openNewShiftDialog 04           # the New shift dialog: choose the off-site station as the Kind
+act openNewShiftDialog              # open the New shift dialog (no shot)
+act chooseOffSiteKind 04            # the New shift dialog with the off-site station as the Kind

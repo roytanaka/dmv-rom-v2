@@ -7,6 +7,9 @@ Set up self-serve scheduling for your Group. You name the Objects Members hand o
 1. Open your Group from the Left Side Bar.
 2. Select the **Settings** tab.
 3. Find the **Self-serve shifts** card.
+
+    ![The Self-serve shifts card: Let members write their own shifts and Minutes per unit](01.png)
+
 4. Turn on **Let members write their own shifts**.
 5. Set the **Minutes per unit**. Gallery Interpreters use 45.
 6. Select **Save**.
@@ -16,6 +19,8 @@ Members can now write their own shifts on your published Schedules.
 ## Maintain the Objects
 
 The **Objects** card holds the handling collection Members take onto the floor.
+
+![The Objects card: each Object with Rename and Retire, and the arrows that set the order](02.png)
 
 1. Type a name under **Add an object**.
 2. Select **Add**.
@@ -31,6 +36,9 @@ The **Objects** card holds the handling collection Members take onto the floor.
 An off-site station holds its Objects for a day either side of the shift. Use it for events such as the CNE.
 
 1. Find the station on the **Shift kinds** card.
+
+    ![The Shift kinds card: the CNE station with Off-site checked](03.png)
+
 2. Turn on **Off-site**.
 
 The hold now runs from the day before to the day after each shift on that station.
@@ -42,6 +50,9 @@ An event is a set of shifts on an off-site station.
 1. Select the **Scheduling** tab.
 2. Open the Schedule for the event.
 3. Add a shift for each slot. Choose the off-site station as the **Kind**.
+
+    ![The New shift dialog with the off-site station chosen as the Kind](04.png)
+
 4. Set the capacity to one for each seat a Member takes.
 
 A Member takes a seat and picks their Objects. The off-site hold does the rest.
