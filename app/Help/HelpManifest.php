@@ -322,7 +322,7 @@ final class HelpManifest
 
             // Support (#527, ADR-0009) — the non-production dev Role-switcher, an operator tool.
             // Its overview (#623, ADR-0025 §5) stays a draft until its screenshots land.
-            new HelpArticle('support', HelpSection::Support, isOverview: true, requires: ['support_operator'], status: ArticleStatus::Draft),
+            new HelpArticle('support', HelpSection::Support, isOverview: true, requires: ['support_operator'], status: ArticleStatus::Published),
             new HelpArticle('use-the-role-switcher', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Published),
             new HelpArticle('return-to-yourself', HelpSection::Support, requires: ['support_operator'], status: ArticleStatus::Published),
         ];
