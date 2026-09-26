@@ -17,6 +17,8 @@ Write a shift for yourself when your Group lets its Members schedule their own. 
 8. Add one or more **Objects** if your Group hands them out.
 9. Select **Save**.
 
+    ![The Write my shift dialog: Station, Start time, Units, Objects, Save, and Cancel](01.png)
+
 Your shift joins the Schedule with your name on it.
 
 ## Clear the station warning
@@ -35,6 +37,8 @@ You own the shift until it starts.
 1. Find your shift on the Schedule.
 2. Select **Edit** to change the station, start, units, or Objects.
 3. Select **Delete** to remove the shift. This also removes you from it.
+
+    ![A shift you wrote, with Edit and Delete under your name](02.png)
 
 After the start, ask a Scheduler to make any change.
 

@@ -174,7 +174,7 @@ it('lists the no-email-flag article as a Records draft in Emailing, mapped to th
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 
-it('lists the write-your-own-shift article as a no-role Scheduling draft, mapped to the schedule page', function () {
+it('lists the write-your-own-shift article as a no-role Scheduling article, mapped to the schedule page', function () {
     // #590, ADR-0026 §1: a self-serve Group's Member writes their own Shift on the
     // Group Scheduling page. No required role — any Member of a self-serve Group.
     $article = (new HelpManifest)->find('write-your-own-shift');
@@ -183,7 +183,7 @@ it('lists the write-your-own-shift article as a no-role Scheduling draft, mapped
     expect($article->section)->toBe(HelpSection::Scheduling);
     expect($article->requires)->toBe([]);
     expect($article->route)->toBe('groups.scheduling.show');
-    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->status)->toBe(ArticleStatus::Published);
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 
