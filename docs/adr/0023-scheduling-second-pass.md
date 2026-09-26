@@ -111,6 +111,8 @@ This is a faithful port. Legacy already puts the box in both places, in every sc
 
 **An officer corrects inline**, a pencil on each seat chip, no deadline. Every write is re-checked server-side against a policy.
 
+> **Amendment (2026-09-26, [#652](https://github.com/roytanaka/dmv-rom-v2/issues/652), PRD [#651](https://github.com/roytanaka/dmv-rom-v2/issues/651)).** Co-volunteers now see each other's counts. Before this change, a volunteer saw only their own numbers, and only a schedule admin saw every seat. Now every Member with a seat on a Shift sees the numbers on every seat of that Shift. The reason is double counting. Two volunteers at one station can count the same visitors, and nothing warns them. Fiscal 2026 data suggests about 4% extra at shared Gallery Interpreter stations. When each volunteer sees the other counts, they can find the overlap. A reader with no seat and no admin role still sees no numbers. The server decides who gets them. The numbers move off the name chips into a **Post-shift report** section on the shift card, and the button now says **Record shift**, not **Sign Out**.
+
 **Nothing prompts outside the Group page, deliberately.** Legacy has no reminder, no badge and no email, and still reaches 96-98% wherever the button is disabled. The forcing function is the prompt. Building a notification pipeline to beat a number legacy already hits would be building the expensive half of the answer first.
 
 **Nothing at all is built for a Group that collects nothing.** Reception renders no panel, no boxes and no column. The switch is the Group-level setting, not the `ShiftKind`.

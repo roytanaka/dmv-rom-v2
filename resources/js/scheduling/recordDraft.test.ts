@@ -2,7 +2,7 @@
  * Unit tests for the sign-out form's boxes (#646, ADR-0023).
  *
  * Runs on Node's built-in test runner (`node --test resources/js/scheduling/recordDraft.test.ts`,
- * or `pnpm test:unit`). Prior art: `resources/js/scheduling/signOut.test.ts`.
+ * or `pnpm test:unit`). Prior art: `resources/js/scheduling/agenda.test.ts`.
  *
  * The defect under test: a `type="number"` box hands its v-model back as a number once the user
  * types, but a pre-filled or empty box holds a string. Every case below types into a box (a

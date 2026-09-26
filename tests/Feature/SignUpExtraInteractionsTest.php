@@ -240,7 +240,7 @@ it('carries the seat-holder’s own extra count on their Shift', function () {
     $this->actingAs($member)
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scheduling.open.shifts.0.extra_interaction_count', 6));
+            ->where('scheduling.open.shifts.0.signups.0.extra_interaction_count', 6));
 });
 
 it('withholds the extra count from a reader holding no seat', function () {
@@ -256,5 +256,5 @@ it('withholds the extra count from a reader holding no seat', function () {
     $this->actingAs(extraMemberOf($group))
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scheduling.open.shifts.0.extra_interaction_count', null));
+            ->missing('scheduling.open.shifts.0.signups.0.extra_interaction_count'));
 });

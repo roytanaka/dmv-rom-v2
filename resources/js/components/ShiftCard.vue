@@ -22,12 +22,12 @@ import {
     type RecordCallbacks,
     type RecordErrors,
 } from '@/scheduling/recordDraft';
-import { withinSignOutWindow } from '@/scheduling/signOut';
+import { entryState, openFormSeat, recordedTally } from '@/scheduling/postShiftReport';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 
 const props = withDefaults(
     defineProps<{
@@ -99,24 +99,44 @@ const shiftDate = computed(() => formatShiftDate(props.shift.starts_at, page.pro
 
 const signUpName = (signUp: ShiftSignUp) => `${signUp.first_name} ${signUp.last_name}`;
 
-// The viewer's own seat, so their recorded count reads on their own chip (#445, ADR-0023 §5).
-// Seats carry the member id; the signed-in Member is auth.user.
+// The viewer's own seat (#445, ADR-0023 §5). Seats carry the member id; the signed-in Member is
+// auth.user.
 const isOwnSeat = (signUp: ShiftSignUp) => signUp.id === page.props.auth.user.id;
 
-// --- Recording the numbers (#445, #450, ADR-0023 §5) — one form, two ways in ----------------
+// --- The Post-shift report (#652, PRD #651, ADR-0023 §5) ------------------------------------
 
-// The seat-holder's own sign-out window: the Group collects a count, the viewer holds a seat
-// here, and the five-minute window has opened. The window is the client's copy of the server
-// rule ({@see withinSignOutWindow}); the server's `can.record` and the Form Request enforce
-// every write regardless.
-const showSignOut = computed(
-    () => props.collectsVisitorCount && props.shift.signup_id !== null && withinSignOutWindow(props.shift.ends_at, new Date()),
+// The section renders where the Group collects a count and the server says this viewer reads the
+// report (a seat-holder or a schedule admin). The server sends the seat numbers on the same rule.
+const showsReport = computed(() => props.collectsVisitorCount && props.shift.can.readReport);
+
+const tally = computed(() => recordedTally(props.shift.signups));
+
+// The seat a Change button (or an Officer's pencil, #450) reopened. Null → the own seat opens by
+// itself inside its window while it has no count; see {@see openFormSeat}.
+const editingSeatId = ref<number | null>(null);
+
+// The one seat showing the form, if any. `can.record` is the server's word that the viewer's own
+// seat is inside its sign-out window.
+const formSeatId = computed(() =>
+    showsReport.value
+        ? openFormSeat({
+              seats: props.shift.signups,
+              ownSeatId: props.shift.signup_id !== null ? page.props.auth.user.id : null,
+              canRecordOwn: props.shift.can.record,
+              editingSeatId: editingSeatId.value,
+          })
+        : null,
 );
 
-// The seat an Officer is correcting (#450) — a schedule admin's pencil, no time bound, on any
-// seat. Null unless the Officer has opened a correction; it takes precedence over the own-seat
-// window below, so one form is ever open at a time.
-const correctingSeat = ref<ShiftSignUp | null>(null);
+const formSeat = computed(() => props.shift.signups.find((signUp) => signUp.id === formSeatId.value) ?? null);
+
+// An Officer's correction of another Member's seat — named above the form so it is never
+// mistaken for the viewer's own.
+const correctingSeat = computed(() => (formSeat.value && !isOwnSeat(formSeat.value) ? formSeat.value : null));
+
+// Change shows on the viewer's own recorded entry while the server allows their own write. The
+// Officer's way in to other seats stays the chip pencil until #653.
+const canChange = (signUp: ShiftSignUp) => isOwnSeat(signUp) && props.shift.can.record;
 
 // GDR's five origin fields, in the order the sign-out panel lists them.
 // Each label key is the field key with `visitors_` swapped for `provenance_`.
@@ -125,46 +145,38 @@ const provenanceFields = PROVENANCE_KEYS.map((key) => ({
     labelKey: `group.scheduling_panel.agenda.sign_out.${key.replace('visitors_', 'provenance_')}`,
 }));
 
-// The five origins already recorded on a seat (own or a corrected one), null-safe, so the form
-// pre-fills a correction rather than making anyone retype.
-const provenanceOf = (source: ShiftAgendaItem | ShiftSignUp): VisitorProvenance => ({
-    visitors_france_europe: source.visitors_france_europe ?? null,
-    visitors_quebec: source.visitors_quebec ?? null,
-    visitors_toronto: source.visitors_toronto ?? null,
-    visitors_rest_of_canada: source.visitors_rest_of_canada ?? null,
-    visitors_other_countries: source.visitors_other_countries ?? null,
+// The five origins already recorded on a seat, null-safe, so the form pre-fills a change rather
+// than making anyone retype.
+const provenanceOf = (seat: ShiftSignUp): VisitorProvenance => ({
+    visitors_france_europe: seat.visitors_france_europe ?? null,
+    visitors_quebec: seat.visitors_quebec ?? null,
+    visitors_toronto: seat.visitors_toronto ?? null,
+    visitors_rest_of_canada: seat.visitors_rest_of_canada ?? null,
+    visitors_other_countries: seat.visitors_other_countries ?? null,
 });
 
 type RecordTarget = { signUpId: number; visitor_count: number | null; extra_interaction_count: number | null } & VisitorProvenance;
 
-// The seat the form is writing, normalised to one shape. An Officer's chosen seat wins; otherwise
-// the viewer's own seat inside the sign-out window. Null → no form. The write always names this
-// seat's id, so an Officer's correction and a self sign-out post through the one PATCH seam.
+// The seat the form is writing, normalised to one shape. The write names the seat's Sign-up id:
+// the viewer's own from `shift.signup_id`, another seat's from the Officer-only `signup_id`. Null
+// → no form. Both post through the one PATCH seam.
 const recordTarget = computed<RecordTarget | null>(() => {
-    const seat = correctingSeat.value;
-    if (seat && seat.signup_id !== undefined) {
-        return {
-            signUpId: seat.signup_id,
-            visitor_count: seat.visitor_count ?? null,
-            extra_interaction_count: seat.extra_interaction_count ?? null,
-            ...provenanceOf(seat),
-        };
-    }
+    const seat = formSeat.value;
+    if (seat === null) return null;
 
-    if (showSignOut.value && props.shift.signup_id !== null) {
-        return {
-            signUpId: props.shift.signup_id,
-            visitor_count: props.shift.visitor_count,
-            extra_interaction_count: props.shift.extra_interaction_count,
-            ...provenanceOf(props.shift),
-        };
-    }
+    const signUpId = isOwnSeat(seat) ? props.shift.signup_id : seat.signup_id;
+    if (signUpId === null || signUpId === undefined) return null;
 
-    return null;
+    return {
+        signUpId,
+        visitor_count: seat.visitor_count ?? null,
+        extra_interaction_count: seat.extra_interaction_count ?? null,
+        ...provenanceOf(seat),
+    };
 });
 
-// The boxes, seeded from whichever seat the form now targets so a correction edits rather than
-// retypes. The count box stays required (the Sign Out button waits for it — the forcing function
+// The boxes, seeded from whichever seat the form now targets so a change edits rather than
+// retypes. The count box stays required (the Record shift button waits for it — the forcing function
 // that carries the count on 96-98% of shifts); the extra box is optional; the five origins are
 // seeded too. A box holds a string until the user types, then a number (#646); an empty box stays
 // distinct from a typed zero.
@@ -207,19 +219,20 @@ const recordFlags = computed(() => ({
 // The count is required; on GDR the five origins must be filled (the server checks their sum).
 const canSubmit = computed(() => canSubmitRecord(recordDraft.value, recordFlags.value));
 
-// Open the pencil on a seat (#450) — a schedule admin corrects any seat; `can_record` gates the
-// affordance and the SignUpPolicy re-checks the write. Cancel closes it and returns the form to
-// the own-seat window if one is open.
-const openCorrection = (signUp: ShiftSignUp) => {
-    correctingSeat.value = signUp;
+// Reopen one seat's form: the viewer's own Change, or the Officer's pencil (#450) on any seat —
+// `can_record` gates the pencil and the SignUpPolicy re-checks the write. Cancel closes it and
+// returns the card to its default: the own seat's form if it is still unrecorded in its window.
+const openForm = (signUp: ShiftSignUp) => {
+    editingSeatId.value = signUp.id;
 };
 
-const cancelCorrection = () => {
-    correctingSeat.value = null;
+const cancelForm = () => {
+    editingSeatId.value = null;
 };
 
 // A refusal fills this card's errors and leaves the typed values in the boxes (a PATCH keeps page
-// state). A correction stays open until the server accepts it, so a refusal shows inside it.
+// state). A reopened form stays open until the server accepts it, so a refusal shows inside it. A
+// first save collapses by itself: the seat now has a count, so it reads as a summary.
 const submitRecord = () => {
     if (!canSubmit.value || recordTarget.value === null) return;
 
@@ -229,7 +242,7 @@ const submitRecord = () => {
         {
             onSuccess: () => {
                 recordErrors.value = NO_RECORD_ERRORS;
-                correctingSeat.value = null;
+                editingSeatId.value = null;
             },
             onError: (errors) => {
                 recordErrors.value = recordErrorsFrom(errors);
@@ -238,13 +251,30 @@ const submitRecord = () => {
     );
 };
 
-// The recorded count and extra shown on a seat's chip: an Officer reads every seat's own numbers
-// (#450), everyone else only their own (#445). Null shows nothing; a recorded zero shows "0".
-const seatCount = (signUp: ShiftSignUp): number | null =>
-    signUp.can_record ? (signUp.visitor_count ?? null) : isOwnSeat(signUp) ? props.shift.visitor_count : null;
+// A recorded entry's summary: the count, and the extra count beside it where one is recorded.
+const entrySummary = (signUp: ShiftSignUp): string =>
+    [
+        trans('group.scheduling_panel.agenda.sign_out.recorded', { count: String(signUp.visitor_count) }),
+        ...(signUp.extra_interaction_count !== null && signUp.extra_interaction_count !== undefined
+            ? [trans('group.scheduling_panel.agenda.sign_out.extra_recorded', { count: String(signUp.extra_interaction_count) })]
+            : []),
+    ].join(' · ');
 
-const seatExtra = (signUp: ShiftSignUp): number | null =>
-    signUp.can_record ? (signUp.extra_interaction_count ?? null) : isOwnSeat(signUp) ? props.shift.extra_interaction_count : null;
+const entryName = (signUp: ShiftSignUp): string =>
+    isOwnSeat(signUp) ? trans('group.scheduling_panel.agenda.sign_out.you', { name: signUpName(signUp) }) : signUpName(signUp);
+
+// Why the Record shift button is still disabled — read out with it, so nobody guesses.
+const disabledReason = computed(() =>
+    trans(
+        props.collectsVisitorProvenance
+            ? 'group.scheduling_panel.agenda.sign_out.record_needs_provenance'
+            : 'group.scheduling_panel.agenda.sign_out.record_needs_count',
+    ),
+);
+
+// Unique ids for the help texts the boxes and button point at. The same Shift can render twice
+// (My sign-ups and the Agenda), so the id comes from the component, not the Shift.
+const formId = useId();
 </script>
 
 <template>
@@ -283,26 +313,17 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                     <span v-if="signUp.objects && signUp.objects.length" class="text-muted-foreground">
                         · {{ signUp.objects.map((object) => object.name).join(', ') }}
                     </span>
-                    <!-- The recorded numbers read on the chip: the viewer's own seat (#445), and
-                         every seat for an Officer (#450). Null (no value yet) shows nothing; a
-                         recorded zero shows "0 visitors". The tour-leading extra count reads
-                         beside it where both are recorded (#447). -->
-                    <span v-if="seatCount(signUp) !== null" class="text-muted-foreground tabular-nums">
-                        · {{ trans('group.scheduling_panel.agenda.sign_out.recorded', { count: String(seatCount(signUp)) }) }}
-                    </span>
-                    <span v-if="seatExtra(signUp) !== null" class="text-muted-foreground tabular-nums">
-                        · {{ trans('group.scheduling_panel.agenda.sign_out.extra_recorded', { count: String(seatExtra(signUp)) }) }}
-                    </span>
-                    <!-- The Officer's pencil (#450) — corrects any seat, no deadline. Shown only
-                         where the server sent `can_record` (the schedule-admin gate); an ordinary
+                    <!-- The Officer's pencil (#450) — corrects any seat, no deadline, in the
+                         Post-shift report below. Shown only where the server sent `can_record`
+                         (the schedule-admin gate) and the report is on the card; an ordinary
                          Member sees no pencil on anyone's seat, and the SignUpPolicy refuses the
-                         write regardless. -->
+                         write regardless. #653 moves it into the report. -->
                     <button
-                        v-if="signUp.can_record"
+                        v-if="signUp.can_record && showsReport"
                         type="button"
                         class="hover:text-rom-ink -my-1 inline-flex size-6 items-center justify-center rounded-full transition-colors"
                         :aria-label="trans('group.scheduling_panel.agenda.sign_out.correct')"
-                        @click="openCorrection(signUp)"
+                        @click="openForm(signUp)"
                     >
                         <PhPencilSimple class="size-4" />
                     </button>
@@ -323,7 +344,7 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                  `can.signUp` means "a free seat is offered to me". A full Shift the viewer has
                  no seat on shows as full with neither button. Self-service closes once the Shift
                  has started (#554), so take, drop, and the full label all hide then; the Officer's
-                 assign (#359) and the sign-out box below stay. The Scheduler's assign sits beside
+                 assign (#359) and the Post-shift report below stay. The Scheduler's assign sits beside
                  them — the officer path onto a Shift with a free seat. -->
             <div class="flex flex-wrap items-center gap-2">
                 <template v-if="!shift.has_started">
@@ -381,70 +402,158 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                 />
             </div>
 
-            <!-- Recording the numbers (#445, #450, ADR-0023 §5) — one form, two ways in: the
-                 seat-holder's own sign-out from five minutes before the Shift ends, and the
-                 Officer's correction of any seat with no deadline. One box and a submit button,
-                 disabled until a number is typed (the forcing function). The server requires,
-                 whole-checks, bounds and re-authorises every write regardless. `novalidate` lets
-                 a decimal or negative reach the server, whose message shows under the box in the
-                 app's language (#649), instead of the browser's own popup. -->
-            <form v-if="recordTarget" class="flex flex-wrap items-end gap-2 border-t pt-3" novalidate @submit.prevent="submitRecord">
-                <!-- When an Officer is correcting a seat, name whose seat it is, so the correction
-                     is never mistaken for a self sign-out. -->
-                <p v-if="correctingSeat" class="text-muted-foreground w-full text-sm font-medium">
-                    {{ trans('group.scheduling_panel.agenda.sign_out.correcting', { name: signUpName(correctingSeat) }) }}
-                </p>
-                <label class="flex flex-col gap-1">
-                    <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_out.count_label') }}</span>
-                    <Input
-                        v-model="draft"
-                        type="number"
-                        inputmode="numeric"
-                        min="0"
-                        step="1"
-                        class="w-40"
-                        :placeholder="trans('group.scheduling_panel.agenda.sign_out.placeholder')"
-                    />
-                    <InputError :message="recordErrors.count" class="w-40" />
-                </label>
-                <!-- The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
-                     tour. Optional: it never gates the Sign Out button below. Shown only where the
-                     Group collects the split; a count-only Group renders one box. -->
-                <label v-if="collectsExtraInteractions" class="flex flex-col gap-1">
-                    <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_out.extra_label') }}</span>
-                    <Input
-                        v-model="extraDraft"
-                        type="number"
-                        inputmode="numeric"
-                        min="0"
-                        step="1"
-                        class="w-40"
-                        :placeholder="trans('group.scheduling_panel.agenda.sign_out.extra_placeholder')"
-                    />
-                    <InputError :message="recordErrors.extra" class="w-40" />
-                </label>
-                <!-- GDR's five visitor origins (#448, ADR-0023 §3) — where the tour's visitors came
-                     from, one box each. Shown only where the Group collects provenance; the five are
-                     required together (the button below waits for all five) and must sum to the
-                     count, which the server checks and names in its message (#649). -->
-                <template v-if="collectsVisitorProvenance">
-                    <label v-for="field in provenanceFields" :key="field.key" class="flex flex-col gap-1">
-                        <span class="text-muted-foreground text-sm font-medium">{{ trans(field.labelKey) }}</span>
-                        <Input v-model="provenanceDrafts[field.key]" type="number" inputmode="numeric" min="0" step="1" class="w-40" />
-                    </label>
-                    <!-- One message for the five (#649): the sum rule names both totals, and the
-                         per-origin messages read the same whichever box they hang on. -->
-                    <InputError :message="recordErrors.provenance" class="w-full" />
-                </template>
-                <Button type="submit" size="sm" :disabled="!canSubmit">
-                    {{ trans(correctingSeat ? 'group.scheduling_panel.agenda.sign_out.save' : 'group.scheduling_panel.agenda.sign_out.submit') }}
-                </Button>
-                <!-- An Officer's correction can be closed without writing; the own-seat sign-out
-                     has no cancel — it is simply the window being open. -->
-                <Button v-if="correctingSeat" type="button" variant="ghost" size="sm" @click="cancelCorrection">
-                    {{ trans('group.scheduling_panel.agenda.sign_out.cancel') }}
-                </Button>
-            </form>
+            <!-- The Post-shift report (#652, PRD #651, ADR-0023 §5) — one entry per seat, below
+                 the shift details, where the Group collects a count and the server says this
+                 viewer reads the report. An entry is the form, a summary of its numbers, or "No
+                 count yet"; one form at most per card. The viewer's own unrecorded seat opens as
+                 the form inside its sign-out window; Change reopens a recorded one. Co-volunteers
+                 see each other's counts, so a double count shows. -->
+            <section v-if="showsReport" class="flex flex-col gap-3 border-t pt-3" :aria-labelledby="`${formId}-heading`">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <h4 :id="`${formId}-heading`" class="text-rom-ink text-sm font-semibold">
+                        {{ trans('group.scheduling_panel.agenda.sign_out.heading') }}
+                    </h4>
+                    <span class="text-muted-foreground text-sm tabular-nums">
+                        {{
+                            trans('group.scheduling_panel.agenda.sign_out.progress', { recorded: String(tally.recorded), total: String(tally.total) })
+                        }}
+                    </span>
+                </div>
+                <ul class="flex flex-col gap-3">
+                    <li v-for="signUp in shift.signups" :key="signUp.id">
+                        <!-- The form. `novalidate` lets a decimal or negative reach the server,
+                             whose message shows under the box in the app's language (#649),
+                             instead of the browser's own popup. The server requires, whole-checks,
+                             bounds and re-authorises every write regardless. -->
+                        <form
+                            v-if="entryState(signUp, formSeatId) === 'form'"
+                            class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+                            novalidate
+                            @submit.prevent="submitRecord"
+                        >
+                            <!-- Whose seat this is. An Officer's correction names the Member, so it
+                                 is never mistaken for the viewer's own. -->
+                            <p class="text-rom-ink w-full text-sm font-medium">
+                                {{
+                                    correctingSeat
+                                        ? trans('group.scheduling_panel.agenda.sign_out.correcting', { name: signUpName(correctingSeat) })
+                                        : entryName(signUp)
+                                }}
+                            </p>
+                            <label class="flex flex-col gap-1">
+                                <span class="text-muted-foreground text-sm font-medium">{{
+                                    trans('group.scheduling_panel.agenda.sign_out.count_label')
+                                }}</span>
+                                <Input
+                                    v-model="draft"
+                                    type="number"
+                                    inputmode="numeric"
+                                    min="0"
+                                    step="1"
+                                    class="h-11 w-full sm:h-9 sm:w-40"
+                                    :aria-describedby="`${formId}-count-help`"
+                                    :placeholder="trans('group.scheduling_panel.agenda.sign_out.placeholder')"
+                                />
+                                <!-- Against double counting (#651): a shared station counts each
+                                     visitor once. -->
+                                <span :id="`${formId}-count-help`" class="text-muted-foreground text-xs sm:w-40">
+                                    {{ trans('group.scheduling_panel.agenda.sign_out.count_help') }}
+                                </span>
+                                <InputError :message="recordErrors.count" class="sm:w-40" />
+                            </label>
+                            <!-- The tour-leading second box (#447, ADR-0023 §2) — visitors served
+                                 outside the tour. Optional: it never gates the button below. Shown
+                                 only where the Group collects the split. -->
+                            <label v-if="collectsExtraInteractions" class="flex flex-col gap-1">
+                                <span class="text-muted-foreground text-sm font-medium">{{
+                                    trans('group.scheduling_panel.agenda.sign_out.extra_label')
+                                }}</span>
+                                <Input
+                                    v-model="extraDraft"
+                                    type="number"
+                                    inputmode="numeric"
+                                    min="0"
+                                    step="1"
+                                    class="h-11 w-full sm:h-9 sm:w-40"
+                                    :placeholder="trans('group.scheduling_panel.agenda.sign_out.extra_placeholder')"
+                                />
+                                <InputError :message="recordErrors.extra" class="sm:w-40" />
+                            </label>
+                            <!-- GDR's five visitor origins (#448, ADR-0023 §3), one box each. Shown
+                                 only where the Group collects provenance; the five are required
+                                 together and must sum to the count, which the server checks and
+                                 names in one message (#649). -->
+                            <template v-if="collectsVisitorProvenance">
+                                <label v-for="field in provenanceFields" :key="field.key" class="flex flex-col gap-1">
+                                    <span class="text-muted-foreground text-sm font-medium">{{ trans(field.labelKey) }}</span>
+                                    <Input
+                                        v-model="provenanceDrafts[field.key]"
+                                        type="number"
+                                        inputmode="numeric"
+                                        min="0"
+                                        step="1"
+                                        class="h-11 w-full sm:h-9 sm:w-40"
+                                    />
+                                </label>
+                                <InputError :message="recordErrors.provenance" class="w-full" />
+                            </template>
+                            <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+                                <!-- Record shift waits for a count (the forcing function); a
+                                     reopened form says Save changes and can be cancelled. Full
+                                     width and 48px tall on a phone. -->
+                                <Button
+                                    type="submit"
+                                    class="h-12 w-full sm:h-9 sm:w-auto"
+                                    :disabled="!canSubmit"
+                                    :aria-describedby="canSubmit ? undefined : `${formId}-disabled-reason`"
+                                >
+                                    {{
+                                        trans(
+                                            editingSeatId !== null
+                                                ? 'group.scheduling_panel.agenda.sign_out.save'
+                                                : 'group.scheduling_panel.agenda.sign_out.record',
+                                        )
+                                    }}
+                                </Button>
+                                <Button
+                                    v-if="editingSeatId !== null"
+                                    type="button"
+                                    variant="ghost"
+                                    class="h-11 w-full sm:h-9 sm:w-auto"
+                                    @click="cancelForm"
+                                >
+                                    {{ trans('group.scheduling_panel.agenda.sign_out.cancel') }}
+                                </Button>
+                                <span v-if="!canSubmit" :id="`${formId}-disabled-reason`" class="text-muted-foreground text-xs">
+                                    {{ disabledReason }}
+                                </span>
+                            </div>
+                        </form>
+                        <!-- A summary of a recorded seat, or "No count yet". -->
+                        <div v-else class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                            <div class="flex min-w-0 flex-col">
+                                <span class="text-rom-ink text-sm font-medium">{{ entryName(signUp) }}</span>
+                                <span class="text-muted-foreground text-sm tabular-nums">
+                                    {{
+                                        entryState(signUp, formSeatId) === 'summary'
+                                            ? entrySummary(signUp)
+                                            : trans('group.scheduling_panel.agenda.sign_out.no_count')
+                                    }}
+                                </span>
+                            </div>
+                            <Button
+                                v-if="canChange(signUp) && entryState(signUp, formSeatId) === 'summary'"
+                                type="button"
+                                variant="outline"
+                                class="h-11 sm:h-8"
+                                @click="openForm(signUp)"
+                            >
+                                {{ trans('group.scheduling_panel.agenda.sign_out.change') }}
+                            </Button>
+                        </div>
+                    </li>
+                </ul>
+            </section>
         </CardContent>
     </Card>
 </template>

@@ -300,8 +300,8 @@ it('carries the seat-holder’s own origins on their Shift', function () {
     $this->actingAs($member)
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scheduling.open.shifts.0.visitors_france_europe', 8)
-            ->where('scheduling.open.shifts.0.visitors_other_countries', 1));
+            ->where('scheduling.open.shifts.0.signups.0.visitors_france_europe', 8)
+            ->where('scheduling.open.shifts.0.signups.0.visitors_other_countries', 1));
 });
 
 it('withholds the origins from a reader holding no seat', function () {
@@ -317,5 +317,5 @@ it('withholds the origins from a reader holding no seat', function () {
     $this->actingAs(provMemberOf($group))
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scheduling.open.shifts.0.visitors_france_europe', null));
+            ->missing('scheduling.open.shifts.0.signups.0.visitors_france_europe'));
 });

@@ -1031,6 +1031,13 @@ class GroupController extends Controller
         $taken = $shift->signUps->count();
         $ownSignUp = $shift->signUps->firstWhere('member_id', $viewer->getKey());
 
+        // Who reads the Post-shift report (#652, ADR-0023 §5 amendment): every Member holding a
+        // seat on this Shift, and a schedule admin, on a Group that collects a visitor count.
+        // Co-volunteers see each other's numbers so a double count is visible to the people who
+        // made it. A reader with no seat and no admin role gets no seat numbers at all.
+        $readsReport = $shift->schedule->group->collects_visitor_count
+            && ($canManage || $ownSignUp !== null);
+
         return [
             'id' => $shift->id,
             'starts_at' => $shift->starts_at->toIso8601String(),
@@ -1051,11 +1058,11 @@ class GroupController extends Controller
             // The seated Members, names only (contact stays gated per MemberResource). A
             // schedule admin additionally gets each seat's own Sign-up id — the remove target
             // for officer removal (#359) and the correction target for officer correction (#450)
-            // — plus the per-seat visitor counts and the `can_record` verdict for the pencil.
-            // A plain reader, and every reader of a foreign Shift, never learns another seat's
-            // id or numbers.
+            // — and the `can_record` verdict for the pencil. Each seat's recorded numbers go to
+            // every reader of the Post-shift report (`$readsReport`, #652). A plain reader never
+            // learns another seat's id or numbers.
             'signups' => $shift->signUps
-                ->map(function (SignUp $signUp) use ($request, $canManage) {
+                ->map(function (SignUp $signUp) use ($request, $canManage, $readsReport) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
 
                     // The Objects this seat reserves (#586, ADR-0026 §3) — named under the Member
@@ -1068,15 +1075,18 @@ class GroupController extends Controller
 
                     // Officer correction (#450, ADR-0023 §5) — a schedule admin gets, on *every*
                     // seat, the pencil's read side: the seat's Sign-up id (the write target, and
-                    // the removal target #359), the verdict that they may correct it (the
+                    // the removal target #359) and the verdict that they may correct it (the
                     // schedule-admin gate, no time bound — the same `$canManage` that reveals the
-                    // affordance and the SignUpPolicy re-checks on PATCH), and the numbers already
-                    // recorded so the pencil pre-fills rather than making the Officer retype. Null
-                    // throughout for a seat with nothing filed yet, distinct from a recorded zero.
-                    // A plain reader gets none of this and sees no pencil on anyone's seat.
+                    // affordance and the SignUpPolicy re-checks on PATCH).
                     if ($canManage) {
                         $seat['signup_id'] = $signUp->id;
                         $seat['can_record'] = true;
+                    }
+
+                    // The seat's recorded numbers, for the Post-shift report's entry (#652) and so
+                    // the Officer's pencil pre-fills rather than making anyone retype. Null
+                    // throughout for a seat with nothing filed yet, distinct from a recorded zero.
+                    if ($readsReport) {
                         $seat['visitor_count'] = $signUp->visitor_count;
                         $seat['extra_interaction_count'] = $signUp->extra_interaction_count;
                         $seat['visitors_france_europe'] = $signUp->visitors_france_europe;
@@ -1091,21 +1101,6 @@ class GroupController extends Controller
                 ->all(),
             // The viewer's own seat on this Shift, for a one-click drop; null if none.
             'signup_id' => $ownSignUp?->id,
-            // The after-the-shift record on the viewer's own seat (#445, #447, ADR-0023 §2, §5):
-            // the count they recorded and, on a tour-leading Group, the extra-interaction count
-            // beside it (null when unrecorded — distinct from a recorded zero). Sent only to the
-            // seat-holder, for their own Shift; a reader holding no seat here gets null.
-            'visitor_count' => $ownSignUp?->visitor_count,
-            'extra_interaction_count' => $ownSignUp?->extra_interaction_count,
-            // GDR's five visitor origins on the viewer's own seat (#448, ADR-0023 §3), so the
-            // sign-out panel pre-fills a correction rather than making the volunteer retype. Same
-            // seat-holder-only, null-when-unrecorded rules as the count; null throughout on any
-            // Group that does not collect provenance.
-            'visitors_france_europe' => $ownSignUp?->visitors_france_europe,
-            'visitors_quebec' => $ownSignUp?->visitors_quebec,
-            'visitors_toronto' => $ownSignUp?->visitors_toronto,
-            'visitors_rest_of_canada' => $ownSignUp?->visitors_rest_of_canada,
-            'visitors_other_countries' => $ownSignUp?->visitors_other_countries,
             // The affordances this Shift offers the viewer. `signUp` is the self-service
             // verdict — the SignUpPolicy's floors and `audience`, plus a free seat and no seat
             // already held. `assign` is the officer verdict — the schedule-admin gate plus a
@@ -1131,13 +1126,15 @@ class GroupController extends Controller
                 // so it binds super-tier too (#647). Always false on a foreign Shift (open
                 // audience, never a self-serve owner's).
                 'manageSelfServe' => $shift->isSelfServeOwnedBy($viewer),
-                // The sign-out affordance (#445, #450, ADR-0023 §5) — the SignUpPolicy's verdict on
-                // the viewer's own seat: a schedule admin may record at any time; the seat-holder's
-                // own window opens five minutes before the Shift ends. False when the viewer holds
-                // no seat here. The panel's live show/hide is the client's window pure function;
-                // this is the server's matching gate for the Sign Out button, re-checked on PATCH.
-                'record' => $ownSignUp !== null
-                    && $viewer->can('record', $ownSignUp->setRelation('shift', $shift)),
+                // Whether the Post-shift report section renders for this viewer (#652): the
+                // same rule that sends the seat numbers above.
+                'readReport' => $readsReport,
+                // Whether the viewer's own seat may show the record form (#445, #652, ADR-0023
+                // §5): they hold a seat here and its sign-out window has opened, five minutes
+                // before the Shift ends. A schedule admin's own seat waits for the window too;
+                // their any-time correction is the pencil's path. The SignUpPolicy re-checks
+                // every write on PATCH.
+                'record' => $ownSignUp !== null && $shift->signOutWindowIsOpen(),
             ],
         ];
     }

@@ -14,7 +14,6 @@ use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\SignUp;
-use Carbon\CarbonImmutable;
 
 /**
  * Authorization for a Shift's Sign-ups (#357, PRD #352, ADR-0021 §Sign-up) — the taking
@@ -200,7 +199,7 @@ class SignUpPolicy
             return false;
         }
 
-        return ! CarbonImmutable::now()->isBefore($signUp->shift->ends_at->subMinutes(5));
+        return $signUp->shift->signOutWindowIsOpen();
     }
 
     /**

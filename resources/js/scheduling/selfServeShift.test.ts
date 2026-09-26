@@ -2,7 +2,7 @@
  * Unit tests for the self-serve shift end (#585, PRD #576, ADR-0026 §2).
  *
  * Runs on Node's built-in test runner (`node --test resources/js/scheduling/selfServeShift.test.ts`,
- * or `pnpm test:unit`). Prior art: `resources/js/scheduling/signOut.test.ts`.
+ * or `pnpm test:unit`). Prior art: `resources/js/scheduling/agenda.test.ts`.
  *
  * The rule under test: the end is the start plus units × unit-minutes. The load-bearing cases
  * are the GI unit (45 minutes) at one unit and at the eight-unit ceiling, and a non-GI unit
