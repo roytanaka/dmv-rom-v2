@@ -55,6 +55,41 @@ export function canSubmitRecord(draft: RecordDraft, flags: RecordFlags): boolean
     return !isBlank(draft.count) && (!flags.collectsVisitorProvenance || provenanceComplete(draft));
 }
 
+/** The server's refusal of a save, one message per place the form shows one (#649). */
+export type RecordErrors = {
+    count: string | undefined;
+    extra: string | undefined;
+    provenance: string | undefined;
+};
+
+/** How the page hands a save's outcome back to the card that submitted it (#649). */
+export type RecordCallbacks = {
+    onSuccess: () => void;
+    onError: (errors: Record<string, string>) => void;
+};
+
+const PROVENANCE_KEYS: (keyof VisitorProvenance)[] = [
+    'visitors_france_europe',
+    'visitors_quebec',
+    'visitors_toronto',
+    'visitors_rest_of_canada',
+    'visitors_other_countries',
+];
+
+/**
+ * Map the server's validation errors onto the form's boxes. The five origins share one message
+ * under the origin boxes: the server hangs the sum rule on the first origin, and the per-origin
+ * messages already read the same for every box. An empty bag (a save the server accepted) clears
+ * every message.
+ */
+export function recordErrorsFrom(errors: Partial<Record<string, string>>): RecordErrors {
+    return {
+        count: errors.visitor_count,
+        extra: errors.extra_interaction_count,
+        provenance: PROVENANCE_KEYS.map((key) => errors[key]).find((message) => message !== undefined),
+    };
+}
+
 /**
  * The write, from boxes `canSubmitRecord` has passed. The count is always sent; the extra rides
  * only where the Group collects it, and a blank extra files null; the origins ride only on GDR.

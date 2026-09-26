@@ -11,7 +11,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { formatShiftDate } from '@/scheduling/agenda';
-import { buildRecordPayload, canSubmitRecord, type BoxValue } from '@/scheduling/recordDraft';
+import InputError from '@/components/InputError.vue';
+import { buildRecordPayload, canSubmitRecord, recordErrorsFrom, type BoxValue, type RecordCallbacks } from '@/scheduling/recordDraft';
 import { withinSignOutWindow } from '@/scheduling/signOut';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -70,7 +71,7 @@ const emit = defineEmits<{
     // edit/delete above, because they route through the self-serve seam, not `shifts.*`.
     editSelfServe: [shift: ShiftAgendaItem];
     deleteSelfServe: [shift: ShiftAgendaItem];
-    record: [payload: { signUpId: number; count: number; extra: number | null; provenance: VisitorProvenance | null }];
+    record: [payload: { signUpId: number; count: number; extra: number | null; provenance: VisitorProvenance | null }, callbacks: RecordCallbacks];
 }>();
 
 const page = usePage<SharedData>();
@@ -164,9 +165,15 @@ const draft = ref<BoxValue>('');
 const extraDraft = ref<BoxValue>('');
 const provenanceDrafts = ref(Object.fromEntries(provenanceFields.map((f) => [f.key, ''])) as Record<keyof VisitorProvenance, BoxValue>);
 
+// Reseed on what the target holds, not on its identity: every page reload builds a fresh object,
+// and a refused save (#649) reloads the page with the seat unchanged. Watching the object would
+// wipe the typed values the person is about to correct.
+const recordTargetKey = computed(() => JSON.stringify(recordTarget.value));
+
 watch(
-    recordTarget,
-    (target) => {
+    recordTargetKey,
+    () => {
+        const target = recordTarget.value;
         draft.value = target && target.visitor_count !== null ? String(target.visitor_count) : '';
         extraDraft.value = target && target.extra_interaction_count !== null ? String(target.extra_interaction_count) : '';
         provenanceFields.forEach((field) => {
@@ -198,11 +205,33 @@ const cancelCorrection = () => {
     correctingSeat.value = null;
 };
 
+// The server's refusal of this card's last save (#649), one message per box. It lives on the card,
+// not the page's shared error bag, so the other copy of the same Shift never shows it. The typed
+// values stay in the boxes (a PATCH keeps page state) so the person corrects rather than retypes.
+const recordErrors = ref(recordErrorsFrom({}));
+
+// A different seat in the form (a correction opened, cancelled, or saved) starts clean.
+watch(recordTargetKey, () => {
+    recordErrors.value = recordErrorsFrom({});
+});
+
+// A correction stays open until the server accepts it, so a refusal shows inside it.
 const submitRecord = () => {
     if (!canSubmit.value || recordTarget.value === null) return;
 
-    emit('record', { signUpId: recordTarget.value.signUpId, ...buildRecordPayload(recordDraft.value, recordFlags.value) });
-    correctingSeat.value = null;
+    emit(
+        'record',
+        { signUpId: recordTarget.value.signUpId, ...buildRecordPayload(recordDraft.value, recordFlags.value) },
+        {
+            onSuccess: () => {
+                recordErrors.value = recordErrorsFrom({});
+                correctingSeat.value = null;
+            },
+            onError: (errors) => {
+                recordErrors.value = recordErrorsFrom(errors);
+            },
+        },
+    );
 };
 
 // The recorded count and extra shown on a seat's chip: an Officer reads every seat's own numbers
@@ -352,8 +381,10 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                  seat-holder's own sign-out from five minutes before the Shift ends, and the
                  Officer's correction of any seat with no deadline. One box and a submit button,
                  disabled until a number is typed (the forcing function). The server requires,
-                 whole-checks, bounds and re-authorises every write regardless. -->
-            <form v-if="recordTarget" class="flex flex-wrap items-end gap-2 border-t pt-3" @submit.prevent="submitRecord">
+                 whole-checks, bounds and re-authorises every write regardless. `novalidate` lets
+                 a decimal or negative reach the server, whose message shows under the box in the
+                 app's language (#649), instead of the browser's own popup. -->
+            <form v-if="recordTarget" class="flex flex-wrap items-end gap-2 border-t pt-3" novalidate @submit.prevent="submitRecord">
                 <!-- When an Officer is correcting a seat, name whose seat it is, so the correction
                      is never mistaken for a self sign-out. -->
                 <p v-if="correctingSeat" class="text-muted-foreground w-full text-sm font-medium">
@@ -370,6 +401,7 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                         class="w-40"
                         :placeholder="trans('group.scheduling_panel.agenda.sign_out.placeholder')"
                     />
+                    <InputError :message="recordErrors.count" class="w-40" />
                 </label>
                 <!-- The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
                      tour. Optional: it never gates the Sign Out button below. Shown only where the
@@ -385,6 +417,7 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                         class="w-40"
                         :placeholder="trans('group.scheduling_panel.agenda.sign_out.extra_placeholder')"
                     />
+                    <InputError :message="recordErrors.extra" class="w-40" />
                 </label>
                 <!-- GDR's five visitor origins (#448, ADR-0023 §3) — where the tour's visitors came
                      from, one box each. Shown only where the Group collects provenance; the five are
@@ -395,6 +428,9 @@ const seatExtra = (signUp: ShiftSignUp): number | null =>
                         <span class="text-muted-foreground text-sm font-medium">{{ trans(field.labelKey) }}</span>
                         <Input v-model="provenanceDrafts[field.key]" type="number" inputmode="numeric" min="0" step="1" class="w-40" />
                     </label>
+                    <!-- One message for the five (#649): the sum rule names both totals, and the
+                         per-origin messages read the same whichever box they hang on. -->
+                    <InputError :message="recordErrors.provenance" class="w-full" />
                 </template>
                 <Button type="submit" size="sm" :disabled="!canSubmit">
                     {{ trans(correctingSeat ? 'group.scheduling_panel.agenda.sign_out.save' : 'group.scheduling_panel.agenda.sign_out.submit') }}

@@ -11,7 +11,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildRecordPayload, canSubmitRecord, type RecordDraft } from './recordDraft.ts';
+import { buildRecordPayload, canSubmitRecord, recordErrorsFrom, type RecordDraft } from './recordDraft.ts';
 
 const PLAIN = { collectsExtraInteractions: false, collectsVisitorProvenance: false };
 const TOUR = { collectsExtraInteractions: true, collectsVisitorProvenance: false };
@@ -111,4 +111,40 @@ test('origins that do not sum to the count block Sign out on GDR', () => {
     });
 
     assert.equal(canSubmitRecord(typed, GDR), false);
+});
+
+// --- A refused save (#649) — the server's message lands under the box it applies to ---
+
+const NO_ERRORS = { count: undefined, extra: undefined, provenance: undefined };
+
+test('a refused decimal count shows the whole-number message under Visitors served', () => {
+    const errors = recordErrorsFrom({ visitor_count: 'Enter a whole number of visitors.' });
+
+    assert.deepEqual(errors, { ...NO_ERRORS, count: 'Enter a whole number of visitors.' });
+});
+
+test('a refused negative extra shows its message under the extra box', () => {
+    const errors = recordErrorsFrom({ extra_interaction_count: 'The number of extra interactions cannot be negative.' });
+
+    assert.deepEqual(errors, { ...NO_ERRORS, extra: 'The number of extra interactions cannot be negative.' });
+});
+
+test('a refused origin sum shows the sum message under the origin boxes', () => {
+    const errors = recordErrorsFrom({ visitors_france_europe: 'The five origins add up to 9, but the visitor count is 10.' });
+
+    assert.deepEqual(errors, { ...NO_ERRORS, provenance: 'The five origins add up to 9, but the visitor count is 10.' });
+});
+
+test('an error on any origin box shows under the origin boxes', () => {
+    const errors = recordErrorsFrom({ visitors_toronto: 'The number of visitors cannot be negative.' });
+
+    assert.deepEqual(errors, { ...NO_ERRORS, provenance: 'The number of visitors cannot be negative.' });
+});
+
+test('a save the server accepts clears every error', () => {
+    assert.deepEqual(recordErrorsFrom({}), NO_ERRORS);
+});
+
+test('an error on a field the form does not show is ignored', () => {
+    assert.deepEqual(recordErrorsFrom({ member_id: 'Nope.' }), NO_ERRORS);
 });

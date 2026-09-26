@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { buildAgenda } from '@/scheduling/agenda';
+import { type RecordCallbacks } from '@/scheduling/recordDraft';
 import { deriveEndsAt } from '@/scheduling/selfServeShift';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
@@ -315,8 +316,13 @@ const drop = (shift: ShiftAgendaItem) => {
 // Group collects the split — a count-only Group refuses it server-side, so it is never sent there —
 // and carries null when its box is blank, distinct from a recorded zero (#447, ADR-0023 §2). GDR's
 // five origins ride only where the Group collects provenance (#448, ADR-0023 §3); everywhere else
-// the server refuses them, so they are never sent.
-const record = (payload: { signUpId: number; count: number; extra: number | null; provenance: VisitorProvenance | null }) => {
+// the server refuses them, so they are never sent. A refusal goes back to the card that submitted
+// (#649) through its own callbacks, never the page's shared error bag: the same Shift can render
+// twice (My sign-ups and the Agenda), and only the submitted copy shows the errors.
+const record = (
+    payload: { signUpId: number; count: number; extra: number | null; provenance: VisitorProvenance | null },
+    callbacks: RecordCallbacks,
+) => {
     const body: { visitor_count: number; extra_interaction_count?: number | null } & Partial<VisitorProvenance> = {
         visitor_count: payload.count,
     };
@@ -329,7 +335,7 @@ const record = (payload: { signUpId: number; count: number; extra: number | null
         Object.assign(body, payload.provenance);
     }
 
-    router.patch(route('sign-ups.record', { signUp: payload.signUpId }), body, { preserveScroll: true });
+    router.patch(route('sign-ups.record', { signUp: payload.signUpId }), body, { preserveScroll: true, ...callbacks });
 };
 
 // --- Officer assignment and removal (#359) — the Scheduler seats and clears a named Member ---
