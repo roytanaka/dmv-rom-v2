@@ -40,13 +40,14 @@ const page = usePage<SharedData>();
 // stub is never active. A page beneath a section keeps it active (#648) — a Schedule
 // permalink is still the Scheduling tab — so the match is the longest href the URL sits under.
 const localizeHref = useLocalizedHref();
+const localHref = (item: NavNode): string | null => (item.soon || item.external || item.href === undefined ? null : localizeHref(item.href));
 const activeHref = computed(() =>
     activeSectionHref(
-        props.items.filter((item) => !item.soon && !item.external && item.href !== undefined).map((item) => localizeHref(item.href!)),
+        props.items.map(localHref).filter((href): href is string => href !== null),
         page.url,
     ),
 );
-const isActive = (item: NavNode) => !item.soon && item.href !== undefined && localizeHref(item.href) === activeHref.value;
+const isActive = (item: NavNode) => activeHref.value !== null && localHref(item) === activeHref.value;
 
 // The single break: at/above lg the full menu fits as tabs; below it can't.
 const isWide = useMediaQuery('(min-width: 1024px)');
