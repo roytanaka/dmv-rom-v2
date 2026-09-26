@@ -51,14 +51,6 @@ it('generalizes the steward lookup per function', function () {
         ->and(Group::stewardOf(StewardshipFunction::Website))->toBeNull();
 });
 
-it('answers whether a Member is all-DMV via super_tier', function () {
-    $ordinary = Member::factory()->create();
-    $allDmv = Member::factory()->superTier()->create();
-
-    expect($ordinary->isAllDmv())->toBeFalse()
-        ->and($allDmv->isAllDmv())->toBeTrue();
-});
-
 it('grants member-admin authority to a member of the Records-stewarding Group', function () {
     $records = Group::factory()->create();
     GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);

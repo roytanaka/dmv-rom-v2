@@ -229,8 +229,7 @@ final class HelpManifest
             'hours.zero-shift-hours.csv',
             'hours.zero-extra-hours.csv',
             // Auth GET routes — sign-in chrome, not task pages.
-            'login', 'password.request', 'password.reset', 'password.confirm',
-            'verification.notice', 'verification.verify',
+            'login', 'password.request', 'password.reset',
             // The help centre's own pages — the index and the article reader.
             'help', 'help.show',
         ];

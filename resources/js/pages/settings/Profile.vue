@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TransitionRoot } from '@headlessui/vue';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
@@ -16,7 +16,6 @@ import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { type BreadcrumbItem, type SharedData, type User } from '@/types';
 
 interface Props {
-    mustVerifyEmail: boolean;
     status?: string;
     className?: string;
     // Per-resource UI hint from MemberPolicy (ADR-0017). Drives whether the save
@@ -273,24 +272,6 @@ const submit = () => {
                         />
                         <p class="text-sm text-neutral-600">{{ trans('settings.profile.current_password_hint') }}</p>
                         <InputError class="mt-2" :message="form.errors.current_password" />
-                    </div>
-
-                    <div v-if="mustVerifyEmail && !user.email_verified_at">
-                        <p class="mt-2 text-sm text-neutral-800">
-                            {{ trans('settings.profile.unverified') }}
-                            <Link
-                                :href="route('verification.send')"
-                                method="post"
-                                as="button"
-                                class="rounded-md text-sm text-neutral-600 underline hover:text-neutral-900 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
-                            >
-                                {{ trans('settings.profile.resend') }}
-                            </Link>
-                        </p>
-
-                        <div v-if="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-green-600">
-                            {{ trans('settings.profile.verification_sent') }}
-                        </div>
                     </div>
 
                     <div class="flex items-center gap-4">
