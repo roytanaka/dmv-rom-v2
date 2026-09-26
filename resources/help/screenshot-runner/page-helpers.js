@@ -445,8 +445,11 @@
     }
 
     function buttonIn(root, pattern) {
-        return Array.from(root.querySelectorAll('button')).find((element) => pattern.test(element.textContent.trim()));
+        return buttonLabelled(pattern, (element) => root.contains(element));
     }
+
+    // The comment recordOwnShift files, so showOwnSavedEntry can find its preview by text.
+    const SAMPLE_COMMENT = 'A visitor asked for the nearest elevator. The floor map could show it more clearly.';
 
     // The viewer's own open form: the report in My sign-ups that holds a Record shift button.
     function ownPostShiftReport() {
@@ -480,9 +483,9 @@
         const section = ownPostShiftReport();
         if (!section) return false;
         typeInto(section.querySelector('input[type="number"]'), '18');
-        typeInto(section.querySelector('textarea'), 'A visitor asked for the nearest elevator. The floor map could show it more clearly.');
+        typeInto(section.querySelector('textarea'), SAMPLE_COMMENT);
         await settle(200);
-        return clickAndWaitFor(buttonIn(section, /^record shift$/i), () => !buttonIn(document, /^record shift$/i));
+        return clickAndWaitFor(buttonIn(section, /^record shift$/i), () => !buttonLabelled(/^record shift$/i));
     }
 
     // The viewer's own saved entry in an opened Schedule: the one marked "(you)" with a Last
@@ -491,7 +494,9 @@
         const entry = postShiftReports()
             .filter(outsideMySignUps)
             .flatMap((section) => Array.from(section.querySelectorAll('li')))
-            .find((item) => /\(you\)/.test(item.textContent) && /last edited by/i.test(item.textContent) && item.querySelector('.italic'));
+            .find(
+                (item) => /\(you\)/.test(item.textContent) && /last edited by/i.test(item.textContent) && item.textContent.includes(SAMPLE_COMMENT),
+            );
         if (!entry) return false;
         frameReport(entry.closest('section'));
         return settle();

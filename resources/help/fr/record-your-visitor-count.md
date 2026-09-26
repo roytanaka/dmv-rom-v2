@@ -7,15 +7,21 @@ Notez combien de visiteur·euses vous avez servi·es sur un quart, et ajoutez un
 1. Ouvrez le groupe et son onglet **Horaire**.
 2. Trouvez votre quart dans le panneau **Mes inscriptions** en haut.
 3. Allez à la section **Rapport après le quart** sous les détails du quart. Votre formulaire s'y ouvre cinq minutes avant la fin du quart.
-4. Tapez le nombre de visiteur·euses dans **Visiteur·euses servi·es**. Comptez seulement les visiteur·euses que vous avez servi·es, pas ceux et celles d'un·e autre membre du quart.
-5. Tapez une note dans **Commentaire (facultatif)** si vous en avez une. Parlez des questions des visiteur·euses, du déroulement du quart ou de ce que vous avez remarqué sur le terrain.
+4. Tapez le nombre de visiteur·euses dans **Visiteur·euses servi·es**.
+
+    > **Note :** Comptez seulement les visiteur·euses que vous avez servi·es, pas ceux et celles d'un·e autre membre du quart.
+
+5. Tapez une note dans **Commentaire (facultatif)** si vous en avez une.
+
+    > **Astuce :** Parlez des questions des visiteur·euses, du déroulement du quart ou de ce que vous avez remarqué sur le terrain.
+
 6. Sélectionnez **Enregistrer le quart**.
 
     ![Le rapport après le quart sur votre quart dans Mes inscriptions : Visiteur·euses servi·es, Commentaire (facultatif) et Enregistrer le quart](01.png)
 
 **Enregistrer le quart** reste désactivé tant que vous n'avez pas tapé de nombre. Vous pouvez enregistrer un nombre sans commentaire, mais pas un commentaire sans nombre.
 
-Le quart quitte ensuite **Mes inscriptions**. Sur le quart dans son horaire, votre entrée se referme en un résumé. Il montre votre nombre et la première ligne de votre commentaire. **Dernière modification par** montre votre nom et l'heure.
+Le quart quitte **Mes inscriptions** une fois terminé. Sur le quart dans son horaire, votre entrée se referme en un résumé. Il montre votre nombre et la première ligne de votre commentaire. **Dernière modification par** montre votre nom et l'heure.
 
 ![Votre entrée enregistrée dans l'horaire : le nombre, le début de votre commentaire, la ligne Dernière modification par et Modifier](02.png)
 
@@ -23,10 +29,12 @@ Le quart quitte ensuite **Mes inscriptions**. Sur le quart dans son horaire, vot
 
 Il n'y a aucune date limite, donc vous pouvez corriger votre entrée des semaines plus tard.
 
-1. Ouvrez l'horaire qui contient le quart, et trouvez votre entrée.
+1. Ouvrez l'horaire qui contient le quart.
 2. Sélectionnez **Modifier** sur votre entrée.
 3. Corrigez le nombre ou le commentaire.
-4. Sélectionnez **Enregistrer les modifications**. Pour garder ce que vous aviez, sélectionnez **Annuler**.
+4. Sélectionnez **Enregistrer les modifications**.
+
+Pour fermer le formulaire et garder ce que vous aviez, sélectionnez **Annuler**.
 
 ## Lire le rapport
 
@@ -47,7 +55,7 @@ Seul·es vous, le·la Responsable horaire et le·la Président·e de votre group
 
 Certains groupes demandent plus d'un nombre. Les cases de plus apparaissent dans le même formulaire.
 
-- Les groupes de circuits montrent aussi **Visiteur·euses servi·es hors du circuit**. Remplissez-la quand vous avez servi des visiteur·euses en dehors de votre circuit. Elle est facultative.
+- **Visiteur·euses servi·es hors du circuit** est facultative. Remplissez-la quand vous avez servi des visiteur·euses en dehors de votre circuit.
 - GDR demande d'où venaient les visiteur·euses. Les cinq cases sont **France + Europe Fr**, **Prov Québec**, **Toronto**, **Reste du Canada** et **Autres Pays**. Remplissez les cinq. Elles doivent totaliser **Visiteur·euses servi·es**.
 
 ## Et ensuite

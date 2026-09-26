@@ -19,7 +19,7 @@ Réglez ou corrigez le nombre de visiteur·euses qu'un·e membre a servi·es sur
 
 L'entrée montre maintenant votre nombre. Sa ligne **Dernière modification par** montre votre nom et l'heure, donc le·la membre voit qui l'a changé. Vous pouvez le changer de nouveau à tout moment.
 
-> **Note :** Un·e membre note son propre nombre après le quart. Vous le corrigez ici quand il est erroné. Vous pouvez aussi remplir une entrée qui indique **Aucun nombre pour l'instant**.
+> **Note :** Vous corrigez un nombre ici quand il est erroné. Vous pouvez aussi remplir une entrée qui indique **Aucun nombre pour l'instant**.
 
 ## Les commentaires
 
@@ -31,7 +31,7 @@ Le formulaire de correction n'a pas de case de commentaire. Une correction ne ch
 
 Certains groupes recueillent plus d'un nombre :
 
-- Les groupes de circuits montrent aussi **Visiteur·euses servi·es hors du circuit**. Ce champ est facultatif.
+- **Visiteur·euses servi·es hors du circuit** est facultatif.
 - GDR demande d'où venaient les visiteur·euses. Remplissez les cinq champs d'origine pour qu'ils totalisent **Visiteur·euses servi·es**.
 
 ## Et ensuite

@@ -19,7 +19,7 @@ Set or fix the number of visitors a Member served on a Shift. You need the Sched
 
 The entry now shows your count. Its **Last edited by** line shows your name and the time, so the Member can see who changed it. You can change it again at any time.
 
-> **Note:** A Member records their own count after the shift. You correct it here when it is wrong. You can also fill in an entry that says **No count yet**.
+> **Note:** You correct a count here when it is wrong. You can also fill in an entry that says **No count yet**.
 
 ## Comments
 
@@ -31,7 +31,7 @@ The correction form has no comment box. A correction never changes a Member's ow
 
 Some Groups collect more than one number:
 
-- Tour Groups also show **Visitors served outside the tour**. This field is optional.
+- **Visitors served outside the tour** is optional.
 - GDR asks where the visitors came from. Fill the five origin fields so they add up to **Visitors served**.
 
 ## What next

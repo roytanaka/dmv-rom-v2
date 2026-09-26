@@ -101,6 +101,13 @@ local app queues the mail and runs no cron. Before you shoot the Mail status pag
 run `pnpm sail artisan mail:drain`. The page then shows a fresh
 scheduler time and no "Cron looks dead" warning.
 
+## Shots that change the demo data
+
+Some scripts save a form, so a second run finds a different page. The
+`record-your-visitor-count` script records the owed shift, and the shift
+then leaves My sign-ups. Shoot `shifts-you-owe-a-number-for` first, or
+reseed with `pnpm sail artisan migrate:fresh --seed` before you shoot again.
+
 ## When a shot comes out wrong
 
 Replace that one PNG by hand and leave the step script as it is. The script
