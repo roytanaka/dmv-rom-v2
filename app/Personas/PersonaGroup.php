@@ -16,6 +16,7 @@ enum PersonaGroup: string
     case Stewards = 'stewards';
     case Roles = 'roles';
     case Standings = 'standings';
+    case Members = 'members';
     case Negative = 'negative';
 
     /** A short human label for the picker section heading (dev-only, English). */
@@ -28,6 +29,7 @@ enum PersonaGroup: string
             self::Stewards => 'Stewards',
             self::Roles => 'Roles',
             self::Standings => 'Standings',
+            self::Members => 'Members',
             self::Negative => 'Negative',
         };
     }

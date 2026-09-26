@@ -5,17 +5,10 @@
 //
 // Active-state visibility keys off `impersonation.active` (the prop), not the
 // current user's tier — a no-authority Persona still sees Switch and Stop.
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import type { SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
-import { PhDetective } from '@phosphor-icons/vue';
+import { PhCaretRight, PhDetective } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
 const page = usePage<SharedData>();
@@ -63,9 +56,22 @@ const stop = () => {
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" :side-offset="8" class="max-h-96 w-72 overflow-y-auto">
-                <template v-for="(group, index) in impersonation.personas" :key="group.key">
-                    <DropdownMenuSeparator v-if="index > 0" />
-                    <DropdownMenuLabel class="text-muted-foreground text-xs">{{ group.label }}</DropdownMenuLabel>
+                <!-- Each section collapses so the list stays short; Super-tier opens by default. -->
+                <details
+                    v-for="group in impersonation.personas"
+                    :key="group.key"
+                    :open="group.key === 'super_tier'"
+                    class="group/section border-b last:border-b-0"
+                >
+                    <summary
+                        class="text-muted-foreground flex cursor-pointer list-none items-center justify-between px-2 py-1.5 text-xs font-medium hover:bg-neutral-100 [&::-webkit-details-marker]:hidden"
+                    >
+                        {{ group.label }}
+                        <span class="flex items-center gap-1">
+                            {{ group.personas.length }}
+                            <PhCaretRight class="h-3 w-3 transition-transform group-open/section:rotate-90" />
+                        </span>
+                    </summary>
                     <DropdownMenuItem
                         v-for="persona in group.personas"
                         :key="persona.email"
@@ -75,7 +81,7 @@ const stop = () => {
                         <span class="font-medium">{{ persona.name }}</span>
                         <span class="text-muted-foreground text-xs">{{ persona.descriptor }}</span>
                     </DropdownMenuItem>
-                </template>
+                </details>
             </DropdownMenuContent>
         </DropdownMenu>
 

@@ -245,7 +245,7 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * The Persona picker, grouped by function (Operator / Super-tier / Officers /
-     * Stewards / Roles / Standings / Negative) in catalogue order — the single source of truth,
+     * Stewards / Roles / Standings / Members / Negative) in catalogue order — the single source of truth,
      * so the list and the seeded data can never drift. Each row carries the realistic
      * name, the `{role · group}` descriptor, and the email the toolbar posts to start.
      *
