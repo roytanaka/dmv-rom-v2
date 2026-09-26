@@ -2,13 +2,61 @@
 
 namespace Tests;
 
+use Database\Seeders\DemoSeeder;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Routing\RouteCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\LaravelLocalization;
 
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * The test class whose committed DemoSeeder data sits in the database, if any.
+     */
+    private static ?string $demoSeededFor = null;
+
+    protected function setUp(): void
+    {
+        // A new file follows a seedDemoOnce() file: make RefreshDatabase migrate
+        // fresh so the committed demo seed never leaks into this file's tests.
+        if (self::$demoSeededFor !== null && self::$demoSeededFor !== static::class) {
+            RefreshDatabaseState::$migrated = false;
+            self::$demoSeededFor = null;
+        }
+
+        parent::setUp();
+    }
+
+    /**
+     * Seed the full DemoSeeder org once per test file, not once per test.
+     *
+     * A demo seed takes over a second, and parallel runs hand a whole file to one
+     * worker, so a file that re-seeds before each test becomes the slowest worker
+     * and sets the suite's wall time. The first call leaves the RefreshDatabase
+     * transaction, rebuilds the schema, commits the seed, and re-opens the
+     * transaction. Each later test in the file rolls back to that seeded state.
+     * Call it from the file's beforeEach, after faking HTTP.
+     */
+    protected function seedDemoOnce(): void
+    {
+        if (self::$demoSeededFor === static::class) {
+            return;
+        }
+
+        $connection = DB::connection();
+        $connection->rollBack();
+        $this->artisan('migrate:fresh');
+        $this->app[Kernel::class]->setArtisan(null);
+        $this->seed(DemoSeeder::class);
+        $this->updateLocalCacheOfInMemoryDatabases();
+        $connection->beginTransaction();
+
+        self::$demoSeededFor = static::class;
+    }
+
     /**
      * Re-register the application's routes for a non-default locale, then run the
      * given assertions against them.
