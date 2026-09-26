@@ -36,10 +36,9 @@ The **Objects** card holds the handling collection Members take onto the floor.
 An off-site station holds its Objects for a day either side of the shift. Use it for events such as the CNE.
 
 1. Find the station on the **Shift kinds** card.
+2. Turn on **Off-site**.
 
     ![The Shift kinds card: the CNE station with Off-site checked](03.png)
-
-2. Turn on **Off-site**.
 
 The hold now runs from the day before to the day after each shift on that station.
 

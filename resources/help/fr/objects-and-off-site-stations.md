@@ -36,10 +36,9 @@ La carte **Objets** contient la collection à manipuler que les membres apporten
 Un poste hors site retient ses objets de la veille au lendemain du quart. Utilisez-le pour des événements comme la CNE.
 
 1. Trouvez le poste sur la carte **Types de quart**.
+2. Activez **Hors site**.
 
     ![La carte Types de quart : le poste CNE avec Hors site coché](03.png)
-
-2. Activez **Hors site**.
 
 La retenue court maintenant de la veille au lendemain de chaque quart sur ce poste.
 
@@ -51,7 +50,7 @@ Un événement est un ensemble de quarts sur un poste hors site.
 2. Ouvrez l'horaire de l'événement.
 3. Ajoutez un quart pour chaque créneau. Choisissez le poste hors site comme **Type**.
 
-    ![La boîte de dialogue Nouveau créneau avec le poste hors site choisi comme Type](04.png)
+    ![La fenêtre Nouveau créneau avec le poste hors site choisi comme Type](04.png)
 
 4. Réglez la capacité à un pour chaque siège qu'un·e membre prend.
 

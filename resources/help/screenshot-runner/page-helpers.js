@@ -315,8 +315,12 @@
 
     // A settings card on the Group Settings tab (ADR-0027 §2), found by its title. The tab and
     // its cards show only to a schedule admin.
+    function cardTitled(pattern) {
+        return Array.from(document.querySelectorAll('[data-slot="card"]')).find((element) => pattern.test(element.textContent.trim())) ?? null;
+    }
+
     function showCardTitled(pattern) {
-        const card = Array.from(document.querySelectorAll('[data-slot="card"]')).find((element) => pattern.test(element.textContent.trim()));
+        const card = cardTitled(pattern);
         if (!card) return false;
         scrollUnderStickyStrip(card, 16);
         return settle();
@@ -349,7 +353,7 @@
     // The off-site station on the Shift kinds card (#587, ADR-0026 §4): the row whose Off-site box
     // is checked. It sits last in the GI list, below the fold, so centre it in the shot.
     function showOffSiteStation() {
-        const box = document.querySelector('[data-slot="card"] li button[role="checkbox"][data-state="checked"]');
+        const box = cardTitled(/^shift kinds/i)?.querySelector('li button[role="checkbox"][data-state="checked"]');
         const row = box?.closest('li');
         if (!row) return false;
         row.scrollIntoView({ block: 'center' });
