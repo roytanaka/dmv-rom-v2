@@ -15,12 +15,12 @@
 import type { VisitorProvenance } from '@/types';
 
 /** One box's v-model: a string when pre-filled or empty, a number once the user types. */
-export type Box = string | number;
+export type BoxValue = string | number;
 
 export type RecordDraft = {
-    count: Box;
-    extra: Box;
-    provenance: Record<keyof VisitorProvenance, Box>;
+    count: BoxValue;
+    extra: BoxValue;
+    provenance: Record<keyof VisitorProvenance, BoxValue>;
 };
 
 /** What the Group collects on sign-out, beyond the count. */
@@ -35,24 +35,15 @@ export type RecordPayload = {
     provenance: VisitorProvenance | null;
 };
 
-/** GDR's five origin keys, in the order the sign-out panel lists them. */
-export const PROVENANCE_KEYS = [
-    'visitors_france_europe',
-    'visitors_quebec',
-    'visitors_toronto',
-    'visitors_rest_of_canada',
-    'visitors_other_countries',
-] as const satisfies readonly (keyof VisitorProvenance)[];
-
 /** An untouched or cleared box. A typed `0` is not blank. */
-const isBlank = (value: Box): boolean => String(value).trim() === '';
+const isBlank = (value: BoxValue): boolean => String(value).trim() === '';
 
 /**
  * All five origins filled and summing to the count — the client's copy of the server rule, so
  * the button never offers a write the server would refuse.
  */
 const provenanceComplete = (draft: RecordDraft): boolean => {
-    const values = PROVENANCE_KEYS.map((key) => draft.provenance[key]);
+    const values = Object.values(draft.provenance);
 
     if (values.some(isBlank)) return false;
 
@@ -72,7 +63,7 @@ export function buildRecordPayload(draft: RecordDraft, flags: RecordFlags): Reco
     const extra = flags.collectsExtraInteractions && !isBlank(draft.extra) ? Number(draft.extra) : null;
 
     const provenance = flags.collectsVisitorProvenance
-        ? (Object.fromEntries(PROVENANCE_KEYS.map((key) => [key, Number(draft.provenance[key])])) as unknown as VisitorProvenance)
+        ? (Object.fromEntries(Object.entries(draft.provenance).map(([key, value]) => [key, Number(value)])) as unknown as VisitorProvenance)
         : null;
 
     return { count: Number(draft.count), extra, provenance };

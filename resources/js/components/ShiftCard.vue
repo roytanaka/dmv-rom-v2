@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { formatShiftDate } from '@/scheduling/agenda';
-import { buildRecordPayload, canSubmitRecord, type Box } from '@/scheduling/recordDraft';
+import { buildRecordPayload, canSubmitRecord, type BoxValue } from '@/scheduling/recordDraft';
 import { withinSignOutWindow } from '@/scheduling/signOut';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -160,9 +160,9 @@ const recordTarget = computed<RecordTarget | null>(() => {
 // that carries the count on 96-98% of shifts); the extra box is optional; the five origins are
 // seeded too. A box holds a string until the user types, then a number (#646); an empty box stays
 // distinct from a typed zero.
-const draft = ref<Box>('');
-const extraDraft = ref<Box>('');
-const provenanceDrafts = ref(Object.fromEntries(provenanceFields.map((f) => [f.key, ''])) as Record<keyof VisitorProvenance, Box>);
+const draft = ref<BoxValue>('');
+const extraDraft = ref<BoxValue>('');
+const provenanceDrafts = ref(Object.fromEntries(provenanceFields.map((f) => [f.key, ''])) as Record<keyof VisitorProvenance, BoxValue>);
 
 watch(
     recordTarget,
