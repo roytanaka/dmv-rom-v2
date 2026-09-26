@@ -38,21 +38,51 @@ export type RecordPayload = {
 /** An untouched or cleared box. A typed `0` is not blank. */
 const isBlank = (value: BoxValue): boolean => String(value).trim() === '';
 
+/** GDR's five origin fields, in the order the sign-out panel lists them. */
+export const PROVENANCE_KEYS = [
+    'visitors_france_europe',
+    'visitors_quebec',
+    'visitors_toronto',
+    'visitors_rest_of_canada',
+    'visitors_other_countries',
+] as const satisfies readonly (keyof VisitorProvenance)[];
+
 /**
- * All five origins filled and summing to the count — the client's copy of the server rule, so
- * the button never offers a write the server would refuse.
+ * The count is required; on a Group that collects origins, all five must be filled. Whether they
+ * add up to the count is the server's rule (#649): a set that does not goes out, and the server's
+ * message names both totals under the origin boxes. A disabled button would give no reason.
  */
-const provenanceComplete = (draft: RecordDraft): boolean => {
-    const values = Object.values(draft.provenance);
+export function canSubmitRecord(draft: RecordDraft, flags: RecordFlags): boolean {
+    return !isBlank(draft.count) && (!flags.collectsVisitorProvenance || !Object.values(draft.provenance).some(isBlank));
+}
 
-    if (values.some(isBlank)) return false;
-
-    return values.reduce<number>((sum, value) => sum + Number(value), 0) === Number(draft.count);
+/** The server's refusal of a save, one message per place the form shows one (#649). */
+export type RecordErrors = {
+    count: string | undefined;
+    extra: string | undefined;
+    provenance: string | undefined;
 };
 
-/** The count is required; on a Group that collects origins, all five must add up to it. */
-export function canSubmitRecord(draft: RecordDraft, flags: RecordFlags): boolean {
-    return !isBlank(draft.count) && (!flags.collectsVisitorProvenance || provenanceComplete(draft));
+/** No refusal: the form before a save, or after one the server accepted. */
+export const NO_RECORD_ERRORS: RecordErrors = { count: undefined, extra: undefined, provenance: undefined };
+
+/** How the page hands a save's outcome back to the card that submitted it (#649). */
+export type RecordCallbacks = {
+    onSuccess: () => void;
+    onError: (errors: Record<string, string>) => void;
+};
+
+/**
+ * Map the server's validation errors onto the form's boxes. The five origins share one message
+ * under the origin boxes: the server hangs the sum rule on the first origin, and the per-origin
+ * messages already read the same for every box.
+ */
+export function recordErrorsFrom(errors: Partial<Record<string, string>>): RecordErrors {
+    return {
+        count: errors.visitor_count,
+        extra: errors.extra_interaction_count,
+        provenance: PROVENANCE_KEYS.map((key) => errors[key]).find((message) => message !== undefined),
+    };
 }
 
 /**
