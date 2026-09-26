@@ -19,6 +19,7 @@
 // A `soon` item is a capability slot whose feature hasn't shipped — rendered muted and
 // NON-navigable (no link) in both modes, with the optional `soonLabel` marker. External
 // tabs (e.g. Renew Membership) render as visibly outbound links.
+import { activeSectionHref } from '@/chrome/activeSection';
 import type { NavNode } from '@/chrome/types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
@@ -36,9 +37,16 @@ const props = withDefaults(defineProps<{ items: NavNode[]; variant?: 'bar' | 'bo
 const page = usePage<SharedData>();
 // Hrefs are English-canonical; localise them to the active locale so navigation stays
 // in-locale (ADR-0008), and match the active tab against the localised href. A `soon`
-// stub is never active.
+// stub is never active. A page beneath a section keeps it active (#648) — a Schedule
+// permalink is still the Scheduling tab — so the match is the longest href the URL sits under.
 const localizeHref = useLocalizedHref();
-const isActive = (item: NavNode) => !item.soon && item.href !== undefined && localizeHref(item.href) === page.url;
+const activeHref = computed(() =>
+    activeSectionHref(
+        props.items.filter((item) => !item.soon && !item.external && item.href !== undefined).map((item) => localizeHref(item.href!)),
+        page.url,
+    ),
+);
+const isActive = (item: NavNode) => !item.soon && item.href !== undefined && localizeHref(item.href) === activeHref.value;
 
 // The single break: at/above lg the full menu fits as tabs; below it can't.
 const isWide = useMediaQuery('(min-width: 1024px)');

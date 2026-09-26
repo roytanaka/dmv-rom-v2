@@ -412,7 +412,7 @@ return [
             'sign_out' => [
                 'count_label' => 'Visiteur·euses servi·es',
                 'submit' => 'Terminer le quart',
-                'placeholder' => 'Nombre de visiteur·euses',
+                'placeholder' => 'Nombre',
                 'recorded' => ':count visiteur·euses',
                 'whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
                 'not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',

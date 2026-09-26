@@ -860,7 +860,9 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                             </CardTitle>
                             <p class="text-muted-foreground text-sm">{{ dateRange(scheduling.open.starts_on, scheduling.open.ends_on) }}</p>
                         </div>
-                        <div class="flex shrink-0 flex-wrap items-center gap-1">
+                        <!-- Capped at the header's width so the controls wrap on a phone (#648)
+                             instead of pushing Delete off-screen. -->
+                        <div class="flex max-w-full shrink-0 flex-wrap items-center gap-1">
                             <!-- Email control (#490, ADR-0024 §6.3) — led by "Sign-ups on this
                                  Schedule", then the Group's Audiences. Present for every reader
                                  who can open the Schedule; the picker rule narrows the menu. -->
