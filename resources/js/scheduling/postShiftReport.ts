@@ -10,8 +10,11 @@
  * Pure functions of their arguments, so they are tested without a component.
  */
 
-/** The part of a seat these rules read: the Member id and the recorded count (null = none). */
-export type ReportSeat = { id: number; visitor_count?: number | null };
+/**
+ * The part of a seat these rules read: the Member id, the recorded count (null = none), and the
+ * server's verdict that the viewer may change this entry (#653; absent = no).
+ */
+export type ReportSeat = { id: number; visitor_count?: number | null; can_record?: boolean };
 
 export type EntryState = 'form' | 'summary' | 'no-count';
 
@@ -19,9 +22,10 @@ export type EntryState = 'form' | 'summary' | 'no-count';
 const hasCount = (seat: ReportSeat): boolean => (seat.visitor_count ?? null) !== null;
 
 /**
- * The one seat whose entry shows the form, or null for none. A seat opened by Change (or an
- * Officer's pencil) wins. Otherwise the viewer's own seat opens by itself when its window is
- * open and it has no count yet. One seat at most, so a card never shows two forms.
+ * The one seat whose entry shows the form, or null for none. A seat opened by Change (the
+ * viewer's own, or any seat for an Officer, #653) wins. Otherwise the viewer's own seat opens
+ * by itself when its window is open and it has no count yet. One seat at most, so a card never
+ * shows two forms.
  */
 export function openFormSeat(options: {
     seats: ReportSeat[];
@@ -44,6 +48,15 @@ export function entryState(seat: ReportSeat, formSeatId: number | null): EntrySt
     if (seat.id === formSeatId) return 'form';
 
     return hasCount(seat) ? 'summary' : 'no-count';
+}
+
+/**
+ * Whether an entry shows Change (#653): the server says the viewer may change this seat, and the
+ * entry is not already the form. A schedule admin gets it on every seat, "No count yet" included;
+ * a volunteer on their own seat only.
+ */
+export function showsChange(seat: ReportSeat, state: EntryState): boolean {
+    return state !== 'form' && seat.can_record === true;
 }
 
 /** The header's "N of M recorded": seats with a count (a zero counts) out of all seats. */

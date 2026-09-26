@@ -1013,10 +1013,10 @@ class GroupController extends Controller
     /**
      * One Shift's read payload, shared by the owning-Group Agenda and the foreign set (#357,
      * #359, #361, #450). `$canManage` is the schedule-admin verdict for *this* Shift: it reveals
-     * the officer affordances — each seat's Sign-up id (the removal and correction target), the
-     * per-seat visitor counts and `can_record` verdict for officer correction (#450), and the
-     * `assign` button — and is always false for a foreign Shift, which carries no authoring
-     * affordances for anyone.
+     * the officer affordances — each seat's Sign-up id (the removal and correction target), a
+     * `can_record` verdict on every seat for officer correction (#450, #653), and the `assign`
+     * button — and is always false for a foreign Shift, which carries no authoring affordances
+     * for anyone. It is also false in My sign-ups, so officer correction lives in the Agenda.
      *
      * Sign-up names are visible to every reader who can read the Schedule (ADR-0017 §6),
      * routed through {@see MemberResource} so contact PII stays gated. `signup_id` is the
@@ -1057,12 +1057,12 @@ class GroupController extends Controller
             'shift_kind_id' => $shift->shift_kind_id,
             // The seated Members, names only (contact stays gated per MemberResource). A
             // schedule admin additionally gets each seat's own Sign-up id — the remove target
-            // for officer removal (#359) and the correction target for officer correction (#450)
-            // — and the `can_record` verdict for the pencil. Each seat's recorded numbers go to
-            // every reader of the Post-shift report (`$readsReport`, #652). A plain reader never
-            // learns another seat's id or numbers.
+            // for officer removal (#359) and the correction target for officer correction (#450).
+            // Each seat's recorded numbers and its `can_record` verdict go to every reader of the
+            // Post-shift report (`$readsReport`, #652, #653). A plain reader never learns another
+            // seat's id or numbers.
             'signups' => $shift->signUps
-                ->map(function (SignUp $signUp) use ($request, $canManage, $readsReport) {
+                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $readsReport) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
 
                     // The Objects this seat reserves (#586, ADR-0026 §3) — named under the Member
@@ -1073,20 +1073,23 @@ class GroupController extends Controller
                         ->map(fn (HandlingObject $object) => ['id' => $object->id, 'name' => $object->name])
                         ->all();
 
-                    // Officer correction (#450, ADR-0023 §5) — a schedule admin gets, on *every*
-                    // seat, the pencil's read side: the seat's Sign-up id (the write target, and
-                    // the removal target #359) and the verdict that they may correct it (the
-                    // schedule-admin gate, no time bound — the same `$canManage` that reveals the
-                    // affordance and the SignUpPolicy re-checks on PATCH).
+                    // Officer removal and correction (#359, #450) — a schedule admin gets, on
+                    // *every* seat, the seat's Sign-up id: the removal target and the write
+                    // target for a correction.
                     if ($canManage) {
                         $seat['signup_id'] = $signUp->id;
-                        $seat['can_record'] = true;
                     }
 
                     // The seat's recorded numbers, for the Post-shift report's entry (#652) and so
-                    // the Officer's pencil pre-fills rather than making anyone retype. Null
+                    // the form pre-fills a change rather than making anyone retype. Null
                     // throughout for a seat with nothing filed yet, distinct from a recorded zero.
+                    // `can_record` is the verdict that the viewer may change this entry (#653),
+                    // mirroring the SignUpPolicy's `record` rule, which re-checks every PATCH: a
+                    // schedule admin on every seat with no time bound, a seat-holder on their own
+                    // seat once its sign-out window opens.
                     if ($readsReport) {
+                        $seat['can_record'] = $canManage
+                            || ($signUp->member_id === $viewer->getKey() && $shift->signOutWindowIsOpen());
                         $seat['visitor_count'] = $signUp->visitor_count;
                         $seat['extra_interaction_count'] = $signUp->extra_interaction_count;
                         $seat['visitors_france_europe'] = $signUp->visitors_france_europe;
@@ -1132,8 +1135,8 @@ class GroupController extends Controller
                 // Whether the viewer's own seat may show the record form (#445, #652, ADR-0023
                 // §5): they hold a seat here and its sign-out window has opened, five minutes
                 // before the Shift ends. A schedule admin's own seat waits for the window too;
-                // their any-time correction is the pencil's path. The SignUpPolicy re-checks
-                // every write on PATCH.
+                // their any-time correction is the Change button's path (#653). The
+                // SignUpPolicy re-checks every write on PATCH.
                 'record' => $ownSignUp !== null && $shift->signOutWindowIsOpen(),
             ],
         ];

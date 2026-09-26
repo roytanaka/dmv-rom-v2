@@ -590,8 +590,9 @@ export interface ShiftSignUp {
     // Officer removal (#359) — the seat's own Sign-up id, the remove target. Present only
     // for a schedule admin (a plain reader never learns another seat's id).
     signup_id?: number;
-    // Officer correction (#450, ADR-0023 §5) — the verdict that a schedule admin may correct
-    // this seat (the schedule-admin gate, no time bound). Absent for everyone else.
+    // Whether the viewer may change this seat's entry in the Post-shift report (#450, #653,
+    // ADR-0023 §5): true on every seat for a schedule admin (no time bound), and on the viewer's
+    // own seat once its sign-out window opens. Sent with the numbers, to report readers only.
     can_record?: boolean;
     // The seat's recorded numbers, for the Post-shift report (#652) — sent to every Member
     // holding a seat on the Shift and to a schedule admin, where the Group collects a count.

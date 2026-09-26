@@ -22,7 +22,7 @@ import {
     type RecordCallbacks,
     type RecordErrors,
 } from '@/scheduling/recordDraft';
-import { entryState, openFormSeat, recordedTally } from '@/scheduling/postShiftReport';
+import { entryState, openFormSeat, recordedTally, showsChange } from '@/scheduling/postShiftReport';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
@@ -113,8 +113,9 @@ const showsReport = computed(() => props.collectsVisitorCount && props.shift.can
 
 const tally = computed(() => recordedTally(props.shift.signups));
 
-// The seat a Change button (or an Officer's pencil, #450) reopened. Null → the own seat opens by
-// itself inside its window while it has no count; see {@see openFormSeat}.
+// The seat a Change button reopened: the viewer's own, or any seat for an Officer (#450, #653).
+// Null → the own seat opens by itself inside its window while it has no count; see
+// {@see openFormSeat}.
 const editingSeatId = ref<number | null>(null);
 
 // The one seat showing the form, if any. `can.record` is the server's word that the viewer's own
@@ -138,10 +139,6 @@ const formSeat = computed(() => props.shift.signups.find((signUp) => signUp.id =
 // An Officer's correction of another Member's seat — named above the form so it is never
 // mistaken for the viewer's own.
 const correctingSeat = computed(() => (formSeat.value && !isOwnSeat(formSeat.value) ? formSeat.value : null));
-
-// Change shows on the viewer's own recorded entry while the server allows their own write. The
-// Officer's way in to other seats stays the chip pencil until #653.
-const canChange = (signUp: ShiftSignUp) => isOwnSeat(signUp) && props.shift.can.record;
 
 // GDR's five origin fields, in the order the record form lists them.
 // Each label key is the field key with `visitors_` swapped for `provenance_`.
@@ -224,8 +221,8 @@ const recordFlags = computed(() => ({
 // The count is required; on GDR the five origins must be filled (the server checks their sum).
 const canSubmit = computed(() => canSubmitRecord(recordDraft.value, recordFlags.value));
 
-// Reopen one seat's form: the viewer's own Change, or the Officer's pencil (#450) on any seat —
-// `can_record` gates the pencil and the SignUpPolicy re-checks the write. Cancel closes it and
+// Reopen one seat's form from its Change button. The seat's `can_record` (the server's verdict,
+// #653) shows the button and the SignUpPolicy re-checks the write. Cancel closes it and
 // returns the card to its default: the own seat's form if it is still unrecorded in its window.
 const openForm = (signUp: ShiftSignUp) => {
     editingSeatId.value = signUp.id;
@@ -323,20 +320,6 @@ const formId = useId();
                     <span v-if="signUp.objects && signUp.objects.length" class="text-muted-foreground">
                         · {{ signUp.objects.map((object) => object.name).join(', ') }}
                     </span>
-                    <!-- The Officer's pencil (#450) — corrects any seat, no deadline, in the
-                         Post-shift report below. Shown only where the server sent `can_record`
-                         (the schedule-admin gate) and the report is on the card; an ordinary
-                         Member sees no pencil on anyone's seat, and the SignUpPolicy refuses the
-                         write regardless. #653 moves it into the report. -->
-                    <button
-                        v-if="signUp.can_record && showsReport"
-                        type="button"
-                        class="hover:text-rom-ink -my-1 inline-flex size-6 items-center justify-center rounded-full transition-colors"
-                        :aria-label="trans('group.scheduling_panel.agenda.sign_out.correct')"
-                        @click="openForm(signUp)"
-                    >
-                        <PhPencilSimple class="size-4" />
-                    </button>
                     <button
                         v-if="signUp.signup_id"
                         type="button"
@@ -547,13 +530,7 @@ const formId = useId();
                                     {{ state === 'summary' ? entrySummary(signUp) : trans('group.scheduling_panel.agenda.sign_out.no_count') }}
                                 </span>
                             </div>
-                            <Button
-                                v-if="canChange(signUp) && state === 'summary'"
-                                type="button"
-                                variant="outline"
-                                class="h-11 sm:h-8"
-                                @click="openForm(signUp)"
-                            >
+                            <Button v-if="showsChange(signUp, state)" type="button" variant="outline" class="h-11 sm:h-8" @click="openForm(signUp)">
                                 {{ trans('group.scheduling_panel.agenda.sign_out.change') }}
                             </Button>
                         </div>

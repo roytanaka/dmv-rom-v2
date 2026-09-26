@@ -308,7 +308,7 @@ const drop = (shift: ShiftAgendaItem) => {
 // --- Recording the numbers (#445, #450, ADR-0023 §5) — one seam, three surfaces ---
 
 // File the numbers on the named Sign-up: the viewer's own seat from the sign-out panel or the
-// outstanding list (#445), or any seat an Officer corrects with the pencil (#450). `signUpId` is
+// outstanding list (#445), or any seat an Officer corrects with Change (#450, #653). `signUpId` is
 // that seat — the card resolves it — and the write always names it in the route, never the body.
 // The server re-checks the policy (the seat-holder inside the window, or a schedule admin with no
 // deadline) and the whole rule (required count, optional extra, both whole and non-negative, GDR's
