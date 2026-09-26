@@ -23,6 +23,9 @@ return [
         'forgot' => 'Mot de passe oublié?',
         'submit' => 'Connexion',
 
+        // Affiché quand une session expirée renvoie le membre à la connexion.
+        'session_expired' => 'Votre session a expiré. Reconnectez-vous pour continuer.',
+
         // Noms accessibles pour la bascule afficher/masquer le mot de passe.
         'show_password' => 'Afficher le mot de passe',
         'hide_password' => 'Masquer le mot de passe',
