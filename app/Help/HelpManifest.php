@@ -270,7 +270,7 @@ final class HelpManifest
             // Groups, officer part (#526) — roster and meetings, run by a Group's officers.
             new HelpArticle('manage-your-groups-roster', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('record-a-meeting', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
-            new HelpArticle('edit-your-groups-about-us-and-banner', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('edit-your-groups-about-us-and-banner', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             // Group Settings tab (#608, ADR-0027) — the officers-only tab that holds a Group's settings.
             // Today every configuration right is a schedule admin's, so the badge reads Scheduler or Chair.
             new HelpArticle('group-settings', HelpSection::Groups, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.show'),
