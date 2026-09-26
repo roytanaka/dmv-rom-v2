@@ -28,7 +28,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 // impersonation props, not photos, so an empty 200 (initials fallback) is fine.
 beforeEach(function () {
     Http::fake();
-    $this->seed(DemoSeeder::class);
+    $this->seedDemoOnce();
 });
 
 function operator(): Member
