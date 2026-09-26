@@ -217,7 +217,6 @@ return [
             ],
             'ends_at_preview' => 'Ends at :time',
             'units_option' => '{1} :count unit|[2,*] :count units',
-            'start_off_grid' => 'Choose a start time on the quarter hour.',
             'start_before_today' => 'Choose today or a later day.',
             // The station clash warning (#588, ADR-0026 §5) — another interpreter is already on this
             // station at that time. A warning, not a block: the confirm below lets the Member go ahead.

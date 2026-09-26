@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ReservesObjects;
 use App\Models\Shift;
+use App\Rules\OnMinuteGrid;
 use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
@@ -72,7 +73,7 @@ class StoreSelfServeShiftRequest extends FormRequest
                     ->where('group_id', $schedule->group_id)
                     ->where('active', true),
             ],
-            'starts_at' => ['required', 'date', $this->onGrid(), $this->notBeforeToday(), $this->withinRange()],
+            'starts_at' => ['required', 'date', new OnMinuteGrid(15), $this->notBeforeToday(), $this->withinRange()],
             'units' => ['required', 'integer', 'min:1', 'max:'.Shift::SELF_SERVE_MAX_UNITS],
             // The Member waving through the station clash warning (ADR-0026 §5) — optional, absent
             // on the first submit, true on the resubmit from the confirm dialog.
@@ -109,22 +110,6 @@ class StoreSelfServeShiftRequest extends FormRequest
             $this->addObjectClashErrors($validator, $candidate);
             $this->addStationClashError($validator, $candidate);
         });
-    }
-
-    /**
-     * A closure rule rejecting a start that is not on the quarter-hour grid (ADR-0026 §2). The
-     * org zone offsets by whole hours, so the minute-of-hour is the same in UTC — the check
-     * reads the stored instant directly.
-     */
-    private function onGrid(): callable
-    {
-        return function (string $attribute, mixed $value, callable $fail): void {
-            $startsAt = $this->date('starts_at');
-
-            if ($startsAt === null || $startsAt->minute % 15 !== 0 || $startsAt->second !== 0) {
-                $fail('group.scheduling_panel.self_serve.start_off_grid')->translate();
-            }
-        };
     }
 
     /**

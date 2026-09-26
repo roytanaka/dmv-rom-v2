@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Controllers\ShiftController;
 use App\Models\Shift;
+use App\Rules\OnMinuteGrid;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -41,8 +42,8 @@ class BulkDeleteShiftRequest extends FormRequest
         $schedule = $this->route('schedule');
 
         return [
-            'starts_time' => ['required', 'date_format:H:i'],
-            'ends_time' => ['required', 'date_format:H:i', 'after:starts_time'],
+            'starts_time' => ['required', 'date_format:H:i', new OnMinuteGrid],
+            'ends_time' => ['required', 'date_format:H:i', 'after:starts_time', new OnMinuteGrid],
             'capacity' => ['sometimes', 'integer', 'min:1'],
             'shift_kind_id' => [
                 'nullable',

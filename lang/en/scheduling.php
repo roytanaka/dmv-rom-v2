@@ -21,4 +21,12 @@ return [
         'footer' => 'Thank you for volunteering. If you can no longer make it, please drop your sign-up so the seat can be filled.',
         'view_schedule' => 'View the schedule',
     ],
+    // The minute-grid error (#639, ADR-0028) — a Shift or Meeting time off its 5-minute
+    // (or self-serve 15-minute) step.
+    'time_off_grid' => 'Choose a time in :minutes-minute steps.',
+    // The accessible names of the time picker's selects (#639).
+    'time_field' => [
+        'hour' => 'Hour',
+        'minute' => 'Minute',
+    ],
 ];
