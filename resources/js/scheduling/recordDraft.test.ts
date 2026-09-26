@@ -11,7 +11,15 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildRecordPayload, canSubmitRecord, NO_RECORD_ERRORS, recordErrorsFrom, type RecordDraft } from './recordDraft.ts';
+import {
+    buildRecordPayload,
+    canSubmitRecord,
+    draftFrom,
+    hasUnsavedChanges,
+    NO_RECORD_ERRORS,
+    recordErrorsFrom,
+    type RecordDraft,
+} from './recordDraft.ts';
 
 const PLAIN = { collectsExtraInteractions: false, collectsVisitorProvenance: false, writesComment: false };
 const TOUR = { collectsExtraInteractions: true, collectsVisitorProvenance: false, writesComment: false };
@@ -179,4 +187,43 @@ test('a refused long comment shows its message under the comment box', () => {
 
 test('an error on a field the form does not show is ignored', () => {
     assert.deepEqual(recordErrorsFrom({ member_id: 'Nope.' }), NO_RECORD_ERRORS);
+});
+
+// --- Unsaved changes (#668) -------------------------------------------------------------------
+
+const saved = {
+    visitor_count: 12,
+    extra_interaction_count: null,
+    comment: 'Busy.',
+    visitors_france_europe: null,
+    visitors_quebec: null,
+    visitors_toronto: null,
+    visitors_rest_of_canada: null,
+    visitors_other_countries: null,
+};
+
+test('a form seeds its boxes from the saved seat, blanks for nulls', () => {
+    assert.deepEqual(draftFrom(saved), draft({ count: '12', comment: 'Busy.' }));
+    assert.deepEqual(draftFrom(null), draft());
+});
+
+test('a form as seeded has no unsaved changes', () => {
+    assert.equal(hasUnsavedChanges(draftFrom(saved), saved), false);
+    assert.equal(hasUnsavedChanges(draftFrom(null), null), false);
+});
+
+test('retyping the saved value is not a change', () => {
+    assert.equal(hasUnsavedChanges({ ...draftFrom(saved), count: 12 }, saved), false);
+});
+
+test('a new count, extra, origin or comment is an unsaved change', () => {
+    assert.equal(hasUnsavedChanges({ ...draftFrom(saved), count: 13 }, saved), true);
+    assert.equal(hasUnsavedChanges({ ...draftFrom(saved), extra: 2 }, saved), true);
+    assert.equal(hasUnsavedChanges({ ...draftFrom(saved), provenance: { ...emptyProvenance, visitors_quebec: 4 } }, saved), true);
+    assert.equal(hasUnsavedChanges({ ...draftFrom(saved), comment: 'Busy morning.' }, saved), true);
+    assert.equal(hasUnsavedChanges(draft({ count: 3 }), null), true);
+});
+
+test('clearing a saved count is an unsaved change', () => {
+    assert.equal(hasUnsavedChanges({ ...draftFrom(saved), count: '' }, saved), true);
 });

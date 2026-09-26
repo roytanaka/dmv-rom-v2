@@ -477,8 +477,8 @@
     }
 
     // Fill the viewer's own form with a count and a comment, select Record shift, and wait for
-    // the save. A recorded shift leaves My sign-ups, so its summary is shot afterwards from the
-    // Schedule that holds it (showOwnSavedEntry).
+    // the save. The recorded shift stays in My sign-ups until the next page load (#668), so its
+    // summary is shot there (showOwnSavedEntry).
     async function recordOwnShift() {
         const section = ownPostShiftReport();
         if (!section) return false;
@@ -488,11 +488,11 @@
         return clickAndWaitFor(buttonIn(section, /^record shift$/i), () => !buttonLabelled(/^record shift$/i));
     }
 
-    // The viewer's own saved entry in an opened Schedule: the one marked "(you)" with a Last
-    // edited by line and a comment preview.
+    // The viewer's own saved entry in My sign-ups, right after the save: the one marked "(you)"
+    // with "Saved.", a Last edited by line and a comment preview.
     function showOwnSavedEntry() {
         const entry = postShiftReports()
-            .filter(outsideMySignUps)
+            .filter((section) => !outsideMySignUps(section))
             .flatMap((section) => Array.from(section.querySelectorAll('li')))
             .find(
                 (item) => /\(you\)/.test(item.textContent) && /last edited by/i.test(item.textContent) && item.textContent.includes(SAMPLE_COMMENT),

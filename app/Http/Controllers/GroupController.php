@@ -167,7 +167,7 @@ class GroupController extends Controller
                     'scheduling' => $group->has_scheduling,
                     'content' => $group->has_content_catalog,
                     // Whether the Group collects a per-shift visitor count (#445, ADR-0023 §5).
-                    // Unlike the flags above it opens no tab — it switches the sign-out panel
+                    // Unlike the flags above it opens no tab — it switches the Post-shift report
                     // on inside the Scheduling section — but it rides here as the one Group-level
                     // boolean the Scheduling tab reads to decide the feature is on at all.
                     'collectsVisitorCount' => $group->collects_visitor_count,
@@ -177,7 +177,7 @@ class GroupController extends Controller
                     'collectsExtraInteractions' => $group->collects_extra_interactions,
                     // Whether the Group collects GDR's five visitor origins (#448, ADR-0023 §3) —
                     // the provenance split that must sum to the count. GDR alone is on; every other
-                    // Group leaves it off and its sign-out panel shows no origin boxes.
+                    // Group leaves it off and its Post-shift report shows no origin boxes.
                     'collectsVisitorProvenance' => $group->collects_visitor_provenance,
                 ],
                 // The Group's self-serve unit length (#585, ADR-0026 §2). The Scheduling tab's
@@ -833,7 +833,9 @@ class GroupController extends Controller
      * The viewer's own outstanding-shifts panel (#449, PRD #443, ADR-0023 §5) — "my Sign-ups on
      * this Group". Two sets, both the viewer's own: **upcoming** Shifts (still ahead, whatever
      * their count), and **outstanding** past Shifts inside the 28-day window still owed a number
-     * ({@see SignUp::scopeOutstandingFor}). It is **date-ranged, so it crosses Schedules** — a
+     * ({@see SignUp::scopeOutstandingFor}). On the one page load after a save, the seat just saved
+     * stays too (#668, {@see SignUp::JUST_SAVED_FLASH}), so a first save shows its summary
+     * here rather than dropping out with no feedback. It is **date-ranged, so it crosses Schedules** — a
      * three-week-old Shift on last month's Schedule is a different page the Agenda alone strands,
      * and this is the one surface that reaches it.
      *
@@ -856,6 +858,11 @@ class GroupController extends Controller
         $viewer = $request->user();
         $now = CarbonImmutable::now();
 
+        // The seats post-shift saves just wrote (#668). Remembered for the next save, so two saves
+        // in a row keep both seats; any other page load clears it.
+        $justSaved = $request->session()->get(SignUp::JUST_SAVED_FLASH, []);
+        $request->session()->put(SignUp::SHOWN_SAVED_KEY, $justSaved);
+
         return SignUp::query()
             ->where('member_id', $viewer->getKey())
             ->whereHas('shift.schedule', fn (Builder $query) => $query->where('group_id', $group->id))
@@ -863,7 +870,10 @@ class GroupController extends Controller
                 // Upcoming — a seat still ahead of the viewer, whatever it does or does not record.
                 ->whereHas('shift', fn (Builder $shift) => $shift->where('ends_at', '>=', $now))
                 // Or outstanding — a past Shift inside the window still owed a number.
-                ->orWhere(fn (Builder $outstanding) => $outstanding->outstandingFor($viewer)))
+                ->orWhere(fn (Builder $outstanding) => $outstanding->outstandingFor($viewer))
+                // Or just saved (#668) — the seats post-shift saves wrote, for the page load after
+                // them, so a first save shows its summary here instead of dropping out.
+                ->orWhereIn('id', $justSaved))
             ->with([
                 'shift.kind',
                 'shift.schedule.group',
@@ -930,7 +940,9 @@ class GroupController extends Controller
      * included** (ADR-0017 §6): the section is org-open, a Schedule is a roster of who is on
      * the floor, no more exposing than the Directory. Each seat is routed through the
      * centralized {@see MemberResource} so contact PII stays gated behind `viewContact` and
-     * only the name tier surfaces; nothing else about a Sign-up is exposed.
+     * only the name tier surfaces. A seat's recorded numbers go only to a reader of the
+     * Post-shift report, and its comment only where SignUpPolicy::viewComment allows
+     * ({@see shiftPayload}, #652, #655).
      *
      * The viewer's own participation drives the take/drop affordance: `can.signUp` is the
      * SignUpPolicy's per-Shift verdict (false when the viewer is ineligible or the Shift is
@@ -1106,10 +1118,14 @@ class GroupController extends Controller
                             'at' => $signUp->last_edited_at->toIso8601String(),
                         ];
 
-                        // The seat's comment (#655) goes to its author and a schedule admin only,
-                        // mirroring SignUpPolicy::viewComment. A co-volunteer sees the numbers but
-                        // never receives another volunteer's words.
-                        if ($canManage || $signUp->member_id === $viewer->getKey()) {
+                        // The seat's comment (#655) goes where SignUpPolicy::viewComment allows —
+                        // its author and a schedule admin — asked here, not restated, so the two
+                        // cannot drift (#668). A co-volunteer sees the numbers but never receives
+                        // another volunteer's words. The policy reads the Group through the Shift,
+                        // so set it from the Shift in hand rather than lazy-load it.
+                        $signUp->setRelation('shift', $shift);
+
+                        if ($viewer->can('viewComment', $signUp)) {
                             $seat['comment'] = $signUp->comment;
                         }
                     }

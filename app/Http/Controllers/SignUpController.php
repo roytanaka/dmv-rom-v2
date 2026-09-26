@@ -79,16 +79,21 @@ class SignUpController extends Controller
     }
 
     /**
-     * Record the after-the-shift numbers on a Sign-up (#445, PRD #443, ADR-0023 §5). One seam
-     * for the whole feature: the inline Agenda panel, and later the outstanding panel and the
-     * Officer's correction, all PATCH here. The Form Request has already resolved the policy
-     * (the seat-holder's own seat, inside the window) and whitelisted the fields — whose seat
-     * is written comes from the route binding, never the body — so this fills and saves.
+     * Record the after-the-shift numbers on a Sign-up (#445, #652, PRD #651, ADR-0023 §5). One
+     * seam for the whole feature: the Post-shift report on the shift card, in the Agenda and in My
+     * sign-ups, and an Officer's correction, all PATCH here. The Form Request has already resolved
+     * the policy (the seat-holder's own seat inside the window, or any seat for a schedule admin)
+     * and whitelisted the fields — whose seat is written comes from the route binding, never the
+     * body — so this fills and saves.
+     *
+     * The saved Sign-up's id is flashed (#668), with the ones the page already keeps, so the next
+     * page load keeps each Shift in My sign-ups with its summary, even though a first save means
+     * it no longer owes a number. Two saves in a row keep both.
      */
     public function record(RecordSignUpVisitorsRequest $request, SignUp $signUp): RedirectResponse
     {
         $signUp->record($request->validated(), $request->user());
 
-        return back();
+        return back()->with(SignUp::JUST_SAVED_FLASH, [...$request->session()->get(SignUp::SHOWN_SAVED_KEY, []), $signUp->id]);
     }
 }

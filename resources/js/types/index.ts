@@ -625,8 +625,8 @@ export interface PlacementCandidate {
 }
 
 // GDR's five visitor origins (#448, ADR-0023 §3) — where a seat's visitors came from, summing to
-// the visitor count. GDR alone collects them; the sign-out panel's five origin boxes write this
-// shape, and the read prop below carries it back on the viewer's own seat.
+// the visitor count. GDR alone collects them; the Post-shift report's five origin boxes write this
+// shape, and the read prop below carries it back to each reader of the report.
 export interface VisitorProvenance {
     visitors_france_europe: number | null;
     visitors_quebec: number | null;
@@ -650,7 +650,7 @@ export interface ShiftAgendaItem {
     taken: number;
     kind: string | null;
     // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up). Once set, the card hides
-    // the Member's take and drop — self-service closes at the start; the sign-out box stays. The
+    // the Member's take and drop — self-service closes at the start; the Post-shift report stays. The
     // SignUpPolicy enforces the same bound on every write, so this is a hint, not the rule.
     has_started: boolean;
     // The Shift's own authored fields the edit form round-trips (#356 front end): its

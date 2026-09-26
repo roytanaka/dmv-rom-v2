@@ -9,7 +9,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { commentPreview, entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from './postShiftReport.ts';
+import { changeIsDisabled, commentPreview, entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from './postShiftReport.ts';
 
 const me = { id: 1, visitor_count: null };
 const peer = { id: 2, visitor_count: 9 };
@@ -92,6 +92,21 @@ test('a comment preview reads on one line', () => {
         commentPreview({ id: 1, comment: '  A visitor asked\nabout the whale.\n\nAll good.  ' }),
         'A visitor asked about the whale. All good.',
     );
+});
+
+test('a Change for a seat that has gone opens no form, and the own form opens again (#668)', () => {
+    assert.equal(openFormSeat({ seats: [me, quiet], ownSeatId: 1, canRecordOwn: true, editingSeatId: 2 }), 1);
+    assert.equal(openFormSeat({ seats: [peer, quiet], ownSeatId: null, canRecordOwn: false, editingSeatId: 1 }), null);
+});
+
+test('with unsaved changes in the open form, every other entry’s Change is disabled (#668)', () => {
+    assert.equal(changeIsDisabled('summary', true), true);
+    assert.equal(changeIsDisabled('no-count', true), true);
+});
+
+test('with no unsaved changes, Change stays enabled', () => {
+    assert.equal(changeIsDisabled('summary', false), false);
+    assert.equal(changeIsDisabled('no-count', false), false);
 });
 
 test('an entry with no comment, or one the viewer does not receive, has no preview', () => {

@@ -16,7 +16,7 @@ Trouvez les quarts passés qui attendent encore un nombre de visiteur·euses de 
 2. Tapez votre nombre dans **Visiteur·euses servi·es**.
 3. Sélectionnez **Enregistrer le quart**.
 
-Le quart quitte la liste une fois son nombre enregistré.
+Le quart quitte la liste une fois son nombre enregistré, quand vous rechargez ou quittez la page.
 
 > **Note :** Un quart passé reste sur la liste pendant quatre semaines. Après cela, demandez au·à la Responsable horaire ou au·à la Président·e de votre groupe d'entrer le nombre pour vous.
 

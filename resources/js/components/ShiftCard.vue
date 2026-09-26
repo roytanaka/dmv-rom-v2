@@ -16,6 +16,9 @@ import InputError from '@/components/InputError.vue';
 import {
     buildRecordPayload,
     canSubmitRecord,
+    COMMENT_MAX,
+    draftFrom,
+    hasUnsavedChanges,
     NO_RECORD_ERRORS,
     PROVENANCE_KEYS,
     recordErrorsFrom,
@@ -23,12 +26,13 @@ import {
     type RecordCallbacks,
     type RecordErrors,
     type RecordPayload,
+    type SavedEntry,
 } from '@/scheduling/recordDraft';
-import { commentPreview, entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from '@/scheduling/postShiftReport';
+import { changeIsDisabled, commentPreview, entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from '@/scheduling/postShiftReport';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
-import { trans } from 'laravel-vue-i18n';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, useId, watch } from 'vue';
 
 const props = withDefaults(
@@ -120,6 +124,19 @@ const tally = computed(() => recordedTally(props.shift.signups));
 // {@see openFormSeat}.
 const editingSeatId = ref<number | null>(null);
 
+// A seat removed while its form is open (#668) closes that form, so the viewer's own form can
+// open by itself again, and a later seat for the same Member does not reopen it.
+watch(
+    () => props.shift.signups.map((signUp) => signUp.id),
+    (seatIds) => {
+        if (editingSeatId.value !== null && !seatIds.includes(editingSeatId.value)) editingSeatId.value = null;
+    },
+);
+
+// The seat the last save on this card wrote (#668), which shows "Saved." beside its entry until
+// the next page load or the next Change.
+const savedSeatId = ref<number | null>(null);
+
 // The one seat showing the form, if any. `can.record` is the server's word that the viewer's own
 // seat is inside its sign-out window.
 const formSeatId = computed(() =>
@@ -133,8 +150,15 @@ const formSeatId = computed(() =>
         : null,
 );
 
-// Each seat with how its entry reads: the form, a summary, or "No count yet".
-const entries = computed(() => props.shift.signups.map((signUp) => ({ signUp, state: entryState(signUp, formSeatId.value) })));
+// Each seat with how its entry reads: the form, a summary, or "No count yet"; and whether its
+// Change is disabled because the open form has unsaved typing (#668).
+const entries = computed(() =>
+    props.shift.signups.map((signUp) => {
+        const state = entryState(signUp, formSeatId.value);
+
+        return { signUp, state, changeDisabled: changeIsDisabled(state, unsaved.value) };
+    }),
+);
 
 const formSeat = computed(() => props.shift.signups.find((signUp) => signUp.id === formSeatId.value) ?? null);
 
@@ -159,12 +183,7 @@ const provenanceOf = (seat: ShiftSignUp): VisitorProvenance => ({
     visitors_other_countries: seat.visitors_other_countries ?? null,
 });
 
-type RecordTarget = {
-    signUpId: number;
-    visitor_count: number | null;
-    extra_interaction_count: number | null;
-    comment: string | null;
-} & VisitorProvenance;
+type RecordTarget = { signUpId: number } & SavedEntry;
 
 // The seat the form is writing, normalised to one shape. The write names the seat's Sign-up id:
 // the viewer's own from `shift.signup_id`, another seat's from the Officer-only `signup_id`. Null
@@ -186,15 +205,25 @@ const recordTarget = computed<RecordTarget | null>(() => {
 });
 
 // The boxes, seeded from whichever seat the form now targets so a change edits rather than
-// retypes. The count box stays required (the Record shift button waits for it — the forcing function
-// that carries the count on 96-98% of shifts); the extra box is optional; the five origins are
-// seeded too. A box holds a string until the user types, then a number (#646); an empty box stays
-// distinct from a typed zero.
+// retypes ({@see draftFrom}). The count box stays required (the Record shift button waits for it —
+// the forcing function that carries the count on 96-98% of shifts); the extra box is optional; the
+// five origins are seeded too. A box holds a string until the user types, then a number (#646); an
+// empty box stays distinct from a typed zero.
 const draft = ref<BoxValue>('');
 const extraDraft = ref<BoxValue>('');
-const provenanceDrafts = ref(Object.fromEntries(provenanceFields.map((f) => [f.key, ''])) as Record<keyof VisitorProvenance, BoxValue>);
+const provenanceDrafts = ref(draftFrom(null).provenance);
 // The viewer's own comment (#655), seeded from the seat so Change edits it.
 const commentDraft = ref<string | number>('');
+
+// Put the boxes back to what the target seat has on file, with no errors.
+const seedForm = () => {
+    const seeded = draftFrom(recordTarget.value);
+    recordErrors.value = NO_RECORD_ERRORS;
+    draft.value = seeded.count;
+    extraDraft.value = seeded.extra;
+    provenanceDrafts.value = seeded.provenance;
+    commentDraft.value = seeded.comment;
+};
 
 // The server's refusal of this card's last save (#649), one message per box. It lives on the card,
 // not the page's shared error bag, so the other copy of the same Shift never shows it.
@@ -206,21 +235,7 @@ const recordErrors = ref<RecordErrors>(NO_RECORD_ERRORS);
 // also starts with no errors.
 const recordTargetKey = computed(() => JSON.stringify(recordTarget.value));
 
-watch(
-    recordTargetKey,
-    () => {
-        const target = recordTarget.value;
-        recordErrors.value = NO_RECORD_ERRORS;
-        draft.value = target && target.visitor_count !== null ? String(target.visitor_count) : '';
-        extraDraft.value = target && target.extra_interaction_count !== null ? String(target.extra_interaction_count) : '';
-        provenanceFields.forEach((field) => {
-            const value = target ? target[field.key] : null;
-            provenanceDrafts.value[field.key] = value !== null ? String(value) : '';
-        });
-        commentDraft.value = target?.comment ?? '';
-    },
-    { immediate: true },
-);
+watch(recordTargetKey, seedForm, { immediate: true });
 
 const recordDraft = computed(() => ({
     count: draft.value,
@@ -242,15 +257,22 @@ const recordFlags = computed(() => ({
 // The count is required; on GDR the five origins must be filled (the server checks their sum).
 const canSubmit = computed(() => canSubmitRecord(recordDraft.value, recordFlags.value));
 
+// Typing the open form holds that is not saved yet (#668). While there is any, Change on every
+// other entry is disabled, so moving the form never loses it.
+const unsaved = computed(() => hasUnsavedChanges(recordDraft.value, recordTarget.value));
+
 // Reopen one seat's form from its Change button. The seat's `can_record` (the server's verdict,
-// #653) shows the button and the SignUpPolicy re-checks the write. Cancel closes it and
-// returns the card to its default: the own seat's form if it is still unrecorded in its window.
+// #653) shows the button and the SignUpPolicy re-checks the write. Cancel closes it and returns
+// the card to its default: the own seat's form if it is still unrecorded in its window, with the
+// typing undone.
 const openForm = (signUp: ShiftSignUp) => {
+    savedSeatId.value = null;
     editingSeatId.value = signUp.id;
 };
 
 const cancelForm = () => {
     editingSeatId.value = null;
+    seedForm();
 };
 
 // A refusal fills this card's errors and leaves the typed values in the boxes (a PATCH keeps page
@@ -259,6 +281,8 @@ const cancelForm = () => {
 const submitRecord = () => {
     if (!canSubmit.value || recordTarget.value === null) return;
 
+    const seatId = formSeatId.value;
+
     emit(
         'record',
         { signUpId: recordTarget.value.signUpId, ...buildRecordPayload(recordDraft.value, recordFlags.value) },
@@ -266,6 +290,7 @@ const submitRecord = () => {
             onSuccess: () => {
                 recordErrors.value = NO_RECORD_ERRORS;
                 editingSeatId.value = null;
+                savedSeatId.value = seatId;
             },
             onError: (errors) => {
                 recordErrors.value = recordErrorsFrom(errors);
@@ -274,10 +299,11 @@ const submitRecord = () => {
     );
 };
 
-// A recorded entry's summary: the count, then the extra count and GDR's five origins where
-// they are recorded.
+// A recorded entry's summary: the count, singular for one (#668), then the extra count and GDR's
+// five origins where they are recorded.
 const entrySummary = (signUp: ShiftSignUp): string => {
-    const parts = [trans('group.scheduling_panel.agenda.sign_out.recorded', { count: String(signUp.visitor_count) })];
+    const count = signUp.visitor_count ?? 0;
+    const parts = [transChoice('group.scheduling_panel.agenda.sign_out.recorded', count, { count: String(count) })];
     const extra = signUp.extra_interaction_count ?? null;
     if (extra !== null) parts.push(trans('group.scheduling_panel.agenda.sign_out.extra_recorded', { count: String(extra) }));
     provenanceFields.forEach((field) => {
@@ -299,14 +325,44 @@ const lastEdited = (signUp: ShiftSignUp): string | null => {
 const entryName = (signUp: ShiftSignUp): string =>
     isOwnSeat(signUp) ? trans('group.scheduling_panel.agenda.sign_out.you', { name: signUpName(signUp) }) : signUpName(signUp);
 
-// Why the Record shift button is still disabled — read out with it, so nobody guesses.
-const disabledReason = computed(() =>
-    trans(
+// A form reopened by Change says Save changes; a first save says Record shift.
+const reopened = computed(() => editingSeatId.value !== null);
+
+// Why the button is still disabled — read out with it, so nobody guesses. It names the button's
+// own action (#668): record the shift, or save the changes.
+const disabledReason = computed(() => {
+    if (reopened.value) {
+        return trans(
+            props.collectsVisitorProvenance
+                ? 'group.scheduling_panel.agenda.sign_out.save_needs_provenance'
+                : 'group.scheduling_panel.agenda.sign_out.save_needs_count',
+        );
+    }
+
+    return trans(
         props.collectsVisitorProvenance
             ? 'group.scheduling_panel.agenda.sign_out.record_needs_provenance'
             : 'group.scheduling_panel.agenda.sign_out.record_needs_count',
-    ),
+    );
+});
+
+// The help under the count box: the viewer's own visitors, or on an officer's correction, the
+// volunteer's (#668).
+const countHelp = computed(() =>
+    correctingSeat.value
+        ? trans('group.scheduling_panel.agenda.sign_out.count_help_correcting', { name: signUpName(correctingSeat.value) })
+        : trans('group.scheduling_panel.agenda.sign_out.count_help'),
 );
+
+// "N of 2,000 characters" under the comment box (#668), numbers in the viewer's locale.
+const commentCount = computed(() => {
+    const format = new Intl.NumberFormat(page.props.locale);
+
+    return trans('group.scheduling_panel.agenda.sign_out.comment_count', {
+        count: format.format(String(commentDraft.value).length),
+        max: format.format(COMMENT_MAX),
+    });
+});
 
 // Unique ids for the help texts the boxes and button point at. The same Shift can render twice
 // (My sign-ups and the Agenda), so the id comes from the component, not the Shift.
@@ -335,7 +391,9 @@ const formId = useId();
                  remove (×) on every seat (officer removal, #359). An honest empty line otherwise. -->
             <div v-if="shift.signups.length" class="flex flex-wrap items-center gap-1.5">
                 <span class="text-muted-foreground text-sm font-medium">{{ trans('group.scheduling_panel.agenda.sign_up.signed_up_label') }}:</span>
-                <!-- A chip wraps inside the card on a phone (#648) rather than running off-screen. -->
+                <!-- A chip wraps inside the card on a phone (#648) rather than running off-screen. Its
+                     remove (×) is a 44px tap target on a phone (#668); negative margins keep the
+                     chip its own size. -->
                 <Badge
                     v-for="signUp in shift.signups"
                     :key="signUp.id"
@@ -352,7 +410,7 @@ const formId = useId();
                     <button
                         v-if="signUp.signup_id"
                         type="button"
-                        class="hover:text-destructive -my-1 -mr-1.5 inline-flex size-6 items-center justify-center rounded-full transition-colors"
+                        class="hover:text-destructive -my-3.5 -mr-3.5 inline-flex size-11 items-center justify-center rounded-full transition-colors sm:-my-1 sm:-mr-1.5 sm:size-6"
                         :aria-label="trans('group.scheduling_panel.agenda.assign.remove')"
                         @click="emit('remove', signUp.signup_id)"
                     >
@@ -437,24 +495,29 @@ const formId = useId();
                     </h4>
                     <span class="text-muted-foreground text-sm tabular-nums">
                         {{
-                            trans('group.scheduling_panel.agenda.sign_out.progress', { recorded: String(tally.recorded), total: String(tally.total) })
+                            transChoice('group.scheduling_panel.agenda.sign_out.progress', tally.recorded, {
+                                recorded: String(tally.recorded),
+                                total: String(tally.total),
+                            })
                         }}
                     </span>
                 </div>
                 <ul class="flex flex-col gap-3">
-                    <li v-for="{ signUp, state } in entries" :key="signUp.id">
+                    <!-- The open form is set apart from the entries above and below it (#668). -->
+                    <li v-for="{ signUp, state, changeDisabled } in entries" :key="signUp.id" :class="{ 'border-y py-3': state === 'form' }">
                         <!-- The form. `novalidate` lets a decimal or negative reach the server,
                              whose message shows under the box in the app's language (#649),
                              instead of the browser's own popup. The server requires, whole-checks,
                              bounds and re-authorises every write regardless. -->
                         <form
                             v-if="state === 'form'"
-                            class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+                            class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start"
                             novalidate
                             @submit.prevent="submitRecord"
                         >
                             <!-- Whose seat this is. An Officer's correction names the Member, so it
-                                 is never mistaken for the viewer's own. -->
+                                 is never mistaken for the viewer's own. The boxes in a row line up
+                                 at the top (#668), so help text under one never pushes the next. -->
                             <p class="text-rom-ink w-full text-sm font-medium">
                                 {{
                                     correctingSeat
@@ -477,9 +540,10 @@ const formId = useId();
                                     :placeholder="trans('group.scheduling_panel.agenda.sign_out.placeholder')"
                                 />
                                 <!-- Against double counting (#651): a shared station counts each
-                                     visitor once. -->
+                                     visitor once. An officer's correction speaks of the volunteer's
+                                     count (#668). -->
                                 <span :id="`${formId}-count-help`" class="text-muted-foreground text-xs sm:w-40">
-                                    {{ trans('group.scheduling_panel.agenda.sign_out.count_help') }}
+                                    {{ countHelp }}
                                 </span>
                                 <InputError :message="recordErrors.count" class="sm:w-40" />
                             </label>
@@ -504,37 +568,59 @@ const formId = useId();
                             <!-- GDR's five visitor origins (#448, ADR-0023 §3), one box each. Shown
                                  only where the Group collects provenance; the five are required
                                  together and must sum to the count, which the server checks and
-                                 names in one message (#649). -->
-                            <template v-if="collectsVisitorProvenance">
-                                <label v-for="field in provenanceFields" :key="field.key" class="flex flex-col gap-1">
-                                    <span class="text-muted-foreground text-sm font-medium">{{ trans(field.labelKey) }}</span>
-                                    <Input
-                                        v-model="provenanceDrafts[field.key]"
-                                        type="number"
-                                        inputmode="numeric"
-                                        min="0"
-                                        step="1"
-                                        class="h-11 w-full sm:h-9 sm:w-40"
-                                    />
-                                </label>
-                                <InputError :message="recordErrors.provenance" class="w-full" />
-                            </template>
+                                 names in one message (#649). Their own row under a heading, at equal
+                                 widths (#668). Each label is a subgrid of the two rows, so a label
+                                 that wraps never pushes its box below the others. -->
+                            <fieldset v-if="collectsVisitorProvenance" class="flex w-full flex-col gap-2">
+                                <legend class="text-rom-ink mb-2 text-sm font-medium">
+                                    {{ trans('group.scheduling_panel.agenda.sign_out.provenance_heading') }}
+                                </legend>
+                                <div class="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-5 sm:gap-y-1">
+                                    <label
+                                        v-for="field in provenanceFields"
+                                        :key="field.key"
+                                        class="flex flex-col gap-1 sm:row-span-2 sm:grid sm:grid-rows-subgrid"
+                                    >
+                                        <span class="text-muted-foreground text-sm font-medium">{{ trans(field.labelKey) }}</span>
+                                        <Input
+                                            v-model="provenanceDrafts[field.key]"
+                                            type="number"
+                                            inputmode="numeric"
+                                            min="0"
+                                            step="1"
+                                            class="h-11 w-full sm:h-9"
+                                        />
+                                    </label>
+                                </div>
+                                <InputError :message="recordErrors.provenance" />
+                            </fieldset>
                             <!-- The viewer's own comment (#655): optional, at most 2,000 characters,
                                  read only by its author and a schedule admin. No box on an
-                                 officer's correction. The server's length message shows below. -->
+                                 officer's correction. The box stops at the limit and counts the
+                                 characters (#668); its text is the summary size. -->
                             <label v-if="writesComment" class="flex w-full flex-col gap-1">
                                 <span class="text-muted-foreground text-sm font-medium">{{
                                     trans('group.scheduling_panel.agenda.sign_out.comment_label')
                                 }}</span>
-                                <Textarea v-model="commentDraft" rows="3" :aria-describedby="`${formId}-comment-help`" />
+                                <Textarea
+                                    v-model="commentDraft"
+                                    rows="3"
+                                    class="text-sm"
+                                    :maxlength="COMMENT_MAX"
+                                    :aria-describedby="`${formId}-comment-help ${formId}-comment-count`"
+                                />
                                 <span :id="`${formId}-comment-help`" class="text-muted-foreground text-xs">
                                     {{ trans('group.scheduling_panel.agenda.sign_out.comment_help') }}
+                                </span>
+                                <span :id="`${formId}-comment-count`" class="text-muted-foreground text-xs tabular-nums">
+                                    {{ commentCount }}
                                 </span>
                                 <InputError :message="recordErrors.comment" />
                             </label>
                             <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
                                 <!-- Record shift waits for a count (the forcing function); a
-                                     reopened form says Save changes and can be cancelled. Full
+                                     reopened form says Save changes and can be cancelled. So can a
+                                     form with unsaved typing (#668), which Cancel undoes. Full
                                      width and 48px tall on a phone. -->
                                 <Button
                                     type="submit"
@@ -544,14 +630,14 @@ const formId = useId();
                                 >
                                     {{
                                         trans(
-                                            editingSeatId !== null
+                                            reopened
                                                 ? 'group.scheduling_panel.agenda.sign_out.save'
                                                 : 'group.scheduling_panel.agenda.sign_out.record',
                                         )
                                     }}
                                 </Button>
                                 <Button
-                                    v-if="editingSeatId !== null"
+                                    v-if="reopened || unsaved"
                                     type="button"
                                     variant="ghost"
                                     class="h-11 w-full sm:h-9 sm:w-auto"
@@ -564,10 +650,17 @@ const formId = useId();
                                 </span>
                             </div>
                         </form>
-                        <!-- A summary of a recorded seat, or "No count yet". -->
-                        <div v-else class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                            <div class="flex min-w-0 flex-1 flex-col">
-                                <span class="text-rom-ink text-sm font-medium">{{ entryName(signUp) }}</span>
+                        <!-- A summary of a recorded seat, or "No count yet". Change sits below
+                             the text on a phone and beside it from sm up (#668). -->
+                        <div v-else class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-x-4">
+                            <div class="flex min-w-0 flex-col sm:flex-1">
+                                <span class="flex flex-wrap items-baseline gap-x-2">
+                                    <span class="text-rom-ink text-sm font-medium">{{ entryName(signUp) }}</span>
+                                    <!-- "Saved." after this card's save (#668), as on the settings pages. -->
+                                    <span v-if="savedSeatId === signUp.id" role="status" class="text-muted-foreground text-sm">
+                                        {{ trans('group.scheduling_panel.agenda.sign_out.saved') }}
+                                    </span>
+                                </span>
                                 <span class="text-muted-foreground text-sm tabular-nums">
                                     {{ state === 'summary' ? entrySummary(signUp) : trans('group.scheduling_panel.agenda.sign_out.no_count') }}
                                 </span>
@@ -578,9 +671,23 @@ const formId = useId();
                                 </span>
                                 <span v-if="lastEdited(signUp)" class="text-muted-foreground text-sm">{{ lastEdited(signUp) }}</span>
                             </div>
-                            <Button v-if="showsChange(signUp, state)" type="button" variant="outline" class="h-11 sm:h-8" @click="openForm(signUp)">
-                                {{ trans('group.scheduling_panel.agenda.sign_out.change') }}
-                            </Button>
+                            <!-- Change is disabled while the open form has unsaved typing (#668),
+                                 so moving the form never loses it; the hint says why. -->
+                            <div v-if="showsChange(signUp, state)" class="flex flex-col items-start gap-1 sm:items-end">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    class="h-11 sm:h-8"
+                                    :disabled="changeDisabled"
+                                    :aria-describedby="changeDisabled ? `${formId}-change-blocked-${signUp.id}` : undefined"
+                                    @click="openForm(signUp)"
+                                >
+                                    {{ trans('group.scheduling_panel.agenda.sign_out.change') }}
+                                </Button>
+                                <span v-if="changeDisabled" :id="`${formId}-change-blocked-${signUp.id}`" class="text-muted-foreground text-xs">
+                                    {{ trans('group.scheduling_panel.agenda.sign_out.change_blocked') }}
+                                </span>
+                            </div>
                         </div>
                     </li>
                 </ul>

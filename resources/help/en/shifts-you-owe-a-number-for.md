@@ -16,7 +16,7 @@ Find the past shifts that still need a visitor count from you.
 2. Type your count in **Visitors served**.
 3. Select **Record shift**.
 
-The shift leaves the list once its count is saved.
+The shift leaves the list after its count is saved and you reload or leave the page.
 
 > **Note:** A past shift stays on the list for four weeks. After that, ask your Group's Scheduler or Chair to enter the count for you.
 

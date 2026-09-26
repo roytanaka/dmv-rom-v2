@@ -56,6 +56,51 @@ export const PROVENANCE_KEYS = [
     'visitors_other_countries',
 ] as const satisfies readonly (keyof VisitorProvenance)[];
 
+/** The longest comment the server accepts (#655); the box stops typing here (#668). */
+export const COMMENT_MAX = 2000;
+
+/** What a seat has on file, as the form reads it: null where nothing is recorded. */
+export type SavedEntry = {
+    visitor_count: number | null;
+    extra_interaction_count: number | null;
+    comment: string | null;
+} & VisitorProvenance;
+
+const boxFrom = (value: number | null): BoxValue => (value === null ? '' : String(value));
+
+/**
+ * The boxes as a form opens on a seat: its saved values, so a change edits rather than retypes,
+ * and blank boxes where nothing is saved (or for no seat at all).
+ */
+export function draftFrom(saved: SavedEntry | null): RecordDraft {
+    return {
+        count: boxFrom(saved?.visitor_count ?? null),
+        extra: boxFrom(saved?.extra_interaction_count ?? null),
+        provenance: Object.fromEntries(PROVENANCE_KEYS.map((key) => [key, boxFrom(saved?.[key] ?? null)])) as Record<
+            keyof VisitorProvenance,
+            BoxValue
+        >,
+        comment: saved?.comment ?? '',
+    };
+}
+
+/**
+ * Whether the form holds typing that a switch to another entry would lose (#668): any box that
+ * no longer reads as the seat's saved value. Retyping the saved number is not a change; a box
+ * holds a number once typed in, so both sides compare as text.
+ */
+export function hasUnsavedChanges(draft: RecordDraft, saved: SavedEntry | null): boolean {
+    const seeded = draftFrom(saved);
+    const same = (a: BoxValue, b: BoxValue) => String(a) === String(b);
+
+    return (
+        !same(draft.count, seeded.count) ||
+        !same(draft.extra, seeded.extra) ||
+        PROVENANCE_KEYS.some((key) => !same(draft.provenance[key], seeded.provenance[key])) ||
+        draft.comment !== seeded.comment
+    );
+}
+
 /**
  * The count is required; on a Group that collects origins, all five must be filled. Whether they
  * add up to the count is the server's rule (#649): a set that does not goes out, and the server's

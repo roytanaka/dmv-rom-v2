@@ -661,3 +661,150 @@ it('lets the author and a schedule admin read a comment, and no one else', funct
         ->and($peer->can('viewComment', $signUp))->toBeFalse()
         ->and(postShiftMemberOf($group)->can('viewComment', $signUp))->toBeFalse();
 });
+
+/*
+ * Review and QA fixes (#668, PRD #651). The save route sits outside the localized route group, so
+ * it takes the language from the page that sent it; the officer path names why a comment is
+ * refused; the page data asks the policy who reads a comment; a first save keeps its seat in My
+ * sign-ups for the next page load.
+ */
+it('answers a save from a French page in French', function (array $body, string $field, string $key) {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftSeat(postShiftShift($schedule), $me);
+
+    $this->actingAs($me)
+        ->from('/fr/tableau-de-bord')
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), $body)
+        ->assertSessionHasErrors([$field => trans($key, [], 'fr')]);
+})->with([
+    'a decimal count' => [['visitor_count' => 1.5], 'visitor_count', 'group.scheduling_panel.agenda.sign_out.whole_number'],
+    'a missing count' => [['comment' => 'Busy.'], 'visitor_count', 'group.scheduling_panel.agenda.sign_out.count_required'],
+    'a comment too long' => [['visitor_count' => 3, 'comment' => str_repeat('a', 2001)], 'comment', 'group.scheduling_panel.agenda.sign_out.comment_max'],
+]);
+
+it('still answers a save from an English page in English', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftSeat(postShiftShift($schedule), $me);
+
+    $this->actingAs($me)
+        ->from('/dashboard')
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 1.5])
+        ->assertSessionHasErrors(['visitor_count' => trans('group.scheduling_panel.agenda.sign_out.whole_number', [], 'en')]);
+});
+
+it('names why a comment is refused on an officer’s correction, in English and French', function (string $from, string $locale) {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $signUp = postShiftSeat(postShiftShift($schedule), postShiftMemberOf($group), 12);
+
+    $this->actingAs(postShiftMemberOf($group, Role::Scheduler))
+        ->from($from)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 14, 'comment' => 'Rewritten.'])
+        ->assertSessionHasErrors(['comment' => trans('group.scheduling_panel.agenda.sign_out.comment_officer', [], $locale)]);
+})->with([
+    'English' => ['/dashboard', 'en'],
+    'French' => ['/fr/tableau-de-bord', 'fr'],
+]);
+
+it('sends a comment exactly where the comment policy lets the viewer read it', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = postShiftShift($schedule);
+    $author = postShiftMemberOf($group);
+    $peer = postShiftMemberOf($group);
+    $signUp = postShiftCommentSeat($shift, $author, 'Mine.');
+    postShiftSeat($shift, $peer, 9);
+
+    $readers = [
+        'author' => $author,
+        'co-volunteer' => $peer,
+        'schedule admin' => postShiftMemberOf($group, Role::Scheduler),
+        'plain reader' => postShiftMemberOf($group),
+        'super-tier' => Member::factory()->superTier()->create(),
+    ];
+
+    expect(array_map(fn (Member $viewer) => $viewer->can('viewComment', $signUp), $readers))->toBe([
+        'author' => true,
+        'co-volunteer' => false,
+        'schedule admin' => true,
+        'plain reader' => false,
+        'super-tier' => true,
+    ]);
+
+    foreach ($readers as $viewer) {
+        $allowed = $viewer->can('viewComment', $signUp);
+
+        viewPostShiftReport($viewer, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open.shifts.0.signups', function ($seats) use ($author, $allowed) {
+                $seat = postShiftSeatOf($seats, $author);
+
+                return $allowed
+                    ? ($seat['comment'] ?? null) === 'Mine.'
+                    : ! array_key_exists('comment', $seat);
+            }));
+    }
+});
+
+it('hides the comment when a Sign-up is serialized', function () {
+    $signUp = SignUp::factory()->create(['comment' => 'Private.']);
+
+    expect($signUp->toArray())->not->toHaveKey('comment')
+        ->and($signUp->toJson())->not->toContain('Private.');
+});
+
+it('keeps a first save’s seat in My sign-ups for the next page load only', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $shift = postShiftShift($schedule);
+    $signUp = postShiftSeat($shift, $me);
+    $url = route('groups.show', ['group' => $group, 'section' => 'scheduling']);
+
+    $this->actingAs($me)
+        ->from($url)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 12])
+        ->assertSessionHasNoErrors();
+
+    $this->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.mine.0.id', $shift->id)
+        ->where('scheduling.mine.0.signups.0.visitor_count', 12));
+
+    $this->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.mine', []));
+});
+
+it('keeps both seats in My sign-ups after two saves in a row', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $first = postShiftSeat(postShiftShift($schedule), $me);
+    $second = postShiftSeat(postShiftShift($schedule, [
+        'starts_at' => CarbonImmutable::parse('2026-09-09 10:00'),
+        'ends_at' => CarbonImmutable::parse('2026-09-09 13:00'),
+    ]), $me);
+    $url = route('groups.show', ['group' => $group, 'section' => 'scheduling']);
+
+    $this->actingAs($me)->from($url)->patch(route('sign-ups.record', ['signUp' => $first->id]), ['visitor_count' => 12]);
+    $this->get($url)->assertInertia(fn (Assert $page) => $page->where('scheduling.mine', fn ($mine) => count($mine) === 2));
+
+    $this->from($url)->patch(route('sign-ups.record', ['signUp' => $second->id]), ['visitor_count' => 7]);
+    $this->get($url)->assertInertia(fn (Assert $page) => $page->where('scheduling.mine', fn ($mine) => count($mine) === 2));
+
+    $this->get($url)->assertInertia(fn (Assert $page) => $page->where('scheduling.mine', []));
+});

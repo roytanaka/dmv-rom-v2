@@ -1,4 +1,4 @@
-# Step script for the "Record your visitor count after a shift" article (#525, #656, ADR-0025).
+# Step script for the "Record your visitor count after a shift" article (#525, #656, #668, ADR-0025).
 #
 # Persona: a Full-standing Docents member — Docents collects a visitor count, and the
 # seed seats her on a recent, ended Shift inside the recording window, so her own form
@@ -12,6 +12,5 @@ start /groups/docents/scheduling
 
 nav /groups/docents/scheduling
 act showOwnPostShiftForm 01         # the Post-shift report on her shift: Visitors served, Comment (optional), Record shift
-act recordOwnShift                  # record the shift with a count and a comment; it leaves My sign-ups
-act openCurrentMonthSchedule        # open the Schedule that holds the recorded shift
-act showOwnSavedEntry 02            # the saved entry: the count, the comment preview, Last edited by, and Change
+act recordOwnShift                  # record the shift with a count and a comment; it stays in My sign-ups until the next load
+act showOwnSavedEntry 02            # the saved entry: Saved., the count, the comment preview, Last edited by, and Change

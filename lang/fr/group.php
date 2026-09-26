@@ -413,19 +413,22 @@ return [
                 // La section Rapport après le quart (#652, PRD #651) — une entrée par siège sous
                 // les détails du quart. `record` est le bouton du premier enregistrement ;
                 // `record_needs_count` explique le bouton désactivé ; `count_help` demande de ne
-                // compter que ses propres visiteur·euses, contre le double comptage.
+                // compter que ses propres visiteur·euses, contre le double comptage. `progress` et
+                // `recorded` s’accordent avec le nombre (`transChoice`, #668).
                 'heading' => 'Rapport après le quart',
-                'progress' => ':recorded sur :total enregistrés',
+                'progress' => ':recorded sur :total enregistré|:recorded sur :total enregistrés',
                 'you' => ':name (vous)',
                 'no_count' => 'Aucun nombre pour l’instant',
                 'count_label' => 'Visiteur·euses servi·es',
                 'count_help' => 'Comptez seulement les visiteur·euses que vous avez servi·es.',
+                'count_help_correcting' => 'Comptez seulement les visiteur·euses que :name a servi·es.',
                 'record' => 'Enregistrer le quart',
                 'record_needs_count' => 'Saisissez le nombre de visiteur·euses pour enregistrer le quart.',
                 'record_needs_provenance' => 'Saisissez le nombre de visiteur·euses et les cinq provenances pour enregistrer le quart.',
                 'change' => 'Modifier',
                 'placeholder' => 'Nombre',
-                'recorded' => ':count visiteur·euses',
+                'recorded' => ':count visiteur·euse|:count visiteur·euses',
+                'count_required' => 'Saisissez le nombre de visiteur·euses.',
                 'whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
                 'not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
                 // La correction de l’officier·ère (#450, #653, ADR-0023 §5) — Modifier sur chaque
@@ -434,7 +437,14 @@ return [
                 // `cancel` ferment tout formulaire rouvert, correction ou Modifier.
                 'correcting' => 'Correction des visiteur·euses de :name',
                 'save' => 'Enregistrer les modifications',
+                'save_needs_count' => 'Saisissez le nombre de visiteur·euses pour enregistrer les modifications.',
+                'save_needs_provenance' => 'Saisissez le nombre de visiteur·euses et les cinq provenances pour enregistrer les modifications.',
                 'cancel' => 'Annuler',
+                // Après un enregistrement (#668) : « Enregistré. » à côté de l’entrée, et l’aide sur
+                // le bouton Modifier d’une autre entrée tant que le formulaire ouvert a des
+                // modifications non enregistrées.
+                'saved' => 'Enregistré.',
+                'change_blocked' => 'Enregistrez ou annulez d’abord vos modifications.',
                 // Qui a enregistré une entrée en dernier, et quand (#654) — le ou la titulaire du
                 // siège, ou la correction d’un·e officier·ère. `:time` suit l’heure de l’organisme.
                 'last_edited' => 'Dernière modification par :name · :time',
@@ -444,6 +454,8 @@ return [
                 'comment_label' => 'Commentaire (facultatif)',
                 'comment_help' => 'Questions des visiteur·euses, déroulement du quart, ou tout ce que vous avez remarqué sur le terrain',
                 'comment_max' => 'Le commentaire peut compter au plus 2 000 caractères.',
+                'comment_count' => ':count sur :max caractères',
+                'comment_officer' => 'Seul·e le ou la bénévole peut écrire un commentaire sur son entrée.',
                 // La seconde case des groupes qui mènent des circuits (#447, ADR-0023 §2) —
                 // visiteur·euses servi·es en dehors du circuit, facultatif.
                 'extra_label' => 'Visiteur·euses servi·es hors du circuit',
@@ -455,6 +467,7 @@ return [
                 // à côté du décompte, GDR seul. Les cinq doivent totaliser le décompte ;
                 // `provenance_sum` nomme les deux totaux. Les cinq étiquettes reprennent le libellé
                 // que le legacy affiche au sign-out depuis 2020.
+                'provenance_heading' => 'Provenance des visiteur·euses',
                 'provenance_france_europe' => 'France + Europe Fr',
                 'provenance_quebec' => 'Prov Québec',
                 'provenance_toronto' => 'Toronto',

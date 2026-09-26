@@ -236,6 +236,10 @@ it('drops a Shift from the outstanding list once a number is filed from the pane
         ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 8])
         ->assertRedirect();
 
+    // Right after: the save's own page load keeps it, with its summary (#668).
+    viewScheduling($member, $group)
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling.mine.0.signups.0.visitor_count', 8));
+
     // After: recorded, so it leaves the outstanding list.
     viewScheduling($member, $group)
         ->assertInertia(fn (Assert $page) => $page->where('scheduling.mine', []));

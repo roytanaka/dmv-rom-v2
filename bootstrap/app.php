@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LocalizeFromReferer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -35,6 +36,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'localeSessionRedirect' => LocaleSessionRedirect::class,
             'localeCookieRedirect' => LocaleCookieRedirect::class,
             'localeViewPath' => LaravelLocalizationViewPath::class,
+            // A non-localized write answers in the language of the page that sent it (#668).
+            'localizeFromReferer' => LocalizeFromReferer::class,
         ]);
 
         // The sidebar:state cookie is written client-side by the shadcn
