@@ -411,3 +411,239 @@ it('sends no stamp to a plain reader with no seat', function () {
     viewPostShiftReport(postShiftMemberOf($group), $group, $schedule)->assertInertia(fn (Assert $page) => $page
         ->missing('scheduling.open.shifts.0.signups.0.last_edited'));
 });
+
+/*
+ * The comment on a post-shift entry (#655, PRD #651). Free text, optional, at most 2,000
+ * characters, offered wherever the Group collects a count. Only the seat-holder writes it: an
+ * officer's correction of another seat refuses a comment, so a correction never changes a
+ * volunteer's words. Only the author and a schedule admin receive it in the page data.
+ */
+function postShiftCommentSeat(Shift $shift, Member $member, string $comment, int $count = 12): SignUp
+{
+    return SignUp::factory()->create([
+        'shift_id' => $shift->id,
+        'member_id' => $member->id,
+        'visitor_count' => $count,
+        'comment' => $comment,
+    ]);
+}
+
+it('saves a volunteer’s comment with their count, and the comment comes back on the page', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftSeat(postShiftShift($schedule), $me);
+
+    $this->actingAs($me)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 12, 'comment' => 'A visitor asked about the whale.'])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($signUp->fresh()->comment)->toBe('A visitor asked about the whale.');
+
+    viewPostShiftReport($me, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.signups.0.comment', 'A visitor asked about the whale.'));
+});
+
+it('lets a volunteer clear their comment', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftCommentSeat(postShiftShift($schedule), $me, 'Busy morning.');
+
+    $this->actingAs($me)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 12, 'comment' => ''])
+        ->assertSessionHasNoErrors();
+
+    expect($signUp->fresh()->comment)->toBeNull();
+});
+
+it('refuses a comment with no count', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftSeat(postShiftShift($schedule), $me);
+
+    $this->actingAs($me)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['comment' => 'Busy morning.'])
+        ->assertSessionHasErrors('visitor_count');
+
+    expect($signUp->fresh()->comment)->toBeNull();
+});
+
+it('refuses a comment over 2,000 characters and accepts one of exactly 2,000', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftSeat(postShiftShift($schedule), $me);
+
+    $this->actingAs($me)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 12, 'comment' => str_repeat('a', 2001)])
+        ->assertSessionHasErrors(['comment' => trans('group.scheduling_panel.agenda.sign_out.comment_max')]);
+
+    expect($signUp->fresh()->comment)->toBeNull();
+
+    $this->actingAs($me)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 12, 'comment' => str_repeat('a', 2000)])
+        ->assertSessionHasNoErrors();
+
+    expect($signUp->fresh()->comment)->toHaveLength(2000);
+});
+
+it('refuses a comment where the Group collects no visitor count', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = Group::factory()->program()->publicListing()->create();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    $signUp = postShiftSeat(postShiftShift($schedule), $me);
+
+    $this->actingAs($me)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['comment' => 'Busy morning.'])
+        ->assertSessionHasErrors('comment');
+
+    expect($signUp->fresh()->comment)->toBeNull();
+});
+
+it('refuses a comment on an officer’s correction of another seat', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $signUp = postShiftCommentSeat(postShiftShift($schedule), postShiftMemberOf($group), 'My own words.');
+
+    $this->actingAs(postShiftMemberOf($group, Role::Scheduler))
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 14, 'comment' => 'Rewritten.'])
+        ->assertSessionHasErrors('comment');
+
+    expect($signUp->fresh())
+        ->visitor_count->toBe(12)
+        ->comment->toBe('My own words.');
+});
+
+it('keeps the volunteer’s comment when an officer corrects the count', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $signUp = postShiftCommentSeat(postShiftShift($schedule), postShiftMemberOf($group), 'My own words.');
+
+    $this->actingAs(postShiftMemberOf($group, Role::Scheduler))
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 14])
+        ->assertSessionHasNoErrors();
+
+    expect($signUp->fresh())
+        ->visitor_count->toBe(14)
+        ->comment->toBe('My own words.');
+});
+
+it('lets a schedule admin comment on their own seat', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $scheduler = postShiftMemberOf($group, Role::Scheduler);
+    $signUp = postShiftSeat(postShiftShift($schedule), $scheduler);
+
+    $this->actingAs($scheduler)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 12, 'comment' => 'Quiet day.'])
+        ->assertSessionHasNoErrors();
+
+    expect($signUp->fresh()->comment)->toBe('Quiet day.');
+});
+
+it('sends the author their own comment and keeps it from a co-volunteer', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = postShiftShift($schedule);
+    $me = postShiftMemberOf($group);
+    $peer = postShiftMemberOf($group);
+    postShiftCommentSeat($shift, $me, 'Mine.');
+    postShiftCommentSeat($shift, $peer, 'Theirs.', 9);
+
+    viewPostShiftReport($me, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.signups', function ($seats) use ($me, $peer) {
+            $peerSeat = postShiftSeatOf($seats, $peer);
+
+            return postShiftSeatOf($seats, $me)['comment'] === 'Mine.'
+                && $peerSeat['visitor_count'] === 9
+                && ! array_key_exists('comment', $peerSeat);
+        }));
+});
+
+it('sends a schedule admin every seat’s comment', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = postShiftShift($schedule);
+    $first = postShiftMemberOf($group);
+    $second = postShiftMemberOf($group);
+    postShiftCommentSeat($shift, $first, 'First.');
+    postShiftSeat($shift, $second, 9);
+
+    viewPostShiftReport(postShiftMemberOf($group, Role::Scheduler), $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.signups', function ($seats) use ($first, $second) {
+            $secondSeat = postShiftSeatOf($seats, $second);
+
+            return postShiftSeatOf($seats, $first)['comment'] === 'First.'
+                && array_key_exists('comment', $secondSeat) && $secondSeat['comment'] === null;
+        }));
+});
+
+it('sends a plain reader no comment', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    postShiftCommentSeat(postShiftShift($schedule), postShiftMemberOf($group), 'Private.');
+
+    viewPostShiftReport(postShiftMemberOf($group), $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->missing('scheduling.open.shifts.0.signups.0.comment'));
+});
+
+it('sends only the viewer’s own comment in the My sign-ups panel', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = postShiftShift($schedule);
+    $me = postShiftMemberOf($group);
+    $peer = postShiftMemberOf($group);
+    postShiftSeat($shift, $me);
+    postShiftCommentSeat($shift, $peer, 'Theirs.', 9);
+
+    $this->actingAs($me)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.mine.0.signups', function ($seats) use ($me, $peer) {
+                return array_key_exists('comment', postShiftSeatOf($seats, $me))
+                    && ! array_key_exists('comment', postShiftSeatOf($seats, $peer));
+            }));
+});
+
+it('lets the author and a schedule admin read a comment, and no one else', function () {
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = postShiftShift($schedule);
+    $author = postShiftMemberOf($group);
+    $peer = postShiftMemberOf($group);
+    $signUp = postShiftCommentSeat($shift, $author, 'Mine.');
+    postShiftSeat($shift, $peer);
+
+    expect($author->can('viewComment', $signUp))->toBeTrue()
+        ->and(postShiftMemberOf($group, Role::Scheduler)->can('viewComment', $signUp))->toBeTrue()
+        ->and(postShiftMemberOf($group, Role::Chair)->can('viewComment', $signUp))->toBeTrue()
+        ->and($peer->can('viewComment', $signUp))->toBeFalse()
+        ->and(postShiftMemberOf($group)->can('viewComment', $signUp))->toBeFalse();
+});

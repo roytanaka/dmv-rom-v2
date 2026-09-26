@@ -33,7 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { buildAgenda } from '@/scheduling/agenda';
-import { type RecordCallbacks } from '@/scheduling/recordDraft';
+import { type RecordCallbacks, type RecordPayload } from '@/scheduling/recordDraft';
 import { deriveEndsAt } from '@/scheduling/selfServeShift';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
@@ -316,16 +316,18 @@ const drop = (shift: ShiftAgendaItem) => {
 // Group collects the split — a count-only Group refuses it server-side, so it is never sent there —
 // and carries null when its box is blank, distinct from a recorded zero (#447, ADR-0023 §2). GDR's
 // five origins ride only where the Group collects provenance (#448, ADR-0023 §3); everywhere else
-// the server refuses them, so they are never sent. A refusal goes back to the card that submitted
+// the server refuses them, so they are never sent. The comment rides only from the viewer's own
+// seat (#655); a correction leaves it out, and the server refuses one there. A refusal goes back to the card that submitted
 // (#649) through its own callbacks, never the page's shared error bag: the same Shift can render
 // twice (My sign-ups and the Agenda), and only the submitted copy shows the errors.
-const record = (
-    payload: { signUpId: number; count: number; extra: number | null; provenance: VisitorProvenance | null },
-    callbacks: RecordCallbacks,
-) => {
-    const body: { visitor_count: number; extra_interaction_count?: number | null } & Partial<VisitorProvenance> = {
+const record = (payload: { signUpId: number } & RecordPayload, callbacks: RecordCallbacks) => {
+    const body: { visitor_count: number; extra_interaction_count?: number | null; comment?: string | null } & Partial<VisitorProvenance> = {
         visitor_count: payload.count,
     };
+
+    if (payload.comment !== undefined) {
+        body.comment = payload.comment;
+    }
 
     if (props.collectsExtraInteractions) {
         body.extra_interaction_count = payload.extra;

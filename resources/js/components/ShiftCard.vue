@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { formatShiftDate } from '@/scheduling/agenda';
 import InputError from '@/components/InputError.vue';
@@ -21,8 +22,9 @@ import {
     type BoxValue,
     type RecordCallbacks,
     type RecordErrors,
+    type RecordPayload,
 } from '@/scheduling/recordDraft';
-import { entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from '@/scheduling/postShiftReport';
+import { commentPreview, entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from '@/scheduling/postShiftReport';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhPencilSimple, PhTrash, PhUserPlus, PhX } from '@phosphor-icons/vue';
@@ -80,7 +82,7 @@ const emit = defineEmits<{
     // edit/delete above, because they route through the self-serve seam, not `shifts.*`.
     editSelfServe: [shift: ShiftAgendaItem];
     deleteSelfServe: [shift: ShiftAgendaItem];
-    record: [payload: { signUpId: number; count: number; extra: number | null; provenance: VisitorProvenance | null }, callbacks: RecordCallbacks];
+    record: [payload: { signUpId: number } & RecordPayload, callbacks: RecordCallbacks];
 }>();
 
 const page = usePage<SharedData>();
@@ -157,7 +159,12 @@ const provenanceOf = (seat: ShiftSignUp): VisitorProvenance => ({
     visitors_other_countries: seat.visitors_other_countries ?? null,
 });
 
-type RecordTarget = { signUpId: number; visitor_count: number | null; extra_interaction_count: number | null } & VisitorProvenance;
+type RecordTarget = {
+    signUpId: number;
+    visitor_count: number | null;
+    extra_interaction_count: number | null;
+    comment: string | null;
+} & VisitorProvenance;
 
 // The seat the form is writing, normalised to one shape. The write names the seat's Sign-up id:
 // the viewer's own from `shift.signup_id`, another seat's from the Officer-only `signup_id`. Null
@@ -173,6 +180,7 @@ const recordTarget = computed<RecordTarget | null>(() => {
         signUpId,
         visitor_count: seat.visitor_count ?? null,
         extra_interaction_count: seat.extra_interaction_count ?? null,
+        comment: seat.comment ?? null,
         ...provenanceOf(seat),
     };
 });
@@ -185,6 +193,8 @@ const recordTarget = computed<RecordTarget | null>(() => {
 const draft = ref<BoxValue>('');
 const extraDraft = ref<BoxValue>('');
 const provenanceDrafts = ref(Object.fromEntries(provenanceFields.map((f) => [f.key, ''])) as Record<keyof VisitorProvenance, BoxValue>);
+// The viewer's own comment (#655), seeded from the seat so Change edits it.
+const commentDraft = ref<string | number>('');
 
 // The server's refusal of this card's last save (#649), one message per box. It lives on the card,
 // not the page's shared error bag, so the other copy of the same Shift never shows it.
@@ -207,15 +217,26 @@ watch(
             const value = target ? target[field.key] : null;
             provenanceDrafts.value[field.key] = value !== null ? String(value) : '';
         });
+        commentDraft.value = target?.comment ?? '';
     },
     { immediate: true },
 );
 
-const recordDraft = computed(() => ({ count: draft.value, extra: extraDraft.value, provenance: provenanceDrafts.value }));
+const recordDraft = computed(() => ({
+    count: draft.value,
+    extra: extraDraft.value,
+    provenance: provenanceDrafts.value,
+    comment: String(commentDraft.value),
+}));
+
+// The comment box shows on the viewer's own seat only (#655). An officer's correction has none,
+// so it never changes a volunteer's words; the server refuses a comment there too.
+const writesComment = computed(() => correctingSeat.value === null);
 
 const recordFlags = computed(() => ({
     collectsExtraInteractions: props.collectsExtraInteractions,
     collectsVisitorProvenance: props.collectsVisitorProvenance,
+    writesComment: writesComment.value,
 }));
 
 // The count is required; on GDR the five origins must be filled (the server checks their sum).
@@ -498,6 +519,19 @@ const formId = useId();
                                 </label>
                                 <InputError :message="recordErrors.provenance" class="w-full" />
                             </template>
+                            <!-- The viewer's own comment (#655): optional, at most 2,000 characters,
+                                 read only by its author and a schedule admin. No box on an
+                                 officer's correction. The server's length message shows below. -->
+                            <label v-if="writesComment" class="flex w-full flex-col gap-1">
+                                <span class="text-muted-foreground text-sm font-medium">{{
+                                    trans('group.scheduling_panel.agenda.sign_out.comment_label')
+                                }}</span>
+                                <Textarea v-model="commentDraft" rows="3" :aria-describedby="`${formId}-comment-help`" />
+                                <span :id="`${formId}-comment-help`" class="text-muted-foreground text-xs">
+                                    {{ trans('group.scheduling_panel.agenda.sign_out.comment_help') }}
+                                </span>
+                                <InputError :message="recordErrors.comment" />
+                            </label>
                             <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
                                 <!-- Record shift waits for a count (the forcing function); a
                                      reopened form says Save changes and can be cancelled. Full
@@ -532,10 +566,15 @@ const formId = useId();
                         </form>
                         <!-- A summary of a recorded seat, or "No count yet". -->
                         <div v-else class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                            <div class="flex min-w-0 flex-col">
+                            <div class="flex min-w-0 flex-1 flex-col">
                                 <span class="text-rom-ink text-sm font-medium">{{ entryName(signUp) }}</span>
                                 <span class="text-muted-foreground text-sm tabular-nums">
                                     {{ state === 'summary' ? entrySummary(signUp) : trans('group.scheduling_panel.agenda.sign_out.no_count') }}
+                                </span>
+                                <!-- A one-line preview of the comment (#655). The server sends it only
+                                     to its author and a schedule admin, so a co-volunteer sees none. -->
+                                <span v-if="commentPreview(signUp)" class="text-muted-foreground truncate text-sm italic">
+                                    {{ commentPreview(signUp) }}
                                 </span>
                                 <span v-if="lastEdited(signUp)" class="text-muted-foreground text-sm">{{ lastEdited(signUp) }}</span>
                             </div>

@@ -438,6 +438,12 @@ return [
                 // Qui a enregistré une entrée en dernier, et quand (#654) — le ou la titulaire du
                 // siège, ou la correction d’un·e officier·ère. `:time` suit l’heure de l’organisme.
                 'last_edited' => 'Dernière modification par :name · :time',
+                // Le commentaire facultatif sur sa propre entrée (#655). Seul·e l’auteur·e et un·e
+                // responsable de l’horaire le lisent ; la correction d’un·e officier·ère n’a pas
+                // cette case.
+                'comment_label' => 'Commentaire (facultatif)',
+                'comment_help' => 'Questions des visiteur·euses, déroulement du quart, ou tout ce que vous avez remarqué sur le terrain',
+                'comment_max' => 'Le commentaire peut compter au plus 2 000 caractères.',
                 // La seconde case des groupes qui mènent des circuits (#447, ADR-0023 §2) —
                 // visiteur·euses servi·es en dehors du circuit, facultatif.
                 'extra_label' => 'Visiteur·euses servi·es hors du circuit',

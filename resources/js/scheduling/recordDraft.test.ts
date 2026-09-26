@@ -13,9 +13,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildRecordPayload, canSubmitRecord, NO_RECORD_ERRORS, recordErrorsFrom, type RecordDraft } from './recordDraft.ts';
 
-const PLAIN = { collectsExtraInteractions: false, collectsVisitorProvenance: false };
-const TOUR = { collectsExtraInteractions: true, collectsVisitorProvenance: false };
-const GDR = { collectsExtraInteractions: false, collectsVisitorProvenance: true };
+const PLAIN = { collectsExtraInteractions: false, collectsVisitorProvenance: false, writesComment: false };
+const TOUR = { collectsExtraInteractions: true, collectsVisitorProvenance: false, writesComment: false };
+const GDR = { collectsExtraInteractions: false, collectsVisitorProvenance: true, writesComment: false };
+// The viewer's own seat, where the comment box shows (#655).
+const OWN = { ...PLAIN, writesComment: true };
 
 const emptyProvenance = {
     visitors_france_europe: '',
@@ -29,6 +31,7 @@ const draft = (overrides: Partial<RecordDraft> = {}): RecordDraft => ({
     count: '',
     extra: '',
     provenance: { ...emptyProvenance },
+    comment: '',
     ...overrides,
 });
 
@@ -143,6 +146,35 @@ test('an error on any origin box shows under the origin boxes', () => {
 
 test('a save the server accepts clears every error', () => {
     assert.deepEqual(recordErrorsFrom({}), NO_RECORD_ERRORS);
+});
+
+// --- The comment on the viewer's own entry (#655) ---
+
+test('the comment rides with the count on the viewer’s own seat', () => {
+    assert.deepEqual(buildRecordPayload(draft({ count: 12, comment: 'A visitor asked about the whale.' }), OWN), {
+        count: 12,
+        extra: null,
+        provenance: null,
+        comment: 'A visitor asked about the whale.',
+    });
+});
+
+test('a blank comment files null, so a volunteer can clear it', () => {
+    assert.equal(buildRecordPayload(draft({ count: 12, comment: '   ' }), OWN).comment, null);
+});
+
+test('an officer’s correction never sends a comment', () => {
+    assert.equal('comment' in buildRecordPayload(draft({ count: 12, comment: 'Rewritten.' }), PLAIN), false);
+});
+
+test('a comment with no count keeps Record shift disabled', () => {
+    assert.equal(canSubmitRecord(draft({ comment: 'Busy morning.' }), OWN), false);
+});
+
+test('a refused long comment shows its message under the comment box', () => {
+    const errors = recordErrorsFrom({ comment: 'The comment can be at most 2,000 characters.' });
+
+    assert.deepEqual(errors, { ...NO_RECORD_ERRORS, comment: 'The comment can be at most 2,000 characters.' });
 });
 
 test('an error on a field the form does not show is ignored', () => {

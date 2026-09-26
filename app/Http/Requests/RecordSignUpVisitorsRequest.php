@@ -38,6 +38,9 @@ use Illuminate\Validation\Validator;
  * above zero, and **the five must sum to `visitor_count`** — legacy enforced this in a JavaScript
  * alert only; here it is a server rule ({@see withValidator}) whose message names both totals.
  * Every other Group — GDR is the only one — **rejects** a provenance value rather than storing it.
+ *
+ * `comment` (#655, PRD #651) is the seat-holder's optional note, at most 2,000 characters, where
+ * the Group collects a count. It is **prohibited** on an officer's correction of another seat.
  */
 class RecordSignUpVisitorsRequest extends FormRequest
 {
@@ -94,6 +97,13 @@ class RecordSignUpVisitorsRequest extends FormRequest
                 ? ['nullable', 'integer', 'min:0']
                 : ['prohibited'],
             ...array_fill_keys(self::PROVENANCE_FIELDS, $provenanceRules),
+            // The volunteer's own comment (#655, PRD #651): optional free text wherever the Group
+            // collects a count. Only the seat-holder may write it. An officer correcting another
+            // seat has it refused, so a correction never changes a volunteer's words; leaving it
+            // out keeps the saved comment. The count stays required, so no comment goes alone.
+            'comment' => $group->collects_visitor_count && $this->route('signUp')->member_id === $this->user()->getKey()
+                ? ['nullable', 'string', 'max:2000']
+                : ['prohibited'],
         ];
     }
 
@@ -140,6 +150,7 @@ class RecordSignUpVisitorsRequest extends FormRequest
             'visitor_count.min' => trans('group.scheduling_panel.agenda.sign_out.not_negative'),
             'extra_interaction_count.integer' => trans('group.scheduling_panel.agenda.sign_out.extra_whole_number'),
             'extra_interaction_count.min' => trans('group.scheduling_panel.agenda.sign_out.extra_not_negative'),
+            'comment.max' => trans('group.scheduling_panel.agenda.sign_out.comment_max'),
         ];
 
         foreach (self::PROVENANCE_FIELDS as $field) {

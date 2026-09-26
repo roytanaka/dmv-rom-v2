@@ -111,6 +111,20 @@ it('renders Groups × twelve months with a year-to-date, composed from both sour
             ->where('months.0.year_month', '202504'));
 });
 
+it('leaves the totals unchanged by post-shift comments and never shows one', function () {
+    $section = Group::factory()->create(['parent_id' => $this->root->id, 'name' => 'Programs']);
+    $docents = Group::factory()->create(['parent_id' => $section->id, 'name' => 'Docents']);
+    summarySignUp($docents, '202504', visitors: 30, extra: 5)->update(['comment' => 'A private note from the floor.']);
+    summarySignUp($docents, '202504', visitors: 12);
+
+    $response = $this->actingAs(Member::factory()->create())->get(route('hours.visitor-summary'));
+
+    $response->assertInertia(fn (Assert $page) => $page
+        ->where('groups.0.months.0.interactions', 47) // 30 + 5 + 12
+        ->where('groups.0.ytd', 47));
+    expect($response->getContent())->not->toContain('A private note from the floor.');
+});
+
 it('marks a Group whose figures await a booking audience', function () {
     $romForYou = Group::factory()->awaitingBookingAudiences()->create(['parent_id' => $this->root->id, 'name' => 'ROMForYou']);
     summarySignUp($romForYou, '202504', visitors: 293);

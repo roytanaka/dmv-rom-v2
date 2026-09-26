@@ -13,13 +13,15 @@
 /**
  * The part of a seat these rules read: the Member id, the recorded count (null = none), the
  * server's verdict that the viewer may change this entry (#653; absent = no), and who last saved
- * the numbers and when (#654; null or absent = nobody yet).
+ * the numbers and when (#654; null or absent = nobody yet), and the seat's comment (#655; absent
+ * unless the viewer wrote it or is a schedule admin).
  */
 export type ReportSeat = {
     id: number;
     visitor_count?: number | null;
     can_record?: boolean;
     last_edited?: { name: string; at: string } | null;
+    comment?: string | null;
 };
 
 export type EntryState = 'form' | 'summary' | 'no-count';
@@ -84,4 +86,15 @@ export function lastEditedLine(seat: ReportSeat, locale: string, timeZone: strin
     const time = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone }).format(new Date(seat.last_edited.at));
 
     return { name: seat.last_edited.name, time };
+}
+
+/**
+ * The one-line preview of an entry's comment (#655): line breaks and runs of spaces fold to one
+ * space, and the card cuts the line at its width. Null when there is no comment, or when the
+ * server did not send it (a co-volunteer's), which shows no preview.
+ */
+export function commentPreview(seat: ReportSeat): string | null {
+    const line = (seat.comment ?? '').replace(/\s+/g, ' ').trim();
+
+    return line === '' ? null : line;
 }
