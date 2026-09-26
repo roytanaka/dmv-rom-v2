@@ -83,7 +83,7 @@ class ShiftPolicy
      *   because authoring one is taking one.
      *
      * Ownership of what they write is derived, never stored (#334); it is answered by
-     * {@see manageSelfServe} on the way back out.
+     * {@see Shift::isSelfServeOwnedBy()} on the way back out.
      */
     public function createSelfServe(Member $actor, Schedule $schedule): bool
     {
@@ -100,37 +100,6 @@ class ShiftPolicy
         $membership = $actor->membershipIn($group);
 
         return $membership !== null && $membership->status->canSignUp();
-    }
-
-    /**
-     * Who may change or delete a self-authored Shift (#585, ADR-0026 §1) — the derived
-     * ownership rule, since no column records who wrote a row (#334 stays open). A Member
-     * owns a Shift, and may edit or delete it, exactly while:
-     *
-     * - the owning Group is **self-serve**;
-     * - the Shift's **capacity is 1** (a Member never authors a wider slot, so a wider one
-     *   is a Scheduler's and off-limits);
-     * - the Shift's **only Sign-up is the actor's** (they hold the one seat, so the Shift is
-     *   theirs); and
-     * - the Shift **has not started** — edit and delete close at the start, the same bound
-     *   take and drop answer to (#554, ADR-0026 §6). After the start only the Scheduler acts.
-     *
-     * The accepted edge (ADR-0026 §1): a capacity-1 Shift a Scheduler authored and placed
-     * this Member on is editable by them too, because ownership is derived, not authored.
-     */
-    public function manageSelfServe(Member $actor, Shift $shift): bool
-    {
-        // Read the seats from the loaded relation when the caller already has them (the Agenda
-        // payload loads every Shift's Sign-ups), and query once when it does not (a route-bound
-        // Shift in a Form Request) — so this never lazy-loads under strict mode nor N+1s a page.
-        $shift->loadMissing('signUps');
-        $signUps = $shift->signUps;
-
-        return $shift->schedule->group->self_serve_shifts
-            && $shift->capacity === 1
-            && $signUps->count() === 1
-            && $signUps->first()->member_id === $actor->getKey()
-            && ! $shift->hasStarted();
     }
 
     /**
