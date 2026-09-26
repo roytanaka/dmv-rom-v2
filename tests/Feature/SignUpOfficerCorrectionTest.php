@@ -20,8 +20,9 @@ use Inertia\Testing\AssertableInertia as Assert;
  *
  * The security point is the reason this ticket exists: legacy's `_remoteSignIn` takes a row id
  * from the request and updates it with no ownership check, so any logged-in Member can set any
- * other Member's count. Here the affordance (the pencil) is a hint; the policy is the rule, and
- * an ordinary Member's write against a peer's seat is refused whether or not they saw a control.
+ * other Member's count. Here the affordance (the Change button) is a hint; the policy is the
+ * rule, and an ordinary Member's write against a peer's seat is refused whether or not they saw
+ * a control.
  * Prior art: SignUpVisitorCountTest (the seat-holder's own write), OfficerAssignmentTest (the
  * schedule-admin gate and Chair-implication).
  *
@@ -255,7 +256,7 @@ it('records an Officer’s GDR correction whose five origins sum to the count', 
         ->and($signUp->fresh()->visitors_toronto)->toBe(2);
 });
 
-// --- The read surface: a pencil on every seat, for the Officer alone ------------
+// --- The read surface: Change on every seat, for the Officer alone ---------------
 
 it('carries a per-seat correction verdict and the seat’s numbers to an Officer', function () {
     $this->travelTo(officerNow());

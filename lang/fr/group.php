@@ -428,11 +428,10 @@ return [
                 'recorded' => ':count visiteur·euses',
                 'whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
                 'not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
-                // La correction de l’officier·ère (#450, ADR-0023 §5) — le crayon sur chaque
-                // siège, sans échéance. `correct` étiquette le crayon ; `correcting` nomme le
-                // siège ouvert pour ne pas confondre une correction avec son propre siège. `save`
-                // et `cancel` ferment tout formulaire rouvert, correction ou Modifier.
-                'correct' => 'Corriger le nombre de visiteur·euses',
+                // La correction de l’officier·ère (#450, #653, ADR-0023 §5) — Modifier sur chaque
+                // entrée du rapport après le quart, sans échéance. `correcting` nomme le siège
+                // ouvert pour ne pas confondre une correction avec son propre siège. `save` et
+                // `cancel` ferment tout formulaire rouvert, correction ou Modifier.
                 'correcting' => 'Correction des visiteur·euses de :name',
                 'save' => 'Enregistrer les modifications',
                 'cancel' => 'Annuler',

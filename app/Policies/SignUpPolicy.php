@@ -186,8 +186,9 @@ class SignUpPolicy
      *
      * This is the security point the ticket turns on: legacy has no check at all — its endpoint
      * takes a row id from the request and updates it, so any logged-in Member can write any other
-     * Member's seat. Here the affordance (the pencil) is a hint and this verdict is the rule; an
-     * ordinary Member's write against a peer's seat is refused whether or not they saw a control.
+     * Member's seat. Here the affordance (the Change button) is a hint and this verdict is the
+     * rule; an ordinary Member's write against a peer's seat is refused whether or not they saw a
+     * control.
      */
     public function record(Member $actor, SignUp $signUp): bool
     {

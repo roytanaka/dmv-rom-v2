@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { entryState, openFormSeat, recordedTally } from './postShiftReport.ts';
+import { entryState, openFormSeat, recordedTally, showsChange } from './postShiftReport.ts';
 
 const me = { id: 1, visitor_count: null };
 const peer = { id: 2, visitor_count: 9 };
@@ -46,6 +46,20 @@ test('an entry reads as the form, a summary, or "No count yet"', () => {
 
 test('a recorded zero is a summary, not "No count yet"', () => {
     assert.equal(entryState({ id: 4, visitor_count: 0 }, null), 'summary');
+});
+
+test('Change shows on a summary or "No count yet" where the server says the viewer may change it (#653)', () => {
+    assert.equal(showsChange({ id: 2, can_record: true }, 'summary'), true);
+    assert.equal(showsChange({ id: 3, can_record: true }, 'no-count'), true);
+});
+
+test('Change hides where the server says no, or sent no verdict', () => {
+    assert.equal(showsChange({ id: 2, can_record: false }, 'summary'), false);
+    assert.equal(showsChange({ id: 2 }, 'summary'), false);
+});
+
+test('Change hides on the entry that already shows the form', () => {
+    assert.equal(showsChange({ id: 1, can_record: true }, 'form'), false);
 });
 
 test('the tally counts seats with a count, zero included', () => {

@@ -437,11 +437,10 @@ return [
                 'recorded' => ':count visitors',
                 'whole_number' => 'Enter a whole number of visitors.',
                 'not_negative' => 'The number of visitors cannot be negative.',
-                // The Officer's correction (#450, ADR-0023 §5) — the pencil on every seat, with no
-                // deadline. `correct` labels the pencil; `correcting` names whose seat is open so a
+                // The Officer's correction (#450, #653, ADR-0023 §5) — Change on every entry in the
+                // Post-shift report, with no deadline. `correcting` names whose seat is open so a
                 // correction is never mistaken for the viewer's own. `save` and `cancel` close any
                 // reopened form, a correction or the viewer's own Change.
-                'correct' => 'Correct visitor count',
                 'correcting' => 'Correcting :name’s visitors',
                 'save' => 'Save changes',
                 'cancel' => 'Cancel',

@@ -133,7 +133,7 @@ it('keeps the officer-only seat fields from a co-volunteer', function () {
         ->where('scheduling.open.shifts.0.signups', function ($seats) use ($peer) {
             $seat = postShiftSeatOf($seats, $peer);
 
-            return ! array_key_exists('signup_id', $seat) && ! array_key_exists('can_record', $seat);
+            return ! array_key_exists('signup_id', $seat) && $seat['can_record'] === false;
         }));
 });
 
@@ -218,4 +218,106 @@ it('opens the own-seat form only inside the sign-out window, for a schedule admi
 
     viewPostShiftReport($scheduler, $group, $schedule)->assertInertia(fn (Assert $page) => $page
         ->where('scheduling.open.shifts.0.can.record', true));
+});
+
+// --- Who may change an entry (#653): the per-seat `can_record` verdict ----------------------
+
+it('lets a schedule admin change every entry, with no count and before the window', function () {
+    // 09:00 is before the Shift starts: a seat-holder's window is shut, an admin's never is.
+    $this->travelTo(CarbonImmutable::parse('2026-09-10 09:00'));
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = postShiftShift($schedule);
+    $recorded = postShiftMemberOf($group);
+    $unrecorded = postShiftMemberOf($group);
+    postShiftSeat($shift, $recorded, 9);
+    postShiftSeat($shift, $unrecorded);
+
+    viewPostShiftReport(postShiftMemberOf($group, Role::Scheduler), $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.signups', function ($seats) use ($recorded, $unrecorded) {
+            return postShiftSeatOf($seats, $recorded)['can_record'] === true
+                && postShiftSeatOf($seats, $unrecorded)['can_record'] === true;
+        }));
+});
+
+it('lets a volunteer change their own entry only, inside the window', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = postShiftShift($schedule);
+    $me = postShiftMemberOf($group);
+    $peer = postShiftMemberOf($group);
+    postShiftSeat($shift, $me, 12);
+    postShiftSeat($shift, $peer);
+
+    viewPostShiftReport($me, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.signups', function ($seats) use ($me, $peer) {
+            return postShiftSeatOf($seats, $me)['can_record'] === true
+                && postShiftSeatOf($seats, $peer)['can_record'] === false;
+        }));
+});
+
+it('holds a volunteer’s own entry shut before the window opens', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-10 12:00'));
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    postShiftSeat(postShiftShift($schedule), $me);
+
+    viewPostShiftReport($me, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.signups.0.can_record', false));
+});
+
+it('sends no change verdict to a plain reader, or where the Group collects nothing', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    postShiftSeat(postShiftShift($schedule), postShiftMemberOf($group), 9);
+
+    viewPostShiftReport(postShiftMemberOf($group), $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->missing('scheduling.open.shifts.0.signups.0.can_record'));
+
+    $silent = Group::factory()->program()->publicListing()->create();
+    $silentSchedule = Schedule::factory()->published()->create(['group_id' => $silent->id]);
+    postShiftSeat(postShiftShift($silentSchedule), postShiftMemberOf($silent));
+
+    viewPostShiftReport(postShiftMemberOf($silent, Role::Scheduler), $silent, $silentSchedule)->assertInertia(fn (Assert $page) => $page
+        ->missing('scheduling.open.shifts.0.signups.0.can_record'));
+});
+
+it('saves a schedule admin’s correction to another seat, and the report carries it', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $signUp = postShiftSeat(postShiftShift($schedule), postShiftMemberOf($group));
+    $scheduler = postShiftMemberOf($group, Role::Scheduler);
+
+    $this->actingAs($scheduler)
+        ->patch(route('sign-ups.record', ['signUp' => $signUp->id]), ['visitor_count' => 14])
+        ->assertRedirect();
+
+    viewPostShiftReport($scheduler, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.signups.0.visitor_count', 14));
+});
+
+it('refuses a co-volunteer’s hand-made correction of another seat', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = postShiftShift($schedule);
+    $me = postShiftMemberOf($group);
+    postShiftSeat($shift, $me, 12);
+    $peerSeat = postShiftSeat($shift, postShiftMemberOf($group));
+
+    $this->actingAs($me)
+        ->patch(route('sign-ups.record', ['signUp' => $peerSeat->id]), ['visitor_count' => 14])
+        ->assertForbidden();
+
+    expect($peerSeat->fresh()->visitor_count)->toBeNull();
 });
