@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Http\Resources\MemberResource;
+use App\Policies\SignUpPolicy;
 use Carbon\CarbonImmutable;
 use Database\Factories\SignUpFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,6 +29,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * Member's name is exposed to any viewer who can read the
  * Schedule ({@see MemberResource}, ADR-0017 §6); the counts only to the seat-holder and a
  * schedule admin.
+ *
+ * The seat-holder may add an optional `comment` to their entry (#655, PRD #651): visitor
+ * questions, how the shift went, or issues from the floor. Only the author and a schedule admin
+ * read it ({@see SignUpPolicy::viewComment}); no report reads it.
  */
 class SignUp extends Model
 {
@@ -58,6 +63,7 @@ class SignUp extends Model
         'visitors_toronto',
         'visitors_rest_of_canada',
         'visitors_other_countries',
+        'comment',
     ];
 
     /**

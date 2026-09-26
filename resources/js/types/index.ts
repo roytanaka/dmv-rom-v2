@@ -608,6 +608,9 @@ export interface ShiftSignUp {
     // Who last saved the seat's numbers and when (#654), sent with the numbers. Null for a seat
     // nobody has saved yet. `at` is ISO 8601; the card shows it on the org wall clock.
     last_edited?: { name: string; at: string } | null;
+    // The seat's comment (#655). Sent only to its author and a schedule admin; absent for a
+    // co-volunteer and a plain reader. Null when the author left none.
+    comment?: string | null;
 }
 
 // A placeable Member in the officer-assignment picker (#359, ADR-0017 §6) — the Group's

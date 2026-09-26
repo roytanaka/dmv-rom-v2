@@ -204,6 +204,18 @@ class SignUpPolicy
     }
 
     /**
+     * Who may read a seat's post-shift comment (#655, PRD #651): its author, and a schedule admin
+     * of the owning Group, who acts on floor issues and feedback. Co-volunteers see each other's
+     * numbers but never each other's comment, so a volunteer can write frankly. Super-tier passes
+     * through `Gate::before`, like every other officer read.
+     */
+    public function viewComment(Member $actor, SignUp $signUp): bool
+    {
+        return $signUp->member_id === $actor->getKey()
+            || $this->administersSchedulingFor($actor, $signUp->shift->schedule->group);
+    }
+
+    /**
      * The schedule-admin gate, identical to the SchedulePolicy's and ShiftPolicy's: the
      * Group runs scheduling *and* the actor can act as its Scheduler (Chair-implication
      * folded in by {@see Member::canActAs()}). The capability guard matters because

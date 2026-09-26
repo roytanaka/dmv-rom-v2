@@ -1105,6 +1105,13 @@ class GroupController extends Controller
                             'name' => $signUp->lastEditedBy->fullName(),
                             'at' => $signUp->last_edited_at->toIso8601String(),
                         ];
+
+                        // The seat's comment (#655) goes to its author and a schedule admin only,
+                        // mirroring SignUpPolicy::viewComment. A co-volunteer sees the numbers but
+                        // never receives another volunteer's words.
+                        if ($canManage || $signUp->member_id === $viewer->getKey()) {
+                            $seat['comment'] = $signUp->comment;
+                        }
                     }
 
                     return $seat;

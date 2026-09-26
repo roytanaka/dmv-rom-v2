@@ -5,11 +5,11 @@
  *
  * The rules under test: which seat, if any, shows the form (one per card); whether every other
  * seat reads as a summary or "No count yet"; the "N of M recorded" tally; and the parts of the
- * "Last edited by" line (#654).
+ * "Last edited by" line (#654); and the one-line comment preview (#655).
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from './postShiftReport.ts';
+import { commentPreview, entryState, lastEditedLine, openFormSeat, recordedTally, showsChange } from './postShiftReport.ts';
 
 const me = { id: 1, visitor_count: null };
 const peer = { id: 2, visitor_count: 9 };
@@ -85,4 +85,17 @@ test('the last-edited time follows the viewer’s locale', () => {
 test('an entry with no stamp has no last-edited line', () => {
     assert.equal(lastEditedLine({ id: 5, visitor_count: 3, last_edited: null }, 'en', 'America/Toronto'), null);
     assert.equal(lastEditedLine({ id: 6, visitor_count: 3 }, 'en', 'America/Toronto'), null);
+});
+
+test('a comment preview reads on one line', () => {
+    assert.equal(
+        commentPreview({ id: 1, comment: '  A visitor asked\nabout the whale.\n\nAll good.  ' }),
+        'A visitor asked about the whale. All good.',
+    );
+});
+
+test('an entry with no comment, or one the viewer does not receive, has no preview', () => {
+    assert.equal(commentPreview({ id: 1, comment: null }), null);
+    assert.equal(commentPreview({ id: 1, comment: '   ' }), null);
+    assert.equal(commentPreview({ id: 2 }), null);
 });

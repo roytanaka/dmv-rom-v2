@@ -447,6 +447,11 @@ return [
                 // Who last saved an entry and when (#654) — the seat-holder or an officer's
                 // correction. `:time` is the org wall clock, in the viewer's locale.
                 'last_edited' => 'Last edited by :name · :time',
+                // The optional comment on the viewer's own entry (#655). Only its author and a
+                // schedule admin read it; an officer's correction has no comment box.
+                'comment_label' => 'Comment (optional)',
+                'comment_help' => 'Visitor questions, how the shift went, or anything you noticed on the floor',
+                'comment_max' => 'The comment can be at most 2,000 characters.',
                 // The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
                 // tour, optional. The label says "outside the tour" so it is never confused with
                 // the count beside it; `extra_recorded` reads in the Post-shift report summary.

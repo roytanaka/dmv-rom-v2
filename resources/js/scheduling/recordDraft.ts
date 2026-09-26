@@ -21,18 +21,27 @@ export type RecordDraft = {
     count: BoxValue;
     extra: BoxValue;
     provenance: Record<keyof VisitorProvenance, BoxValue>;
+    // The viewer's own comment (#655): free text, so a plain string.
+    comment: string;
 };
 
-/** What the Group collects after a shift, beyond the count. */
+/**
+ * What the Group collects after a shift, beyond the count, and whether this form writes a comment:
+ * true on the viewer's own seat, false on an officer's correction, which the server refuses a
+ * comment on (#655).
+ */
 export type RecordFlags = {
     collectsExtraInteractions: boolean;
     collectsVisitorProvenance: boolean;
+    writesComment: boolean;
 };
 
 export type RecordPayload = {
     count: number;
     extra: number | null;
     provenance: VisitorProvenance | null;
+    // Absent on an officer's correction; null clears the viewer's own comment.
+    comment?: string | null;
 };
 
 /** An untouched or cleared box. A typed `0` is not blank. */
@@ -61,10 +70,11 @@ export type RecordErrors = {
     count: string | undefined;
     extra: string | undefined;
     provenance: string | undefined;
+    comment: string | undefined;
 };
 
 /** No refusal: the form before a save, or after one the server accepted. */
-export const NO_RECORD_ERRORS: RecordErrors = { count: undefined, extra: undefined, provenance: undefined };
+export const NO_RECORD_ERRORS: RecordErrors = { count: undefined, extra: undefined, provenance: undefined, comment: undefined };
 
 /** How the page hands a save's outcome back to the card that submitted it (#649). */
 export type RecordCallbacks = {
@@ -82,12 +92,15 @@ export function recordErrorsFrom(errors: Partial<Record<string, string>>): Recor
         count: errors.visitor_count,
         extra: errors.extra_interaction_count,
         provenance: PROVENANCE_KEYS.map((key) => errors[key]).find((message) => message !== undefined),
+        comment: errors.comment,
     };
 }
 
 /**
  * The write, from boxes `canSubmitRecord` has passed. The count is always sent; the extra rides
  * only where the Group collects it, and a blank extra files null; the origins ride only on GDR.
+ * The comment rides only from the viewer's own seat (#655), and a blank one files null so the
+ * volunteer can clear it; an officer's correction leaves it out, so the saved comment stays.
  */
 export function buildRecordPayload(draft: RecordDraft, flags: RecordFlags): RecordPayload {
     const extra = flags.collectsExtraInteractions && !isBlank(draft.extra) ? Number(draft.extra) : null;
@@ -96,5 +109,11 @@ export function buildRecordPayload(draft: RecordDraft, flags: RecordFlags): Reco
         ? (Object.fromEntries(Object.entries(draft.provenance).map(([key, value]) => [key, Number(value)])) as unknown as VisitorProvenance)
         : null;
 
-    return { count: Number(draft.count), extra, provenance };
+    const payload: RecordPayload = { count: Number(draft.count), extra, provenance };
+
+    if (flags.writesComment) {
+        payload.comment = draft.comment.trim() === '' ? null : draft.comment;
+    }
+
+    return payload;
 }
