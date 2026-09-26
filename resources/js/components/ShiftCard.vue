@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { formatShiftDate } from '@/scheduling/agenda';
+import { buildRecordPayload, canSubmitRecord, type BoxValue } from '@/scheduling/recordDraft';
 import { withinSignOutWindow } from '@/scheduling/signOut';
 import { type SharedData, type ShiftAgendaItem, type ShiftSignUp, type VisitorProvenance } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -157,10 +158,11 @@ const recordTarget = computed<RecordTarget | null>(() => {
 // The boxes, seeded from whichever seat the form now targets so a correction edits rather than
 // retypes. The count box stays required (the Sign Out button waits for it — the forcing function
 // that carries the count on 96-98% of shifts); the extra box is optional; the five origins are
-// seeded too. Kept as strings so an empty box is distinct from a typed zero.
-const draft = ref('');
-const extraDraft = ref('');
-const provenanceDrafts = ref(Object.fromEntries(provenanceFields.map((f) => [f.key, ''])) as Record<keyof VisitorProvenance, string>);
+// seeded too. A box holds a string until the user types, then a number (#646); an empty box stays
+// distinct from a typed zero.
+const draft = ref<BoxValue>('');
+const extraDraft = ref<BoxValue>('');
+const provenanceDrafts = ref(Object.fromEntries(provenanceFields.map((f) => [f.key, ''])) as Record<keyof VisitorProvenance, BoxValue>);
 
 watch(
     recordTarget,
@@ -175,17 +177,15 @@ watch(
     { immediate: true },
 );
 
-// All five origins filled and summing to the count typed above — the client's copy of the server
-// rule, so the button never offers a write the server would refuse. Only consulted on GDR.
-const provenanceComplete = computed(() => {
-    const values = provenanceFields.map((field) => provenanceDrafts.value[field.key].trim());
+const recordDraft = computed(() => ({ count: draft.value, extra: extraDraft.value, provenance: provenanceDrafts.value }));
 
-    if (values.some((value) => value === '')) return false;
+const recordFlags = computed(() => ({
+    collectsExtraInteractions: props.collectsExtraInteractions,
+    collectsVisitorProvenance: props.collectsVisitorProvenance,
+}));
 
-    return values.reduce((sum, value) => sum + Number(value), 0) === Number(draft.value);
-});
-
-const canSubmit = computed(() => draft.value.trim() !== '' && (!props.collectsVisitorProvenance || provenanceComplete.value));
+// The count is required; on GDR the five origins must be filled and add up to it.
+const canSubmit = computed(() => canSubmitRecord(recordDraft.value, recordFlags.value));
 
 // Open the pencil on a seat (#450) — a schedule admin corrects any seat; `can_record` gates the
 // affordance and the SignUpPolicy re-checks the write. Cancel closes it and returns the form to
@@ -201,16 +201,7 @@ const cancelCorrection = () => {
 const submitRecord = () => {
     if (!canSubmit.value || recordTarget.value === null) return;
 
-    // The count is required and always sent; the extra is optional — a blank box files null.
-    const extra = props.collectsExtraInteractions && extraDraft.value.trim() !== '' ? Number(extraDraft.value) : null;
-
-    // GDR's five origins ride only where the Group collects them; `canSubmit` has already checked
-    // all five are filled and add up, so each parses cleanly to a whole number.
-    const provenance: VisitorProvenance | null = props.collectsVisitorProvenance
-        ? (Object.fromEntries(provenanceFields.map((f) => [f.key, Number(provenanceDrafts.value[f.key])])) as unknown as VisitorProvenance)
-        : null;
-
-    emit('record', { signUpId: recordTarget.value.signUpId, count: Number(draft.value), extra, provenance });
+    emit('record', { signUpId: recordTarget.value.signUpId, ...buildRecordPayload(recordDraft.value, recordFlags.value) });
     correctingSeat.value = null;
 };
 
