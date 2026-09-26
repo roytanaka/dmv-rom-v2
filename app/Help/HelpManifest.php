@@ -273,7 +273,7 @@ final class HelpManifest
             new HelpArticle('edit-your-groups-about-us-and-banner', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             // Group Settings tab (#608, ADR-0027) — the officers-only tab that holds a Group's settings.
             // Today every configuration right is a schedule admin's, so the badge reads Scheduler or Chair.
-            new HelpArticle('group-settings', HelpSection::Groups, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('group-settings', HelpSection::Groups, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
 
             new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
             new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),
@@ -292,10 +292,10 @@ final class HelpManifest
             new HelpArticle('assign-a-member-to-a-shift', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('correct-a-visitor-count', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('set-reminders-and-the-empty-desk-alert', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
-            new HelpArticle('manage-your-groups-shift-kinds', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('manage-your-groups-shift-kinds', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             // Self-serve maintenance for schedule admins (#590, ADR-0026 §3, §4, §8) — the Objects
             // handling collection and the off-site kind that widens their hold.
-            new HelpArticle('objects-and-off-site-stations', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Draft, route: 'groups.show'),
+            new HelpArticle('objects-and-off-site-stations', HelpSection::Scheduling, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
 
             // Hours and reports (#526) — the officer reports and the entry that feeds them.
             new HelpArticle('hours-and-reports', HelpSection::HoursAndReports, isOverview: true, status: ArticleStatus::Published, route: 'groups.hours.report'),

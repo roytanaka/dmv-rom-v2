@@ -187,29 +187,31 @@ it('lists the write-your-own-shift article as a no-role Scheduling article, mapp
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 
-it('lists the objects-and-off-site-stations article as a Scheduler/Chair Scheduling draft, mapped to the Group page', function () {
+it('lists the objects-and-off-site-stations article as a published Scheduler/Chair Scheduling article, mapped to the Group page', function () {
     // #590, ADR-0026 §3 and §4: a Scheduler maintains Objects and marks a kind off-site.
     // #608, ADR-0027 §2: the cards live on the Group Settings tab, a section of the Group page.
+    // #616: published once its screenshots landed.
     $article = (new HelpManifest)->find('objects-and-off-site-stations');
 
     expect($article)->not->toBeNull();
     expect($article->section)->toBe(HelpSection::Scheduling);
     expect($article->requires)->toBe(['scheduler', 'chair']);
     expect($article->route)->toBe('groups.show');
-    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->status)->toBe(ArticleStatus::Published);
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 
-it('lists the group-settings article as a Scheduler/Chair Groups draft, mapped to the Group page', function () {
+it('lists the group-settings article as a published Scheduler/Chair Groups article, mapped to the Group page', function () {
     // #608, ADR-0027 §1: the Settings tab is a Group tab, shown to officers with a configuration
     // right. Today every such right is a schedule admin's, so the badge reads Scheduler or Chair.
+    // #616: published once its screenshot landed.
     $article = (new HelpManifest)->find('group-settings');
 
     expect($article)->not->toBeNull();
     expect($article->section)->toBe(HelpSection::Groups);
     expect($article->requires)->toBe(['scheduler', 'chair']);
     expect($article->route)->toBe('groups.show');
-    expect($article->status)->toBe(ArticleStatus::Draft);
+    expect($article->status)->toBe(ArticleStatus::Published);
     expect($article->fr)->toBe(FrenchState::MachineTranslated);
 });
 

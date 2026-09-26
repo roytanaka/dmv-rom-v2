@@ -7,6 +7,8 @@ Ouvrez l'onglet **Paramètres** pour changer le fonctionnement de votre groupe. 
 1. Ouvrez votre groupe depuis la barre latérale.
 2. Sélectionnez l'onglet **Paramètres**. C'est le dernier onglet de la bande.
 
+    ![L'onglet Paramètres, dernier de la bande d'onglets, avec la carte Rappels de quart en haut](01.png)
+
 L'onglet affiche une carte pour chaque paramètre que vous pouvez changer.
 
 ## Ce que contient l'onglet

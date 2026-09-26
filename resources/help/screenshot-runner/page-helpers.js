@@ -315,8 +315,12 @@
 
     // A settings card on the Group Settings tab (ADR-0027 §2), found by its title. The tab and
     // its cards show only to a schedule admin.
+    function cardTitled(pattern) {
+        return Array.from(document.querySelectorAll('[data-slot="card"]')).find((element) => pattern.test(element.textContent.trim())) ?? null;
+    }
+
     function showCardTitled(pattern) {
-        const card = Array.from(document.querySelectorAll('[data-slot="card"]')).find((element) => pattern.test(element.textContent.trim()));
+        const card = cardTitled(pattern);
         if (!card) return false;
         scrollUnderStickyStrip(card, 16);
         return settle();
@@ -344,6 +348,28 @@
     // collection, with its add / rename / retire / reorder controls.
     function showObjects() {
         return showCardTitled(/^objects/i);
+    }
+
+    // The off-site station on the Shift kinds card (#587, ADR-0026 §4): the row whose Off-site box
+    // is checked. It sits last in the GI list, below the fold, so centre it in the shot.
+    function showOffSiteStation() {
+        const box = cardTitled(/^shift kinds/i)?.querySelector('li button[role="checkbox"][data-state="checked"]');
+        const row = box?.closest('li');
+        if (!row) return false;
+        row.scrollIntoView({ block: 'center' });
+        return settle();
+    }
+
+    // Choose the off-site station as the Kind in the open New shift dialog. The dialog does not
+    // mark which kind is off-site, so pick the GI demo's event station by name
+    // (DemoSeeder::GI_OFF_SITE_STATION). The select is a native v-model, so fire `change`.
+    function chooseOffSiteKind() {
+        const select = document.getElementById('shift-kind');
+        const option = select && Array.from(select.options).find((element) => element.textContent.trim() === 'CNE');
+        if (!option) return false;
+        select.value = option.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        return settle();
     }
 
     // Open the "Write my shift" dialog a self-serve Group's Member sees on an opened Schedule
@@ -606,6 +632,8 @@
         showShiftKinds,
         showSelfServeSettings,
         showObjects,
+        showOffSiteStation,
+        chooseOffSiteKind,
         openWriteMyShiftDialog,
         showMyWrittenShift,
         showUpcomingPlaceAMember,
