@@ -33,7 +33,7 @@ persona amara.abara@dmv.test
 start /dashboard
 
 nav /dashboard 01           # load a page, then shoot it
-act highlightHelpLink 02    # run one in-page helper, then shoot it
+act openHelpMenu 02        # run one in-page helper, then shoot it
 ```
 
 - `persona <email>` — the seeded account to log in as (see the table below).

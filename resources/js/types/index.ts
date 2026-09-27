@@ -28,6 +28,16 @@ export interface ChromeDestination {
 }
 
 /**
+ * The top-bar Help menu (ADR-0025 amendment, #675). Always a menu, even with one item:
+ * Help for this page (`key: 'page'`, only when a published article maps the route),
+ * then Help centre (`key: 'centre'`). Item hrefs arrive localized, like the destinations.
+ */
+export interface HelpMenu {
+    labelKey: string;
+    items: ChromeDestination[];
+}
+
+/**
  * One Group row on the server-built grouping rail (PRD #209): an as-authored `name`
  * (content — rendered verbatim in both locales, never translated; ADR-0004), a stable
  * slug `groupId`, an `href` already localized server-side (ADR-0008), and any nested
@@ -120,11 +130,11 @@ export interface SharedData {
      * destinations rendered identically on every page, distinct from a Group's
      * section set and the rail. `href` is localized server-side to the active locale
      * (ADR-0008); `labelKey` is resolved client-side via the i18n bridge. `help` is
-     * the right-cluster utility destination.
+     * the right-cluster Help menu.
      */
     chromeNav: {
         destinations: ChromeDestination[];
-        help: ChromeDestination;
+        help: HelpMenu;
     };
     /**
      * The grouping rail (PRD #209), built and pruned server-side per signed-in

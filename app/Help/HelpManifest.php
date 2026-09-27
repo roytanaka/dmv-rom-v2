@@ -153,8 +153,8 @@ final class HelpManifest
     }
 
     /**
-     * The published article a route name maps to, or null. Drives the top-bar "?"
-     * (ADR-0025): a match yields the article, anything else the index. Drafts never
+     * The published article a route name maps to, or null. Drives Help for this page
+     * in the top-bar Help menu (ADR-0025): a match yields the article, anything else no item. Drafts never
      * match, so a route mapped only by a draft resolves to null. When several
      * published articles map one page, a section overview wins over a task article
      * (a Group page opens the Groups overview, not "Record extra hours"); among

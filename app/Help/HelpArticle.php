@@ -21,14 +21,14 @@ use App\Enums\Role;
  * tracks whether the French copy has been reviewed. Both are ledger state, invisible
  * to readers.
  *
- * `route` is the name of the page route this article documents (ADR-0025). It maps
- * the top-bar "?" to the article for the page the Member is on. Parameterized routes
+ * `route` is the name of the page route this article documents (ADR-0025). It adds
+ * Help for this page, pointing at this article, to the top-bar Help menu on that page. Parameterized routes
  * match on name alone, so one article covers every instance (a Group's schedule page
  * for every Group). Null means the article maps to no page; a draft never matches.
  *
  * `routes` names the sibling views this same article also documents (ADR-0025 §9) —
  * a report page and its By month / Member history tabs share one article. Each name
- * resolves the "?" here and counts as mapped in the ledger, just like `route`. The
+ * resolves Help for this page here and counts as mapped in the ledger, just like `route`. The
  * ledger row still shows the primary `route`; {@see mappedRoutes()} joins the two.
  */
 final class HelpArticle
@@ -51,7 +51,7 @@ final class HelpArticle
 
     /**
      * Every page route this article maps: its primary {@see $route} and every sibling in
-     * {@see $routes}. Empty when it maps no page. Drives the "?" match and the ledger's
+     * {@see $routes}. Empty when it maps no page. Drives the Help for this page match and the ledger's
      * gap query — a name here is a page this article covers.
      *
      * @return list<string>

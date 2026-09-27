@@ -123,11 +123,11 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * The fixed global top-bar nav model (#194): the primary cross-domain
-     * destinations plus the Help utility, shared on every page. Each destination's
+     * destinations plus the Help menu, shared on every page. Each destination's
      * href is localized to the active locale (ADR-0008); declared gating is resolved
      * here against the signed-in member, so the client never echoes authority back.
      *
-     * @return array{destinations: list<array{key: string, labelKey: string, href: string}>, help: array{key: string, labelKey: string, href: string}}
+     * @return array{destinations: list<array{key: string, labelKey: string, href: string}>, help: array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}}
      */
     private function chromeNav(Request $request): array
     {
@@ -147,32 +147,39 @@ class HandleInertiaRequests extends Middleware
                 ->map(fn (array $spec) => $this->destination($spec))
                 ->values()
                 ->all(),
-            'help' => $this->helpDestination($request),
+            'help' => $this->helpMenu($request),
         ];
     }
 
     /**
-     * The Help utility destination for the top-bar "?" (ADR-0025). The middleware
-     * resolves the current request's route name against the help manifest: a match on
-     * a published article sets the href to that article, so "?" opens help for the page
-     * the Member is on; anything else — an unmapped page, or one mapped only by a draft
-     * — keeps the index. The TopBar component does not change; only this href does. The
-     * href is localized (ADR-0008) so switching language on the article stays on it.
+     * The top-bar Help menu (ADR-0025 amendment, #675). It is always a menu, even with
+     * one item. The middleware resolves the current route name against the help
+     * manifest: a published article adds Help for this page, first; an unmapped page, or
+     * one mapped only by a draft, gets no page item. Help centre is always there. Hrefs
+     * are localized (ADR-0008) so switching language on the article stays on it.
      *
-     * @return array{key: string, labelKey: string, href: string}
+     * @return array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}
      */
-    private function helpDestination(Request $request): array
+    private function helpMenu(Request $request): array
     {
         $routeName = $request->route()?->getName();
         $article = $routeName === null
             ? null
             : app(HelpManifest::class)->publishedForRoute($routeName);
 
-        $href = $article === null
-            ? $this->localizedPath('routes.help')
-            : $this->localizedPath('routes.help.show', ['article' => $article->slug]);
+        $items = [];
 
-        return ['key' => 'help', 'labelKey' => 'nav.help', 'href' => $href];
+        if ($article !== null) {
+            $items[] = [
+                'key' => 'page',
+                'labelKey' => 'nav.help_menu.page',
+                'href' => $this->localizedPath('routes.help.show', ['article' => $article->slug]),
+            ];
+        }
+
+        $items[] = ['key' => 'centre', 'labelKey' => 'nav.help_menu.centre', 'href' => $this->localizedPath('routes.help')];
+
+        return ['labelKey' => 'nav.help', 'items' => $items];
     }
 
     /**

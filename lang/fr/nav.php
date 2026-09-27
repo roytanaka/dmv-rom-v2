@@ -41,8 +41,12 @@ return [
         'no_results' => 'Aucun groupe correspondant',
     ],
 
-    // Utilitaire de la barre supérieure — la destination Aide (#194).
+    // Utilitaire de la barre supérieure — le menu Aide (#194, #675).
     'help' => 'Aide',
+    'help_menu' => [
+        'page' => 'Aide pour cette page',
+        'centre' => 'Centre d’aide',
+    ],
 
     // Le bandeau de titre du tableau de bord — fil d'Ariane + titre <Head> (#541).
     // Du chrome, donc traduit : l'anglais codé en dur transparaissait sous le chrome français.

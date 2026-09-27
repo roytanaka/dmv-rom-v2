@@ -56,6 +56,6 @@ class DashboardTest extends TestCase
                 ->where('chromeNav.destinations.1.key', 'calendar')
                 ->where('chromeNav.destinations.2.key', 'news')
                 ->where('chromeNav.destinations.3.key', 'directory')
-                ->where('chromeNav.help.key', 'help'));
+                ->where('chromeNav.help.labelKey', 'nav.help'));
     }
 }

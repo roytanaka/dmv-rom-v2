@@ -44,8 +44,12 @@ return [
         'no_results' => 'No matching groups',
     ],
 
-    // Top-bar utility — the Help destination in the right cluster (#194).
+    // Top-bar utility — the Help menu in the right cluster (#194, #675).
     'help' => 'Help',
+    'help_menu' => [
+        'page' => 'Help for this page',
+        'centre' => 'Help centre',
+    ],
 
     // The Dashboard title strip — breadcrumb + <Head> title (#541). Chrome, so it
     // translates: hard-coded English previously leaked through under French chrome.
