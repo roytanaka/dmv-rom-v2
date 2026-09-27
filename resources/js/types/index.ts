@@ -110,6 +110,11 @@ export interface SharedData {
      */
     timezone: string;
     /**
+     * The deployed version (#673): the short commit id and the deploy instant (UTC).
+     * Null in local development, where the footer shows "dev".
+     */
+    appVersion: { commit: string; deployedAt: string } | null;
+    /**
      * Per-locale URI-segment translation table (non-default locales only), used by
      * `useLocalizedHref` to keep English-canonical nav hrefs in the active locale
      * (ADR-0008). Keyed locale → { englishSegment: localisedSegment }.
