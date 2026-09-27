@@ -71,6 +71,21 @@ class FeedbackItem extends Model
     }
 
     /**
+     * The page URL as a link, or null. The client sent it, so it is linked only when it
+     * is a path inside the app: one leading slash, then no second slash or backslash
+     * (which a browser reads as another host), and no whitespace or control characters
+     * (which a browser strips, so they could hide either). Anything else shows as text.
+     */
+    public function pageHref(): ?string
+    {
+        if ($this->page_url === null || preg_match('#^/(?![/\\\\])[^\\s\\x00-\\x1f\\x7f]*$#', $this->page_url) !== 1) {
+            return null;
+        }
+
+        return $this->page_url;
+    }
+
+    /**
      * The flat comment list under this item (§8).
      *
      * @return HasMany<FeedbackComment, $this>

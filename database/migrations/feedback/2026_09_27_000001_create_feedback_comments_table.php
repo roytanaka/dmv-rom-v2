@@ -21,6 +21,9 @@ return new class extends Migration
             $table->string('tester_name', 100);
             $table->text('body');
             $table->timestamps();
+
+            // An item's comments list oldest first.
+            $table->index(['feedback_item_id', 'created_at']);
         });
     }
 

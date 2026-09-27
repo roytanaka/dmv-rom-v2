@@ -50,13 +50,8 @@ class FeedbackController extends Controller implements HasMiddleware
             ->orderByDesc('id')
             ->get()
             ->map(fn (FeedbackItem $item) => [
-                'id' => $item->id,
-                'typeLabelKey' => $item->type->labelKey(),
-                'status' => $item->status->value,
-                'statusLabelKey' => $item->status->labelKey(),
-                'testerName' => $item->tester_name,
+                ...$this->summary($item),
                 'excerpt' => Str::limit($item->message, 160),
-                'createdAt' => $item->created_at->toIso8601String(),
                 'href' => route('feedback.show', $item, false),
             ]);
 
@@ -69,30 +64,23 @@ class FeedbackController extends Controller implements HasMiddleware
      */
     public function show(FeedbackItem $feedbackItem): Response
     {
-        $item = $feedbackItem;
-
         return Inertia::render('feedback/Show', [
             'item' => [
-                'id' => $item->id,
-                'typeLabelKey' => $item->type->labelKey(),
-                'status' => $item->status->value,
-                'statusLabelKey' => $item->status->labelKey(),
-                'testerName' => $item->tester_name,
-                'message' => $item->message,
-                'createdAt' => $item->created_at->toIso8601String(),
-                'pageUrl' => $item->page_url,
-                'pageHref' => $this->pageHrefFor($item->page_url),
-                'routeName' => $item->route_name,
-                'locale' => $item->locale,
-                'userAgent' => $item->user_agent,
-                'viewportWidth' => $item->viewport_width,
-                'viewportHeight' => $item->viewport_height,
-                'memberName' => $item->member_name,
-                'memberEmail' => $item->member_email,
-                'impersonatorName' => $item->impersonator_name,
-                'appVersion' => $item->app_version,
+                ...$this->summary($feedbackItem),
+                'message' => $feedbackItem->message,
+                'pageUrl' => $feedbackItem->page_url,
+                'pageHref' => $feedbackItem->pageHref(),
+                'routeName' => $feedbackItem->route_name,
+                'locale' => $feedbackItem->locale,
+                'userAgent' => $feedbackItem->user_agent,
+                'viewportWidth' => $feedbackItem->viewport_width,
+                'viewportHeight' => $feedbackItem->viewport_height,
+                'memberName' => $feedbackItem->member_name,
+                'memberEmail' => $feedbackItem->member_email,
+                'impersonatorName' => $feedbackItem->impersonator_name,
+                'appVersion' => $feedbackItem->app_version,
             ],
-            'comments' => $item->comments()
+            'comments' => $feedbackItem->comments()
                 ->oldest()
                 ->orderBy('id')
                 ->get()
@@ -103,7 +91,7 @@ class FeedbackController extends Controller implements HasMiddleware
                     'createdAt' => $comment->created_at->toIso8601String(),
                 ]),
             'listHref' => route('feedback', [], false),
-            'commentHref' => route('feedback.comments.store', $item, false),
+            'commentHref' => route('feedback.comments.store', $feedbackItem, false),
         ]);
     }
 
@@ -143,18 +131,20 @@ class FeedbackController extends Controller implements HasMiddleware
     }
 
     /**
-     * The page URL as a link, or null. The client sent it, so it is linked only when it
-     * is a path inside the app: one leading slash, then no second slash or backslash
-     * (which a browser reads as another host), and no whitespace or control characters
-     * (which a browser strips, so they could hide either). Anything else shows as text.
+     * What the Feedback page row and the item page both show about an item.
+     *
+     * @return array<string, mixed>
      */
-    private function pageHrefFor(?string $pageUrl): ?string
+    private function summary(FeedbackItem $item): array
     {
-        if ($pageUrl === null || preg_match('#^/(?![/\\\\])[^\\s\\x00-\\x1f\\x7f]*$#', $pageUrl) !== 1) {
-            return null;
-        }
-
-        return $pageUrl;
+        return [
+            'id' => $item->id,
+            'typeLabelKey' => $item->type->labelKey(),
+            'status' => $item->status->value,
+            'statusLabelKey' => $item->status->labelKey(),
+            'testerName' => $item->tester_name,
+            'createdAt' => $item->created_at->toIso8601String(),
+        ];
     }
 
     /**
