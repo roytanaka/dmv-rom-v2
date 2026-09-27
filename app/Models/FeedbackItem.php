@@ -51,7 +51,7 @@ class FeedbackItem extends Model
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'status' => 'new',
+        'status' => FeedbackStatus::New->value,
     ];
 
     /**

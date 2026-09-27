@@ -37,7 +37,8 @@ class FeedbackController extends Controller implements HasMiddleware
     }
 
     /**
-     * The Feedback page: every item, newest first (§13).
+     * The Feedback page: every item, newest first (§13). No policy check beyond `auth`:
+     * every logged-in Tester reads every item (ADR-0029 §4).
      */
     public function index(): Response
     {
@@ -47,7 +48,6 @@ class FeedbackController extends Controller implements HasMiddleware
             ->get()
             ->map(fn (FeedbackItem $item) => [
                 'id' => $item->id,
-                'type' => $item->type->value,
                 'typeLabelKey' => $item->type->labelKey(),
                 'status' => $item->status->value,
                 'statusLabelKey' => $item->status->labelKey(),

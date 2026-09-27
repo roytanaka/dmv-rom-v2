@@ -188,7 +188,6 @@ it('lists every Feedback item, newest first', function () {
             ->component('feedback/Index')
             ->has('items', 2)
             ->where('items.0.id', $newer->id)
-            ->where('items.0.type', 'translation')
             ->where('items.0.typeLabelKey', 'feedback.type.translation')
             ->where('items.0.status', 'new')
             ->where('items.0.statusLabelKey', 'feedback.status.new')
@@ -196,6 +195,20 @@ it('lists every Feedback item, newest first', function () {
             ->where('items.0.excerpt', Str::limit($newer->message, 160))
             ->where('items.0.createdAt', $newer->created_at->toIso8601String())
             ->where('items.1.id', $older->id));
+});
+
+it('shows a sent item at the top of the Feedback page', function () {
+    FeedbackItem::factory()->create(['created_at' => now()->subHour()]);
+    $this->actingAs(Member::factory()->create());
+
+    $this->post('/feedback', feedbackPayload(['tester_name' => 'Just Sent']))->assertSessionHasNoErrors();
+
+    $this->get('/feedback')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('items', 2)
+            ->where('items.0.testerName', 'Just Sent')
+            ->where('items.0.statusLabelKey', 'feedback.status.new'));
 });
 
 it('sends a guest to login from the Feedback page and the store route', function () {

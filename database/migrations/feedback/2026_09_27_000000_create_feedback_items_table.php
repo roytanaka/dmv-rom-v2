@@ -37,6 +37,9 @@ return new class extends Migration
             $table->string('impersonator_name')->nullable();
             $table->string('app_version')->nullable();
             $table->timestamps();
+
+            // The Feedback page lists newest first.
+            $table->index('created_at');
         });
     }
 

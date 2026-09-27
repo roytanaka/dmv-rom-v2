@@ -12,7 +12,6 @@ import { computed } from 'vue';
 
 interface FeedbackRow {
     id: number;
-    type: string;
     typeLabelKey: string;
     status: string;
     statusLabelKey: string;
