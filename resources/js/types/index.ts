@@ -30,7 +30,10 @@ export interface ChromeDestination {
 /**
  * The top-bar Help menu (ADR-0025 amendment, #675). Always a menu, even with one item:
  * Help for this page (`key: 'page'`, only when a published article maps the route),
- * then Help centre (`key: 'centre'`). Item hrefs arrive localized, like the destinations.
+ * then Help centre (`key: 'centre'`). Outside production, Send feedback (`key:
+ * 'feedback-send'`, opens the dialog, which posts to its href) and See all feedback
+ * (`key: 'feedback-list'`) close the menu (#676). Item hrefs arrive localized, like the
+ * destinations.
  */
 export interface HelpMenu {
     labelKey: string;

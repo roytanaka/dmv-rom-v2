@@ -78,6 +78,14 @@ if [[ "$ENVIRONMENT" == "staging" ]]; then
 
     $ARTISAN migrate:fresh --seed --force
 
+    # Tester feedback (ADR-0029 §1) lives in a second database that deploys never
+    # reset: a plain migrate from its own folder, NEVER fresh. The config cache from
+    # the previous deploy can predate the feedback connection, so clear it first;
+    # Step 5 rebuilds it. Production has no feedback database and skips this.
+    echo "==> Step 3a: php artisan migrate --database=feedback (staging — never fresh)"
+    $ARTISAN config:clear
+    $ARTISAN migrate --database=feedback --path=database/migrations/feedback --force
+
     $ARTISAN up
     trap - EXIT
 else

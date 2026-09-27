@@ -46,6 +46,9 @@ return [
     'help_menu' => [
         'page' => 'Aide pour cette page',
         'centre' => 'Centre d’aide',
+        // Hors production seulement (#676, ADR-0029 §12).
+        'feedback_send' => 'Envoyer une rétroaction',
+        'feedback_list' => 'Voir toute la rétroaction',
     ],
 
     // Le bandeau de titre du tableau de bord — fil d'Ariane + titre <Head> (#541).
