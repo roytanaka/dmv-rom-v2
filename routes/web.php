@@ -5,6 +5,7 @@ use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\DownloadFeedbackScreenshotController;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\FeedbackTriageController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupEmptyDeskSettingsController;
 use App\Http\Controllers\GroupMemberController;
@@ -80,7 +81,7 @@ Route::group([
     Route::get(LaravelLocalization::transRoute('routes.help.show'), [HelpController::class, 'show'])
         ->middleware('auth')->name('help.show');
 
-    // Tester feedback (#676, #677, #678, ADR-0029). The Feedback page, the path the send dialog
+    // Tester feedback (#676, #677, #678, #679, ADR-0029). The Feedback page, the path the send dialog
     // posts to, one item's page, its comments, and each screenshot's download. Localized (/feedback ↔ /fr/retroaction)
     // so a send records the page's locale. Layer one of the two-layer environment boundary, like the Role-switcher:
     // registered only outside production. The controller refuses production as layer two.
@@ -95,6 +96,13 @@ Route::group([
             ->middleware('auth')->name('feedback.comments.store');
         Route::get(LaravelLocalization::transRoute('routes.feedback.screenshot'), DownloadFeedbackScreenshotController::class)
             ->middleware('auth')->name('feedback.screenshots.download');
+        // The Support-operator's triage (#679, ADR-0029 §7): status, delete an item, delete a comment.
+        Route::patch(LaravelLocalization::transRoute('routes.feedback.status'), [FeedbackTriageController::class, 'updateStatus'])
+            ->middleware('auth')->name('feedback.status.update');
+        Route::delete(LaravelLocalization::transRoute('routes.feedback.show'), [FeedbackTriageController::class, 'destroy'])
+            ->middleware('auth')->name('feedback.destroy');
+        Route::delete(LaravelLocalization::transRoute('routes.feedback.comment'), [FeedbackTriageController::class, 'destroyComment'])
+            ->middleware('auth')->name('feedback.comments.destroy');
     }
 
     // My Hours (#409, PRD #406, ADR-0022 §8). A Member's own hours, gathered from every

@@ -28,6 +28,26 @@ return [
         'date' => 'Date',
     ],
 
+    // The Feedback page filters (#679, §13).
+    'filter' => [
+        'type' => 'Type',
+        'status' => 'Status',
+        'all_types' => 'All types',
+        'all_statuses' => 'All statuses',
+        'clear' => 'Clear filters',
+        'empty' => 'No feedback matches these filters.',
+    ],
+
+    // The Support-operator's controls on an item's page (#679, §7).
+    'manage' => [
+        'title' => 'Manage',
+        'status' => 'Status',
+        'delete' => 'Delete item',
+        'delete_title' => 'Delete Feedback #:id?',
+        'delete_body' => 'This deletes the item, its screenshots, and its comments. You cannot undo this.',
+        'cancel' => 'Cancel',
+    ],
+
     // One item's page (#677, §13): the captured context, and the comments under it.
     'item' => [
         'title' => 'Feedback #:id',
@@ -67,6 +87,11 @@ return [
         'name' => 'Your name',
         'body' => 'Comment',
         'add' => 'Add comment',
+        'delete' => 'Delete',
+        'delete_label' => 'Delete the comment by :name',
+        'delete_title' => 'Delete this comment?',
+        'delete_body' => 'The comment by :name goes away for everyone. You cannot undo this.',
+        'delete_confirm' => 'Delete comment',
     ],
 
     // FeedbackType (ADR-0029 §6). Plain words: Testers do not know the word "legacy".

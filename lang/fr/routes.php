@@ -29,7 +29,9 @@ return [
     // francophone du DMV choisira le mot définitif.
     'feedback' => 'retroaction',
     'feedback.show' => 'retroaction/{feedbackItem}',
+    'feedback.status' => 'retroaction/{feedbackItem}/statut',
     'feedback.comments' => 'retroaction/{feedbackItem}/commentaires',
+    'feedback.comment' => 'retroaction/{feedbackItem}/commentaires/{feedbackComment}',
     'feedback.screenshot' => 'retroaction/captures/{feedbackScreenshot}',
 
     // Zone C — officer/admin
