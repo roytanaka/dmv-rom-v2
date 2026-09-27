@@ -20,7 +20,8 @@ class SafeFilename
      */
     private const MAX_EXTENSION_LENGTH = 20;
 
-    private const RESERVED = '/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i';
+    // Windows reserves the name before the first dot too: `CON.txt.png` is still `CON`.
+    private const RESERVED = '/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)/i';
 
     public static function from(string $name): string
     {
@@ -36,7 +37,7 @@ class SafeFilename
             $stem = 'file';
         }
         if (preg_match(self::RESERVED, $stem) === 1) {
-            $stem .= '_';
+            $stem = preg_replace('/^[^.]+/', '$0_', $stem) ?? $stem;
         }
 
         $suffix = $extension === '' ? '' : '.'.$extension;

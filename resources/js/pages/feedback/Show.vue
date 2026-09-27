@@ -14,8 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { formatFeedbackDate, STATUS_TONES } from '@/feedback/display';
-import { sizeLabel } from '@/feedback/screenshots';
+import { formatFeedbackDate, screenshotSize, STATUS_TONES } from '@/feedback/display';
 import { rememberedName, rememberName } from '@/feedback/testerName';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -79,12 +78,6 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 
 const formatDate = (iso: string): string => formatFeedbackDate(iso, page.props.locale, page.props.timezone);
 
-function sizeText(bytes: number): string {
-    const { key, size } = sizeLabel(bytes);
-
-    return trans(key, { size });
-}
-
 const viewport = computed(() =>
     props.item.viewportWidth === null || props.item.viewportHeight === null ? null : `${props.item.viewportWidth} × ${props.item.viewportHeight}`,
 );
@@ -124,8 +117,8 @@ function submit(): void {
 
             <p class="text-rom-ink text-base break-words whitespace-pre-line">{{ item.message }}</p>
 
-            <section v-if="screenshots.length" class="flex flex-col gap-3" aria-labelledby="feedback-screenshots">
-                <h2 id="feedback-screenshots" class="text-rom-ink text-base font-semibold">{{ trans('feedback.screenshots.title') }}</h2>
+            <section v-if="screenshots.length" class="flex flex-col gap-3" aria-labelledby="feedback-item-screenshots">
+                <h2 id="feedback-item-screenshots" class="text-rom-ink text-base font-semibold">{{ trans('feedback.screenshots.title') }}</h2>
                 <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <li v-for="screenshot in screenshots" :key="screenshot.id">
                         <!-- A plain link, not TextLink: TextLink makes an Inertia visit, and this is a file download. -->
@@ -135,7 +128,7 @@ function submit(): void {
                                 class="text-rom-slate decoration-rom-slate/40 group-hover:text-rom-slate-700 text-sm break-all underline underline-offset-4"
                                 >{{ screenshot.filename }}</span
                             >
-                            <span class="text-muted-foreground text-xs">{{ sizeText(screenshot.sizeBytes) }}</span>
+                            <span class="text-muted-foreground text-xs">{{ screenshotSize(screenshot.sizeBytes) }}</span>
                         </a>
                     </li>
                 </ul>

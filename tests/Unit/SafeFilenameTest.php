@@ -30,6 +30,7 @@ it('adds a suffix to a reserved Windows name', function (string $name, string $e
     'bare' => ['CON', 'CON_'],
     'with extension' => ['nul.png', 'nul_.png'],
     'numbered' => ['COM1.gif', 'COM1_.gif'],
+    'with two extensions' => ['con.txt.png', 'con_.txt.png'],
 ]);
 
 it('caps the name at 200 characters and keeps the extension', function () {

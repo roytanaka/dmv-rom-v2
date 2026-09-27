@@ -9,7 +9,7 @@ const image = (name: string, type = 'image/png', size = 1000): File => new File(
 test('adds PNG, JPEG, WebP, and GIF images', () => {
     const incoming = [image('a.png'), image('b.jpg', 'image/jpeg'), image('c.webp', 'image/webp')];
 
-    const result = addScreenshots([], incoming);
+    const result = addScreenshots([], incoming, 'Pasted image');
 
     assert.deepEqual(result.files, incoming);
     assert.deepEqual(result.errors, []);
@@ -18,7 +18,7 @@ test('adds PNG, JPEG, WebP, and GIF images', () => {
 test('keeps the images already in the list', () => {
     const first = image('first.gif', 'image/gif');
 
-    const result = addScreenshots([first], [image('second.png')]);
+    const result = addScreenshots([first], [image('second.png')], 'Pasted image');
 
     assert.deepEqual(
         result.files.map((file) => file.name),
@@ -27,7 +27,7 @@ test('keeps the images already in the list', () => {
 });
 
 test('refuses a file that is not an allowed image', () => {
-    const result = addScreenshots([], [image('notes.pdf', 'application/pdf'), image('photo.heic', 'image/heic')]);
+    const result = addScreenshots([], [image('notes.pdf', 'application/pdf'), image('photo.heic', 'image/heic')], 'Pasted image');
 
     assert.deepEqual(result.files, []);
     assert.deepEqual(result.errors, [
@@ -40,6 +40,7 @@ test('refuses an image over 5 MB', () => {
     const result = addScreenshots(
         [],
         [image('full-page.png', 'image/png', MAX_SCREENSHOT_BYTES + 1), image('ok.png', 'image/png', MAX_SCREENSHOT_BYTES)],
+        'Pasted image',
     );
 
     assert.deepEqual(
@@ -50,7 +51,7 @@ test('refuses an image over 5 MB', () => {
 });
 
 test('refuses every image past the third', () => {
-    const result = addScreenshots([image('1.png'), image('2.png')], [image('3.png'), image('4.png'), image('5.png')]);
+    const result = addScreenshots([image('1.png'), image('2.png')], [image('3.png'), image('4.png'), image('5.png')], 'Pasted image');
 
     assert.deepEqual(
         result.files.map((file) => file.name),

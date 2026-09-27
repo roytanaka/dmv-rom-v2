@@ -19,7 +19,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { buildClientContext } from '@/feedback/clientContext';
-import { addScreenshots, MAX_SCREENSHOTS, SCREENSHOT_TYPES, sizeLabel, type ScreenshotError } from '@/feedback/screenshots';
+import { screenshotSize } from '@/feedback/display';
+import { addScreenshots, MAX_SCREENSHOTS, SCREENSHOT_TYPES, type ScreenshotError } from '@/feedback/screenshots';
 import { rememberedName, rememberName } from '@/feedback/testerName';
 import { useForm } from '@inertiajs/vue3';
 import { PhCheckCircle, PhUploadSimple, PhX } from '@phosphor-icons/vue';
@@ -88,34 +89,51 @@ function onPick(event: Event): void {
     input.value = '';
 }
 
-// The zone stays lit while the pointer moves over its children.
-function onDragLeave(event: DragEvent): void {
+const dragsFiles = (event: DragEvent): boolean => event.dataTransfer?.types.includes('Files') ?? false;
+
+// The zone lights only for files, and stays lit while the pointer moves over its children.
+function onZoneDragOver(event: DragEvent): void {
+    if (dragsFiles(event)) {
+        dragging.value = true;
+    }
+}
+
+function onZoneDragLeave(event: DragEvent): void {
     if (!(event.currentTarget as Node).contains(event.relatedTarget as Node | null)) {
         dragging.value = false;
     }
 }
 
-function onDrop(event: DragEvent): void {
+// The whole form takes a file drop, so a file that misses the zone is added, not opened
+// by the browser over the form. A drop of text goes into the field as usual.
+function onFormDragOver(event: DragEvent): void {
+    if (dragsFiles(event)) {
+        event.preventDefault();
+    }
+}
+
+function onFormDrop(event: DragEvent): void {
     dragging.value = false;
+
+    if (!dragsFiles(event)) {
+        return;
+    }
+
+    event.preventDefault();
     addFiles(Array.from(event.dataTransfer?.files ?? []));
 }
 
-// A paste with files adds them; a paste of text goes into the field as usual.
+// A paste of an image adds it. A paste that carries text too (a copy from Word, say, which
+// adds a picture of the text) goes into the field as text.
 function onPaste(event: ClipboardEvent): void {
     const files = Array.from(event.clipboardData?.files ?? []);
 
-    if (files.length === 0) {
+    if (files.length === 0 || event.clipboardData?.types.includes('text/plain')) {
         return;
     }
 
     event.preventDefault();
     addFiles(files);
-}
-
-function sizeText(bytes: number): string {
-    const { key, size } = sizeLabel(bytes);
-
-    return trans(key, { size });
 }
 
 onBeforeUnmount(clearShots);
@@ -166,7 +184,7 @@ function submit(): void {
                 </DialogFooter>
             </div>
 
-            <form v-else class="flex flex-col gap-4" @submit.prevent="submit" @paste="onPaste">
+            <form v-else class="flex flex-col gap-4" @submit.prevent="submit" @paste="onPaste" @dragover="onFormDragOver" @drop="onFormDrop">
                 <div class="grid gap-2">
                     <Label for="feedback-name">{{ trans('feedback.dialog.name') }}</Label>
                     <Input
@@ -208,10 +226,9 @@ function submit(): void {
                     <div
                         class="flex flex-col items-center gap-2 border-2 border-dashed p-4 text-center text-sm"
                         :class="dragging ? 'border-rom-slate bg-rom-slate-50' : 'border-input bg-muted'"
-                        @dragenter.prevent="dragging = true"
-                        @dragover.prevent="dragging = true"
-                        @dragleave="onDragLeave"
-                        @drop.prevent="onDrop"
+                        @dragenter="onZoneDragOver"
+                        @dragover="onZoneDragOver"
+                        @dragleave="onZoneDragLeave"
                     >
                         <PhUploadSimple class="text-muted-foreground size-6" aria-hidden="true" />
                         <div class="flex flex-wrap items-center justify-center gap-2">
@@ -247,7 +264,7 @@ function submit(): void {
                                 </Button>
                             </div>
                             <span class="truncate text-sm">{{ shotName(shot.file) }}</span>
-                            <span class="text-muted-foreground text-xs">{{ sizeText(shot.file.size) }}</span>
+                            <span class="text-muted-foreground text-xs">{{ screenshotSize(shot.file.size) }}</span>
                         </li>
                     </ul>
                     <ul v-if="fileErrors.length || serverFileErrors.length" role="alert" class="text-destructive flex flex-col gap-1 text-sm">

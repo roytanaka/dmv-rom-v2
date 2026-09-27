@@ -44,7 +44,9 @@ class StoreFeedbackItemRequest extends FormRequest
             'viewport_width' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'viewport_height' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'screenshots' => ['array', 'max:'.self::MAX_SCREENSHOTS],
-            'screenshots.*' => ['file', new FeedbackScreenshotImage],
+            // No `file` rule: with one present, Laravel answers a file PHP refused as too
+            // large with its generic "failed to upload" before this rule can name the size.
+            'screenshots.*' => [new FeedbackScreenshotImage],
         ];
     }
 

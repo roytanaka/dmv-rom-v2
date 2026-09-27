@@ -16,6 +16,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * item page shows each screenshot through this route. Every download passes a policy
  * check, as the hard rules require ({@see FeedbackScreenshotPolicy}).
  *
+ * No access log, unlike the Documents download flow (docs/conventions.md § Documents): the
+ * item page loads every screenshot as an image, so a log line would record page views, and
+ * a Tester's screenshot is not Member data.
+ *
  * The same two-layer environment boundary as {@see FeedbackController}: the route is
  * registered only outside production, and this middleware returns 404 in production.
  */

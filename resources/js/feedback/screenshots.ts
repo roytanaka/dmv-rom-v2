@@ -12,7 +12,7 @@ export interface ScreenshotError {
     name: string;
 }
 
-export function addScreenshots(current: File[], incoming: File[], fallbackName = ''): { files: File[]; errors: ScreenshotError[] } {
+export function addScreenshots(current: File[], incoming: File[], fallbackName: string): { files: File[]; errors: ScreenshotError[] } {
     const files = [...current];
     const errors: ScreenshotError[] = [];
 

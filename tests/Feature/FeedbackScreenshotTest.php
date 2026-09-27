@@ -111,6 +111,25 @@ it('rejects an image over 5 MB', function () {
     expect(FeedbackItem::count())->toBe(0);
 });
 
+it('rejects an image the server refused as too large before validation', function () {
+    // PHP drops a file over upload_max_filesize and flags the upload; no contents reach us.
+    $refused = new UploadedFile(UploadedFile::fake()->image('huge.png')->getPathname(), 'huge.png', 'image/png', UPLOAD_ERR_INI_SIZE, true);
+
+    $this->actingAs(Member::factory()->create())
+        ->post('/feedback', screenshotPayload([$refused]))
+        ->assertSessionHasErrors(['screenshots.0' => 'huge.png was not added. It is larger than 5 MB.']);
+
+    expect(FeedbackItem::count())->toBe(0);
+});
+
+it('rejects a screenshot that is not a file', function () {
+    $this->actingAs(Member::factory()->create())
+        ->post('/feedback', screenshotPayload(['not-a-file']))
+        ->assertSessionHasErrors('screenshots.0');
+
+    expect(FeedbackItem::count())->toBe(0);
+});
+
 it('rejects the files in French for a French page', function () {
     $this->withLocaleRoutes('fr', function () {
         $this->actingAs(Member::factory()->create())
@@ -155,6 +174,22 @@ it('lets any logged-in Member download a screenshot with its original name', fun
         ->assertHeader('Content-Type', 'image/png');
 
     expect($response->streamedContent())->toBe('png-bytes');
+});
+
+it('serves the French item page and download at /fr/retroaction', function () {
+    $screenshot = FeedbackScreenshot::factory()->create(['original_filename' => 'capture.png']);
+    Storage::disk('local')->put($screenshot->storage_path, 'png-bytes');
+    $this->actingAs(Member::factory()->create());
+
+    $this->withLocaleRoutes('fr', function () use ($screenshot) {
+        $this->get("/fr/retroaction/{$screenshot->feedback_item_id}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('screenshots.0.href', "/fr/retroaction/captures/{$screenshot->id}"));
+
+        $this->get("/fr/retroaction/captures/{$screenshot->id}")
+            ->assertOk()
+            ->assertDownload('capture.png');
+    });
 });
 
 it('returns 404 for a screenshot whose file is gone', function () {

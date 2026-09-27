@@ -23,10 +23,22 @@ class FeedbackScreenshotImage implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (! $value instanceof UploadedFile) {
+            $fail('validation.file')->translate();
+
             return;
         }
 
         $name = ['name' => $value->getClientOriginalName()];
+
+        // PHP refused the upload, so there are no contents to sniff. A file over the host's
+        // upload limit gets the size message.
+        if (! $value->isValid()) {
+            $fail(in_array($value->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)
+                ? 'feedback.screenshots.error_size'
+                : 'validation.uploaded')->translate($name);
+
+            return;
+        }
 
         if (! in_array($value->getMimeType(), self::ALLOWED_MIMES, true)) {
             $fail('feedback.screenshots.error_type')->translate($name);
