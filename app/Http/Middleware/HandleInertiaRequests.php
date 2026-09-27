@@ -125,8 +125,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The deployed version (#673), from the version.json that scripts/deploy.sh
-     * writes. Null when nothing was deployed (local development).
+     * The deployed version (#673), from the version.json that scripts/deploy.sh writes.
      *
      * @return array{commit: string, deployedAt: string}|null
      */

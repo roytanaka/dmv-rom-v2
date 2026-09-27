@@ -25,7 +25,7 @@ if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
     exit 2
 fi
 
-if [[ ! "$COMMIT_SHA" =~ ^[0-9a-f]{7,40}$ || -z "$DEPLOYED_AT" ]]; then
+if [[ ! "$COMMIT_SHA" =~ ^[0-9a-f]{7,40}$ || ! "$DEPLOYED_AT" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
     echo "Error: pass the commit SHA and the deploy time (got: '$COMMIT_SHA' '$DEPLOYED_AT')" >&2
     exit 2
 fi
@@ -138,7 +138,7 @@ fi
 # The footer shows the deployed version (#673). config/app.php reads this file,
 # so write it before config:cache bakes it in. The rsync --delete drops the
 # previous deploy's copy (it is not in the bundle); this writes the new one.
-echo "==> Step 4: write version.json ($COMMIT_SHA, $DEPLOYED_AT)"
+echo "==> Step 4a: write version.json ($COMMIT_SHA, $DEPLOYED_AT)"
 printf '{"commit":"%s","deployed_at":"%s"}\n' "$COMMIT_SHA" "$DEPLOYED_AT" > version.json
 
 echo "==> Step 5: framework caches"
