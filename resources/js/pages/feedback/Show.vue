@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// One Feedback item's page (#677, ADR-0029 §8, §13): the message, the captured context,
-// and the comments, oldest first. Any logged-in Member may comment. Outside production
+// One Feedback item's page (#677, ADR-0029 §8, §13): the message, its screenshots (#678,
+// §9), the captured context, and the comments, oldest first. Any logged-in Member may comment. Outside production
 // only. Type and status labels are chrome; the Tester's name, message, and comments are
 // content, shown as sent.
 //
@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { formatFeedbackDate, STATUS_TONES } from '@/feedback/display';
+import { formatFeedbackDate, screenshotSize, STATUS_TONES } from '@/feedback/display';
 import { rememberedName, rememberName } from '@/feedback/testerName';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -44,6 +44,14 @@ interface FeedbackItemDetail {
     appVersion: string | null;
 }
 
+// Each screenshot loads through its download route, which checks the policy.
+interface FeedbackScreenshotRow {
+    id: number;
+    filename: string;
+    sizeBytes: number;
+    href: string;
+}
+
 interface FeedbackCommentRow {
     id: number;
     testerName: string;
@@ -53,6 +61,7 @@ interface FeedbackCommentRow {
 
 const props = defineProps<{
     item: FeedbackItemDetail;
+    screenshots: FeedbackScreenshotRow[];
     comments: FeedbackCommentRow[];
     listHref: string;
     commentHref: string;
@@ -107,6 +116,23 @@ function submit(): void {
             </header>
 
             <p class="text-rom-ink text-base break-words whitespace-pre-line">{{ item.message }}</p>
+
+            <section v-if="screenshots.length" class="flex flex-col gap-3" aria-labelledby="feedback-item-screenshots">
+                <h2 id="feedback-item-screenshots" class="text-rom-ink text-base font-semibold">{{ trans('feedback.screenshots.title') }}</h2>
+                <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <li v-for="screenshot in screenshots" :key="screenshot.id">
+                        <!-- A plain link, not TextLink: TextLink makes an Inertia visit, and this is a file download. -->
+                        <a :href="screenshot.href" class="group flex flex-col gap-1">
+                            <img :src="screenshot.href" :alt="screenshot.filename" class="bg-muted aspect-video w-full border object-contain" />
+                            <span
+                                class="text-rom-slate decoration-rom-slate/40 group-hover:text-rom-slate-700 text-sm break-all underline underline-offset-4"
+                                >{{ screenshot.filename }}</span
+                            >
+                            <span class="text-muted-foreground text-xs">{{ screenshotSize(screenshot.sizeBytes) }}</span>
+                        </a>
+                    </li>
+                </ul>
+            </section>
 
             <Card>
                 <CardHeader>

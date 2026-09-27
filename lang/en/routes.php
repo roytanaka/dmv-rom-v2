@@ -30,12 +30,14 @@ return [
     // both locales — so only the 'help' word changes in the French twin.
     'help' => 'help',
     'help.show' => 'help/{article}',
-    // Tester feedback (#676, #677, ADR-0029): the Feedback page and the path the send
-    // dialog posts to, one item's page, and the path its comment form posts to.
+    // Tester feedback (#676, #677, #678, ADR-0029): the Feedback page and the path the send
+    // dialog posts to, one item's page, the path its comment form posts to, and a
+    // screenshot's download.
     // Registered outside production only.
     'feedback' => 'feedback',
     'feedback.show' => 'feedback/{feedbackItem}',
     'feedback.comments' => 'feedback/{feedbackItem}/comments',
+    'feedback.screenshot' => 'feedback/screenshots/{feedbackScreenshot}',
 
     // Zone C — officer/admin
     'officer.members' => 'officer/members',

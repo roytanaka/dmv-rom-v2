@@ -94,4 +94,14 @@ class FeedbackItem extends Model
     {
         return $this->hasMany(FeedbackComment::class);
     }
+
+    /**
+     * The screenshots sent with this item, at most 3 (§9).
+     *
+     * @return HasMany<FeedbackScreenshot, $this>
+     */
+    public function screenshots(): HasMany
+    {
+        return $this->hasMany(FeedbackScreenshot::class);
+    }
 }

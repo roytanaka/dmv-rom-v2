@@ -44,6 +44,21 @@ return [
         'none' => 'Aucun',
     ],
 
+    'screenshots' => [
+        'title' => 'Captures d’écran',
+        'drop' => 'Glissez ou collez des images ici, ou',
+        'choose' => 'Choisir des fichiers',
+        'list' => 'Captures d’écran à envoyer',
+        'remove' => 'Retirer :name',
+        'pasted' => 'Image collée',
+        'size_kb' => ':size Ko',
+        'size_mb' => ':size Mo',
+        'error_type' => ':name n’a pas été ajouté. Utilisez une image PNG, JPEG, WebP ou GIF.',
+        'error_size' => ':name n’a pas été ajouté. Il dépasse 5 Mo.',
+        'error_limit' => ':name n’a pas été ajouté. Vous pouvez ajouter jusqu’à :max captures d’écran.',
+        'error_count' => 'Vous pouvez ajouter jusqu’à :max captures d’écran.',
+    ],
+
     'comments' => [
         'title' => 'Commentaires',
         'empty' => 'Aucun commentaire pour le moment.',
