@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\FeedbackStatus;
+use App\Enums\FeedbackType;
 use App\Http\Requests\StoreFeedbackCommentRequest;
 use App\Http\Requests\StoreFeedbackItemRequest;
 use App\Models\FeedbackComment;
@@ -23,7 +25,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
  * Tester feedback (#676, #677, #678, ADR-0029): send a Feedback item with its screenshots,
- * list them all on the Feedback page, open one on its own page, and comment on it. Any
+ * list them on the Feedback page, filtered by type and status (#679), open one on its own page, and comment on it. Any
  * logged-in Member may do all of these (§4).
  *
  * The environment boundary has two layers, like the Role-switcher (ADR-0009):
@@ -43,12 +45,19 @@ class FeedbackController extends Controller implements HasMiddleware
     }
 
     /**
-     * The Feedback page: every item, newest first (§13). No policy check beyond `auth`:
-     * every logged-in Tester reads every item (ADR-0029 §4).
+     * The Feedback page: every item, newest first, filtered by type and by status (§13).
+     * The filters are query parameters, so a filtered list has a URL. A value that names
+     * no type or status is ignored. No policy check beyond `auth`: every logged-in Tester
+     * reads every item (ADR-0029 §4).
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $type = FeedbackType::tryFrom($this->queryString($request, 'type'));
+        $status = FeedbackStatus::tryFrom($this->queryString($request, 'status'));
+
         $items = FeedbackItem::query()
+            ->when($type, fn ($query) => $query->where('type', $type))
+            ->when($status, fn ($query) => $query->where('status', $status))
             ->latest()
             ->orderByDesc('id')
             ->get()
@@ -58,14 +67,22 @@ class FeedbackController extends Controller implements HasMiddleware
                 'href' => route('feedback.show', $item, false),
             ]);
 
-        return Inertia::render('feedback/Index', ['items' => $items]);
+        return Inertia::render('feedback/Index', [
+            'items' => $items,
+            'filters' => ['type' => $type?->value, 'status' => $status?->value],
+            'types' => $this->options(FeedbackType::cases()),
+            'statuses' => $this->options(FeedbackStatus::cases()),
+            'listHref' => route('feedback', [], false),
+        ]);
     }
 
     /**
      * One Feedback item's page (§13): the message, its screenshots (§9), everything
      * captured with it, and the comments, oldest first (§8). Every logged-in Tester reads every item (§4).
+     * Only the Support-operator sees the status picker and the delete controls (§7, #679).
+     * `can.manage` reads the same direct predicate as the triage Form Requests.
      */
-    public function show(FeedbackItem $feedbackItem): Response
+    public function show(Request $request, FeedbackItem $feedbackItem): Response
     {
         return Inertia::render('feedback/Show', [
             'item' => [
@@ -101,9 +118,14 @@ class FeedbackController extends Controller implements HasMiddleware
                     'testerName' => $comment->tester_name,
                     'body' => $comment->body,
                     'createdAt' => $comment->created_at->toIso8601String(),
+                    'deleteHref' => route('feedback.comments.destroy', [$feedbackItem, $comment], false),
                 ]),
             'listHref' => route('feedback', [], false),
             'commentHref' => route('feedback.comments.store', $feedbackItem, false),
+            'can' => ['manage' => $request->user()->isSupportOperator()],
+            'statuses' => $this->options(FeedbackStatus::cases()),
+            'statusHref' => route('feedback.status.update', $feedbackItem, false),
+            'deleteHref' => route('feedback.destroy', $feedbackItem, false),
         ]);
     }
 
@@ -162,6 +184,31 @@ class FeedbackController extends Controller implements HasMiddleware
             'testerName' => $item->tester_name,
             'createdAt' => $item->created_at->toIso8601String(),
         ];
+    }
+
+    /**
+     * The picker options for a Feedback enum, in case order: each value with its label key.
+     *
+     * @param  list<FeedbackType>|list<FeedbackStatus>  $cases
+     * @return list<array{value: string, labelKey: string}>
+     */
+    private function options(array $cases): array
+    {
+        return array_map(fn (FeedbackType|FeedbackStatus $case) => [
+            'value' => $case->value,
+            'labelKey' => $case->labelKey(),
+        ], $cases);
+    }
+
+    /**
+     * A query parameter as a string, or an empty string when it is missing or not a string
+     * (`?type[]=bug`), so `tryFrom()` answers null for it.
+     */
+    private function queryString(Request $request, string $key): string
+    {
+        $value = $request->query($key);
+
+        return is_string($value) ? $value : '';
     }
 
     /**

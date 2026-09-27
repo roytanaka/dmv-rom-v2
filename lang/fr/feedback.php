@@ -29,6 +29,24 @@ return [
         'date' => 'Date',
     ],
 
+    'filter' => [
+        'type' => 'Type',
+        'status' => 'Statut',
+        'all_types' => 'Tous les types',
+        'all_statuses' => 'Tous les statuts',
+        'clear' => 'Effacer les filtres',
+        'empty' => 'Aucune rétroaction ne correspond à ces filtres.',
+    ],
+
+    'manage' => [
+        'title' => 'Gérer',
+        'status' => 'Statut',
+        'delete' => 'Supprimer la rétroaction',
+        'delete_title' => 'Supprimer la rétroaction nº :id?',
+        'delete_body' => 'Cette action supprime la rétroaction, ses captures d’écran et ses commentaires. Vous ne pouvez pas l’annuler.',
+        'cancel' => 'Annuler',
+    ],
+
     'item' => [
         'title' => 'Rétroaction nº :id',
         'sent_by' => 'Envoyée par :name',
@@ -65,6 +83,11 @@ return [
         'name' => 'Votre nom',
         'body' => 'Commentaire',
         'add' => 'Ajouter le commentaire',
+        'delete' => 'Supprimer',
+        'delete_label' => 'Supprimer le commentaire de :name',
+        'delete_title' => 'Supprimer ce commentaire?',
+        'delete_body' => 'Le commentaire de :name disparaît pour tout le monde. Vous ne pouvez pas l’annuler.',
+        'delete_confirm' => 'Supprimer le commentaire',
     ],
 
     'type' => [

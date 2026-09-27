@@ -32,11 +32,14 @@ return [
     'help.show' => 'help/{article}',
     // Tester feedback (#676, #677, #678, ADR-0029): the Feedback page and the path the send
     // dialog posts to, one item's page, the path its comment form posts to, and a
-    // screenshot's download.
+    // screenshot's download. The Support-operator's status change and comment delete
+    // (#679) sit under the item.
     // Registered outside production only.
     'feedback' => 'feedback',
     'feedback.show' => 'feedback/{feedbackItem}',
+    'feedback.status' => 'feedback/{feedbackItem}/status',
     'feedback.comments' => 'feedback/{feedbackItem}/comments',
+    'feedback.comment' => 'feedback/{feedbackItem}/comments/{feedbackComment}',
     'feedback.screenshot' => 'feedback/screenshots/{feedbackScreenshot}',
 
     // Zone C — officer/admin

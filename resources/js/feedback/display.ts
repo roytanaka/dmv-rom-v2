@@ -3,6 +3,13 @@ import { type BadgeVariants } from '@/components/ui/badge';
 import { sizeLabel } from '@/feedback/screenshots';
 import { trans } from 'laravel-vue-i18n';
 
+// A Feedback type or status as the server lists it for a picker (#679): the stored value
+// and its label's lang key.
+export interface FeedbackOption {
+    value: string;
+    labelKey: string;
+}
+
 // Status tones (ADR-0029 design): New info, Confirmed warning, Fixed success, Won't fix
 // secondary, Duplicate outline.
 export const STATUS_TONES: Record<string, BadgeVariants['variant']> = {
