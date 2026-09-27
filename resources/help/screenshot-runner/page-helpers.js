@@ -49,20 +49,6 @@
         return response.ok || response.redirected;
     }
 
-    // Highlight the top-bar "?" so a shot can point at it without a drawn arrow.
-    // A synthetic hover would not set CSS :hover (browsers trust real pointers
-    // only), so we paint the highlighted state on directly. The link resolves to
-    // an article or the index, so it always carries a /help or /aide href.
-    function highlightHelpLink() {
-        const link = document.querySelector('header a[href*="/help"], header a[href*="/aide"]');
-        if (!link) return false;
-        link.style.color = '#ffffff';
-        link.style.outline = '2px solid rgba(255, 255, 255, 0.7)';
-        link.style.outlineOffset = '2px';
-        link.style.borderRadius = '4px';
-        return true;
-    }
-
     // Open a Radix menu. agent-browser cannot click one open, so we drive its keyboard
     // contract: focus the trigger and press Enter, which reka-ui opens the menu on.
     function pressEnterOn(trigger) {
@@ -70,6 +56,12 @@
         trigger.focus();
         trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         return true;
+    }
+
+    // Open the top-bar Help menu (the "?"). Its trigger carries the Help label as its
+    // accessible name (English chrome, the language the shots are taken in).
+    function openHelpMenu() {
+        return pressEnterOn(document.querySelector('header [aria-haspopup="menu"][aria-label="Help"]'));
     }
 
     // Open the desktop locale switcher (the globe menu, shown at lg+). The trigger is the
@@ -682,7 +674,7 @@
 
     window.__help = {
         login,
-        highlightHelpLink,
+        openHelpMenu,
         openLanguageSwitcher,
         openNewsComposer,
         openFirstSchedule,

@@ -133,7 +133,7 @@ adds the image links and captions, and flips the article from draft to published
 ## The draft-to-publish flow
 
 A new article lands as `status: draft`. Drafts are hidden from the index and the
-top-bar "?" link, but they still render at their URL, so a reviewer reads them on
+top-bar Help menu, but they still render at their URL, so a reviewer reads them on
 staging with real chrome. The article stays draft until its screenshots land; a
 developer takes the shots, checks the article against the live chrome, and flips
 the entry to `status: published` in the same or a follow-up pull request.
@@ -168,8 +168,8 @@ new HelpArticle(
 - `requires` is the Required-role badge. Each string is a role token from
   `HelpManifest::requirableRoles()` — a `Role` value, or `super_tier` /
   `support_operator`. An empty array means every Member.
-- `route` is the name of the page route the article documents. It maps the
-  top-bar "?" to this article. Null means the article maps to no page.
+- `route` is the name of the page route the article documents. It adds Help for
+  this page to the top-bar Help menu on that page. Null means the article maps to no page.
 - Add the `HelpSection` case first if the section is new, with its label in
   `lang/en/help.php` and `lang/fr/help.php`.
 

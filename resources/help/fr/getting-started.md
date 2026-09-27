@@ -20,6 +20,6 @@ Vos groupes se trouvent dans la barre latérale gauche, sous Mes groupes. Chaque
 
 ## Où trouver de l'aide
 
-Sélectionnez Aide dans la barre supérieure. L'aide ouvre l'article de la page où vous êtes. Chaque article vous donne de courtes étapes à suivre.
+Sélectionnez Aide dans la barre supérieure. Sélectionnez Aide pour cette page pour ouvrir l'article de la page où vous êtes. Sélectionnez Centre d’aide pour voir tous les articles. Chaque article vous donne de courtes étapes à suivre.
 
-![Le lien Aide dans la barre supérieure, encadré, à gauche du menu de langue et de vos initiales](02.png)
+![Le menu Aide ouvert dans la barre supérieure, avec Aide pour cette page et Centre d’aide](02.png)

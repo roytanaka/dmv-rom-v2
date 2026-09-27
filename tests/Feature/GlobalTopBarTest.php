@@ -21,18 +21,33 @@ use Inertia\Testing\AssertableInertia as Assert;
  * in both locales (including the /fr/ twin of each link).
  */
 
-// The fixed global strip, in render order, with its English-canonical hrefs. The Help
-// href is the index unless a published article maps the page. The Dashboard's is the
-// Getting started tour; the Group page's is "Record extra hours" until the Groups
-// overview publishes (#525) and, as the section overview, takes the route over.
-function assertEnglishDestinations(Assert $page, string $helpHref = '/help'): Assert
+// The fixed global strip, in render order, with its English-canonical hrefs, then the
+// Help menu. The Dashboard maps the Getting started tour; the Group page maps the Groups
+// overview; settings maps the settings article.
+function assertEnglishDestinations(Assert $page, string $articleHref): Assert
 {
     return $page
         ->where('chromeNav.destinations.0', ['key' => 'hours', 'labelKey' => 'nav.personal.hours', 'href' => '/hours'])
         ->where('chromeNav.destinations.1', ['key' => 'calendar', 'labelKey' => 'nav.personal.calendar', 'href' => '/calendar'])
         ->where('chromeNav.destinations.2', ['key' => 'news', 'labelKey' => 'nav.personal.news', 'href' => '/news'])
         ->where('chromeNav.destinations.3', ['key' => 'directory', 'labelKey' => 'nav.personal.directory', 'href' => '/directory'])
-        ->where('chromeNav.help', ['key' => 'help', 'labelKey' => 'nav.help', 'href' => $helpHref]);
+        ->where('chromeNav.help', helpMenu(helpPageItem($articleHref), helpCentreItem()));
+}
+
+// The Help menu model (ADR-0025 amendment), built from its items in the order given.
+function helpMenu(array ...$items): array
+{
+    return ['labelKey' => 'nav.help', 'items' => $items];
+}
+
+function helpPageItem(string $href): array
+{
+    return ['key' => 'page', 'labelKey' => 'nav.help_menu.page', 'href' => $href];
+}
+
+function helpCentreItem(string $href = '/help'): array
+{
+    return ['key' => 'centre', 'labelKey' => 'nav.help_menu.centre', 'href' => $href];
 }
 
 it('shares the fixed global destinations on the Dashboard', function () {
@@ -59,12 +74,11 @@ it('shares the same fixed global destinations on a settings page', function () {
 });
 
 /*
- * Contextual "?" (#519, ADR-0025). The shared chromeNav.help destination points at the
- * article for the page the Member is on: the middleware resolves the current route name
- * against the help manifest. A published article's mapping sets the href to that article
- * (localized); an unmapped page, or one mapped only by a draft, keeps the index. Bound
- * against a fixture manifest so the draft and unmapped cases exist to exercise
- * independently of what the real catalogue ships.
+ * Help menu (#675, ADR-0025 amendment). The top-bar "?" opens a menu. The middleware
+ * resolves the current route name against the help manifest: a published article's
+ * mapping adds Help for this page (localized); an unmapped page, or one mapped only by a
+ * draft, gets no page item. Help centre is always there. Bound against a fixture manifest
+ * so the draft and unmapped cases exist independently of what the real catalogue ships.
  */
 
 // A fixture manifest with one published article mapped to the dashboard route, plus a
@@ -77,17 +91,17 @@ function bindHelpRouteFixtures(): void
     ]));
 }
 
-it('points the help "?" at the mapped published article for the current page', function () {
+it('offers Help for this page and Help centre when a published article maps the page', function () {
     bindHelpRouteFixtures();
 
     $this->actingAs(Member::factory()->create())
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('chromeNav.help', ['key' => 'help', 'labelKey' => 'nav.help', 'href' => '/help/dashboard-tour']));
+            ->where('chromeNav.help', helpMenu(helpPageItem('/help/dashboard-tour'), helpCentreItem())));
 });
 
-it('localizes the mapped help "?" href to its French twin', function () {
+it('localizes both help menu hrefs to their French twins', function () {
     bindHelpRouteFixtures();
 
     $this->actingAs(Member::factory()->create());
@@ -97,18 +111,18 @@ it('localizes the mapped help "?" href to its French twin', function () {
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('locale', 'fr')
-                ->where('chromeNav.help.href', '/fr/aide/dashboard-tour'));
+                ->where('chromeNav.help', helpMenu(helpPageItem('/fr/aide/dashboard-tour'), helpCentreItem('/fr/aide'))));
     });
 });
 
-it('points the help "?" at the index on a page no article maps', function () {
+it('offers only Help centre on a page no article maps', function () {
     bindHelpRouteFixtures();
 
     $this->actingAs(Member::factory()->create())
         ->get('/news')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('chromeNav.help.href', '/help'));
+            ->where('chromeNav.help', helpMenu(helpCentreItem())));
 });
 
 it('opens the section overview when it shares the page with a task article', function () {
@@ -122,17 +136,17 @@ it('opens the section overview when it shares the page with a task article', fun
         ->get('/hours')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('chromeNav.help.href', '/help/my-hours-tour'));
+            ->where('chromeNav.help.items.0.href', '/help/my-hours-tour'));
 });
 
-it('keeps the help "?" on the index when only a draft maps the page', function () {
+it('offers only Help centre when only a draft maps the page', function () {
     bindHelpRouteFixtures();
 
     $this->actingAs(Member::factory()->create())
         ->get('/directory')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('chromeNav.help.href', '/help'));
+            ->where('chromeNav.help', helpMenu(helpCentreItem())));
 });
 
 it('localizes the global destination hrefs to their French twins under /fr/', function () {
@@ -148,6 +162,6 @@ it('localizes the global destination hrefs to their French twins under /fr/', fu
                 ->where('chromeNav.destinations.1.href', '/fr/calendrier')
                 ->where('chromeNav.destinations.2.href', '/fr/nouvelles')
                 ->where('chromeNav.destinations.3.href', '/fr/annuaire')
-                ->where('chromeNav.help.href', '/fr/aide/groups'));
+                ->where('chromeNav.help', helpMenu(helpPageItem('/fr/aide/groups'), helpCentreItem('/fr/aide'))));
     });
 });

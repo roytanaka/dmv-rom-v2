@@ -12,4 +12,4 @@ persona amara.abara@dmv.test
 start /dashboard
 
 nav /dashboard 01           # the dashboard: the top bar and the rail both in view
-act highlightHelpLink 02    # the "?" in the top bar, highlighted
+act openHelpMenu 02        # the "?" in the top bar, its menu open

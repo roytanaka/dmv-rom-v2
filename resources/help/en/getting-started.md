@@ -20,6 +20,6 @@ Your Groups sit in the Left Side Bar under My Groups. Each Group has its own New
 
 ## Where to find help
 
-Select Help in the top bar. Help opens the article for the page you are on. Each article gives you short steps to follow.
+Select Help in the top bar. Select Help for this page to open the article for the page you are on. Select Help centre to see all the articles. Each article gives you short steps to follow.
 
-![The Help link in the top bar, outlined, to the left of the language menu and your initials](02.png)
+![The Help menu open in the top bar, with Help for this page and Help centre](02.png)
