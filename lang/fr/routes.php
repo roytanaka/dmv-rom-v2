@@ -30,6 +30,7 @@ return [
     'feedback' => 'retroaction',
     'feedback.show' => 'retroaction/{feedbackItem}',
     'feedback.comments' => 'retroaction/{feedbackItem}/commentaires',
+    'feedback.screenshot' => 'retroaction/captures/{feedbackScreenshot}',
 
     // Zone C — officer/admin
     'officer.members' => 'officier/membres',

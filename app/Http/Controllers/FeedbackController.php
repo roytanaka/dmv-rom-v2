@@ -6,12 +6,15 @@ use App\Http\Requests\StoreFeedbackCommentRequest;
 use App\Http\Requests\StoreFeedbackItemRequest;
 use App\Models\FeedbackComment;
 use App\Models\FeedbackItem;
+use App\Models\FeedbackScreenshot;
 use App\Models\Member;
 use App\Support\AppVersion;
+use App\Support\FeedbackScreenshotStorage;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -19,9 +22,9 @@ use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * Tester feedback (#676, #677, ADR-0029): send a Feedback item, list them all on the
- * Feedback page, open one on its own page, and comment on it. Any logged-in Member may
- * do all of these (§4).
+ * Tester feedback (#676, #677, #678, ADR-0029): send a Feedback item with its screenshots,
+ * list them all on the Feedback page, open one on its own page, and comment on it. Any
+ * logged-in Member may do all of these (§4).
  *
  * The environment boundary has two layers, like the Role-switcher (ADR-0009):
  *   1. the routes are registered only outside production (routes/web.php);
@@ -59,8 +62,8 @@ class FeedbackController extends Controller implements HasMiddleware
     }
 
     /**
-     * One Feedback item's page (§13): the message, everything captured with it, and the
-     * comments, oldest first (§8). Every logged-in Tester reads every item (§4).
+     * One Feedback item's page (§13): the message, its screenshots (§9), everything
+     * captured with it, and the comments, oldest first (§8). Every logged-in Tester reads every item (§4).
      */
     public function show(FeedbackItem $feedbackItem): Response
     {
@@ -80,6 +83,15 @@ class FeedbackController extends Controller implements HasMiddleware
                 'impersonatorName' => $feedbackItem->impersonator_name,
                 'appVersion' => $feedbackItem->app_version,
             ],
+            'screenshots' => $feedbackItem->screenshots()
+                ->orderBy('id')
+                ->get()
+                ->map(fn (FeedbackScreenshot $screenshot) => [
+                    'id' => $screenshot->id,
+                    'filename' => $screenshot->original_filename,
+                    'sizeBytes' => $screenshot->size_bytes,
+                    'href' => route('feedback.screenshots.download', $screenshot, false),
+                ]),
             'comments' => $feedbackItem->comments()
                 ->oldest()
                 ->orderBy('id')
@@ -110,22 +122,27 @@ class FeedbackController extends Controller implements HasMiddleware
      * Store a Feedback item. The request carries what the Tester typed and the client
      * context; the server fills everything it can know itself (§10): the page's route,
      * the locale, the Member, the impersonator, the app version, and the time. Every
-     * item starts as New.
+     * item starts as New. The screenshots (§9) are stored with it, in one transaction on
+     * the feedback connection, so an item never shows half its screenshots.
      */
-    public function store(StoreFeedbackItemRequest $request): RedirectResponse
+    public function store(StoreFeedbackItemRequest $request, FeedbackScreenshotStorage $screenshots): RedirectResponse
     {
         $member = $request->user();
         $operatorId = $request->session()->get(ImpersonationController::OPERATOR_KEY);
 
-        FeedbackItem::create([
-            ...$request->validated(),
-            'route_name' => $this->routeNameFor($request->validated('page_url')),
-            'locale' => app()->getLocale(),
-            'member_name' => $member->fullName(),
-            'member_email' => $member->email,
-            'impersonator_name' => $operatorId === null ? null : Member::find($operatorId)?->fullName(),
-            'app_version' => AppVersion::label(),
-        ]);
+        DB::connection('feedback')->transaction(function () use ($request, $member, $operatorId, $screenshots) {
+            $item = FeedbackItem::create([
+                ...$request->safe()->except('screenshots'),
+                'route_name' => $this->routeNameFor($request->validated('page_url')),
+                'locale' => app()->getLocale(),
+                'member_name' => $member->fullName(),
+                'member_email' => $member->email,
+                'impersonator_name' => $operatorId === null ? null : Member::find($operatorId)?->fullName(),
+                'app_version' => AppVersion::label(),
+            ]);
+
+            $screenshots->store($item, $request->file('screenshots', []));
+        });
 
         return back();
     }
