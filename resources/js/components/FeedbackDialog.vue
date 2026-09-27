@@ -4,8 +4,7 @@
 // context (page URL, user agent, viewport) rides along on submit; the server fills the
 // rest. Label, control, and error only — no helper text.
 //
-// The name is remembered in localStorage (§5). Every storage access is wrapped: a
-// browser that blocks storage still sends, it just forgets the name.
+// The name is remembered in the browser (§5, `@/feedback/testerName`).
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { buildClientContext } from '@/feedback/clientContext';
+import { rememberedName, rememberName } from '@/feedback/testerName';
 import { useForm } from '@inertiajs/vue3';
 import { PhCheckCircle } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
@@ -29,24 +29,6 @@ const open = defineModel<boolean>('open', { required: true });
 
 // FeedbackType values (ADR-0029 §6), in picker order.
 const TYPES = ['bug', 'feature-request', 'translation', 'missing-from-new-site', 'confusing', 'other'] as const;
-
-const NAME_KEY = 'dmv.feedback.testerName';
-
-function rememberedName(): string {
-    try {
-        return window.localStorage.getItem(NAME_KEY) ?? '';
-    } catch {
-        return '';
-    }
-}
-
-function rememberName(name: string): void {
-    try {
-        window.localStorage.setItem(NAME_KEY, name);
-    } catch {
-        // Storage blocked: the send still worked, the name is just not kept.
-    }
-}
 
 const form = useForm({
     tester_name: '',

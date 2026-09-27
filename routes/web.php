@@ -79,15 +79,19 @@ Route::group([
     Route::get(LaravelLocalization::transRoute('routes.help.show'), [HelpController::class, 'show'])
         ->middleware('auth')->name('help.show');
 
-    // Tester feedback (#676, ADR-0029). The Feedback page and the path the send dialog
-    // posts to, localized (/feedback ↔ /fr/retroaction) so a send records the page's
-    // locale. Layer one of the two-layer environment boundary, like the Role-switcher:
+    // Tester feedback (#676, #677, ADR-0029). The Feedback page, the path the send dialog
+    // posts to, one item's page, and its comments. Localized (/feedback ↔ /fr/retroaction)
+    // so a send records the page's locale. Layer one of the two-layer environment boundary, like the Role-switcher:
     // registered only outside production. The controller refuses production as layer two.
     if (! app()->environment('production')) {
         Route::get(LaravelLocalization::transRoute('routes.feedback'), [FeedbackController::class, 'index'])
             ->middleware('auth')->name('feedback');
         Route::post(LaravelLocalization::transRoute('routes.feedback'), [FeedbackController::class, 'store'])
             ->middleware('auth')->name('feedback.store');
+        Route::get(LaravelLocalization::transRoute('routes.feedback.show'), [FeedbackController::class, 'show'])
+            ->middleware('auth')->name('feedback.show');
+        Route::post(LaravelLocalization::transRoute('routes.feedback.comments'), [FeedbackController::class, 'storeComment'])
+            ->middleware('auth')->name('feedback.comments.store');
     }
 
     // My Hours (#409, PRD #406, ADR-0022 §8). A Member's own hours, gathered from every

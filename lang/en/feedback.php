@@ -28,6 +28,30 @@ return [
         'date' => 'Date',
     ],
 
+    // One item's page (#677, §13): the captured context, and the comments under it.
+    'item' => [
+        'title' => 'Feedback #:id',
+        'sent_by' => 'Sent by :name',
+        'context' => 'Context',
+        'page' => 'Page',
+        'route' => 'Page name',
+        'locale' => 'Language',
+        'browser' => 'Browser',
+        'viewport' => 'Screen size',
+        'member' => 'Logged in as',
+        'impersonator' => 'Impersonated by',
+        'version' => 'App version',
+        'none' => 'None',
+    ],
+
+    'comments' => [
+        'title' => 'Comments',
+        'empty' => 'No comments yet.',
+        'name' => 'Your name',
+        'body' => 'Comment',
+        'add' => 'Add comment',
+    ],
+
     // FeedbackType (ADR-0029 §6). Plain words: Testers do not know the word "legacy".
     'type' => [
         'bug' => 'Bug',

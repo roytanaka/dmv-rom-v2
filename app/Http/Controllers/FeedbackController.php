@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreFeedbackCommentRequest;
 use App\Http\Requests\StoreFeedbackItemRequest;
+use App\Models\FeedbackComment;
 use App\Models\FeedbackItem;
 use App\Models\Member;
 use App\Support\AppVersion;
@@ -17,8 +19,9 @@ use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * Tester feedback (#676, ADR-0029): send a Feedback item, and list them all on the
- * Feedback page. Any logged-in Member may do both (§4).
+ * Tester feedback (#676, #677, ADR-0029): send a Feedback item, list them all on the
+ * Feedback page, open one on its own page, and comment on it. Any logged-in Member may
+ * do all of these (§4).
  *
  * The environment boundary has two layers, like the Role-switcher (ADR-0009):
  *   1. the routes are registered only outside production (routes/web.php);
@@ -47,16 +50,60 @@ class FeedbackController extends Controller implements HasMiddleware
             ->orderByDesc('id')
             ->get()
             ->map(fn (FeedbackItem $item) => [
-                'id' => $item->id,
-                'typeLabelKey' => $item->type->labelKey(),
-                'status' => $item->status->value,
-                'statusLabelKey' => $item->status->labelKey(),
-                'testerName' => $item->tester_name,
+                ...$this->summary($item),
                 'excerpt' => Str::limit($item->message, 160),
-                'createdAt' => $item->created_at->toIso8601String(),
+                'href' => route('feedback.show', $item, false),
             ]);
 
         return Inertia::render('feedback/Index', ['items' => $items]);
+    }
+
+    /**
+     * One Feedback item's page (§13): the message, everything captured with it, and the
+     * comments, oldest first (§8). Every logged-in Tester reads every item (§4).
+     */
+    public function show(FeedbackItem $feedbackItem): Response
+    {
+        return Inertia::render('feedback/Show', [
+            'item' => [
+                ...$this->summary($feedbackItem),
+                'message' => $feedbackItem->message,
+                'pageUrl' => $feedbackItem->page_url,
+                'pageHref' => $feedbackItem->pageHref(),
+                'routeName' => $feedbackItem->route_name,
+                'locale' => $feedbackItem->locale,
+                'userAgent' => $feedbackItem->user_agent,
+                'viewportWidth' => $feedbackItem->viewport_width,
+                'viewportHeight' => $feedbackItem->viewport_height,
+                'memberName' => $feedbackItem->member_name,
+                'memberEmail' => $feedbackItem->member_email,
+                'impersonatorName' => $feedbackItem->impersonator_name,
+                'appVersion' => $feedbackItem->app_version,
+            ],
+            'comments' => $feedbackItem->comments()
+                ->oldest()
+                ->orderBy('id')
+                ->get()
+                ->map(fn (FeedbackComment $comment) => [
+                    'id' => $comment->id,
+                    'testerName' => $comment->tester_name,
+                    'body' => $comment->body,
+                    'createdAt' => $comment->created_at->toIso8601String(),
+                ]),
+            'listHref' => route('feedback', [], false),
+            'commentHref' => route('feedback.comments.store', $feedbackItem, false),
+        ]);
+    }
+
+    /**
+     * Add a comment under a Feedback item (§8). Any logged-in Member may comment; the
+     * name is the Tester's typed one, like on a send. Comments are never edited.
+     */
+    public function storeComment(StoreFeedbackCommentRequest $request, FeedbackItem $feedbackItem): RedirectResponse
+    {
+        $feedbackItem->comments()->create($request->validated());
+
+        return back();
     }
 
     /**
@@ -81,6 +128,23 @@ class FeedbackController extends Controller implements HasMiddleware
         ]);
 
         return back();
+    }
+
+    /**
+     * What the Feedback page row and the item page both show about an item.
+     *
+     * @return array<string, mixed>
+     */
+    private function summary(FeedbackItem $item): array
+    {
+        return [
+            'id' => $item->id,
+            'typeLabelKey' => $item->type->labelKey(),
+            'status' => $item->status->value,
+            'statusLabelKey' => $item->status->labelKey(),
+            'testerName' => $item->tester_name,
+            'createdAt' => $item->created_at->toIso8601String(),
+        ];
     }
 
     /**
