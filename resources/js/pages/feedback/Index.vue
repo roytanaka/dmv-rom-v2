@@ -1,9 +1,12 @@
 <script setup lang="ts">
 // The Feedback page (#676, ADR-0029 §13): every Feedback item, newest first, from every
-// Tester. Outside production only. Type and status labels are chrome (the lang keys come
-// from the enums); the Tester's name and message are content, shown as sent.
-import { Badge, type BadgeVariants } from '@/components/ui/badge';
+// Tester. Each row links to the item's page (#677). Outside production only. Type and
+// status labels are chrome (the lang keys come from the enums); the Tester's name and
+// message are content, shown as sent.
+import TextLink from '@/components/TextLink.vue';
+import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatFeedbackDate, STATUS_TONES } from '@/feedback/display';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, usePage } from '@inertiajs/vue3';
@@ -18,6 +21,7 @@ interface FeedbackRow {
     testerName: string;
     excerpt: string;
     createdAt: string;
+    href: string;
 }
 
 defineProps<{
@@ -30,19 +34,7 @@ const page = usePage<SharedData>();
 const title = computed(() => trans('feedback.title'));
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href: page.url }]);
 
-// Status tones (ADR-0029 design): New info, Confirmed warning, Fixed success, Won't fix
-// secondary, Duplicate outline.
-const STATUS_TONES: Record<string, BadgeVariants['variant']> = {
-    new: 'info',
-    confirmed: 'warning',
-    fixed: 'success',
-    'wont-fix': 'secondary',
-    duplicate: 'outline',
-};
-
-// Sent dates read in the org timezone, like every other instant in the app.
-const formatDate = (iso: string): string =>
-    new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: page.props.timezone }).format(new Date(iso));
+const formatDate = (iso: string): string => formatFeedbackDate(iso, page.props.locale, page.props.timezone);
 </script>
 
 <template>
@@ -70,7 +62,9 @@ const formatDate = (iso: string): string =>
                                 <Badge :variant="STATUS_TONES[item.status]">{{ trans(item.statusLabelKey) }}</Badge>
                             </TableCell>
                             <TableCell class="whitespace-nowrap">{{ item.testerName }}</TableCell>
-                            <TableCell class="min-w-64">{{ item.excerpt }}</TableCell>
+                            <TableCell class="min-w-64">
+                                <TextLink :href="item.href">{{ item.excerpt }}</TextLink>
+                            </TableCell>
                             <TableCell class="whitespace-nowrap">{{ formatDate(item.createdAt) }}</TableCell>
                         </TableRow>
                     </TableBody>

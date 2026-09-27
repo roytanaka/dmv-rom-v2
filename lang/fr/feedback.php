@@ -29,6 +29,29 @@ return [
         'date' => 'Date',
     ],
 
+    'item' => [
+        'title' => 'Rétroaction nº :id',
+        'sent_by' => 'Envoyée par :name',
+        'context' => 'Contexte',
+        'page' => 'Page',
+        'route' => 'Nom de la page',
+        'locale' => 'Langue',
+        'browser' => 'Navigateur',
+        'viewport' => 'Taille de l’écran',
+        'member' => 'Connecté en tant que',
+        'impersonator' => 'Identité empruntée par',
+        'version' => 'Version de l’application',
+        'none' => 'Aucun',
+    ],
+
+    'comments' => [
+        'title' => 'Commentaires',
+        'empty' => 'Aucun commentaire pour le moment.',
+        'name' => 'Votre nom',
+        'body' => 'Commentaire',
+        'add' => 'Ajouter le commentaire',
+    ],
+
     'type' => [
         'bug' => 'Bogue',
         'feature-request' => 'Demande de fonctionnalité',

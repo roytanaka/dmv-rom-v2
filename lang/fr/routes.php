@@ -28,6 +28,8 @@ return [
     // Rétroaction des testeurs (#676, ADR-0029). Segment provisoire : l'équipe
     // francophone du DMV choisira le mot définitif.
     'feedback' => 'retroaction',
+    'feedback.show' => 'retroaction/{feedbackItem}',
+    'feedback.comments' => 'retroaction/{feedbackItem}/commentaires',
 
     // Zone C — officer/admin
     'officer.members' => 'officier/membres',

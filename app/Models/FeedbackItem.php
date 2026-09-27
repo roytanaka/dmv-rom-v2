@@ -7,6 +7,7 @@ use App\Enums\FeedbackType;
 use Database\Factories\FeedbackItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A Feedback item (ADR-0029): one thing a Tester sends from a non-production app. It lives
@@ -67,5 +68,15 @@ class FeedbackItem extends Model
             'viewport_width' => 'integer',
             'viewport_height' => 'integer',
         ];
+    }
+
+    /**
+     * The flat comment list under this item (§8).
+     *
+     * @return HasMany<FeedbackComment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(FeedbackComment::class);
     }
 }
