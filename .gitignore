@@ -19,6 +19,9 @@ screenshots/
 # Application uploads
 storage/app/documents/
 
+# Deployed version, written by scripts/deploy.sh (#673)
+/version.json
+
 # laravel-vue-i18n — compiled PHP→JSON translation bundles (build artifacts)
 /lang/php_*.json
 

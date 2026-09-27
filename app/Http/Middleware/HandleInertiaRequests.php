@@ -65,6 +65,9 @@ class HandleInertiaRequests extends Middleware
             // a meeting reads at the same o'clock for every viewer regardless of
             // where their device thinks it is.
             'timezone' => config('app.org_timezone'),
+            // The deployed version for the footer (#673): the short commit id and the
+            // deploy instant (UTC). Null in local development, where the footer shows "dev".
+            'appVersion' => $this->appVersion(),
             // Per-locale URI-segment translation table, for localising the static
             // nav hrefs (the fixture authors them English-canonical) so in-app
             // navigation stays in the active locale instead of reverting to English
@@ -119,6 +122,25 @@ class HandleInertiaRequests extends Middleware
                 'assignmentsBulk' => $request->session()->get('assignmentsBulk'),
             ],
         ]);
+    }
+
+    /**
+     * The deployed version (#673), from the version.json that scripts/deploy.sh writes.
+     *
+     * @return array{commit: string, deployedAt: string}|null
+     */
+    private function appVersion(): ?array
+    {
+        $version = config('app.version');
+
+        if (! isset($version['commit'], $version['deployed_at'])) {
+            return null;
+        }
+
+        return [
+            'commit' => substr($version['commit'], 0, 7),
+            'deployedAt' => $version['deployed_at'],
+        ];
     }
 
     /**
