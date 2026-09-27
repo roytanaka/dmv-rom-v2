@@ -12,6 +12,7 @@ use App\Models\GroupMember;
 use App\Models\Member;
 use App\Personas\Persona;
 use App\Personas\PersonaCatalogue;
+use App\Support\AppVersion;
 use App\Support\RouteSegments;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
@@ -67,7 +68,7 @@ class HandleInertiaRequests extends Middleware
             'timezone' => config('app.org_timezone'),
             // The deployed version for the footer (#673): the short commit id and the
             // deploy instant (UTC). Null in local development, where the footer shows "dev".
-            'appVersion' => $this->appVersion(),
+            'appVersion' => AppVersion::current(),
             // Per-locale URI-segment translation table, for localising the static
             // nav hrefs (the fixture authors them English-canonical) so in-app
             // navigation stays in the active locale instead of reverting to English
@@ -125,25 +126,6 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The deployed version (#673), from the version.json that scripts/deploy.sh writes.
-     *
-     * @return array{commit: string, deployedAt: string}|null
-     */
-    private function appVersion(): ?array
-    {
-        $version = config('app.version');
-
-        if (! isset($version['commit'], $version['deployed_at'])) {
-            return null;
-        }
-
-        return [
-            'commit' => substr($version['commit'], 0, 7),
-            'deployedAt' => $version['deployed_at'],
-        ];
-    }
-
-    /**
      * The fixed global top-bar nav model (#194): the primary cross-domain
      * destinations plus the Help menu, shared on every page. Each destination's
      * href is localized to the active locale (ADR-0008); declared gating is resolved
@@ -180,6 +162,10 @@ class HandleInertiaRequests extends Middleware
      * one mapped only by a draft, gets no page item. Help centre is always there. Hrefs
      * are localized (ADR-0008) so switching language on the article stays on it.
      *
+     * Outside production, Send feedback and See all feedback close the menu (#676,
+     * ADR-0029 §12). Both carry the Feedback page href: Send feedback opens the dialog,
+     * which posts there. Production gets neither, like the Role-switcher.
+     *
      * @return array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}
      */
     private function helpMenu(Request $request): array
@@ -200,6 +186,12 @@ class HandleInertiaRequests extends Middleware
         }
 
         $items[] = ['key' => 'centre', 'labelKey' => 'nav.help_menu.centre', 'href' => $this->localizedPath('routes.help')];
+
+        if (! app()->environment('production')) {
+            $feedback = $this->localizedPath('routes.feedback');
+            $items[] = ['key' => 'feedback-send', 'labelKey' => 'nav.help_menu.feedback_send', 'href' => $feedback];
+            $items[] = ['key' => 'feedback-list', 'labelKey' => 'nav.help_menu.feedback_list', 'href' => $feedback];
+        }
 
         return ['labelKey' => 'nav.help', 'items' => $items];
     }

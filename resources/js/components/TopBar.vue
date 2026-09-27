@@ -16,16 +16,17 @@
 // hrefs are already localized to the active locale (ADR-0008), so they are used
 // verbatim and matched against the current URL for the active state.
 import BrandLogo from '@/components/BrandLogo.vue';
+import FeedbackDialog from '@/components/FeedbackDialog.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import TopBarUser from '@/components/TopBarUser.vue';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import type { ChromeDestination, PhosphorIcon, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhBookOpen, PhCaretDown, PhLifebuoy, PhQuestion } from '@phosphor-icons/vue';
-import { computed } from 'vue';
+import { PhBookOpen, PhCaretDown, PhChatCenteredText, PhLifebuoy, PhListBullets, PhQuestion } from '@phosphor-icons/vue';
+import { computed, ref } from 'vue';
 
 const page = usePage<SharedData>();
 const nav = computed(() => page.props.chromeNav);
@@ -38,7 +39,20 @@ const isActive = (dest: ChromeDestination) => dest.href === page.url;
 
 // Help menu item icons are fixed client config keyed by item `key`, like the rail's
 // officer items; the server ships only key, label, and href.
-const HELP_ICONS: Record<string, PhosphorIcon> = { page: PhBookOpen, centre: PhLifebuoy };
+const HELP_ICONS: Record<string, PhosphorIcon> = {
+    page: PhBookOpen,
+    centre: PhLifebuoy,
+    'feedback-send': PhChatCenteredText,
+    'feedback-list': PhListBullets,
+};
+
+// Tester feedback (#676, ADR-0029 §12). The server adds these items outside production
+// only. Send feedback opens the dialog instead of navigating; its href is where the
+// dialog posts. A separator sets the feedback items apart from help.
+const FEEDBACK_SEND = 'feedback-send';
+const feedbackSend = computed(() => nav.value.help.items.find((item) => item.key === FEEDBACK_SEND) ?? null);
+const feedbackOpen = ref(false);
+const startsFeedback = (item: ChromeDestination) => item.key.startsWith('feedback-');
 
 // Shared destination styling — white-on-ink. The active tab is the BRIGHTEST in the
 // strip (full-white text, semibold) with a heritage-slate underline carrying the hue,
@@ -92,14 +106,22 @@ const destClass = (dest: ChromeDestination): string => {
                     <PhCaretDown class="size-3 opacity-70" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent class="w-56" align="end" :side-offset="8">
-                    <DropdownMenuItem v-for="item in nav.help.items" :key="item.key" class="py-2.5" :as-child="true">
-                        <Link class="w-full" :href="item.href" :aria-current="isActive(item) ? 'page' : undefined">
+                    <template v-for="(item, index) in nav.help.items" :key="item.key">
+                        <DropdownMenuSeparator v-if="index > 0 && startsFeedback(item) && !startsFeedback(nav.help.items[index - 1])" />
+                        <DropdownMenuItem v-if="item.key === FEEDBACK_SEND" class="py-2.5" @select="feedbackOpen = true">
                             <component :is="HELP_ICONS[item.key]" class="text-muted-foreground size-4" />
                             {{ trans(item.labelKey) }}
-                        </Link>
-                    </DropdownMenuItem>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem v-else class="py-2.5" :as-child="true">
+                            <Link class="w-full" :href="item.href" :aria-current="isActive(item) ? 'page' : undefined">
+                                <component :is="HELP_ICONS[item.key]" class="text-muted-foreground size-4" />
+                                {{ trans(item.labelKey) }}
+                            </Link>
+                        </DropdownMenuItem>
+                    </template>
                 </DropdownMenuContent>
             </DropdownMenu>
+            <FeedbackDialog v-if="feedbackSend" v-model:open="feedbackOpen" :href="feedbackSend.href" />
             <div class="hidden items-center lg:flex">
                 <LanguageSwitcher />
             </div>

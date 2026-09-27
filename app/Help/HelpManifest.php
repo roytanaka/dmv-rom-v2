@@ -232,6 +232,8 @@ final class HelpManifest
             'login', 'password.request', 'password.reset',
             // The help centre's own pages — the index and the article reader.
             'help', 'help.show',
+            // Tester feedback — a staging tool with no help article (ADR-0029 §14).
+            'feedback',
         ];
     }
 

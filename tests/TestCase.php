@@ -58,6 +58,21 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Migrate the Tester feedback connection (ADR-0029) from its own folder.
+     *
+     * The connection is a second in-memory SQLite database (phpunit.xml). RefreshDatabase
+     * only manages the default connection, so a feedback test calls this from its
+     * beforeEach. Each test boots a new app and so a new, empty feedback database.
+     */
+    protected function migrateFeedbackDatabase(): void
+    {
+        $this->artisan('migrate', [
+            '--database' => 'feedback',
+            '--path' => 'database/migrations/feedback',
+        ]);
+    }
+
+    /**
      * Re-register the application's routes for a non-default locale, then run the
      * given assertions against them.
      *

@@ -30,6 +30,9 @@ return [
     // both locales — so only the 'help' word changes in the French twin.
     'help' => 'help',
     'help.show' => 'help/{article}',
+    // Tester feedback (#676, ADR-0029): the Feedback page, and the path the send
+    // dialog posts to. Registered outside production only.
+    'feedback' => 'feedback',
 
     // Zone C — officer/admin
     'officer.members' => 'officer/members',

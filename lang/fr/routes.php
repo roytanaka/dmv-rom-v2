@@ -25,6 +25,9 @@ return [
     // les deux langues — donc seul le mot « aide » change ici.
     'help' => 'aide',
     'help.show' => 'aide/{article}',
+    // Rétroaction des testeurs (#676, ADR-0029). Segment provisoire : l'équipe
+    // francophone du DMV choisira le mot définitif.
+    'feedback' => 'retroaction',
 
     // Zone C — officer/admin
     'officer.members' => 'officier/membres',

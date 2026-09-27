@@ -34,6 +34,7 @@ pnpm sail:up                                                    # start Docker c
 pnpm sail composer install                                      # install PHP dependencies inside the Sail container
 pnpm sail php artisan key:generate                              # generate the Laravel APP_KEY (used to encrypt sessions/cookies)
 pnpm sail php artisan migrate                                   # create the database schema
+pnpm sail php artisan migrate --database=feedback --path=database/migrations/feedback   # create the Tester feedback schema
 pnpm dev                                                        # start the Vite dev server (hot module reload for Vue/CSS)
 ```
 
@@ -44,6 +45,20 @@ The app is available at http://localhost:80 (or `APP_PORT` if customized). Vite 
 The application uses a MariaDB 10.6 instance (matching Stormweb production), provisioned automatically by Laravel Sail. Once `pnpm sail:up` is running, `php artisan migrate` is all you need to be ready for development.
 
 Sail exposes MariaDB on host port `3307` by default (`FORWARD_DB_PORT` in `.env.example`). Inside the Sail container, Laravel reaches it as `mariadb:3306`. If port `3307` is already in use on your machine, override `FORWARD_DB_PORT` in your `.env` to any free port.
+
+### Feedback database
+
+Tester feedback lives in a second database, `dmv_rom_v2_feedback` ([ADR-0029](docs/adr/0029-tester-feedback.md)). Sail creates it when it creates a new MariaDB volume. Its migrations are in `database/migrations/feedback`, and a plain `migrate` does not run them. Use this command:
+
+```bash
+pnpm sail php artisan migrate --database=feedback --path=database/migrations/feedback
+```
+
+If your MariaDB volume is older than the feedback database, create the database one time:
+
+```bash
+pnpm sail exec mariadb mariadb -uroot -ppassword -e "CREATE DATABASE IF NOT EXISTS dmv_rom_v2_feedback; GRANT ALL PRIVILEGES ON dmv_rom_v2_feedback.* TO 'sail'@'%';"
+```
 
 ## Project structure
 

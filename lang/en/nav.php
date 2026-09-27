@@ -49,6 +49,9 @@ return [
     'help_menu' => [
         'page' => 'Help for this page',
         'centre' => 'Help centre',
+        // Outside production only (#676, ADR-0029 §12).
+        'feedback_send' => 'Send feedback',
+        'feedback_list' => 'See all feedback',
     ],
 
     // The Dashboard title strip — breadcrumb + <Head> title (#541). Chrome, so it

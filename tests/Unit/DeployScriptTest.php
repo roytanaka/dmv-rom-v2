@@ -36,4 +36,21 @@ class DeployScriptTest extends TestCase
             'scripts/deploy.sh uses stock route:cache/route:clear — use route:trans:cache/route:trans:clear (#120).',
         );
     }
+
+    // Tester feedback (#676, ADR-0029 §1): the staging deploy migrates the feedback
+    // database with a plain migrate, never a fresh, and production does not touch it.
+    public function test_staging_migrates_the_feedback_database_without_resetting_it(): void
+    {
+        $script = $this->deployScript();
+        $migrate = 'migrate --database=feedback --path=database/migrations/feedback --force';
+
+        $this->assertStringContainsString($migrate, $script);
+        $this->assertLessThan(
+            strpos($script, 'Step 3: detect pending migrations'),
+            strpos($script, $migrate),
+            'The feedback migrate must sit in the staging branch, not the production one.',
+        );
+        $this->assertStringNotContainsString('feedback', substr($script, strpos($script, 'Step 3: detect pending migrations')));
+        $this->assertDoesNotMatchRegularExpression('/migrate:(fresh|refresh|reset)[^\n]*feedback/', $script);
+    }
 }
