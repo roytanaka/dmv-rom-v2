@@ -197,7 +197,7 @@ it('shows the triage controls to the Support-operator only', function (Closure $
         ->get("/feedback/{$item->id}")
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('canManage', $canManage)
+            ->where('can.manage', $canManage)
             ->where('statusHref', "/feedback/{$item->id}/status")
             ->where('deleteHref', "/feedback/{$item->id}")
             ->where('comments.0.deleteHref', "/feedback/{$item->id}/comments/{$comment->id}")
@@ -242,7 +242,7 @@ it('answers for the Persona while the operator impersonates one', function () {
         ->withSession([ImpersonationController::OPERATOR_KEY => $operator->id]);
 
     $this->get("/feedback/{$item->id}")
-        ->assertInertia(fn (Assert $page) => $page->where('canManage', false));
+        ->assertInertia(fn (Assert $page) => $page->where('can.manage', false));
 
     $this->patch("/feedback/{$item->id}/status", ['status' => 'fixed'])->assertForbidden();
     $this->delete("/feedback/{$item->id}/comments/{$comment->id}")->assertForbidden();

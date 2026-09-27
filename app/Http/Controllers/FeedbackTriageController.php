@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeleteFeedbackCommentRequest;
+use App\Http\Requests\DeleteFeedbackItemRequest;
 use App\Http\Requests\UpdateFeedbackStatusRequest;
 use App\Models\FeedbackComment;
 use App\Models\FeedbackItem;
@@ -17,15 +19,15 @@ use Illuminate\Support\Facades\Storage;
  * The Support-operator's triage of Tester feedback (#679, ADR-0029 §7): set an item's
  * status, delete an item with its comments and screenshots, and delete one comment.
  *
- * Who may triage is {@see Member::isSupportOperator()} on the request's Member, read
- * directly and never through a Gate (ADR-0017 §5): `Gate::before` grants super-tier every
- * ability, and the President must not get the maintainer's triage. While the operator
- * impersonates, the request's Member is the Persona, so the Persona's answer applies.
+ * Each action's Form Request authorizes it (ADR-0017 §4) by
+ * {@see Member::isSupportOperator()} on the request's Member, read directly and never
+ * through a Gate (§5): `Gate::before` grants super-tier every ability, and the President
+ * must not get the maintainer's triage. While the operator impersonates, the request's
+ * Member is the Persona, so the Persona's answer applies.
  *
  * The same two-layer environment boundary as {@see FeedbackController}: the routes are
- * registered only outside production, and the first middleware returns 404 in production.
- * The operator check is the second middleware, so a refused Member gets 403 before any
- * validation.
+ * registered only outside production, and this middleware returns 404 in production,
+ * before the Form Request resolves.
  */
 class FeedbackTriageController extends Controller implements HasMiddleware
 {
@@ -35,9 +37,6 @@ class FeedbackTriageController extends Controller implements HasMiddleware
             fn (Request $request, Closure $next) => app()->environment('production')
                 ? abort(404)
                 : $next($request),
-            fn (Request $request, Closure $next) => $request->user()?->isSupportOperator()
-                ? $next($request)
-                : abort(403),
         ];
     }
 
@@ -54,7 +53,7 @@ class FeedbackTriageController extends Controller implements HasMiddleware
      * to the foreign keys' cascade, so SQLite in the tests behaves like MariaDB. The files
      * go after the commit, so a failed delete never leaves rows without their files.
      */
-    public function destroy(FeedbackItem $feedbackItem): RedirectResponse
+    public function destroy(DeleteFeedbackItemRequest $request, FeedbackItem $feedbackItem): RedirectResponse
     {
         $paths = $feedbackItem->screenshots()->pluck('storage_path')->all();
 
@@ -72,7 +71,7 @@ class FeedbackTriageController extends Controller implements HasMiddleware
     /**
      * Delete one comment. The comment must sit under the item in the URL.
      */
-    public function destroyComment(FeedbackItem $feedbackItem, FeedbackComment $feedbackComment): RedirectResponse
+    public function destroyComment(DeleteFeedbackCommentRequest $request, FeedbackItem $feedbackItem, FeedbackComment $feedbackComment): RedirectResponse
     {
         abort_unless($feedbackComment->feedback_item_id === $feedbackItem->id, 404);
 

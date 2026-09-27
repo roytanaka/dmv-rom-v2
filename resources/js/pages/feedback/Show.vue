@@ -7,7 +7,7 @@
 // The comment form uses the Tester's remembered name (§5, `@/feedback/testerName`).
 // Label, control, and error only — no helper text.
 //
-// The Support-operator (`canManage`, #679, §7) also sets the status, deletes the item, and
+// The Support-operator (`can.manage`, #679, §7) also sets the status, deletes the item, and
 // deletes a comment. Each delete asks first. The server checks again on every request.
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -72,7 +72,7 @@ const props = defineProps<{
     comments: FeedbackCommentRow[];
     listHref: string;
     commentHref: string;
-    canManage: boolean;
+    can: { manage: boolean };
     statuses: FeedbackOption[];
     statusHref: string;
     deleteHref: string;
@@ -109,9 +109,10 @@ function submit(): void {
 }
 
 // The status picker saves on change. The badges read the item's status from the server.
+// `preserveState` keeps a half-typed comment through the status change and a comment delete.
 const status = computed({
     get: () => props.item.status,
-    set: (value: string) => router.patch(props.statusHref, { status: value }, { preserveScroll: true }),
+    set: (value: string) => router.patch(props.statusHref, { status: value }, { preserveScroll: true, preserveState: true }),
 });
 
 const deletingItem = ref(false);
@@ -140,6 +141,7 @@ function deleteComment(): void {
 
     router.delete(pendingComment.value.deleteHref, {
         preserveScroll: true,
+        preserveState: true,
         onStart: () => (deletingComment.value = true),
         onSuccess: () => (pendingComment.value = null),
         onFinish: () => (deletingComment.value = false),
@@ -183,7 +185,7 @@ function deleteComment(): void {
                 </ul>
             </section>
 
-            <Card v-if="canManage">
+            <Card v-if="can.manage">
                 <CardHeader>
                     <CardTitle class="text-sm font-semibold tracking-wide uppercase">{{ trans('feedback.manage.title') }}</CardTitle>
                 </CardHeader>
@@ -250,7 +252,7 @@ function deleteComment(): void {
                                 >
                             </p>
                             <Button
-                                v-if="canManage"
+                                v-if="can.manage"
                                 type="button"
                                 variant="ghost"
                                 size="sm"
@@ -298,7 +300,7 @@ function deleteComment(): void {
             </section>
         </div>
 
-        <template v-if="canManage">
+        <template v-if="can.manage">
             <Dialog v-model:open="deleteItemOpen">
                 <DialogContent>
                     <DialogHeader>

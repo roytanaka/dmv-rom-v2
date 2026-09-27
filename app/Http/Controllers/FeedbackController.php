@@ -80,7 +80,7 @@ class FeedbackController extends Controller implements HasMiddleware
      * One Feedback item's page (§13): the message, its screenshots (§9), everything
      * captured with it, and the comments, oldest first (§8). Every logged-in Tester reads every item (§4).
      * Only the Support-operator sees the status picker and the delete controls (§7, #679).
-     * `canManage` reads the same direct predicate as {@see FeedbackTriageController}.
+     * `can.manage` reads the same direct predicate as the triage Form Requests.
      */
     public function show(Request $request, FeedbackItem $feedbackItem): Response
     {
@@ -122,7 +122,7 @@ class FeedbackController extends Controller implements HasMiddleware
                 ]),
             'listHref' => route('feedback', [], false),
             'commentHref' => route('feedback.comments.store', $feedbackItem, false),
-            'canManage' => $request->user()->isSupportOperator(),
+            'can' => ['manage' => $request->user()->isSupportOperator()],
             'statuses' => $this->options(FeedbackStatus::cases()),
             'statusHref' => route('feedback.status.update', $feedbackItem, false),
             'deleteHref' => route('feedback.destroy', $feedbackItem, false),
