@@ -6,8 +6,10 @@
 # once slice 3 lands) over SSH, after the workflow has already rsync'd the
 # build artifact into the environment's project root.
 #
-# Usage:  scripts/deploy.sh <environment>
+# Usage:  scripts/deploy.sh <environment> <commit-sha> <deployed-at>
 # Where:  <environment> is "staging" or "production".
+#         <commit-sha> is the deployed git commit (the workflow's github.sha).
+#         <deployed-at> is the deploy instant, ISO 8601 UTC.
 #
 # This script is the single source of truth for the deploy procedure. The
 # six steps below match issue #6 / ADR-0007.
@@ -15,9 +17,16 @@
 set -euo pipefail
 
 ENVIRONMENT="${1:-}"
+COMMIT_SHA="${2:-}"
+DEPLOYED_AT="${3:-}"
 
 if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
     echo "Error: environment must be 'staging' or 'production' (got: '$ENVIRONMENT')" >&2
+    exit 2
+fi
+
+if [[ ! "$COMMIT_SHA" =~ ^[0-9a-f]{7,40}$ || -z "$DEPLOYED_AT" ]]; then
+    echo "Error: pass the commit SHA and the deploy time (got: '$COMMIT_SHA' '$DEPLOYED_AT')" >&2
     exit 2
 fi
 
@@ -125,6 +134,12 @@ else
         echo "    No pending migrations — skipping maintenance-mode wrapping (zero-downtime path)."
     fi
 fi
+
+# The footer shows the deployed version (#673). config/app.php reads this file,
+# so write it before config:cache bakes it in. The rsync --delete drops the
+# previous deploy's copy (it is not in the bundle); this writes the new one.
+echo "==> Step 4: write version.json ($COMMIT_SHA, $DEPLOYED_AT)"
+printf '{"commit":"%s","deployed_at":"%s"}\n' "$COMMIT_SHA" "$DEPLOYED_AT" > version.json
 
 echo "==> Step 5: framework caches"
 $ARTISAN config:cache

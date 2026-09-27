@@ -117,8 +117,9 @@ jobs:
 
       - name: Run deploy script on Stormweb
         run: |
+          DEPLOYED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           ssh "${{ secrets.STORMWEB_SSH_USER }}@${{ secrets.STORMWEB_SSH_HOST }}" \
-            "cd ${{ env.DEPLOY_PATH }} && bash scripts/deploy.sh staging"
+            "cd ${{ env.DEPLOY_PATH }} && bash scripts/deploy.sh staging ${{ github.sha }} $DEPLOYED_AT"
 
       - name: Smoke check
         run: curl -sf "${{ env.SMOKE_URL }}" > /dev/null
