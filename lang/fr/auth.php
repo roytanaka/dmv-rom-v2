@@ -21,6 +21,7 @@ return [
         'email' => 'Courriel',
         'password' => 'Mot de passe',
         'forgot' => 'Mot de passe oublié?',
+        'remember' => 'Se souvenir de moi',
         'submit' => 'Connexion',
 
         // Affiché quand une session expirée renvoie le membre à la connexion.
