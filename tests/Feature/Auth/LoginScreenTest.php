@@ -23,6 +23,7 @@ class LoginScreenTest extends TestCase
         $this->assertSame('Sign in', __('auth.login.heading', [], 'en'));
         $this->assertSame('Forgot your password?', __('auth.login.forgot', [], 'en'));
         $this->assertSame('email the office', __('auth.login.help_email', [], 'en'));
+        $this->assertSame('Remember me', __('auth.login.remember', [], 'en'));
     }
 
     public function test_login_chrome_resolves_in_french(): void
@@ -30,6 +31,7 @@ class LoginScreenTest extends TestCase
         $this->assertSame('Connexion', __('auth.login.heading', [], 'fr'));
         $this->assertSame('Mot de passe oublié?', __('auth.login.forgot', [], 'fr'));
         $this->assertSame('écrivez au bureau', __('auth.login.help_email', [], 'fr'));
+        $this->assertSame('Se souvenir de moi', __('auth.login.remember', [], 'fr'));
     }
 
     public function test_reception_phone_interpolates_into_the_help_text(): void

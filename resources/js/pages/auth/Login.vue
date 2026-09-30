@@ -2,6 +2,7 @@
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthHeroLayout from '@/layouts/auth/AuthHeroLayout.vue';
@@ -15,10 +16,12 @@ defineProps<{
     canResetPassword: boolean;
 }>();
 
-// "Remember me" is intentionally dropped — it is not in the ROM design (#157).
+// Remember me keeps the member signed in on this device (#687; lifetime in ADR-0001).
+// Unticked by default so shared museum computers stay safe.
 const form = useForm({
     email: '',
     password: '',
+    remember: false,
 });
 
 const showPassword = ref(false);
@@ -60,7 +63,7 @@ const submit = () => {
             <div class="grid gap-2">
                 <div class="flex items-center justify-between">
                     <Label for="password">{{ trans('auth.login.password') }}</Label>
-                    <TextLink v-if="canResetPassword" :href="route('password.request')" class="text-sm" :tabindex="5">
+                    <TextLink v-if="canResetPassword" :href="route('password.request')" class="text-sm" :tabindex="6">
                         {{ trans('auth.login.forgot') }}
                     </TextLink>
                 </div>
@@ -90,7 +93,12 @@ const submit = () => {
                 <InputError :message="form.errors.password" />
             </div>
 
-            <Button type="submit" class="w-full" tabindex="4" :loading="form.processing">
+            <Label for="remember" class="flex items-center gap-2">
+                <Checkbox id="remember" v-model:checked="form.remember" tabindex="4" />
+                {{ trans('auth.login.remember') }}
+            </Label>
+
+            <Button type="submit" class="w-full" tabindex="5" :loading="form.processing">
                 <PhArrowRight class="h-4 w-4" />
                 {{ trans('auth.login.submit') }}
             </Button>

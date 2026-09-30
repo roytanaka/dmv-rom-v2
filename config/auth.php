@@ -41,6 +41,8 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            // Remember me cookie lifetime in minutes: 14 days (ADR-0001, #687).
+            'remember' => 20160,
         ],
     ],
 

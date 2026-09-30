@@ -20,6 +20,8 @@ The rebuild needs a credential model that:
 
 **One email per user.** Every volunteer has a unique email address. Composite-identity disambiguation (e.g. email + first name) is not part of the model.
 
+**Sessions end after 2 hours idle, with an optional 14-day Remember me.** The session lifetime is 120 minutes (`SESSION_LIFETIME`). The sign-in page has a Remember me checkbox. It is unticked by default, so a shared museum computer does not keep a member signed in. When a member ticks it, a remember cookie keeps them signed in on that device for 14 days. The `web` guard sets the cookie lifetime (`'remember' => 20160` minutes in `config/auth.php`), because Laravel's default is about 400 days. Sign out removes the cookie and rotates the member's remember token, so an old cookie cannot sign them in again. Added in #687.
+
 **OAuth SSO is deferred.** No third-party identity providers in v1. Revisit in a separate ADR when (a) a real user driver emerges or (b) a partner integration is required.
 
 ## Considered alternatives
@@ -40,7 +42,7 @@ The rebuild needs a credential model that:
 
 These are tactical and don't gate the decision, but the implementing engineer should resolve them deliberately:
 
-- Session lifetime and idle timeout for the main app.
+- ~~Session lifetime and idle timeout for the main app.~~ Resolved above: 2-hour idle timeout, optional 14-day Remember me (#687).
 - Rate-limit and lockout thresholds (Laravel defaults are a reasonable starting point).
 - 2FA / MFA for high-privilege accounts (committee chairs, admins). Probably yes, probably as a future ADR if non-trivial.
 - Account lifecycle: who provisions new volunteer accounts, how offboarding works, how inactive accounts are handled.
