@@ -402,7 +402,9 @@ it('seeds one published Schedule on the Docents Group covering the current month
     expect($schedule->state)->toBe(ScheduleState::Published)
         ->and($schedule->isCurrent(now()))->toBeTrue()
         ->and($schedule->starts_on->lessThanOrEqualTo(now()))->toBeTrue()
-        ->and($schedule->ends_on->greaterThanOrEqualTo(now()))->toBeTrue();
+        // ends_on is a date (midnight), so compare to the start of today: on the
+        // month's last day, midnight is before now().
+        ->and($schedule->ends_on->greaterThanOrEqualTo(now()->startOfDay()))->toBeTrue();
 });
 
 it('seeds an empty next-month draft Schedule on Docents, so a Scheduler has one to publish', function () {
