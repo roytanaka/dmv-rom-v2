@@ -1,20 +1,19 @@
 <script setup lang="ts">
-// The help centre index (#517, #518, #623, PRD #516, PRD #615, ADR-0025). A "Start
-// here" box fed by the Getting started section, then one card per other published
-// section: its title linked to its overview, the overview's lead line as the summary,
-// up to three published task articles, and a closing link to all of them. Draft
-// articles are never listed, though a draft overview still backs its card's links.
+// The help centre index (#517, #518, #623, PRD #516, PRD #615, ADR-0025). One card
+// per published section: its title linked to its overview, the overview's lead line
+// as the summary, up to three published task articles, and a closing link to all of
+// them. Draft articles are never listed, though a draft overview still backs its
+// card's links.
 // Every logged-in Member sees every published article — the Required-role badge
 // informs but does not gate. Section labels are chrome
 // (ADR-0004), resolved via trans(); titles, leads and hrefs come from the server,
 // already localized (ADR-0008).
 import RequiredRoleBadge from '@/components/RequiredRoleBadge.vue';
 import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
@@ -38,7 +37,6 @@ interface HelpIndexSection {
 }
 
 defineProps<{
-    startHere: HelpIndexSection | null;
     sections: HelpIndexSection[];
 }>();
 
@@ -67,19 +65,6 @@ function closingLabel(section: HelpIndexSection): string {
                 <h1 class="text-rom-ink text-lg font-semibold">{{ title }}</h1>
                 <p class="text-muted-foreground text-sm">{{ trans('help.intro') }}</p>
             </header>
-
-            <section
-                v-if="startHere?.overview"
-                :id="startHere.key"
-                class="bg-rom-slate-50 border-rom-slate-300 flex scroll-mt-20 flex-col items-start gap-3 border p-6"
-            >
-                <h2 class="text-rom-ink text-lg font-semibold">{{ trans('help.start_here.heading') }}</h2>
-                <p class="text-rom-ink text-base">{{ trans('help.start_here.line') }}</p>
-                <Button as-child size="lg">
-                    <Link :href="startHere.overview.href">{{ startHere.overview.title }}</Link>
-                </Button>
-                <TextLink v-for="article in startHere.articles" :key="article.slug" :href="article.href">{{ article.title }}</TextLink>
-            </section>
 
             <div class="grid gap-4 md:grid-cols-2">
                 <Card v-for="section in sections" :id="section.key" :key="section.key" class="flex scroll-mt-20 flex-col">

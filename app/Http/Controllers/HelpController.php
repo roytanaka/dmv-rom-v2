@@ -12,7 +12,7 @@ use Inertia\Response;
 
 /**
  * The help centre (ADR-0025, PRD #516) — in-app Markdown articles, chrome for every
- * logged-in Member. The index shows a Start here box and one card per section;
+ * logged-in Member. The index shows one card per section;
  * the article page renders one article's Markdown to a breadcrumb, title, and body.
  * Both are localized (ADR-0008): `/help` ↔ `/fr/aide`, `/help/{article}` ↔
  * `/fr/aide/{article}`, with the article slug the same string in both locales.
@@ -54,10 +54,8 @@ class HelpController extends Controller
             ]];
         });
 
-        // Getting started feeds the "Start here" box, not a card.
         return Inertia::render('help/Index', [
-            'startHere' => $cards->get(HelpSection::GettingStarted->value),
-            'sections' => $cards->except(HelpSection::GettingStarted->value)->values()->all(),
+            'sections' => $cards->values()->all(),
         ]);
     }
 
