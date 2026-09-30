@@ -49,6 +49,9 @@ use Inertia\Testing\AssertableInertia as Assert;
 // org-tree assertions never touch the network. An empty 200 leaves every Member on
 // the initials fallback, which these tests don't assert against.
 beforeEach(function () {
+    // Pin the clock to mid-month. On a month's last day every current-month tour has
+    // ended, so the seeded roster leaves no seat to take.
+    $this->travelTo(now(config('app.org_timezone'))->startOfMonth()->addDays(14)->setTime(12, 0));
     Http::fake();
     $this->seedDemoOnce();
 });
