@@ -63,6 +63,10 @@ Default canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `read
 
 Single-context layout — `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+### Tester feedback
+
+Feedback items live in the staging `feedback` database ([ADR-0029](docs/adr/0029-tester-feedback.md)), not locally. Run the `feedback-triage` skill (`.claude/skills/feedback-triage/`) to read them and write tickets.
+
 ### Help articles
 
 A feature ships with a help article ([ADR-0025](docs/adr/0025-help-centre.md)). Run the `help-article` skill (`.claude/skills/help-article/`); write to `docs/help-articles.md`.
