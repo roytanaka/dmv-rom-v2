@@ -109,6 +109,68 @@ class SchedulePolicy
     }
 
     /**
+     * Who may edit a Group's Reminder settings (#486, ADR-0024 §7): a schedule admin of the
+     * Group — the same Scheduler / Chair gate every authoring ability uses. Reminders are a
+     * scheduling concern, so the capability guard folds in: a Chair of a non-scheduling Group
+     * has no Reminders to edit. Reached on a Group, not a Schedule, so the caller resolves the
+     * policy by the class name (UpdateReminderSettingsRequest).
+     */
+    public function updateReminders(Member $actor, Group $group): bool
+    {
+        return $this->administersSchedulingFor($actor, $group);
+    }
+
+    /**
+     * Who may edit a Group's empty-desk settings (#487, ADR-0024 §7): a schedule admin of the
+     * Group — the same Scheduler / Chair gate, with the scheduling-capability guard folded in.
+     * The alert, its look-ahead, and which shift kinds to watch all move through one endpoint
+     * (UpdateEmptyDeskSettingsRequest), so the one gate covers the settings and the shift-kind
+     * flag alike.
+     */
+    public function updateEmptyDeskAlert(Member $actor, Group $group): bool
+    {
+        return $this->administersSchedulingFor($actor, $group);
+    }
+
+    /**
+     * Who may edit a Group's self-serve settings (#582, ADR-0026 §1 and §2): a schedule admin of
+     * the Group — the same Scheduler / Chair gate, with the scheduling-capability guard folded in.
+     * The switch and the unit length move through one endpoint (UpdateSelfServeSettingsRequest), so
+     * the one gate covers both; turning self-serve on when the Group runs no scheduling is refused
+     * here, before the write. Reached on a Group, so the caller resolves the policy by the class
+     * name.
+     */
+    public function updateSelfServe(Member $actor, Group $group): bool
+    {
+        return $this->administersSchedulingFor($actor, $group);
+    }
+
+    /**
+     * Who may maintain a Group's shift kinds (#567, ADR-0021 §3): a schedule admin of the
+     * Group — the same Scheduler / Chair gate, with the scheduling-capability guard folded in.
+     * Add, rename, retire, reinstate and reorder all move through the one endpoint set, so the
+     * one gate covers them alike. Reached on a Group (or a kind's Group), so the caller resolves
+     * the policy by the class name (the shift-kind Form Requests).
+     */
+    public function manageShiftKinds(Member $actor, Group $group): bool
+    {
+        return $this->administersSchedulingFor($actor, $group);
+    }
+
+    /**
+     * Who may maintain a Group's Objects — its handling collection (#584, ADR-0026 §3): a
+     * schedule admin of the Group, the same Scheduler / Chair gate as {@see manageShiftKinds},
+     * with the scheduling-capability guard folded in. Add, rename, retire, reinstate and reorder
+     * all move through the one endpoint set, so the one gate covers them alike. Reached on a Group
+     * (or an Object's Group), so the caller resolves the policy by the class name (the Object Form
+     * Requests).
+     */
+    public function manageObjects(Member $actor, Group $group): bool
+    {
+        return $this->administersSchedulingFor($actor, $group);
+    }
+
+    /**
      * The schedule-admin gate: the Group runs scheduling *and* the actor can act as
      * its Scheduler (Chair-implication folded in by {@see Member::canActAs()}). The
      * capability guard matters because Chair-implication would otherwise grant schedule

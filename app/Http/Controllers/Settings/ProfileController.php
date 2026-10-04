@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Support\ProfilePhotoStorage;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,7 +18,6 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         return Inertia::render('settings/Profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
             // Fine-grained, per-resource UI hint (ADR-0017 §9): may this member edit
             // this record? The server still enforces the action; this only drives

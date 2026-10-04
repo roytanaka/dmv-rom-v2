@@ -63,6 +63,14 @@ _Avoid_: equating it with super-tier or bare "admin"; it confers no org authorit
 The Role-switcher's escape hatch back to the original operator, from any impersonated Persona. Keyed on the operator id stored in the session at the start of impersonation, so it works regardless of the impersonated Persona's tier.
 _Avoid_: "return to super" — the mechanism keys on the stored impersonator id, not on tier; and the operator is the **Support-operator** who began the session, who is deliberately _not_ super-tier (that split is the point — [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
 
+**Tester**:
+A person trying out the app outside production and sending **Feedback items**. A Tester is known by the name they type, not by the account they log in with: testers share seeded logins and switch **Personas**, so the account says nothing about who they are.
+_Avoid_: using "Member" or "user" for this person — the Member on the request may be a **Persona** the Tester is impersonating.
+
+**Feedback item**:
+One thing a **Tester** sends from a non-production app: a bug, a feature request, a translation problem, a legacy feature that is missing, something confusing, or other. Every Tester can read every Feedback item and comment on it. The **Support-operator** sets its status.
+_Avoid_: "report" (taken by Officer reports and the post-shift report), "issue" and "ticket" (GitHub issues, where the work is tracked), "bug" for the whole set (a bug is one type).
+
 **Group**:
 The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, content, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
 
@@ -78,15 +86,31 @@ The container a **Group** publishes its **Shifts** in — a **named date range**
 _Avoid_: "the month" or "the event" for this (see **Event** under Legacy vocabulary); and calling the _authoring screen_ a Schedule — that is a surface, this is the row.
 
 **Shift**:
-A dated thing a **Member** signs up to staff — a tour, a desk slot, an event role. The unit of scheduling. Belongs to exactly one **Schedule** (mandatory — there are no orphan Shifts) and carries a start and end time, an integer **capacity**, an optional **shift kind**, and an **audience**. Programs name it differently — docents say "tour," Visitor Guides say "shift" — but **Shift** is the canonical umbrella term.
+A dated thing a **Member** signs up to staff — a tour, a desk slot, an event role. The unit of scheduling. Belongs to exactly one **Schedule** (mandatory — there are no orphan Shifts) and carries a start and end time, an integer **capacity**, an optional **shift kind**, and an **audience**. Programs name it differently — docents say "tour," Visitor Guides say "shift" — but **Shift** is the canonical umbrella term. Authored by the Group's **Scheduler**, or, in a **self-serve** Group, by the Member who will take it (see **Self-serve Shift**).
 _Avoid_: reading a Shift as one person's seat — it is a **slot** that holds up to `capacity` **Sign-ups**. Per-seat facts (one volunteer's hours, one volunteer's visitor count) belong on the Sign-up. And note what a Shift does **not** carry: no location (kind is the only descriptive axis), no state of its own (it inherits the Schedule's), no qualification flag (a requirement hangs off the **shift kind**), and no repeat rule — recurring Shifts are **bulk-written**, never spawned from a stored pattern.
 
 **Shift kind**:
-An entry in a **Group**'s small list of the kinds of shift it runs — "Desk", "Shadow", "Level 2 greeter". Per Group, nullable on a **Shift** (Reception's Shifts carry none). Model `ShiftKind`, table `shift_kinds`. This is [ADR-0015](docs/adr/0015-scheduling-model.md)'s **Catalog**, renamed. A **qualification** requirement hangs off the kind, never off the dated Shift — decided in shape only; nothing is built.
-_Avoid_: "Catalog" (already three other things in this repo: the content catalog capability, the role catalog, the persona catalogue), and legacy's `Activity` / `Role` / `Type` (see Legacy vocabulary).
+An entry in a **Group**'s small list of the kinds of shift it runs — "Desk", "Shadow", "Level 2 greeter", "Egypt - GI # 1". Per Group, nullable on a **Shift** (Reception's Shifts carry none). Model `ShiftKind`, table `shift_kinds`. This is [ADR-0015](docs/adr/0015-scheduling-model.md)'s **Catalog**, renamed. A Group whose kinds are places names them that way; Gallery Interpreters' kinds are **stations** (a gallery and a cart number). A kind may be flagged **off-site**, which makes its Sign-ups' **Objects** subject to an **Object hold**. A **qualification** requirement hangs off the kind, never off the dated Shift — decided in shape only; nothing is built.
+_Avoid_: "Catalog" (already three other things in this repo: the content catalog capability, the role catalog, the persona catalogue), and legacy's `Activity` / `Role` / `Type` / `Location` (see Legacy vocabulary). "Station" is fine in Gallery Interpreters prose; the entity is still the shift kind.
+
+**Self-serve Shift**:
+A **Shift** a **Member** authors for themselves, in a **Group** whose `self-serve shifts` setting is on ([ADR-0026](docs/adr/0026-gallery-interpreters-self-serve-shifts.md)). The Member picks the start (any 15-minute step on the day, including one already passed today), the **shift kind**, their **Objects**, and a number of **units**; the app writes the Shift (capacity 1, audience `group`) and their **Sign-up** in one action. The author may edit or delete it until it starts; after that only the **Scheduler** may. Gallery Interpreters is the Group this exists for.
+_Avoid_: "open block", "sign-in shift", and reading it as a different entity — it is an ordinary Shift with a different author. And "kiosk": the legacy page it replaces was a logged-in member page, and the shared-device kiosk is closed (see **Attendance**).
+
+**Unit**:
+The length a **self-serve Shift** is sized in: a Group setting, `self-serve unit minutes`, 45 for Gallery Interpreters. A Member picks 1 to 8 units; the Shift's end is its start plus units × the unit length, and the unit count is never stored. Hours credit sees a unit as one whole hour through the Group's decimal `hours_multiplier` (4/3 for GI, [ADR-0022 §7](docs/adr/0022-hours-and-statistics-model.md) as amended).
+_Avoid_: legacy's `Count` for this (see Legacy vocabulary — the column means three things at once), and "shift" in the plural for a run of units: a two-unit stint is one Shift.
+
+**Object**:
+One item of a **Group**'s handling collection that a **Member** takes onto the floor — "Ostrich Egg", "Owl Skulls". Group-scoped, with a name, an active flag and a sort order; maintained by the Group's schedule admin like a **shift kind**. Reserved on the **Sign-up**, zero or more per Sign-up; when the Group has any active Object, a self-serve Sign-up must carry at least one. **An Object cannot be double-booked**: no two Sign-ups on overlapping Shifts may carry the same Object, and the server enforces it. Gallery Interpreters only, today.
+_Avoid_: "artefact" (legacy's `giArtefact` is a 452-row content catalog of which 144 rows are Objects; the rest are gallery themes and links and belong to the content catalog capability), and putting an Object on the **Shift** — several Members on one Shift each reserve their own.
+
+**Object hold**:
+The window during which an **Object** counts as in use for the double-booking check. Normally the **Shift**'s own start and end. When the Shift's **shift kind** is flagged **off-site**, the window widens to the start of the day before the Shift through the end of the day after, because the Object leaves the building. Automatic; nothing is written or maintained.
+_Avoid_: an "event" entity or a manual hold record — legacy's `giEvent` window (`ObjectStart` / `ObjectEnd`) is what the off-site flag replaces, and an event in v2 is Scheduler-authored Shifts whose kind is an off-site event station.
 
 **Sign-up**:
-The record that a **Member** has taken (or been assigned) a **Shift** — one Member, one Shift. Created by the Member themselves or by the Group's **Scheduler**; one entity, two actors. Carries **no state**: cancelling is deleting it, allowed for as long as the Member could have taken it (until the Shift starts — no deadline). A Member may hold Sign-ups on overlapping Shifts, but never two on the same Shift.
+The record that a **Member** has taken (or been assigned) a **Shift** — one Member, one Shift. Created by the Member themselves or by the Group's **Scheduler**; one entity, two actors. Carries **no state**: cancelling is deleting it, allowed for as long as the Member could have taken it (until the Shift starts — no deadline). A Member may hold Sign-ups on overlapping Shifts, but never two on the same Shift. Per-seat facts live here: the **visitor count**, and in a Group with a handling collection, the **Objects** the Member reserved.
 _Avoid_: confusing with **Login** (authentication) — a Sign-up is _staffing a Shift_, not authenticating. And "cancel state", "swap", "assistant" — swap and assistants are not built, and cancel is a deletion, not a state. And "attended" — see **Attendance**.
 
 **Attendance**:
@@ -97,6 +121,38 @@ _Avoid_: legacy's `Confirmed`, which means _signed out at the end of a shift_ ra
 Who may take it: `group` (the default — Members of the owning Group, in a per-Group standing that permits sign-up) or `open` (any Member who can read the **Schedule**). This is what makes cross-Group participation a **read filter** rather than a relationship — there is no second row and nothing to keep in sync. A **Scheduler** placing a named volunteer is not bound by it.
 _Avoid_: reading audience as an eligibility gate. Two separate floors decide whether a person may work at all (`Category::canSignUp()` DMV-wide, `MembershipStatus::canSignUp()` per Group); audience only decides who is shown a Sign-up button.
 
+**Audience** (of a **Broadcast**):
+A named set of recipients, resolved **on the server at send time** from the Group model: "Whole Group", "The Group's officers", "Sign-ups on this Shift", "All Members", "Board of Directors", and the rest of the table in [ADR-0024 §5](docs/adr/0024-emailing-model.md). Who may pick an Audience is part of its definition: any member of a Group gets its roster sets, the Group's officers get the officer and Sign-up sets, and the org-wide sets need an **org-wide sender** — a member of the Executive, Records, or Awards Group, or a Chair of any active Group at any depth (super-tier inherits it). The three leadership sets — Board of Directors, Committee Chairs, and All Chairs — are open to any Member. This is legacy's DMV-list rule ([ADR-0024 §5](docs/adr/0024-emailing-model.md)). An officer may remove names from a resolved Audience; the record then keeps the Audience's name with an edited flag.
+_Avoid_: confusing it with a **Shift**'s `audience` (`group` / `open`), which decides who may take a Shift, not who gets mail. And never let the browser post a recipient list: the server resolves the Audience, the browser only names it.
+
+**Broadcast**:
+A message an **Officer** writes and sends to an **Audience**, from the "Email ▾" control on a Group page, roster, Schedule, Shift, or the Directory. Rich text, up to two attachments, one language as written (it is **content**). Sent by the app from one address with the Group's name as display name; Reply-To is the officer, who also gets a copy, sent last, naming anyone not reached. Stored as a sent record with its **Delivery** rows ([ADR-0024](docs/adr/0024-emailing-model.md)).
+_Avoid_: "email blast", "mass mail", "newsletter" (the newsletter is a separate system); and using Broadcast for the one-to-one case, which is a **Direct message**.
+
+**Direct message**:
+A message any **Member** writes and sends to **one** other Member from the Directory or a profile. A peer of **Broadcast** sharing its composer, sent record, queue, and no-email rule; it differs only in who may send it and that its Audience is one Member. The sender never sees the recipient's address; Reply-To is the sender, so a reply discloses the recipient's address by their own choice. No abuse guard beyond authorization and the record.
+_Avoid_: "member-to-member messaging" (the older ADR-0011 / ADR-0017 phrase), "DM", "chat", and any reading that implies an inbox: nothing is in-app, the app sends email.
+
+**Reminder**:
+An automatic mail about the recipient's **own upcoming Sign-up**, written by the daily pass for every Sign-up inside the Group's lead window (3 days by default) that has no Reminder **Delivery** yet, and sent by the **Drain**. Per-Group settings: on or off, lead days. Chrome, rendered in the recipient's **locale**; no Reply-To. A Reminder's Delivery expires at the Shift's start. The **empty-desk alert** is its sibling, a Group setting (watched shift kinds and days ahead, on for Visitor Guides): every third day of the month the roster is told which watched Shifts still have no Sign-up.
+_Avoid_: "notification"; and reading a Reminder as a date match. It is a window with a sent record, so a missed day catches up and a late Sign-up still gets one.
+
+**Notice**:
+An automatic mail triggered by an **event**: a Member cancelling a Sign-up (to the Group's Schedulers and Chairs, [ADR-0021](docs/adr/0021-scheduling-first-pass.md)), or a Member's **Category** moving to Resigned or Deceased (to the Chairs of every Group where their Membership is not already departed). Chrome in the recipient's locale, no Reply-To, plain links, never expires. Officer assign and remove, leave of absence, reinstatement, and Withdrawn send nothing, on purpose.
+_Avoid_: "notification" (retired, see Flagged ambiguities); and building a Notice on a model observer. The hook is the action that makes the change.
+
+**No-email flag**:
+A **Records**-set switch on a **Member** that silences **all** mail to them: Broadcasts, Direct messages, Reminders, Notices. Records-only field-visibility tier; super-tier inherits it. Checked once, when Delivery rows are written. A sender learns a Member is unreachable only by trying to reach them: a Direct message is refused with "cannot be reached", and an officer is told the names skipped from their Audience after sending. The only opt-out there is; it replaces legacy's address sentinel (see **noemail** under Legacy vocabulary).
+_Avoid_: "unsubscribe" (nothing self-service exists, and none is legally owed for this mail), "opt-out preferences", per-kind switches. One flag, everything.
+
+**Delivery**:
+One queued mail to one recipient: the unit the throttle counts and the sent record stores. A Broadcast to 450 Members is 450 Deliveries. Four states: **pending**, **sent**, **failed**, **expired**. Written by a send (or by the daily pass), drained by the **Drain** at most 8 a minute and 450 a rolling hour, retried on a temporary error (three tries) and failed at once on a permanent one. Kept forever, readable in the Records-only tier and by the sender for their own sends.
+_Avoid_: Laravel's `jobs` table, or the word "job", for it. A Delivery is our own row and the record of truth. And "sent" for a pending row: the sender's flash says "queued".
+
+**Drain**:
+The every-minute scheduled task that sends pending **Deliveries**. **The only code path that talks SMTP.** Runs under an overlap lock; stops the pass on a connection-level error (which is also how the host's daily cap presents) and retries next minute without giving up; writes "scheduler last ran" and "last connection error" for the super-tier Mail status page; checks in with the Sentry cron monitor. A second task, the **daily pass** at 06:00, only writes Delivery rows for Reminders and the empty-desk alert.
+_Avoid_: "worker" or "queue worker" ([ADR-0002](docs/adr/0002-stay-on-stormweb-shared-hosting.md): none exist; this is a cron pass), and sending mail from anywhere else.
+
 **Visitor count**:
 The number of visitors one **Member** served on one **Shift**, recorded after the shift on their **Sign-up** as a nullable integer (`visitor_count`). Null means _not recorded_; zero means _recorded as zero_. The Member enters it at sign-out; a Group **Officer** may set or correct it at any time, with no deadline. Nine of the ten scheduling Groups collect it, and whether a Group collects it is a **Group** setting rather than a **shift kind** one. It never feeds **hours** ([#404](https://github.com/roytanaka/dmv-rom-v2/issues/404)).
 _Avoid_: reading it as a headcount of distinct people. Several volunteers on one Shift each record their own number, so a Group total counts _interactions_, not visitors. And do not confuse it with a **Booking**'s expected audience, which is a forecast typed before the event.
@@ -104,6 +160,10 @@ _Avoid_: reading it as a headcount of distinct people. Several volunteers on one
 **Extra interaction count**:
 Visitors a Member served on a **Shift** outside the tour they led, as a second nullable integer (`extra_interaction_count`) on the same **Sign-up**. Only tour-leading Groups show the field; for a desk or gallery Group the **visitor count** already is an interaction count. Kept because Docents and GDR have maintained the split for years, on 81% and 54% of their signed-out shifts, even though no legacy report ever read it.
 _Avoid_: folding it into **visitor count** at entry. The two are stored apart and added only where a report asks for total interactions. "Extra" carries the same sense it has in **extra hours**: _not already counted_.
+
+**Visitor provenance**:
+Where the visitors on one **Shift** came from, as five nullable integers on the same **Sign-up** beside the **visitor count** — `visitors_france_europe`, `visitors_quebec`, `visitors_toronto`, `visitors_rest_of_canada`, `visitors_other_countries`. **GDR only**, switched on per **Group** exactly as the visitor count is. The five **must sum to the visitor count**, validated on the server. Ported because GDR has filled them in on every counted tour since 2020 and reports on them by fiscal year ([#426](https://github.com/roytanaka/dmv-rom-v2/issues/426)).
+_Avoid_: building general per-Group breakdown machinery for it. One Group in fifteen years is not a pattern; five columns on `sign_ups` is the whole design, and a second Group asking is when it gets generalised.
 
 **Visitor interaction total**:
 What **Summary Visitor Interactions** counts for one **Group** in one month: the sum of that Group's **Sign-ups** (`visitor_count` plus `extra_interaction_count`) plus its **extra interactions**, rolled up through the whole sub-Group subtree ([#425](https://github.com/roytanaka/dmv-rom-v2/issues/425)). One rule for every Group. Legacy assembles the same figure five different ways and none of the special cases survive. A **Booking**'s expected audience is not part of it — that belongs to the group-booking work — so a Group whose visitors arrive mostly through bookings reads low until that lands, and the report says so beside the number.
@@ -141,16 +201,48 @@ _Avoid_: the calendar year, and "FY26"-style shorthand; the reports say _Fiscal 
 The application's persistent **frame** — the top bar, side rail, breadcrumb strip, and footer that wrap every screen and stay put while the page content changes. A UI term (after [GUI chrome](https://www.nngroup.com/articles/browser-and-gui-chrome/)), unrelated to the web browser. The Part 3 app shell _is_ the chrome; product screens render inside it.
 _Avoid_: confusing with the Google Chrome browser. Synonyms "shell" / "frame" are fine.
 
+**Rail** (reader-facing: **Left Side Bar**):
+The **Chrome**'s left-hand navigation: My Groups, Browse Groups, and **Officer Tools** at the bottom. Built on the server ([ADR-0018](docs/adr/0018-server-driven-grouping-rail.md)). "Rail" is the code and ADR name. **Help articles** and other text a **Member** reads say **Left Side Bar** (French: _barre latérale gauche_).
+_Avoid_: "the rail" in Help articles; bare "sidebar" there too, because the Account settings page has its own sidebar. And the Directory's **A–Z jump rail** (the letter bar) is a different thing.
+
+**Officer Tools**:
+The rail's bottom cluster of **org-wide** administration: Members, Communications, Reports, Flash Messages, DMV Settings, plus the super-tier status pages. Built and gated on the server per rail item ([ADR-0018 §4](docs/adr/0018-server-driven-grouping-rail.md), [ADR-0027 §4](docs/adr/0027-group-settings-tab.md)). Nothing **Group**-scoped lives here.
+_Avoid_: reading "officer" here as a Group's **Officer**; the two senses are unrelated. Do not put a Group's tools in the rail.
+
+**Group Settings** (the Settings tab):
+The last section tab on a **Group** page, shown only to a Member with at least one configuration right on that Group. Holds the Group's **settings**: reminders, empty-desk alert, self-serve shifts, **Shift kinds**, **Objects**. A setting is a value an **Officer** sets once and the app reads later. See [ADR-0027](docs/adr/0027-group-settings-tab.md).
+_Avoid_: putting **records** or content work here. A **Schedule**, a **Shift**, a **Sign-up**, a **Meeting**, a roster line, the About text or the banner is edited inline on the tab where it is read. "Settings" names three scopes in the app: Account settings (the user menu), Group Settings (this tab), DMV Settings (**Officer Tools**).
+
 **Locale**:
 The technical identifier for a language + regional convention pair. The app supports two locales: `en` (English, default) and `fr` (Canadian French, `fr-CA`). A **Member**'s `locale` column captures their saved preference. Laravel's `app()->setLocale()` consumes it.
 _Avoid_: Language (the user-facing label is "Language" or "Langue," but in code and ADRs, use **Locale**).
 
 **Chrome / content translation boundary**:
-The line that decides what gets translated. **Chrome** (the frame's own words — UI labels, navigation, system emails) is translated from `lang/{en,fr}` files. **Content** (anything a **Member** authors into a DB row — **Group** names, news, document titles) is single-column and rendered **as-authored**, identical in both locales — never translated, no `_en`/`_fr` columns. See [ADR-0004](docs/adr/0004-chrome-only-translation.md).
+The line that decides what gets translated. **Chrome** (the frame's own words — UI labels, navigation, system emails, **Help articles**) is translated; short strings live in `lang/{en,fr}` files, Help articles in their own tree. **Content** (anything a **Member** authors into a DB row — **Group** names, news, document titles) is single-column and rendered **as-authored**, identical in both locales — never translated, no `_en`/`_fr` columns. See [ADR-0004](docs/adr/0004-chrome-only-translation.md) and [ADR-0025](docs/adr/0025-help-centre.md).
 _Avoid_: "bilingual content," "translatable field" — content is as-authored, not bilingual.
 
 **Default locale**:
 English (`en`). It is the canonical, unprefixed locale — English URLs live at the root, French URLs live under `/fr/`. See [ADR-0008](docs/adr/0008-bilingual-url-routing.md).
+
+**Help article**:
+One page of instructions for one task in the app, written by the project for every **Member**, with screenshots and captions, in both **Locales**. Help articles are **Chrome**: the French version is machine-translated and shipped alongside the English one. See [ADR-0025](docs/adr/0025-help-centre.md).
+_Avoid_: "doc," "guide," "FAQ," "tutorial" — all mean a Help article here. "Documentation" on its own means the developer docs in `docs/`, not this.
+
+**Help section**:
+A named group of **Help articles** that mirrors one area of the app's navigation (Getting started, My Hours, Groups, Scheduling, and so on). Each section has one overview article and any number of task articles.
+_Avoid_: "category," "chapter."
+
+**Required role**:
+The role a **Member** needs before a **Help article**'s task applies to them: a Group role (Scheduler, Chair, and so on), **Super-tier**, or **Support-operator**. Shown as a badge; it never hides the article. Empty means every Member.
+_Avoid_: "audience" — that word is taken by Shifts and Broadcasts.
+
+**Article status**:
+Where a **Help article** stands: `draft` (reachable by URL, hidden from the index) or `published`. Its French copy is separately `machine-translated` or `reviewed`.
+_Avoid_: "done," "live," "WIP."
+
+**Help ledger**:
+The single list of every **Help article** with its **Help section**, **Required role**, **Article status**, screenshot state, and the app page it explains, plus every page with no article. It is the engineer's record of what is built. One list serves both the index Members see and the status page Super-tier sees.
+_Avoid_: "feature inventory," "changelog," "roadmap" — the ledger records what exists, not what is planned.
 
 **PRD** (product requirements document):
 A scoped chunk of product work — large enough to need its own document, small enough to be implementable. PRDs are drafted as GitHub issues labeled `prd`, then broken into implementation tickets.
@@ -162,8 +254,12 @@ _Avoid_: epic, spec, brief, initiative — all refer to the same artifact in oth
 - A **Member** may belong to zero or more **Groups**; each **Membership** carries the **role(s)** that Member holds in that Group
 - A **Group** has one parent (one tree, DMV at the root); **Committee** and **Program** are Kinds of Group
 - A **Group** with the scheduling capability publishes **Schedules**; a **Schedule** holds **Shifts**; a **Member** takes a **Shift** via a **Sign-up**, and one Shift holds up to `capacity` Sign-ups
+- In a **self-serve** Group, a **Member** authors their own **Shift** (a **Self-serve Shift**) and its **Sign-up** together; a **Sign-up** reserves zero or more **Objects**, and an Object is never on two Sign-ups whose **Object holds** overlap
 - Every **Group** holds **Hours records**, one per **Member** per month; a Group's report totals its own and every descendant's, to any depth
 - **Login** to the app grants the **Member** their session and their authorization scope
+- An **Officer** sends a **Broadcast** to an **Audience**; any **Member** sends a **Direct message** to one Member; both become one sent record and one **Delivery** per recipient
+- The daily pass writes a **Reminder** Delivery per (Shift, Member) inside the lead window; a **Notice** fires from the action that changes something; the **Drain** sends every Delivery; the **No-email flag** stops a row being written at all
+- A **Help section** holds **Help articles**; every article carries an **Article status** and a **Required role** and maps to one app page; the **Help ledger** is the full list, and every logged-in **Member** can read every published article
 
 ## Example dialogue
 
@@ -177,6 +273,8 @@ _Avoid_: epic, spec, brief, initiative — all refer to the same artifact in oth
 
 - _"Member" vs "Membership"_ — **Member** is the person (the identity record); a **Membership** is that Member's join-row in a Group. Keep them distinct in schema names: the identity table is `members`; the Group join-table is `group_member`, never `members` again. "Group member" is acceptable prose for a person in a Group.
 - _"Volunteer"_ — superseded as the person term by **Member**. Still correct only inside the proper noun "Department of Museum Volunteers." Earlier ADR prose may still say "Volunteer"; treat **Member** as canonical wherever they conflict.
+- _"Audience"_ — two senses. A **Shift**'s `audience` (`group` / `open`) says who may take it; a **Broadcast**'s **Audience** says who receives mail. Both stay, because both are the natural word; qualify when a sentence could read either way.
+- _"Notification"_ — **retired as a domain word** ([ADR-0024](docs/adr/0024-emailing-model.md)). Say **Reminder** (about your own Sign-up), **Notice** (fired by an event), or **Broadcast** (written by an officer). Earlier ADR prose that says "notification email" means a Notice.
 
 ## Legacy vocabulary
 
@@ -227,12 +325,21 @@ A stored template a legacy generator fans out into dated rows. It conceals **two
 
 Reception's two-week pattern is the second wearing the clothes of the first: its shifts are weekly, and the fortnight exists only because some Members attend on alternate weeks. Confirmed by the schema, not only by testimony — `Colour` appears in exactly the two Groups that name a person on a pattern row (`receptionweeklySchedule.commID`, `vgweeklySchedule.VgID`) and nowhere else.
 **We build neither** ([ADR-0021](docs/adr/0021-scheduling-first-pass.md)). This is pure legacy vocabulary: nothing recurring is stored, and a Scheduler **bulk-writes** N ordinary rows instead — bulk-create Shifts, bulk-place a Member weekly or biweekly, each with a symmetric bulk undo. Note also that legacy's "copy pattern from" copies the previous _event's day-pattern template_, never a Schedule or its Shifts — there is no schedule-duplication feature over there to port.
+Gallery Interpreters' `giweeklySchedule` is a third thing wearing the same clothes: 13 half-hour starts, Tuesday to Sunday, that a volunteer never sees except as the list of start times on the advance sign-up dialog. Opening a month fans it into empty rows; closing a month deletes whatever is still empty. **Not ported** ([ADR-0026](docs/adr/0026-gallery-interpreters-self-serve-shifts.md)): a **self-serve Shift** takes any 15-minute start on the day.
 _Avoid_: "pattern" unqualified. Say _shift template_ or _recurring Sign-up_ — and expect to be describing legacy when you do.
 
-**Count** (legacy column):
-Two meanings, neither of them capacity: **duration in hours** (Visitor Guides, Wayfinders, Reception, Gallery Interpreters) and **quantity of tours given** (Docents, GDR, and Gallery Interpreters again — the same column, both ways). The two are reconciled outside the tables by a hardcoded per-Group multiplier (`hoursper`: every Group `1`, **Walker `2`**), so any migration that maps `Count → Count` silently corrupts a Group's hours. The multiplier survives, as data rather than code: [ADR-0022](docs/adr/0022-hours-and-statistics-model.md) puts an `hours_multiplier` on the Group (default `1`, ROMWalks `2`), replacing the `2*$total` hardcoded in `walker.php`. Capacity is always a _different_ column (`Required`, `PresentersNeeded`) or it is N identical rows. A name to retire, never to carry forward — our **Shift** derives duration from its start and end times.
+**Location** (legacy `gitour`, `TourID`, and the "Select a Location" picker):
+Gallery Interpreters' word for the gallery and cart a GI staffs — "Teck Earth Sciences - GI # 1". 95 active rows in five categories, of which _Special Events_ names off-site event stations. It is a **shift kind**, and in GI prose a **station**; the categories are not ported. Not to be confused with **Shift** having no location column: the kind is the one descriptive axis, and for GI the kind _is_ the place.
+_Avoid_: "location" as a v2 field name, and "tour" for a GI row — `gitour` never held a tour.
 
-**`Visitors`** / **`Interactions`** (legacy columns — four of them, and one is live):
+**Sign In** (legacy GI page "Sign In OR Sign up for a shift"):
+A logged-in member page, not the shared-device kiosk. It lists today's shifts, lets a GI write their own for any start on the day, and later takes the visitor number. Its museum-network gate is dead code. In v2 it is the **self-serve Shift** create flow plus the sign-out panel of [ADR-0023](docs/adr/0023-scheduling-second-pass.md) — nothing separate.
+_Avoid_: "kiosk" (closed, see **Attendance**) and "sign in" for authentication (see **Login**).
+
+**Count** (legacy column):
+Two meanings, neither of them capacity: **duration in hours** (Visitor Guides, Wayfinders, Reception, Gallery Interpreters) and **quantity of tours given** (Docents, GDR, and Gallery Interpreters again — the same column, both ways). In Gallery Interpreters alone it is **three things at once**: 45 minutes on the sign-out gate (`$mins=45*$shifts`), a whole hour in the clash arithmetic, and one abstract shift credit at month close (`Sum(Count)` with no factor, printed as "Total Shifts"). We call the 45-minute thing a **unit** and credit it as one hour through a 4/3 multiplier ([ADR-0026](docs/adr/0026-gallery-interpreters-self-serve-shifts.md) §7). The two are reconciled outside the tables by a hardcoded per-Group multiplier (`hoursper`: every Group `1`, **Walker `2`**), so any migration that maps `Count → Count` silently corrupts a Group's hours. The multiplier survives, as data rather than code: [ADR-0022](docs/adr/0022-hours-and-statistics-model.md) puts an `hours_multiplier` on the Group (default `1`, ROMWalks `2`), replacing the `2*$total` hardcoded in `walker.php`. Capacity is always a _different_ column (`Required`, `PresentersNeeded`) or it is N identical rows. A name to retire, never to carry forward — our **Shift** derives duration from its start and end times.
+
+**`Visitors`** / **`Interactions`** (legacy columns — four of them, and only one is dead):
 
 The two words name four different columns across two kinds of table, and both words are spoiled. Separated by research ([#399](https://github.com/roytanaka/dmv-rom-v2/issues/399), [#400](https://github.com/roytanaka/dmv-rom-v2/issues/400)) after ADR-0022 ruled one out and the map read it as another.
 
@@ -240,6 +347,7 @@ The two words name four different columns across two kinds of table, and both wo
 - **`Interactions` on the dated scheduling rows** — Docents and GDR only, labelled _"Visitor interactions excluding tour"_ at sign-out. **Nothing reads it, and volunteers fill it anyway**: 2,533 Docent rows and 364 GDR rows in 24 months, 81% and 54% of their signed-out shifts. Two Groups have typed a second number for years into a column no report touches, so the department under-reports its own interactions by roughly 2,900 records. **We call this an extra interaction count.**
 - **`MemberActivity.Interactions`** — a per-Member, per-month count of visitors served outside any Shift, entered beside extra hours on every Group. **Live, not dead**: 98 of 71,388 rows carry a value, across twelve Groups, current through 2026, largest value 228. Earlier research recorded it as zero on every row ([#399](https://github.com/roytanaka/dmv-rom-v2/issues/399), [#400](https://github.com/roytanaka/dmv-rom-v2/issues/400), [#404](https://github.com/roytanaka/dmv-rom-v2/issues/404)); production says otherwise, and the code agrees. `mysql_select` returns `FALSE` on zero rows (`functions.php:35-40`), so although the UPDATE branch can never fire (`and Interactions>0` sits inside the row-matching `$where`, `servicesp.php:9769`), every entry lands through the INSERT branch below it. What is genuinely broken is correction: entry is **add-only, refuses zero or less, and has no second writer**, so a typo can never be undone by anyone. **We call this extra interactions.**
 - **`MemberActivity.Visitors`** (carrying the comment `Click Count`) — genuinely dead. No reader, no writer, no reference anywhere in live PHP, and **zero on all 12,521 rows** of the last two years. Do not import it.
+- **`Visitorsfr` / `Visitorspq` / `Visitorsto` / `Visitorsroc` / `Visitorsoth`** on `gdrscheduledTours` — **GDR alone, and live.** Visitor origin, labelled in French at sign-out: _France + Europe Fr_, _Prov Quebec_, _Toronto_, _Reste du Canada_, _Autres Pays_. Written at sign-out (`gdr.php:492`) and by the Statistician's row edit (`:3031`); read by a fiscal-year Tour Provenance PDF (`:5298`). **They sum to `Visitors` on 712 of 712 rows since 2022** — legacy enforces it, in the browser only. Filled on every counted tour since 2020, and no other table in the database has breakdown columns. **We call this visitor provenance** ([#426](https://github.com/roytanaka/dmv-rom-v2/issues/426)).
 
 Four distortions live in the org-level reports, all measured over fiscal 2026 ([#425](https://github.com/roytanaka/dmv-rom-v2/issues/425)):
 
@@ -248,12 +356,12 @@ Four distortions live in the org-level reports, all measured over fiscal 2026 ([
 - **The per-shift `Interactions` column is never read** — 7,871 Docent and 830 GDR visitors in one year, typed by volunteers and dropped. Docents' figure alone is 40% of their reported total.
 - **The two reports disagree about the future.** `interactions.php:110` restricts group tours to `Date<='$today'`; `detailedactivity.php:204` does not, so Detailed Committee Statistics counts tours that have not happened yet.
 
-One surprise in the configuration underlies all of this: **`Committee.visitorTable` does not always name a shift table.** ROMForYou's is `groupTours`, so its whole contribution is booking-side — 762 of its 1,055 visitors in fiscal 2026. Hands-on Tours schedules with no visitor table at all. GDR carries five provenance subtotals beside its own ([#426](https://github.com/roytanaka/dmv-rom-v2/issues/426)).
+One surprise in the configuration underlies all of this: **`Committee.visitorTable` does not always name a shift table.** ROMForYou's is `groupTours`, so its whole contribution is booking-side — 762 of its 1,055 visitors in fiscal 2026. Hands-on Tours schedules with no visitor table at all.
 
 **We call the live ones a visitor count and an extra interaction count** (see the glossary above). Both are nullable integers on the **Sign-up**, per volunteer, and no new entity ([#402](https://github.com/roytanaka/dmv-rom-v2/issues/402), [#404](https://github.com/roytanaka/dmv-rom-v2/issues/404)) — names chosen precisely because both legacy words are already spent. There are two rather than one because `Visitors` does not mean the same thing across Groups: on a Visitor Guide's row it is _people I talked to at the desk_, on a Docent's row it is _people on my tour_, with the talked-to number in `Interactions` beside it.
 
 One legacy design decision is worth porting deliberately. Visitor Guides, Wayfinders and Gallery Interpreters **disable the Sign Out button until a number is typed**, and carry a count on 96-98% of signed-out shifts. GDR and Walker have no such gate and manage 54-59%. The forcing function is what makes the data usable, so the field is nullable in storage and **required at the entry surface** — validated on the server, since legacy's version is browser-only.
-_Avoid_: the bare words "visitors" and "interactions" — each names a live column and a dead one. Say _visitor count_, and name the table when you mean a legacy column.
+_Avoid_: the bare words "visitors" and "interactions" — each names more than one column, and the meanings differ. Say _visitor count_, and name the table when you mean a legacy column.
 
 **Special** (legacy table prefix and menu symbol):
 Means **Visitor Wayfinders**, the Group. Legacy names its tables `specialEvents`, `specialSchedule`, `specialActivities`, `specialRoles`.
@@ -280,3 +388,11 @@ _Avoid_: the name **Activity** for our model (already three things — see above
 A coarse cross-Group audience for a legacy shift. **Not** a designation stored on a Member — it is evaluated on the spot as active membership in any of six Groups: Gallery Interpreters, Docents, GDR, Visitor Guides, Outreach, Visitor Wayfinders. A hardcoded union that nobody maintains.
 **Not ported** ([ADR-0021](docs/adr/0021-scheduling-first-pass.md)). Our **audience** enum has two values, `group` and `open`; `MIS` and legacy's three other values (nobody, a committee id, a subcommittee id) are dropped. A proper Group-list audience covers this case when a Group needs it, and the two-value enum widens to one without reshaping **Sign-up**.
 _Avoid_: treating it as a qualification or a standing.
+
+**noemail** (the legacy opt-out sentinel):
+Legacy has no opt-out flag. To silence a Member, an officer edits their email address to one containing a "noemail" domain, and every list page and the nightly job skip addresses that match. Four current Members carry it today, none with a role. **We call this the No-email flag** (see the glossary above): a Records-set switch on the Member, the address left intact. Moving the sentinel onto the flag is the migration plan's job, not a v2 ticket.
+_Avoid_: reading a sentinel address as a bad address, and porting the string match.
+
+**Send email** (legacy button) and **DMV Reminder** (legacy From name):
+Every legacy list page carries a Send email button that posts the page's visible addresses to one shared composer. "Send email" is therefore a _surface_, not a kind of mail, and _which page it sat on_ is what we now call the **Audience** (of a **Broadcast**). "DMV Reminder" is the fixed From display name of the nightly job; ours is the Group's name on the app's one address, and the mail is a **Reminder**.
+_Avoid_: "the emailer" as a feature name. Name the Broadcast, the Audience, or the Reminder.

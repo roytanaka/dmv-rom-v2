@@ -1,0 +1,326 @@
+<?php
+
+use App\Enums\ArticleStatus;
+use App\Enums\FrenchState;
+use App\Enums\HelpSection;
+use App\Help\HelpArticle;
+use App\Help\HelpArticleRenderer;
+use App\Help\HelpManifest;
+use Illuminate\Support\Facades\Route;
+
+// Seam B (#517, #518, ADR-0025) — catalogue integrity, in the shape of ChromeCatalogueTest.
+// The manifest and the files on disk must agree: a renamed slug, a missing locale
+// file, a duplicate slug, or a missing screenshot breaks the build, not the page.
+// #518 adds the badge, status, and French-state fields to the same wall.
+
+it('has an English and a French Markdown file for every article', function () {
+    foreach ((new HelpManifest)->all() as $article) {
+        expect(is_file(resource_path("help/en/{$article->slug}.md")))
+            ->toBeTrue("Missing English file for '{$article->slug}'");
+        expect(is_file(resource_path("help/fr/{$article->slug}.md")))
+            ->toBeTrue("Missing French file for '{$article->slug}'");
+    }
+});
+
+it('has unique article slugs', function () {
+    $slugs = collect((new HelpManifest)->all())->map->slug;
+
+    expect($slugs->duplicates()->all())->toBe([]);
+});
+
+it('has an English and a French label for every section', function () {
+    foreach ((new HelpManifest)->sections() as $section) {
+        expect(__($section->labelKey(), [], 'en'))
+            ->not->toBe($section->labelKey(), "Missing English label for section '{$section->value}'");
+        expect(__($section->labelKey(), [], 'fr'))
+            ->not->toBe($section->labelKey(), "Missing French label for section '{$section->value}'");
+    }
+});
+
+it('gives every overview a title that differs from its section label, so no breadcrumb repeats', function () {
+    // #565: a breadcrumb reads "Help › Getting started › <title>". An overview whose
+    // title equals its section label shows the same crumb twice. Guard both locales.
+    $renderer = app(HelpArticleRenderer::class);
+
+    foreach ((new HelpManifest)->all() as $article) {
+        if (! $article->isOverview) {
+            continue;
+        }
+
+        foreach (['en', 'fr'] as $locale) {
+            $title = $renderer->title($article->slug, $locale);
+            $label = __($article->section->labelKey(), [], $locale);
+
+            expect($title)->not->toBe(
+                $label,
+                "Overview '{$article->slug}' ({$locale}) repeats the section label '{$label}'"
+            );
+        }
+    }
+});
+
+it('has every referenced screenshot on disk', function () {
+    $renderer = app(HelpArticleRenderer::class);
+    $missing = [];
+
+    foreach ((new HelpManifest)->all() as $article) {
+        foreach (['en', 'fr'] as $locale) {
+            foreach ($renderer->referencedImages($article->slug, $locale) as $image) {
+                $path = "help-images/{$article->slug}/{$image}";
+
+                if (! is_file(public_path($path))) {
+                    $missing[] = $path;
+                }
+            }
+        }
+    }
+
+    // A missing screenshot breaks this test, not the page.
+    expect($missing)->toBe([]);
+});
+
+it('links only to articles in the manifest', function () {
+    // #618: a "What next" link is `[Title](slug)`. A renamed or removed article
+    // breaks this test, not the link.
+    $renderer = app(HelpArticleRenderer::class);
+    $manifest = new HelpManifest;
+    $unknown = [];
+
+    foreach ($manifest->all() as $article) {
+        foreach (['en', 'fr'] as $locale) {
+            foreach ($renderer->referencedArticles($article->slug, $locale) as $target) {
+                if ($manifest->find($target) === null) {
+                    $unknown[] = "{$locale}/{$article->slug}.md → {$target}";
+                }
+            }
+        }
+    }
+
+    expect($unknown)->toBe([]);
+});
+
+it('links the articles it names instead of naming them in italics or quotes', function () {
+    // #618: an article name in an article is a link, so the Member opens it in one step.
+    // Italics are left for nothing else, so any italic span is an unlinked name.
+    $renderer = app(HelpArticleRenderer::class);
+    $articles = (new HelpManifest)->all();
+    $unlinked = [];
+
+    foreach ($articles as $article) {
+        foreach (['en', 'fr'] as $locale) {
+            $source = file_get_contents(resource_path("help/{$locale}/{$article->slug}.md"));
+
+            preg_match_all('/(?<![\w\\\\])_(?=\S)[^_\n]+(?<=\S)_(?!\w)/u', $source, $italics);
+            foreach ($italics[0] as $italic) {
+                $unlinked[] = "{$locale}/{$article->slug}.md: {$italic}";
+            }
+
+            foreach ($articles as $named) {
+                $title = $renderer->title($named->slug, $locale);
+
+                foreach (["\"{$title}\"", "« {$title} »"] as $quoted) {
+                    if (str_contains($source, $quoted)) {
+                        $unlinked[] = "{$locale}/{$article->slug}.md: {$quoted}";
+                    }
+                }
+            }
+        }
+    }
+
+    expect($unlinked)->toBe([]);
+});
+
+it('carries a valid status and French state on every entry', function () {
+    foreach ((new HelpManifest)->all() as $article) {
+        expect($article->status)->toBeInstanceOf(ArticleStatus::class);
+        expect($article->fr)->toBeInstanceOf(FrenchState::class);
+    }
+});
+
+it('ships the two Getting started articles published', function () {
+    $published = collect((new HelpManifest)->all())
+        ->filter(fn ($article) => $article->status === ArticleStatus::Published)
+        ->map->slug
+        ->all();
+
+    expect($published)->toContain('getting-started', 'change-your-language');
+});
+
+it('requires only known role tokens', function () {
+    $used = collect((new HelpManifest)->all())
+        ->flatMap(fn ($article) => $article->requires)
+        ->unique();
+
+    $unknown = $used->diff(HelpManifest::requirableRoles())->values()->all();
+
+    expect($unknown)->toBe([]);
+});
+
+it('offers records as a requirable role, since member administration is not a Group Role', function () {
+    // The no-email flag is a Records stewardship decision (#564, #483, ADR-0024 §9), not
+    // a Group Role. It rides the badge as its own tier, beside super_tier / support_operator.
+    expect(HelpManifest::requirableRoles())->toContain('records');
+});
+
+it('lists the no-email-flag article as a Records article in Emailing, mapped to the member page', function () {
+    // #564: a Records-only task article for the no-email switch on a Member's profile.
+    $article = (new HelpManifest)->find('set-the-no-email-flag');
+
+    expect($article)->not->toBeNull();
+    expect($article->section)->toBe(HelpSection::Emailing);
+    expect($article->requires)->toBe(['records']);
+    expect($article->route)->toBe('members.show');
+    expect($article->status)->toBe(ArticleStatus::Published);
+    expect($article->fr)->toBe(FrenchState::MachineTranslated);
+});
+
+it('lists the write-your-own-shift article as a no-role Scheduling article, mapped to the schedule page', function () {
+    // #590, ADR-0026 §1: a self-serve Group's Member writes their own Shift on the
+    // Group Scheduling page. No required role — any Member of a self-serve Group.
+    $article = (new HelpManifest)->find('write-your-own-shift');
+
+    expect($article)->not->toBeNull();
+    expect($article->section)->toBe(HelpSection::Scheduling);
+    expect($article->requires)->toBe([]);
+    expect($article->route)->toBe('groups.scheduling.show');
+    expect($article->status)->toBe(ArticleStatus::Published);
+    expect($article->fr)->toBe(FrenchState::MachineTranslated);
+});
+
+it('lists the objects-and-off-site-stations article as a published Scheduler/Chair Scheduling article, mapped to the Group page', function () {
+    // #590, ADR-0026 §3 and §4: a Scheduler maintains Objects and marks a kind off-site.
+    // #608, ADR-0027 §2: the cards live on the Group Settings tab, a section of the Group page.
+    // #616: published once its screenshots landed.
+    $article = (new HelpManifest)->find('objects-and-off-site-stations');
+
+    expect($article)->not->toBeNull();
+    expect($article->section)->toBe(HelpSection::Scheduling);
+    expect($article->requires)->toBe(['scheduler', 'chair']);
+    expect($article->route)->toBe('groups.show');
+    expect($article->status)->toBe(ArticleStatus::Published);
+    expect($article->fr)->toBe(FrenchState::MachineTranslated);
+});
+
+it('lists the group-settings article as a published Scheduler/Chair Groups article, mapped to the Group page', function () {
+    // #608, ADR-0027 §1: the Settings tab is a Group tab, shown to officers with a configuration
+    // right. Today every such right is a schedule admin's, so the badge reads Scheduler or Chair.
+    // #616: published once its screenshot landed.
+    $article = (new HelpManifest)->find('group-settings');
+
+    expect($article)->not->toBeNull();
+    expect($article->section)->toBe(HelpSection::Groups);
+    expect($article->requires)->toBe(['scheduler', 'chair']);
+    expect($article->route)->toBe('groups.show');
+    expect($article->status)->toBe(ArticleStatus::Published);
+    expect($article->fr)->toBe(FrenchState::MachineTranslated);
+});
+
+it('leads every section with exactly one overview article', function () {
+    // ADR-0025 §5: one short overview per section. #623 adds the missing Support one.
+    $manifest = new HelpManifest;
+
+    foreach ($manifest->sections() as $section) {
+        $overviews = collect($manifest->articlesIn($section))->filter(fn (HelpArticle $article) => $article->isOverview);
+
+        expect($overviews)->toHaveCount(1, $section->value)
+            ->and($manifest->articlesIn($section)[0]->isOverview)->toBeTrue($section->value);
+    }
+});
+
+it('lists the Support overview as a Support-operator article', function () {
+    $article = (new HelpManifest)->find('support');
+
+    expect($article)->not->toBeNull();
+    expect($article->section)->toBe(HelpSection::Support);
+    expect($article->isOverview)->toBeTrue();
+    expect($article->requires)->toBe(['support_operator']);
+    expect($article->status)->toBe(ArticleStatus::Published);
+    expect($article->fr)->toBe(FrenchState::MachineTranslated);
+});
+
+it('maps the articles for cards on the Group Settings tab to the Group page, not the Scheduling tab', function () {
+    // #608, ADR-0027 §2: the Reminders, Empty-desk, Shift kinds and Objects cards left the
+    // Scheduling tab for the Settings tab, which renders on the Group page's own route.
+    $manifest = new HelpManifest;
+
+    foreach (['set-reminders-and-the-empty-desk-alert', 'manage-your-groups-shift-kinds', 'objects-and-off-site-stations'] as $slug) {
+        expect($manifest->find($slug)->route)->toBe('groups.show', $slug);
+    }
+});
+
+it('maps a secondary route to the article that lists it', function () {
+    // One article documents a page and its sibling views (#562): the primary route and
+    // every name in `routes` resolve the "?" to that article.
+    $manifest = new HelpManifest([
+        new HelpArticle('report', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.hours.report', routes: ['groups.hours.month']),
+    ]);
+
+    expect($manifest->publishedForRoute('groups.hours.report')?->slug)->toBe('report');
+    expect($manifest->publishedForRoute('groups.hours.month')?->slug)->toBe('report');
+});
+
+it('maps the ten report views onto their two articles', function () {
+    $manifest = new HelpManifest;
+
+    // The Group hours report and its four tab views (#562).
+    foreach (['groups.hours.month', 'groups.hours.member', 'groups.hours.extra', 'groups.hours.meetings'] as $route) {
+        expect($manifest->publishedForRoute($route)?->slug)->toBe('run-your-groups-hours-report');
+    }
+
+    // The org-wide committee summary and its six siblings (#562).
+    foreach (['hours.committee-detailed', 'hours.visitor-summary', 'hours.ranked', 'hours.zero-hours', 'hours.zero-shift-hours', 'hours.zero-extra-hours'] as $route) {
+        expect($manifest->publishedForRoute($route)?->slug)->toBe('the-org-wide-reports');
+    }
+});
+
+it('maps only route names that exist in the router', function () {
+    // Every mapped route counts — a primary `route` and any sibling in `routes` (#562).
+    $unknown = collect((new HelpManifest)->all())
+        ->flatMap->mappedRoutes()
+        ->reject(fn (string $name) => Route::has($name))
+        ->values()
+        ->all();
+
+    expect($unknown)->toBe([]);
+});
+
+it('has an English and a French label for every requirable role, plus the joiner', function () {
+    foreach (HelpManifest::requirableRoles() as $token) {
+        $key = "help.required_role.role.{$token}";
+        expect(__($key, [], 'en'))->not->toBe($key, "Missing English label for role '{$token}'");
+        expect(__($key, [], 'fr'))->not->toBe($key, "Missing French label for role '{$token}'");
+    }
+
+    expect(__('help.required_role.or', [], 'en'))->not->toBe('help.required_role.or');
+    expect(__('help.required_role.or', [], 'fr'))->not->toBe('help.required_role.or');
+});
+
+it('builds the Help topics tree from published articles, overview first, grouped by Required role', function () {
+    // #619: no-role tasks first, then each distinct role set in order of first appearance.
+    // Drafts never appear, and a section of only drafts is left out.
+    $manifest = new HelpManifest([
+        new HelpArticle('basics', HelpSection::GettingStarted, isOverview: true),
+        new HelpArticle('officer-one', HelpSection::GettingStarted, requires: ['scheduler', 'chair']),
+        new HelpArticle('member-one', HelpSection::GettingStarted),
+        new HelpArticle('editor-one', HelpSection::GettingStarted, requires: ['news_editor']),
+        new HelpArticle('officer-two', HelpSection::GettingStarted, requires: ['scheduler', 'chair']),
+        new HelpArticle('draft-one', HelpSection::GettingStarted, status: ArticleStatus::Draft),
+        new HelpArticle('operator-one', HelpSection::Support, requires: ['support_operator']),
+        new HelpArticle('draft-overview', HelpSection::News, isOverview: true, status: ArticleStatus::Draft),
+    ]);
+
+    $slugs = fn (array $articles) => array_map(fn (HelpArticle $article) => $article->slug, $articles);
+
+    $topics = $manifest->topics();
+
+    expect($topics)->toHaveCount(2)
+        ->and($topics[0]['section'])->toBe(HelpSection::GettingStarted)
+        ->and($topics[0]['overview']->slug)->toBe('basics')
+        ->and(array_column($topics[0]['groups'], 'requires'))->toBe([[], ['scheduler', 'chair'], ['news_editor']])
+        ->and($slugs($topics[0]['groups'][0]['articles']))->toBe(['member-one'])
+        ->and($slugs($topics[0]['groups'][1]['articles']))->toBe(['officer-one', 'officer-two'])
+        ->and($slugs($topics[0]['groups'][2]['articles']))->toBe(['editor-one'])
+        ->and($topics[1]['section'])->toBe(HelpSection::Support)
+        ->and($topics[1]['overview'])->toBeNull()
+        ->and(array_column($topics[1]['groups'], 'requires'))->toBe([['support_operator']]);
+});

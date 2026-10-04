@@ -5,7 +5,7 @@ date: 2026-05-20
 
 # Bilingual URL routing strategy
 
-The rebuild is bilingual (English / French). This ADR fixes the public **shape of HTTP routes** for the two languages and the rules for how a volunteer reaches the right URL. It is independent of [ADR-0004](0004-chrome-only-translation.md), which covers the content side — and decided content is *not* translated (chrome-only; no suffix columns).
+The rebuild is bilingual (English / French). This ADR fixes the public **shape of HTTP routes** for the two languages and the rules for how a volunteer reaches the right URL. It is independent of [ADR-0004](0004-chrome-only-translation.md), which covers the content side — and decided content is _not_ translated (chrome-only; no suffix columns).
 
 ## Decision
 
@@ -45,4 +45,5 @@ The complete rules:
 - **Adding a French version of an existing English feature is a structured task**: register the French route(s), add the `lang/fr/routes.php` entries for any new segments, translate the `lang/fr/*.php` UI strings. (No content columns are touched — content renders as-authored per [ADR-0004](0004-chrome-only-translation.md).) The toolbar "Français" link begins appearing automatically on those pages.
 - **[ADR-0004](0004-chrome-only-translation.md) (chrome-only translation)** settles the content side: content is single-column and rendered as-authored, so there is no `title_fr`-empty fallback question — a French route renders the same authored content as its English twin, with only the chrome translated.
 - **Route caching** (`php artisan route:cache`) needs the package's locale-aware handling. The package documents the pattern; configure it during initial install rather than retrofitting later.
+- **Non-localized write routes take the page's locale (#668).** A write seam (a `PATCH` or `POST` outside the localized group) has no locale in its URL, so its validation messages would come back in English on a French page. The `localizeFromReferer` middleware sets the locale from the first path segment of the Referer (`/fr/...`) and falls back to English. It is on the post-shift report save (`sign-ups.record`) so far; add it to any other write seam whose messages a French page shows.
 - **Test coverage**: every translatable route should have a smoke test that hits both `/x` and `/fr/x-translated` and asserts the resolved Eloquent model is the same. Easy to add as a parameterized test once the first translated route lands.

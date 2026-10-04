@@ -59,6 +59,12 @@ class SignUpPolicy
             return false;
         }
 
+        // A seat is self-service only *until* the Shift starts (#554, ADR-0021 §Sign-up); an
+        // Officer who needs to seat a late arrival uses {@see assign}, which has no time bound.
+        if ($shift->hasStarted()) {
+            return false;
+        }
+
         if (! $actor->category->canSignUp()) {
             return false;
         }
@@ -146,14 +152,64 @@ class SignUpPolicy
     /**
      * Who may drop a seat: the Member who holds it, or a schedule admin of the owning Group
      * (officer removal, #359) — so a Scheduler can clear any Sign-up on her Group's Shifts,
-     * whoever created it, and a regular who stops coming is not stranded. Cancel has no
-     * deadline — a Member may drop for as long as they could have taken it (ADR-0021 follows
-     * live legacy, whose `+2 days` guard was commented out with "allow cancel ANY TIME") — so
-     * there is no temporal guard here. The email that a self-drop fires is gated on ownership
-     * in {@see SignUpController::destroy}, so an officer removal stays
-     * silent even though it reuses this ability.
+     * whoever created it, and a regular who stops coming is not stranded. A self-drop is bound
+     * to the Shift's start: a Member may drop for exactly as long as they could have taken the
+     * seat, *until the Shift starts* (#554, ADR-0021 §Sign-up — legacy's dead `+2 days` guard is
+     * gone, but dropping never extended past the start). A schedule admin's removal keeps no
+     * time bound: a no-show is a Scheduler removing the Sign-up after the fact (ADR-0023). The
+     * email that a self-drop fires is gated on ownership in {@see SignUpController::destroy}, so
+     * an officer removal stays silent even though it reuses this ability.
      */
     public function delete(Member $actor, SignUp $signUp): bool
+    {
+        if ($this->administersSchedulingFor($actor, $signUp->shift->schedule->group)) {
+            return true;
+        }
+
+        return $signUp->member_id === $actor->getKey()
+            && ! $signUp->shift->hasStarted();
+    }
+
+    /**
+     * Who may record or correct the after-the-shift numbers on a seat (#445, #450, PRD #443,
+     * ADR-0023 §5). Two actors, one verdict:
+     *
+     * - A **schedule admin** of the owning Group (the existing gate that already drives seat
+     *   removal and Shift authoring) may correct **any** seat, **with no time bound at all** — a
+     *   number found wrong in March is fixable in March, and a volunteer who left without filing
+     *   is not a permanent hole in the Group's total (officer correction, #450). Chair-implication
+     *   folds in through {@see administersSchedulingFor}, so a Chair needs no second rule.
+     * - The **seat-holder**, and only their own seat, **from `ends_at` minus five minutes onward
+     *   with no upper bound** — they file the number as they pack up, or a month later from the
+     *   same panel (#445). The lower bound is a server rule, not the disabled button's: without it
+     *   any Member could file a count for a Shift next month.
+     *
+     * This is the security point the ticket turns on: legacy has no check at all — its endpoint
+     * takes a row id from the request and updates it, so any logged-in Member can write any other
+     * Member's seat. Here the affordance (the Change button) is a hint and this verdict is the
+     * rule; an ordinary Member's write against a peer's seat is refused whether or not they saw a
+     * control.
+     */
+    public function record(Member $actor, SignUp $signUp): bool
+    {
+        if ($this->administersSchedulingFor($actor, $signUp->shift->schedule->group)) {
+            return true;
+        }
+
+        if ($signUp->member_id !== $actor->getKey()) {
+            return false;
+        }
+
+        return $signUp->shift->signOutWindowIsOpen();
+    }
+
+    /**
+     * Who may read a seat's post-shift comment (#655, PRD #651): its author, and a schedule admin
+     * of the owning Group, who acts on floor issues and feedback. Co-volunteers see each other's
+     * numbers but never each other's comment, so a volunteer can write frankly. Super-tier passes
+     * through `Gate::before`, like every other officer read.
+     */
+    public function viewComment(Member $actor, SignUp $signUp): bool
     {
         return $signUp->member_id === $actor->getKey()
             || $this->administersSchedulingFor($actor, $signUp->shift->schedule->group);

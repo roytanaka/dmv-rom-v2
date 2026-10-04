@@ -54,6 +54,9 @@ function exportRecord(Member $member, Group $group, string $yearMonth, int $sche
         'scheduled_hours' => $scheduled,
         'extra_hours' => $extra,
         'total_hours' => $scheduled + $extra,
+        // Pinned to zero so the Detailed report's visitor-interactions row reads only the
+        // interactions a test sets deliberately, not the factory's random column value.
+        'extra_interactions' => 0,
     ]);
 }
 
@@ -243,21 +246,31 @@ it('exports Summary Committee Statistics with the scheduled section and org-wide
     expect($total[1])->toBe('16'); // 8 scheduled + 3 extra + 5 meeting
 });
 
-it('exports Detailed Committee Statistics broken into shifts, meetings and extra', function () {
+it('exports Detailed Committee Statistics broken into shifts, meetings, extra and interactions', function () {
     $root = exportRoot();
     $committee = Group::factory()->create(['parent_id' => $root->id, 'name' => 'Docents']);
     exportRecord(Member::factory()->create(), $committee, '202504', 4, 0);
     exportRecord(Member::factory()->create(), $committee, '202504', 0, 2, meetingId: 9);
     exportRecord(Member::factory()->create(), $committee, '202504', 0, 6);
+    HoursRecord::factory()->create([ // extra interactions feed the fourth row (ADR-0023 §6)
+        'member_id' => Member::factory()->create()->id,
+        'group_id' => $committee->id,
+        'year_month' => '202504',
+        'meeting_id' => HoursRecord::NO_MEETING,
+        'scheduled_hours' => 0, 'extra_hours' => 0, 'total_hours' => 0,
+        'extra_interactions' => 9,
+    ]);
 
     $rows = csvRows($this->actingAs(exportOfficerOf($root, Role::Statistician))->get(route('hours.committee-detailed.csv'))->streamedContent());
-    // The three Docents rows carry the name in column 0 and the kind in column 1.
+    // The four Docents rows carry the name in column 0 and the kind in column 1.
     $docents = collect($rows)->filter(fn (array $r) => $r[0] === 'Docents')->values();
-    expect($docents)->toHaveCount(3);
+    expect($docents)->toHaveCount(4);
     expect($docents[0][1])->toBe(__('hours.dmv.detailed.kind.shifts'));
     expect($docents[0][2])->toBe('4');   // shifts April
     expect($docents[1][2])->toBe('2');   // meetings April
     expect($docents[2][2])->toBe('6');   // extra April
+    expect($docents[3][1])->toBe(__('hours.dmv.detailed.kind.interactions'));
+    expect($docents[3][2])->toBe('9');   // visitor interactions April
 });
 
 it('exports Active Members Ranked Hours, then the members with no hours', function () {

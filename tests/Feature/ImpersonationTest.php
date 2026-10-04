@@ -5,6 +5,7 @@ use App\Personas\PersonaCatalogue;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Routing\RouteCollection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -28,7 +29,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 // impersonation props, not photos, so an empty 200 (initials fallback) is fine.
 beforeEach(function () {
     Http::fake();
-    $this->seed(DemoSeeder::class);
+    $this->seedDemoOnce();
 });
 
 function operator(): Member
@@ -107,6 +108,52 @@ it('returns to the operator from any tier and clears the thread', function () {
     $this->assertAuthenticatedAs($operator);
     expect(session('impersonator_id'))->toBeNull();
 });
+
+// Remember me (#687): the recaller cookie belongs to the operator, so it rides along
+// on start and stop without pinning the operator, and an expired session mid-
+// impersonation signs the operator back in, never the Persona.
+
+it('starts and stops for an operator who signed in with Remember me', function () {
+    $operator = operator();
+    $chair = persona(PersonaCatalogue::CHAIR_EMAIL);
+    $recaller = rememberedSignIn($this, $operator);
+
+    $this->withCookie(recallerName(), $recaller)
+        ->post(route('impersonation.start'), ['email' => $chair->email]);
+    $this->assertAuthenticatedAs($chair);
+
+    $this->withCookie(recallerName(), $recaller)
+        ->delete(route('impersonation.stop'))->assertRedirect();
+    $this->assertAuthenticatedAs($operator);
+});
+
+it('signs the operator back in, not the Persona, when the session expires mid-impersonation', function () {
+    $operator = operator();
+    $chair = persona(PersonaCatalogue::CHAIR_EMAIL);
+    $recaller = rememberedSignIn($this, $operator);
+
+    $this->withCookie(recallerName(), $recaller)
+        ->post(route('impersonation.start'), ['email' => $chair->email]);
+
+    $this->flushSession();
+    Auth::forgetGuards();
+
+    $this->withCookie(recallerName(), $recaller)->get('/dashboard')->assertOk();
+    $this->assertAuthenticatedAs($operator);
+});
+
+function recallerName(): string
+{
+    return Auth::guard('web')->getRecallerName();
+}
+
+/** Sign in with Remember me ticked and return the plain recaller cookie value. */
+function rememberedSignIn($test, Member $member): string
+{
+    return $test->post('/login', ['email' => $member->email, 'password' => 'password', 'remember' => true])
+        ->getCookie(recallerName())
+        ->getValue();
+}
 
 // --- Rebase (single-level, not stacked) -------------------------------------
 

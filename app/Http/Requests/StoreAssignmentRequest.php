@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ReservesObjects;
 use App\Models\Member;
 use App\Models\SignUp;
 use Illuminate\Contracts\Validation\Validator;
@@ -23,6 +24,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class StoreAssignmentRequest extends FormRequest
 {
+    use ReservesObjects;
+
     /**
      * Authorize against the SignUpPolicy: the actor must be able to place the requested
      * Member on the route-bound Shift — clearing the schedule-admin gate and the placed
@@ -41,8 +44,19 @@ class StoreAssignmentRequest extends FormRequest
     }
 
     /**
-     * The placed Member's id is the whole body. It must name a real Member; whether that
-     * Member may be seated here is the policy's and the state checks' business.
+     * Load the Shift's Schedule and Group once, so the Object rules and the clash check read them
+     * without lazy-loading under strict mode.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->route('shift')->loadMissing('schedule.group');
+    }
+
+    /**
+     * The placed Member's id and the Objects that placement reserves (#586, ADR-0026 §3) — an
+     * assignment is as complete as a self-serve shift. The id must name a real Member; the Objects
+     * are required with at least one when the Group has active Objects, each an active Object of
+     * the Group.
      *
      * @return array<string, mixed>
      */
@@ -50,6 +64,7 @@ class StoreAssignmentRequest extends FormRequest
     {
         return [
             'member_id' => ['required', 'integer', 'exists:members,id'],
+            ...$this->objectRules($this->route('shift')->schedule->group),
         ];
     }
 
@@ -76,7 +91,14 @@ class StoreAssignmentRequest extends FormRequest
 
             if ($shift->signUps()->count() >= $shift->capacity) {
                 $validator->errors()->add('member_id', trans('group.scheduling_panel.shift_full'));
+
+                return;
             }
+
+            // The Object double-booking block (ADR-0026 §3) — a placement may not reserve an
+            // Object another Sign-up holds at an overlapping time. Two seats on one event Shift
+            // therefore carry their own Objects, never the same one.
+            $this->addObjectClashErrors($validator, $shift);
         });
     }
 }

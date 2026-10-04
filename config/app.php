@@ -84,6 +84,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Version
+    |--------------------------------------------------------------------------
+    |
+    | The deployed git commit and deploy time, shown in the footer (#673).
+    | scripts/deploy.sh writes version.json at the project root on every
+    | deploy, before config:cache. Null when the file is absent (local
+    | development), and the footer then shows "dev".
+    |
+    */
+
+    'version' => is_file($versionFile = base_path('version.json'))
+        ? json_decode(file_get_contents($versionFile), true)
+        : null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

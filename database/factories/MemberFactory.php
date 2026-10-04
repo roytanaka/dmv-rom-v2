@@ -35,6 +35,7 @@ class MemberFactory extends Factory
             'locale' => 'en',
             'super_tier' => false,
             'support_operator' => false,
+            'no_email' => false,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
@@ -68,6 +69,17 @@ class MemberFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'support_operator' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the Member carries the no-email flag — a Records-set switch that
+     * silences every mail to them (#483, ADR-0024 §9).
+     */
+    public function noEmail(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'no_email' => true,
         ]);
     }
 

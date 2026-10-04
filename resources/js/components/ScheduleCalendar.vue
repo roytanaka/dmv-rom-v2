@@ -25,6 +25,12 @@ const props = defineProps<{
     foreignExpanded: boolean;
     startsOn: string;
     endsOn: string;
+    // The owning Group's name, threaded to each day-sheet ShiftCard so a seat-taken Shift
+    // surfaces its Email control (#490, ADR-0024 §6.4), exactly as in the Agenda.
+    groupName: string;
+    // Whether the viewer may email the Schedule's Sign-ups (#513) — threaded to each day-sheet
+    // ShiftCard so the Shift's Email control shows only to a Chair or Scheduler, as in the Agenda.
+    canEmailSignups: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -34,6 +40,10 @@ const emit = defineEmits<{
     remove: [signUpId: number];
     edit: [shift: ShiftAgendaItem];
     delete: [shift: ShiftAgendaItem];
+    // The self-serve owner's controls (#585) — threaded through to the parent, exactly as the
+    // Agenda's cards are, so a GI edits or deletes their own Shift from the Calendar sheet too.
+    editSelfServe: [shift: ShiftAgendaItem];
+    deleteSelfServe: [shift: ShiftAgendaItem];
 }>();
 
 const page = usePage<SharedData>();
@@ -165,7 +175,8 @@ const formatDay = (date: string) =>
 
         <!-- Day sheet — the clicked day's Shifts, each the same card the Agenda renders. -->
         <Dialog v-model:open="sheetOpen">
-            <DialogContent>
+            <!-- A Docents day holds five tours or more: the sheet scrolls rather than run off the screen. -->
+            <DialogContent class="max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{{ openDay?.date ? formatDay(openDay.date) : '' }}</DialogTitle>
                 </DialogHeader>
@@ -174,12 +185,17 @@ const formatDay = (date: string) =>
                         v-for="shift in openDay.shifts"
                         :key="shift.id"
                         :shift="shift"
+                        :email-group-name="groupName"
+                        :can-email-signups="canEmailSignups"
+                        allow-self-serve-controls
                         @take="emit('take', $event)"
                         @drop="emit('drop', $event)"
                         @assign="emit('assign', $event)"
                         @remove="emit('remove', $event)"
                         @edit="emit('edit', $event)"
                         @delete="emit('delete', $event)"
+                        @edit-self-serve="emit('editSelfServe', $event)"
+                        @delete-self-serve="emit('deleteSelfServe', $event)"
                     />
                     <!-- Foreign open Shifts on the day, banded and attributed — the same band the
                          Agenda shows, surfaced here where the grid cell had no room. -->

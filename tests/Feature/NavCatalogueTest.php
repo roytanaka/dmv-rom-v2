@@ -18,6 +18,13 @@ it('carries no Renew key in the personal nav set — it moved to the account men
         ->and(__('nav.personal', [], 'fr'))->not->toHaveKey('renew');
 });
 
+it('resolves the Dashboard title-strip key under both locales (#541)', function () {
+    // The Dashboard breadcrumb + <Head> title are chrome, routed through this key so
+    // the strip reads "Tableau de bord" under French chrome instead of hard-coded English.
+    expect(__('nav.dashboard', [], 'en'))->toBe('Dashboard')
+        ->and(__('nav.dashboard', [], 'fr'))->toBe('Tableau de bord');
+});
+
 it('resolves the rail (Zone B) heading + container-peer keys under both locales', function () {
     // Browse Groups is the renamed browse zone (ADR-0020 §C — "All Groups" retired; label
     // finalized from the "Other Groups" working label to name the browse/discover function).

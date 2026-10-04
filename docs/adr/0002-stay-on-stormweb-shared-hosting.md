@@ -35,7 +35,7 @@ Run the rebuild on the **same Stormweb shared hosting account** as the legacy ap
 
 These are deliberate trade-offs, **not** exit triggers. They are constraints that shape the application architecture:
 
-- **No queue workers.** Email sends synchronously via Laravel's mail. Long-running operations (bulk-mailing all volunteers, batch document processing) must either fit within an HTTP request budget or be chunked across cron-triggered passes.
+- **No queue workers.** Email sends synchronously via Laravel's mail. Long-running operations (bulk-mailing all volunteers, batch document processing) must either fit within an HTTP request budget or be chunked across cron-triggered passes. _(Amended 2026-09-07, [ADR-0024](0024-emailing-model.md): email no longer sends inside a request at all. Every mail is a **Delivery** row that a cron pass every minute drains under a throttle, so the "chunked across cron-triggered passes" branch is the only branch, and a dead cron means no mail.)_
 - **No websockets / live updates.** Any UI that wants real-time presence-style behavior must use polling or be designed without it.
 - **No persistent background services.** No long-running PHP processes, no daemon scripts. Scheduled work runs via control-panel cron only.
 - **No Docker on production.** Local dev uses Docker (via Laravel Sail) to mirror PHP 8.4 + MariaDB 10.6, but production runs the native Stormweb stack.
@@ -55,7 +55,7 @@ Neither trigger is on the horizon. The point of naming them is so a future maint
 ### What this ADR does not commit to
 
 - The application architecture is **not** locked to shared hosting. Laravel + Inertia + MariaDB runs anywhere. If a trigger fires, the rewrite cost of moving is small relative to the cost of the wrong host choice now.
-- Email-sending provider, object storage, and other infra-adjacent decisions are recorded in their own ADRs and may evolve independently of where the app runs.
+- Email-sending provider, object storage, and other infra-adjacent decisions are recorded in their own ADRs and may evolve independently of where the app runs. _(The mail provider is decided in [ADR-0024](0024-emailing-model.md): the host's own authenticated SMTP, no external service.)_
 
 ## References
 

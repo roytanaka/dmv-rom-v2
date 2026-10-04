@@ -25,7 +25,7 @@ Two things had to be reconciled before that picture could ship:
 
 The Groups nav is a **partition**, not a superset plus a subset. Every Group a Member may see appears in **exactly one** zone:
 
-- **My Groups** — the Groups the Member belongs to (Full / LOA standing).
+- **My Groups** — the Groups the Member belongs to: any present standing, or LOA. Only Inactive, Resigned and Deceased do not count (amended by #635, see below).
 - **Other Groups** — everything else the Member is allowed to see: the **visible** org **minus** the Member's own Groups.
 
 "All Groups" is retired: once own-Groups are pruned it is no longer _all_, so the honest name is **Other Groups** (working label). The partition replaces two older rules ("All Groups shows everything" + "subtract your Groups") with one invariant. "Visible" is load-bearing: a `Group` / `Private` node the Member is not entitled to see is in **neither** zone (pruned entirely by PR #274), not "in Other."
@@ -51,7 +51,7 @@ Each peer bottoms out at one level **because of the data, not a depth cap.** A P
 
 ### E. Own-Groups prune
 
-Other Groups **excludes any Group the Member belongs to** (Full / LOA — the same standing rule My Groups and PR #274 use; departed standings grant nothing). Container peers are never "yours" (they have no roster), so they always remain; only _leaf_ Groups the Member belongs to vanish from Other Groups. This is the mechanism of the §A partition.
+Other Groups **excludes any Group the Member belongs to** (present standing or LOA — the same standing rule My Groups and PR #274 use; departed standings grant nothing; amended by #635, see below). Container peers are never "yours" (they have no roster), so they always remain; only _leaf_ Groups the Member belongs to vanish from Other Groups. This is the mechanism of the §A partition.
 
 ### F. My Groups nests one level (the DMV node excepted)
 
@@ -96,6 +96,14 @@ A type-ahead **rail filter** is added: as the Member types, matching nav nodes a
 - **The whole-tree migration gains one shaping note** — target shape has a Friends container; parent the Friends committees under it (set confirmed against the live data at scope time). No separate Friends data-pass.
 - **New client capability:** the rail filter (§H). **Content/document search** is parked as its own future PRD.
 - **Delivered by the #267 PRD** — slices: Other-Groups reshape, own-Groups prune, My-Groups nesting, Friends container + seed, rail filter (separable).
+
+## Amendment (2026-09-26): every present standing belongs
+
+The first version of §A and §E counted a membership only in Full or LOA standing. That hid the Group from a Trainee, Transitional, Auxiliary, Projects, Emeritus or Donor member, who then found it in Other Groups ([#635](https://github.com/roytanaka/dmv-rom-v2/issues/635)). Later ADRs treat these standings as members: [ADR-0021](0021-scheduling-first-pass.md) lets a trainee sign up, and [ADR-0024](0024-emailing-model.md) §5 calls all seven a "present standing".
+
+The rule is now: a membership belongs when its standing is present (`MembershipStatus::canSignUp()`) or LOA. Only Inactive, Resigned and Deceased do not belong. The rule lives in one place, `MembershipStatus::countsAsBelonging()`. My Groups and the Other Groups prune both read it, and so does the `listing_visibility` prune of the rail.
+
+Four page-level checks do not use this rule: the Private-Group page gate, the Meetings list gate, and the Schedule and Hours listing checks. They admit any membership row, departed ones included. So an Inactive, Resigned or Deceased member can still open a Private Group page that the rail no longer shows them. This amendment is about the rail only. Whether those checks should use the same rule is an open question.
 
 ## References
 

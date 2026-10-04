@@ -28,6 +28,19 @@ export interface ChromeDestination {
 }
 
 /**
+ * The top-bar Help menu (ADR-0025 amendment, #675). Always a menu, even with one item:
+ * Help for this page (`key: 'page'`, only when a published article maps the route),
+ * then Help centre (`key: 'centre'`). Outside production, Send feedback (`key:
+ * 'feedback-send'`, opens the dialog, which posts to its href) and See all feedback
+ * (`key: 'feedback-list'`) close the menu (#676). Item hrefs arrive localized, like the
+ * destinations.
+ */
+export interface HelpMenu {
+    labelKey: string;
+    items: ChromeDestination[];
+}
+
+/**
  * One Group row on the server-built grouping rail (PRD #209): an as-authored `name`
  * (content — rendered verbatim in both locales, never translated; ADR-0004), a stable
  * slug `groupId`, an `href` already localized server-side (ADR-0008), and any nested
@@ -60,6 +73,26 @@ export interface BreadcrumbItem {
     href: string;
 }
 
+// The Help topics list beside a Help article (#619): one published section, its
+// overview row (null when none is published), and its task articles grouped by
+// Required role. Titles and hrefs are resolved at the request locale on the server.
+export interface HelpTopicLink {
+    title: string;
+    href: string;
+    current: boolean;
+}
+
+export interface HelpTopic {
+    key: string;
+    label: string;
+    current: boolean;
+    overview: HelpTopicLink | null;
+    groups: {
+        requires: string[];
+        articles: (HelpTopicLink & { slug: string })[];
+    }[];
+}
+
 export interface NavItem {
     title: string;
     href: string;
@@ -79,6 +112,11 @@ export interface SharedData {
      * browser's, so a meeting reads at the same o'clock for every viewer.
      */
     timezone: string;
+    /**
+     * The deployed version (#673): the short commit id and the deploy instant (UTC).
+     * Null in local development, where the footer shows "dev".
+     */
+    appVersion: { commit: string; deployedAt: string } | null;
     /**
      * Per-locale URI-segment translation table (non-default locales only), used by
      * `useLocalizedHref` to keep English-canonical nav hrefs in the active locale
@@ -100,11 +138,11 @@ export interface SharedData {
      * destinations rendered identically on every page, distinct from a Group's
      * section set and the rail. `href` is localized server-side to the active locale
      * (ADR-0008); `labelKey` is resolved client-side via the i18n bridge. `help` is
-     * the right-cluster utility destination.
+     * the right-cluster Help menu.
      */
     chromeNav: {
         destinations: ChromeDestination[];
-        help: ChromeDestination;
+        help: HelpMenu;
     };
     /**
      * The grouping rail (PRD #209), built and pruned server-side per signed-in
@@ -251,6 +289,8 @@ export interface HoursRecordRow {
     scheduled_hours: number;
     extra_hours: number;
     total_hours: number;
+    /** Visitors served outside a shift (ADR-0023 §6). Outside `total_hours`. */
+    extra_interactions: number;
     /** A UTC instant; format it in `SharedData['timezone']`. Null before first write. */
     updated_at: string | null;
 }
@@ -262,6 +302,8 @@ export interface HoursMonth {
     month: string;
     /** The extra hours already on file for this month — the additive base. */
     extra_hours: number;
+    /** The extra interactions already on file — the additive base for the visitor count. */
+    extra_interactions: number;
     /** When the month's row was last touched; null when nothing is recorded yet. */
     updated_at: string | null;
 }
@@ -436,13 +478,16 @@ export interface DmvCommitteeSummary {
     orgRows: { meetings: DmvOrgRow; extra: DmvOrgRow; total: DmvOrgRow };
 }
 
-// Detailed Committee Statistics — each committee broken into shifts, meetings, and extra.
+// Detailed Committee Statistics — each committee broken into shifts, meetings, extra, and the
+// fourth grain, visitor interactions (#452, ADR-0023 §6). Interactions sit beside the hours and
+// stay outside `total`, which is hours alone.
 export interface DmvDetailedCell {
     year_month: string;
     shifts: number;
     meetings: number;
     extra: number;
     total: number;
+    interactions: number;
 }
 
 export interface DmvDetailedYtd {
@@ -450,6 +495,7 @@ export interface DmvDetailedYtd {
     meetings: number;
     extra: number;
     total: number;
+    interactions: number;
 }
 
 export interface DmvCommitteeRow {
@@ -496,6 +542,37 @@ export interface DmvZeroHours {
     members: { id: number; name: string }[];
 }
 
+// Summary Visitor Interactions (#451, ADR-0023 §6) — the department's headline visitor number,
+// Groups × twelve months over a fiscal year. Unlike the six reports above it is open to any
+// signed-in Member; `canViewOrgReports` tells the page whether the viewer may also reach the
+// officer report nav. Group names render as-authored; chrome is translated.
+export interface DmvVisitorInteractionCell {
+    /** The YYYYMM bucket — the cell key. */
+    year_month: string;
+    /** Sign-up counts plus extra interactions, rolled up over the Group's whole subtree. */
+    interactions: number;
+}
+
+export interface DmvVisitorInteractionRow {
+    id: number;
+    /** The Group name, as-authored content — never a translation key. */
+    name: string;
+    /** Whether this Group's figures are knowingly incomplete, pending a booking audience. */
+    incomplete: boolean;
+    /** Twelve cells in April-to-March order, aligned to `months`. */
+    months: DmvVisitorInteractionCell[];
+    ytd: number;
+}
+
+export interface DmvVisitorSummary {
+    fiscalYear: number;
+    fiscalYears: number[];
+    months: MyHoursMonthColumn[];
+    groups: DmvVisitorInteractionRow[];
+    /** Whether the viewer may reach the officer-gated org report nav (they are a DMV officer). */
+    canViewOrgReports: boolean;
+}
+
 // A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range;
 // `is_past` heads the two blocks (current & upcoming vs past), resolved server-side.
 export interface ScheduleListItem {
@@ -509,6 +586,14 @@ export interface ScheduleListItem {
     can: ScheduleAbilities;
 }
 
+// One Object in a Group's handling collection (#586, ADR-0026 §3) — id and name, the shape the
+// write / take / place pickers offer and the shape a seat lists. A retired Object keeps its name
+// on old seats, so the seat list carries the name regardless of the active flag.
+export interface ObjectOption {
+    id: number;
+    name: string;
+}
+
 // One seated Member on a Shift (#357, ADR-0017 §6) — name only, routed through
 // MemberResource so contact PII stays gated. Visible to every reader who can read the
 // Schedule, non-members included: a Schedule is a roster of who is on the floor.
@@ -517,9 +602,33 @@ export interface ShiftSignUp {
     first_name: string;
     last_name: string;
     photo: string | null;
+    // The Objects this seat reserves (#586, ADR-0026 §3) — listed under the Member on the card,
+    // visible to every reader. Absent on a Group with no Objects.
+    objects?: ObjectOption[];
     // Officer removal (#359) — the seat's own Sign-up id, the remove target. Present only
     // for a schedule admin (a plain reader never learns another seat's id).
     signup_id?: number;
+    // Whether the viewer may change this seat's entry in the Post-shift report (#450, #653,
+    // ADR-0023 §5): true on every seat for a schedule admin (no time bound), and on the viewer's
+    // own seat once its sign-out window opens. Sent with the numbers, to report readers only.
+    can_record?: boolean;
+    // The seat's recorded numbers, for the Post-shift report (#652) — sent to every Member
+    // holding a seat on the Shift and to a schedule admin, where the Group collects a count.
+    // Null for a seat with nothing filed yet, distinct from a recorded zero. Absent for a
+    // plain reader.
+    visitor_count?: number | null;
+    extra_interaction_count?: number | null;
+    visitors_france_europe?: number | null;
+    visitors_quebec?: number | null;
+    visitors_toronto?: number | null;
+    visitors_rest_of_canada?: number | null;
+    visitors_other_countries?: number | null;
+    // Who last saved the seat's numbers and when (#654), sent with the numbers. Null for a seat
+    // nobody has saved yet. `at` is ISO 8601; the card shows it on the org wall clock.
+    last_edited?: { name: string; at: string } | null;
+    // The seat's comment (#655). Sent only to its author and a schedule admin; absent for a
+    // co-volunteer and a plain reader. Null when the author left none.
+    comment?: string | null;
 }
 
 // A placeable Member in the officer-assignment picker (#359, ADR-0017 §6) — the Group's
@@ -531,6 +640,17 @@ export interface PlacementCandidate {
     last_name: string;
     photo: string | null;
     standing: string;
+}
+
+// GDR's five visitor origins (#448, ADR-0023 §3) — where a seat's visitors came from, summing to
+// the visitor count. GDR alone collects them; the Post-shift report's five origin boxes write this
+// shape, and the read prop below carries it back to each reader of the report.
+export interface VisitorProvenance {
+    visitors_france_europe: number | null;
+    visitors_quebec: number | null;
+    visitors_toronto: number | null;
+    visitors_rest_of_canada: number | null;
+    visitors_other_countries: number | null;
 }
 
 // A Shift on an opened Schedule — one slot the Agenda reads (#355, #357, ADR-0021 §2).
@@ -547,6 +667,10 @@ export interface ShiftAgendaItem {
     capacity: number;
     taken: number;
     kind: string | null;
+    // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up). Once set, the card hides
+    // the Member's take and drop — self-service closes at the start; the Post-shift report stays. The
+    // SignUpPolicy enforces the same bound on every write, so this is a hint, not the rule.
+    has_started: boolean;
     // The Shift's own authored fields the edit form round-trips (#356 front end): its
     // `audience` (the discovery filter) and the id of its chosen kind (null for a kind-less
     // Shift), so the form pre-selects both rather than guessing from the display name.
@@ -557,9 +681,23 @@ export interface ShiftAgendaItem {
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
     // schedule-admin gate plus a free seat (capacity binds the Scheduler too, #359).
     // `update` / `delete` are the Shift authoring hints (#356 front end): `update` is the
-    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. All false on a foreign
-    // Shift, which carries no authoring affordances.
-    can: { signUp: boolean; assign: boolean; update: boolean; delete: boolean };
+    // schedule-admin gate, `delete` folds in the zero-Sign-ups rule. `readReport` says the
+    // Post-shift report renders (#652): a seat-holder or schedule admin, on a Group that
+    // collects a count. `record` says the viewer's own seat may show the record form: they hold
+    // a seat and its sign-out window has opened, five minutes before the end (#445, #652).
+    // All false on a foreign Shift, which carries no authoring affordances. `manageSelfServe`
+    // is the derived-ownership verdict (#585, ADR-0026 §1): true when the viewer owns this
+    // self-serve Shift (self-serve group, capacity 1, their own single seat, not yet started),
+    // driving the author's own Edit and Delete controls; false on a foreign Shift.
+    can: {
+        signUp: boolean;
+        assign: boolean;
+        update: boolean;
+        delete: boolean;
+        readReport: boolean;
+        record: boolean;
+        manageSelfServe: boolean;
+    };
 }
 
 // A foreign open Shift (#361, ADR-0021 §Sign-up) — another Group's `open` Shift a reader
@@ -581,7 +719,13 @@ export interface ScheduleDetail {
     ends_on: string;
     state: string;
     description: string | null;
-    can: ScheduleAbilities;
+    // The Schedule authoring hints, plus `emailSignups` (#513, ADR-0024 §6.4): whether the
+    // viewer — a Chair or Scheduler of the Group — may email the Schedule's Sign-ups. One flag
+    // per opened Schedule; the Shift cards read it to gate their Email button (never per Shift).
+    // `createSelfServe` (#585, ADR-0026 §1) is the Member verdict: whether this viewer may write
+    // their own Shift here (self-serve group, published schedule, both sign-up floors cleared),
+    // gating the "Write my shift" button.
+    can: ScheduleAbilities & { emailSignups: boolean; createSelfServe: boolean };
     shifts: ShiftAgendaItem[];
     foreign: ForeignShiftItem[];
 }
@@ -608,6 +752,18 @@ export interface Scheduling {
     // end) — id and name of each active ShiftKind. Present only for a schedule admin on an
     // opened Schedule; empty for a plain reader and on the list.
     shift_kinds: ShiftKind[];
+    // The Group's active Objects for the write / take / place pickers (#586, ADR-0026 §3) — id
+    // and name in picker order. Present on the opened Schedule for every reader; the picker itself
+    // renders only when the list is non-empty and only on the flows that reserve Objects. Empty on
+    // a Group with no Objects and on the list view.
+    objects: ObjectOption[];
+    // The viewer's own outstanding-shifts panel (#449, ADR-0023 §5) — "my Sign-ups on this
+    // Group": upcoming Shifts, plus any past Shift inside the 28-day window still owed a number.
+    // It is date-ranged, so it crosses Schedules, and rides on the tab whether a Schedule is
+    // opened or not. Empty means no panel — a viewer who owes nothing and holds no upcoming seat,
+    // and a Group that collects no count, both get an empty list. Each entry is a ShiftAgendaItem
+    // the ShiftCard reads, so filing a number from here uses the same seam as the Agenda.
+    mine: ShiftAgendaItem[];
 }
 
 // One option in the Shift form's kind picker (#356 front end, ADR-0021 §3) — a Group's

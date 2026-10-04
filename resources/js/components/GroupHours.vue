@@ -35,12 +35,17 @@ const formatDate = (iso: string) => new Intl.DateTimeFormat(page.props.locale, {
 
 // One additive form per offered month, keyed by its bucket. Each posts its own month so
 // logging Saturday now and Sunday tomorrow is two independent entries, never one edit of a
-// running total. `hours` is a text field so an untouched one submits a blank — which the
-// server treats as a no-op that leaves no trace.
+// running total. Both `hours` and `interactions` are text fields so an untouched one submits
+// a blank — which the server treats as a no-op that leaves no trace. The two ride one submit
+// and land in one transaction (ADR-0023 §6); a visitor count is not hours and has its own box.
 const forms = new Map(
     props.hours.months.map((month) => [
         month.year_month,
-        useForm<{ year_month: string; hours: string }>({ year_month: month.year_month, hours: '' }),
+        useForm<{ year_month: string; hours: string; interactions: string }>({
+            year_month: month.year_month,
+            hours: '',
+            interactions: '',
+        }),
     ]),
 );
 
@@ -49,7 +54,7 @@ const submit = (yearMonth: string) => {
     if (!form) return;
     form.post(route('hours.store', { group: props.groupSlug }), {
         preserveScroll: true,
-        onSuccess: () => form.reset('hours'),
+        onSuccess: () => form.reset('hours', 'interactions'),
     });
 };
 </script>
@@ -77,6 +82,8 @@ const submit = (yearMonth: string) => {
                 <!-- The one thing a Member must not double-count. -->
                 <p class="text-muted-foreground text-sm">{{ trans('hours.entry.counted_note') }}</p>
                 <p class="text-muted-foreground text-sm">{{ trans('hours.entry.help') }}</p>
+                <!-- Says plainly the second box is visitors, not hours (ADR-0023 §6). -->
+                <p class="text-muted-foreground text-sm">{{ trans('hours.entry.interactions_note') }}</p>
 
                 <form
                     v-for="month in hours.months"
@@ -87,6 +94,9 @@ const submit = (yearMonth: string) => {
                     <div class="flex min-w-40 flex-col gap-0.5">
                         <span class="text-rom-ink font-medium">{{ formatMonth(month.month) }}</span>
                         <span class="text-muted-foreground text-xs">{{ trans('hours.entry.on_file', { hours: String(month.extra_hours) }) }}</span>
+                        <span class="text-muted-foreground text-xs">{{
+                            trans('hours.entry.interactions_on_file', { interactions: String(month.extra_interactions) })
+                        }}</span>
                         <span class="text-muted-foreground text-xs">
                             {{
                                 month.updated_at
@@ -99,6 +109,17 @@ const submit = (yearMonth: string) => {
                         <Label :for="`hours-${month.year_month}`" class="text-xs">{{ trans('hours.entry.hours_label') }}</Label>
                         <Input :id="`hours-${month.year_month}`" v-model="forms.get(month.year_month)!.hours" type="number" step="1" class="w-28" />
                         <InputError :message="forms.get(month.year_month)!.errors.hours" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <Label :for="`interactions-${month.year_month}`" class="text-xs">{{ trans('hours.entry.interactions_label') }}</Label>
+                        <Input
+                            :id="`interactions-${month.year_month}`"
+                            v-model="forms.get(month.year_month)!.interactions"
+                            type="number"
+                            step="1"
+                            class="w-28"
+                        />
+                        <InputError :message="forms.get(month.year_month)!.errors.interactions" />
                     </div>
                     <Button type="submit" :disabled="forms.get(month.year_month)!.processing">{{ trans('hours.entry.add') }}</Button>
                 </form>
@@ -118,6 +139,7 @@ const submit = (yearMonth: string) => {
                             <th class="py-2 pr-4 text-right font-semibold">{{ trans('hours.records.column.scheduled') }}</th>
                             <th class="py-2 pr-4 text-right font-semibold">{{ trans('hours.records.column.extra') }}</th>
                             <th class="py-2 pr-4 text-right font-semibold">{{ trans('hours.records.column.total') }}</th>
+                            <th class="py-2 pr-4 text-right font-semibold">{{ trans('hours.records.column.interactions') }}</th>
                             <th class="py-2 font-semibold">{{ trans('hours.records.column.updated') }}</th>
                         </tr>
                     </thead>
@@ -127,6 +149,7 @@ const submit = (yearMonth: string) => {
                             <td class="py-2 pr-4 text-right tabular-nums">{{ record.scheduled_hours }}</td>
                             <td class="py-2 pr-4 text-right tabular-nums">{{ record.extra_hours }}</td>
                             <td class="text-rom-ink py-2 pr-4 text-right font-semibold tabular-nums">{{ record.total_hours }}</td>
+                            <td class="py-2 pr-4 text-right tabular-nums">{{ record.extra_interactions }}</td>
                             <td class="text-muted-foreground py-2">{{ record.updated_at ? formatDate(record.updated_at) : '—' }}</td>
                         </tr>
                     </tbody>

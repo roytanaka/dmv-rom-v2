@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Controllers\AssignmentController;
 use App\Models\SignUp;
+use App\Rules\OnMinuteGrid;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -41,8 +42,8 @@ class BulkDeleteAssignmentRequest extends FormRequest
     {
         return [
             'member_id' => ['required', 'integer', 'exists:members,id'],
-            'starts_time' => ['required', 'date_format:H:i'],
-            'ends_time' => ['required', 'date_format:H:i', 'after:starts_time'],
+            'starts_time' => ['required', 'date_format:H:i', new OnMinuteGrid],
+            'ends_time' => ['required', 'date_format:H:i', 'after:starts_time', new OnMinuteGrid],
             'days_of_week' => ['required', 'array', 'min:1'],
             'days_of_week.*' => ['integer', 'between:0,6'],
             'from_date' => ['required', 'date'],

@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DeleteSignUpRequest;
+use App\Http\Requests\RecordSignUpVisitorsRequest;
 use App\Http\Requests\StoreSignUpRequest;
-use App\Mail\SignUpCancelled;
 use App\Models\Shift;
 use App\Models\SignUp;
+use App\Support\Notices\SignUpCancellationNoticeWriter;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * Sign-up write seam (#357, PRD #352, ADR-0021 §Sign-up) — a Member taking a Shift and
@@ -31,7 +31,11 @@ class SignUpController extends Controller
      */
     public function store(StoreSignUpRequest $request, Shift $shift): RedirectResponse
     {
-        $shift->signUps()->create(['member_id' => $request->user()->getKey()]);
+        $signUp = $shift->signUps()->create(['member_id' => $request->user()->getKey()]);
+
+        // The Objects the taker is reserving on this seat (#586, ADR-0026 §3) — absent on a Group
+        // with no Objects; the Form Request has refused a retired or double-booked one.
+        $signUp->objects()->sync($request->validated('objects') ?? []);
 
         return back();
     }
@@ -41,14 +45,19 @@ class SignUpController extends Controller
      * Shift's start; the guard is ownership, resolved in the Form Request.
      *
      * A Member cancelling is **the single event where otherwise nobody finds out until the
-     * shift is empty**, so every Scheduler of the owning Group is emailed — unconditionally,
-     * with no threshold or proximity window (#358, ADR-0021 §Sign-up "Notification"). The mail
-     * fires only for a Member dropping their *own* seat: a Scheduler removing a placed Member
-     * (officer removal, #359) is a distinct actor who is already in contact with the person,
-     * and that silence is deliberate. Guarding on ownership here keeps that silence true now
-     * that officer removal reuses this seam.
+     * shift is empty**, so every Scheduler and Chair of the owning Group is told —
+     * unconditionally, with no threshold or proximity window (#358, ADR-0021 §Sign-up
+     * "Notification"). The Notice fires only for a Member dropping their *own* seat: a
+     * Scheduler removing a placed Member (officer removal, #359) is a distinct actor who is
+     * already in contact with the person, and that silence is deliberate. Guarding on
+     * ownership here keeps that silence true now that officer removal reuses this seam.
+     *
+     * Nothing sends in the request (#481, ADR-0024). The {@see SignUpCancellationNoticeWriter}
+     * writes one Notice Delivery per recipient and returns; the every-minute Drain sends them.
+     * The Sign-up is gone by drain time, so each row carries a payload snapshot of everything
+     * the mail names — the dropped Member, the Group, and the Shift's Schedule, times, and kind.
      */
-    public function destroy(DeleteSignUpRequest $request, SignUp $signUp): RedirectResponse
+    public function destroy(DeleteSignUpRequest $request, SignUp $signUp, SignUpCancellationNoticeWriter $notices): RedirectResponse
     {
         $isSelfCancellation = $signUp->member_id === $request->user()->getKey();
 
@@ -58,12 +67,33 @@ class SignUpController extends Controller
 
         $signUp->delete();
 
+        // A Member cancelling their own seat tells every Scheduler and Chair; a Scheduler
+        // removing a placed Member (officer removal, #359) stays silent — they are already in
+        // contact with the person. The Notice is written from one place ({@see
+        // SignUpCancellationNoticeWriter}) shared with the self-serve Shift delete (ADR-0026 §1).
         if ($isSelfCancellation) {
-            foreach ($shift->schedule->group->schedulers() as $scheduler) {
-                Mail::to($scheduler)->send(new SignUpCancelled($shift, $member));
-            }
+            $notices->write($shift, $member);
         }
 
         return back();
+    }
+
+    /**
+     * Record the after-the-shift numbers on a Sign-up (#445, #652, PRD #651, ADR-0023 §5). One
+     * seam for the whole feature: the Post-shift report on the shift card, in the Agenda and in My
+     * sign-ups, and an Officer's correction, all PATCH here. The Form Request has already resolved
+     * the policy (the seat-holder's own seat inside the window, or any seat for a schedule admin)
+     * and whitelisted the fields — whose seat is written comes from the route binding, never the
+     * body — so this fills and saves.
+     *
+     * The saved Sign-up's id is flashed (#668), with the ones the page already keeps, so the next
+     * page load keeps each Shift in My sign-ups with its summary, even though a first save means
+     * it no longer owes a number. Two saves in a row keep both.
+     */
+    public function record(RecordSignUpVisitorsRequest $request, SignUp $signUp): RedirectResponse
+    {
+        $signUp->record($request->validated(), $request->user());
+
+        return back()->with(SignUp::JUST_SAVED_FLASH, [...$request->session()->get(SignUp::SHOWN_SAVED_KEY, []), $signUp->id]);
     }
 }

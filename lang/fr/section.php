@@ -13,6 +13,5 @@ return [
         'publications' => 'Publications',
         'meetings' => 'Réunions',
         'statistics' => 'Statistiques',
-        'schedule_admin' => "Administration de l'horaire",
     ],
 ];

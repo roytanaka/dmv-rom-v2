@@ -8,23 +8,25 @@
 //   Centre — the primary destinations (My Hours · My Calendar · News · Directory),
 //            persistent locale-aware links shared from the server (`chromeNav`); the
 //            active one is highlighted in heritage-blue.
-//   Right  — Help (a utility destination), the language switcher (globe, lg+ only),
-//            and the avatar menu. Search lives in the rail. Below lg the globe is
+//   Right  — the Help menu (ADR-0025 amendment), the language switcher (globe, lg+
+//            only), and the avatar menu. Search lives in the rail. Below lg the globe is
 //            hidden and the locale list moves into the avatar menu (UserMenuContent).
 //
 // Destinations are resolved and gated SERVER-side and shared via `chromeNav` — their
 // hrefs are already localized to the active locale (ADR-0008), so they are used
 // verbatim and matched against the current URL for the active state.
 import BrandLogo from '@/components/BrandLogo.vue';
+import FeedbackDialog from '@/components/FeedbackDialog.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import TopBarUser from '@/components/TopBarUser.vue';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
-import type { ChromeDestination, SharedData } from '@/types';
+import type { ChromeDestination, PhosphorIcon, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhQuestion } from '@phosphor-icons/vue';
-import { computed } from 'vue';
+import { PhBookOpen, PhCaretDown, PhChatCenteredText, PhLifebuoy, PhListBullets, PhQuestion } from '@phosphor-icons/vue';
+import { computed, ref } from 'vue';
 
 const page = usePage<SharedData>();
 const nav = computed(() => page.props.chromeNav);
@@ -34,6 +36,23 @@ const nav = computed(() => page.props.chromeNav);
 // client-side to stay in-locale on /fr/ (ADR-0008).
 const localizeHref = useLocalizedHref();
 const isActive = (dest: ChromeDestination) => dest.href === page.url;
+
+// Help menu item icons are fixed client config keyed by item `key`, like the rail's
+// officer items; the server ships only key, label, and href.
+const HELP_ICONS: Record<string, PhosphorIcon> = {
+    page: PhBookOpen,
+    centre: PhLifebuoy,
+    'feedback-send': PhChatCenteredText,
+    'feedback-list': PhListBullets,
+};
+
+// Tester feedback (#676, ADR-0029 §12). The server adds these items outside production
+// only. Send feedback opens the dialog instead of navigating; its href is where the
+// dialog posts. A separator sets the feedback items apart from help.
+const FEEDBACK_SEND = 'feedback-send';
+const feedbackSend = computed(() => nav.value.help.items.find((item) => item.key === FEEDBACK_SEND) ?? null);
+const feedbackOpen = ref(false);
+const startsFeedback = (item: ChromeDestination) => item.key.startsWith('feedback-');
 
 // Shared destination styling — white-on-ink. The active tab is the BRIGHTEST in the
 // strip (full-white text, semibold) with a heritage-slate underline carrying the hue,
@@ -75,14 +94,34 @@ const destClass = (dest: ChromeDestination): string => {
              menu. Below lg the globe is hidden and the locale list lives in the
              avatar menu (UserMenuContent), so the bar isn't crowded (#69). -->
         <div class="flex shrink-0 items-center gap-2 pr-4 pl-2">
-            <Link
-                :href="nav.help.href"
-                :aria-current="isActive(nav.help) ? 'page' : undefined"
-                class="flex items-center gap-1.5 px-2 text-sm font-medium text-white/70 transition-colors hover:text-white"
-            >
-                <PhQuestion class="size-4 opacity-80" />
-                <span class="hidden sm:inline">{{ trans(nav.help.labelKey) }}</span>
-            </Link>
+            <!-- Help — always a menu, even with one item (ADR-0025 amendment). The label
+                 hides below sm, so the trigger carries its name in aria-label. -->
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    :aria-label="trans(nav.help.labelKey)"
+                    class="ring-offset-rom-ink flex h-10 items-center gap-1.5 px-2 text-sm font-medium text-white/70 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:outline-none data-[state=open]:text-white"
+                >
+                    <PhQuestion class="size-4 opacity-80" />
+                    <span class="hidden sm:inline">{{ trans(nav.help.labelKey) }}</span>
+                    <PhCaretDown class="size-3 opacity-70" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent class="w-56" align="end" :side-offset="8">
+                    <template v-for="(item, index) in nav.help.items" :key="item.key">
+                        <DropdownMenuSeparator v-if="index > 0 && startsFeedback(item) && !startsFeedback(nav.help.items[index - 1])" />
+                        <DropdownMenuItem v-if="item.key === FEEDBACK_SEND" class="py-2.5" @select="feedbackOpen = true">
+                            <component :is="HELP_ICONS[item.key]" class="text-muted-foreground size-4" />
+                            {{ trans(item.labelKey) }}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem v-else class="py-2.5" :as-child="true">
+                            <Link class="w-full" :href="item.href" :aria-current="isActive(item) ? 'page' : undefined">
+                                <component :is="HELP_ICONS[item.key]" class="text-muted-foreground size-4" />
+                                {{ trans(item.labelKey) }}
+                            </Link>
+                        </DropdownMenuItem>
+                    </template>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <FeedbackDialog v-if="feedbackSend" v-model:open="feedbackOpen" :href="feedbackSend.href" />
             <div class="hidden items-center lg:flex">
                 <LanguageSwitcher />
             </div>

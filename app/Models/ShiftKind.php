@@ -35,6 +35,8 @@ class ShiftKind extends Model
         'group_id',
         'name',
         'active',
+        'alert_when_empty',
+        'off_site',
         'sort_order',
     ];
 
@@ -47,6 +49,8 @@ class ShiftKind extends Model
     {
         return [
             'active' => 'boolean',
+            'alert_when_empty' => 'boolean',
+            'off_site' => 'boolean',
         ];
     }
 

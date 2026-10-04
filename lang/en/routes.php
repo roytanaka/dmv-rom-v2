@@ -25,8 +25,22 @@ return [
     'news' => 'news',
     'profile' => 'profile',
     'renew' => 'renew',
-    // Utility — the top bar's Help destination (#194).
+    // Help centre (#517, ADR-0025). The index at 'help' and one article at
+    // 'help/{article}'. The {article} slug is an identifier — the SAME string in
+    // both locales — so only the 'help' word changes in the French twin.
     'help' => 'help',
+    'help.show' => 'help/{article}',
+    // Tester feedback (#676, #677, #678, ADR-0029): the Feedback page and the path the send
+    // dialog posts to, one item's page, the path its comment form posts to, and a
+    // screenshot's download. The Support-operator's status change and comment delete
+    // (#679) sit under the item.
+    // Registered outside production only.
+    'feedback' => 'feedback',
+    'feedback.show' => 'feedback/{feedbackItem}',
+    'feedback.status' => 'feedback/{feedbackItem}/status',
+    'feedback.comments' => 'feedback/{feedbackItem}/comments',
+    'feedback.comment' => 'feedback/{feedbackItem}/comments/{feedbackComment}',
+    'feedback.screenshot' => 'feedback/screenshots/{feedbackScreenshot}',
 
     // Zone C — officer/admin
     'officer.members' => 'officer/members',
@@ -74,6 +88,9 @@ return [
     // The words are translated in the French twin.
     'hours.committee-summary' => 'hours/committee-summary',
     'hours.committee-detailed' => 'hours/committee-detailed',
+    // Summary Visitor Interactions (#451, ADR-0023 §6). Org-wide like its siblings, but open to
+    // any signed-in Member rather than officer-gated. The words are translated in the French twin.
+    'hours.visitor-summary' => 'hours/visitor-interactions',
     'hours.ranked' => 'hours/ranked',
     'hours.zero-hours' => 'hours/zero-hours',
     'hours.zero-shift-hours' => 'hours/zero-shift-hours',
@@ -81,6 +98,7 @@ return [
     // Their CSV export siblings (#414) — a '.csv' suffix on each report's own path.
     'hours.committee-summary.csv' => 'hours/committee-summary.csv',
     'hours.committee-detailed.csv' => 'hours/committee-detailed.csv',
+    'hours.visitor-summary.csv' => 'hours/visitor-interactions.csv',
     'hours.ranked.csv' => 'hours/ranked.csv',
     'hours.zero-hours.csv' => 'hours/zero-hours.csv',
     'hours.zero-shift-hours.csv' => 'hours/zero-shift-hours.csv',

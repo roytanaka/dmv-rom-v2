@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\Role;
+use App\Enums\ScheduleState;
 use App\Models\Group;
 use App\Models\Member;
 use App\Models\Schedule;
@@ -64,6 +65,41 @@ class ShiftPolicy
     public function deleteAny(Member $actor, Schedule $schedule): bool
     {
         return $this->administersSchedulingFor($actor, $schedule->group);
+    }
+
+    /**
+     * Who may author their own Shift on a Schedule in a self-serve Group (#585, ADR-0026 §1)
+     * — the Member-side write that the Scheduler-only {@see create} above is not. Distinct from a
+     * Scheduler adding a slot: this is a Member writing a record about themselves, and it
+     * creates their Sign-up in the same action. Four gates, all met:
+     *
+     * - the owning Group is **self-serve** (`self_serve_shifts` — off everywhere but GI);
+     * - the Schedule is **published** (a draft is the Scheduler's workshop, never a
+     *   Member's canvas) and the actor may **read** it (you cannot write onto a Schedule
+     *   you cannot see);
+     * - the actor clears the **DMV-wide floor** ({@see Category::canSignUp()}); and
+     * - the actor holds a **membership** of the Group whose per-Group standing permits it
+     *   ({@see MembershipStatus::canSignUp()}) — the same two floors that gate taking a seat,
+     *   because authoring one is taking one.
+     *
+     * Ownership of what they write is derived, never stored (#334); it is answered by
+     * {@see Shift::isSelfServeOwnedBy()} on the way back out.
+     */
+    public function createSelfServe(Member $actor, Schedule $schedule): bool
+    {
+        $group = $schedule->group;
+
+        if (! $group->self_serve_shifts || $schedule->state !== ScheduleState::Published) {
+            return false;
+        }
+
+        if (! $actor->can('view', $schedule) || ! $actor->category->canSignUp()) {
+            return false;
+        }
+
+        $membership = $actor->membershipIn($group);
+
+        return $membership !== null && $membership->status->canSignUp();
     }
 
     /**

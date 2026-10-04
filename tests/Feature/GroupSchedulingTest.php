@@ -5,6 +5,7 @@ use App\Enums\ShiftAudience;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
+use App\Models\HandlingObject;
 use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
@@ -61,6 +62,58 @@ it('renders the Scheduling tab with an empty state when the Group has no Schedul
             ->where('scheduling.schedules', []));
 });
 
+it('carries the manage-Reminders hint for a schedule admin', function () {
+    // The Reminders card itself lives on the Settings tab (ADR-0027 §2, GroupSettingsTest).
+    $group = schedulingGroup();
+
+    $this->actingAs(schedulingMemberOf($group, role: Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page->where('can.manageReminders', true));
+});
+
+it('withholds the manage-Reminders hint from a plain member', function () {
+    $group = schedulingGroup();
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page->where('can.manageReminders', false));
+});
+
+it('carries the manage hints for shift kinds and Objects but no maintenance lists (ADR-0027 §2)', function () {
+    // The Shift kinds and Objects cards live on the Settings tab (GroupSettingsTest); the
+    // Scheduling section keeps only the active lists its pickers read, on an opened Schedule.
+    $group = schedulingGroup();
+    ShiftKind::factory()->create(['group_id' => $group->id]);
+    HandlingObject::factory()->create(['group_id' => $group->id]);
+
+    $this->actingAs(schedulingMemberOf($group, role: Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageShiftKinds', true)
+            ->where('can.manageObjects', true)
+            ->missing('group.shiftKinds')
+            ->missing('group.objects')
+            ->where('settings.shiftKinds', null)
+            ->where('settings.objects', null)
+            ->where('scheduling.shift_kinds', [])
+            ->where('scheduling.objects', []));
+});
+
+it('gives an opened Schedule only the active shift kinds and Objects (ADR-0027 §2)', function () {
+    $group = schedulingGroup();
+    $kind = ShiftKind::factory()->create(['group_id' => $group->id, 'name' => 'Desk', 'sort_order' => 0]);
+    ShiftKind::factory()->inactive()->create(['group_id' => $group->id, 'sort_order' => 1]);
+    $object = HandlingObject::factory()->create(['group_id' => $group->id, 'name' => 'Ammonite', 'sort_order' => 0]);
+    HandlingObject::factory()->inactive()->create(['group_id' => $group->id, 'sort_order' => 1]);
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+
+    $this->actingAs(schedulingMemberOf($group, role: Role::Scheduler))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.shift_kinds', [['id' => $kind->id, 'name' => 'Desk']])
+            ->where('scheduling.objects', [['id' => $object->id, 'name' => 'Ammonite']]));
+});
+
 it('404s the Scheduling section on a Group that does not run scheduling', function () {
     $group = Group::factory()->create(['has_scheduling' => false]);
 
@@ -75,7 +128,7 @@ it('leaves the scheduling prop empty on the Overview section', function () {
 
     $this->actingAs(schedulingMemberOf($group))
         ->get(route('groups.show', $group))
-        ->assertInertia(fn (Assert $page) => $page->where('scheduling', ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => []]));
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling', ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'objects' => [], 'mine' => []]));
 });
 
 // --- Navigation: always the list, whatever the Group holds -------------------

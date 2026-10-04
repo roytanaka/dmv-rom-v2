@@ -255,6 +255,70 @@ it('never exposes a member\'s skills in any peer-visible payload', function () {
             ->where('roster', fn ($roster) => ! array_key_exists('skills', collect($roster)->firstWhere('id', $target->id))));
 });
 
+// --- No-email flag: Records-only, never peer- or self-visible ----------------
+
+it('exposes the no-email flag to a Records officer', function () {
+    $target = Member::factory()->noEmail()->create();
+
+    $this->actingAs(recordsContactOfficer())
+        ->get(route('members.show', $target))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('member.no_email', true));
+});
+
+it('exposes the no-email flag to a super-tier member', function () {
+    $target = Member::factory()->create();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('members.show', $target))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('member.no_email', false));
+});
+
+it('hides the no-email flag from a peer contact-need officer even when contact is granted', function () {
+    $group = Group::factory()->create();
+    $target = targetInGroup($group);
+
+    // A Chair passes viewContact — so the phones are present — yet the no-email flag
+    // is a stricter, Records-only member-administration field and must be wholly absent.
+    $this->actingAs(officerOf($group, Role::Chair))
+        ->get(route('members.show', $target))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('member.phone', $target->phone)
+            ->missing('member.no_email'));
+});
+
+it('hides the no-email flag from the member themselves', function () {
+    $member = Member::factory()->noEmail()->create();
+
+    $this->actingAs($member)
+        ->get(route('members.show', $member))
+        ->assertInertia(fn (Assert $page) => $page
+            ->missing('member.no_email'));
+});
+
+it('hides the no-email flag from a non-officer member', function () {
+    $target = Member::factory()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('members.show', $target))
+        ->assertInertia(fn (Assert $page) => $page
+            ->missing('member.no_email'));
+});
+
+it('never exposes the no-email flag on the directory list', function () {
+    $target = Member::factory()->noEmail()->create();
+
+    $this->actingAs(recordsContactOfficer())
+        ->get(route('directory'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('members', function ($members) use ($target) {
+                $row = collect($members)->firstWhere('id', $target->id);
+
+                return $row !== null && ! array_key_exists('no_email', $row);
+            }));
+});
+
 it('exposes the owner\'s own skill selections on their Skills settings page', function () {
     $member = Member::factory()->create();
     $skill = skillHeldBy($member);

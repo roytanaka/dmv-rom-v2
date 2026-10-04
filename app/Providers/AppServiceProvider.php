@@ -65,5 +65,18 @@ class AppServiceProvider extends ServiceProvider
         // via the Gate::before short-circuit above. UI hint only — StoreNewsRequest
         // re-checks the specific posting Group against the NewsPolicy on every post.
         Gate::define('post-news', fn (Member $member) => $member->canPostNews());
+
+        // The Mail status page (ADR-0024 §10) is super-tier only. Like `manage-super-tier`
+        // above, the definition denies everyone — the Gate::before short-circuit is the only
+        // grant, so Records stewardship or any Group role buys nothing. It also gates the
+        // page's Officer Tools rail item (ADR-0027 §4); the route re-checks it.
+        Gate::define('view-mail-status', fn (Member $member) => false);
+
+        // The Help ledger at /help-status (ADR-0025 §9) is super-tier only, exactly like
+        // `view-mail-status` above. The definition denies everyone — only the Gate::before
+        // short-circuit grants it, so no Group role or stewardship reaches the ledger. The
+        // controller authorizes it, and the page's Officer Tools rail item (ADR-0027 §4)
+        // gates on it too.
+        Gate::define('view-help-ledger', fn (Member $member) => false);
     }
 }

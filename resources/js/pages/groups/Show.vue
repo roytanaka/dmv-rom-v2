@@ -14,6 +14,7 @@ import GroupHours from '@/components/GroupHours.vue';
 import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
 import GroupScheduling from '@/components/GroupScheduling.vue';
+import GroupSettings from '@/components/GroupSettings.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import type { NavNode } from '@/chrome/types';
+import EmailMenu from '@/emailing/EmailMenu.vue';
+import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { bannerSources, defaultBannerKey, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type GroupHours as GroupHoursData, type Meeting, type RosterMember, type RosterMeta, type Scheduling, type SharedData } from '@/types';
@@ -63,27 +66,63 @@ const props = defineProps<{
         end_date: string | null;
         parent: Parent | null;
         banner_key: string | null;
-        capabilities: { meetings: boolean; documents: boolean; scheduling: boolean; content: boolean };
+        capabilities: {
+            meetings: boolean;
+            documents: boolean;
+            scheduling: boolean;
+            content: boolean;
+            collectsVisitorCount: boolean;
+            collectsExtraInteractions: boolean;
+            collectsVisitorProvenance: boolean;
+        };
+        // The Group's self-serve unit length (#585) — the Scheduling tab's "Write my shift" dialog
+        // derives a Shift's end from it.
+        selfServeUnitMinutes: number;
     };
     section: string;
     // UI hints from the policies — drive the officer affordances only; the server
     // enforces every mutation regardless. `update` gates the Overview edits (#191);
     // `createMeeting` gates the Meetings tab's "New meeting" control (#193);
     // `manageRoster` gates the Roster tab's officer CRUD (#192);
-    // `createSchedule` gates the Scheduling tab's "New schedule" control (#354).
+    // `createSchedule` gates the Scheduling tab's "New schedule" control (#354);
+    // `manageSettings` gates the Settings tab (ADR-0027 §1).
     can: {
         update: boolean;
         createMeeting: boolean;
         manageRoster: boolean;
         createSchedule: boolean;
+        manageSettings: boolean;
+        manageReminders: boolean;
+        manageEmptyDesk: boolean;
+        manageSelfServe: boolean;
+        manageShiftKinds: boolean;
+        manageObjects: boolean;
         enterHours: boolean;
         viewReports: boolean;
     };
+    // The Email control's empty state (#513, ADR-0024 §6) — why the viewer can pick no
+    // Audience on this Group-scoped surface, or null when at least one is pickable. Read
+    // by every Email control on the page (the strip, the roster, the opened Schedule).
+    // `roster` is the strip control's hand-pick pool (#551): the Group's roster shaped as
+    // the composer's Recipient (a standing hint, never an address), sent on every section
+    // so "Pick people…" has rows to tick wherever the strip opens, not only on Members.
+    email: { reason: EmailReason | null; roster: Recipient[] };
     roster: RosterMember[];
     rosterMeta: RosterMeta;
     meetings: Meeting[];
     scheduling: Scheduling;
     hours: GroupHoursData;
+    // The Settings tab's payload (ADR-0027), resolved only on that tab. Each card's values ride
+    // only with that card's right: the Reminders card (#486) reads `reminders`, the Empty-desk
+    // alert card (#487) `emptyDesk`, the Self-serve shifts card (#582) `selfServe`, the Shift kinds
+    // card (#567) `shiftKinds`, and the Objects card (#584) `objects`.
+    settings: {
+        reminders: { enabled: boolean; leadDays: number } | null;
+        emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] } | null;
+        selfServe: { enabled: boolean; unitMinutes: number } | null;
+        shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[] | null;
+        objects: { id: number; name: string; active: boolean; sortOrder: number }[] | null;
+    };
     overview: {
         description: string | null;
         children: ChildGroup[];
@@ -103,8 +142,9 @@ const ended = computed(() => !props.group.archived && props.group.end_date !== n
 // tab when the Group runs meetings. The remaining capabilities render as muted "soon"
 // stubs only when their flag is on — the feature itself lands in a later slice. Hours
 // is always-on (ADR-0022 §3): its tab renders on every Group and sub-Group, now a real
-// tab carrying the extra-hours entry surface (#408). Hrefs are English-canonical;
-// SectionTabs localises them to the active locale (ADR-0008).
+// tab carrying the extra-hours entry surface (#408). Settings comes last, only for a viewer
+// holding a configuration right, on every visit, empty or not (ADR-0027 §1). Hrefs are
+// English-canonical; SectionTabs localises them to the active locale (ADR-0008).
 const tabs = computed<NavNode[]>(() => {
     const href = (section?: string) => (section ? `/groups/${props.group.slug}/${section}` : `/groups/${props.group.slug}`);
     const list: NavNode[] = [
@@ -116,6 +156,7 @@ const tabs = computed<NavNode[]>(() => {
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
     if (props.group.capabilities.content) list.push({ href: href('content'), labelKey: 'group.tab.content', soon: true });
     list.push({ href: href('hours'), labelKey: 'group.tab.hours' });
+    if (props.can.manageSettings) list.push({ href: href('settings'), labelKey: 'group.tab.settings' });
     return list;
 });
 
@@ -240,9 +281,22 @@ const pickBanner = (key: string | null) => {
             </header>
 
             <!-- Sticky in-body section-tab strip, directly under the header (ADR-0013
-                 amendment). Reuses SectionTabs in its 'body' placement. -->
-            <div class="bg-background sticky top-16 z-20 px-4 py-4 shadow-sm sm:px-6">
+                 amendment). Reuses SectionTabs in its 'body' placement. The "Email ▾"
+                 control sits at the strip's end on every section (#489, ADR-0024 §6);
+                 its menu resolves the Group's pickable Audiences server-side. -->
+            <div class="bg-background sticky top-16 z-20 flex items-center justify-between gap-3 px-4 py-4 shadow-sm sm:px-6">
                 <SectionTabs :items="tabs" variant="body" :soon-label="trans('group.soon')" />
+                <!-- The strip carries the Email control on every section but the roster, where
+                     it moves into the roster toolbar beside the officer controls (#490,
+                     ADR-0024 §6.2). -->
+                <EmailMenu
+                    v-if="section !== 'roster'"
+                    context="group"
+                    :context-subject="group.slug"
+                    :group-name="group.name"
+                    :roster="email.roster"
+                    :reason="email.reason"
+                />
             </div>
 
             <div class="flex-1 p-4 sm:p-6">
@@ -340,6 +394,8 @@ const pickBanner = (key: string | null) => {
                     :can-manage="can.manageRoster"
                     :meta="rosterMeta"
                     :group-slug="group.slug"
+                    :group-name="group.name"
+                    :email-reason="email.reason"
                 />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
@@ -353,7 +409,13 @@ const pickBanner = (key: string | null) => {
                     v-else-if="section === 'scheduling'"
                     :scheduling="scheduling"
                     :can-create="can.createSchedule"
+                    :collects-visitor-count="group.capabilities.collectsVisitorCount"
+                    :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
+                    :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"
+                    :self-serve-unit-minutes="group.selfServeUnitMinutes"
                     :group-slug="group.slug"
+                    :group-name="group.name"
+                    :email-reason="email.reason"
                 />
 
                 <!-- Hours (#408, ADR-0022 §2) — always-on on every Group. The extra-hours
@@ -363,6 +425,24 @@ const pickBanner = (key: string | null) => {
                     :hours="hours"
                     :can-enter="can.enterHours"
                     :can-view-reports="can.viewReports"
+                    :group-slug="group.slug"
+                />
+
+                <!-- Settings (#604, ADR-0027) — one page of the Group's settings cards, each behind
+                     its own `can` hint. The tab and the route answer only to a configuration right. -->
+                <GroupSettings
+                    v-else-if="section === 'settings'"
+                    :runs-scheduling="group.capabilities.scheduling"
+                    :reminders="settings.reminders"
+                    :can-manage-reminders="can.manageReminders"
+                    :empty-desk="settings.emptyDesk"
+                    :can-manage-empty-desk="can.manageEmptyDesk"
+                    :self-serve="settings.selfServe"
+                    :can-manage-self-serve="can.manageSelfServe"
+                    :shift-kinds="settings.shiftKinds"
+                    :can-manage-shift-kinds="can.manageShiftKinds"
+                    :objects="settings.objects"
+                    :can-manage-objects="can.manageObjects"
                     :group-slug="group.slug"
                 />
 

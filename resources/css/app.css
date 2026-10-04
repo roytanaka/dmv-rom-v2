@@ -287,4 +287,12 @@
     tr {
         break-inside: avoid;
     }
+
+    /* A card is one report — keep it whole. Without this a card's heading strands at
+       the foot of a page with its table overleaf, and a year-to-date row prints alone
+       on a page of its own. A card taller than the sheet still breaks; the browser has
+       nowhere else to put it. */
+    [data-slot='card'] {
+        break-inside: avoid;
+    }
 }

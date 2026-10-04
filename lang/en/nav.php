@@ -44,8 +44,19 @@ return [
         'no_results' => 'No matching groups',
     ],
 
-    // Top-bar utility — the Help destination in the right cluster (#194).
+    // Top-bar utility — the Help menu in the right cluster (#194, #675).
     'help' => 'Help',
+    'help_menu' => [
+        'page' => 'Help for this page',
+        'centre' => 'Help centre',
+        // Outside production only (#676, ADR-0029 §12).
+        'feedback_send' => 'Send feedback',
+        'feedback_list' => 'See all feedback',
+    ],
+
+    // The Dashboard title strip — breadcrumb + <Head> title (#541). Chrome, so it
+    // translates: hard-coded English previously leaked through under French chrome.
+    'dashboard' => 'Dashboard',
 
     // Zone C — officer/admin cluster (rail, pinned bottom, officer-only).
     'officer' => [
@@ -54,6 +65,8 @@ return [
         'reports' => 'Reports',
         'flash_messages' => 'Flash Messages',
         'dmv_settings' => 'DMV Settings',
+        'mail_status' => 'Mail status',
+        'help_status' => 'Help status',
     ],
 
     // Accessible name for the split-rail chevron that expands/collapses a Group's

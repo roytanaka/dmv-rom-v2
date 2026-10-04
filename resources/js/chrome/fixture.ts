@@ -18,7 +18,7 @@
  * fields live on the section-tab node only (ADR-0018), not on the rail wire.
  */
 
-import { PhBookOpenText, PhCalendarBlank, PhChartBar, PhFileText, PhGearSix, PhInfo, PhPresentation } from '@phosphor-icons/vue';
+import { PhBookOpenText, PhCalendarBlank, PhChartBar, PhFileText, PhInfo, PhPresentation } from '@phosphor-icons/vue';
 import type { NavNode } from './types';
 
 // Group Menus, keyed by `GroupNode.groupId`. A Group's tab strip is its capability
@@ -36,7 +36,5 @@ export const groupMenus: Record<string, NavNode[]> = {
         { labelKey: 'section.docents.publications', href: '/groups/docents/publications', icon: PhBookOpenText, requiresCapability: 'documents' },
         { labelKey: 'section.docents.meetings', href: '/groups/docents/meetings', icon: PhPresentation, requiresCapability: 'meetings' },
         { labelKey: 'section.docents.statistics', href: '/groups/docents/statistics', icon: PhChartBar, requiresCapability: 'stats' },
-        // Officer-only slot — role-gated (stubbed show-all for now).
-        { labelKey: 'section.docents.schedule_admin', href: '/groups/docents/schedule/admin', icon: PhGearSix, requiresRole: 'chair' },
     ],
 };

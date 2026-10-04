@@ -1,0 +1,25 @@
+# Votre première connexion
+
+Cette application est l'endroit où les bénévoles du DMV travaillent en ligne. Vous y suivez vos heures, vous inscrivez à des quarts et restez au courant de vos groupes.
+
+Cette page vous fait faire le tour. Chaque autre article couvre une seule tâche.
+
+![Le tableau de bord : la barre noire en haut, la barre latérale gauche avec vos groupes et vos groupes au centre](01.png)
+
+## La barre supérieure
+
+La barre noire reste en haut de chaque page. Elle contient vos liens principaux : Mes heures, Mon calendrier, Nouvelles et Répertoire. Vos initiales se trouvent à droite. L'aide, marquée d'un « ? », se trouve à côté.
+
+## La barre latérale gauche
+
+La barre latérale gauche liste les groupes auxquels vous appartenez. Sélectionnez un groupe pour ouvrir ses pages.
+
+## Vos groupes
+
+Vos groupes se trouvent dans la barre latérale gauche, sous Mes groupes. Chaque groupe a ses propres nouvelles, son horaire et son effectif. Ouvrez un groupe pour voir un quart que vous pouvez prendre.
+
+## Où trouver de l'aide
+
+Sélectionnez Aide dans la barre supérieure. Sélectionnez Aide pour cette page pour ouvrir l'article de la page où vous êtes. Sélectionnez Centre d’aide pour voir tous les articles. Chaque article vous donne de courtes étapes à suivre.
+
+![Le menu Aide ouvert dans la barre supérieure, avec Aide pour cette page et Centre d’aide](02.png)

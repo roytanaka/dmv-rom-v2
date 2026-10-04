@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\ShiftAudience;
 use App\Models\Shift;
+use App\Rules\OnMinuteGrid;
 use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -65,12 +66,16 @@ class StoreShiftRequest extends FormRequest
         $schedule = $this->route('schedule');
 
         return [
-            'starts_at' => ['required', 'date'],
-            'ends_at' => ['required', 'date', 'after:starts_at', $this->withinRange()],
+            'starts_at' => ['required', 'date', new OnMinuteGrid],
+            'ends_at' => ['required', 'date', 'after:starts_at', new OnMinuteGrid, $this->withinRange()],
             'capacity' => ['sometimes', 'integer', 'min:1'],
             'shift_kind_id' => [
                 'nullable',
-                Rule::exists('shift_kinds', 'id')->where('group_id', $schedule->group_id),
+                // Only an *active* kind may go on a new Shift — a retired kind still labels the
+                // Shifts already carrying it, but is no longer offered (#567, ADR-0021 §3).
+                Rule::exists('shift_kinds', 'id')
+                    ->where('group_id', $schedule->group_id)
+                    ->where('active', true),
             ],
             'audience' => ['sometimes', Rule::enum(ShiftAudience::class)],
         ];

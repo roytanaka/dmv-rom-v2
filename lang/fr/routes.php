@@ -20,8 +20,19 @@ return [
     'news' => 'nouvelles',
     'profile' => 'profil',
     'renew' => 'renouveler',
-    // Utility — the top bar's Help destination (#194).
+    // Centre d'aide (#517, ADR-0025). L'index à « aide » et un article à
+    // « aide/{article} ». Le slug {article} est un identifiant — la MÊME chaîne dans
+    // les deux langues — donc seul le mot « aide » change ici.
     'help' => 'aide',
+    'help.show' => 'aide/{article}',
+    // Rétroaction des testeurs (#676, ADR-0029). Segment provisoire : l'équipe
+    // francophone du DMV choisira le mot définitif.
+    'feedback' => 'retroaction',
+    'feedback.show' => 'retroaction/{feedbackItem}',
+    'feedback.status' => 'retroaction/{feedbackItem}/statut',
+    'feedback.comments' => 'retroaction/{feedbackItem}/commentaires',
+    'feedback.comment' => 'retroaction/{feedbackItem}/commentaires/{feedbackComment}',
+    'feedback.screenshot' => 'retroaction/captures/{feedbackScreenshot}',
 
     // Zone C — officer/admin
     'officer.members' => 'officier/membres',
@@ -64,6 +75,9 @@ return [
     // traduits ; « hours » → « heures ».
     'hours.committee-summary' => 'heures/statistiques-sommaire',
     'hours.committee-detailed' => 'heures/statistiques-detaillees',
+    // Sommaire des interactions avec les visiteurs (#451, ADR-0023 §6). À l'échelle de
+    // l'organisation, mais ouvert à tout membre connecté plutôt que réservé aux officiers.
+    'hours.visitor-summary' => 'heures/interactions-visiteurs',
     'hours.ranked' => 'heures/classement',
     'hours.zero-hours' => 'heures/zero-heure',
     'hours.zero-shift-hours' => 'heures/zero-heure-quart',
@@ -71,6 +85,7 @@ return [
     // Les exports CSV en pendant de chaque rapport (#414) — un suffixe « .csv » verbatim.
     'hours.committee-summary.csv' => 'heures/statistiques-sommaire.csv',
     'hours.committee-detailed.csv' => 'heures/statistiques-detaillees.csv',
+    'hours.visitor-summary.csv' => 'heures/interactions-visiteurs.csv',
     'hours.ranked.csv' => 'heures/classement.csv',
     'hours.zero-hours.csv' => 'heures/zero-heure.csv',
     'hours.zero-shift-hours.csv' => 'heures/zero-heure-quart.csv',

@@ -10,6 +10,7 @@ use App\Enums\ListingVisibility;
 use App\Enums\Role;
 use App\Enums\Scope;
 use App\Enums\StewardshipFunction;
+use App\Support\Audiences\AudienceResolver;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -34,6 +35,16 @@ class Group extends Model
      * node without hard-coding the string, and single-sourced with {@see OrgTreeSeeder}.
      */
     public const ROOT_SLUG = 'dmv';
+
+    /**
+     * The slug of the DMV Executive Group — the top governance body, a single
+     * standing committee under the root (CONTEXT.md: "DMV Executive"; not the root
+     * itself, and not the super-tier grant). Named so the Board-of-Directors Audience
+     * ({@see AudienceResolver}) can resolve the Executive's
+     * roster without hard-coding the string, and single-sourced across both seeders,
+     * exactly as {@see ROOT_SLUG} single-sources the root.
+     */
+    public const EXECUTIVE_SLUG = 'executive';
 
     /**
      * The attributes that are mass assignable.
@@ -61,7 +72,17 @@ class Group extends Model
         'has_content_catalog',
         'has_vetting',
         'has_announcements',
+        'collects_visitor_count',
+        'collects_extra_interactions',
+        'collects_visitor_provenance',
+        'visitor_figures_await_booking',
         'hours_multiplier',
+        'reminders_enabled',
+        'reminder_lead_days',
+        'empty_desk_alert_enabled',
+        'empty_desk_days_ahead',
+        'self_serve_shifts',
+        'self_serve_unit_minutes',
     ];
 
     /**
@@ -87,7 +108,17 @@ class Group extends Model
             'has_content_catalog' => 'boolean',
             'has_vetting' => 'boolean',
             'has_announcements' => 'boolean',
-            'hours_multiplier' => 'integer',
+            'collects_visitor_count' => 'boolean',
+            'collects_extra_interactions' => 'boolean',
+            'collects_visitor_provenance' => 'boolean',
+            'visitor_figures_await_booking' => 'boolean',
+            'hours_multiplier' => 'decimal:3',
+            'reminders_enabled' => 'boolean',
+            'reminder_lead_days' => 'integer',
+            'empty_desk_alert_enabled' => 'boolean',
+            'empty_desk_days_ahead' => 'integer',
+            'self_serve_shifts' => 'boolean',
+            'self_serve_unit_minutes' => 'integer',
         ];
     }
 
@@ -185,6 +216,18 @@ class Group extends Model
     }
 
     /**
+     * The Objects this Group hands out — its handling collection, the artefacts a Gallery
+     * Interpreter takes onto the floor (#584, ADR-0026 §3). Group-scoped, the same maintenance
+     * shape as {@see shiftKinds}. Present only when the Group runs scheduling.
+     *
+     * @return HasMany<HandlingObject, $this>
+     */
+    public function objects(): HasMany
+    {
+        return $this->hasMany(HandlingObject::class);
+    }
+
+    /**
      * The Members who run this Group's scheduling — the recipients of the Sign-up
      * cancellation email (#358, ADR-0021 §Sign-up "Notification"). These are the Group's
      * `Scheduler`-role holders, with Chair-implication folded in (a Chair acts as Scheduler
@@ -204,6 +247,17 @@ class Group extends Model
                 || $membership->roles->contains('role', Role::Chair))
             ->map(fn (GroupMember $membership) => $membership->member)
             ->values();
+    }
+
+    /**
+     * The empty-desk alert runs recorded for this Group (#487, ADR-0024 §7) — one per cadence
+     * day the alert fired. Read by the daily pass as the "already ran today" idempotency key.
+     *
+     * @return HasMany<EmptyDeskRun, $this>
+     */
+    public function emptyDeskRuns(): HasMany
+    {
+        return $this->hasMany(EmptyDeskRun::class);
     }
 
     /**
@@ -238,6 +292,48 @@ class Group extends Model
     public static function stewardOf(StewardshipFunction $function): ?self
     {
         return static::stewarding($function)->first();
+    }
+
+    /**
+     * The DMV Executive Group, or null if none is seeded — the roster the
+     * Board-of-Directors Audience resolves to (ADR-0024 §5). Resolved by the
+     * well-known {@see EXECUTIVE_SLUG}, the same way {@see stewardOf()} resolves the
+     * Records Group; the Executive is a specific Group, not an org-wide function, so
+     * it is keyed on its slug rather than a stewardship row.
+     */
+    public static function executive(): ?self
+    {
+        return static::where('slug', self::EXECUTIVE_SLUG)->first();
+    }
+
+    /**
+     * Whether this Group is still alive — the instance twin of {@see scopeActive()},
+     * for a Group already in memory (e.g. walking a Member's loaded memberships).
+     * Lifecycle Active, and not an expired time-boxed Group; a time-boxed Group with
+     * no end_date is treated as still open. Mirrors the scope's predicate exactly so
+     * the two never drift.
+     */
+    public function isActive(): bool
+    {
+        if ($this->lifecycle_state !== LifecycleState::Active) {
+            return false;
+        }
+
+        if (! $this->time_boxed || $this->end_date === null) {
+            return true;
+        }
+
+        return $this->end_date->startOfDay()->gte(now()->startOfDay());
+    }
+
+    /**
+     * Whether this is the org root — the single parentless "DMV" Group at the top of
+     * the tree (ADR-0010). Single-sourced on {@see ROOT_SLUG}, the same key the
+     * seeders and top-level ancestor climb use to resolve the root.
+     */
+    public function isRoot(): bool
+    {
+        return $this->slug === self::ROOT_SLUG;
     }
 
     /**

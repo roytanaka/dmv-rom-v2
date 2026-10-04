@@ -67,6 +67,12 @@ the same every run.
     Follow the patterns in `docs/conventions.md` and the ADRs that name the
     subsystem you are touching.
 
+    **User-facing copy** (help articles, lang strings, page text, anything a
+    Member reads): run the `/humanizer` skill on it before you commit. It is a
+    project skill under `.claude/skills/`, so it is available in this sandbox.
+    Instructional copy also follows Simplified Technical English: sentences
+    under 20 words, active voice, present tense, one instruction per sentence.
+
 5. **Verify** — run the full gate from `@.sandcastle/CODING_STANDARDS.md` and
    fix every failure. The gate must be green before you commit.
 

@@ -5,16 +5,18 @@ namespace App\Http\Middleware;
 use App\Enums\Kind;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
+use App\Help\HelpManifest;
 use App\Http\Controllers\ImpersonationController;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
 use App\Personas\Persona;
 use App\Personas\PersonaCatalogue;
+use App\Support\AppVersion;
+use App\Support\RouteSegments;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 use Inertia\Middleware;
@@ -64,11 +66,14 @@ class HandleInertiaRequests extends Middleware
             // a meeting reads at the same o'clock for every viewer regardless of
             // where their device thinks it is.
             'timezone' => config('app.org_timezone'),
+            // The deployed version for the footer (#673): the short commit id and the
+            // deploy instant (UTC). Null in local development, where the footer shows "dev".
+            'appVersion' => AppVersion::current(),
             // Per-locale URI-segment translation table, for localising the static
             // nav hrefs (the fixture authors them English-canonical) so in-app
             // navigation stays in the active locale instead of reverting to English
             // (ADR-0008). Keyed by non-default locale → { englishSegment: localised }.
-            'routeSegments' => $this->routeSegments(),
+            'routeSegments' => RouteSegments::table(),
             // Top-bar language switcher (ADR-0013): the active locale plus every
             // supported locale's twin URL for the current page. Each option's url
             // is the page's twin in that locale, or null when no twin is
@@ -122,11 +127,11 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * The fixed global top-bar nav model (#194): the primary cross-domain
-     * destinations plus the Help utility, shared on every page. Each destination's
+     * destinations plus the Help menu, shared on every page. Each destination's
      * href is localized to the active locale (ADR-0008); declared gating is resolved
      * here against the signed-in member, so the client never echoes authority back.
      *
-     * @return array{destinations: list<array{key: string, labelKey: string, href: string}>, help: array{key: string, labelKey: string, href: string}}
+     * @return array{destinations: list<array{key: string, labelKey: string, href: string}>, help: array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}}
      */
     private function chromeNav(Request $request): array
     {
@@ -146,8 +151,49 @@ class HandleInertiaRequests extends Middleware
                 ->map(fn (array $spec) => $this->destination($spec))
                 ->values()
                 ->all(),
-            'help' => $this->destination(['key' => 'help', 'route' => 'help', 'labelKey' => 'nav.help']),
+            'help' => $this->helpMenu($request),
         ];
+    }
+
+    /**
+     * The top-bar Help menu (ADR-0025 amendment, #675). It is always a menu, even with
+     * one item. The middleware resolves the current route name against the help
+     * manifest: a published article adds Help for this page, first; an unmapped page, or
+     * one mapped only by a draft, gets no page item. Help centre is always there. Hrefs
+     * are localized (ADR-0008) so switching language on the article stays on it.
+     *
+     * Outside production, Send feedback and See all feedback close the menu (#676,
+     * ADR-0029 §12). Both carry the Feedback page href: Send feedback opens the dialog,
+     * which posts there. Production gets neither, like the Role-switcher.
+     *
+     * @return array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}
+     */
+    private function helpMenu(Request $request): array
+    {
+        $routeName = $request->route()?->getName();
+        $article = $routeName === null
+            ? null
+            : app(HelpManifest::class)->publishedForRoute($routeName);
+
+        $items = [];
+
+        if ($article !== null) {
+            $items[] = [
+                'key' => 'page',
+                'labelKey' => 'nav.help_menu.page',
+                'href' => $this->localizedPath('routes.help.show', ['article' => $article->slug]),
+            ];
+        }
+
+        $items[] = ['key' => 'centre', 'labelKey' => 'nav.help_menu.centre', 'href' => $this->localizedPath('routes.help')];
+
+        if (! app()->environment('production')) {
+            $feedback = $this->localizedPath('routes.feedback');
+            $items[] = ['key' => 'feedback-send', 'labelKey' => 'nav.help_menu.feedback_send', 'href' => $feedback];
+            $items[] = ['key' => 'feedback-list', 'labelKey' => 'nav.help_menu.feedback_list', 'href' => $feedback];
+        }
+
+        return ['labelKey' => 'nav.help', 'items' => $items];
     }
 
     /**
@@ -220,7 +266,7 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * The Persona picker, grouped by function (Operator / Super-tier / Officers /
-     * Stewards / Roles / Standings / Negative) in catalogue order — the single source of truth,
+     * Stewards / Roles / Standings / Members / Negative) in catalogue order — the single source of truth,
      * so the list and the seeded data can never drift. Each row carries the realistic
      * name, the `{role · group}` descriptor, and the email the toolbar posts to start.
      *
@@ -280,18 +326,25 @@ class HandleInertiaRequests extends Middleware
      * Super-tier passes the abilities too via the Gate::before short-circuit, so it sees
      * all five.
      *
+     * Mail status and Help status close the cluster (ADR-0027 §4). They are org-wide
+     * operations pages behind the super-tier-only gates their routes already authorize,
+     * and their hrefs are the non-localized routes: the pages have no French twin.
+     *
      * @return array{labelKey: string, items: list<array{key: string, labelKey: string, href: string}>}|null
      */
     private function officer(Member $member): ?array
     {
         // Each item, in render order, with the authority that gates it: a Gate ability
-        // (`gate`) or the interim super-tier-only check (no ability yet).
+        // (`gate`) or the interim super-tier-only check (no ability yet). A localized
+        // `route` resolves per locale; a fixed `href` is emitted as-is.
         $items = [
             ['key' => 'members', 'route' => 'officer.members', 'labelKey' => 'nav.officer.members', 'gate' => 'administer-members'],
             ['key' => 'communications', 'route' => 'officer.communications', 'labelKey' => 'nav.officer.communications', 'gate' => 'post-news'],
             ['key' => 'reports', 'route' => 'officer.reports', 'labelKey' => 'nav.officer.reports'],
             ['key' => 'flash-messages', 'route' => 'officer.flash-messages', 'labelKey' => 'nav.officer.flash_messages'],
             ['key' => 'settings', 'route' => 'officer.settings', 'labelKey' => 'nav.officer.dmv_settings'],
+            ['key' => 'mail-status', 'href' => route('mail-status', absolute: false), 'labelKey' => 'nav.officer.mail_status', 'gate' => 'view-mail-status'],
+            ['key' => 'help-status', 'href' => route('help-status', absolute: false), 'labelKey' => 'nav.officer.help_status', 'gate' => 'view-help-ledger'],
         ];
 
         $visible = collect($items)
@@ -343,11 +396,7 @@ class HandleInertiaRequests extends Middleware
         $member->loadMissing('memberships.group');
 
         $belonged = $member->memberships
-            ->filter(fn (GroupMember $membership) => in_array(
-                $membership->status,
-                [MembershipStatus::Full, MembershipStatus::Loa],
-                true,
-            ))
+            ->filter(fn (GroupMember $membership) => $membership->status->countsAsBelonging())
             ->map(fn (GroupMember $membership) => $membership->group)
             // The org root appears as a leaf via dmvNode(); exclude it from the membership path.
             ->reject(fn (Group $group) => $group->slug === Group::ROOT_SLUG)
@@ -502,10 +551,11 @@ class HandleInertiaRequests extends Middleware
      * - **Private** — kept only for the node's own members.
      *
      * Super-tier sees everything, everywhere, so it short-circuits before any filter.
-     * "Member of" resolves from current participation (Full / LOA); departed standings
-     * grant nothing — the same standing rule My Groups applies. Pruning the flat set
-     * before the tree is rebuilt from its roots drops any visible node orphaned by a
-     * pruned ancestor, so a hidden branch takes its whole subtree with it.
+     * "Member of" resolves from current participation
+     * ({@see MembershipStatus::countsAsBelonging()}) — the same standing rule My Groups
+     * applies. Pruning the flat set before the tree is rebuilt from its roots drops any
+     * visible node orphaned by a pruned ancestor, so a hidden branch takes its whole
+     * subtree with it.
      *
      * @param  Collection<int, Group>  $active
      * @return Collection<int, Group>
@@ -529,9 +579,8 @@ class HandleInertiaRequests extends Middleware
      * The own-Groups prune (ADR-0020 §A, §E): with listing-visibility pruning done, drop
      * from the browse set every Group the Member belongs to, so My Groups and Other Groups
      * become a true partition — every visible Group lands in exactly one zone. Membership
-     * resolves from current participation (Full / LOA), the same standing rule My Groups and
-     * {@see pruneListingVisibility()} apply; departed standings grant nothing and so prune
-     * nothing.
+     * resolves from current participation ({@see MembershipStatus::countsAsBelonging()}),
+     * the same standing rule My Groups and {@see pruneListingVisibility()} apply.
      *
      * Removing a belonged Group from the flat set before the tree is rebuilt takes its whole
      * subtree out of Other Groups with it; ADR-0020 §F re-homes those children under the
@@ -555,9 +604,9 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The ids of the Groups this Member currently participates in — Full or on-leave
-     * (LOA) standing only. Departed standings (Resigned, Deceased, and every other
-     * non-participating status) contribute nothing, mirroring {@see myGroups()}.
+     * The ids of the Groups this Member currently participates in — any present standing
+     * or LOA ({@see MembershipStatus::countsAsBelonging()}). The departed standings
+     * (Inactive, Resigned, Deceased) contribute nothing, mirroring {@see myGroups()}.
      *
      * @return list<int>
      */
@@ -566,11 +615,7 @@ class HandleInertiaRequests extends Middleware
         $member->loadMissing('memberships');
 
         return $member->memberships
-            ->filter(fn (GroupMember $membership) => in_array(
-                $membership->status,
-                [MembershipStatus::Full, MembershipStatus::Loa],
-                true,
-            ))
+            ->filter(fn (GroupMember $membership) => $membership->status->countsAsBelonging())
             ->pluck('group_id')
             ->all();
     }
@@ -703,34 +748,39 @@ class HandleInertiaRequests extends Middleware
      */
     private function groupHref(Group $group): string
     {
-        $url = LaravelLocalization::getURLFromRouteNameTranslated(
-            app()->getLocale(),
-            'routes.groups.show',
-            ['group' => $group->slug],
-        );
-
-        return parse_url($url, PHP_URL_PATH) ?: $url;
+        return $this->localizedPath('routes.groups.show', ['group' => $group->slug]);
     }
 
     /**
      * Resolve one global destination to its shareable shape: a stable key, its chrome
      * label key (translated client-side via the i18n bridge), and the active locale's
-     * localized path for the destination's route (ADR-0008).
+     * localized path for the destination's route (ADR-0008). A spec carrying a fixed
+     * `href` instead — a non-localized page with no French twin — keeps it verbatim.
      *
-     * @param  array{key: string, route: string, labelKey: string}  $spec
+     * @param  array{key: string, labelKey: string, route?: string, href?: string}  $spec
      * @return array{key: string, labelKey: string, href: string}
      */
     private function destination(array $spec): array
     {
-        $url = LaravelLocalization::getURLFromRouteNameTranslated(app()->getLocale(), "routes.{$spec['route']}");
-
         return [
             'key' => $spec['key'],
             'labelKey' => $spec['labelKey'],
-            // Strip the host so Inertia navigates client-side and the active-state
-            // match against the (path-only) current URL is exact.
-            'href' => parse_url($url, PHP_URL_PATH) ?: $url,
+            'href' => $spec['href'] ?? $this->localizedPath("routes.{$spec['route']}"),
         ];
+    }
+
+    /**
+     * The active locale's localized path for a route lang key (ADR-0008), host stripped
+     * so Inertia navigates client-side and the active-state match against the (path-only)
+     * current URL is exact.
+     *
+     * @param  array<string, string>  $params
+     */
+    private function localizedPath(string $routeKey, array $params = []): string
+    {
+        $url = LaravelLocalization::getURLFromRouteNameTranslated(app()->getLocale(), $routeKey, $params);
+
+        return parse_url($url, PHP_URL_PATH) ?: $url;
     }
 
     /**
@@ -807,57 +857,5 @@ class HandleInertiaRequests extends Middleware
             'en' => 'English',
             'fr' => 'Français',
         ][$code] ?? Str::ucfirst($props['native'] ?? $code);
-    }
-
-    /**
-     * URI-segment translation table per non-default locale, derived from the route
-     * tables (lang/{locale}/routes.php) so the segment words stay single-sourced.
-     *
-     * The frontend localises English-canonical nav hrefs by mapping each path
-     * segment through this table (slugs and {params} pass through unchanged), so a
-     * Volunteer on /fr/… navigates to /fr/… twins rather than reverting to English.
-     *
-     * Derived purely from static config (the route lang files + supported locales),
-     * so it's the same for every request — cached forever and rebuilt on deploy when
-     * the cache is cleared, rather than recomputed on every Inertia response.
-     *
-     * @return array<string, array<string, string>>
-     */
-    private function routeSegments(): array
-    {
-        return Cache::rememberForever('inertia.route_segments', function (): array {
-            $default = LaravelLocalization::getDefaultLocale();
-            $base = Lang::get('routes', [], $default);
-
-            $out = [];
-
-            foreach (array_keys(LaravelLocalization::getSupportedLocales()) as $locale) {
-                if ($locale === $default) {
-                    continue;
-                }
-
-                $target = Lang::get('routes', [], $locale);
-                $dict = [];
-
-                foreach ($base as $key => $basePattern) {
-                    $baseSegs = explode('/', $basePattern);
-                    $targetSegs = explode('/', $target[$key] ?? $basePattern);
-
-                    foreach ($baseSegs as $i => $segment) {
-                        $localised = $targetSegs[$i] ?? $segment;
-
-                        // Only record words that actually differ; skip {param}
-                        // placeholders (group slugs are content, never translated).
-                        if ($segment !== $localised && ! str_starts_with($segment, '{')) {
-                            $dict[$segment] = $localised;
-                        }
-                    }
-                }
-
-                $out[$locale] = $dict;
-            }
-
-            return $out;
-        });
     }
 }

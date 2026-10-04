@@ -15,11 +15,14 @@
 // PATCH carrying the new `state`. Every mutation is enforced by the SchedulePolicy
 // regardless of what renders. Names and descriptions are as-authored content
 // (ADR-0004); everything else is translated chrome.
+import DateTimeField from '@/components/DateTimeField.vue';
 import ForeignShiftBand from '@/components/ForeignShiftBand.vue';
 import InputError from '@/components/InputError.vue';
+import ObjectPicker from '@/components/ObjectPicker.vue';
 import ScheduleCalendar from '@/components/ScheduleCalendar.vue';
 import ShiftCard from '@/components/ShiftCard.vue';
 import TextLink from '@/components/TextLink.vue';
+import TimeField from '@/components/TimeField.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,8 +30,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import EmailMenu from '@/emailing/EmailMenu.vue';
+import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { buildAgenda } from '@/scheduling/agenda';
-import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem } from '@/types';
+import { type RecordCallbacks, type RecordPayload } from '@/scheduling/recordDraft';
+import { deriveEndsAt } from '@/scheduling/selfServeShift';
+import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import {
     PhArrowLeft,
@@ -47,7 +54,21 @@ import {
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, onMounted, ref, watch } from 'vue';
 
-const props = defineProps<{ scheduling: Scheduling; canCreate: boolean; groupSlug: string }>();
+const props = defineProps<{
+    scheduling: Scheduling;
+    canCreate: boolean;
+    collectsVisitorCount: boolean;
+    collectsExtraInteractions: boolean;
+    collectsVisitorProvenance: boolean;
+    // The Group's self-serve unit length (#585) — the "Write my shift" dialog derives a Shift's
+    // end from it. The setting itself is edited on the Settings tab (ADR-0027 §2).
+    selfServeUnitMinutes: number;
+    groupSlug: string;
+    groupName: string;
+    // The Email control's empty state for this Group (#513) — passed to the opened Schedule's
+    // Email menu so a viewer who can pick no Audience sees a greyed button with the reason.
+    emailReason: EmailReason | null;
+}>();
 
 const page = usePage<SharedData>();
 
@@ -108,6 +129,30 @@ onMounted(() => {
 
 watch(view, (value) => localStorage.setItem(VIEW_KEY, value));
 
+// --- My sign-ups (#449, ADR-0023 §5) — the outstanding-shifts panel ------------
+
+// "My Sign-ups on this Group": the viewer's upcoming Shifts, plus any past Shift inside the
+// 28-day window still owed a number. Server-resolved (`scheduling.mine`), already the viewer's
+// own seats and no one else's, ordered by start, and crossing Schedules — the one surface that
+// reaches a three-week-old Shift on last month's Schedule, a different page. The panel is
+// **absent, not empty**, when there is nothing to show: an empty list renders no panel at all,
+// and a Group that collects no count sends an empty list too. Each entry is a ShiftCard, so
+// filing a number here rides the same PATCH seam as the Agenda; a past Shift shows the sign-out
+// form (its window has no upper bound), an upcoming one just lists with its drop control.
+const mine = computed(() => props.scheduling.mine);
+
+// --- Objects (#586, ADR-0026 §3) — the handling collection reserved on a seat ------
+
+// The Group's active Objects for the write / take / place pickers, and whether any exist. The
+// picker renders only where the list is non-empty; a Group with no Objects (Reception, Docents)
+// shows no field, and the server does not require one there.
+const activeObjects = computed(() => props.scheduling.objects);
+const hasObjects = computed(() => activeObjects.value.length > 0);
+
+// A seat's reserved Object ids, for pre-filling the owner's edit — the only seat on a self-serve
+// Shift is theirs, so its Objects are the ones the edit round-trips.
+const seatObjectIds = (shift: ShiftAgendaItem): number[] => shift.signups[0]?.objects?.map((object) => object.id) ?? [];
+
 // The list arrives already ordered (current & upcoming first, then past). Splitting
 // here only heads the two blocks; an empty block is dropped rather than left bare.
 const sections = computed(() =>
@@ -120,6 +165,20 @@ const sections = computed(() =>
 // URL, which always lists. Built through the route helper so the French twin comes
 // out right, as the Roster's show-past toggle already does.
 const listHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling' }));
+
+// The opened Schedule's Email control (#490, ADR-0024 §6.3): its menu leads with "Sign-ups
+// on <Schedule>", then the owning Group's Audiences, all resolved server-side. The hand-pick
+// pool is the Group's placeable roster the server already sent for officer assignment (empty
+// for a plain reader, who cannot hand-pick here anyway), each row shaped to a Recipient.
+const emailRoster = computed<Recipient[]>(() =>
+    props.scheduling.roster.map((candidate) => ({
+        id: candidate.id,
+        first_name: candidate.first_name,
+        last_name: candidate.last_name,
+        photo: candidate.photo,
+        standing: candidate.standing,
+    })),
+);
 
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
 
@@ -198,9 +257,44 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
 
 // Take a free seat: the server re-checks both floors, the `audience`, capacity, and the
 // one-seat rule (StoreSignUpRequest → SignUpPolicy). `can.signUp` gates the button, so it
-// only shows where a Sign-up would take; the POST carries no body — the seat is the viewer.
+// only shows where a Sign-up would take. On a Group with Objects the taker first picks the
+// Objects they carry (#586, ADR-0026 §3), so the take opens a dialog; on a Group with none the
+// POST carries no body and seats them in one click.
+const takingShift = ref<ShiftAgendaItem | null>(null);
+const takeForm = useForm<{ objects: number[] }>({ objects: [] });
+
+const takeDialogOpen = computed({
+    get: () => takingShift.value !== null,
+    set: (open: boolean) => {
+        if (!open) closeTake();
+    },
+});
+
+const closeTake = () => {
+    takingShift.value = null;
+    takeForm.reset();
+    takeForm.clearErrors();
+};
+
 const take = (shift: ShiftAgendaItem) => {
-    router.post(route('sign-ups.store', { shift: shift.id }), {}, { preserveScroll: true });
+    if (!hasObjects.value) {
+        router.post(route('sign-ups.store', { shift: shift.id }), {}, { preserveScroll: true });
+
+        return;
+    }
+
+    takeForm.reset();
+    takeForm.clearErrors();
+    takingShift.value = shift;
+};
+
+const submitTake = () => {
+    if (takingShift.value === null) return;
+
+    takeForm.post(route('sign-ups.store', { shift: takingShift.value.id }), {
+        preserveScroll: true,
+        onSuccess: () => closeTake(),
+    });
 };
 
 // Drop the seat the viewer holds — one click from where they signed up. Cancel has no
@@ -211,6 +305,42 @@ const drop = (shift: ShiftAgendaItem) => {
     }
 };
 
+// --- Recording the numbers (#445, #450, ADR-0023 §5) — one seam, three surfaces ---
+
+// File the numbers on the named Sign-up: the viewer's own seat from the Post-shift report in the
+// Agenda or My sign-ups (#445, #652), or any seat an Officer corrects with Change (#450, #653). `signUpId` is
+// that seat — the card resolves it — and the write always names it in the route, never the body.
+// The server re-checks the policy (the seat-holder inside the window, or a schedule admin with no
+// deadline) and the whole rule (required count, optional extra, both whole and non-negative, GDR's
+// five origins summing to the count) on PATCH. The extra-interaction field rides only where the
+// Group collects the split — a count-only Group refuses it server-side, so it is never sent there —
+// and carries null when its box is blank, distinct from a recorded zero (#447, ADR-0023 §2). GDR's
+// five origins ride only where the Group collects provenance (#448, ADR-0023 §3); everywhere else
+// the server refuses them, so they are never sent. The comment rides only from the viewer's own
+// seat (#655); a correction leaves it out, and the server refuses one there. A refusal goes back
+// to the card that submitted (#649) through its own callbacks, never the page's shared error bag:
+// the same Shift can render twice (My sign-ups and the Agenda), and only the submitted copy shows
+// the errors.
+const record = (payload: { signUpId: number } & RecordPayload, callbacks: RecordCallbacks) => {
+    const body: { visitor_count: number; extra_interaction_count?: number | null; comment?: string | null } & Partial<VisitorProvenance> = {
+        visitor_count: payload.count,
+    };
+
+    if (payload.comment !== undefined) {
+        body.comment = payload.comment;
+    }
+
+    if (props.collectsExtraInteractions) {
+        body.extra_interaction_count = payload.extra;
+    }
+
+    if (props.collectsVisitorProvenance && payload.provenance !== null) {
+        Object.assign(body, payload.provenance);
+    }
+
+    router.patch(route('sign-ups.record', { signUp: payload.signUpId }), body, { preserveScroll: true, ...callbacks });
+};
+
 // --- Officer assignment and removal (#359) — the Scheduler seats and clears a named Member ---
 
 // The Shift being assigned to, driving the picker dialog; null when closed. The picker's
@@ -219,12 +349,23 @@ const drop = (shift: ShiftAgendaItem) => {
 const assigningShift = ref<ShiftAgendaItem | null>(null);
 const assignFilter = ref('');
 
+// The placement's Objects (#586, ADR-0026 §3) — the Scheduler picks them before naming who sits,
+// so an assignment is as complete as a self-serve shift. A useForm so the server's object clash
+// and required errors bind and show in the dialog; `member_id` is set as the Scheduler clicks.
+const assignForm = useForm<{ member_id: number | null; objects: number[] }>({ member_id: null, objects: [] });
+
 const assignOpen = computed({
     get: () => assigningShift.value !== null,
     set: (open: boolean) => {
-        if (!open) assigningShift.value = null;
+        if (!open) closeAssign();
     },
 });
+
+const closeAssign = () => {
+    assigningShift.value = null;
+    assignForm.reset();
+    assignForm.clearErrors();
+};
 
 // The roster narrows to a name match as the Scheduler types — a Reception desk has a
 // handful of regulars, but a Friends Committee's roster is longer.
@@ -239,24 +380,22 @@ const filteredRoster = computed(() => {
 
 const openAssign = (shift: ShiftAgendaItem) => {
     assignFilter.value = '';
+    assignForm.reset();
+    assignForm.clearErrors();
     assigningShift.value = shift;
 };
 
-// Place the chosen Member on the open Shift. The picker carries the `member_id`; the server
-// authorises (schedule-admin gate) and validates (both floors, capacity, one seat) on POST.
+// Place the chosen Member on the open Shift, with the Objects picked above (#586). The server
+// authorises (schedule-admin gate) and validates (both floors, capacity, one seat, and the object
+// clash) on POST. On a Group with no Objects the picker is absent and `objects` rides empty.
 const assign = (candidateId: number) => {
     if (assigningShift.value === null) return;
 
-    router.post(
-        route('assignments.store', { shift: assigningShift.value.id }),
-        { member_id: candidateId },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                assigningShift.value = null;
-            },
-        },
-    );
+    assignForm.member_id = candidateId;
+    assignForm.post(route('assignments.store', { shift: assigningShift.value.id }), {
+        preserveScroll: true,
+        onSuccess: () => closeAssign(),
+    });
 };
 
 // Remove a seat the Scheduler administers — officer removal, so a placed regular who stops
@@ -279,17 +418,11 @@ const removeSeat = (signUpId: number) => {
 // offers, labelled from the lang file. `group` is the default; `open` invites the whole org.
 const AUDIENCES = ['group', 'open'] as const;
 
-// The granularity every Shift time is entered at, in seconds. Shifts are scheduled to the
-// five minutes, never to the minute, so the native picker steps in fives rather than making
-// the Scheduler scroll sixty entries to reach half past. Browsers also validate against it,
-// so a time off the grid is rejected before it reaches the form.
-const TIME_STEP_SECONDS = 300;
-
 // The native-select styling, matching the Roster's pickers (no shadcn Select in the repo yet).
 const SELECT_CLASS =
     'border-input bg-background focus-visible:border-rom-slate focus-visible:ring-rom-slate-50 flex h-11 w-full rounded-none border px-3 py-2 text-base focus-visible:ring-2 focus-visible:outline-hidden';
 
-// A Shift's times are instants on the org wall clock, like a Meeting's. A datetime-local input
+// A Shift's times are instants on the org wall clock, like a Meeting's. A DateTimeField value
 // has no zone of its own, so pre-fill renders the UTC instant on the org wall clock and the
 // server reads what it sends back as org-local (App\Support\OrgTime) — saving an unedited Shift
 // is a no-op. (Prior art: GroupMeetings' held_at.)
@@ -365,6 +498,145 @@ const submitShift = () => {
 const destroyShift = (shift: ShiftAgendaItem) => {
     if (window.confirm(trans('group.scheduling_panel.confirm_delete_shift'))) {
         router.delete(route('shifts.destroy', { shift: shift.id }), { preserveScroll: true });
+    }
+};
+
+// --- Write my shift (#585, PRD #576, ADR-0026 §1, §2) — a self-serve Member's own authoring ---
+
+// What a Member writes — distinct from the Scheduler's authoring above: a Gallery Interpreter
+// picks a station, a start and a count of units, and their Shift and Sign-up are written in one
+// step. Gated by the server's `can.createSelfServe` (the button) and `can.manageSelfServe` (the
+// owner's edit/delete); every write is re-checked by the self-serve Form Requests regardless of
+// what renders.
+
+// The unit picker's options: 1 to the fixed ceiling of 8 (Shift::SELF_SERVE_MAX_UNITS).
+const SELF_SERVE_MAX_UNITS = 8;
+const unitOptions = Array.from({ length: SELF_SERVE_MAX_UNITS }, (_, index) => index + 1);
+
+// Self-serve starts step in 15-minute grid slots (ADR-0026 §2) — coarser than the Scheduler
+// form's five minutes, and the same grid the server enforces (`OnMinuteGrid(15)`).
+const SELF_SERVE_STEP_MINUTES = 15;
+
+// The open editor: 'create', the id of the Shift being edited, or null when closed.
+const selfServeMode = ref<'create' | number | null>(null);
+
+const writeShiftForm = useForm<{
+    shift_kind_id: number | null;
+    starts_at: string;
+    units: number;
+    objects: number[];
+    acknowledge_station_clash: boolean;
+}>({
+    shift_kind_id: null,
+    starts_at: '',
+    units: 1,
+    objects: [],
+    // Waves the station clash warning through (#588, ADR-0026 §5). False on the first submit;
+    // the confirm dialog sets it true and resubmits.
+    acknowledge_station_clash: false,
+});
+
+// The station clash confirm (#588, ADR-0026 §5) — open when the last submit came back with the
+// station's distinct warning on `shift_kind_id`. The Member confirms to go ahead or cancels back
+// to the form. Compared against the translated warning, the one `shift_kind_id` error that offers
+// a way through rather than a correction.
+const stationClashPending = ref(false);
+const isStationClash = (message: string | undefined) => message === trans('group.scheduling_panel.self_serve.station_clash');
+
+const selfServeDialogOpen = computed({
+    get: () => selfServeMode.value !== null,
+    set: (open: boolean) => {
+        if (!open) closeSelfServe();
+    },
+});
+
+const selfServeDialogTitle = computed(() =>
+    trans(selfServeMode.value === 'create' ? 'group.scheduling_panel.self_serve.create_title' : 'group.scheduling_panel.self_serve.edit_title'),
+);
+
+// The derived end, shown live beside the units picker. The DateTimeField start carries no zone,
+// so it is read as a UTC instant purely for the minute arithmetic and formatted back in UTC — the
+// wall-clock end then matches the wall-clock start the Member typed. Empty until a start is set.
+const selfServeEnd = computed(() => {
+    if (writeShiftForm.starts_at === '') return '';
+
+    const start = new Date(`${writeShiftForm.starts_at}:00Z`);
+    if (Number.isNaN(start.getTime())) return '';
+
+    const end = deriveEndsAt(start, writeShiftForm.units, props.selfServeUnitMinutes);
+
+    return trans('group.scheduling_panel.self_serve.ends_at_preview', {
+        time: new Intl.DateTimeFormat(page.props.locale, { timeStyle: 'short', timeZone: 'UTC' }).format(end),
+    });
+});
+
+// The default start: now rounded up to the next quarter hour, so the picker opens on a valid grid
+// slot the Member can save straight away (the desk case). Rounded on the instant, rendered on the
+// org wall clock like every other Shift time.
+const nextQuarterHourLocal = () => {
+    const step = 15 * 60 * 1000;
+    const rounded = new Date(Math.ceil(Date.now() / step) * step);
+    return toDateTimeLocal(rounded.toISOString());
+};
+
+const openSelfServeCreate = () => {
+    writeShiftForm.reset();
+    writeShiftForm.clearErrors();
+    writeShiftForm.starts_at = nextQuarterHourLocal();
+    selfServeMode.value = 'create';
+};
+
+const openSelfServeEdit = (shift: ShiftAgendaItem) => {
+    writeShiftForm.shift_kind_id = shift.shift_kind_id;
+    writeShiftForm.starts_at = toDateTimeLocal(shift.starts_at);
+    // The count is not stored, so recover it from the span and the Group's unit length.
+    const span = (new Date(shift.ends_at).getTime() - new Date(shift.starts_at).getTime()) / (props.selfServeUnitMinutes * 60 * 1000);
+    writeShiftForm.units = Math.max(1, Math.round(span));
+    // The Objects are replaced whole (#586), so the edit round-trips the seat's current ones.
+    writeShiftForm.objects = seatObjectIds(shift);
+    writeShiftForm.clearErrors();
+    selfServeMode.value = shift.id;
+};
+
+const closeSelfServe = () => {
+    selfServeMode.value = null;
+    stationClashPending.value = false;
+    writeShiftForm.reset();
+};
+
+const submitSelfServe = () => {
+    const onSuccess = () => closeSelfServe();
+    // A station clash comes back as the distinct warning on `shift_kind_id`; open the confirm
+    // instead of leaving it as a plain field error, so Continue can wave it through.
+    const onError = (errors: Record<string, string>) => {
+        if (isStationClash(errors.shift_kind_id)) stationClashPending.value = true;
+    };
+    if (selfServeMode.value === 'create') {
+        if (props.scheduling.open === null) return;
+        writeShiftForm.post(route('self-serve-shifts.store', { schedule: props.scheduling.open.id }), { preserveScroll: true, onSuccess, onError });
+    } else if (selfServeMode.value !== null) {
+        writeShiftForm.patch(route('self-serve-shifts.update', { shift: selfServeMode.value }), { preserveScroll: true, onSuccess, onError });
+    }
+};
+
+// Continue past the warning: acknowledge and resubmit — the server skips the check this time.
+const confirmStationClash = () => {
+    stationClashPending.value = false;
+    writeShiftForm.acknowledge_station_clash = true;
+    submitSelfServe();
+};
+
+// Cancel: drop back to the form with the warning cleared, the acknowledgement reset so the next
+// submit is checked afresh.
+const cancelStationClash = () => {
+    stationClashPending.value = false;
+    writeShiftForm.acknowledge_station_clash = false;
+    writeShiftForm.clearErrors('shift_kind_id');
+};
+
+const destroySelfServe = (shift: ShiftAgendaItem) => {
+    if (window.confirm(trans('group.scheduling_panel.self_serve.confirm_delete'))) {
+        router.delete(route('self-serve-shifts.destroy', { shift: shift.id }), { preserveScroll: true });
     }
 };
 
@@ -544,6 +816,32 @@ const runBulkAssign = (action: 'place' | 'remove') => {
 
 <template>
     <div class="flex flex-col gap-4">
+        <!-- My sign-ups (#449, ADR-0023 §5) — the outstanding-shifts panel: the viewer's own
+             upcoming Shifts and any past Shift still owed a number, crossing Schedules. Absent
+             (not empty) when there is nothing to show, so it renders only when the list is
+             non-empty. Each Shift is the shared ShiftCard, so a number is filed straight from
+             here through the same seam as the Agenda. -->
+        <section v-if="mine.length" class="flex flex-col gap-2" :aria-label="trans('group.scheduling_panel.mine.aria_label')">
+            <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">{{ trans('group.scheduling_panel.mine.heading') }}</h3>
+            <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.mine.subtitle') }}</p>
+            <ShiftCard
+                v-for="shift in mine"
+                :key="shift.id"
+                :shift="shift"
+                show-date
+                :collects-visitor-count="collectsVisitorCount"
+                :collects-extra-interactions="collectsExtraInteractions"
+                :collects-visitor-provenance="collectsVisitorProvenance"
+                @take="take"
+                @drop="drop"
+                @assign="openAssign"
+                @remove="removeSeat"
+                @edit="openShiftEdit"
+                @delete="destroyShift"
+                @record="record"
+            />
+        </section>
+
         <div v-if="canCreate && !scheduling.open" class="flex justify-end">
             <Button type="button" size="sm" class="gap-1.5" @click="openCreate">
                 <PhPlus class="size-4" />
@@ -571,7 +869,19 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                             </CardTitle>
                             <p class="text-muted-foreground text-sm">{{ dateRange(scheduling.open.starts_on, scheduling.open.ends_on) }}</p>
                         </div>
-                        <div v-if="scheduling.open.can.update || scheduling.open.can.delete" class="flex shrink-0 flex-wrap gap-1">
+                        <!-- Capped at the header's width so the controls wrap on a phone (#648)
+                             instead of pushing Delete off-screen. -->
+                        <div class="flex max-w-full shrink-0 flex-wrap items-center gap-1">
+                            <!-- Email control (#490, ADR-0024 §6.3) — led by "Sign-ups on this
+                                 Schedule", then the Group's Audiences. Present for every reader
+                                 who can open the Schedule; the picker rule narrows the menu. -->
+                            <EmailMenu
+                                context="schedule"
+                                :context-subject="String(scheduling.open.id)"
+                                :group-name="groupName"
+                                :roster="emailRoster"
+                                :reason="emailReason"
+                            />
                             <Button
                                 v-if="scheduling.open.can.update"
                                 type="button"
@@ -640,6 +950,17 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 <Button type="button" size="sm" class="gap-1.5" @click="openShiftCreate">
                     <PhPlus class="size-4" />
                     {{ trans('group.scheduling_panel.new_shift') }}
+                </Button>
+            </div>
+
+            <!-- Write my shift (#585, ADR-0026 §1) — the Member's own authoring, shown when the
+                 server says this viewer may write a self-serve Shift here (`can.createSelfServe`):
+                 a member of a self-serve group who clears both sign-up floors, on a published
+                 schedule. Docents and Visitor Guides, and any non-member, never see it. -->
+            <div v-if="scheduling.open.can.createSelfServe" class="flex flex-wrap justify-end gap-2">
+                <Button type="button" size="sm" class="gap-1.5" @click="openSelfServeCreate">
+                    <PhPlus class="size-4" />
+                    {{ trans('group.scheduling_panel.self_serve.write') }}
                 </Button>
             </div>
 
@@ -778,12 +1099,21 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         v-for="shift in day.shifts"
                         :key="shift.id"
                         :shift="shift"
+                        :collects-visitor-count="collectsVisitorCount"
+                        :collects-extra-interactions="collectsExtraInteractions"
+                        :collects-visitor-provenance="collectsVisitorProvenance"
+                        :email-group-name="groupName"
+                        :can-email-signups="scheduling.open?.can.emailSignups ?? false"
+                        allow-self-serve-controls
                         @take="take"
                         @drop="drop"
                         @assign="openAssign"
                         @remove="removeSeat"
                         @edit="openShiftEdit"
                         @delete="destroyShift"
+                        @edit-self-serve="openSelfServeEdit"
+                        @delete-self-serve="destroySelfServe"
+                        @record="record"
                     />
                     <!-- Foreign open Shifts other Groups advertise (#361) — always present but
                          collapsed to one line, banded and attributed by owning Group, kept apart
@@ -808,12 +1138,16 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 :foreign-expanded="foreignExpanded"
                 :starts-on="scheduling.open.starts_on"
                 :ends-on="scheduling.open.ends_on"
+                :group-name="groupName"
+                :can-email-signups="scheduling.open.can.emailSignups"
                 @take="take"
                 @drop="drop"
                 @assign="openAssign"
                 @remove="removeSeat"
                 @edit="openShiftEdit"
                 @delete="destroyShift"
+                @edit-self-serve="openSelfServeEdit"
+                @delete-self-serve="destroySelfServe"
             />
 
             <!-- Honest empty state — the Schedule is published but holds no Shifts yet. -->
@@ -935,12 +1269,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 <form class="flex flex-col gap-4" @submit.prevent="submitShift">
                     <div class="grid gap-2">
                         <Label for="shift-starts-at">{{ trans('group.scheduling_panel.shift_field.starts_at') }}</Label>
-                        <Input id="shift-starts-at" v-model="shiftForm.starts_at" type="datetime-local" :step="TIME_STEP_SECONDS" required />
+                        <DateTimeField id="shift-starts-at" v-model="shiftForm.starts_at" required />
                         <InputError :message="shiftForm.errors.starts_at" />
                     </div>
                     <div class="grid gap-2">
                         <Label for="shift-ends-at">{{ trans('group.scheduling_panel.shift_field.ends_at') }}</Label>
-                        <Input id="shift-ends-at" v-model="shiftForm.ends_at" type="datetime-local" :step="TIME_STEP_SECONDS" required />
+                        <DateTimeField id="shift-ends-at" v-model="shiftForm.ends_at" required />
                         <InputError :message="shiftForm.errors.ends_at" />
                     </div>
                     <div class="grid gap-2">
@@ -976,6 +1310,86 @@ const runBulkAssign = (action: 'place' | 'remove') => {
             </DialogContent>
         </Dialog>
 
+        <!-- Write my shift dialog (#585 front end, ADR-0026 §1, §2) — one form, reused for create
+             and edit. A GI picks a station (the Group's active kinds), a start on the 15-minute
+             grid, and a count of units; the end is derived and shown live, never entered. The
+             server derives and stores the same end, and rejects an off-grid or out-of-range start
+             per field. -->
+        <Dialog v-model:open="selfServeDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ selfServeDialogTitle }}</DialogTitle>
+                </DialogHeader>
+                <form class="flex flex-col gap-4" @submit.prevent="submitSelfServe">
+                    <div class="grid gap-2">
+                        <Label for="self-serve-kind">{{ trans('group.scheduling_panel.self_serve.field.kind') }}</Label>
+                        <select id="self-serve-kind" v-model="writeShiftForm.shift_kind_id" :class="SELECT_CLASS" required>
+                            <option :value="null" disabled>{{ trans('group.scheduling_panel.self_serve.field.kind_placeholder') }}</option>
+                            <option v-for="kind in scheduling.shift_kinds" :key="kind.id" :value="kind.id">{{ kind.name }}</option>
+                        </select>
+                        <!-- The station clash warning takes over the actions below, so its message
+                             is not repeated as a field error here (#588, ADR-0026 §5). -->
+                        <InputError :message="stationClashPending ? undefined : writeShiftForm.errors.shift_kind_id" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="self-serve-starts-at">{{ trans('group.scheduling_panel.self_serve.field.starts_at') }}</Label>
+                        <DateTimeField
+                            id="self-serve-starts-at"
+                            v-model="writeShiftForm.starts_at"
+                            :step-minutes="SELF_SERVE_STEP_MINUTES"
+                            required
+                        />
+                        <InputError :message="writeShiftForm.errors.starts_at" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="self-serve-units">{{ trans('group.scheduling_panel.self_serve.field.units') }}</Label>
+                        <select id="self-serve-units" v-model.number="writeShiftForm.units" :class="SELECT_CLASS" required>
+                            <option v-for="count in unitOptions" :key="count" :value="count">
+                                {{ transChoice('group.scheduling_panel.self_serve.units_option', count, { count: String(count) }) }}
+                            </option>
+                        </select>
+                        <p v-if="selfServeEnd" class="text-muted-foreground text-sm">{{ selfServeEnd }}</p>
+                        <InputError :message="writeShiftForm.errors.units" />
+                    </div>
+                    <!-- The Objects the Member is taking onto the floor (#586, ADR-0026 §3) — shown
+                         only when the Group has active Objects; a Group with none never sees it. -->
+                    <div v-if="hasObjects" class="grid gap-2">
+                        <Label>{{ trans('group.scheduling_panel.objects.field_label') }}</Label>
+                        <ObjectPicker
+                            v-model="writeShiftForm.objects"
+                            :options="activeObjects"
+                            :search-placeholder="trans('group.scheduling_panel.objects.search')"
+                            :no-matches="trans('group.scheduling_panel.objects.no_matches')"
+                        />
+                        <InputError :message="writeShiftForm.errors.objects" />
+                    </div>
+
+                    <!-- The station clash confirm (#588, ADR-0026 §5) — another interpreter is on
+                         this station at that time. Continue waves the warning through and resubmits;
+                         Cancel returns to the form. Replaces Save while the warning stands. -->
+                    <div v-if="stationClashPending" class="flex flex-col gap-2">
+                        <p class="text-sm">{{ trans('group.scheduling_panel.self_serve.station_clash_confirm') }}</p>
+                        <div class="flex gap-2">
+                            <Button type="button" size="sm" :disabled="writeShiftForm.processing" @click="confirmStationClash">
+                                {{ trans('group.scheduling_panel.self_serve.continue') }}
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" :disabled="writeShiftForm.processing" @click="cancelStationClash">
+                                {{ trans('group.scheduling_panel.self_serve.cancel') }}
+                            </Button>
+                        </div>
+                    </div>
+                    <div v-else class="flex gap-2">
+                        <Button type="submit" size="sm" :disabled="writeShiftForm.processing">{{
+                            trans('group.scheduling_panel.self_serve.save')
+                        }}</Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="writeShiftForm.processing" @click="closeSelfServe">
+                            {{ trans('group.scheduling_panel.self_serve.cancel') }}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
         <!-- Bulk-create / bulk-delete dialog (#362 front end) — one filter, two verbs. It
              takes a kind, a start and end time, a capacity, a set of weekdays and a date
              range — no interval (ADR-0021 §2): a Shift lands on every matching weekday.
@@ -1002,12 +1416,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="grid gap-2">
                             <Label for="bulk-starts-time">{{ trans('group.scheduling_panel.bulk.field.starts_time') }}</Label>
-                            <Input id="bulk-starts-time" v-model="bulkForm.starts_time" type="time" :step="TIME_STEP_SECONDS" required />
+                            <TimeField id="bulk-starts-time" v-model="bulkForm.starts_time" required />
                             <InputError :message="bulkForm.errors.starts_time" />
                         </div>
                         <div class="grid gap-2">
                             <Label for="bulk-ends-time">{{ trans('group.scheduling_panel.bulk.field.ends_time') }}</Label>
-                            <Input id="bulk-ends-time" v-model="bulkForm.ends_time" type="time" :step="TIME_STEP_SECONDS" required />
+                            <TimeField id="bulk-ends-time" v-model="bulkForm.ends_time" required />
                             <InputError :message="bulkForm.errors.ends_time" />
                         </div>
                         <div class="grid gap-2">
@@ -1090,12 +1504,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="grid gap-2">
                             <Label for="bulk-assign-starts-time">{{ trans('group.scheduling_panel.bulk_assign.field.starts_time') }}</Label>
-                            <Input id="bulk-assign-starts-time" v-model="bulkAssignForm.starts_time" type="time" :step="TIME_STEP_SECONDS" required />
+                            <TimeField id="bulk-assign-starts-time" v-model="bulkAssignForm.starts_time" required />
                             <InputError :message="bulkAssignForm.errors.starts_time" />
                         </div>
                         <div class="grid gap-2">
                             <Label for="bulk-assign-ends-time">{{ trans('group.scheduling_panel.bulk_assign.field.ends_time') }}</Label>
-                            <Input id="bulk-assign-ends-time" v-model="bulkAssignForm.ends_time" type="time" :step="TIME_STEP_SECONDS" required />
+                            <TimeField id="bulk-assign-ends-time" v-model="bulkAssignForm.ends_time" required />
                             <InputError :message="bulkAssignForm.errors.ends_time" />
                         </div>
                         <div class="grid gap-2">
@@ -1151,6 +1565,19 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <DialogTitle>{{ trans('group.scheduling_panel.agenda.assign.title') }}</DialogTitle>
                 </DialogHeader>
                 <div class="flex flex-col gap-3">
+                    <!-- The Objects this placement reserves (#586, ADR-0026 §3) — picked before the
+                         Member, shown only when the Group has active Objects. The server refuses a
+                         double-booked or retired one, and the error binds here. -->
+                    <div v-if="hasObjects" class="grid gap-2">
+                        <Label>{{ trans('group.scheduling_panel.objects.field_label') }}</Label>
+                        <ObjectPicker
+                            v-model="assignForm.objects"
+                            :options="activeObjects"
+                            :search-placeholder="trans('group.scheduling_panel.objects.search')"
+                            :no-matches="trans('group.scheduling_panel.objects.no_matches')"
+                        />
+                        <InputError :message="assignForm.errors.objects" />
+                    </div>
                     <Input v-model="assignFilter" :placeholder="trans('group.scheduling_panel.agenda.assign.search')" />
                     <div class="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
                         <Button
@@ -1160,6 +1587,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                             variant="ghost"
                             size="sm"
                             class="justify-start"
+                            :disabled="assignForm.processing"
                             @click="assign(candidate.id)"
                         >
                             {{ candidate.first_name }} {{ candidate.last_name }}
@@ -1169,6 +1597,38 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         </p>
                     </div>
                 </div>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Take-with-Objects dialog (#586, ADR-0026 §3) — on a Group with active Objects, taking a
+             Shift first asks which Objects the taker carries. A Group with no Objects never opens
+             this: `take` posts in one click instead. The server refuses a double-booked or missing
+             Object, and the error binds here. -->
+        <Dialog v-model:open="takeDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ trans('group.scheduling_panel.agenda.sign_up.take') }}</DialogTitle>
+                </DialogHeader>
+                <form class="flex flex-col gap-4" @submit.prevent="submitTake">
+                    <div class="grid gap-2">
+                        <Label>{{ trans('group.scheduling_panel.objects.field_label') }}</Label>
+                        <ObjectPicker
+                            v-model="takeForm.objects"
+                            :options="activeObjects"
+                            :search-placeholder="trans('group.scheduling_panel.objects.search')"
+                            :no-matches="trans('group.scheduling_panel.objects.no_matches')"
+                        />
+                        <InputError :message="takeForm.errors.objects" />
+                    </div>
+                    <div class="flex gap-2">
+                        <Button type="submit" size="sm" :disabled="takeForm.processing">
+                            {{ trans('group.scheduling_panel.agenda.sign_up.take') }}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="takeForm.processing" @click="closeTake">
+                            {{ trans('group.scheduling_panel.cancel') }}
+                        </Button>
+                    </div>
+                </form>
             </DialogContent>
         </Dialog>
     </div>

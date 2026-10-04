@@ -239,6 +239,38 @@ it('still forbids an ordinary Member from removing someone else’s seat', funct
     expect(SignUp::find($signUp->id))->not->toBeNull();
 });
 
+// --- A started Shift keeps the Officer's powers (#554, ADR-0021 §Sign-up) -----
+
+it('lets a Scheduler place a Member on a Shift that has already started', function () {
+    $group = assignGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    // Started an hour ago — a Member could no longer self-serve, but the Officer still can.
+    $shift = assignShiftOn($schedule, ['starts_at' => now()->subHour(), 'ends_at' => now()->addHour()]);
+    $scheduler = schedulerOf($group);
+    $regular = assignMemberOf($group);
+
+    $this->actingAs($scheduler)
+        ->post(route('assignments.store', ['shift' => $shift->id]), ['member_id' => $regular->id])
+        ->assertRedirect();
+
+    expect($shift->signUps()->where('member_id', $regular->id)->count())->toBe(1);
+});
+
+it('lets a Scheduler remove a Sign-up on a Shift that has already started', function () {
+    $group = assignGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = assignShiftOn($schedule, ['starts_at' => now()->subHour(), 'ends_at' => now()->addHour()]);
+    $scheduler = schedulerOf($group);
+    $regular = assignMemberOf($group);
+    $signUp = SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => $regular->id]);
+
+    $this->actingAs($scheduler)
+        ->delete(route('sign-ups.destroy', ['signUp' => $signUp->id]))
+        ->assertRedirect();
+
+    expect(SignUp::find($signUp->id))->toBeNull();
+});
+
 // --- The two deliberate silences: assign and remove send no email ------------
 
 it('sends no email when a Scheduler places a Member', function () {

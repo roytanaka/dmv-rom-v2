@@ -16,6 +16,7 @@ return [
         'scheduling' => 'Scheduling',
         'content' => 'Content',
         'hours' => 'Hours',
+        'settings' => 'Settings',
     ],
     // Marker on a capability tab whose feature has not shipped yet.
     'soon' => 'Soon',
@@ -158,6 +159,9 @@ return [
         ],
     ],
 
+    // The Settings tab (#604, ADR-0027) when none of its cards applies to the viewer.
+    'settings_empty' => 'This group has no settings you can change.',
+
     // Section panels not yet built in this slice.
     'coming_soon' => 'This section is coming soon.',
 
@@ -169,6 +173,97 @@ return [
         'draft_badge' => 'Draft',
         'date_range' => ':start – :end',
         'back_to_list' => 'All schedules',
+        // Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and lead
+        // days for this Group's shift Reminders, shown on the list view.
+        'reminders' => [
+            'heading' => 'Shift reminders',
+            'description' => 'Email members a reminder a few days before each shift they have signed up for.',
+            'enabled_label' => 'Send shift reminders',
+            'lead_days_label' => 'Days before the shift',
+        ],
+        // Empty-desk settings (#487, ADR-0024 §7) — the schedule-admin's on/off switch,
+        // look-ahead, and which shift kinds the alert watches, shown on the list view.
+        'empty_desk' => [
+            'heading' => 'Empty-desk alert',
+            'description' => 'Every third day of the month, email members which watched shifts still have no one signed up.',
+            'enabled_label' => 'Send the empty-desk alert',
+            'days_ahead_label' => 'Days ahead to check',
+            'watched_label' => 'Shift kinds to watch',
+            'no_kinds' => 'This group has no shift kinds to watch yet.',
+        ],
+        // Self-serve settings (#582, ADR-0026 §1 and §2) — the schedule-admin's self-serve on/off
+        // switch and the unit length in minutes, shown on the list view.
+        'self_serve' => [
+            'heading' => 'Self-serve shifts',
+            'description' => 'Let members write their own shifts on this group\'s published schedules. Each shift signs them up in the same step.',
+            'enabled_label' => 'Let members write their own shifts',
+            'unit_minutes_label' => 'Minutes per unit',
+            // Write my shift (#585, ADR-0026 §1, §2) — the member-facing create / edit / delete
+            // dialog and its validation, on a published schedule of a self-serve group.
+            'write' => 'Write my shift',
+            'create_title' => 'Write my shift',
+            'edit_title' => 'Edit my shift',
+            'confirm_delete' => 'Delete this shift? This removes you from it. You cannot undo this.',
+            'edit' => 'Edit',
+            'delete' => 'Delete',
+            'save' => 'Save',
+            'cancel' => 'Cancel',
+            'field' => [
+                'kind' => 'Station',
+                'kind_placeholder' => 'Choose a station',
+                'date' => 'Date',
+                'starts_at' => 'Start time',
+                'units' => 'Units',
+            ],
+            'ends_at_preview' => 'Ends at :time',
+            'units_option' => '{1} :count unit|[2,*] :count units',
+            'start_before_today' => 'Choose today or a later day.',
+            // The station clash warning (#588, ADR-0026 §5) — another interpreter is already on this
+            // station at that time. A warning, not a block: the confirm below lets the Member go ahead.
+            'station_clash' => 'Another interpreter is already at this station at that time.',
+            'station_clash_confirm' => 'Another interpreter will be at this station at that time. Continue?',
+            'continue' => 'Continue',
+        ],
+        // Shift-kind maintenance (#567, ADR-0021 §3) — the schedule-admin's add / rename / retire /
+        // reinstate / reorder block, shown on the list view. A kind's name is officer-authored
+        // content (ADR-0004); everything here is translated chrome around it.
+        'shift_kinds' => [
+            'heading' => 'Shift kinds',
+            'description' => 'Name the kinds of shift this group runs. Retire a kind to keep it off new shifts. Its past shifts keep the name. Mark a kind off-site to hold its objects from the day before to the day after. Use it for events such as the CNE.',
+            'empty' => 'This group has no shift kinds yet.',
+            'add_label' => 'Add a shift kind',
+            'add' => 'Add',
+            'rename' => 'Rename',
+            'retire' => 'Retire',
+            'reinstate' => 'Reinstate',
+            'retired_badge' => 'Retired',
+            'off_site' => 'Off-site',
+            'move_up' => 'Move up',
+            'move_down' => 'Move down',
+        ],
+        // Objects maintenance (#584, ADR-0026 §3) — the handling collection a Gallery
+        // Interpreter takes onto the floor. The same block shape as shift kinds.
+        'objects' => [
+            'heading' => 'Objects',
+            'description' => 'Name the objects this group hands out. Retire an object to keep it off new sign-ups. Its past sign-ups keep the name.',
+            'empty' => 'This group has no objects yet.',
+            'add_label' => 'Add an object',
+            'add' => 'Add',
+            'rename' => 'Rename',
+            'retire' => 'Retire',
+            'reinstate' => 'Reinstate',
+            'retired_badge' => 'Retired',
+            'move_up' => 'Move up',
+            'move_down' => 'Move down',
+            // The Object picker on the write / take / place flows (#586, ADR-0026 §3) — a
+            // searchable multi-select shown only when the group has active objects.
+            'field_label' => 'Objects',
+            'search' => 'Search objects',
+            'no_matches' => 'No objects match.',
+            // Refused on write: the object is already out on another sign-up at an overlapping
+            // time. Names the object and the other shift's date and time.
+            'clash' => ':object is already out at :when. Choose a different object.',
+        ],
         // Authoring (#354) — shown only to a Scheduler / Chair / super-tier
         // (server-gated via `can`). Publish / un-publish are the two state transitions.
         'new' => 'New schedule',
@@ -319,6 +414,87 @@ return [
                 'remove' => 'Remove from shift',
                 'confirm_remove' => 'Remove this member from the shift?',
             ],
+            // Recording after the shift (#445, #652, ADR-0023 §5) — the seat-holder records how many
+            // visitors they served, on their own Shift, from five minutes before it ends. The
+            // Record shift button stays disabled until a number is typed; the server enforces the
+            // rest. The messages carry the server’s refusals.
+            'sign_out' => [
+                // The Post-shift report section (#652, PRD #651) — one entry per seat under the
+                // shift details. `record` is the first save's button: "Record shift", because "Sign
+                // out" read as logging out of the site. `record_needs_count` explains the disabled
+                // button; `count_help` asks for the viewer's own visitors only, against double counts.
+                // `progress` and `recorded` are counted strings (`transChoice`, #668).
+                'heading' => 'Post-shift report',
+                'progress' => ':recorded of :total recorded',
+                'you' => ':name (you)',
+                'no_count' => 'No count yet',
+                'count_label' => 'Visitors served',
+                'count_help' => 'Count only the visitors you served.',
+                'count_help_correcting' => 'Count only the visitors :name served.',
+                'record' => 'Record shift',
+                'record_needs_count' => 'Type the number of visitors to record the shift.',
+                'record_needs_provenance' => 'Type the number of visitors and all five origins to record the shift.',
+                'change' => 'Change',
+                'placeholder' => 'Number',
+                'recorded' => ':count visitor|:count visitors',
+                'count_required' => 'Enter the number of visitors.',
+                'whole_number' => 'Enter a whole number of visitors.',
+                'not_negative' => 'The number of visitors cannot be negative.',
+                // The Officer's correction (#450, #653, ADR-0023 §5) — Change on every entry in the
+                // Post-shift report, with no deadline. `correcting` names whose seat is open so a
+                // correction is never mistaken for the viewer's own. `save` and `cancel` close any
+                // reopened form, a correction or the viewer's own Change.
+                'correcting' => 'Correcting :name’s visitors',
+                'save' => 'Save changes',
+                'save_needs_count' => 'Type the number of visitors to save your changes.',
+                'save_needs_provenance' => 'Type the number of visitors and all five origins to save your changes.',
+                'cancel' => 'Cancel',
+                // After a save (#668): "Saved." beside the entry, and the hint on another entry's
+                // Change while the open form has unsaved changes.
+                'saved' => 'Saved.',
+                'change_blocked' => 'Save or cancel your changes first.',
+                // Who last saved an entry and when (#654) — the seat-holder or an officer's
+                // correction. `:time` is the org wall clock, in the viewer's locale.
+                'last_edited' => 'Last edited by :name · :time',
+                // The optional comment on the viewer's own entry (#655). Only its author and a
+                // schedule admin read it; an officer's correction has no comment box.
+                'comment_label' => 'Comment (optional)',
+                'comment_help' => 'Visitor questions, how the shift went, or anything you noticed on the floor',
+                'comment_max' => 'The comment can be at most 2,000 characters.',
+                'comment_count' => ':count of :max characters',
+                'comment_officer' => 'Only the volunteer can write a comment on their entry.',
+                // The tour-leading second box (#447, ADR-0023 §2) — visitors served outside the
+                // tour, optional. The label says "outside the tour" so it is never confused with
+                // the count beside it; `extra_recorded` reads in the Post-shift report summary.
+                'extra_label' => 'Visitors served outside the tour',
+                'extra_placeholder' => 'Optional',
+                'extra_recorded' => ':count outside the tour',
+                'extra_whole_number' => 'Enter a whole number of extra interactions.',
+                'extra_not_negative' => 'The number of extra interactions cannot be negative.',
+                // GDR's five visitor origins (#448, ADR-0023 §3) — the provenance split beside the
+                // count, GDR alone. The five must sum to the count; `provenance_sum` names both
+                // totals so the volunteer sees where the numbers disagree. The five labels carry
+                // the French wording legacy has shown at sign-out since 2020.
+                'provenance_heading' => 'Where the visitors came from',
+                'provenance_france_europe' => 'France and Europe',
+                'provenance_quebec' => 'Quebec',
+                'provenance_toronto' => 'Toronto',
+                'provenance_rest_of_canada' => 'Rest of Canada',
+                'provenance_other_countries' => 'Other countries',
+                'provenance_sum' => 'The five origins add up to :sum, but the visitor count is :count.',
+                'provenance_required' => 'Enter a number for every origin.',
+                'provenance_whole_number' => 'Enter a whole number of visitors.',
+                'provenance_not_negative' => 'The number of visitors cannot be negative.',
+            ],
+        ],
+        // My sign-ups (#449, PRD #443, ADR-0023 §5) — the outstanding-shifts panel: the
+        // viewer's own upcoming Shifts plus any past Shift inside the 28-day window still owed a
+        // number. It crosses Schedules, so the subtitle names what it reaches; absent, not empty,
+        // when there is nothing to show.
+        'mine' => [
+            'aria_label' => 'My sign-ups',
+            'heading' => 'My sign-ups',
+            'subtitle' => 'Your upcoming shifts, and any recent shift that still needs a visitor count.',
         ],
         // View toggle (#360, ADR-0021 §7) — the reader chooses Agenda or Calendar; the
         // choice lives in localStorage, never in the authoring form. Agenda is the default.

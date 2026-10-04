@@ -96,6 +96,56 @@ class GroupFactory extends Factory
     }
 
     /**
+     * A Group that collects a per-shift visitor count (#445, ADR-0023 §5) — the sign-out
+     * panel's box. Implies scheduling: a Group with no Sign-ups has nothing to hang a count
+     * on. Layer over another program-shaped state when the surrounding shape matters.
+     */
+    public function collectsVisitorCount(): static
+    {
+        return $this->state(fn () => [
+            'has_scheduling' => true,
+            'collects_visitor_count' => true,
+        ]);
+    }
+
+    /**
+     * A tour-leading Group that also collects the extra-interaction split (#447, ADR-0023 §2) —
+     * the sign-out panel's second box. Implies the visitor count (the box sits beside it, and a
+     * tour's visitor number is the tour), so it layers on {@see collectsVisitorCount}.
+     */
+    public function collectsExtraInteractions(): static
+    {
+        return $this->collectsVisitorCount()->state(fn () => [
+            'collects_extra_interactions' => true,
+        ]);
+    }
+
+    /**
+     * GDR — a Group that also collects the five-origin visitor provenance split (#448, ADR-0023
+     * §3): the sign-out panel's five origin boxes, which must sum to the count. Implies the
+     * visitor count (the five sum to it, which is the count itself), so it layers on
+     * {@see collectsVisitorCount}.
+     */
+    public function collectsVisitorProvenance(): static
+    {
+        return $this->collectsVisitorCount()->state(fn () => [
+            'collects_visitor_provenance' => true,
+        ]);
+    }
+
+    /**
+     * A Group whose visitor figures are knowingly incomplete (#451, ADR-0023 §6) — part of its
+     * visitor number comes from a group-booking table the booking map has not delivered, so
+     * Summary Visitor Interactions marks the row and says why. ROMForYou is the sharpest case.
+     */
+    public function awaitingBookingAudiences(): static
+    {
+        return $this->state(fn () => [
+            'visitor_figures_await_booking' => true,
+        ]);
+    }
+
+    /**
      * A working group — a functional sub-team that meets.
      */
     public function workingGroup(): static

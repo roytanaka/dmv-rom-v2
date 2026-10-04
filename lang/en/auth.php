@@ -21,7 +21,11 @@ return [
         'email' => 'Email',
         'password' => 'Password',
         'forgot' => 'Forgot your password?',
+        'remember' => 'Remember me',
         'submit' => 'Sign in',
+
+        // Shown after an expired session sends a member back to sign in.
+        'session_expired' => 'Your session expired. Sign in again to continue.',
 
         // Accessible names for the password show/hide toggle.
         'show_password' => 'Show password',

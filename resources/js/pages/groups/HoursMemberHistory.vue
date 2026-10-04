@@ -9,7 +9,7 @@
 // (ADR-0004); the group and member names render as-authored.
 import HoursReportActions from '@/components/HoursReportActions.vue';
 import HoursReportNav from '@/components/HoursReportNav.vue';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type GroupHoursMemberHistory, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
@@ -74,7 +74,14 @@ const csvHref = computed(() => route('groups.hours.member.csv', { group: props.g
             </div>
 
             <Card>
-                <CardContent class="pt-6">
+                <!-- Names the Member in view. The picker above does not print, so without
+                     this a printed history says whose hours it is nowhere on the page. The
+                     name renders as-authored (ADR-0004: chrome is translated, content is
+                     not). Absent until a Member is picked, when there is nothing to name. -->
+                <CardHeader v-if="member">
+                    <CardTitle class="text-base">{{ member.name }}</CardTitle>
+                </CardHeader>
+                <CardContent :class="member ? undefined : 'pt-6'">
                     <!-- No Member picked yet — a prompt, not a broken page. -->
                     <p v-if="!member" class="text-muted-foreground py-8 text-center">{{ trans('hours.detail.member.none') }}</p>
 

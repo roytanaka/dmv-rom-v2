@@ -20,7 +20,7 @@ Run the loop **locally on the maintainer's machine** via sandcastle's `sequentia
 Per iteration, serialized:
 
 1. **Implementer** (Claude Code, **Opus**) picks one `ready-for-agent` issue, implements it red-green-refactor, commits.
-2. **Reviewer** (Claude Code, **Sonnet**) reviews the diff *in the same sandbox* and fixes it — review happens **pre-PR**, locally, not as a PR-triggered Action.
+2. **Reviewer** (Claude Code, **Opus**) reviews the diff *in the same sandbox* and fixes it — review happens **pre-PR**, locally, not as a PR-triggered Action.
 3. Push the branch, `gh pr create` into **`staging`**, **poll CI** (`ci.yml`), and on green `gh pr merge --squash`. Then `git pull` `staging` and start the next iteration off the merged tree.
 
 The loop is the gate-keeper itself (poll-then-merge), so no branch protection is added to `staging` — protection would also block the maintainer's own direct commits.

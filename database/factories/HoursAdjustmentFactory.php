@@ -24,6 +24,7 @@ class HoursAdjustmentFactory extends Factory
     {
         return [
             'hours_record_id' => HoursRecord::factory(),
+            'field' => HoursAdjustment::FIELD_EXTRA_HOURS,
             'delta' => fake()->numberBetween(1, 10),
             'created_by' => Member::factory(),
         ];

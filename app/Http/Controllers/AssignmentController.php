@@ -37,7 +37,12 @@ class AssignmentController extends Controller
      */
     public function store(StoreAssignmentRequest $request, Shift $shift): RedirectResponse
     {
-        $shift->signUps()->create(['member_id' => $request->integer('member_id')]);
+        $signUp = $shift->signUps()->create(['member_id' => $request->integer('member_id')]);
+
+        // The Objects this placement reserves on the seat (#586, ADR-0026 §3) — as complete as a
+        // self-serve shift. Absent on a Group with no Objects; the Form Request has refused a
+        // retired or double-booked one.
+        $signUp->objects()->sync($request->validated('objects') ?? []);
 
         return back();
     }

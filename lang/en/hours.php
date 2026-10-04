@@ -20,6 +20,13 @@ return [
         'add' => 'Add hours',
         // Surfaced from the Form Request when a decimal is entered (story 17).
         'whole_hours' => 'Enter whole hours — we are not concerned with minutes.',
+        // Extra interactions (#446, ADR-0023 §6) — visitors served outside a shift, entered
+        // beside the hours. The note keeps it plain that this is visitors, not hours.
+        'interactions_label' => 'Visitors to add',
+        'interactions_note' => 'Visitors you served outside a scheduled shift — a count of people, not hours.',
+        'interactions_on_file' => 'On file: :interactions',
+        // Surfaced from the Form Request when a decimal is entered.
+        'whole_interactions' => 'Enter a whole number of visitors.',
     ],
 
     // Recalculating a Group's scheduled hours from its Sign-ups (#410, ADR-0022 §2) — the
@@ -39,6 +46,8 @@ return [
             'scheduled' => 'Scheduled',
             'extra' => 'Extra',
             'total' => 'Total',
+            // Visitors served outside a shift (ADR-0023 §6) — outside the total, a count of people.
+            'interactions' => 'Visitors',
             'updated' => 'Last updated',
         ],
     ],
@@ -62,6 +71,9 @@ return [
             'heading' => 'No hours recorded yet',
             'body' => 'When you record hours on a group, they will appear here.',
         ],
+        // The link every Member reaches Summary Visitor Interactions through (#451, ADR-0023 §6) —
+        // the report is open to all, so it hangs here rather than only in the officer report nav.
+        'visitor_summary' => 'Summary Visitor Interactions across the DMV',
     ],
 
     // The print-and-export toolbar shared by every report (#414, ADR-0022 §8) — Print hands the
@@ -159,6 +171,7 @@ return [
         'nav' => [
             'summary' => 'Summary',
             'detailed' => 'Detailed',
+            'visitors' => 'Visitor interactions',
             'ranked' => 'Ranked hours',
             'zero_hours' => 'Zero hours',
             'zero_shift' => 'Zero shift hours',
@@ -185,11 +198,12 @@ return [
         // Detailed Committee Statistics — each committee broken into shifts, meetings, and extra.
         'detailed' => [
             'title' => 'Detailed Committee Statistics',
-            'lead' => 'Each committee\'s shifts, meetings, and extra hours across the fiscal year.',
+            'lead' => 'Each committee\'s shifts, meetings, extra hours, and visitor interactions across the fiscal year.',
             'kind' => [
                 'shifts' => 'Shifts',
                 'meetings' => 'Meetings',
                 'extra' => 'Extra',
+                'interactions' => 'Visitor interactions',
             ],
             'total' => 'DMV total — including every sub-group',
             'column' => [
@@ -198,6 +212,21 @@ return [
                 'ytd' => 'Year to date',
             ],
             'empty' => 'No hours recorded across the DMV in this fiscal year.',
+        ],
+
+        // Summary Visitor Interactions (#451, ADR-0023 §6) — the department's headline visitor
+        // number, Groups × twelve months. Open to any signed-in Member, not just the DMV officers.
+        'visitors' => [
+            'title' => 'Summary Visitor Interactions',
+            'lead' => 'The visitor interactions each group recorded across the fiscal year.',
+            'column' => [
+                'group' => 'Group',
+                'ytd' => 'Year to date',
+            ],
+            // The per-Group marker for figures that are knowingly incomplete (§6).
+            'incomplete' => 'Incomplete',
+            'incomplete_note' => 'Group bookings are not counted yet, so this figure reads low.',
+            'empty' => 'No visitor interactions recorded across the DMV in this fiscal year.',
         ],
 
         // Active Members Ranked Hours — every active and provisional Member by total, most first.

@@ -41,8 +41,19 @@ return [
         'no_results' => 'Aucun groupe correspondant',
     ],
 
-    // Utilitaire de la barre supérieure — la destination Aide (#194).
+    // Utilitaire de la barre supérieure — le menu Aide (#194, #675).
     'help' => 'Aide',
+    'help_menu' => [
+        'page' => 'Aide pour cette page',
+        'centre' => 'Centre d’aide',
+        // Hors production seulement (#676, ADR-0029 §12).
+        'feedback_send' => 'Envoyer une rétroaction',
+        'feedback_list' => 'Voir toute la rétroaction',
+    ],
+
+    // Le bandeau de titre du tableau de bord — fil d'Ariane + titre <Head> (#541).
+    // Du chrome, donc traduit : l'anglais codé en dur transparaissait sous le chrome français.
+    'dashboard' => 'Tableau de bord',
 
     // Zone C — responsables/administration (rail, épinglé en bas).
     'officer' => [
@@ -51,6 +62,8 @@ return [
         'reports' => 'Rapports',
         'flash_messages' => 'Messages éclair',
         'dmv_settings' => 'Paramètres du DMV',
+        'mail_status' => 'État du courriel',
+        'help_status' => 'État de l’aide',
     ],
 
     // Nom accessible du chevron qui ouvre/ferme les sous-groupes d'un groupe (#91).

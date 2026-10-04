@@ -21,7 +21,11 @@ return [
         'email' => 'Courriel',
         'password' => 'Mot de passe',
         'forgot' => 'Mot de passe oublié?',
+        'remember' => 'Se souvenir de moi',
         'submit' => 'Connexion',
+
+        // Affiché quand une session expirée renvoie le membre à la connexion.
+        'session_expired' => 'Votre session a expiré. Reconnectez-vous pour continuer.',
 
         // Noms accessibles pour la bascule afficher/masquer le mot de passe.
         'show_password' => 'Afficher le mot de passe',

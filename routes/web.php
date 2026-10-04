@@ -1,15 +1,30 @@
 <?php
 
 use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\AudienceController;
+use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\DownloadFeedbackScreenshotController;
+use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\FeedbackTriageController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\GroupEmptyDeskSettingsController;
 use App\Http\Controllers\GroupMemberController;
+use App\Http\Controllers\GroupReminderSettingsController;
+use App\Http\Controllers\GroupSelfServeSettingsController;
+use App\Http\Controllers\HelpController;
+use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\NoEmailFlagController;
+use App\Http\Controllers\ObjectController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\SelfServeShiftController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\ShiftKindController;
 use App\Http\Controllers\SignUpController;
 use App\Http\Controllers\SuperTierController;
 use Illuminate\Http\Request;
@@ -35,7 +50,7 @@ Route::group([
 ], function () {
     Route::get(LaravelLocalization::transRoute('routes.dashboard'), function () {
         return Inertia::render('Dashboard');
-    })->middleware(['auth', 'verified'])->name('dashboard');
+    })->middleware('auth')->name('dashboard');
 
     // Route stubs (#109). Representative Zone A (personal) and Zone C (officer)
     // routes, each with a French twin whose segments are translated words —
@@ -44,9 +59,6 @@ Route::group([
     $stubRoutes = [
         // Zone A — personal
         'calendar', 'documents', 'profile', 'renew',
-        // Utility — the top bar's Help destination (#194); a placeholder until
-        // the help surface lands.
-        'help',
         // Zone C — officer/admin
         'officer.members', 'officer.communications', 'officer.reports',
         'officer.flash-messages', 'officer.settings',
@@ -56,6 +68,41 @@ Route::group([
         Route::get(LaravelLocalization::transRoute("routes.$name"), fn () => Inertia::render('ComingSoon'))
             ->middleware('auth')
             ->name($name);
+    }
+
+    // Help centre (#517, PRD #516, ADR-0025). The reader's two surfaces: the index of
+    // sections and articles, and one article rendered from its Markdown file. Both are
+    // login-only chrome, localized per ADR-0008 (/help ↔ /fr/aide, /help/{article} ↔
+    // /fr/aide/{article}); the article slug is the same identifier in both locales. The
+    // super-tier ledger at /help-status lands in a later ticket. Replaces the earlier
+    // ComingSoon stub for `help`.
+    Route::get(LaravelLocalization::transRoute('routes.help'), [HelpController::class, 'index'])
+        ->middleware('auth')->name('help');
+    Route::get(LaravelLocalization::transRoute('routes.help.show'), [HelpController::class, 'show'])
+        ->middleware('auth')->name('help.show');
+
+    // Tester feedback (#676, #677, #678, #679, ADR-0029). The Feedback page, the path the send dialog
+    // posts to, one item's page, its comments, and each screenshot's download. Localized (/feedback ↔ /fr/retroaction)
+    // so a send records the page's locale. Layer one of the two-layer environment boundary, like the Role-switcher:
+    // registered only outside production. The controller refuses production as layer two.
+    if (! app()->environment('production')) {
+        Route::get(LaravelLocalization::transRoute('routes.feedback'), [FeedbackController::class, 'index'])
+            ->middleware('auth')->name('feedback');
+        Route::post(LaravelLocalization::transRoute('routes.feedback'), [FeedbackController::class, 'store'])
+            ->middleware('auth')->name('feedback.store');
+        Route::get(LaravelLocalization::transRoute('routes.feedback.show'), [FeedbackController::class, 'show'])
+            ->middleware('auth')->name('feedback.show');
+        Route::post(LaravelLocalization::transRoute('routes.feedback.comments'), [FeedbackController::class, 'storeComment'])
+            ->middleware('auth')->name('feedback.comments.store');
+        Route::get(LaravelLocalization::transRoute('routes.feedback.screenshot'), DownloadFeedbackScreenshotController::class)
+            ->middleware('auth')->name('feedback.screenshots.download');
+        // The Support-operator's triage (#679, ADR-0029 §7): status, delete an item, delete a comment.
+        Route::patch(LaravelLocalization::transRoute('routes.feedback.status'), [FeedbackTriageController::class, 'updateStatus'])
+            ->middleware('auth')->name('feedback.status.update');
+        Route::delete(LaravelLocalization::transRoute('routes.feedback.show'), [FeedbackTriageController::class, 'destroy'])
+            ->middleware('auth')->name('feedback.destroy');
+        Route::delete(LaravelLocalization::transRoute('routes.feedback.comment'), [FeedbackTriageController::class, 'destroyComment'])
+            ->middleware('auth')->name('feedback.comments.destroy');
     }
 
     // My Hours (#409, PRD #406, ADR-0022 §8). A Member's own hours, gathered from every
@@ -152,6 +199,12 @@ Route::group([
         ->middleware('auth')->name('hours.committee-summary');
     Route::get(LaravelLocalization::transRoute('routes.hours.committee-detailed'), [HoursController::class, 'committeeDetailed'])
         ->middleware('auth')->name('hours.committee-detailed');
+    // Summary Visitor Interactions (#451, PRD #443, ADR-0023 §6) — the department's headline
+    // visitor number, Groups × twelve months over a fiscal year. Org-wide like the six above, but
+    // the named exception to their officer gate: open to any signed-in Member (viewVisitorSummary),
+    // enforced in the controller. The words are translated in the French twin.
+    Route::get(LaravelLocalization::transRoute('routes.hours.visitor-summary'), [HoursController::class, 'visitorSummary'])
+        ->middleware('auth')->name('hours.visitor-summary');
     Route::get(LaravelLocalization::transRoute('routes.hours.ranked'), [HoursController::class, 'rankedHours'])
         ->middleware('auth')->name('hours.ranked');
     Route::get(LaravelLocalization::transRoute('routes.hours.zero-hours'), [HoursController::class, 'zeroHours'])
@@ -165,6 +218,11 @@ Route::group([
         ->middleware('auth')->name('hours.committee-summary.csv');
     Route::get(LaravelLocalization::transRoute('routes.hours.committee-detailed.csv'), [HoursController::class, 'committeeDetailedCsv'])
         ->middleware('auth')->name('hours.committee-detailed.csv');
+    // Summary Visitor Interactions CSV (#452, ADR-0023 §6) — the visitors report's export sibling.
+    // Open to any signed-in Member (viewVisitorSummary), exactly as its page is, unlike the six
+    // officer-gated exports above it.
+    Route::get(LaravelLocalization::transRoute('routes.hours.visitor-summary.csv'), [HoursController::class, 'visitorSummaryCsv'])
+        ->middleware('auth')->name('hours.visitor-summary.csv');
     Route::get(LaravelLocalization::transRoute('routes.hours.ranked.csv'), [HoursController::class, 'rankedCsv'])
         ->middleware('auth')->name('hours.ranked.csv');
     Route::get(LaravelLocalization::transRoute('routes.hours.zero-hours.csv'), [HoursController::class, 'zeroHoursCsv'])
@@ -182,6 +240,20 @@ Route::get('design-system', function () {
     return Inertia::render('DesignSystem');
 })->middleware(['auth'])->name('design-system');
 
+// The Mail status page (#492, ADR-0024 §10). Non-localized like the design-system page —
+// a super-tier-only operations screen, not member-facing chrome. Access is the
+// `view-mail-status` gate, which the controller authorizes: it denies everyone but the
+// super-tier Gate::before short-circuit.
+Route::get('mail-status', MailStatusController::class)
+    ->middleware(['auth'])->name('mail-status');
+
+// The Help ledger page (#520, ADR-0025 §9). Non-localized and English-only like the
+// design-system and mail-status pages — a super-tier operations screen, not member-facing
+// chrome. Access is the `view-help-ledger` gate, which the controller authorizes: it denies
+// everyone but the super-tier Gate::before short-circuit.
+Route::get('help-status', HelpStatusController::class)
+    ->middleware(['auth'])->name('help-status');
+
 // Member administration (ADR-0017). Editing a member record is gated by the
 // MemberPolicy via the UpdateMemberRequest: self by default, Records or super-tier
 // for anyone else. The richer member-admin UI (and its localized routes) lands in
@@ -196,6 +268,14 @@ Route::patch('members/{member}', [MemberController::class, 'update'])
 Route::put('members/{member}/super-tier', SuperTierController::class)
     ->middleware(['auth'])
     ->name('members.super-tier.update');
+
+// Set/clear the no-email flag (#483, ADR-0024 §9). A dedicated, member-administration-
+// gated action — never a field on a member form. Records or super-tier only, via the
+// `administer-members` gate in the UpdateNoEmailFlagRequest; a Chair or the Member
+// themself is denied.
+Route::put('members/{member}/no-email-flag', NoEmailFlagController::class)
+    ->middleware(['auth'])
+    ->name('members.no-email-flag.update');
 
 // News feed mutations (#155, ADR-0017 §5). The non-localized write seam: posting,
 // editing, and deleting are each structurally authorized in their Form Request,
@@ -255,6 +335,64 @@ Route::delete('schedules/{schedule}', [ScheduleController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('schedules.destroy');
 
+// Group Reminder settings (#486, PRD #479, ADR-0024 §7). The Scheduling section's Reminders
+// block — on/off and lead days — edited by a Scheduler or Chair. One dedicated endpoint, bound
+// to the Group by slug, structurally authorized in UpdateReminderSettingsRequest, which
+// delegates to the SchedulePolicy's `updateReminders` gate (scheduling on, actor a schedule
+// admin). A plain member is refused before the write.
+Route::patch('groups/{group}/reminder-settings', [GroupReminderSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('groups.reminders.update');
+
+// Group empty-desk settings (#487, PRD #479, ADR-0024 §7). The Scheduling section's empty-desk
+// block — the alert on/off, the look-ahead days, and which shift kinds to watch — edited by a
+// Scheduler or Chair. One dedicated endpoint, bound to the Group by slug, structurally authorized
+// in UpdateEmptyDeskSettingsRequest, which delegates to the SchedulePolicy's `updateEmptyDeskAlert`
+// gate (scheduling on, actor a schedule admin). A plain member is refused before the write.
+Route::patch('groups/{group}/empty-desk-settings', [GroupEmptyDeskSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('groups.empty-desk.update');
+
+// Group self-serve settings (#582, PRD #576, ADR-0026 §1 and §2). The Scheduling section's
+// self-serve card — self-serve shifts on/off and the unit length in minutes — edited by a
+// Scheduler or Chair. One dedicated endpoint, bound to the Group by slug, structurally authorized
+// in UpdateSelfServeSettingsRequest, which delegates to the SchedulePolicy's `updateSelfServe`
+// gate (scheduling on, actor a schedule admin). A plain member is refused before the write.
+Route::patch('groups/{group}/self-serve-settings', [GroupSelfServeSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('groups.self-serve.update');
+
+// Shift-kind maintenance (#567, ADR-0021 §3). The Scheduling section's shift-kind block — add,
+// rename, retire, reinstate and reorder a Group's kinds — edited by a Scheduler or Chair. There
+// is no delete: a kind is retired and reinstated, never removed. Add and reorder nest under the
+// Group (bound by slug); rename / retire / reinstate bind the kind by id. Each is structurally
+// authorized in its Form Request, which delegates to the SchedulePolicy's `manageShiftKinds` gate.
+Route::post('groups/{group}/shift-kinds', [ShiftKindController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('groups.shift-kinds.store');
+Route::patch('groups/{group}/shift-kinds/order', [ShiftKindController::class, 'reorder'])
+    ->middleware(['auth'])
+    ->name('groups.shift-kinds.reorder');
+Route::patch('shift-kinds/{shiftKind}', [ShiftKindController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('shift-kinds.update');
+
+// Objects maintenance (#584, ADR-0026 §3). The Scheduling section's Objects block — add, rename,
+// retire, reinstate and reorder a Group's handling collection — edited by a Scheduler or Chair,
+// mirroring the shift-kind endpoints one for one. There is no delete: an Object is retired and
+// reinstated, never removed. Add and reorder nest under the Group (bound by slug); rename / retire
+// / reinstate bind the Object by id. Each is structurally authorized in its Form Request, which
+// delegates to the SchedulePolicy's `manageObjects` gate.
+Route::post('groups/{group}/objects', [ObjectController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('groups.objects.store');
+Route::patch('groups/{group}/objects/order', [ObjectController::class, 'reorder'])
+    ->middleware(['auth'])
+    ->name('groups.objects.reorder');
+Route::patch('objects/{object}', [ObjectController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('objects.update');
+
 // Shift authoring (#356, PRD #352, ADR-0021 §2). The Scheduler's write seam for the
 // Shifts on a Schedule: add a Shift (times, capacity, optional kind, audience), edit it
 // (raise capacity, adjust times within range), and delete it (cancelling, never silent).
@@ -294,6 +432,35 @@ Route::post('shifts/{shift}/sign-ups', [SignUpController::class, 'store'])
 Route::delete('sign-ups/{signUp}', [SignUpController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('sign-ups.destroy');
+
+// Self-serve Shift write seam (#585, PRD #576, ADR-0026 §1, §2). A Member of a self-serve
+// Group writing their own Shift — station, start and units — which creates their Sign-up in the
+// same step, and changing or deleting it until it starts. Distinct from the Scheduler-only
+// `shifts.*` seam above: each is structurally authorized in its Form Request, which delegates to
+// the ShiftPolicy's `createSelfServe` (on the Schedule) and `manageSelfServe` (on the Shift, the
+// derived-ownership rule). Store nests under the owning Schedule (bound by id); update/delete bind
+// the Shift by id.
+Route::post('schedules/{schedule}/self-serve-shifts', [SelfServeShiftController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('self-serve-shifts.store');
+Route::patch('self-serve-shifts/{shift}', [SelfServeShiftController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('self-serve-shifts.update');
+Route::delete('self-serve-shifts/{shift}', [SelfServeShiftController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('self-serve-shifts.destroy');
+
+// Post-shift report write seam (#445, #652, PRD #651, ADR-0023 §5). Recording the after-the-shift
+// numbers on a Sign-up — a Member filing how many visitors they served, or an Officer's
+// correction, from the Post-shift report on the shift card in the Agenda or My sign-ups, all onto
+// this one route. Bound by the Sign-up id; structurally authorized in its Form Request, which
+// delegates to SignUpPolicy::record — the seat-holder's own seat from five minutes before the
+// Shift ends, or any seat for a schedule admin — and whitelists the fields, so whose seat is
+// written is the route binding, never the body. Non-localized, so it takes the language of the
+// page that sent it for its messages (#668).
+Route::patch('sign-ups/{signUp}', [SignUpController::class, 'record'])
+    ->middleware(['auth', 'localizeFromReferer'])
+    ->name('sign-ups.record');
 
 // Officer assignment write seam (#359, PRD #352, ADR-0021 §Sign-up). A Scheduler placing a
 // named Member on a Shift directly — Reception's whole operating model. A distinct actor
@@ -372,6 +539,30 @@ if (! app()->environment('production')) {
         ->middleware('auth')
         ->name('impersonation.stop');
 }
+
+// Audience endpoints (#484, ADR-0024 §5). The two reads the composer sheet fetches:
+// an index of the Audiences the actor may pick in a context (each with a label and a
+// count), and a show of one Audience's resolved rows (id, name, photo, standing — never
+// an address). Both resolve every Audience on the server from the Group model, enforcing
+// the picker rule; the browser names the Audience and never posts a recipient list. Data
+// endpoints (JSON), non-localized like the other seams: the `context`/`subject` query
+// pair names the surface, `parameter` pins a parameterised Audience, and `removed[]` /
+// `added[]` carry the picker's per-Member edits.
+Route::get('audiences', [AudienceController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('audiences.index');
+Route::get('audiences/{audience}', [AudienceController::class, 'show'])
+    ->middleware(['auth'])
+    ->name('audiences.show');
+
+// The Broadcast send path (#488, ADR-0024 §4, §6). The composer posts its context, the
+// Audience to resolve, the picker's per-Member edits, the subject, body, and up to two
+// attachments; the server re-resolves the Audience, writes the sent record and one Delivery
+// per recipient plus the sender's copy, and returns the queued count and the skipped names.
+// Nothing sends in the request. A data endpoint (JSON), non-localized like the Audience seams.
+Route::post('broadcasts', [BroadcastController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('broadcasts.store');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

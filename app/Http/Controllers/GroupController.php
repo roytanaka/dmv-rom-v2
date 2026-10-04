@@ -14,6 +14,7 @@ use App\Http\Resources\MemberResource;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
+use App\Models\HandlingObject;
 use App\Models\HoursRecord;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
@@ -22,7 +23,10 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Support\Audiences\AudienceContext;
+use App\Support\Audiences\AudienceResolver;
 use App\Support\OrgTime;
+use App\Support\RouteSegments;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -46,11 +50,14 @@ class GroupController extends Controller
     /**
      * The Group page. The {section} segment selects the active tab; a bare slug
      * lands on Overview. The Group is bound by slug ({@see Group::getRouteKeyName}),
-     * so an unknown slug 404s before this runs.
+     * so an unknown slug 404s before this runs. Under /fr/ the segment arrives in French
+     * (`parametres`) and is read back to its English section key (ADR-0008).
      */
     public function show(Request $request, Group $group, ?string $section = null): Response
     {
-        return $this->render($request, $group, $section ?? 'overview', null);
+        $section = $section === null ? 'overview' : RouteSegments::canonical($section, app()->getLocale());
+
+        return $this->render($request, $group, $section, null);
     }
 
     /**
@@ -110,6 +117,15 @@ class GroupController extends Controller
             abort_unless($request->user()->can('viewAny', [Schedule::class, $group]), 404);
         }
 
+        // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
+        // configuration right. Anyone else gets 403 — the Meetings shape: the Group exists and
+        // they may open it, but not this tab.
+        $canManageSettings = $this->canManageSettings($request, $group);
+
+        if ($section === 'settings') {
+            abort_unless($canManageSettings, 403);
+        }
+
         $group->load([
             'parent',
             // Only active children are navigable — an archived child still renders
@@ -120,6 +136,12 @@ class GroupController extends Controller
             'memberships.member',
             'memberships.roles',
         ]);
+
+        $canManageReminders = $request->user()->can('updateReminders', [Schedule::class, $group]);
+        $canManageEmptyDesk = $request->user()->can('updateEmptyDeskAlert', [Schedule::class, $group]);
+        $canManageSelfServe = $request->user()->can('updateSelfServe', [Schedule::class, $group]);
+        $canManageShiftKinds = $request->user()->can('manageShiftKinds', [Schedule::class, $group]);
+        $canManageObjects = $request->user()->can('manageObjects', [Schedule::class, $group]);
 
         return Inertia::render('groups/Show', [
             'group' => [
@@ -144,9 +166,43 @@ class GroupController extends Controller
                     'documents' => $group->has_documents,
                     'scheduling' => $group->has_scheduling,
                     'content' => $group->has_content_catalog,
+                    // Whether the Group collects a per-shift visitor count (#445, ADR-0023 §5).
+                    // Unlike the flags above it opens no tab — it switches the Post-shift report
+                    // on inside the Scheduling section — but it rides here as the one Group-level
+                    // boolean the Scheduling tab reads to decide the feature is on at all.
+                    'collectsVisitorCount' => $group->collects_visitor_count,
+                    // Whether the Group collects the tour-leading second box (#447, ADR-0023 §2) —
+                    // the extra-interaction split beside the count. A separate switch: a count-only
+                    // Group leaves it off and shows one box, a tour-leading Group shows two.
+                    'collectsExtraInteractions' => $group->collects_extra_interactions,
+                    // Whether the Group collects GDR's five visitor origins (#448, ADR-0023 §3) —
+                    // the provenance split that must sum to the count. GDR alone is on; every other
+                    // Group leaves it off and its Post-shift report shows no origin boxes.
+                    'collectsVisitorProvenance' => $group->collects_visitor_provenance,
                 ],
+                // The Group's self-serve unit length (#585, ADR-0026 §2). The Scheduling tab's
+                // "Write my shift" dialog derives a Shift's end from it and recovers the unit count
+                // on edit, so it rides on every section. The setting's card is on the Settings tab.
+                'selfServeUnitMinutes' => $group->self_serve_unit_minutes,
             ],
             'section' => $section,
+            // The Email control's empty state (#513, ADR-0024 §6) — the reason the viewer can
+            // pick no Audience on this Group-scoped surface, or null when at least one is
+            // pickable. Asked of the resolver once here; the strip, roster, and Schedule
+            // controls all read it to grey themselves and name why on hover and on open.
+            'email' => [
+                'reason' => app(AudienceResolver::class)->emptyReason(
+                    $request->user(),
+                    AudienceContext::group($group),
+                ),
+                // The hand-pick pool for "Pick people…" (#551, ADR-0024 §6). The Email
+                // control lives in the strip on every section, so the picker needs the
+                // Group's roster wherever it opens — not only on the Members tab. A slim
+                // row (identity, photo, within-Group standing; never an address) drawn
+                // from the already-loaded memberships; the server re-resolves who is
+                // actually reached at send time (§5).
+                'roster' => $this->emailRoster($group),
+            ],
             // UI hints only — the server enforces in the Form Requests. `update`
             // drives the Overview's inline About Us edit and banner picker;
             // `createMeeting` drives the Meetings tab's "New meeting" affordance;
@@ -157,6 +213,29 @@ class GroupController extends Controller
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $request->user()->can('create', [GroupMember::class, $group]),
                 'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
+                // `manageSettings` drives the Settings tab (ADR-0027 §1) — true when any of the
+                // five configuration rights below holds. UI hint only; the section re-checks it.
+                'manageSettings' => $canManageSettings,
+                // `manageReminders` drives the Settings tab's Reminders card (#486, ADR-0024 §7)
+                // — a Scheduler or Chair of the scheduling Group. UI hint only;
+                // UpdateReminderSettingsRequest re-checks the gate on PATCH.
+                'manageReminders' => $canManageReminders,
+                // `manageEmptyDesk` drives the Settings tab's Empty-desk alert card (#487,
+                // ADR-0024 §7) — the same Scheduler/Chair gate as Reminders. UI hint only;
+                // UpdateEmptyDeskSettingsRequest re-checks the gate on PATCH.
+                'manageEmptyDesk' => $canManageEmptyDesk,
+                // `manageSelfServe` drives the Settings tab's Self-serve shifts card (#582,
+                // ADR-0026 §1 and §2) — the same Scheduler/Chair gate. UI hint only;
+                // UpdateSelfServeSettingsRequest re-checks the gate on PATCH.
+                'manageSelfServe' => $canManageSelfServe,
+                // `manageShiftKinds` drives the Settings tab's Shift kinds card (#567, ADR-0021 §3)
+                // — the same Scheduler/Chair gate. UI hint only; the shift-kind Form Requests
+                // re-check the gate on write.
+                'manageShiftKinds' => $canManageShiftKinds,
+                // `manageObjects` drives the Settings tab's Objects card (#584, ADR-0026 §3) — the
+                // same Scheduler/Chair gate. UI hint only; the Object Form Requests re-check the
+                // gate on write.
+                'manageObjects' => $canManageObjects,
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.
@@ -194,13 +273,18 @@ class GroupController extends Controller
             // visible Schedules and which one (if any) opens directly.
             'scheduling' => $section === 'scheduling'
                 ? $this->scheduling($request, $group, $schedule)
-                : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => []],
+                : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'objects' => [], 'mine' => []],
             // The Hours tab's payload, resolved only on that tab: the viewer's own records
             // for this Group and the two-month entry state (ADR-0022 §2). Never another
             // Member's hours — the roster is not a leaderboard (§4).
             'hours' => $section === 'hours'
                 ? $this->hours($request, $group)
                 : ['records' => [], 'months' => []],
+            // The Settings tab's payload, resolved only on that tab and past its gate above. Each
+            // card's values ride only with that card's right.
+            'settings' => $section === 'settings'
+                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects)
+                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -222,6 +306,90 @@ class GroupController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Whether the viewer holds any Group-scoped configuration right — the Settings tab's gate
+     * (ADR-0027 §1). The tab appears with authority, not with data: a Chair sees it empty or full.
+     */
+    private function canManageSettings(Request $request, Group $group): bool
+    {
+        return collect(['updateReminders', 'updateEmptyDeskAlert', 'updateSelfServe', 'manageShiftKinds', 'manageObjects'])
+            ->contains(fn (string $ability): bool => $request->user()->can($ability, [Schedule::class, $group]));
+    }
+
+    /**
+     * The Settings tab's cards (ADR-0027 §2), in page order. All five are scheduling cards, so
+     * each is null on a Group that runs no scheduling, and null for a viewer without its right.
+     * The Reminders card (#486, ADR-0024 §7) reads the on/off switch and lead days. The Empty-desk
+     * alert card (#487, ADR-0024 §7) reads its switch, look-ahead, and one watch-tick row per
+     * shift kind in picker order. The Self-serve shifts card (#582, ADR-0026 §1 and §2) reads its
+     * switch and unit length. The Shift kinds card (#567, #587, ADR-0021 §3) and the Objects card
+     * (#584, ADR-0026 §3) read their full lists in picker order, retired rows included, so the card
+     * can rename, retire, reinstate and reorder them. The Scheduling tab's pickers read only the
+     * active rows, from its own payload.
+     *
+     * @return array{
+     *     reminders: array{enabled: bool, leadDays: int}|null,
+     *     emptyDesk: array{enabled: bool, daysAhead: int, shiftKinds: list<array{id: int, name: string, watched: bool}>}|null,
+     *     selfServe: array{enabled: bool, unitMinutes: int}|null,
+     *     shiftKinds: list<array{id: int, name: string, active: bool, offSite: bool, sortOrder: int}>|null,
+     *     objects: list<array{id: int, name: string, active: bool, sortOrder: int}>|null,
+     * }
+     */
+    private function settings(
+        Group $group,
+        bool $canManageReminders,
+        bool $canManageEmptyDesk,
+        bool $canManageSelfServe,
+        bool $canManageShiftKinds,
+        bool $canManageObjects,
+    ): array {
+        // The Empty-desk and Shift kinds cards both read the Group's kinds in picker order, so
+        // they share one query.
+        $shiftKinds = $group->has_scheduling && ($canManageEmptyDesk || $canManageShiftKinds)
+            ? $group->shiftKinds()->orderBy('sort_order')->get()
+            : collect();
+
+        return [
+            'reminders' => $group->has_scheduling && $canManageReminders ? [
+                'enabled' => $group->reminders_enabled,
+                'leadDays' => $group->reminder_lead_days,
+            ] : null,
+            'emptyDesk' => $group->has_scheduling && $canManageEmptyDesk ? [
+                'enabled' => $group->empty_desk_alert_enabled,
+                'daysAhead' => $group->empty_desk_days_ahead,
+                'shiftKinds' => $shiftKinds
+                    ->map(fn (ShiftKind $kind): array => [
+                        'id' => $kind->id,
+                        'name' => $kind->name,
+                        'watched' => $kind->alert_when_empty,
+                    ])->all(),
+            ] : null,
+            'selfServe' => $group->has_scheduling && $canManageSelfServe ? [
+                'enabled' => $group->self_serve_shifts,
+                'unitMinutes' => $group->self_serve_unit_minutes,
+            ] : null,
+            'shiftKinds' => $group->has_scheduling && $canManageShiftKinds
+                ? $shiftKinds
+                    ->map(fn (ShiftKind $kind): array => [
+                        'id' => $kind->id,
+                        'name' => $kind->name,
+                        'active' => $kind->active,
+                        'offSite' => $kind->off_site,
+                        'sortOrder' => $kind->sort_order,
+                    ])->all()
+                : null,
+            'objects' => $group->has_scheduling && $canManageObjects
+                ? $group->objects()->orderBy('sort_order')->get()
+                    ->map(fn (HandlingObject $object): array => [
+                        'id' => $object->id,
+                        'name' => $object->name,
+                        'active' => $object->active,
+                        'sortOrder' => $object->sort_order,
+                    ])->all()
+                : null,
+        ];
     }
 
     /**
@@ -362,6 +530,35 @@ class GroupController extends Controller
     }
 
     /**
+     * The Email control's hand-pick pool (#551, ADR-0024 §6) — the Group's roster in
+     * present standing, sent on every section so "Pick people…" has rows wherever the
+     * strip's Email control opens. A slim row per living member: identity, photo, and
+     * within-Group standing, never an address. Deceased and Resigned are excluded (the
+     * departed are not addressable); Inactive stays, matching the roster's default view.
+     *
+     * Built from the memberships already eager-loaded for the page, so it adds no query,
+     * and it skips the per-row contact gating the Roster tab's {@see roster} pays for —
+     * the pool is a standing hint the server re-resolves at send time, not a contact list.
+     *
+     * @return list<array{id: int, first_name: string, last_name: string, photo: string|null, standing: string}>
+     */
+    private function emailRoster(Group $group): array
+    {
+        return $group->memberships
+            ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
+            ->sortBy(fn (GroupMember $membership) => mb_strtolower($membership->member->last_name.' '.$membership->member->first_name))
+            ->map(fn (GroupMember $membership) => [
+                'id' => $membership->member->id,
+                'first_name' => $membership->member->first_name,
+                'last_name' => $membership->member->last_name,
+                'photo' => $membership->member->photo_url,
+                'standing' => $membership->status->value,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * The Roster tab's officer-CRUD scaffolding (#192) — withheld from a non-officer.
      * `candidates` is every Member not already in the Group (the add-member search
      * source, id + name only, no contact PII); `assignableRoles` is the Group's
@@ -482,8 +679,9 @@ class GroupController extends Controller
      * The tab shows the viewer **their own** hours and nobody else's, here or anywhere —
      * per-Member hours feed service awards and legacy has never shown them to a peer
      * (ADR-0022 §4). The records list carries the scheduled / extra / total split (what the
-     * app counted vs. what they told it) newest month first. The two entry months (current
-     * and previous, on the org wall clock) each carry the extra hours already on file and
+     * app counted vs. what they told it) plus the extra-interactions visitor count (ADR-0023
+     * §6, outside the total), newest month first. The two entry months (current and previous,
+     * on the org wall clock) each carry the extra hours and interactions already on file and
      * when they were last touched, so a Member does not double-count. Whether the entry form
      * renders at all is the separate `can.enterHours` hint.
      *
@@ -505,6 +703,8 @@ class GroupController extends Controller
                     'scheduled_hours' => $record->scheduled_hours,
                     'extra_hours' => $record->extra_hours,
                     'total_hours' => $record->total_hours,
+                    // Visitors served outside a Shift (ADR-0023 §6) — outside total_hours.
+                    'extra_interactions' => $record->extra_interactions,
                     'updated_at' => $record->updated_at?->toIso8601String(),
                 ])
                 ->all(),
@@ -519,6 +719,8 @@ class GroupController extends Controller
                         'year_month' => $yearMonth,
                         'month' => $this->monthStart($yearMonth),
                         'extra_hours' => $onFile?->extra_hours ?? 0,
+                        // The additive base for the interactions field, alongside the hours one.
+                        'extra_interactions' => $onFile?->extra_interactions ?? 0,
                         'updated_at' => $onFile?->updated_at?->toIso8601String(),
                     ];
                 })
@@ -552,7 +754,7 @@ class GroupController extends Controller
      * section URL always shows the list, current and upcoming first. The section
      * behaves like every other section tab — an index, from which a reader picks.
      *
-     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>, shift_kinds: list<array<string, mixed>>}
+     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>, shift_kinds: list<array<string, mixed>>, mine: list<array<string, mixed>>}
      */
     private function scheduling(Request $request, Group $group, ?Schedule $schedule): array
     {
@@ -573,6 +775,14 @@ class GroupController extends Controller
                 'open' => $this->scheduleDetail($request, $schedule),
                 'roster' => $this->assignmentRoster($request, $group),
                 'shift_kinds' => $this->shiftKinds($request, $group, $schedule),
+                // The Group's active Objects for the write / take / place pickers (#586, ADR-0026
+                // §3) — id and name, in picker order. Present on the opened Schedule for every
+                // reader; the picker itself renders only when the list is non-empty and only on the
+                // flows that reserve Objects.
+                'objects' => $this->activeObjects($group),
+                // The outstanding-shifts panel rides on the tab regardless of which Schedule is
+                // open — it crosses Schedules, so it is not the opened Schedule's concern (#449).
+                'mine' => $this->mine($request, $group),
             ];
         }
 
@@ -612,7 +822,71 @@ class GroupController extends Controller
             // neither.
             'roster' => [],
             'shift_kinds' => [],
+            'objects' => [],
+            // The outstanding-shifts panel rides on the list view too — a volunteer landing on
+            // the bare section URL sees what they still owe without opening any Schedule (#449).
+            'mine' => $this->mine($request, $group),
         ];
+    }
+
+    /**
+     * The viewer's own outstanding-shifts panel (#449, PRD #443, ADR-0023 §5) — "my Sign-ups on
+     * this Group". Two sets, both the viewer's own: **upcoming** Shifts (still ahead, whatever
+     * their count), and **outstanding** past Shifts inside the 28-day window still owed a number
+     * ({@see SignUp::scopeOutstandingFor}). On the one page load after a save, the seat just saved
+     * stays too (#668, {@see SignUp::JUST_SAVED_FLASH}), so a first save shows its summary
+     * here rather than dropping out with no feedback. It is **date-ranged, so it crosses Schedules** — a
+     * three-week-old Shift on last month's Schedule is a different page the Agenda alone strands,
+     * and this is the one surface that reaches it.
+     *
+     * Present only where the Group collects a count: Reception collects nothing and gets no panel.
+     * The list is the viewer's own seats and no one else's, ordered by Shift start. It is returned
+     * as a flat list; **empty means no panel** — a viewer who owes nothing and holds no upcoming
+     * seat, and a reader with no Sign-ups here at all, both get an empty list and the tab renders
+     * no panel. Each entry is the shared {@see shiftPayload} the ShiftCard reads, carrying `canManage:
+     * false` — the volunteer files from here through the same PATCH seam as the Agenda; the Officer's
+     * correction is a separate surface (#450).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function mine(Request $request, Group $group): array
+    {
+        if (! $group->collects_visitor_count) {
+            return [];
+        }
+
+        $viewer = $request->user();
+        $now = CarbonImmutable::now();
+
+        // The seats post-shift saves just wrote (#668). Remembered for the next save, so two saves
+        // in a row keep both seats; any other page load clears it.
+        $justSaved = $request->session()->get(SignUp::JUST_SAVED_FLASH, []);
+        $request->session()->put(SignUp::SHOWN_SAVED_KEY, $justSaved);
+
+        return SignUp::query()
+            ->where('member_id', $viewer->getKey())
+            ->whereHas('shift.schedule', fn (Builder $query) => $query->where('group_id', $group->id))
+            ->where(fn (Builder $query) => $query
+                // Upcoming — a seat still ahead of the viewer, whatever it does or does not record.
+                ->whereHas('shift', fn (Builder $shift) => $shift->where('ends_at', '>=', $now))
+                // Or outstanding — a past Shift inside the window still owed a number.
+                ->orWhere(fn (Builder $outstanding) => $outstanding->outstandingFor($viewer))
+                // Or just saved (#668) — the seats post-shift saves wrote, for the page load after
+                // them, so a first save shows its summary here instead of dropping out.
+                ->orWhereIn('id', $justSaved))
+            ->with([
+                'shift.kind',
+                'shift.schedule.group',
+                'shift.signUps.member.memberships.group',
+                'shift.signUps.member.memberships.roles',
+                'shift.signUps.objects',
+                'shift.signUps.lastEditedBy',
+            ])
+            ->get()
+            ->sortBy(fn (SignUp $signUp) => $signUp->shift->starts_at)
+            ->map(fn (SignUp $signUp) => $this->shiftPayload($request, $signUp->shift, canManage: false))
+            ->values()
+            ->all();
     }
 
     /**
@@ -633,7 +907,22 @@ class GroupController extends Controller
             'ends_on' => $schedule->ends_on->toDateString(),
             'state' => $schedule->state->value,
             'description' => $schedule->description,
-            'can' => $this->scheduleAuthoring($request, $schedule),
+            'can' => [
+                ...$this->scheduleAuthoring($request, $schedule),
+                // Whether this viewer may email the Schedule's Sign-ups (#513, ADR-0024 §6.4) —
+                // a Chair or Scheduler of the owning Group, super-tier inheriting. One flag per
+                // opened Schedule, gating the Email button on every Shift card at once, so a
+                // plain member never sees a greyed button per Shift. Mirrors the resolver's
+                // SignUps picker rule; the AudienceController re-checks on send regardless.
+                'emailSignups' => $request->user()->isAllDmv()
+                    || $request->user()->canActAs(Role::Scheduler, $schedule->group),
+                // Whether this viewer may write their own Shift on this Schedule (#585, ADR-0026
+                // §1) — a Member of a self-serve Group who clears both sign-up floors, on a
+                // published Schedule they can read. Gates the "Write my shift" button and its
+                // dialog; the Form Request re-checks `createSelfServe` on POST. False everywhere
+                // self-serve is off, so Docents and Visitor Guides never see the button.
+                'createSelfServe' => $request->user()->can('createSelfServe', [Shift::class, $schedule]),
+            ],
             'shifts' => $this->shifts($request, $schedule),
             // Other Groups' `open` Shifts the viewer can take, in this Schedule's day range —
             // advertised, attributed, and never mixed into the own list above (#361).
@@ -651,7 +940,9 @@ class GroupController extends Controller
      * included** (ADR-0017 §6): the section is org-open, a Schedule is a roster of who is on
      * the floor, no more exposing than the Directory. Each seat is routed through the
      * centralized {@see MemberResource} so contact PII stays gated behind `viewContact` and
-     * only the name tier surfaces; nothing else about a Sign-up is exposed.
+     * only the name tier surfaces. A seat's recorded numbers go only to a reader of the
+     * Post-shift report, and its comment only where SignUpPolicy::viewComment allows
+     * ({@see shiftPayload}, #652, #655).
      *
      * The viewer's own participation drives the take/drop affordance: `can.signUp` is the
      * SignUpPolicy's per-Shift verdict (false when the viewer is ineligible or the Shift is
@@ -670,7 +961,7 @@ class GroupController extends Controller
         $viewer = $request->user();
 
         $shifts = $schedule->shifts()
-            ->with(['kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles'])
+            ->with(['kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get()
             // The per-Shift SignUpPolicy check reads `$shift->schedule` (and its Group); set
@@ -714,7 +1005,7 @@ class GroupController extends Controller
             ->whereHas('schedule', fn (Builder $query) => $query
                 ->where('group_id', '!=', $schedule->group_id)
                 ->where('state', ScheduleState::Published))
-            ->with(['schedule.group', 'kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles'])
+            ->with(['schedule.group', 'kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get();
 
@@ -734,10 +1025,11 @@ class GroupController extends Controller
 
     /**
      * One Shift's read payload, shared by the owning-Group Agenda and the foreign set (#357,
-     * #359, #361). `$canManage` is the schedule-admin verdict for *this* Shift: it reveals the
-     * officer affordances — each seat's Sign-up id (the removal target) and the `assign`
+     * #359, #361, #450). `$canManage` is the schedule-admin verdict for *this* Shift: it reveals
+     * the officer affordances — each seat's Sign-up id (the removal and correction target), a
+     * `can_record` verdict on every seat for officer correction (#450, #653), and the `assign`
      * button — and is always false for a foreign Shift, which carries no authoring affordances
-     * for anyone.
+     * for anyone. It is also false in My sign-ups, so officer correction lives in the Agenda.
      *
      * Sign-up names are visible to every reader who can read the Schedule (ADR-0017 §6),
      * routed through {@see MemberResource} so contact PII stays gated. `signup_id` is the
@@ -752,6 +1044,13 @@ class GroupController extends Controller
         $taken = $shift->signUps->count();
         $ownSignUp = $shift->signUps->firstWhere('member_id', $viewer->getKey());
 
+        // Who reads the Post-shift report (#652, ADR-0023 §5 amendment): every Member holding a
+        // seat on this Shift, and a schedule admin, on a Group that collects a visitor count.
+        // Co-volunteers see each other's numbers so a double count is visible to the people who
+        // made it. A reader with no seat and no admin role gets no seat numbers at all.
+        $readsReport = $shift->schedule->group->collects_visitor_count
+            && ($canManage || $ownSignUp !== null);
+
         return [
             'id' => $shift->id,
             'starts_at' => $shift->starts_at->toIso8601String(),
@@ -759,6 +1058,10 @@ class GroupController extends Controller
             'capacity' => $shift->capacity,
             'taken' => $taken,
             'kind' => $shift->kind?->name,
+            // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up), so the card hides
+            // the Member's take and drop once it has — self-service closes at the start. The
+            // SignUpPolicy enforces the same bound on every write regardless.
+            'has_started' => $shift->hasStarted(),
             // The Shift's own authored fields the edit form round-trips: its `audience`
             // (the discovery filter) and the id of its chosen kind (null for Reception's
             // kind-less shape), so the form pre-selects both rather than guessing from the
@@ -767,14 +1070,64 @@ class GroupController extends Controller
             'shift_kind_id' => $shift->shift_kind_id,
             // The seated Members, names only (contact stays gated per MemberResource). A
             // schedule admin additionally gets each seat's own Sign-up id — the remove target
-            // for officer removal (#359), for any seat, not just their own. A plain reader,
-            // and every reader of a foreign Shift, never learns another seat's id.
+            // for officer removal (#359) and the correction target for officer correction (#450).
+            // Each seat's recorded numbers and its `can_record` verdict go to every reader of the
+            // Post-shift report (`$readsReport`, #652, #653). A plain reader never learns another
+            // seat's id or numbers.
             'signups' => $shift->signUps
-                ->map(function (SignUp $signUp) use ($request, $canManage) {
+                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $readsReport) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
 
+                    // The Objects this seat reserves (#586, ADR-0026 §3) — named under the Member
+                    // on the card, visible to every reader like the seat itself. A retired Object
+                    // still names its old seat, so the list carries the name as-authored regardless
+                    // of the active flag.
+                    $seat['objects'] = $signUp->objects
+                        ->map(fn (HandlingObject $object) => ['id' => $object->id, 'name' => $object->name])
+                        ->all();
+
+                    // Officer removal and correction (#359, #450) — a schedule admin gets, on
+                    // *every* seat, the seat's Sign-up id: the removal target and the write
+                    // target for a correction.
                     if ($canManage) {
                         $seat['signup_id'] = $signUp->id;
+                    }
+
+                    // The seat's recorded numbers, for the Post-shift report's entry (#652) and so
+                    // the form pre-fills a change rather than making anyone retype. Null
+                    // throughout for a seat with nothing filed yet, distinct from a recorded zero.
+                    // `can_record` is the verdict that the viewer may change this entry (#653),
+                    // mirroring the SignUpPolicy's `record` rule, which re-checks every PATCH: a
+                    // schedule admin on every seat with no time bound, a seat-holder on their own
+                    // seat once its sign-out window opens.
+                    if ($readsReport) {
+                        $seat['can_record'] = $canManage
+                            || ($signUp->member_id === $viewer->getKey() && $shift->signOutWindowIsOpen());
+                        $seat['visitor_count'] = $signUp->visitor_count;
+                        $seat['extra_interaction_count'] = $signUp->extra_interaction_count;
+                        $seat['visitors_france_europe'] = $signUp->visitors_france_europe;
+                        $seat['visitors_quebec'] = $signUp->visitors_quebec;
+                        $seat['visitors_toronto'] = $signUp->visitors_toronto;
+                        $seat['visitors_rest_of_canada'] = $signUp->visitors_rest_of_canada;
+                        $seat['visitors_other_countries'] = $signUp->visitors_other_countries;
+                        // Who last saved these numbers and when (#654), so a volunteer sees an
+                        // officer's correction. Null on a seat nobody has saved yet, or whose
+                        // editor's Member row is gone.
+                        $seat['last_edited'] = $signUp->last_edited_at === null || $signUp->lastEditedBy === null ? null : [
+                            'name' => $signUp->lastEditedBy->fullName(),
+                            'at' => $signUp->last_edited_at->toIso8601String(),
+                        ];
+
+                        // The seat's comment (#655) goes where SignUpPolicy::viewComment allows —
+                        // its author and a schedule admin — asked here, not restated, so the two
+                        // cannot drift (#668). A co-volunteer sees the numbers but never receives
+                        // another volunteer's words. The policy reads the Group through the Shift,
+                        // so set it from the Shift in hand rather than lazy-load it.
+                        $signUp->setRelation('shift', $shift);
+
+                        if ($viewer->can('viewComment', $signUp)) {
+                            $seat['comment'] = $signUp->comment;
+                        }
                     }
 
                     return $seat;
@@ -799,6 +1152,23 @@ class GroupController extends Controller
                 // Always false for a foreign Shift, which carries no authoring affordances.
                 'update' => $canManage,
                 'delete' => $canManage && $taken === 0,
+                // Whether the viewer may change or delete this Shift as its self-serve owner
+                // (#585, ADR-0026 §1) — the derived-ownership verdict: a self-serve Group, a
+                // capacity-1 Shift whose only seat is theirs, not yet started. Drives the Edit
+                // and Delete controls the author sees on their own card, beside take and drop;
+                // the Form Requests re-check it on write. Read directly, not through the Gate,
+                // so it binds super-tier too (#647). Always false on a foreign Shift (open
+                // audience, never a self-serve owner's).
+                'manageSelfServe' => $shift->isSelfServeOwnedBy($viewer),
+                // Whether the Post-shift report section renders for this viewer (#652): the
+                // same rule that sends the seat numbers above.
+                'readReport' => $readsReport,
+                // Whether the viewer's own seat may show the record form (#445, #652, ADR-0023
+                // §5): they hold a seat here and its sign-out window has opened, five minutes
+                // before the Shift ends. A schedule admin's own seat waits for the window too;
+                // their any-time correction is the Change button's path (#653). The
+                // SignUpPolicy re-checks every write on PATCH.
+                'record' => $ownSignUp !== null && $shift->signOutWindowIsOpen(),
             ],
         ];
     }
@@ -846,7 +1216,11 @@ class GroupController extends Controller
      */
     private function shiftKinds(Request $request, Group $group, Schedule $schedule): array
     {
-        if (! $request->user()->can('create', [Shift::class, $schedule])) {
+        // The picker serves both authoring paths: the Scheduler's Shift form (`create`) and a
+        // self-serve Member's "Write my shift" dialog (`createSelfServe`, #585) — both offer the
+        // Group's active kinds as stations. A plain reader clears neither and gets no list.
+        if (! $request->user()->can('create', [Shift::class, $schedule])
+            && ! $request->user()->can('createSelfServe', [Shift::class, $schedule])) {
             return [];
         }
 
@@ -855,6 +1229,26 @@ class GroupController extends Controller
             ->orderBy('sort_order')
             ->get()
             ->map(fn (ShiftKind $kind) => ['id' => $kind->id, 'name' => $kind->name])
+            ->all();
+    }
+
+    /**
+     * The Group's active Objects for the write / take / place pickers (#586, ADR-0026 §3) — id and
+     * name, in the Group's authored picker order. Only *active* Objects are offered; a retired
+     * Object still names the seats already holding it but is no longer put on new ones
+     * ({@see HandlingObject::scopeActive}). Returned to every reader of the opened Schedule — the
+     * picker itself renders only when the list is non-empty. Empty on a Group with no Objects,
+     * where no flow shows the field.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function activeObjects(Group $group): array
+    {
+        return $group->objects()
+            ->active()
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (HandlingObject $object) => ['id' => $object->id, 'name' => $object->name])
             ->all();
     }
 

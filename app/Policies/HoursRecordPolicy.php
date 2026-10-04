@@ -24,8 +24,9 @@ use App\Models\Member;
  *   discloses nothing to a non-member, so its Hours surface (and its write seam) is closed
  *   to one, mirroring the Group page's Private gate.
  *
- * The reports half — {@see viewReports()} for a Group's own reports and {@see viewOrgReports()}
- * for the DMV-wide ones — is the closed counterpart, gated to officers. The super-tier
+ * The reports half — {@see viewReports()} for a Group's own reports, {@see viewOrgReports()} for
+ * the officer-gated DMV-wide ones, and {@see viewVisitorSummary()} for the one DMV-wide report
+ * open to any signed-in Member — is the closed counterpart to the open create half. The super-tier
  * short-circuit lives in the single `Gate::before` (AppServiceProvider) and is never re-checked
  * here.
  *
@@ -101,6 +102,22 @@ class HoursRecordPolicy
             || $actor->canActAs(Role::Secretary, $root)
             || $actor->canActAs(Role::Statistician, $root)
         );
+    }
+
+    /**
+     * Who may read Summary Visitor Interactions (ADR-0023 §6): **any signed-in Member**. This is
+     * the one DMV-wide report that is not officer-gated, and that is deliberate — it is an
+     * aggregate with no personal data in it, and it is legacy's own choice, the sole item in the
+     * branch offered to members who fail the officer test that gates {@see viewOrgReports()}.
+     *
+     * Written as a real method beside the gate it is the exception to, rather than left as an
+     * ungated route, so the exception to #406 story 59 (DMV-wide reports are officer-only) is
+     * named in code and cannot be mistaken for a hole in that rule. The route's `auth` middleware
+     * supplies the "signed-in" half; this returns true for every authenticated actor.
+     */
+    public function viewVisitorSummary(Member $actor): bool
+    {
+        return true;
     }
 
     /**

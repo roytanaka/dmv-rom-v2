@@ -1,0 +1,274 @@
+<?php
+
+namespace App\Help;
+
+use Illuminate\Support\Str;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
+
+/**
+ * Renders a Help article's Markdown to a title and sanitized HTML (ADR-0025).
+ *
+ * The title is the file's first level-one heading; everything else is the body.
+ * The body is GitHub-flavoured Markdown as Laravel's own `Str::markdown` renders
+ * it — HTML in the source is stripped and unsafe links are disallowed, so no raw
+ * markup from a source file reaches the page. No new package.
+ *
+ * An image written `![Caption](01.png)` is a screenshot: the bare filename resolves
+ * against the article's public folder (`/help-images/<slug>/01.png`) and the image renders
+ * as a `<figure>` with the caption as its `<figcaption>` — captions are the only
+ * annotation. The folder is `help-images`, not `help`: a `public/help/` directory
+ * shadows the `/help` route on Apache (403 before Laravel runs). A blockquote that
+ * opens with a bold `Tip:`/`Astuce :` or `Note:` label renders as a callout
+ * `<div class="callout" data-callout="tip|note">`. A link written `[Title](slug)`
+ * with a bare slug is an article link: it resolves to that article's help URL in
+ * the requested locale (`/help/<slug>` or `/fr/aide/<slug>`); anchors, absolute
+ * paths and full URLs stay as they are. Each level-two heading gets a stable id
+ * (its text as a slug) and the rendered article lists the headings for the page's
+ * "On this page" list. The lead line is the first body paragraph as plain text,
+ * the section summary on the index cards. If a locale's file is missing, the
+ * English file renders (the manifest test keeps that a dev-only fallback).
+ */
+final class HelpArticleRenderer
+{
+    private readonly string $root;
+
+    public function __construct(?string $root = null)
+    {
+        $this->root = $root ?? resource_path('help');
+    }
+
+    /** Render an article for a locale, or null when no source file exists. */
+    public function render(string $slug, string $locale): ?RenderedArticle
+    {
+        $source = $this->read($slug, $locale);
+
+        if ($source === null) {
+            return null;
+        }
+
+        [$title, $body] = $source;
+
+        $html = Str::markdown($body, [
+            'html_input' => 'strip',
+            'allow_unsafe_links' => false,
+        ]);
+
+        $html = $this->renderScreenshots($html, $slug);
+        $html = $this->renderArticleLinks($html, $locale);
+        [$html, $headings] = $this->renderHeadings($html);
+
+        return new RenderedArticle($title, $this->renderCallouts($html), $headings);
+    }
+
+    /** An article's title (its first level-one heading), or null when it is missing. */
+    public function title(string $slug, string $locale): ?string
+    {
+        return $this->read($slug, $locale)[0] ?? null;
+    }
+
+    /**
+     * An article's lead line: its first body paragraph as plain text, or null when it
+     * has none. Blockquotes and lists are skipped, so a callout or a step never leads.
+     */
+    public function lead(string $slug, string $locale): ?string
+    {
+        $html = $this->render($slug, $locale)?->html ?? '';
+        $html = preg_replace('#<(blockquote|div|ul|ol)\b.*?</\1>#s', '', $html);
+
+        if (! preg_match('#<p>(.*?)</p>#s', $html, $match)) {
+            return null;
+        }
+
+        return html_entity_decode(strip_tags($match[1]), ENT_QUOTES | ENT_HTML5);
+    }
+
+    /**
+     * The image filenames an article's source references, for the manifest-integrity
+     * test that every referenced screenshot exists on disk.
+     *
+     * @return list<string>
+     */
+    public function referencedImages(string $slug, string $locale): array
+    {
+        $source = $this->read($slug, $locale);
+
+        if ($source === null) {
+            return [];
+        }
+
+        preg_match_all('/!\[[^\]]*\]\(([^)]+)\)/', $source[1], $matches);
+
+        return collect($matches[1])
+            ->filter(fn (string $src) => $this->isScreenshot($src))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The article slugs an article's source links to, for the manifest-integrity test
+     * that every article link names an article in the manifest.
+     *
+     * @return list<string>
+     */
+    public function referencedArticles(string $slug, string $locale): array
+    {
+        $source = $this->read($slug, $locale);
+
+        if ($source === null) {
+            return [];
+        }
+
+        preg_match_all('/(?<!!)\[[^\]]*\]\(([^)]+)\)/', $source[1], $matches);
+
+        return collect($matches[1])
+            ->filter(fn (string $href) => $this->isArticleSlug($href))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Split a source file into [title, body]: the first `# ` heading is the title,
+     * every other line is the body. Returns null when the file does not exist.
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    private function read(string $slug, string $locale): ?array
+    {
+        $path = $this->pathFor($slug, $locale);
+
+        if ($path === null) {
+            return null;
+        }
+
+        $title = '';
+        $body = [];
+
+        foreach (preg_split('/\r\n|\r|\n/', file_get_contents($path)) as $line) {
+            if ($title === '' && preg_match('/^#\s+(.+?)\s*$/', $line, $match)) {
+                $title = $match[1];
+
+                continue;
+            }
+
+            $body[] = $line;
+        }
+
+        return [$title, trim(implode("\n", $body))];
+    }
+
+    /** Resolve a slug/locale to a file, falling back to the English file. */
+    private function pathFor(string $slug, string $locale): ?string
+    {
+        foreach ([$locale, 'en'] as $candidate) {
+            $path = "{$this->root}/{$candidate}/{$slug}.md";
+
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    /** Rewrite each screenshot image into a captioned figure. */
+    private function renderScreenshots(string $html, string $slug): string
+    {
+        $html = preg_replace_callback(
+            '/<img\s+src="([^"]*)"\s+alt="([^"]*)"\s*\/?>/',
+            function (array $match) use ($slug) {
+                [, $src, $alt] = $match;
+                $resolved = $this->isScreenshot($src) ? "/help-images/{$slug}/{$src}" : $src;
+
+                return sprintf(
+                    '<figure><img src="%s" alt="%s"><figcaption>%s</figcaption></figure>',
+                    $resolved,
+                    $alt,
+                    $alt,
+                );
+            },
+            $html,
+        );
+
+        // Unwrap the paragraph CommonMark put a lone image in, so the figure is a block.
+        return preg_replace('#<p>(<figure>.*?</figure>)</p>#s', '$1', $html);
+    }
+
+    /** Point each bare-slug link at that article's help URL in the locale. */
+    private function renderArticleLinks(string $html, string $locale): string
+    {
+        return preg_replace_callback(
+            '/<a href="([^"]*)"/',
+            function (array $match) use ($locale) {
+                [$openingTag, $href] = $match;
+
+                if (! $this->isArticleSlug($href)) {
+                    return $openingTag;
+                }
+
+                $url = LaravelLocalization::getURLFromRouteNameTranslated($locale, 'routes.help.show', ['article' => $href]);
+
+                // Path-only, like the breadcrumb, so the link stays on this host.
+                return sprintf('<a href="%s"', parse_url($url, PHP_URL_PATH));
+            },
+            $html,
+        );
+    }
+
+    /**
+     * Give each level-two heading a stable id — its text as a slug, suffixed `-2`,
+     * `-3` on a repeat — and list the headings (text and id) in order, for the
+     * page's "On this page" list.
+     *
+     * @return array{0: string, 1: list<array{text: string, id: string}>}
+     */
+    private function renderHeadings(string $html): array
+    {
+        $headings = [];
+        $seen = [];
+
+        $html = preg_replace_callback(
+            '#<h2>(.*?)</h2>#s',
+            function (array $match) use (&$headings, &$seen) {
+                $text = html_entity_decode(strip_tags($match[1]), ENT_QUOTES | ENT_HTML5);
+                $base = Str::slug($text) ?: 'section';
+                $seen[$base] = ($seen[$base] ?? 0) + 1;
+                $id = $seen[$base] === 1 ? $base : "{$base}-{$seen[$base]}";
+                $headings[] = ['text' => $text, 'id' => $id];
+
+                return "<h2 id=\"{$id}\">{$match[1]}</h2>";
+            },
+            $html,
+        );
+
+        return [$html, $headings];
+    }
+
+    /**
+     * Turn each blockquote that opens with a bold Tip or Note label (either locale)
+     * into a callout that carries its kind. Any other blockquote stays as it is.
+     */
+    private function renderCallouts(string $html): string
+    {
+        return preg_replace_callback(
+            '#<blockquote>\n(?<body><p><strong>(?<label>Tip|Astuce|Note)\s*:</strong>.*?)</blockquote>#s',
+            function (array $match) {
+                $kind = $match['label'] === 'Note' ? 'note' : 'tip';
+
+                return "<div class=\"callout\" data-callout=\"{$kind}\">\n{$match['body']}</div>";
+            },
+            $html,
+        );
+    }
+
+    /** An article link's target is a bare slug: lowercase words joined by hyphens. */
+    private function isArticleSlug(string $href): bool
+    {
+        return preg_match('/^[a-z0-9]+(-[a-z0-9]+)*$/', $href) === 1;
+    }
+
+    /** A screenshot is a bare filename, not an absolute path or external URL. */
+    private function isScreenshot(string $src): bool
+    {
+        return ! Str::startsWith($src, ['/', 'http://', 'https://', '#']);
+    }
+}

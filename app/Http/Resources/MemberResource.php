@@ -25,6 +25,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * - Gated behind the `viewAddress` ability (Records-only tier): the home address.
  *   Never present in a peer-visible payload, even when `viewContact` is granted
  *   (#232, ADR-0017 §field-level visibility).
+ * - Gated behind the `viewNoEmailFlag` ability (Records-only, stricter still): the
+ *   no-email flag — Records / super-tier only, never the member themself (#483).
  *
  * @property Member $resource
  */
@@ -77,6 +79,13 @@ class MemberResource extends JsonResource
         $canViewAddress = $this->includeContact
             && (bool) $request->user()?->can('viewAddress', $this->resource);
 
+        // The no-email flag is a Records-only member-administration field (#483,
+        // ADR-0024 §9): present only for Records / super-tier, never for a peer and
+        // never on the member's own profile — stricter even than the address, which
+        // the member may see about themselves.
+        $canViewNoEmailFlag = $this->includeContact
+            && (bool) $request->user()?->can('viewNoEmailFlag', $this->resource);
+
         return [
             'id' => $this->id,
             'first_name' => $this->first_name,
@@ -117,6 +126,11 @@ class MemberResource extends JsonResource
                     'postal_code' => $this->address_postal_code,
                     'country' => $this->address_country,
                 ],
+            ]),
+            // Records-only: the key is absent for anyone but Records or super-tier —
+            // never leaked to a peer or to the member themself (#483, ADR-0024 §9).
+            $this->mergeWhen($canViewNoEmailFlag, fn () => [
+                'no_email' => (bool) $this->no_email,
             ]),
         ];
     }

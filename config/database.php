@@ -82,6 +82,26 @@ return [
             ]) : [],
         ],
 
+        // Tester feedback (ADR-0029 §1): a second database that deploys never reset, so
+        // Feedback items survive staging's `migrate:fresh --seed`. Its migrations live in
+        // database/migrations/feedback and run with a plain `migrate` on this connection.
+        // MariaDB on staging and local; phpunit.xml switches it to in-memory SQLite.
+        'feedback' => [
+            'driver' => env('FEEDBACK_DB_DRIVER', 'mariadb'),
+            'host' => env('FEEDBACK_DB_HOST', '127.0.0.1'),
+            'port' => env('FEEDBACK_DB_PORT', '3306'),
+            'database' => env('FEEDBACK_DB_DATABASE', 'feedback'),
+            'username' => env('FEEDBACK_DB_USERNAME', 'root'),
+            'password' => env('FEEDBACK_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'foreign_key_constraints' => true,
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),

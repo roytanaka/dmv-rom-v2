@@ -16,6 +16,12 @@ return [
         'hours_label' => 'Heures à ajouter',
         'add' => 'Ajouter les heures',
         'whole_hours' => 'Saisissez des heures entières — les minutes ne nous intéressent pas.',
+        // Interactions supplémentaires (#446, ADR-0023 §6) — visiteurs servis en dehors d’un
+        // quart, saisis à côté des heures. La note précise qu’il s’agit de visiteurs, non d’heures.
+        'interactions_label' => 'Visiteurs à ajouter',
+        'interactions_note' => 'Visiteurs que vous avez servis en dehors d’un quart planifié — un nombre de personnes, pas des heures.',
+        'interactions_on_file' => 'Enregistré : :interactions',
+        'whole_interactions' => 'Saisissez un nombre entier de visiteurs.',
     ],
 
     // Recalcul des heures planifiées d’un groupe à partir des inscriptions (#410, ADR-0022 §2)
@@ -35,6 +41,8 @@ return [
             'scheduled' => 'Planifiées',
             'extra' => 'Supplémentaires',
             'total' => 'Total',
+            // Visiteurs servis en dehors d’un quart (ADR-0023 §6) — hors du total, un nombre de personnes.
+            'interactions' => 'Visiteurs',
             'updated' => 'Dernière mise à jour',
         ],
     ],
@@ -56,6 +64,10 @@ return [
             'heading' => 'Aucune heure enregistrée pour l’instant',
             'body' => 'Lorsque vous enregistrez des heures dans un groupe, elles apparaissent ici.',
         ],
+        // Le lien par lequel chaque membre atteint le Sommaire des interactions avec les visiteurs
+        // (#451, ADR-0023 §6) — le rapport est ouvert à tous, il figure donc ici et pas seulement
+        // dans la navigation des rapports d'officier.
+        'visitor_summary' => 'Sommaire des interactions avec les visiteurs du DMV',
     ],
 
     // La barre d'impression et d'export partagée par chaque rapport (#414, ADR-0022 §8).
@@ -152,6 +164,7 @@ return [
         'nav' => [
             'summary' => 'Sommaire',
             'detailed' => 'Détaillé',
+            'visitors' => 'Interactions visiteurs',
             'ranked' => 'Classement des heures',
             'zero_hours' => 'Zéro heure',
             'zero_shift' => 'Zéro heure de quart',
@@ -167,7 +180,7 @@ return [
             'scheduled' => 'Heures planifiées',
             'meetings' => 'Heures de réunion',
             'extra' => 'Heures supplémentaires',
-            'total' => 'Grand total',
+            'total' => 'Total général',
             'column' => [
                 'committee' => 'Comité',
                 'ytd' => 'Cumul annuel',
@@ -178,11 +191,12 @@ return [
         // Statistiques détaillées des comités — chaque comité ventilé en quarts, réunions, supplémentaires.
         'detailed' => [
             'title' => 'Statistiques détaillées des comités',
-            'lead' => 'Les quarts, réunions et heures supplémentaires de chaque comité durant l\'année financière.',
+            'lead' => 'Les quarts, réunions, heures supplémentaires et interactions visiteurs de chaque comité durant l\'année financière.',
             'kind' => [
                 'shifts' => 'Quarts',
                 'meetings' => 'Réunions',
                 'extra' => 'Supplémentaires',
+                'interactions' => 'Interactions visiteurs',
             ],
             'total' => 'Total du DMV — incluant chaque sous-groupe',
             'column' => [
@@ -191,6 +205,21 @@ return [
                 'ytd' => 'Cumul annuel',
             ],
             'empty' => 'Aucune heure enregistrée dans tout le DMV durant cette année financière.',
+        ],
+
+        // Sommaire des interactions avec les visiteurs (#451, ADR-0023 §6) — le chiffre phare du
+        // département, groupes × douze mois. Ouvert à tout membre connecté, pas seulement aux officiers.
+        'visitors' => [
+            'title' => 'Sommaire des interactions avec les visiteurs',
+            'lead' => 'Les interactions avec les visiteurs enregistrées par chaque groupe durant l\'année financière.',
+            'column' => [
+                'group' => 'Groupe',
+                'ytd' => 'Cumul annuel',
+            ],
+            // Le marqueur par groupe pour les chiffres sciemment incomplets (§6).
+            'incomplete' => 'Incomplet',
+            'incomplete_note' => 'Les réservations de groupe ne sont pas encore comptées, ce chiffre est donc sous-évalué.',
+            'empty' => 'Aucune interaction avec les visiteurs enregistrée dans tout le DMV durant cette année financière.',
         ],
 
         // Classement des heures des membres actifs — chaque membre actif et provisoire par total.

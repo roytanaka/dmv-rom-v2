@@ -13,7 +13,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type MyHours, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhClock } from '@phosphor-icons/vue';
+import { PhArrowRight, PhClock } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 
 defineProps<MyHours>();
@@ -38,12 +38,18 @@ const formatMonth = (iso: string) =>
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-6 p-4 sm:p-6">
             <header class="flex flex-col gap-1">
-                <h1 class="text-rom-ink text-lg font-semibold">{{ title }}</h1>
+                <!-- The heading names the fiscal year, because the picker below is the only
+                     other place it appears and the picker does not print. A filed printout
+                     has to say which year it covers. -->
+                <h1 class="text-rom-ink text-lg font-semibold">{{ title }} — {{ trans('hours.mine.fiscal_year', { year: String(fiscalYear) }) }}</h1>
                 <p class="text-muted-foreground text-sm">{{ trans('hours.mine.lead') }}</p>
             </header>
 
-            <!-- Fiscal-year picker — one link per pickable year, the year in view marked. -->
-            <nav class="flex flex-wrap items-center gap-2" :aria-label="trans('hours.mine.pick_year')">
+            <!-- Fiscal-year picker — one link per pickable year, the year in view marked.
+                 `print:hidden` because the marked year reads as unmarked on paper: the
+                 selected chip is a dark fill the browser drops when printing, which leaves
+                 white text on white and makes an unselected year look like the chosen one. -->
+            <nav class="flex flex-wrap items-center gap-2 print:hidden" :aria-label="trans('hours.mine.pick_year')">
                 <span class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">{{ trans('hours.mine.pick_year') }}</span>
                 <Link
                     v-for="year in fiscalYears"
@@ -56,6 +62,17 @@ const formatMonth = (iso: string) =>
                     {{ trans('hours.mine.fiscal_year', { year: String(year) }) }}
                 </Link>
             </nav>
+
+            <!-- Every Member reaches Summary Visitor Interactions from here (#451, ADR-0023 §6):
+                 the report is open to all, so it hangs off My Hours rather than only the officer
+                 report nav an ordinary Member never sees. -->
+            <Link
+                :href="route('hours.visitor-summary')"
+                class="text-rom-ink hover:bg-muted border-border inline-flex w-fit items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium"
+            >
+                {{ trans('hours.mine.visitor_summary') }}
+                <PhArrowRight class="h-4 w-4" />
+            </Link>
 
             <!-- One card per Group the Member has hours in this fiscal year. -->
             <Card v-for="group in groups" :key="group.id">

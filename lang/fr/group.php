@@ -14,6 +14,7 @@ return [
         'scheduling' => 'Horaire',
         'content' => 'Contenu',
         'hours' => 'Heures',
+        'settings' => 'Paramètres',
     ],
     'soon' => 'Bientôt',
 
@@ -141,6 +142,8 @@ return [
         ],
     ],
 
+    // L'onglet Paramètres (#604, ADR-0027) quand aucune de ses cartes ne s'applique.
+    'settings_empty' => 'Ce groupe n’a aucun paramètre que vous pouvez modifier.',
     'coming_soon' => 'Cette section arrive bientôt.',
 
     // Onglet Horaire (#353, ADR-0021 §1) — la surface de lecture des horaires.
@@ -151,6 +154,98 @@ return [
         'draft_badge' => 'Brouillon',
         'date_range' => 'Du :start au :end',
         'back_to_list' => 'Tous les horaires',
+        // Réglages des rappels (#486, ADR-0024 §7) — l'interrupteur marche/arrêt et le nombre de
+        // jours d'avance de l'administrateur·rice de l'horaire, affichés dans la vue liste.
+        'reminders' => [
+            'heading' => 'Rappels de quart',
+            'description' => 'Envoyer aux membres un rappel par courriel quelques jours avant chaque quart auquel ils sont inscrits.',
+            'enabled_label' => 'Envoyer les rappels de quart',
+            'lead_days_label' => 'Jours avant le quart',
+        ],
+        // Réglages de l'alerte de poste vacant (#487, ADR-0024 §7) — l'interrupteur, le délai et
+        // les types de quart surveillés, affichés sur la vue en liste.
+        'empty_desk' => [
+            'heading' => 'Alerte de poste vacant',
+            'description' => 'Tous les trois jours du mois, indiquer par courriel aux membres quels quarts surveillés n’ont toujours personne d’inscrit.',
+            'enabled_label' => 'Envoyer l’alerte de poste vacant',
+            'days_ahead_label' => 'Nombre de jours à vérifier',
+            'watched_label' => 'Types de quart à surveiller',
+            'no_kinds' => 'Ce groupe n’a pas encore de types de quart à surveiller.',
+        ],
+        // Réglages du libre-service (#582, ADR-0026 §1 et §2) — l'interrupteur marche/arrêt du
+        // libre-service et la durée d'une unité en minutes, affichés sur la vue en liste.
+        'self_serve' => [
+            'heading' => 'Quarts en libre-service',
+            'description' => 'Permettre aux membres de créer leurs propres quarts sur les horaires publiés de ce groupe. Chaque quart les inscrit du même coup.',
+            'enabled_label' => 'Permettre aux membres de créer leurs propres quarts',
+            'unit_minutes_label' => 'Minutes par unité',
+            // Créer mon quart (#585, ADR-0026 §1, §2) — la boîte de dialogue créer / modifier /
+            // supprimer côté membre et sa validation, sur un horaire publié d'un groupe en libre-service.
+            'write' => 'Créer mon quart',
+            'create_title' => 'Créer mon quart',
+            'edit_title' => 'Modifier mon quart',
+            'confirm_delete' => 'Supprimer ce quart ? Cela vous en retire. Cette action est irréversible.',
+            'edit' => 'Modifier',
+            'delete' => 'Supprimer',
+            'save' => 'Enregistrer',
+            'cancel' => 'Annuler',
+            'field' => [
+                'kind' => 'Poste',
+                'kind_placeholder' => 'Choisir un poste',
+                'date' => 'Date',
+                'starts_at' => 'Heure de début',
+                'units' => 'Unités',
+            ],
+            'ends_at_preview' => 'Se termine à :time',
+            'units_option' => '{1} :count unité|[2,*] :count unités',
+            'start_before_today' => 'Choisissez aujourd’hui ou un jour ultérieur.',
+            // L'avertissement de conflit de poste (#588, ADR-0026 §5) — un·e autre interprète est
+            // déjà à ce poste à ce moment. Un avertissement, non un blocage : le membre peut passer outre.
+            'station_clash' => 'Un·e autre interprète est déjà à ce poste à ce moment.',
+            'station_clash_confirm' => 'Un·e autre interprète sera à ce poste à ce moment. Continuer ?',
+            'continue' => 'Continuer',
+        ],
+        // Gestion des types de quart (#567, ADR-0021 §3) — le bloc ajouter / renommer / retirer /
+        // réactiver / réordonner de l'administrateur·rice de l'horaire, affiché dans la vue liste. Le
+        // nom d'un type est du contenu rédigé par un·e responsable (ADR-0004) ; le reste est de
+        // l'habillage traduit.
+        'shift_kinds' => [
+            'heading' => 'Types de quart',
+            'description' => 'Nommez les types de quart de ce groupe. Retirez un type pour l’exclure des nouveaux quarts. Ses quarts passés gardent le nom. Marquez un type hors site pour retenir ses objets de la veille au lendemain. Utilisez-le pour des événements comme la CNE.',
+            'empty' => 'Ce groupe n’a pas encore de types de quart.',
+            'add_label' => 'Ajouter un type de quart',
+            'add' => 'Ajouter',
+            'rename' => 'Renommer',
+            'retire' => 'Retirer',
+            'reinstate' => 'Réactiver',
+            'retired_badge' => 'Retiré',
+            'off_site' => 'Hors site',
+            'move_up' => 'Monter',
+            'move_down' => 'Descendre',
+        ],
+        // Maintenance des objets (#584, ADR-0026 §3) — la collection à manipuler qu’un·e
+        // interprète de galerie apporte sur le plancher. Même forme que les types de quart.
+        'objects' => [
+            'heading' => 'Objets',
+            'description' => 'Nommez les objets que ce groupe remet. Retirez un objet pour l’exclure des nouvelles inscriptions. Ses inscriptions passées gardent le nom.',
+            'empty' => 'Ce groupe n’a pas encore d’objets.',
+            'add_label' => 'Ajouter un objet',
+            'add' => 'Ajouter',
+            'rename' => 'Renommer',
+            'retire' => 'Retirer',
+            'reinstate' => 'Réactiver',
+            'retired_badge' => 'Retiré',
+            'move_up' => 'Monter',
+            'move_down' => 'Descendre',
+            // Le sélecteur d’objets sur les flux créer / prendre / placer (#586, ADR-0026 §3) —
+            // un multi-sélecteur avec recherche, affiché seulement si le groupe a des objets actifs.
+            'field_label' => 'Objets',
+            'search' => 'Rechercher un objet',
+            'no_matches' => 'Aucun objet ne correspond.',
+            // Refusé à l’écriture : l’objet est déjà sorti sur une autre inscription à une heure
+            // qui chevauche. Nomme l’objet et la date et l’heure de l’autre quart.
+            'clash' => ':object est déjà sorti le :when. Choisissez un autre objet.',
+        ],
         // Rédaction (#354) — visible seulement pour un·e responsable horaire /
         // président·e / super-palier (contrôlé côté serveur via `can`). Publier /
         // dépublier sont les deux transitions d’état.
@@ -310,6 +405,88 @@ return [
                 'remove' => 'Retirer du quart',
                 'confirm_remove' => 'Retirer ce membre du quart ?',
             ],
+            // Fin de quart (#445, PRD #443, ADR-0023 §5) — la ou le titulaire du quart
+            // enregistre le nombre de visiteur·euses servi·es, sur son propre quart, à partir
+            // de cinq minutes avant la fin. Le bouton reste désactivé tant qu’aucun nombre
+            // n’est saisi ; le serveur applique le reste.
+            'sign_out' => [
+                // La section Rapport après le quart (#652, PRD #651) — une entrée par siège sous
+                // les détails du quart. `record` est le bouton du premier enregistrement ;
+                // `record_needs_count` explique le bouton désactivé ; `count_help` demande de ne
+                // compter que ses propres visiteur·euses, contre le double comptage. `progress` et
+                // `recorded` s’accordent avec le nombre (`transChoice`, #668).
+                'heading' => 'Rapport après le quart',
+                'progress' => ':recorded sur :total enregistré|:recorded sur :total enregistrés',
+                'you' => ':name (vous)',
+                'no_count' => 'Aucun nombre pour l’instant',
+                'count_label' => 'Visiteur·euses servi·es',
+                'count_help' => 'Comptez seulement les visiteur·euses que vous avez servi·es.',
+                'count_help_correcting' => 'Comptez seulement les visiteur·euses que :name a servi·es.',
+                'record' => 'Enregistrer le quart',
+                'record_needs_count' => 'Saisissez le nombre de visiteur·euses pour enregistrer le quart.',
+                'record_needs_provenance' => 'Saisissez le nombre de visiteur·euses et les cinq provenances pour enregistrer le quart.',
+                'change' => 'Modifier',
+                'placeholder' => 'Nombre',
+                'recorded' => ':count visiteur·euse|:count visiteur·euses',
+                'count_required' => 'Saisissez le nombre de visiteur·euses.',
+                'whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
+                'not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
+                // La correction de l’officier·ère (#450, #653, ADR-0023 §5) — Modifier sur chaque
+                // entrée du rapport après le quart, sans échéance. `correcting` nomme le siège
+                // ouvert pour ne pas confondre une correction avec son propre siège. `save` et
+                // `cancel` ferment tout formulaire rouvert, correction ou Modifier.
+                'correcting' => 'Correction des visiteur·euses de :name',
+                'save' => 'Enregistrer les modifications',
+                'save_needs_count' => 'Saisissez le nombre de visiteur·euses pour enregistrer les modifications.',
+                'save_needs_provenance' => 'Saisissez le nombre de visiteur·euses et les cinq provenances pour enregistrer les modifications.',
+                'cancel' => 'Annuler',
+                // Après un enregistrement (#668) : « Enregistré. » à côté de l’entrée, et l’aide sur
+                // le bouton Modifier d’une autre entrée tant que le formulaire ouvert a des
+                // modifications non enregistrées.
+                'saved' => 'Enregistré.',
+                'change_blocked' => 'Enregistrez ou annulez d’abord vos modifications.',
+                // Qui a enregistré une entrée en dernier, et quand (#654) — le ou la titulaire du
+                // siège, ou la correction d’un·e officier·ère. `:time` suit l’heure de l’organisme.
+                'last_edited' => 'Dernière modification par :name · :time',
+                // Le commentaire facultatif sur sa propre entrée (#655). Seul·e l’auteur·e et un·e
+                // responsable de l’horaire le lisent ; la correction d’un·e officier·ère n’a pas
+                // cette case.
+                'comment_label' => 'Commentaire (facultatif)',
+                'comment_help' => 'Questions des visiteur·euses, déroulement du quart, ou tout ce que vous avez remarqué sur le terrain',
+                'comment_max' => 'Le commentaire peut compter au plus 2 000 caractères.',
+                'comment_count' => ':count sur :max caractères',
+                'comment_officer' => 'Seul·e le ou la bénévole peut écrire un commentaire sur son entrée.',
+                // La seconde case des groupes qui mènent des circuits (#447, ADR-0023 §2) —
+                // visiteur·euses servi·es en dehors du circuit, facultatif.
+                'extra_label' => 'Visiteur·euses servi·es hors du circuit',
+                'extra_placeholder' => 'Facultatif',
+                'extra_recorded' => ':count hors du circuit',
+                'extra_whole_number' => 'Saisissez un nombre entier d’interactions supplémentaires.',
+                'extra_not_negative' => 'Le nombre d’interactions supplémentaires ne peut pas être négatif.',
+                // Les cinq provenances des visiteur·euses de GDR (#448, ADR-0023 §3) — la ventilation
+                // à côté du décompte, GDR seul. Les cinq doivent totaliser le décompte ;
+                // `provenance_sum` nomme les deux totaux. Les cinq étiquettes reprennent le libellé
+                // que le legacy affiche au sign-out depuis 2020.
+                'provenance_heading' => 'Provenance des visiteur·euses',
+                'provenance_france_europe' => 'France + Europe Fr',
+                'provenance_quebec' => 'Prov Québec',
+                'provenance_toronto' => 'Toronto',
+                'provenance_rest_of_canada' => 'Reste du Canada',
+                'provenance_other_countries' => 'Autres Pays',
+                'provenance_sum' => 'Les cinq provenances totalisent :sum, mais le nombre de visiteur·euses est :count.',
+                'provenance_required' => 'Saisissez un nombre pour chaque provenance.',
+                'provenance_whole_number' => 'Saisissez un nombre entier de visiteur·euses.',
+                'provenance_not_negative' => 'Le nombre de visiteur·euses ne peut pas être négatif.',
+            ],
+        ],
+        // Mes inscriptions (#449, PRD #443, ADR-0023 §5) — le panneau des quarts en
+        // souffrance : les quarts à venir de la ou du bénévole, plus tout quart passé dans la
+        // fenêtre de 28 jours qui attend encore un nombre de visiteur·euses. Il traverse les
+        // horaires ; absent, et non vide, quand il n’y a rien à montrer.
+        'mine' => [
+            'aria_label' => 'Mes inscriptions',
+            'heading' => 'Mes inscriptions',
+            'subtitle' => 'Vos quarts à venir, et tout quart récent qui attend encore un nombre de visiteur·euses.',
         ],
         // Bascule de vue (#360, ADR-0021 §7) — la ou le lecteur choisit Agenda ou
         // Calendrier ; le choix vit dans localStorage, jamais dans le formulaire de

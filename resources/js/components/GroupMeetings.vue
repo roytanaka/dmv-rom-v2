@@ -12,6 +12,7 @@
 // what renders. Meeting title, description, and location are member-authored
 // content, rendered as-authored; the link labels and everything else are translated
 // chrome (ADR-0004).
+import DateTimeField from '@/components/DateTimeField.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -56,7 +57,7 @@ const formatDateTime = (iso: string) =>
 const LINK_KINDS = ['agenda', 'minutes', 'report'] as const;
 type LinkKind = (typeof LINK_KINDS)[number];
 
-// Render a UTC ISO datetime as the `YYYY-MM-DDTHH:mm` a <input type="datetime-local">
+// Render a UTC ISO datetime as the `YYYY-MM-DDTHH:mm` the DateTimeField
 // expects, on the org's wall clock — so the editor opens showing the same o'clock the
 // card does, and saving it back is a no-op. The input has no timezone of its own; the
 // server reads what it sends as org-local (`App\Support\OrgTime`).
@@ -239,7 +240,7 @@ const destroy = (meeting: Meeting) => {
                     </div>
                     <div class="grid gap-2">
                         <Label for="meeting-held-at">{{ trans('group.meetings.field.held_at') }}</Label>
-                        <Input id="meeting-held-at" v-model="form.held_at" type="datetime-local" required />
+                        <DateTimeField id="meeting-held-at" v-model="form.held_at" required />
                     </div>
                     <div class="grid gap-2">
                         <Label for="meeting-description">{{ trans('group.meetings.field.description') }}</Label>
