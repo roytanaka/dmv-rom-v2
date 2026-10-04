@@ -3,6 +3,7 @@ import '../css/app.css';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { i18nVue } from 'laravel-vue-i18n';
+import type { LanguageJsonFileInterface } from 'laravel-vue-i18n/interfaces/language-json-file';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
@@ -30,7 +31,7 @@ createInertiaApp({
             .use(i18nVue, {
                 lang: locale,
                 resolve: async (lang: string) => {
-                    const langs = import.meta.glob('../../lang/*.json');
+                    const langs = import.meta.glob<LanguageJsonFileInterface>('../../lang/*.json');
                     return await langs[`../../lang/php_${lang}.json`]();
                 },
             })
