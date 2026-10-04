@@ -31,7 +31,7 @@ vendor/bin/pest
 
 Green here is necessary but not sufficient. The merge is decided by
 `.github/workflows/ci.yml`, which runs `php artisan test --parallel` against
-**MariaDB 10.6** — while `vendor/bin/pest` here runs against **in-memory
+**MariaDB 11.4** — while `vendor/bin/pest` here runs against **in-memory
 SQLite** (`phpunit.xml`). Anything resting on engine behaviour — column types,
 collation and case-sensitivity, date handling, strict-mode rejections, `groupBy`
 semantics, JSON functions — can pass in this sandbox and fail the merge. Write

@@ -10,10 +10,11 @@ date: 2026-05-15
 The legacy app has run on Stormweb shared hosting (Vancouver, BC; Enterprise package, $22.99 CAD/mo) for years. A reasonable default for a rebuild of this scope would be to move to a VPS, container host, or major cloud (Canadian region) "while we're already rewriting everything." We are deliberately not doing that.
 
 The constraints that shaped this decision:
+
 - **Canadian data residency** is mandatory — member PII must stay in Canada. Stormweb's Vancouver datacenter satisfies this and the residency story is verifiable by a single technical contact.
 - **~500 Volunteers, tens concurrent at peak.** Load is small and predictable.
 - **No queue workers, websockets, or background services in v1** (see `docs/architecture.md § What we don't do`). This is a deliberate scope choice, not a forced one.
-- **Stormweb supports PHP 8.3–8.5 and MariaDB 10.6** — the exact stack Laravel 12 wants.
+- **Stormweb supports PHP 8.3–8.5 and MariaDB 10.6** — the exact stack Laravel 12 wants. _(Amended 2026-10-04: the Stormweb control panel now reports **MariaDB 11.4.13** for this account, which hosts the legacy, staging and production databases. MariaDB 10.6 reached end of life on 2026-07-06. Local dev and CI now run 11.4 to match.)_
 - **PHP version is per-domain** on Stormweb, so staging can run a newer PHP while the live legacy domain stays on its current version until cutover (one control-panel dropdown flip).
 - **SSH + key auth + daily off-site backups** are included.
 - **The single technical maintainer is comfortable with the host.** Familiarity reduces operational handoff risk during the rebuild.
@@ -38,7 +39,7 @@ These are deliberate trade-offs, **not** exit triggers. They are constraints tha
 - **No queue workers.** Email sends synchronously via Laravel's mail. Long-running operations (bulk-mailing all volunteers, batch document processing) must either fit within an HTTP request budget or be chunked across cron-triggered passes. _(Amended 2026-09-07, [ADR-0024](0024-emailing-model.md): email no longer sends inside a request at all. Every mail is a **Delivery** row that a cron pass every minute drains under a throttle, so the "chunked across cron-triggered passes" branch is the only branch, and a dead cron means no mail.)_
 - **No websockets / live updates.** Any UI that wants real-time presence-style behavior must use polling or be designed without it.
 - **No persistent background services.** No long-running PHP processes, no daemon scripts. Scheduled work runs via control-panel cron only.
-- **No Docker on production.** Local dev uses Docker (via Laravel Sail) to mirror PHP 8.4 + MariaDB 10.6, but production runs the native Stormweb stack.
+- **No Docker on production.** Local dev uses Docker (via Laravel Sail) to mirror PHP 8.4 + MariaDB 11.4 (10.6 until 2026-10-04, see above), but production runs the native Stormweb stack.
 - **Limited observability.** Logs and error tracking sit on the host filesystem unless we add an external provider. We accept this for v1.
 
 If a future feature needs one of these, the right move is usually to design the feature around the constraint, not to migrate hosts.

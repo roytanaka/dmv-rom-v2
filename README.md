@@ -16,7 +16,7 @@ In active development. The legacy production application remains live during the
 
 - **Backend:** PHP 8.4, Laravel 12
 - **Frontend:** Inertia.js, Vue 3, Tailwind CSS, shadcn-vue components
-- **Database:** MariaDB 10.6
+- **Database:** MariaDB 11.4
 - **Build:** Vite
 - **Local dev:** Docker via Laravel Sail
 - **Hosting:** Stormweb shared hosting (Vancouver, BC), SSH deploy
@@ -42,7 +42,7 @@ The app is available at http://localhost:80 (or `APP_PORT` if customized). Vite 
 
 ## Local development database
 
-The application uses a MariaDB 10.6 instance (matching Stormweb production), provisioned automatically by Laravel Sail. Once `pnpm sail:up` is running, `php artisan migrate` is all you need to be ready for development.
+The application uses a MariaDB 11.4 instance (matching Stormweb production), provisioned automatically by Laravel Sail. Once `pnpm sail:up` is running, `php artisan migrate` is all you need to be ready for development.
 
 Sail exposes MariaDB on host port `3307` by default (`FORWARD_DB_PORT` in `.env.example`). Inside the Sail container, Laravel reaches it as `mariadb:3306`. If port `3307` is already in use on your machine, override `FORWARD_DB_PORT` in your `.env` to any free port.
 
