@@ -12,7 +12,7 @@ The app serves ~500 volunteers at the Department of Museum Volunteers, Royal Ont
 
 - PHP 8.4, Laravel 12
 - Inertia.js + Vue 3 + Tailwind CSS + shadcn-vue
-- MariaDB 10.6 (matches production)
+- MariaDB 11.4 (matches production)
 - Vite for asset building
 - Docker (Laravel Sail) runs the PHP/Laravel app + MariaDB; the frontend toolchain (Vite/pnpm) runs on the host (see "Things that are easy to get wrong here")
 

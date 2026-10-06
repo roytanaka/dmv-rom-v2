@@ -8,7 +8,7 @@
 - **Vue 3 (Composition API)** — modern, well-documented, AI-friendly.
 - **Tailwind CSS** — utility-first, pairs well with Vue and Inertia. Claude Code handles it cleanly.
 - **shadcn-vue** — copy-paste component library built on Tailwind and Reka UI. Components are added via CLI and live in our source tree (`resources/js/Components/ui/`). We own and edit them freely. Provides accessible, well-designed primitives (buttons, dialogs, dropdowns, forms, tables) without the lock-in of a traditional component library.
-- **MariaDB 10.6** — matches production. We do not use MySQL-only or Postgres-only features.
+- **MariaDB 11.4** — matches production. We do not use MySQL-only or Postgres-only features.
 - **Vite** — Laravel's default asset bundler.
 - **Docker (local dev only)** — replicates the production PHP/MariaDB versions via Laravel Sail. Production uses the native shared-host stack, not Docker.
 
@@ -109,7 +109,7 @@ See `docs/conventions.md` § Documents for implementation details.
 
 ## Environments
 
-- **Local:** Laravel Sail (Docker Compose) with PHP 8.4 + MariaDB 10.6. Matches production versions.
+- **Local:** Laravel Sail (Docker Compose) with PHP 8.4 + MariaDB 11.4. Matches production versions.
 - **Staging:** A separate subdomain on the same Stormweb account, with its own database. Stormweb's PHP version is per-domain, so staging can run PHP 8.4 independent of the live legacy domain until cutover.
 - **Production:** Cuts over to the rebuild's database at migration time. Legacy DB retained as read-only backup. The live domain's PHP version updates as part of cutover.
 
@@ -132,12 +132,12 @@ Procedure, run right before the presentation:
 1. **Deploy the demo build first.** Every push to `staging` runs `migrate:fresh --seed`, which **drops the database** and reseeds only the test login. So deploy before you seed — never the other way around.
 2. **Seed last.** SSH into the Stormweb account and `cd` into the **staging** app folder, then run the seeder (Stormweb's default `php` is 7.4; the app needs 8.4):
 
-   ```bash
-   ssh dmvromca@dmv-rom.ca
-   cd ~/domains/staging.dmv-rom.ca/dmv-rom-v2        # staging — NOT the prod domain folder
-   /usr/local/php84/bin/php artisan db:seed --class=DemoSeeder --force
-   ```
+    ```bash
+    ssh dmvromca@dmv-rom.ca
+    cd ~/domains/staging.dmv-rom.ca/dmv-rom-v2        # staging — NOT the prod domain folder
+    /usr/local/php84/bin/php artisan db:seed --class=DemoSeeder --force
+    ```
 
-   Staging and production are sibling domain folders under the **same** `dmvromca@dmv-rom.ca` account, so the directory you `cd` into is the only thing keeping this off production. Confirm before seeding — `pwd` should end in `staging.dmv-rom.ca/dmv-rom-v2`, and `grep -E '^(APP_ENV|APP_URL|DB_DATABASE)=' .env` should show the staging environment. If `.env` says production, **stop** — you're in the wrong folder. (`DemoSeeder` is insert-only, so it won't overwrite real data, but it would scatter `*@dmv.test` members and demo groups through the live org.) The seeder picks up the DB credentials from that folder's `.env`; `--force` is needed only to skip Laravel's production-env confirmation prompt.
+    Staging and production are sibling domain folders under the **same** `dmvromca@dmv-rom.ca` account, so the directory you `cd` into is the only thing keeping this off production. Confirm before seeding — `pwd` should end in `staging.dmv-rom.ca/dmv-rom-v2`, and `grep -E '^(APP_ENV|APP_URL|DB_DATABASE)=' .env` should show the staging environment. If `.env` says production, **stop** — you're in the wrong folder. (`DemoSeeder` is insert-only, so it won't overwrite real data, but it would scatter `*@dmv.test` members and demo groups through the live org.) The seeder picks up the DB credentials from that folder's `.env`; `--force` is needed only to skip Laravel's production-env confirmation prompt.
 
 3. **Present — and don't push to `staging` again until you're done.** Any further push triggers `migrate:fresh --seed` and wipes the demo data. If that happens, just re-run the command above: `DemoSeeder` is idempotent, so re-seeding heals the data (keyed on slug / email / membership pair) rather than duplicating it.
