@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Personas\PersonaCatalogue;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 /*
  * Regression guard for the officer-write strict-mode lazy-load bug: a non-super-tier
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Http;
  */
 beforeEach(function () {
     Http::fake();
+    Storage::fake('local');
     $this->seed(DemoSeeder::class);
 });
 
