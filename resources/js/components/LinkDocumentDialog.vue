@@ -11,7 +11,8 @@ import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { watch } from 'vue';
 
-const props = defineProps<{ groupSlug: string }>();
+// `folderId`: the open Folder the link lands in (#714); null at the library root.
+const props = defineProps<{ groupSlug: string; folderId?: number | null }>();
 const open = defineModel<boolean>('open', { required: true });
 
 const form = useForm({ title: '', url: '' });
@@ -24,7 +25,10 @@ watch(open, (isOpen) => {
 });
 
 function submit(): void {
-    form.post(route('documents.links.store', { group: props.groupSlug }), { preserveScroll: true, onSuccess: () => (open.value = false) });
+    form.transform((data) => ({ ...data, folder_id: props.folderId ?? null })).post(route('documents.links.store', { group: props.groupSlug }), {
+        preserveScroll: true,
+        onSuccess: () => (open.value = false),
+    });
 }
 </script>
 

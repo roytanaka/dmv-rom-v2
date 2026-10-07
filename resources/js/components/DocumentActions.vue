@@ -2,7 +2,9 @@
 // One Document's manage menu on the Group Documents tab (#713, spec #290, ADR-0030 §8): edit
 // its title and description, upload a new file over it, or delete it after a confirm. Rendered
 // only for a manager (the server's `canManage` hint); the DocumentPolicy enforces every write.
-// Title and description are content, kept as written (ADR-0004).
+// Title and description are content, kept as written (ADR-0004). Move (#714) sends it to
+// another Folder or the library root through DocumentMoveDialog.
+import DocumentMoveDialog from '@/components/DocumentMoveDialog.vue';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -20,13 +22,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { type LibraryDocument } from '@/types';
+import { type FolderDestination, type LibraryDocument } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
-import { PhArrowsClockwise, PhDotsThreeVertical, PhPencilSimple, PhTrash } from '@phosphor-icons/vue';
+import { PhArrowBendUpRight, PhArrowsClockwise, PhDotsThreeVertical, PhPencilSimple, PhTrash } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
-const props = defineProps<{ document: LibraryDocument }>();
+const props = defineProps<{ document: LibraryDocument; destinations: FolderDestination[]; maxDepth: number }>();
+
+const moving = ref(false);
 
 const name = computed(() => props.document.title ?? props.document.filename ?? '');
 const isLink = computed(() => props.document.kind === 'link');
@@ -109,6 +113,10 @@ function confirmDelete(): void {
                 <PhArrowsClockwise class="size-4" />
                 {{ trans('documents.manage.replace') }}
             </DropdownMenuItem>
+            <DropdownMenuItem class="gap-2" @select="moving = true">
+                <PhArrowBendUpRight class="size-4" />
+                {{ trans('document_folders.move_document') }}
+            </DropdownMenuItem>
             <DropdownMenuItem class="text-destructive gap-2" @select="deleting = true">
                 <PhTrash class="size-4" />
                 {{ trans('documents.manage.delete') }}
@@ -176,6 +184,16 @@ function confirmDelete(): void {
             </form>
         </DialogContent>
     </Dialog>
+
+    <DocumentMoveDialog
+        v-model:open="moving"
+        kind="document"
+        :id="document.id"
+        :name="name"
+        :current-folder-id="document.folderId"
+        :destinations="destinations"
+        :max-depth="maxDepth"
+    />
 
     <AlertDialog v-model:open="deleting">
         <AlertDialogContent>

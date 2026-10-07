@@ -285,6 +285,8 @@ export interface LibraryDocument {
     id: number;
     /** A stored file, or a link to a web address (#716). */
     kind: 'file' | 'link';
+    /** The Folder it sits in, or null at the library root (#714). */
+    folderId: number | null;
     /** A link's web address, sent to managers only (for editing); readers open `href`. */
     url: string | null;
     title: string | null;
@@ -310,7 +312,35 @@ export interface LibraryTag {
     name: string;
 }
 
+// A Folder of the Document library (#714, ADR-0030 §3). `name` is content, shown as written.
+export interface LibraryFolder {
+    id: number;
+    name: string;
+    /** The Folder's page, localized. */
+    href: string;
+}
+
+// One move destination, sent to managers only (#714): every Folder of the Group in tree order.
+export interface FolderDestination {
+    id: number;
+    parentId: number | null;
+    /** 1 for a top-level Folder. */
+    depth: number;
+    /** Folder names from the top level down to this one. */
+    path: string[];
+}
+
 export interface GroupLibrary {
+    /** The open Folder, or null at the library root (#714). */
+    folder: LibraryFolder | null;
+    /** The Folders above the open one, top-level first (#714). */
+    breadcrumb: LibraryFolder[];
+    /** The open Folder's child Folders, sorted by name; none under a Tag filter (#714). */
+    folders: LibraryFolder[];
+    /** Every Folder as a move destination; managers only (#714). */
+    destinations: FolderDestination[];
+    /** How deep Folders may go (DocumentFolder::MAX_DEPTH). */
+    maxDepth: number;
     documents: LibraryDocument[];
     /** Every Tag the Group defines, sorted by name (#717). */
     tags: LibraryTag[];

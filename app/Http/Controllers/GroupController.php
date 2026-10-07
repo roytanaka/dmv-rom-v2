@@ -310,7 +310,7 @@ class GroupController extends Controller
             // open Folder (or the library root) with what the viewer may read in it.
             'library' => $section === 'documents'
                 ? $this->library($request, $group, $folder)
-                : ['folder' => null, 'breadcrumb' => [], 'folders' => [], 'destinations' => [], 'documents' => [], 'tags' => [], 'tag' => null],
+                : ['folder' => null, 'breadcrumb' => [], 'folders' => [], 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH, 'documents' => [], 'tags' => [], 'tag' => null],
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'
@@ -709,7 +709,7 @@ class GroupController extends Controller
      * and Document passes the policy's read check, so a non-member sees only what the Group
      * shares with every Member. The uploader and the move destinations ride only for a manager.
      *
-     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, folders: list<array<string, mixed>>, destinations: list<array<string, mixed>>, documents: list<array<string, mixed>>, tags: list<array{id: int, name: string}>, tag: array{id: int, name: string}|null}
+     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, folders: list<array<string, mixed>>, destinations: list<array<string, mixed>>, maxDepth: int, documents: list<array<string, mixed>>, tags: list<array{id: int, name: string}>, tag: array{id: int, name: string}|null}
      */
     private function library(Request $request, Group $group, ?DocumentFolder $folder = null): array
     {
@@ -763,10 +763,14 @@ class GroupController extends Controller
             'breadcrumb' => $folder === null ? [] : $folder->ancestors()->map($folderRow)->values()->all(),
             'folders' => $folders->map($folderRow)->all(),
             'destinations' => $canManage ? $this->folderDestinations($group) : [],
+            // The depth limit, so the client offers only the Folder actions the server will accept.
+            'maxDepth' => DocumentFolder::MAX_DEPTH,
             'documents' => $documents
                 ->map(fn (Document $document) => [
                     'id' => $document->id,
                     'kind' => $document->kind->value,
+                    // The Folder it sits in (#714), for the move picker; null at the root.
+                    'folderId' => $document->folder_id,
                     // A link's address, for a manager's edit form only; readers open it
                     // through `href`, so every open is checked and logged (#716).
                     'url' => $canManage ? $document->url : null,

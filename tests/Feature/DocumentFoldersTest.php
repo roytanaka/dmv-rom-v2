@@ -396,7 +396,9 @@ it('opens a Folder with its breadcrumb, child Folders and Documents', function (
             ->has('library.folders', 1)
             ->where('library.folders.0.id', $tour->id)
             ->has('library.documents', 1)
-            ->where('library.documents.0.id', $sheet->id));
+            ->where('library.documents.0.id', $sheet->id)
+            ->where('library.documents.0.folderId', $section->id)
+            ->where('library.maxDepth', DocumentFolder::MAX_DEPTH));
 });
 
 it('shows an empty Folder with nothing in it', function () {

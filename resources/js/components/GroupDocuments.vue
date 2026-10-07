@@ -13,7 +13,15 @@
 // A link Document (#716) shows a link icon in place of type and size and opens in a new tab
 // through the same gated route. A manager adds one in LinkDocumentDialog and edits it from
 // the row's DocumentActions menu (#713).
+//
+// Folders (#714): the tab shows the open Folder (or the library root) with its breadcrumb, its
+// child Folders above its Documents, and an empty-Folder message. Uploads and new links land
+// in the open Folder. A manager creates Folders here and renames, moves or deletes one from
+// its row's DocumentFolderActions menu.
 import DocumentActions from '@/components/DocumentActions.vue';
+import DocumentFolderActions from '@/components/DocumentFolderActions.vue';
+import DocumentFolderBreadcrumb from '@/components/DocumentFolderBreadcrumb.vue';
+import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
 import DocumentTagFilter from '@/components/DocumentTagFilter.vue';
 import DocumentTagsEditor from '@/components/DocumentTagsEditor.vue';
 import DocumentTagsManager from '@/components/DocumentTagsManager.vue';
@@ -23,10 +31,10 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { type GroupLibrary, type SharedData } from '@/types';
-import { router, usePage } from '@inertiajs/vue3';
-import { PhCheckCircle, PhFile, PhLink, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { PhCheckCircle, PhFile, PhFolder, PhFolderPlus, PhLink, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{ library: GroupLibrary; canManage: boolean; groupSlug: string }>();
 
@@ -52,6 +60,17 @@ function formatSize(bytes: number | null): string {
 
 const linkDialogOpen = ref(false);
 
+// --- Folders (#714) --------------------------------------------------------------------
+
+const folderDialogOpen = ref(false);
+const folderId = computed(() => props.library.folder?.id ?? null);
+// A new Folder goes inside the open one, so it fits only while the open one sits above the limit.
+const canAddFolder = computed(() => props.library.breadcrumb.length + (props.library.folder ? 1 : 0) < props.library.maxDepth);
+const isEmpty = computed(() => props.library.folders.length === 0 && props.library.documents.length === 0);
+const emptyMessage = computed(() =>
+    trans(props.library.tag ? 'document_tags.empty' : props.library.folder ? 'document_folders.empty' : 'documents.empty'),
+);
+
 // --- Upload ---------------------------------------------------------------------------
 
 interface Upload {
@@ -76,7 +95,7 @@ function send(upload: Upload): Promise<void> {
         upload.state = 'uploading';
         router.post(
             route('documents.store', { group: props.groupSlug }),
-            { file: upload.file },
+            { file: upload.file, folder_id: folderId.value },
             {
                 forceFormData: true,
                 preserveScroll: true,
@@ -136,6 +155,8 @@ function onDrop(event: DragEvent): void {
 
 <template>
     <div class="flex flex-col gap-6">
+        <DocumentFolderBreadcrumb v-if="library.folder" :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
+
         <!-- Upload, for a manager only. The whole zone takes a drop; the button opens the picker. -->
         <section v-if="canManage" class="flex flex-col gap-3">
             <div
@@ -153,10 +174,14 @@ function onDrop(event: DragEvent): void {
                 <input ref="fileInput" type="file" multiple class="sr-only" :aria-label="trans('documents.upload.button')" @change="onPick" />
             </div>
 
-            <div>
+            <div class="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" size="sm" @click="linkDialogOpen = true">
                     <PhLink class="h-4 w-4" aria-hidden="true" />
                     {{ trans('documents.link.add') }}
+                </Button>
+                <Button v-if="canAddFolder" type="button" variant="outline" size="sm" @click="folderDialogOpen = true">
+                    <PhFolderPlus class="h-4 w-4" aria-hidden="true" />
+                    {{ trans('document_folders.new') }}
                 </Button>
             </div>
 
@@ -188,9 +213,7 @@ function onDrop(event: DragEvent): void {
             <div v-if="canManage" class="sm:ml-auto"><DocumentTagsManager :tags="library.tags" :group-slug="groupSlug" /></div>
         </div>
 
-        <p v-if="library.documents.length === 0" class="text-muted-foreground py-12 text-center text-base">
-            {{ trans(library.tag ? 'document_tags.empty' : 'documents.empty') }}
-        </p>
+        <p v-if="isEmpty" class="text-muted-foreground py-12 text-center text-base">{{ emptyMessage }}</p>
 
         <Table v-else>
             <TableHeader>
@@ -206,6 +229,31 @@ function onDrop(event: DragEvent): void {
                 </TableRow>
             </TableHeader>
             <TableBody>
+                <!-- Folders first (#714), each a link into it. -->
+                <TableRow v-for="folder in library.folders" :key="`folder-${folder.id}`">
+                    <TableCell class="whitespace-normal">
+                        <Link
+                            :href="folder.href"
+                            class="text-rom-ink inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline"
+                            :aria-label="trans('document_folders.open', { name: folder.name })"
+                        >
+                            <PhFolder class="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
+                            {{ folder.name }}
+                        </Link>
+                    </TableCell>
+                    <TableCell class="text-muted-foreground hidden sm:table-cell">{{ trans('document_folders.kind') }}</TableCell>
+                    <TableCell class="hidden sm:table-cell" />
+                    <TableCell class="hidden md:table-cell" />
+                    <TableCell v-if="canManage" class="hidden lg:table-cell" />
+                    <TableCell v-if="canManage" class="w-10 text-right">
+                        <DocumentFolderActions
+                            :folder="folder"
+                            :parent-id="folderId"
+                            :destinations="library.destinations"
+                            :max-depth="library.maxDepth"
+                        />
+                    </TableCell>
+                </TableRow>
                 <TableRow v-for="document in library.documents" :key="document.id">
                     <TableCell class="whitespace-normal">
                         <a
@@ -258,12 +306,13 @@ function onDrop(event: DragEvent): void {
                     <TableCell class="text-muted-foreground hidden md:table-cell">{{ formatDate(document.updatedAt) }}</TableCell>
                     <TableCell v-if="canManage" class="text-muted-foreground hidden lg:table-cell">{{ document.uploader }}</TableCell>
                     <TableCell v-if="canManage" class="w-10 text-right">
-                        <DocumentActions :document="document" />
+                        <DocumentActions :document="document" :destinations="library.destinations" :max-depth="library.maxDepth" />
                     </TableCell>
                 </TableRow>
             </TableBody>
         </Table>
 
-        <LinkDocumentDialog v-if="canManage" v-model:open="linkDialogOpen" :group-slug="groupSlug" />
+        <LinkDocumentDialog v-if="canManage" v-model:open="linkDialogOpen" :group-slug="groupSlug" :folder-id="folderId" />
+        <DocumentFolderDialog v-if="canManage" v-model:open="folderDialogOpen" :group-slug="groupSlug" :parent-id="folderId" />
     </div>
 </template>
