@@ -50,6 +50,16 @@ it('defaults a bare slug to the Overview section and reads the {section} segment
         ->assertInertia(fn (Assert $page) => $page->where('section', 'roster'));
 });
 
+it('sends no content capability: the content catalog merged into the Document library (ADR-0030 §1)', function () {
+    $group = Group::factory()->program()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('group.capabilities.documents', true)
+            ->missing('group.capabilities.content'));
+});
+
 it('404s an unknown slug', function () {
     $this->actingAs(Member::factory()->create())
         ->get('/groups/no-such-group')

@@ -165,7 +165,6 @@ class GroupController extends Controller
                     'meetings' => $group->has_meetings,
                     'documents' => $group->has_documents,
                     'scheduling' => $group->has_scheduling,
-                    'content' => $group->has_content_catalog,
                     // Whether the Group collects a per-shift visitor count (#445, ADR-0023 §5).
                     // Unlike the flags above it opens no tab — it switches the Post-shift report
                     // on inside the Scheduling section — but it rides here as the one Group-level

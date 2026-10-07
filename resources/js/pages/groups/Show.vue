@@ -70,7 +70,6 @@ const props = defineProps<{
             meetings: boolean;
             documents: boolean;
             scheduling: boolean;
-            content: boolean;
             collectsVisitorCount: boolean;
             collectsExtraInteractions: boolean;
             collectsVisitorProvenance: boolean;
@@ -154,7 +153,6 @@ const tabs = computed<NavNode[]>(() => {
     if (props.group.capabilities.meetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents', soon: true });
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
-    if (props.group.capabilities.content) list.push({ href: href('content'), labelKey: 'group.tab.content', soon: true });
     list.push({ href: href('hours'), labelKey: 'group.tab.hours' });
     if (props.can.manageSettings) list.push({ href: href('settings'), labelKey: 'group.tab.settings' });
     return list;

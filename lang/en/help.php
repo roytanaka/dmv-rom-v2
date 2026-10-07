@@ -51,7 +51,6 @@ return [
             'scheduler' => 'Scheduler',
             'vetting' => 'Vetting',
             'librarian' => 'Librarian',
-            'content_maintainer' => 'Content Maintainer',
             'news_editor' => 'News Editor',
             'super_tier' => 'Super-tier',
             'support_operator' => 'Support operator',

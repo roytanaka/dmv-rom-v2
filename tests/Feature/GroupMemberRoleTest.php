@@ -61,6 +61,10 @@ it('rejects an illegal role value', function () {
     GroupMemberRole::factory()->create(['role' => 'overlord']);
 })->throws(ValueError::class);
 
+it('no longer has a Content Maintainer role (ADR-0030 §1)', function () {
+    expect(Role::tryFrom('content_maintainer'))->toBeNull();
+});
+
 it('attaches a capability-backed role when the Group has the flag on', function () {
     $group = Group::factory()->program()->create();
     $membership = GroupMember::factory()->create(['group_id' => $group->id]);
