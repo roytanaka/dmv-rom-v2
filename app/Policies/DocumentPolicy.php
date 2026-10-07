@@ -53,6 +53,22 @@ class DocumentPolicy
     }
 
     /**
+     * Who may edit a Document's title and description, or upload a new file over it (#713).
+     */
+    public function update(Member $actor, Document $document): bool
+    {
+        return $this->managesLibraryOf($actor, $document->group);
+    }
+
+    /**
+     * Who may delete a Document (#713).
+     */
+    public function delete(Member $actor, Document $document): bool
+    {
+        return $this->managesLibraryOf($actor, $document->group);
+    }
+
+    /**
      * The shared manage predicate: the Group's Librarian (or Chair, folded in by
      * {@see Member::canActAs()}), while the documents capability is on. Edit, replace, move
      * and delete abilities reuse it.

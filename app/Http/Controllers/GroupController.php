@@ -715,6 +715,7 @@ class GroupController extends Controller
                     'id' => $document->id,
                     // Content, as-authored (ADR-0004); the client falls back to the filename.
                     'title' => $document->title,
+                    'description' => $document->description,
                     'filename' => $document->original_filename,
                     'extension' => $document->original_filename === null
                         ? null

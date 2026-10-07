@@ -333,6 +333,17 @@ Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
 Route::post('groups/{group}/documents', [DocumentController::class, 'store'])
     ->middleware(['auth'])
     ->name('documents.store');
+// Edit, replace and delete one Document (#713, ADR-0030 §8). Replace is a POST: it carries a
+// multipart file, which PHP parses only on POST.
+Route::patch('documents/{document}', [DocumentController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('documents.update');
+Route::post('documents/{document}/file', [DocumentController::class, 'replace'])
+    ->middleware(['auth'])
+    ->name('documents.replace');
+Route::delete('documents/{document}', [DocumentController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('documents.destroy');
 
 // Group scheduling authoring (#354, PRD #352, ADR-0021 §1). The Scheduler's write
 // seam for a Group's Schedules: create a draft, edit its fields, publish / un-publish

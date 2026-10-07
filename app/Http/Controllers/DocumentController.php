@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Enums\DocumentKind;
+use App\Http\Requests\DeleteDocumentRequest;
+use App\Http\Requests\ReplaceDocumentFileRequest;
 use App\Http\Requests\StoreDocumentRequest;
+use App\Http\Requests\UpdateDocumentRequest;
+use App\Models\Document;
 use App\Models\Group;
 use App\Support\DocumentStorage;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +31,52 @@ class DocumentController extends Controller
             'uploaded_by_id' => $request->user()->id,
             'uploaded_at' => now(),
         ]);
+
+        return back();
+    }
+
+    /**
+     * Edit a Document's title and description (#713).
+     */
+    public function update(UpdateDocumentRequest $request, Document $document): RedirectResponse
+    {
+        $document->update($request->validated());
+
+        return back();
+    }
+
+    /**
+     * Upload a new file over a Document (#713, ADR-0030 §8). The row keeps its id, so its
+     * download link, Folder and Tags stay; the file's columns and the uploader change. The old
+     * file is deleted only once the row points at the new one.
+     */
+    public function replace(ReplaceDocumentFileRequest $request, Document $document, DocumentStorage $storage): RedirectResponse
+    {
+        $oldPath = $document->storage_path;
+
+        $document->update([
+            ...$storage->store($request->file('file')),
+            'uploaded_by_id' => $request->user()->id,
+            'uploaded_at' => now(),
+        ]);
+
+        if ($oldPath !== null) {
+            $storage->delete($oldPath);
+        }
+
+        return back();
+    }
+
+    /**
+     * Delete a Document and its stored file (#713). Its access log rows cascade at the database.
+     */
+    public function destroy(DeleteDocumentRequest $request, Document $document, DocumentStorage $storage): RedirectResponse
+    {
+        $document->delete();
+
+        if ($document->storage_path !== null) {
+            $storage->delete($document->storage_path);
+        }
 
         return back();
     }

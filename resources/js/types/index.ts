@@ -284,6 +284,8 @@ export interface Meeting {
 export interface LibraryDocument {
     id: number;
     title: string | null;
+    /** Content, shown as written (#713). */
+    description: string | null;
     filename: string | null;
     /** Lower-case extension of the original filename, or null. */
     extension: string | null;
