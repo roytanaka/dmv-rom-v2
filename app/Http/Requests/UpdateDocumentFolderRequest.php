@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\DocumentVisibility;
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\DocumentFolder;
 use App\Rules\UniqueFolderName;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -16,12 +17,13 @@ use Illuminate\Validation\Rule;
  */
 class UpdateDocumentFolderRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         $folder = $this->folder();
 
-        return $folder->group->has_documents
-            && $this->user()->can('update', $folder);
+        return $this->libraryAllows($folder->group, 'update', $folder);
     }
 
     /**

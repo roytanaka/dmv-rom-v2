@@ -30,18 +30,16 @@ class DocumentPolicy
      */
     public function download(Member $actor, Document $document): bool
     {
-        $group = $document->group;
+        return self::reads($actor, $document->group, $document->visibility());
+    }
 
-        if (! $group->has_documents) {
-            return false;
-        }
-
-        if ($actor->membershipIn($group) !== null) {
-            return true;
-        }
-
-        return $group->listing_visibility !== ListingVisibility::Private
-            && $document->visibility() === DocumentVisibility::Members;
+    /**
+     * Who may manage a Group's library: the named Group-level ability the Folder and Tag
+     * policies and the `can.manageDocuments` hint defer to.
+     */
+    public function manage(Member $actor, Group $group): bool
+    {
+        return $this->managesLibraryOf($actor, $group);
     }
 
     /**
@@ -85,5 +83,24 @@ class DocumentPolicy
     {
         return $group->has_documents
             && $actor->canActAs(Role::Librarian, $group);
+    }
+
+    /**
+     * The shared read rule, for a Document or a Folder ({@see DocumentFolderPolicy::view()})
+     * of the given effective visibility: a member of the Group, or any Member when it is
+     * shared with members and the Group is not Private, while the capability is on.
+     */
+    public static function reads(Member $actor, Group $group, DocumentVisibility $visibility): bool
+    {
+        if (! $group->has_documents) {
+            return false;
+        }
+
+        if ($actor->membershipIn($group) !== null) {
+            return true;
+        }
+
+        return $group->listing_visibility !== ListingVisibility::Private
+            && $visibility === DocumentVisibility::Members;
     }
 }

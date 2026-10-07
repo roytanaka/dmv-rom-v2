@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\Document;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -11,13 +12,14 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class DeleteDocumentRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         /** @var Document $document */
         $document = $this->route('document');
 
-        return $document->group->has_documents
-            && $this->user()->can('delete', $document);
+        return $this->libraryAllows($document->group, 'delete', $document);
     }
 
     /**

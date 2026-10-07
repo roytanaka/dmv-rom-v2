@@ -2,10 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\Document;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * Move a Document to another Folder of its Group, or to the library root (`folder_id` null)
@@ -13,12 +13,13 @@ use Illuminate\Validation\Rule;
  */
 class MoveDocumentRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         $document = $this->document();
 
-        return $document->group->has_documents
-            && $this->user()->can('move', $document);
+        return $this->libraryAllows($document->group, 'move', $document);
     }
 
     /**
@@ -27,7 +28,7 @@ class MoveDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'folder_id' => ['present', 'nullable', 'integer', Rule::exists('document_folders', 'id')->where('group_id', $this->document()->group_id)],
+            'folder_id' => ['present', 'nullable', 'integer', $this->folderOfGroup($this->document()->group_id)],
         ];
     }
 

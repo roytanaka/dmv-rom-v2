@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\DocumentKind;
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\Document;
 use App\Rules\DocumentFile;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -15,14 +16,15 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class ReplaceDocumentFileRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         /** @var Document $document */
         $document = $this->route('document');
 
         return $document->kind === DocumentKind::File
-            && $document->group->has_documents
-            && $this->user()->can('update', $document);
+            && $this->libraryAllows($document->group, 'update', $document);
     }
 
     /**

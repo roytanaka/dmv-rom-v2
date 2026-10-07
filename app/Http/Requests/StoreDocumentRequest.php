@@ -2,12 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\Document;
 use App\Models\Group;
 use App\Rules\DocumentFile;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * Upload one file to a Group's Document library (#712, ADR-0030 §12). One request carries one
@@ -17,13 +17,14 @@ use Illuminate\Validation\Rule;
  */
 class StoreDocumentRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         /** @var Group $group */
         $group = $this->route('group');
 
-        return $group->has_documents
-            && $this->user()->can('create', [Document::class, $group]);
+        return $this->libraryAllows($group, 'create', [Document::class, $group]);
     }
 
     /**
@@ -34,7 +35,7 @@ class StoreDocumentRequest extends FormRequest
         return [
             'file' => [new DocumentFile],
             // The Folder the upload lands in (#714); absent or null is the library root.
-            'folder_id' => ['nullable', 'integer', Rule::exists('document_folders', 'id')->where('group_id', $this->route('group')->id)],
+            'folder_id' => ['nullable', 'integer', $this->folderOfGroup($this->route('group')->id)],
         ];
     }
 }

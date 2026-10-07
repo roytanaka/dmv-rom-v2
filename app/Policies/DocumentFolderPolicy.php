@@ -2,8 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\DocumentVisibility;
-use App\Enums\ListingVisibility;
 use App\Models\Document;
 use App\Models\DocumentFolder;
 use App\Models\Group;
@@ -14,7 +12,7 @@ use App\Models\Member;
  *
  * View: the same rule as a Document download ({@see DocumentPolicy::download()}), on the
  * Folder's effective visibility. Manage (create, rename, move, delete): the Document library's
- * manage predicate, reused through the DocumentPolicy's `create` ability so the two never drift.
+ * manage predicate, reused through the DocumentPolicy's `manage` ability so the two never drift.
  *
  * The super-tier passes through the `Gate::before` short-circuit; the routes and Form Requests
  * refuse a Group with the documents capability off for everyone.
@@ -26,18 +24,7 @@ class DocumentFolderPolicy
      */
     public function view(Member $actor, DocumentFolder $folder): bool
     {
-        $group = $folder->group;
-
-        if (! $group->has_documents) {
-            return false;
-        }
-
-        if ($actor->membershipIn($group) !== null) {
-            return true;
-        }
-
-        return $group->listing_visibility !== ListingVisibility::Private
-            && $folder->visibility() === DocumentVisibility::Members;
+        return DocumentPolicy::reads($actor, $folder->group, $folder->visibility());
     }
 
     /**
@@ -45,7 +32,7 @@ class DocumentFolderPolicy
      */
     public function create(Member $actor, Group $group): bool
     {
-        return $actor->can('create', [Document::class, $group]);
+        return $actor->can('manage', [Document::class, $group]);
     }
 
     /**
@@ -53,7 +40,7 @@ class DocumentFolderPolicy
      */
     public function update(Member $actor, DocumentFolder $folder): bool
     {
-        return $actor->can('create', [Document::class, $folder->group]);
+        return $actor->can('manage', [Document::class, $folder->group]);
     }
 
     /**
@@ -61,6 +48,6 @@ class DocumentFolderPolicy
      */
     public function delete(Member $actor, DocumentFolder $folder): bool
     {
-        return $actor->can('create', [Document::class, $folder->group]);
+        return $actor->can('manage', [Document::class, $folder->group]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\DocumentTag;
 use App\Models\Group;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -15,13 +16,14 @@ use Illuminate\Validation\Rule;
  */
 class StoreDocumentTagRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         /** @var Group $group */
         $group = $this->route('group');
 
-        return $group->has_documents
-            && $this->user()->can('create', [DocumentTag::class, $group]);
+        return $this->libraryAllows($group, 'create', [DocumentTag::class, $group]);
     }
 
     /**

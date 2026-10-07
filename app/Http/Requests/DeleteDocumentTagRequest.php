@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\DocumentTag;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,13 +13,14 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class DeleteDocumentTagRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         /** @var DocumentTag $tag */
         $tag = $this->route('documentTag');
 
-        return $tag->group->has_documents
-            && $this->user()->can('delete', $tag);
+        return $this->libraryAllows($tag->group, 'delete', $tag);
     }
 
     /**

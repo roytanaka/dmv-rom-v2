@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\DocumentFolder;
 use App\Rules\UniqueFolderName;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
@@ -17,12 +17,13 @@ use Illuminate\Validation\Validator;
  */
 class MoveDocumentFolderRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         $folder = $this->folder();
 
-        return $folder->group->has_documents
-            && $this->user()->can('update', $folder);
+        return $this->libraryAllows($folder->group, 'update', $folder);
     }
 
     /**
@@ -31,7 +32,7 @@ class MoveDocumentFolderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'parent_id' => ['present', 'nullable', 'integer', Rule::exists('document_folders', 'id')->where('group_id', $this->folder()->group_id)],
+            'parent_id' => ['present', 'nullable', 'integer', $this->folderOfGroup($this->folder()->group_id)],
         ];
     }
 
@@ -61,7 +62,7 @@ class MoveDocumentFolderRequest extends FormRequest
                 }
 
                 if (($target?->depth() ?? 0) + $folder->subtreeHeight() > DocumentFolder::MAX_DEPTH) {
-                    $validator->errors()->add('parent_id', trans('document_folders.error.too_deep', ['max' => DocumentFolder::MAX_DEPTH]));
+                    $validator->errors()->add('parent_id', $this->tooDeepMessage());
 
                     return;
                 }

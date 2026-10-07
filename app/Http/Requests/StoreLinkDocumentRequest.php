@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\Document;
 use App\Models\Group;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * Add a link Document to a Group's Document library (#716, ADR-0030 §7): a title and an
@@ -15,13 +15,14 @@ use Illuminate\Validation\Rule;
  */
 class StoreLinkDocumentRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         /** @var Group $group */
         $group = $this->route('group');
 
-        return $group->has_documents
-            && $this->user()->can('create', [Document::class, $group]);
+        return $this->libraryAllows($group, 'create', [Document::class, $group]);
     }
 
     /**
@@ -32,7 +33,7 @@ class StoreLinkDocumentRequest extends FormRequest
         return [
             ...self::linkRules(),
             // The Folder the link lands in (#714); absent or null is the library root.
-            'folder_id' => ['nullable', 'integer', Rule::exists('document_folders', 'id')->where('group_id', $this->route('group')->id)],
+            'folder_id' => ['nullable', 'integer', $this->folderOfGroup($this->route('group')->id)],
         ];
     }
 

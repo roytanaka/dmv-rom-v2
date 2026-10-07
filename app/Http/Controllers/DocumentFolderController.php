@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeleteDocumentFolderRequest;
 use App\Http\Requests\MoveDocumentFolderRequest;
 use App\Http\Requests\StoreDocumentFolderRequest;
 use App\Http\Requests\UpdateDocumentFolderRequest;
 use App\Models\DocumentFolder;
 use App\Models\Group;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -55,13 +55,8 @@ class DocumentFolderController extends Controller
      * Delete an empty Folder. One that still holds Folders or Documents is refused with a
      * message; nothing is deleted along with it.
      */
-    public function destroy(DocumentFolder $folder): RedirectResponse
+    public function destroy(DeleteDocumentFolderRequest $request, DocumentFolder $folder): RedirectResponse
     {
-        // The capability check comes first so it holds for the super-tier too.
-        abort_unless($folder->group->has_documents, 403);
-
-        Gate::authorize('delete', $folder);
-
         if (! $folder->isEmpty()) {
             throw ValidationException::withMessages(['folder' => trans('document_folders.error.not_empty')]);
         }

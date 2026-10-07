@@ -20,17 +20,17 @@ class DocumentTagPolicy
 {
     public function create(Member $actor, Group $group): bool
     {
-        return $actor->can('create', [Document::class, $group]);
+        return $actor->can('manage', [Document::class, $group]);
     }
 
     public function update(Member $actor, DocumentTag $tag): bool
     {
-        return $actor->can('create', [Document::class, $tag->group]);
+        return $actor->can('manage', [Document::class, $tag->group]);
     }
 
     public function delete(Member $actor, DocumentTag $tag): bool
     {
-        return $actor->can('create', [Document::class, $tag->group]);
+        return $actor->can('manage', [Document::class, $tag->group]);
     }
 
     /**
@@ -38,6 +38,6 @@ class DocumentTagPolicy
      */
     public function assign(Member $actor, Document $document): bool
     {
-        return $actor->can('create', [Document::class, $document->group]);
+        return $actor->can('manage', [Document::class, $document->group]);
     }
 }

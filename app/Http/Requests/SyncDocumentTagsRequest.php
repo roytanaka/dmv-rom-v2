@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\Document;
 use App\Models\DocumentTag;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -15,13 +16,14 @@ use Illuminate\Validation\Rule;
  */
 class SyncDocumentTagsRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         /** @var Document $document */
         $document = $this->route('document');
 
-        return $document->group->has_documents
-            && $this->user()->can('assign', [DocumentTag::class, $document]);
+        return $this->libraryAllows($document->group, 'assign', [DocumentTag::class, $document]);
     }
 
     /**

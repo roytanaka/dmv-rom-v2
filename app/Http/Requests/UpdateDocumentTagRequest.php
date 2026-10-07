@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\DocumentTag;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,13 +14,14 @@ use Illuminate\Validation\Rule;
  */
 class UpdateDocumentTagRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         /** @var DocumentTag $tag */
         $tag = $this->route('documentTag');
 
-        return $tag->group->has_documents
-            && $this->user()->can('update', $tag);
+        return $this->libraryAllows($tag->group, 'update', $tag);
     }
 
     /**

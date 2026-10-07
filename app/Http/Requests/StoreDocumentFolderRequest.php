@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\DocumentVisibility;
+use App\Http\Requests\Concerns\WritesDocumentLibrary;
 use App\Models\DocumentFolder;
 use App\Models\Group;
 use App\Rules\UniqueFolderName;
@@ -20,12 +21,13 @@ use Illuminate\Validation\Validator;
  */
 class StoreDocumentFolderRequest extends FormRequest
 {
+    use WritesDocumentLibrary;
+
     public function authorize(): bool
     {
         $group = $this->group();
 
-        return $group->has_documents
-            && $this->user()->can('create', [DocumentFolder::class, $group]);
+        return $this->libraryAllows($group, 'create', [DocumentFolder::class, $group]);
     }
 
     /**
@@ -38,7 +40,7 @@ class StoreDocumentFolderRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255', new UniqueFolderName($group->id, $parentId)],
-            'parent_id' => ['nullable', 'integer', Rule::exists('document_folders', 'id')->where('group_id', $group->id)],
+            'parent_id' => ['nullable', 'integer', $this->folderOfGroup($group->id)],
             // Set on a top-level Folder only (#715, ADR-0030 §5); a subfolder inherits. Left
             // out, a top-level Folder is `group`.
             'visibility' => [Rule::prohibitedIf($parentId !== null), 'nullable', Rule::enum(DocumentVisibility::class)],
@@ -61,7 +63,7 @@ class StoreDocumentFolderRequest extends FormRequest
                 $parent = DocumentFolder::query()->findOrFail($this->integer('parent_id'));
 
                 if ($parent->depth() + 1 > DocumentFolder::MAX_DEPTH) {
-                    $validator->errors()->add('parent_id', trans('document_folders.error.too_deep', ['max' => DocumentFolder::MAX_DEPTH]));
+                    $validator->errors()->add('parent_id', $this->tooDeepMessage());
                 }
             },
         ];
