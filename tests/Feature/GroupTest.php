@@ -51,7 +51,6 @@ it('casts the capability flags and time_boxed to booleans', function () {
         'has_meetings' => true,
         'has_documents' => true,
         'has_scheduling' => true,
-        'has_content_catalog' => true,
         'has_vetting' => true,
         'has_announcements' => true,
         'time_boxed' => true,
@@ -62,7 +61,6 @@ it('casts the capability flags and time_boxed to booleans', function () {
     expect($fresh->has_meetings)->toBeTrue()
         ->and($fresh->has_documents)->toBeTrue()
         ->and($fresh->has_scheduling)->toBeTrue()
-        ->and($fresh->has_content_catalog)->toBeTrue()
         ->and($fresh->has_vetting)->toBeTrue()
         ->and($fresh->has_announcements)->toBeTrue()
         ->and($fresh->time_boxed)->toBeTrue();

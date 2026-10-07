@@ -51,7 +51,6 @@ return [
             'scheduler' => 'Responsable horaire',
             'vetting' => 'Vérification',
             'librarian' => 'Bibliothécaire',
-            'content_maintainer' => 'Responsable du contenu',
             'news_editor' => 'Responsable des nouvelles',
             'super_tier' => 'Super-niveau',
             'support_operator' => 'Opérateur de soutien',

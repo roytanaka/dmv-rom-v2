@@ -14,7 +14,6 @@ return [
         'meetings' => 'Meetings',
         'documents' => 'Documents',
         'scheduling' => 'Scheduling',
-        'content' => 'Content',
         'hours' => 'Hours',
         'settings' => 'Settings',
     ],
@@ -532,7 +531,6 @@ return [
         'statistician' => 'Statistician',
         'vetting' => 'Vetting',
         'librarian' => 'Librarian',
-        'content_maintainer' => 'Content Maintainer',
         'news_editor' => 'News Editor',
         // Synthetic label for the root DMV Group's executive leadership (President /
         // VPs), which carry no per-Group role row — see GroupController::leadership.

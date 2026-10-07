@@ -3103,7 +3103,6 @@ class DemoSeeder extends Seeder
             'has_meetings' => false,
             'has_documents' => false,
             'has_scheduling' => false,
-            'has_content_catalog' => false,
             'has_vetting' => false,
         ];
 
@@ -3112,7 +3111,6 @@ class DemoSeeder extends Seeder
             Kind::Program => [
                 'has_documents' => true,
                 'has_scheduling' => true,
-                'has_content_catalog' => true,
             ] + $off,
             Kind::WorkingGroup => ['has_meetings' => true] + $off,
             Kind::Project => ['has_documents' => true] + $off,
