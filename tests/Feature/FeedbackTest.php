@@ -3,6 +3,7 @@
 use App\Enums\FeedbackStatus;
 use App\Enums\FeedbackType;
 use App\Http\Controllers\ImpersonationController;
+use App\Models\FeedbackComment;
 use App\Models\FeedbackItem;
 use App\Models\Member;
 use Illuminate\Contracts\Console\Kernel;
@@ -195,6 +196,21 @@ it('lists every Feedback item, newest first', function () {
             ->where('items.0.excerpt', Str::limit($newer->message, 160))
             ->where('items.0.createdAt', $newer->created_at->toIso8601String())
             ->where('items.1.id', $older->id));
+});
+
+it('counts each Feedback item\'s comments on the Feedback page', function () {
+    $commented = FeedbackItem::factory()->create(['created_at' => now()]);
+    $quiet = FeedbackItem::factory()->create(['created_at' => now()->subDay()]);
+    FeedbackComment::factory()->count(3)->for($commented)->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/feedback')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('items.0.id', $commented->id)
+            ->where('items.0.commentsCount', 3)
+            ->where('items.1.id', $quiet->id)
+            ->where('items.1.commentsCount', 0));
 });
 
 it('shows a sent item at the top of the Feedback page', function () {
