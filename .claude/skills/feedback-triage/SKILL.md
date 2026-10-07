@@ -70,7 +70,9 @@ Create the issues with `gh` (see [`docs/agents/issue-tracker.md`](../../../docs/
 Match the shape of recent tickets: `## What to build`, `## Acceptance criteria`, and
 `## Blocked by` when it applies. Use the words in `CONTEXT.md`.
 
-The repo is public. Name the source as "Feedback item #N on staging". Describe what the
+The repo is public. Name the source as a link to the item on staging:
+`[Feedback item N](https://staging.dmv-rom.ca/feedback/N) on staging`. Never write `#N`
+for a Feedback item: GitHub links `#N` to issue or PR N. Describe what the
 Tester reported in your own words, without the Tester's name or Member name. Leave the
 screenshots on staging and describe what they show.
 
