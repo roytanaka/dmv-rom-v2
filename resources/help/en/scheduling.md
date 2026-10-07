@@ -8,6 +8,8 @@ A Schedule is a named date range a Group publishes its shifts in, often one mont
 
 ![The Scheduling tab: the list of schedules below your sign-ups, one card each with its date range](01.png)
 
+A current schedule opens at today. To see the days that are gone, click **Show earlier shifts**. In the Calendar view, today has a coloured background.
+
 ## Shifts
 
 A Shift is a dated slot you sign up to staff, such as a tour, a desk slot, or an event role. Each Shift has a start time, an end time, and a capacity.

@@ -32,7 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
-import { buildAgenda } from '@/scheduling/agenda';
+import { buildAgenda, splitAtDay } from '@/scheduling/agenda';
 import { type RecordCallbacks, type RecordPayload } from '@/scheduling/recordDraft';
 import { deriveEndsAt } from '@/scheduling/selfServeShift';
 import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
@@ -91,6 +91,18 @@ const timeZone = page.props.timezone;
 // own Shifts stay in `shifts`, foreign ones in attributed `bands`, never interleaved. Both
 // views read this same grouping.
 const agenda = computed(() => (props.scheduling.open ? buildAgenda(props.scheduling.open.shifts, props.scheduling.open.foreign, timeZone) : []));
+
+// The Agenda opens at the server's `opens_on` (#697): today on a current Schedule that began
+// earlier, so a reader starts at what is still ahead. Earlier days sit behind a link that
+// shows them in place; opening another Schedule folds them again.
+const agendaSplit = computed(() => splitAtDay(agenda.value, props.scheduling.open?.opens_on ?? ''));
+const showEarlier = ref(false);
+const agendaDays = computed(() => (showEarlier.value ? agenda.value : agendaSplit.value.later));
+
+watch(
+    () => props.scheduling.open?.id,
+    () => (showEarlier.value = false),
+);
 
 // The own Shifts as plain day groups — the Calendar's month grid lays these out; its foreign
 // chips read the foreign day groups. Both are derived from the one merged agenda so the two
@@ -1093,7 +1105,16 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 class="flex flex-col gap-4"
                 :aria-label="trans('group.scheduling_panel.agenda.aria_label')"
             >
-                <div v-for="day in agenda" :key="day.date" class="flex flex-col gap-2">
+                <Button
+                    v-if="!showEarlier && agendaSplit.earlier.length"
+                    type="button"
+                    variant="link"
+                    class="self-start px-0"
+                    @click="showEarlier = true"
+                >
+                    {{ trans('group.scheduling_panel.agenda.show_earlier') }}
+                </Button>
+                <div v-for="day in agendaDays" :key="day.date" class="flex flex-col gap-2">
                     <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">{{ formatDay(day.date) }}</h3>
                     <ShiftCard
                         v-for="shift in day.shifts"
@@ -1138,6 +1159,8 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 :foreign-expanded="foreignExpanded"
                 :starts-on="scheduling.open.starts_on"
                 :ends-on="scheduling.open.ends_on"
+                :opens-on="scheduling.open.opens_on"
+                :today="scheduling.open.today"
                 :group-name="groupName"
                 :can-email-signups="scheduling.open.can.emailSignups"
                 @take="take"

@@ -9,7 +9,7 @@ import ForeignShiftBand from '@/components/ForeignShiftBand.vue';
 import ShiftCard from '@/components/ShiftCard.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { bandsByGroup, buildMonthGrid, monthsInRange, type DayGroup, type MonthCell } from '@/scheduling/agenda';
+import { bandsByGroup, buildMonthGrid, monthIndexOf, monthsInRange, type DayGroup, type MonthCell } from '@/scheduling/agenda';
 import { type ForeignShiftItem, type SharedData, type ShiftAgendaItem } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
@@ -25,6 +25,9 @@ const props = defineProps<{
     foreignExpanded: boolean;
     startsOn: string;
     endsOn: string;
+    // The day the Calendar opens on and today's date, both from the server (#697).
+    opensOn: string;
+    today: string;
     // The owning Group's name, threaded to each day-sheet ShiftCard so a seat-taken Shift
     // surfaces its Email control (#490, ADR-0024 §6.4), exactly as in the Agenda.
     groupName: string;
@@ -50,9 +53,10 @@ const page = usePage<SharedData>();
 
 // The months the Schedule spans, in order — the Calendar pages through exactly these and no
 // further, so a 3-day occasion has one page and a 30-day month one, a range crossing a
-// boundary as many as it touches. The reader lands on the first.
+// boundary as many as it touches. The reader lands on the month of `opensOn` (#697): today's
+// month on a current Schedule, else the first.
 const months = computed(() => monthsInRange(props.startsOn, props.endsOn));
-const pageIndex = ref(0);
+const pageIndex = ref(monthIndexOf(months.value, props.opensOn));
 const current = computed(() => months.value[Math.min(pageIndex.value, months.value.length - 1)]);
 
 const grid = computed(() => buildMonthGrid(props.agenda, current.value.year, current.value.month));
@@ -81,6 +85,9 @@ const weekdayLabels = computed(() => {
 const openDay = ref<MonthCell<ShiftAgendaItem> | null>(null);
 
 const dayNumber = (date: string) => Number(date.slice(8, 10));
+
+// Today's cell carries the accent fill, the way the shadcn-vue calendar marks today (#697).
+const isToday = (date: string) => date === props.today;
 
 const openSheet = (cell: MonthCell<ShiftAgendaItem>) => {
     if (cell.date && (cell.shifts.length || (props.foreignExpanded && foreignOn(cell.date).length))) openDay.value = cell;
@@ -148,6 +155,8 @@ const formatDay = (date: string) =>
                         v-else-if="cell.shifts.length || (foreignExpanded && foreignOn(cell.date).length)"
                         type="button"
                         class="hover:border-rom-ink/40 focus-visible:ring-ring flex min-h-16 flex-col gap-1 rounded-md border p-1.5 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                        :class="{ 'bg-accent text-accent-foreground': isToday(cell.date) }"
+                        :aria-current="isToday(cell.date) ? 'date' : undefined"
                         @click="openSheet(cell)"
                     >
                         <span class="text-rom-ink text-sm font-medium tabular-nums">{{ dayNumber(cell.date) }}</span>
@@ -166,7 +175,12 @@ const formatDay = (date: string) =>
                             {{ trans('group.scheduling_panel.foreign.chip', { count: String(foreignOn(cell.date).length) }) }}
                         </span>
                     </button>
-                    <div v-else class="min-h-16 rounded-md border border-transparent p-1.5">
+                    <div
+                        v-else
+                        class="min-h-16 rounded-md border border-transparent p-1.5"
+                        :class="{ 'bg-accent text-accent-foreground': isToday(cell.date) }"
+                        :aria-current="isToday(cell.date) ? 'date' : undefined"
+                    >
                         <span class="text-muted-foreground text-sm tabular-nums">{{ dayNumber(cell.date) }}</span>
                     </div>
                 </template>

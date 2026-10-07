@@ -900,11 +900,21 @@ class GroupController extends Controller
      */
     private function scheduleDetail(Request $request, Schedule $schedule): array
     {
+        $today = CarbonImmutable::today();
+
         return [
             'id' => $schedule->id,
             'name' => $schedule->name,
             'starts_on' => $schedule->starts_on->toDateString(),
             'ends_on' => $schedule->ends_on->toDateString(),
+            // Today on the app clock, for the Calendar's today marker (#697).
+            'today' => $today->toDateString(),
+            // The day both views open at (#697): today for a current Schedule that began
+            // before today, so a reader lands on what is still ahead; the first day for an
+            // upcoming or past Schedule. The Agenda folds earlier days behind a link.
+            'opens_on' => $schedule->isCurrent($today) && $schedule->starts_on->lessThan($today)
+                ? $today->toDateString()
+                : $schedule->starts_on->toDateString(),
             'state' => $schedule->state->value,
             'description' => $schedule->description,
             'can' => [

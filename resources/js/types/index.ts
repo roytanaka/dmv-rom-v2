@@ -717,6 +717,10 @@ export interface ScheduleDetail {
     name: string;
     starts_on: string;
     ends_on: string;
+    // Today on the app clock, and the day both views open at (#697): today for a current
+    // Schedule that began earlier, else the first day.
+    today: string;
+    opens_on: string;
     state: string;
     description: string | null;
     // The Schedule authoring hints, plus `emailSignups` (#513, ADR-0024 §6.4): whether the
