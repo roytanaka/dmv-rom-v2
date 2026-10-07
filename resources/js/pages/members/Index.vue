@@ -14,6 +14,9 @@
 // toggle (display order follows the active sort) and an A–Z jump rail that leaps to
 // the first row under a letter. Both follow the active sort — the rail keys on the
 // surname when sorting by last name, the given name when sorting by first name.
+//
+// #700: with a Group picked, a Role column shows each Member's roles in that Group, and
+// the Groups column becomes Other Groups, without the picked one.
 import AlphaJumpRail from '@/components/AlphaJumpRail.vue';
 import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -23,6 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenu
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import EmailMenu from '@/emailing/EmailMenu.vue';
+import { otherGroups, rolesIn } from '@/directory/groupColumns';
 import { type Recipient } from '@/emailing/composer';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -169,8 +173,21 @@ const initials = (member: DirectoryMember) => `${member.first_name.charAt(0)}${m
 const displayName = (member: DirectoryMember) =>
     sortBy.value === 'last' ? `${member.last_name}, ${member.first_name}` : `${member.first_name} ${member.last_name}`;
 
-const groupNames = (member: DirectoryMember) =>
-    member.groups.length ? member.groups.map((group) => group.name).join(', ') : trans('directory.no_groups');
+// With a Group picked, the row lists only the other Groups, and a Member with none shows an
+// empty cell. With "All Groups", a Member with no Group reads "No groups" as before.
+const groupNames = (member: DirectoryMember) => {
+    const groups = otherGroups(member.groups, groupFilter.value);
+    if (groups.length) return groups.map((group) => group.name).join(', ');
+
+    return groupFilter.value === '' ? trans('directory.no_groups') : '';
+};
+
+const roleNames = (member: DirectoryMember) =>
+    rolesIn(member.groups, groupFilter.value)
+        .map((role) => trans(`group.role.${role}`))
+        .join(', ');
+
+const groupPicked = computed(() => groupFilter.value !== '');
 </script>
 
 <template>
@@ -257,7 +274,8 @@ const groupNames = (member: DirectoryMember) =>
                                     ><span class="sr-only">{{ trans('directory.column.name') }}</span></TableHead
                                 >
                                 <TableHead>{{ trans('directory.column.name') }}</TableHead>
-                                <TableHead>{{ trans('directory.column.groups') }}</TableHead>
+                                <TableHead v-if="groupPicked">{{ trans('directory.column.role') }}</TableHead>
+                                <TableHead>{{ trans(groupPicked ? 'directory.column.other_groups' : 'directory.column.groups') }}</TableHead>
                                 <TableHead>{{ trans('directory.column.standing') }}</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -272,6 +290,7 @@ const groupNames = (member: DirectoryMember) =>
                                 <TableCell class="font-medium">
                                     <TextLink :href="route('members.show', { member: member.id })">{{ displayName(member) }}</TextLink>
                                 </TableCell>
+                                <TableCell v-if="groupPicked">{{ roleNames(member) }}</TableCell>
                                 <TableCell class="text-muted-foreground">{{ groupNames(member) }}</TableCell>
                                 <TableCell><StandingBadge :standing="member.standing" /></TableCell>
                             </TableRow>
@@ -279,7 +298,7 @@ const groupNames = (member: DirectoryMember) =>
                             <!-- No-matches row: an empty result reads as a filter state, with a
                                  one-click way back to the full roster. -->
                             <TableRow v-if="!sortedMembers.length">
-                                <TableCell colspan="4" class="py-10 text-center">
+                                <TableCell :colspan="groupPicked ? 5 : 4" class="py-10 text-center">
                                     <div class="text-muted-foreground flex flex-col items-center gap-1">
                                         <span>{{ trans('directory.no_matches.message') }}</span>
                                         <Button v-if="hasActiveFilters" variant="link" class="h-auto p-0" @click="clearFilters">

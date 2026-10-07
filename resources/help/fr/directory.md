@@ -12,6 +12,8 @@ Chaque ligne affiche la photo, le nom, les groupes et le statut d'un membre. Sé
 
 Recherchez par nom, ou filtrez la liste à un seul groupe. Triez par nom ou par prénom. Sur un grand écran, le rail A–Z vous mène à une lettre.
 
+Quand vous filtrez à un seul groupe, une colonne **Rôle** affiche les rôles de chaque membre dans ce groupe. La colonne Groupes devient **Autres groupes** et ne liste que ses autres groupes.
+
 ## Ce que vous pouvez voir
 
 Le répertoire n'affiche jamais les coordonnées. Ce que vous voyez sur un profil dépend de votre rôle. Lisez [Ce que vous pouvez voir ou non sur un membre](what-you-can-see-about-a-member) pour les niveaux.

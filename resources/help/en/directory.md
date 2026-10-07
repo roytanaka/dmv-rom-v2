@@ -12,6 +12,8 @@ Each row shows a Member's photo, name, Groups, and standing. Select a name to op
 
 Search by name, or filter the list to one Group. Sort by last name or first name. On a wide screen, the A–Z rail jumps you to a letter.
 
+When you filter to one Group, a **Role** column shows each Member's roles in that Group. The Groups column becomes **Other Groups** and lists only their other Groups.
+
 ## What you can see
 
 The Directory never shows contact details. What you see on a profile depends on your role. Read [What you can and cannot see about a Member](what-you-can-see-about-a-member) for the tiers.

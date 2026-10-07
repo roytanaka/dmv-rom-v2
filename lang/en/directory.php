@@ -10,6 +10,8 @@ return [
     'column' => [
         'name' => 'Name',
         'groups' => 'Groups',
+        'other_groups' => 'Other Groups',
+        'role' => 'Role',
         'standing' => 'Standing',
     ],
     // Shown in the Groups cell when a Member holds no memberships.

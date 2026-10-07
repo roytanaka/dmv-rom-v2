@@ -10,6 +10,8 @@ return [
     'column' => [
         'name' => 'Nom',
         'groups' => 'Groupes',
+        'other_groups' => 'Autres groupes',
+        'role' => 'Rôle',
         'standing' => 'Statut',
     ],
     // Affiché dans la cellule Groupes lorsqu'un membre n'a aucune adhésion.
