@@ -4,7 +4,6 @@ use App\Enums\DocumentVisibility;
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\DocumentFolder;
-use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -430,23 +429,6 @@ it('sends a manager every Folder as a move destination, in tree order', function
             ->where('library.destinations.2.id', $b->id));
 });
 
-it('lists the Documents of a Tag across Folders, without the Folder rows', function () {
-    $group = folderLibrary();
-    $folder = topFolder($group);
-    $tag = DocumentTag::factory()->create(['group_id' => $group->id, 'name' => 'Highlights']);
-    $nested = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($folder)->create()->id]);
-    $nested->tags()->attach($tag);
-    $root = Document::factory()->create(['group_id' => $group->id]);
-    $root->tags()->attach($tag);
-
-    $this->actingAs(folderReader($group))
-        ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'tag' => $tag->id]))
-        ->assertInertia(fn (Assert $page) => $page
-            ->has('library.folders', 0)
-            ->has('library.documents', 2)
-            ->where('library.tag.id', $tag->id));
-});
-
 it('returns 404 for a Folder of another Group', function () {
     $group = folderLibrary();
 
@@ -607,13 +589,10 @@ it('sends a non-member only the Folders and Documents shared with every Member',
     $shared = topFolder($group, 'Handbooks');
     $shared->update(['visibility' => DocumentVisibility::Members]);
     $internal = topFolder($group, 'Minutes');
-    $tag = DocumentTag::factory()->create(['group_id' => $group->id, 'name' => 'Required']);
-    $readable = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($shared)->create()->id]);
-    $hidden = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($internal)->create()->id]);
-    $rootDocument = Document::factory()->create(['group_id' => $group->id]);
-    foreach ([$readable, $hidden, $rootDocument] as $document) {
-        $document->tags()->attach($tag);
-    }
+    $sharedSub = DocumentFolder::factory()->in($shared)->create();
+    $readable = Document::factory()->create(['group_id' => $group->id, 'folder_id' => $sharedSub->id]);
+    Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($internal)->create()->id]);
+    Document::factory()->create(['group_id' => $group->id]);
     $outsider = Member::factory()->create();
 
     $this->actingAs($outsider)
@@ -625,7 +604,7 @@ it('sends a non-member only the Folders and Documents shared with every Member',
             ->where('library.destinations', []));
 
     $this->actingAs($outsider)
-        ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'tag' => $tag->id]))
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $sharedSub]))
         ->assertInertia(fn (Assert $page) => $page
             ->has('library.documents', 1)
             ->where('library.documents.0.id', $readable->id));
@@ -635,16 +614,15 @@ it('sends a non-member only the Folders and Documents shared with every Member',
         ->assertForbidden();
 });
 
-it('lists a Tag across deep Folders without a query per Document', function () {
+it('lists a deep Folder without a query per Document', function () {
     $group = folderLibrary();
-    $tag = DocumentTag::factory()->create(['group_id' => $group->id]);
+    $top = DocumentFolder::factory()->create(['group_id' => $group->id, 'visibility' => DocumentVisibility::Members]);
+    $deep = folderChain($group, 3, $top);
     $member = Member::factory()->create();
-    $url = route('groups.show', ['group' => $group, 'section' => 'documents', 'tag' => $tag->id]);
+    $url = route('groups.documents.folder', ['group' => $group, 'folder' => $deep]);
 
-    $addTaggedDocument = function () use ($group, $tag) {
-        $top = DocumentFolder::factory()->create(['group_id' => $group->id, 'visibility' => DocumentVisibility::Members]);
-        $deep = folderChain($group, 3, $top);
-        Document::factory()->create(['group_id' => $group->id, 'folder_id' => $deep->id])->tags()->attach($tag);
+    $addDocument = function () use ($group, $deep) {
+        Document::factory()->create(['group_id' => $group->id, 'folder_id' => $deep->id]);
     };
 
     $countQueries = function () use ($member, $url): int {
@@ -656,11 +634,11 @@ it('lists a Tag across deep Folders without a query per Document', function () {
         return count(DB::getQueryLog());
     };
 
-    $addTaggedDocument();
+    $addDocument();
     $countQueries(); // Warm up: the first request runs one-off queries.
     $one = $countQueries();
-    $addTaggedDocument();
-    $addTaggedDocument();
+    $addDocument();
+    $addDocument();
     $three = $countQueries();
 
     expect($three)->toBe($one);

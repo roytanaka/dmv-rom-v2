@@ -19,7 +19,6 @@ use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
 use App\Models\Document;
 use App\Models\DocumentFolder;
-use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupStewardship;
@@ -2662,7 +2661,7 @@ class DemoSeeder extends Seeder
     /**
      * A small Document library on every Group with the documents capability (#718, spec #290,
      * ADR-0030), so testers find working libraries without uploading first. Each has Folders
-     * three levels deep, a few Tags, small generated files, one link Document, and one
+     * three levels deep, small generated files, one link Document, and one
      * top-level Folder of each visibility. Docents carries the legacy Data Sheets shape:
      * Category → Section → Tour.
      *
@@ -2677,10 +2676,7 @@ class DemoSeeder extends Seeder
         Group::where('has_documents', true)->orderBy('id')->get()
             ->each(function (Group $group) use ($storage) {
                 $library = $group->slug === 'docents' ? $this->docentsLibrary() : $this->standardLibrary($group);
-                $tags = collect($library['tags'])
-                    ->mapWithKeys(fn (string $name) => [$name => $group->documentTags()->firstOrCreate(['name' => $name])]);
-
-                $this->libraryLevel($group, null, $library, $tags->all(), $this->librarian($group), $storage);
+                $this->libraryLevel($group, null, $library, $this->librarian($group), $storage);
             });
     }
 
@@ -2688,13 +2684,11 @@ class DemoSeeder extends Seeder
      * Seed one level of a library spec: its Documents, then its Folders and their contents.
      *
      * @param  array<string, mixed>  $level
-     * @param  array<string, DocumentTag>  $tags
      */
-    private function libraryLevel(Group $group, ?DocumentFolder $folder, array $level, array $tags, ?Member $uploader, DocumentStorage $storage): void
+    private function libraryLevel(Group $group, ?DocumentFolder $folder, array $level, ?Member $uploader, DocumentStorage $storage): void
     {
         foreach ($level['documents'] ?? [] as $index => $spec) {
-            $document = $this->libraryDocument($group, $folder, $spec, $uploader, $storage, $index);
-            $document->tags()->syncWithoutDetaching(array_map(fn (string $name) => $tags[$name]->id, $spec['tags'] ?? []));
+            $this->libraryDocument($group, $folder, $spec, $uploader, $storage, $index);
         }
 
         foreach ($level['folders'] ?? [] as $spec) {
@@ -2703,7 +2697,7 @@ class DemoSeeder extends Seeder
                 ['visibility' => $spec['visibility'] ?? null],
             );
 
-            $this->libraryLevel($group, $child, $spec, $tags, $uploader, $storage);
+            $this->libraryLevel($group, $child, $spec, $uploader, $storage);
         }
     }
 
@@ -2711,7 +2705,7 @@ class DemoSeeder extends Seeder
      * Find or create one seeded Document. A file is generated and stored only when its row
      * is new, so a reseed leaves no orphaned second copy on the disk.
      *
-     * @param  array{file?: string, link?: string, title?: string, lines?: list<string>, tags?: list<string>}  $spec
+     * @param  array{file?: string, link?: string, title?: string, lines?: list<string>}  $spec
      */
     private function libraryDocument(Group $group, ?DocumentFolder $folder, array $spec, ?Member $uploader, DocumentStorage $storage, int $index): Document
     {
@@ -2840,16 +2834,15 @@ class DemoSeeder extends Seeder
     private function standardLibrary(Group $group): array
     {
         return [
-            'tags' => ['Reference', 'Forms', 'Current'],
             'documents' => [
-                ['link' => 'https://www.rom.on.ca/en/visit', 'title' => 'Visiting the ROM', 'tags' => ['Reference']],
+                ['link' => 'https://www.rom.on.ca/en/visit', 'title' => 'Visiting the ROM'],
             ],
             'folders' => [
                 [
                     'name' => 'Reference',
                     'visibility' => DocumentVisibility::Members,
                     'documents' => [
-                        ['file' => "{$group->name} handbook.pdf", 'tags' => ['Reference'], 'lines' => [
+                        ['file' => "{$group->name} handbook.pdf", 'lines' => [
                             "About {$group->name}: what the Group does, and how a new volunteer joins in.",
                             'Read this before your first shift or meeting.',
                         ]],
@@ -2867,7 +2860,7 @@ class DemoSeeder extends Seeder
                                 [
                                     'name' => 'Checklists',
                                     'documents' => [
-                                        ['file' => 'First day checklist.txt', 'tags' => ['Forms'], 'lines' => [
+                                        ['file' => 'First day checklist.txt', 'lines' => [
                                             '- Pick up your volunteer badge at the DMV office.',
                                             '- Read the handbook.',
                                             '- Meet your Chair.',
@@ -2881,7 +2874,7 @@ class DemoSeeder extends Seeder
                 [
                     'name' => 'Committee business',
                     'documents' => [
-                        ['file' => 'Meeting schedule.csv', 'tags' => ['Current'], 'lines' => [
+                        ['file' => 'Meeting schedule.csv', 'lines' => [
                             'Date,Time,Room',
                             '2026-10-14,10:00,Volunteer lounge',
                             '2026-11-11,10:00,Volunteer lounge',
@@ -2892,7 +2885,7 @@ class DemoSeeder extends Seeder
                         [
                             'name' => 'Minutes',
                             'documents' => [
-                                ['file' => 'September minutes.pdf', 'tags' => ['Current'], 'lines' => [
+                                ['file' => 'September minutes.pdf', 'lines' => [
                                     'Present: the Chair, the Secretary and six members.',
                                     'Fall recruitment and the volunteer fair were discussed.',
                                 ]],
@@ -2913,13 +2906,12 @@ class DemoSeeder extends Seeder
     private function docentsLibrary(): array
     {
         return [
-            'tags' => ['Required', 'Highlights', 'Family', 'Reference'],
             'documents' => [
-                ['file' => 'Docent handbook.pdf', 'tags' => ['Required', 'Reference'], 'lines' => [
+                ['file' => 'Docent handbook.pdf', 'lines' => [
                     'How a Docent tour runs, from the meeting point to the last stop.',
                     'Required reading for every new Docent.',
                 ]],
-                ['link' => 'https://collections.rom.on.ca', 'title' => 'ROM Collections Online', 'tags' => ['Reference']],
+                ['link' => 'https://collections.rom.on.ca', 'title' => 'ROM Collections Online'],
             ],
             'folders' => [
                 [
@@ -2929,7 +2921,7 @@ class DemoSeeder extends Seeder
                         [
                             'name' => 'Dinosaurs',
                             'documents' => [
-                                ['file' => 'Dinosaurs gallery data sheet.pdf', 'tags' => ['Required'], 'lines' => [
+                                ['file' => 'Dinosaurs gallery data sheet.pdf', 'lines' => [
                                     'Gallery: Dinosaurs, Level 2.',
                                     'Key objects: Barosaurus, Parasaurolophus, the Allosaurus skull.',
                                 ]],
@@ -2938,11 +2930,11 @@ class DemoSeeder extends Seeder
                                 [
                                     'name' => 'Dinosaur Highlights tour',
                                     'documents' => [
-                                        ['file' => 'Dinosaur Highlights tour script.pdf', 'tags' => ['Highlights', 'Required'], 'lines' => [
+                                        ['file' => 'Dinosaur Highlights tour script.pdf', 'lines' => [
                                             'Stop 1: Barosaurus. Stop 2: Parasaurolophus. Stop 3: the fossil lab window.',
                                             'Allow 45 minutes.',
                                         ]],
-                                        ['file' => 'Dinosaur Highlights route.txt', 'tags' => ['Highlights'], 'lines' => [
+                                        ['file' => 'Dinosaur Highlights route.txt', 'lines' => [
                                             'Start at the Level 2 elevators and walk the gallery clockwise.',
                                         ]],
                                     ],
@@ -2961,7 +2953,7 @@ class DemoSeeder extends Seeder
                                 [
                                     'name' => 'Family tour',
                                     'documents' => [
-                                        ['file' => 'Earth and Space family tour.pdf', 'tags' => ['Family'], 'lines' => [
+                                        ['file' => 'Earth and Space family tour.pdf', 'lines' => [
                                             'A 30-minute tour for children aged 6 to 10.',
                                         ]],
                                     ],
@@ -2976,7 +2968,7 @@ class DemoSeeder extends Seeder
                         [
                             'name' => 'Ancient Egypt',
                             'documents' => [
-                                ['file' => 'Ancient Egypt data sheet.pdf', 'tags' => ['Required'], 'lines' => [
+                                ['file' => 'Ancient Egypt data sheet.pdf', 'lines' => [
                                     'Gallery: Ancient Egypt, Level 3.',
                                     'Key objects: the mummy of Djedmaatesankh, the Book of the Dead.',
                                 ]],
@@ -2985,10 +2977,10 @@ class DemoSeeder extends Seeder
                                 [
                                     'name' => 'Egypt Highlights tour',
                                     'documents' => [
-                                        ['file' => 'Egypt Highlights tour script.pdf', 'tags' => ['Highlights'], 'lines' => [
+                                        ['file' => 'Egypt Highlights tour script.pdf', 'lines' => [
                                             'Stop 1: Djedmaatesankh. Stop 2: the coffins. Stop 3: daily life.',
                                         ]],
-                                        ['file' => 'Egypt Highlights object list.csv', 'tags' => ['Highlights'], 'lines' => [
+                                        ['file' => 'Egypt Highlights object list.csv', 'lines' => [
                                             'Stop,Object,Case',
                                             '1,Mummy of Djedmaatesankh,E1',
                                             '2,Painted coffin,E4',

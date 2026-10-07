@@ -25,11 +25,7 @@ import DocumentActions from '@/components/DocumentActions.vue';
 import DocumentFolderActions from '@/components/DocumentFolderActions.vue';
 import DocumentFolderBreadcrumb from '@/components/DocumentFolderBreadcrumb.vue';
 import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
-import DocumentTagFilter from '@/components/DocumentTagFilter.vue';
-import DocumentTagsEditor from '@/components/DocumentTagsEditor.vue';
-import DocumentTagsManager from '@/components/DocumentTagsManager.vue';
 import LinkDocumentDialog from '@/components/LinkDocumentDialog.vue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -70,9 +66,7 @@ const folderId = computed(() => props.library.folder?.id ?? null);
 // A new Folder goes inside the open one, so it fits only while the open one sits above the limit.
 const canAddFolder = computed(() => props.library.breadcrumb.length + (props.library.folder ? 1 : 0) < props.library.maxDepth);
 const isEmpty = computed(() => props.library.folders.length === 0 && props.library.documents.length === 0);
-const emptyMessage = computed(() =>
-    trans(props.library.tag ? 'document_tags.empty' : props.library.folder ? 'document_folders.empty' : 'documents.empty'),
-);
+const emptyMessage = computed(() => trans(props.library.folder ? 'document_folders.empty' : 'documents.empty'));
 
 // --- Upload ---------------------------------------------------------------------------
 
@@ -215,12 +209,6 @@ function onDrop(event: DragEvent): void {
             </ul>
         </section>
 
-        <!-- Tags (#717): the one-Tag filter for readers once the Group has Tags; the Tag list for a manager. -->
-        <div v-if="library.tags.length || canManage" class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <DocumentTagFilter v-if="library.tags.length" :tags="library.tags" :tag="library.tag" />
-            <div v-if="canManage" class="sm:ml-auto"><DocumentTagsManager :tags="library.tags" :group-slug="groupSlug" /></div>
-        </div>
-
         <p v-if="isEmpty" class="text-muted-foreground py-12 text-center text-base">{{ emptyMessage }}</p>
 
         <Table v-else>
@@ -286,16 +274,6 @@ function onDrop(event: DragEvent): void {
                             {{ document.title ?? document.filename }}
                         </a>
                         <p v-if="document.description" class="text-rom-ink text-sm whitespace-pre-line">{{ document.description }}</p>
-                        <span v-if="document.tags.length || canManage" class="mt-1 flex flex-wrap items-center gap-1">
-                            <Badge v-for="tag in document.tags" :key="tag.id" variant="secondary">{{ tag.name }}</Badge>
-                            <DocumentTagsEditor
-                                v-if="canManage"
-                                :document-id="document.id"
-                                :name="document.title ?? document.filename ?? ''"
-                                :tags="library.tags"
-                                :selected="document.tags"
-                            />
-                        </span>
                         <!-- On a phone the other columns hide; their facts ride under the name. -->
                         <p class="text-muted-foreground text-xs sm:hidden">
                             {{

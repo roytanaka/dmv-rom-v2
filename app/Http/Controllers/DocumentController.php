@@ -48,7 +48,7 @@ class DocumentController extends Controller
 
     /**
      * Upload a new file over a Document (#713, ADR-0030 §8). The row keeps its id, so its
-     * download link, Folder and Tags stay; the file's columns and the uploader change. The old
+     * download link and Folder stay; the file's columns and the uploader change. The old
      * file is deleted only once the row points at the new one.
      */
     public function replace(ReplaceDocumentFileRequest $request, Document $document, DocumentStorage $storage): RedirectResponse

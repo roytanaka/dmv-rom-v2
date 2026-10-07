@@ -16,7 +16,6 @@ use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
 use App\Models\Document;
 use App\Models\DocumentFolder;
-use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -38,7 +37,6 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -1293,7 +1291,6 @@ it('gives every Group with the documents capability a small library', function (
         $visibilities = $folders->whereNull('parent_id')->map(fn (DocumentFolder $folder) => $folder->visibility->value);
 
         expect($folders->max(fn (DocumentFolder $folder) => $folder->depth()))->toBe(3)
-            ->and(DocumentTag::where('group_id', $group->id)->count())->toBeGreaterThanOrEqual(2)
             ->and($documents->where('kind', DocumentKind::File)->count())->toBeGreaterThanOrEqual(2)
             ->and($documents->where('kind', DocumentKind::Link))->toHaveCount(1)
             ->and($visibilities->unique()->sort()->values()->all())
@@ -1305,25 +1302,20 @@ it('leaves no Document library on a Group without the capability', function () {
     $without = Group::where('has_documents', false)->pluck('id');
 
     expect(Document::whereIn('group_id', $without)->exists())->toBeFalse()
-        ->and(DocumentFolder::whereIn('group_id', $without)->exists())->toBeFalse()
-        ->and(DocumentTag::whereIn('group_id', $without)->exists())->toBeFalse();
+        ->and(DocumentFolder::whereIn('group_id', $without)->exists())->toBeFalse();
 });
 
-it('shapes the Docents library as Category, Section and Tour Folders with Required and Highlights Tags', function () {
+it('shapes the Docents library as Category, Section and Tour Folders', function () {
     $docents = Group::where('slug', 'docents')->firstOrFail();
     $folders = DocumentFolder::where('group_id', $docents->id)->get();
     DocumentFolder::preloadAncestors($folders);
 
     $tour = $folders->first(fn (DocumentFolder $folder) => $folder->name === 'Dinosaur Highlights tour');
-    $tags = DocumentTag::where('group_id', $docents->id)->get()->keyBy('name');
 
     expect($tour)->not->toBeNull()
         ->and($tour->ancestors()->pluck('name')->push($tour->name)->all())
         ->toBe(['Natural History', 'Dinosaurs', 'Dinosaur Highlights tour'])
-        ->and($tour->documents()->exists())->toBeTrue()
-        ->and($tags->keys()->all())->toContain('Required', 'Highlights')
-        ->and($tags['Required']->documents()->exists())->toBeTrue()
-        ->and($tags['Highlights']->documents()->exists())->toBeTrue();
+        ->and($tour->documents()->exists())->toBeTrue();
 });
 
 it('seeds a Docents Librarian Persona who manages the Docents library', function () {
@@ -1350,7 +1342,7 @@ it('seeds a Persona outside Docents who reads its shared Folders but not its Gro
 });
 
 it('is idempotent across the Document library rows — re-seeding heals rather than duplicates', function () {
-    $counts = fn () => [Document::count(), DocumentFolder::count(), DocumentTag::count(), DB::table('document_tag')->count()];
+    $counts = fn () => [Document::count(), DocumentFolder::count()];
     $before = $counts();
 
     $this->seed(DemoSeeder::class);

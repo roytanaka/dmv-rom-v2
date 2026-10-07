@@ -4,43 +4,40 @@ namespace App\Support;
 
 use App\Models\Document;
 use App\Models\DocumentFolder;
-use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\Member;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
 /**
- * The Documents tab's payload (#712, #714, #715, #717, spec #290, ADR-0030): one Folder of a
+ * The Documents tab's payload (#712, #714, #715, spec #290, ADR-0030): one Folder of a
  * Group's Document library, or the library root, as the viewer may read it. Built by
  * {@see self::for()}; {@see self::empty()} is the same shape for every other tab.
  *
  * Every Folder and Document passes the policy's read check, so a non-member sees only what the
- * Group shares with every Member. The uploader, the upload time, the move destinations and the
- * full Tag list ride only for a manager.
+ * Group shares with every Member. The uploader, the upload time and the move destinations ride
+ * only for a manager.
  */
 class DocumentLibrary
 {
     /**
      * The payload for every tab other than Documents.
      *
-     * @return array{folder: null, breadcrumb: list<never>, folders: list<never>, destinations: list<never>, maxDepth: int, documents: list<never>, tags: list<never>, tag: null}
+     * @return array{folder: null, breadcrumb: list<never>, folders: list<never>, destinations: list<never>, maxDepth: int, documents: list<never>}
      */
     public static function empty(): array
     {
-        return ['folder' => null, 'breadcrumb' => [], 'folders' => [], 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH, 'documents' => [], 'tags' => [], 'tag' => null];
+        return ['folder' => null, 'breadcrumb' => [], 'folders' => [], 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH, 'documents' => []];
     }
 
     /**
-     * One Folder of the library (the root when `$folder` is null), or every Document carrying
-     * the Tag `$tagId` across all Folders: its breadcrumb, child Folders and Documents, each
-     * sorted by name (a Document's title, or its filename when there is none). Aborts 403 for
-     * a Folder the viewer may not read, 404 for a Tag of another Group.
+     * One Folder of the library (the root when `$folder` is null): its breadcrumb, child
+     * Folders and Documents, each sorted by name (a Document's title, or its filename when
+     * there is none). Aborts 403 for a Folder the viewer may not read.
      *
-     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, folders: list<array<string, mixed>>, destinations: list<array<string, mixed>>, maxDepth: int, documents: list<array<string, mixed>>, tags: list<array{id: int, name: string}>, tag: array{id: int, name: string}|null}
+     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, folders: list<array<string, mixed>>, destinations: list<array<string, mixed>>, maxDepth: int, documents: list<array<string, mixed>>}
      */
-    public static function for(Member $viewer, Group $group, ?DocumentFolder $folder, ?int $tagId): array
+    public static function for(Member $viewer, Group $group, ?DocumentFolder $folder): array
     {
         $canManage = $viewer->can('manage', [Document::class, $group]);
 
@@ -55,10 +52,6 @@ class DocumentLibrary
 
         abort_if($folder !== null && $viewer->cannot('view', $folder), 403);
 
-        // The one-Tag filter (#717, ADR-0030 §4): every Document with the Tag, across all
-        // Folders, instead of one Folder's Documents. The same per-Document read check applies.
-        $tag = $tagId === null ? null : $group->documentTags()->findOrFail($tagId);
-
         $folderRow = fn (DocumentFolder $item) => [
             'id' => $item->id,
             // Content, as-authored (ADR-0004).
@@ -68,20 +61,16 @@ class DocumentLibrary
             'visibility' => $item->visibility()->value,
         ];
 
-        // The open Folder's child Folders (#714); none under a Tag filter, which lists Documents only.
-        $folders = $tag !== null ? collect() : $tree
+        // The open Folder's child Folders (#714).
+        $folders = $tree
             ->where('parent_id', $folder?->id)
             ->filter(fn (DocumentFolder $child) => $viewer->can('view', $child))
             ->sortBy(fn (DocumentFolder $child) => mb_strtolower($child->name), SORT_NATURAL)
             ->values();
 
         $documents = self::readable($viewer, $group, $tree, $group->documents()
-            ->when(
-                $tag === null,
-                fn (Builder $query) => $query->where('folder_id', $folder?->id),
-                fn (Builder $query) => $query->whereHas('tags', fn (Builder $query) => $query->whereKey($tag->id)),
-            )
-            ->with(['uploadedBy', 'tags']))
+            ->where('folder_id', $folder?->id)
+            ->with('uploadedBy'))
             ->sortBy(fn (Document $document) => mb_strtolower($document->displayName()), SORT_NATURAL)
             ->values();
 
@@ -113,17 +102,8 @@ class DocumentLibrary
                     // When the current file (or link) was put up (story 51), managers only.
                     'uploadedAt' => $canManage ? $document->uploaded_at?->toIso8601String() : null,
                     'href' => route('documents.download', $document, absolute: false),
-                    'tags' => self::tagRows($document->tags),
                 ])
                 ->all(),
-            // A Tag name is content too (story 16): a reader who does not manage the library
-            // gets only the Tags on at least one Document they may read.
-            'tags' => self::tagRows($canManage
-                ? $group->documentTags()->get()
-                : self::readable($viewer, $group, $tree, $group->documents()->has('tags')->with('tags'))
-                    ->flatMap(fn (Document $document) => $document->tags)
-                    ->unique('id')),
-            'tag' => $tag === null ? null : ['id' => $tag->id, 'name' => $tag->name],
         ];
     }
 
@@ -171,20 +151,5 @@ class DocumentLibrary
         $walk(0, []);
 
         return $rows;
-    }
-
-    /**
-     * Tags as `{id, name}` rows sorted by name (#717). Names are content, as-authored.
-     *
-     * @param  iterable<DocumentTag>  $tags
-     * @return list<array{id: int, name: string}>
-     */
-    private static function tagRows(iterable $tags): array
-    {
-        return collect($tags)
-            ->sortBy(fn (DocumentTag $tag) => mb_strtolower($tag->name), SORT_NATURAL)
-            ->map(fn (DocumentTag $tag) => ['id' => $tag->id, 'name' => $tag->name])
-            ->values()
-            ->all();
     }
 }
