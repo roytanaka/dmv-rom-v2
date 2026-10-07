@@ -17,7 +17,7 @@ A Member's standing in DMV _as a whole_ — Active, Sustaining, Honourary, Provi
 _Avoid_: conflating with a **Membership**'s within-Group status; they are different facts set by different officers.
 
 **Officer**:
-A Member who holds at least one authority-bearing **role** (Chair, Secretary, Scheduler, Statistician, Vetting, Librarian, Content-maintainer, Treasurer) in a given **Group**. Always **per-Group** — a Member can be an officer of one Group and an ordinary member of another; there is no global officer status. See [ADR-0011](docs/adr/0011-authorization-model.md).
+A Member who holds at least one authority-bearing **role** (Chair, Secretary, Scheduler, Statistician, Vetting, Librarian, Treasurer) in a given **Group**. Always **per-Group** — a Member can be an officer of one Group and an ordinary member of another; there is no global officer status. See [ADR-0011](docs/adr/0011-authorization-model.md).
 _Avoid_: using "officer" as an org-wide rank or as a synonym for the all-DMV grant (that is the **super-tier** — see **Admin**).
 
 **DMV Executive**:
@@ -72,14 +72,34 @@ One thing a **Tester** sends from a non-production app: a bug, a feature request
 _Avoid_: "report" (taken by Officer reports and the post-shift report), "issue" and "ticket" (GitHub issues, where the work is tracked), "bug" for the whole set (a bug is one type).
 
 **Group**:
-The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, content, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
+The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
 
 **Committee**:
 A **Kind** of **Group**: a standing, org-scoped group that meets and holds documents but runs no shift scheduling (governance, operations, social). One Kind among several — not the central entity.
 _Avoid_: treating "committee" as the organizing entity, or "subcommittee" as a separate noun. Both are Groups (see **Group**).
 
 **Program**:
-A **Kind** of **Group**: the member-facing operating units that run scheduling, content, and stats (docents, gallery guides, GDR, reception, special events). Distinguished from a **Committee** mainly by having the scheduling + stats capabilities turned on.
+A **Kind** of **Group**: the member-facing operating units that run scheduling and stats (docents, gallery guides, GDR, reception, special events). Distinguished from a **Committee** mainly by having the scheduling + stats capabilities turned on.
+
+**Document library**:
+A **Group**'s own collection of **Documents**, arranged the way that Group likes to browse it. One capability serves every arrangement: a committee's minutes and reports, Docents' Data Sheets by tour, a program's publications. Who may read a Document is decided from the reader's Membership in the owning Group; parentage never grants a read ([ADR-0019](docs/adr/0019-group-listing-visibility-and-parentage-authority.md)).
+_Avoid_: "content catalog" and "content" for this. The content catalog was a separate capability in [ADR-0010](docs/adr/0010-group-model.md); it is merged into the Document library, and "content" means Member-authored text (see **Chrome / content translation boundary**). Also avoid "Data Sheets", "publications", "How-To" and "infosheet" as names for the capability; they are legacy names for one Group's arrangement.
+
+**Document**:
+One item in a **Document library**: an uploaded file, shown and downloaded under the name it was uploaded with. Every download is checked against the reader's access first ([ADR-0003](docs/adr/0003-document-storage-architecture.md)). Its title and description are as-authored **content**.
+_Avoid_: "file" for the entity (the file is what is stored; the Document is the row a Member sees), "attachment" (a **Broadcast** attachment is never stored as a Document).
+
+**Folder**:
+A named container in a **Document library**. Folders nest, up to 5 levels. A top-level Folder sets who may read everything inside it: the owning **Group**'s members, or every signed-in **Member**. Each **Document** sits in one Folder, or at the library root, which only the Group's members read.
+_Avoid_: legacy's "Topic", "Sub-topic", "Category", "Section" as names for this; they are one Group's Folder levels. And "Section" in particular: a docent Section is a level of Folders here, not a scope for a role.
+
+**Tag**:
+A label a **Group** defines for its own **Document library**. A **Document** carries any number of Tags, and readers filter by them. Tags give the views that cut across **Folders**, for example every Data Sheet marked Highlights.
+_Avoid_: "category" (taken by a Member's **Category**), and a second Folder for a Document; a Document is in one Folder, and a Tag shows it elsewhere.
+
+**Librarian**:
+The **role** in a **Group** that organizes its **Document library**: uploads, replaces, arranges, tags and deletes **Documents** and **Folders**. Requires the Group's documents capability. Covers the whole library; there is no Folder-scoped Librarian.
+_Avoid_: "Content Maintainer" (merged into this role, [ADR-0030](docs/adr/0030-document-library.md)) and "Section Head" for a Librarian.
 
 **Schedule**:
 The container a **Group** publishes its **Shifts** in — a **named date range** owned by exactly one Group, in one of two states: `draft` (seen only by the Group's Scheduler/Chair and super-tier) or `published` (seen by the Group's `listing_visibility` audience). A calendar month is the common case, not a separate kind: "August 2026" and a Visitor Wayfinders occasion are the same entity with different ranges and names. Schedules may overlap, are kept indefinitely, and can be un-published or deleted only while they hold zero **Sign-ups**. Its `name` and `description` are as-authored **content** — never translated. See [ADR-0021](docs/adr/0021-scheduling-first-pass.md).
@@ -91,7 +111,7 @@ _Avoid_: reading a Shift as one person's seat — it is a **slot** that holds up
 
 **Shift kind**:
 An entry in a **Group**'s small list of the kinds of shift it runs — "Desk", "Shadow", "Level 2 greeter", "Egypt - GI # 1". Per Group, nullable on a **Shift** (Reception's Shifts carry none). Model `ShiftKind`, table `shift_kinds`. This is [ADR-0015](docs/adr/0015-scheduling-model.md)'s **Catalog**, renamed. A Group whose kinds are places names them that way; Gallery Interpreters' kinds are **stations** (a gallery and a cart number). A kind may be flagged **off-site**, which makes its Sign-ups' **Objects** subject to an **Object hold**. A **qualification** requirement hangs off the kind, never off the dated Shift — decided in shape only; nothing is built.
-_Avoid_: "Catalog" (already three other things in this repo: the content catalog capability, the role catalog, the persona catalogue), and legacy's `Activity` / `Role` / `Type` / `Location` (see Legacy vocabulary). "Station" is fine in Gallery Interpreters prose; the entity is still the shift kind.
+_Avoid_: "Catalog" (already taken twice in this repo: the role catalog, the persona catalogue; and the retired content catalog), and legacy's `Activity` / `Role` / `Type` / `Location` (see Legacy vocabulary). "Station" is fine in Gallery Interpreters prose; the entity is still the shift kind.
 
 **Self-serve Shift**:
 A **Shift** a **Member** authors for themselves, in a **Group** whose `self-serve shifts` setting is on ([ADR-0026](docs/adr/0026-gallery-interpreters-self-serve-shifts.md)). The Member picks the start (any 15-minute step on the day, including one already passed today), the **shift kind**, their **Objects**, and a number of **units**; the app writes the Shift (capacity 1, audience `group`) and their **Sign-up** in one action. The author may edit or delete it until it starts; after that only the **Scheduler** may. Gallery Interpreters is the Group this exists for.
@@ -103,7 +123,7 @@ _Avoid_: legacy's `Count` for this (see Legacy vocabulary — the column means t
 
 **Object**:
 One item of a **Group**'s handling collection that a **Member** takes onto the floor — "Ostrich Egg", "Owl Skulls". Group-scoped, with a name, an active flag and a sort order; maintained by the Group's schedule admin like a **shift kind**. Reserved on the **Sign-up**, zero or more per Sign-up; when the Group has any active Object, a self-serve Sign-up must carry at least one. **An Object cannot be double-booked**: no two Sign-ups on overlapping Shifts may carry the same Object, and the server enforces it. Gallery Interpreters only, today.
-_Avoid_: "artefact" (legacy's `giArtefact` is a 452-row content catalog of which 144 rows are Objects; the rest are gallery themes and links and belong to the content catalog capability), and putting an Object on the **Shift** — several Members on one Shift each reserve their own.
+_Avoid_: "artefact" (legacy's `giArtefact` is a 452-row content catalog of which 144 rows are Objects; the rest are gallery themes and links, which are files in the Group's **Document library**), and putting an Object on the **Shift** — several Members on one Shift each reserve their own.
 
 **Object hold**:
 The window during which an **Object** counts as in use for the double-booking check. Normally the **Shift**'s own start and end. When the Shift's **shift kind** is flagged **off-site**, the window widens to the start of the day before the Shift through the end of the day after, because the Object leaves the building. Automatic; nothing is written or maintained.
