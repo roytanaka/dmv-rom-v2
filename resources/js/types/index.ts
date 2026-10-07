@@ -318,7 +318,12 @@ export interface LibraryFolder {
     name: string;
     /** The Folder's page, localized. */
     href: string;
+    /** Who reads it: its top-level Folder's setting (#715, ADR-0030 §5). */
+    visibility: FolderVisibility;
 }
+
+/** `group`: members of the owning Group; `members`: every signed-in Member (ADR-0030 §5). */
+export type FolderVisibility = 'group' | 'members';
 
 // One move destination, sent to managers only (#714): every Folder of the Group in tree order.
 export interface FolderDestination {

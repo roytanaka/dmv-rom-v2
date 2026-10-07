@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// One Folder's manage menu on the Group Documents tab (#714, ADR-0030 §3): rename, move, or
-// delete after a confirm. Rendered only for a manager; the DocumentFolderPolicy enforces every
+// One Folder's manage menu on the Group Documents tab (#714, ADR-0030 §3): rename (edit, with
+// who can read it, for a top-level Folder, #715), move, or delete after a confirm. Rendered only for a manager; the DocumentFolderPolicy enforces every
 // write. A Folder that still holds Folders or Documents is refused by the server, and the
 // confirm shows that message.
 import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
@@ -62,7 +62,7 @@ function confirmDelete(id: number): void {
         <DropdownMenuContent align="end">
             <DropdownMenuItem class="gap-2" @select="renaming = true">
                 <PhPencilSimple class="size-4" />
-                {{ trans('document_folders.rename') }}
+                {{ trans(parentId === null ? 'document_folders.edit' : 'document_folders.rename') }}
             </DropdownMenuItem>
             <DropdownMenuItem class="gap-2" @select="moving = true">
                 <PhArrowBendUpRight class="size-4" />
@@ -75,7 +75,7 @@ function confirmDelete(id: number): void {
         </DropdownMenuContent>
     </DropdownMenu>
 
-    <DocumentFolderDialog v-model:open="renaming" :folder="folder" />
+    <DocumentFolderDialog v-model:open="renaming" :folder="folder" :top-level="parentId === null" />
 
     <DocumentMoveDialog
         v-model:open="moving"

@@ -18,6 +18,9 @@
 // child Folders above its Documents, and an empty-Folder message. Uploads and new links land
 // in the open Folder. A manager creates Folders here and renames, moves or deletes one from
 // its row's DocumentFolderActions menu.
+//
+// Visibility (#715, ADR-0030 §5): each Folder row and the open Folder say who can read them.
+// A manager sets it on a top-level Folder in DocumentFolderDialog; the rest inherit.
 import DocumentActions from '@/components/DocumentActions.vue';
 import DocumentFolderActions from '@/components/DocumentFolderActions.vue';
 import DocumentFolderBreadcrumb from '@/components/DocumentFolderBreadcrumb.vue';
@@ -155,7 +158,12 @@ function onDrop(event: DragEvent): void {
 
 <template>
     <div class="flex flex-col gap-6">
-        <DocumentFolderBreadcrumb v-if="library.folder" :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
+        <div v-if="library.folder" class="flex flex-col gap-1">
+            <DocumentFolderBreadcrumb :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
+            <p class="text-muted-foreground text-sm">
+                {{ trans('document_folders.readable_by', { who: trans(`document_folders.visibility.${library.folder.visibility}`) }) }}
+            </p>
+        </div>
 
         <!-- Upload, for a manager only. The whole zone takes a drop; the button opens the picker. -->
         <section v-if="canManage" class="flex flex-col gap-3">
@@ -240,6 +248,9 @@ function onDrop(event: DragEvent): void {
                             <PhFolder class="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
                             {{ folder.name }}
                         </Link>
+                        <p class="text-muted-foreground text-xs">
+                            {{ trans('document_folders.readable_by', { who: trans(`document_folders.visibility.${folder.visibility}`) }) }}
+                        </p>
                     </TableCell>
                     <TableCell class="text-muted-foreground hidden sm:table-cell">{{ trans('document_folders.kind') }}</TableCell>
                     <TableCell class="hidden sm:table-cell" />
@@ -313,6 +324,12 @@ function onDrop(event: DragEvent): void {
         </Table>
 
         <LinkDocumentDialog v-if="canManage" v-model:open="linkDialogOpen" :group-slug="groupSlug" :folder-id="folderId" />
-        <DocumentFolderDialog v-if="canManage" v-model:open="folderDialogOpen" :group-slug="groupSlug" :parent-id="folderId" />
+        <DocumentFolderDialog
+            v-if="canManage"
+            v-model:open="folderDialogOpen"
+            :group-slug="groupSlug"
+            :parent-id="folderId"
+            :top-level="folderId === null"
+        />
     </div>
 </template>
