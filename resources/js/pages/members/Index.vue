@@ -17,6 +17,10 @@
 //
 // #700: with a Group picked, a Role column shows each Member's roles in that Group, and
 // the Groups column becomes Other Groups, without the picked one.
+//
+// #699: the Who's who select picks which Members the server lists. It reloads the page
+// with a `list` query parameter, so a list has a URL; the server offers only the lists
+// the viewer may see. The Group filter and search still narrow the loaded rows.
 import AlphaJumpRail from '@/components/AlphaJumpRail.vue';
 import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -30,10 +34,10 @@ import { otherGroups, rolesIn } from '@/directory/groupColumns';
 import { type Recipient } from '@/emailing/composer';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { PhCaretDown, PhMagnifyingGlass } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 interface DirectoryGroup {
     name: string;
@@ -50,7 +54,7 @@ interface DirectoryMember {
     groups: DirectoryGroup[];
 }
 
-const props = defineProps<{ members: DirectoryMember[] }>();
+const props = defineProps<{ members: DirectoryMember[]; list: string; lists: string[] }>();
 
 const page = usePage<SharedData>();
 
@@ -96,6 +100,20 @@ const groupOptions = computed(() => {
         }
     }
     return [...bySlug.entries()].map(([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name));
+});
+
+// A new list can drop the picked Group. Clear the filter then, so the rows never hide
+// behind a Group the select no longer offers.
+watch(groupOptions, (options) => {
+    if (groupFilter.value !== '' && !options.some((group) => group.slug === groupFilter.value)) {
+        groupFilter.value = '';
+    }
+});
+
+const listFilter = computed({
+    get: () => props.list,
+    set: (list: string) =>
+        router.get(route('directory'), list === 'all_members' ? {} : { list }, { preserveState: true, preserveScroll: true, replace: true }),
 });
 
 const activeGroupLabel = computed(
@@ -233,6 +251,23 @@ const groupPicked = computed(() => groupFilter.value !== '');
                             <DropdownMenuRadioItem value="">{{ trans('directory.filter.group.all') }}</DropdownMenuRadioItem>
                             <DropdownMenuRadioItem v-for="group in groupOptions" :key="group.slug" :value="group.slug">
                                 {{ group.name }}
+                            </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger
+                        :aria-label="trans('directory.filter.list.label')"
+                        class="border-input bg-background focus-visible:border-rom-slate focus-visible:ring-rom-slate-50 flex h-11 items-center justify-between gap-2 rounded-none border px-3 text-base outline-hidden focus-visible:ring-2 sm:w-64"
+                    >
+                        <span class="truncate">{{ trans(`directory.filter.list.${list}`) }}</span>
+                        <PhCaretDown class="size-4 shrink-0 opacity-60" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" class="max-h-80 w-64 overflow-y-auto">
+                        <DropdownMenuRadioGroup v-model="listFilter">
+                            <DropdownMenuRadioItem v-for="option in lists" :key="option" :value="option">
+                                {{ trans(`directory.filter.list.${option}`) }}
                             </DropdownMenuRadioItem>
                         </DropdownMenuRadioGroup>
                     </DropdownMenuContent>

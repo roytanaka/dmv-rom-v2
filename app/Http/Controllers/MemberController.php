@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\DirectoryList;
 use App\Http\Requests\UpdateMemberRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\Member;
+use App\Support\Audiences\AudienceResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,19 +21,39 @@ class MemberController extends Controller
      * for the Groups column, then routes through
      * {@see MemberResource::directoryCollection()}, which suppresses contact PII for
      * every row regardless of viewer (contact is a profile-only concern).
+     *
+     * #699: the `list` query parameter picks a Who's who list ({@see DirectoryList}).
+     * A list the viewer may not see returns no rows; an unknown one falls back to the
+     * default.
      */
-    public function index(): Response
+    public function index(Request $request, AudienceResolver $resolver): Response
     {
-        $members = Member::inDirectory()
+        $viewer = $request->user();
+        $seesEvery = $viewer->seesEveryDirectoryList();
+        $list = DirectoryList::tryFrom((string) $request->query('list')) ?? DirectoryList::AllMembers;
+
+        $query = Member::query()
             ->with('memberships.group', 'memberships.roles')
             ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->get();
+            ->orderBy('first_name');
+
+        if (! $list->isOpen() && ! $seesEvery) {
+            $query->whereKey([]);
+        } elseif ($audience = $list->audience()) {
+            $query->whereKey($resolver->directoryMembers(...$audience)->pluck('id')->all());
+        } else {
+            $query->inDirectory();
+        }
 
         return Inertia::render('members/Index', [
             // resolve() to the unwrapped array of rows — the page consumes a flat
             // `members` list, not a `{ data: [...] }` envelope.
-            'members' => MemberResource::directoryCollection($members)->resolve(),
+            'members' => MemberResource::directoryCollection($query->get())->resolve(),
+            'list' => $list->value,
+            'lists' => collect(DirectoryList::cases())
+                ->filter(fn (DirectoryList $option): bool => $seesEvery || $option->isOpen())
+                ->map(fn (DirectoryList $option): string => $option->value)
+                ->values(),
         ]);
     }
 

@@ -27,6 +27,22 @@ return [
             'label' => 'Filtrer par groupe',
             'all' => 'Tous les groupes',
         ],
+        // Liste « Qui est qui » (#699) : les membres que le répertoire affiche.
+        'list' => [
+            'label' => 'Filtrer par liste',
+            'all_members' => 'Tous les membres',
+            'all_members_loa' => 'Tous les membres + congés',
+            'active_provisional' => 'Membres actifs et provisoires',
+            'active' => 'Actifs',
+            'provisional' => 'Provisoires',
+            'pre_active' => 'Pré-actifs',
+            'sustaining' => 'De soutien',
+            'honourary' => 'Honoraires',
+            'loa' => 'En congé',
+            'board_of_directors' => 'Conseil d’administration du DMV',
+            'committee_chairs' => 'Présidences de comité',
+            'all_chairs' => 'Présidences de comité et de sous-comité du DMV',
+        ],
     ],
     // Bascule de tri par nom / prénom (#171). L'ordre d'affichage et le rail de saut
     // suivent tous deux le tri actif.
