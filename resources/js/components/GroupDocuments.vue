@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Group Documents tab (#712, spec #290, ADR-0030) — the Group's Document library. Lists the
 // Documents at the library root the viewer may read: name (title, or the filename when there
-// is none), type, size and update date, plus the uploader for a manager. Each name links to
-// the gated download route.
+// is none), type, size and update date, plus the uploader and upload date for a manager. Each
+// name links to the gated download route.
 //
 // A manager (the Librarian, the Chair, or the super-tier; the server's `canManage` hint) gets
 // the upload drop zone. A multi-file pick goes up one file per request, one after another, so
@@ -315,7 +315,10 @@ function onDrop(event: DragEvent): void {
                     </TableCell>
                     <TableCell class="text-muted-foreground hidden text-right sm:table-cell">{{ formatSize(document.sizeBytes) }}</TableCell>
                     <TableCell class="text-muted-foreground hidden md:table-cell">{{ formatDate(document.updatedAt) }}</TableCell>
-                    <TableCell v-if="canManage" class="text-muted-foreground hidden lg:table-cell">{{ document.uploader }}</TableCell>
+                    <TableCell v-if="canManage" class="text-muted-foreground hidden lg:table-cell">
+                        {{ document.uploader }}
+                        <p v-if="document.uploadedAt" class="text-xs">{{ formatDate(document.uploadedAt) }}</p>
+                    </TableCell>
                     <TableCell v-if="canManage" class="w-10 text-right">
                         <DocumentActions :document="document" :destinations="library.destinations" :max-depth="library.maxDepth" />
                     </TableCell>

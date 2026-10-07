@@ -300,6 +300,8 @@ export interface LibraryDocument {
     updatedAt: string;
     /** The uploader's name, sent to managers only. */
     uploader: string | null;
+    /** When the uploader put it up, a UTC instant; sent to managers only (story 51). */
+    uploadedAt: string | null;
     /** The gated download URL, localized. */
     href: string;
     /** The Tags this Document carries, sorted by name (#717). */

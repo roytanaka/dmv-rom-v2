@@ -7,6 +7,7 @@ use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\Member;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -196,20 +197,22 @@ it('lists the root Documents for a member, sorted by name', function () {
             ->where('library.documents.1.sizeBytes', 2048)
             ->where('library.documents.1.updatedAt', $minutes->updated_at->toIso8601String())
             ->where('library.documents.1.uploader', null)
+            ->where('library.documents.1.uploadedAt', null)
             ->where('library.documents.1.href', "/documents/{$minutes->id}/download"));
 });
 
-it('shows the uploader and the upload control to a Librarian', function () {
+it('shows the uploader, the upload time and the upload control to a Librarian', function () {
     $group = libraryGroup();
     $uploader = Member::factory()->create(['first_name' => 'Ada', 'last_name' => 'Lovelace']);
-    storedDocument($group, ['uploaded_by_id' => $uploader->id]);
+    storedDocument($group, ['uploaded_by_id' => $uploader->id, 'uploaded_at' => '2026-03-14 09:30:00']);
 
     $this->actingAs(libraryMemberOf($group, Role::Librarian))
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageDocuments', true)
-            ->where('library.documents.0.uploader', $uploader->fullName()));
+            ->where('library.documents.0.uploader', $uploader->fullName())
+            ->where('library.documents.0.uploadedAt', Carbon::parse('2026-03-14 09:30:00')->toIso8601String()));
 });
 
 it('withholds root Documents from a non-member', function () {

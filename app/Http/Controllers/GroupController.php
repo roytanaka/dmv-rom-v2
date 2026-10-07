@@ -793,6 +793,8 @@ class GroupController extends Controller
                     'sizeBytes' => $document->size_bytes,
                     'updatedAt' => $document->updated_at->toIso8601String(),
                     'uploader' => $canManage ? $document->uploadedBy?->fullName() : null,
+                    // When the current file (or link) was put up (story 51), managers only.
+                    'uploadedAt' => $canManage ? $document->uploaded_at?->toIso8601String() : null,
                     'href' => route('documents.download', $document, absolute: false),
                     'tags' => $this->tagRows($document->tags),
                 ])
