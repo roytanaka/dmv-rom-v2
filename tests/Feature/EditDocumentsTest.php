@@ -145,6 +145,19 @@ it('swaps the file and keeps the Document', function () {
         ->assertDownload('Data Sheet v2.docx');
 });
 
+it('keeps the Document\'s Tags when its file is replaced', function () {
+    $group = keptLibrary();
+    $document = keptDocument($group);
+    $tag = $group->documentTags()->create(['name' => 'Required']);
+    $document->tags()->attach($tag);
+
+    $this->actingAs(keeperOf($group))
+        ->post(route('documents.replace', $document), ['file' => UploadedFile::fake()->create('new.pdf', 5, 'application/pdf')])
+        ->assertSessionHasNoErrors();
+
+    expect($document->fresh()->tags->pluck('id')->all())->toBe([$tag->id]);
+});
+
 it('keeps the old file when the new one is refused', function () {
     $group = keptLibrary();
     $document = keptDocument($group, ['original_filename' => 'old.pdf']);
