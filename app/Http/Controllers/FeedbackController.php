@@ -45,7 +45,8 @@ class FeedbackController extends Controller implements HasMiddleware
     }
 
     /**
-     * The Feedback page: every item, newest first, filtered by type and by status (§13).
+     * The Feedback page: every item, newest first, filtered by type and by status (§13),
+     * each with its comment count (#701), counted in the one query.
      * The filters are query parameters, so a filtered list has a URL. A value that names
      * no type or status is ignored. No policy check beyond `auth`: every logged-in Tester
      * reads every item (ADR-0029 §4).
@@ -58,12 +59,14 @@ class FeedbackController extends Controller implements HasMiddleware
         $items = FeedbackItem::query()
             ->when($type, fn ($query) => $query->where('type', $type))
             ->when($status, fn ($query) => $query->where('status', $status))
+            ->withCount('comments')
             ->latest()
             ->orderByDesc('id')
             ->get()
             ->map(fn (FeedbackItem $item) => [
                 ...$this->summary($item),
                 'excerpt' => Str::limit($item->message, 160),
+                'commentsCount' => $item->comments_count,
                 'href' => route('feedback.show', $item, false),
             ]);
 
