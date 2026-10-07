@@ -672,6 +672,73 @@
         return clickAndWaitFor(buttonLabelled(/^stop$/i), () => !buttonLabelled(/^stop$/i));
     }
 
+    // The Document library on a Group's Documents tab (#719, ADR-0030). Folder rows link into
+    // `/groups/<slug>/documents/folders/<id>`; a seeded Folder's id is not stable, so a script
+    // follows the first Folder link instead of naming its permalink.
+    function openFirstFolder() {
+        const link = document.querySelector('tbody a[href*="/documents/folders/"]');
+        return link ? followLink(link) : false;
+    }
+
+    // The one-Tag filter is a Radix Select: Enter on the trigger opens it, Enter on an option
+    // picks it. Picking a Tag reloads the tab with `?tag=<id>`, so wait for the query string.
+    function openTagFilter() {
+        if (!pressEnterOn(document.getElementById('document-tag-filter'))) return false;
+        return waitFor(() => document.querySelector('[role="option"]'));
+    }
+
+    async function filterByHighlightsTag() {
+        if (!(await openTagFilter())) return false;
+        const option = Array.from(document.querySelectorAll('[role="option"]')).find((element) => /^highlights$/i.test(element.textContent.trim()));
+        if (!option) return false;
+        option.focus();
+        option.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        return waitFor(() => location.search.includes('tag='));
+    }
+
+    // A Librarian's controls. New folder and Manage tags open dialogs on a DOM click; each row's
+    // actions button is a Radix menu, opened through its keyboard contract.
+    function openNewFolderDialog() {
+        return clickAndSettle(buttonLabelled(/^new folder$/i));
+    }
+
+    function openFolderMenu() {
+        return openMenuFrom(document.querySelector('tbody [aria-haspopup="menu"][aria-label^="Actions for"]'));
+    }
+
+    // The first top-level Folder's Edit dialog: its name and Who can read it.
+    async function openFolderEditDialog() {
+        if (!(await openFolderMenu())) return false;
+        return clickAndSettle(menuItems().find((element) => /^edit$/i.test(element.textContent.trim())));
+    }
+
+    // The first Document row's actions menu. Folder rows come first, so skip any row that
+    // holds a Folder link.
+    function documentRowMenuTrigger() {
+        return Array.from(document.querySelectorAll('tbody tr'))
+            .filter((row) => !row.querySelector('a[href*="/documents/folders/"]'))
+            .map((row) => row.querySelector('[aria-haspopup="menu"]'))
+            .find(Boolean);
+    }
+
+    function openDocumentMenu() {
+        return openMenuFrom(documentRowMenuTrigger());
+    }
+
+    async function openMoveDocumentDialog() {
+        if (!(await openDocumentMenu())) return false;
+        return clickAndSettle(menuItems().find((element) => /^move$/i.test(element.textContent.trim())));
+    }
+
+    function openManageTagsDialog() {
+        return clickAndSettle(buttonLabelled(/^manage tags$/i));
+    }
+
+    // The tag button under the first Document's name, which opens that Document's Tags dialog.
+    function openDocumentTagsDialog() {
+        return clickAndSettle(document.querySelector('tbody button[aria-label^="Edit tags for"]'));
+    }
+
     window.__help = {
         login,
         openHelpMenu,
@@ -728,5 +795,15 @@
         openRoleSwitcher,
         becomeAmaraAbara,
         stopImpersonating,
+        openFirstFolder,
+        openTagFilter,
+        filterByHighlightsTag,
+        openNewFolderDialog,
+        openFolderMenu,
+        openFolderEditDialog,
+        openDocumentMenu,
+        openMoveDocumentDialog,
+        openManageTagsDialog,
+        openDocumentTagsDialog,
     };
 })();

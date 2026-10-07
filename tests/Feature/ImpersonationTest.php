@@ -8,6 +8,7 @@ use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
@@ -29,6 +30,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 // impersonation props, not photos, so an empty 200 (initials fallback) is fine.
 beforeEach(function () {
     Http::fake();
+    Storage::fake('local');
     $this->seedDemoOnce();
 });
 

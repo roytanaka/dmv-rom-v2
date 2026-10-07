@@ -91,14 +91,14 @@ _Avoid_: "file" for the entity (the file is what is stored; the Document is the 
 
 **Folder**:
 A named container in a **Document library**. Folders nest, up to 5 levels. A top-level Folder sets who may read everything inside it: the owning **Group**'s members, or every signed-in **Member**. Each **Document** sits in one Folder, or at the library root, which only the Group's members read.
-_Avoid_: legacy's "Topic", "Sub-topic", "Category", "Section" as names for this; they are one Group's Folder levels. And "Section" in particular: a docent Section is a level of Folders here, not a scope for a role.
+_Avoid_: legacy's "Topic", "Sub-topic" and "Category" as names for this; they are one Group's Folder levels. A legacy docent "Section" is a **Document category**, not a Folder and not a scope for a role.
 
-**Tag**:
-A label a **Group** defines for its own **Document library**. A **Document** carries any number of Tags, and readers filter by them. Tags give the views that cut across **Folders**, for example every Data Sheet marked Highlights.
-_Avoid_: "category" (taken by a Member's **Category**), and a second Folder for a Document; a Document is in one Folder, and a Tag shows it elsewhere.
+**Document category**:
+A heading inside one **Folder**, or at the library root, that groups the Folders and **Documents** directly in it. Each Folder and the root keep their own list: the root of Docents' library has Data Sheets and Publications, and the World Culture tours Folder has AAAP, Canadian Heritage and so on. An item sits under at most one Document category; items with none show under Other. Readers filter one Folder's view by one of its Document categories. A Document category never changes who may read anything, and it is not a level of Folders.
+_Avoid_: bare "category" outside the Documents screen (a Member's **Category** is a different thing); "Tag" (a Document never shows in two places); "Section" (legacy's word for the same idea, kept out to spare a second name).
 
 **Librarian**:
-The **role** in a **Group** that organizes its **Document library**: uploads, replaces, arranges, tags and deletes **Documents** and **Folders**. Requires the Group's documents capability. Covers the whole library; there is no Folder-scoped Librarian.
+The **role** in a **Group** that organizes its **Document library**: uploads, replaces, arranges, categorizes and deletes **Documents** and **Folders**. Requires the Group's documents capability. Covers the whole library; there is no Folder-scoped Librarian.
 _Avoid_: "Content Maintainer" (merged into this role, [ADR-0030](docs/adr/0030-document-library.md)) and "Section Head" for a Librarian.
 
 **Schedule**:

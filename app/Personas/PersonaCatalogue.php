@@ -59,6 +59,13 @@ final class PersonaCatalogue
     // walk (a seat to drop, a past Shift still owed a visitor count).
     public const MEMBER_EMAIL = 'amara.abara@dmv.test';
 
+    // The Document library Personas (#718, ADR-0030): the Docents Librarian who manages the
+    // seeded Docents library, and a Member outside Docents who reads only its Folders shared
+    // with every Member.
+    public const LIBRARIAN_EMAIL = 'hannah.schmidt@dmv.test';
+
+    public const LIBRARY_READER_EMAIL = 'felix.andersson@dmv.test';
+
     /**
      * Every catalogued Persona, in picker order (grouped by function).
      *
@@ -129,7 +136,7 @@ final class PersonaCatalogue
             new Persona(self::SCHEDULER_EMAIL, 'James', 'Tremblay', PersonaGroup::Roles, 'Scheduler · Docents', placements: [
                 new PersonaPlacement(self::DOCENTS, roles: [Role::Scheduler]),
             ]),
-            new Persona('hannah.schmidt@dmv.test', 'Hannah', 'Schmidt', PersonaGroup::Roles, 'Librarian · Docents', placements: [
+            new Persona(self::LIBRARIAN_EMAIL, 'Hannah', 'Schmidt', PersonaGroup::Roles, 'Librarian · Docents', placements: [
                 new PersonaPlacement(self::DOCENTS, roles: [Role::Librarian]),
             ]),
             new Persona('ravi.singh@dmv.test', 'Ravi', 'Singh', PersonaGroup::Roles, 'Statistician · Docents', placements: [
@@ -146,7 +153,8 @@ final class PersonaCatalogue
             new Persona('clara.moreau@dmv.test', 'Clara', 'Moreau', PersonaGroup::Standings, 'On Leave · Docents', placements: [
                 new PersonaPlacement(self::DOCENTS, MembershipStatus::Loa),
             ]),
-            new Persona('felix.andersson@dmv.test', 'Felix', 'Andersson', PersonaGroup::Standings, 'Full Member · Reception', placements: [
+            // Also the Document library reader outside Docents (LIBRARY_READER_EMAIL).
+            new Persona(self::LIBRARY_READER_EMAIL, 'Felix', 'Andersson', PersonaGroup::Standings, 'Full Member · Reception', placements: [
                 new PersonaPlacement(self::RECEPTION),
             ]),
             new Persona('ingrid.lindqvist@dmv.test', 'Ingrid', 'Lindqvist', PersonaGroup::Standings, 'Emeritus · Reception', placements: [

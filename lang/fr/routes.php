@@ -17,6 +17,8 @@ return [
     // note dans lang/en/routes.php sur la collision de segment.
     'members.show' => 'benevoles/{member}',
     'documents' => 'documents',
+    // Téléchargement d'un document (#712, ADR-0030 §13). Le {document} est l'identifiant.
+    'documents.download' => 'documents/{document}/telecharger',
     'news' => 'nouvelles',
     'profile' => 'profil',
     'renew' => 'renouveler',
@@ -48,6 +50,9 @@ return [
     // Permalien d'un horaire (#353, ADR-0021 §1). « scheduling » → « horaire »
     // (comme l'onglet group.tab.scheduling) ; {group} et {schedule} restent verbatim.
     'groups.scheduling.show' => 'groupes/{group}/horaire/{schedule}',
+    // Un dossier de la bibliothèque de documents d'un groupe (#714, ADR-0030 §3). « folders » →
+    // « dossiers » ; {group} et {folder} restent verbatim.
+    'groups.documents.folder' => 'groupes/{group}/documents/dossiers/{folder}',
 
     // Rapport annuel des heures d'un groupe (#411, ADR-0022 §5). « hours/report » →
     // « heures/rapport » ; {group} reste verbatim.

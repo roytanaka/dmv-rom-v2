@@ -11,6 +11,8 @@ use App\Enums\ScheduleState;
 use App\Enums\ShiftAudience;
 use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
+use App\Models\Document;
+use App\Models\DocumentFolder;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -25,6 +27,7 @@ use App\Models\ShiftKind;
 use App\Models\SignUp;
 use App\Support\Audiences\AudienceContext;
 use App\Support\Audiences\AudienceResolver;
+use App\Support\DocumentLibrary;
 use App\Support\OrgTime;
 use App\Support\RouteSegments;
 use Carbon\CarbonImmutable;
@@ -73,10 +76,23 @@ class GroupController extends Controller
     }
 
     /**
-     * Render the committee shell on the given section, optionally opened on a specific
-     * Schedule. Shared by {@see show()} and {@see showSchedule()}.
+     * A Document library Folder (`groups.documents.folder`, #714) — the Documents section
+     * opened on one Folder. A Folder of another Group 404s; the read is the
+     * DocumentFolderPolicy's `view`, checked in {@see DocumentLibrary::for()}.
      */
-    private function render(Request $request, Group $group, string $section, ?Schedule $schedule): Response
+    public function showDocumentFolder(Request $request, Group $group, DocumentFolder $folder): Response
+    {
+        abort_unless($folder->group_id === $group->id, 404);
+
+        return $this->render($request, $group, 'documents', null, $folder);
+    }
+
+    /**
+     * Render the committee shell on the given section, optionally opened on a specific
+     * Schedule or Document library Folder. Shared by {@see show()}, {@see showSchedule()} and
+     * {@see showDocumentFolder()}.
+     */
+    private function render(Request $request, Group $group, string $section, ?Schedule $schedule, ?DocumentFolder $folder = null): Response
     {
         // Container page-gate (#293, PRD #289): a Kind::Container Group is a structural
         // section peer, not a destination — no page exists. Unconditional 404 for every
@@ -115,6 +131,13 @@ class GroupController extends Controller
         // section itself is org-open (SchedulePolicy); per-Schedule read is gated below.
         if ($section === 'scheduling') {
             abort_unless($request->user()->can('viewAny', [Schedule::class, $group]), 404);
+        }
+
+        // The Documents section exists only while the Group runs a Document library (#712,
+        // ADR-0030) — a 404 for everyone, super-tier included, so the tab and the URL agree.
+        // Which Documents a viewer sees is filtered per Document by the DocumentPolicy below.
+        if ($section === 'documents') {
+            abort_unless($group->has_documents, 404);
         }
 
         // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
@@ -165,7 +188,6 @@ class GroupController extends Controller
                     'meetings' => $group->has_meetings,
                     'documents' => $group->has_documents,
                     'scheduling' => $group->has_scheduling,
-                    'content' => $group->has_content_catalog,
                     // Whether the Group collects a per-shift visitor count (#445, ADR-0023 §5).
                     // Unlike the flags above it opens no tab — it switches the Post-shift report
                     // on inside the Scheduling section — but it rides here as the one Group-level
@@ -251,6 +273,10 @@ class GroupController extends Controller
                 // ancestor, or the super-tier. UI hint only; the report route re-checks the
                 // viewReports gate on the way in.
                 'viewReports' => $request->user()->can('viewReports', [HoursRecord::class, $group]),
+                // `manageDocuments` drives the Documents tab's upload control and the uploader
+                // column (#712, ADR-0030) — the Group's Librarian or Chair, or the super-tier.
+                // UI hint only; the Document Form Requests re-check the DocumentPolicy on write.
+                'manageDocuments' => $group->has_documents && $request->user()->can('manage', [Document::class, $group]),
             ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
@@ -280,6 +306,11 @@ class GroupController extends Controller
             'hours' => $section === 'hours'
                 ? $this->hours($request, $group)
                 : ['records' => [], 'months' => []],
+            // The Documents tab's payload (#712, #714, ADR-0030), resolved only on that tab: the
+            // open Folder (or the library root) with what the viewer may read in it.
+            'library' => $section === 'documents'
+                ? DocumentLibrary::for($request->user(), $group, $folder, $request->filled('tag') ? $request->integer('tag') : null)
+                : DocumentLibrary::empty(),
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'

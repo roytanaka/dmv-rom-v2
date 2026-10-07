@@ -279,6 +279,82 @@ export interface Meeting {
     can: { update: boolean; delete: boolean };
 }
 
+// The Group Documents tab payload (#712, ADR-0030). One row of the Document library: a
+// Document the viewer may read. `title` and `filename` are content, shown as written.
+export interface LibraryDocument {
+    id: number;
+    /** A stored file, or a link to a web address (#716). */
+    kind: 'file' | 'link';
+    /** The Folder it sits in, or null at the library root (#714). */
+    folderId: number | null;
+    /** A link's web address, sent to managers only (for editing); readers open `href`. */
+    url: string | null;
+    title: string | null;
+    /** Content, shown as written (#713). */
+    description: string | null;
+    filename: string | null;
+    /** Lower-case extension of the original filename, or null. */
+    extension: string | null;
+    sizeBytes: number | null;
+    /** A UTC instant. */
+    updatedAt: string;
+    /** The uploader's name, sent to managers only. */
+    uploader: string | null;
+    /** When the uploader put it up, a UTC instant; sent to managers only (story 51). */
+    uploadedAt: string | null;
+    /** The gated download URL, localized. */
+    href: string;
+    /** The Tags this Document carries, sorted by name (#717). */
+    tags: LibraryTag[];
+}
+
+// A Tag of a Group's Document library (#717, ADR-0030 §4). `name` is content, as written.
+export interface LibraryTag {
+    id: number;
+    name: string;
+}
+
+// A Folder of the Document library (#714, ADR-0030 §3). `name` is content, shown as written.
+export interface LibraryFolder {
+    id: number;
+    name: string;
+    /** The Folder's page, localized. */
+    href: string;
+    /** Who reads it: its top-level Folder's setting (#715, ADR-0030 §5). */
+    visibility: FolderVisibility;
+}
+
+/** `group`: members of the owning Group; `members`: every signed-in Member (ADR-0030 §5). */
+export type FolderVisibility = 'group' | 'members';
+
+// One move destination, sent to managers only (#714): every Folder of the Group in tree order.
+export interface FolderDestination {
+    id: number;
+    parentId: number | null;
+    /** 1 for a top-level Folder. */
+    depth: number;
+    /** Folder names from the top level down to this one. */
+    path: string[];
+}
+
+export interface GroupLibrary {
+    /** The open Folder, or null at the library root (#714). */
+    folder: LibraryFolder | null;
+    /** The Folders above the open one, top-level first (#714). */
+    breadcrumb: LibraryFolder[];
+    /** The open Folder's child Folders, sorted by name; none under a Tag filter (#714). */
+    folders: LibraryFolder[];
+    /** Every Folder as a move destination; managers only (#714). */
+    destinations: FolderDestination[];
+    /** How deep Folders may go (DocumentFolder::MAX_DEPTH). */
+    maxDepth: number;
+    documents: LibraryDocument[];
+    /** Every Tag the Group defines, sorted by name (#717). */
+    tags: LibraryTag[];
+    /** The active one-Tag filter, or null (#717). */
+    tag: LibraryTag | null;
+}
+
 // The Group Hours tab payload (#408, ADR-0022 §2). The viewer's own records for this
 // Group and the two-month entry state — never another Member's hours (§4).
 export interface HoursRecordRow {

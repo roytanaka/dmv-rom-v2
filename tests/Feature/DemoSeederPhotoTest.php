@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Storage;
  * rate-limited endpoint must fall back to initials, never fail the seed.
  */
 
+// Seeded Document library files go to a faked private disk, never the real one.
+beforeEach(fn () => Storage::fake('local'));
+
 it('stores fetched DiceBear avatars via the public-disk/UUID pipeline, not as remote URLs', function () {
     Storage::fake('public');
     Http::fake([

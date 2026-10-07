@@ -3,6 +3,10 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentFolderController;
+use App\Http\Controllers\DocumentTagController;
+use App\Http\Controllers\DownloadDocumentController;
 use App\Http\Controllers\DownloadFeedbackScreenshotController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\FeedbackTriageController;
@@ -15,9 +19,11 @@ use App\Http\Controllers\HelpController;
 use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\LinkDocumentController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MoveDocumentController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
@@ -105,6 +111,12 @@ Route::group([
             ->middleware('auth')->name('feedback.comments.destroy');
     }
 
+    // One Document's download (#712, spec #290, ADR-0030 §13): auth, the DocumentPolicy, an
+    // access-log row, then the file under its original name. Localized (/documents/{id}/download
+    // ↔ /fr/documents/{id}/telecharger); a logged-out visitor lands on login, then the file.
+    Route::get(LaravelLocalization::transRoute('routes.documents.download'), DownloadDocumentController::class)
+        ->middleware('auth')->name('documents.download');
+
     // My Hours (#409, PRD #406, ADR-0022 §8). A Member's own hours, gathered from every
     // Group they have hours in, broken out by month across a fiscal year with a year-to-date
     // total — the one home for the renewal question that is not inside any Group. Reads the
@@ -147,6 +159,12 @@ Route::group([
     // visibility — is enforced in the controller via the SchedulePolicy.
     Route::get(LaravelLocalization::transRoute('routes.groups.scheduling.show'), [GroupController::class, 'showSchedule'])
         ->middleware('auth')->name('groups.scheduling.show');
+
+    // A Folder of a Group's Document library (#714, spec #290, ADR-0030 §3): the Documents
+    // section opened on one Folder, addressed by id under its owning Group (bound by slug).
+    // A Folder of another Group 404s; the read is the DocumentFolderPolicy's `view`.
+    Route::get(LaravelLocalization::transRoute('routes.groups.documents.folder'), [GroupController::class, 'showDocumentFolder'])
+        ->middleware('auth')->name('groups.documents.folder');
 
     // A Group's fiscal-year hours report (#411, PRD #406, ADR-0022 §5). A Member × twelve-month
     // matrix with the Group's own hours and its subtree hours side by side. A separate
@@ -317,6 +335,66 @@ Route::patch('meetings/{meeting}', [MeetingController::class, 'update'])
 Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('meetings.destroy');
+
+// Document library writes (#712, spec #290, ADR-0030). The Librarian's seam, the Meetings
+// pattern: store nests under the owning Group (bound by slug). Each write is authorized in its
+// Form Request through the DocumentPolicy — the Group's Librarian or Chair (plus the
+// super-tier), only while the documents capability is on. The read lives on `groups.show`.
+Route::post('groups/{group}/documents', [DocumentController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('documents.store');
+// Edit, replace and delete one Document (#713, ADR-0030 §8). Replace is a POST: it carries a
+// multipart file, which PHP parses only on POST.
+Route::patch('documents/{document}', [DocumentController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('documents.update');
+Route::post('documents/{document}/file', [DocumentController::class, 'replace'])
+    ->middleware(['auth'])
+    ->name('documents.replace');
+Route::delete('documents/{document}', [DocumentController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('documents.destroy');
+
+// Document library Folders and moves (#714, spec #290, ADR-0030 §3). Same seam: create nests
+// under the Group; rename, move and delete bind the Folder by id. A Document moves on its own
+// path so its other edits stay separate. Authorized in the Form Requests (DocumentFolderPolicy,
+// DocumentPolicy::move). The read lives on `groups.documents.folder`.
+Route::post('groups/{group}/document-folders', [DocumentFolderController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('document-folders.store');
+Route::patch('document-folders/{folder}', [DocumentFolderController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('document-folders.update');
+Route::patch('document-folders/{folder}/move', [DocumentFolderController::class, 'move'])
+    ->middleware(['auth'])
+    ->name('document-folders.move');
+Route::delete('document-folders/{folder}', [DocumentFolderController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('document-folders.destroy');
+Route::patch('documents/{document}/move', MoveDocumentController::class)
+    ->middleware(['auth'])
+    ->name('documents.move');
+// Link Documents (#716, ADR-0030 §7): a title and a web address in place of a file. Same
+// authorization as an upload; opening one goes through `documents.download`.
+Route::post('groups/{group}/documents/links', [LinkDocumentController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('documents.links.store');
+
+// Document library Tags (#717, spec #290, ADR-0030 §4). The same Librarian seam: create nests
+// under the Group, rename and delete bind the Tag by id, and a Document's Tags are replaced as
+// one set. Each is authorized in its Form Request through the DocumentTagPolicy.
+Route::post('groups/{group}/document-tags', [DocumentTagController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('document-tags.store');
+Route::patch('document-tags/{documentTag}', [DocumentTagController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('document-tags.update');
+Route::delete('document-tags/{documentTag}', [DocumentTagController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('document-tags.destroy');
+Route::put('documents/{document}/tags', [DocumentTagController::class, 'sync'])
+    ->middleware(['auth'])
+    ->name('documents.tags.update');
 
 // Group scheduling authoring (#354, PRD #352, ADR-0021 §1). The Scheduler's write
 // seam for a Group's Schedules: create a draft, edit its fields, publish / un-publish

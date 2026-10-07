@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\Category;
+use App\Enums\DocumentKind;
+use App\Enums\DocumentVisibility;
 use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
@@ -12,6 +14,9 @@ use App\Enums\ScheduleState;
 use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
+use App\Models\Document;
+use App\Models\DocumentFolder;
+use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -33,7 +38,9 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
@@ -53,6 +60,8 @@ beforeEach(function () {
     // ended, so the seeded roster leaves no seat to take.
     $this->travelTo(now(config('app.org_timezone'))->startOfMonth()->addDays(14)->setTime(12, 0));
     Http::fake();
+    // Seeded library files go to a faked private disk, never the real one.
+    Storage::fake('local');
     $this->seedDemoOnce();
 });
 
@@ -1259,6 +1268,89 @@ it('seeds an upcoming and a past meeting on the Executive committee, the past on
 
 it('is idempotent across the meeting rows — re-seeding heals rather than duplicates', function () {
     $counts = fn () => [Meeting::count(), MeetingLink::count()];
+    $before = $counts();
+
+    $this->seed(DemoSeeder::class);
+
+    expect($counts())->toBe($before);
+});
+
+/*
+ * Demo Document libraries (#718, spec #290). Testers on staging find working libraries
+ * without uploading first; Docents carries the legacy Data Sheets shape. The stored files
+ * themselves are checked in DemoSeederDocumentsTest, on a fresh faked disk.
+ */
+
+it('gives every Group with the documents capability a small library', function () {
+    $groups = Group::where('has_documents', true)->get();
+
+    expect($groups)->not->toBeEmpty();
+
+    $groups->each(function (Group $group) {
+        $folders = DocumentFolder::where('group_id', $group->id)->get();
+        DocumentFolder::preloadAncestors($folders);
+        $documents = Document::where('group_id', $group->id)->get();
+        $visibilities = $folders->whereNull('parent_id')->map(fn (DocumentFolder $folder) => $folder->visibility->value);
+
+        expect($folders->max(fn (DocumentFolder $folder) => $folder->depth()))->toBe(3)
+            ->and(DocumentTag::where('group_id', $group->id)->count())->toBeGreaterThanOrEqual(2)
+            ->and($documents->where('kind', DocumentKind::File)->count())->toBeGreaterThanOrEqual(2)
+            ->and($documents->where('kind', DocumentKind::Link))->toHaveCount(1)
+            ->and($visibilities->unique()->sort()->values()->all())
+            ->toBe([DocumentVisibility::Group->value, DocumentVisibility::Members->value]);
+    });
+});
+
+it('leaves no Document library on a Group without the capability', function () {
+    $without = Group::where('has_documents', false)->pluck('id');
+
+    expect(Document::whereIn('group_id', $without)->exists())->toBeFalse()
+        ->and(DocumentFolder::whereIn('group_id', $without)->exists())->toBeFalse()
+        ->and(DocumentTag::whereIn('group_id', $without)->exists())->toBeFalse();
+});
+
+it('shapes the Docents library as Category, Section and Tour Folders with Required and Highlights Tags', function () {
+    $docents = Group::where('slug', 'docents')->firstOrFail();
+    $folders = DocumentFolder::where('group_id', $docents->id)->get();
+    DocumentFolder::preloadAncestors($folders);
+
+    $tour = $folders->first(fn (DocumentFolder $folder) => $folder->name === 'Dinosaur Highlights tour');
+    $tags = DocumentTag::where('group_id', $docents->id)->get()->keyBy('name');
+
+    expect($tour)->not->toBeNull()
+        ->and($tour->ancestors()->pluck('name')->push($tour->name)->all())
+        ->toBe(['Natural History', 'Dinosaurs', 'Dinosaur Highlights tour'])
+        ->and($tour->documents()->exists())->toBeTrue()
+        ->and($tags->keys()->all())->toContain('Required', 'Highlights')
+        ->and($tags['Required']->documents()->exists())->toBeTrue()
+        ->and($tags['Highlights']->documents()->exists())->toBeTrue();
+});
+
+it('seeds a Docents Librarian Persona who manages the Docents library', function () {
+    $librarian = Member::where('email', PersonaCatalogue::LIBRARIAN_EMAIL)->firstOrFail();
+    $docents = Group::where('slug', 'docents')->firstOrFail();
+
+    expect($librarian->can('create', [Document::class, $docents]))->toBeTrue()
+        ->and(Document::where('group_id', $docents->id)->where('uploaded_by_id', $librarian->id)->exists())->toBeTrue();
+});
+
+it('seeds a Persona outside Docents who reads its shared Folders but not its Group-only ones', function () {
+    $reader = Member::where('email', PersonaCatalogue::LIBRARY_READER_EMAIL)->firstOrFail();
+    $docents = Group::where('slug', 'docents')->firstOrFail();
+    $topLevel = DocumentFolder::with('group')->where('group_id', $docents->id)->whereNull('parent_id')->get();
+    $shared = $topLevel->first(fn (DocumentFolder $folder) => $folder->visibility === DocumentVisibility::Members);
+    $groupOnly = $topLevel->first(fn (DocumentFolder $folder) => $folder->visibility === DocumentVisibility::Group);
+    $sharedDocument = Document::with(['group', 'folder'])->whereIn('folder_id', [$shared->id, ...$shared->descendantIds()])->firstOrFail();
+
+    expect(GroupMember::where('group_id', $docents->id)->where('member_id', $reader->id)->exists())->toBeFalse()
+        ->and($reader->can('view', $shared))->toBeTrue()
+        ->and($reader->can('download', $sharedDocument))->toBeTrue()
+        ->and($reader->can('view', $groupOnly))->toBeFalse()
+        ->and($reader->can('create', [Document::class, $docents]))->toBeFalse();
+});
+
+it('is idempotent across the Document library rows — re-seeding heals rather than duplicates', function () {
+    $counts = fn () => [Document::count(), DocumentFolder::count(), DocumentTag::count(), DB::table('document_tag')->count()];
     $before = $counts();
 
     $this->seed(DemoSeeder::class);

@@ -6,6 +6,7 @@ use App\Models\SkillCategory;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\SkillCatalogSeeder;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 /*
  * The org-owned Skills catalog seed (PRD #243, slice 1 / #245): a faker-free,
@@ -42,6 +43,7 @@ it('runs as part of the standard database seed path', function () {
     // DatabaseSeeder chains DemoSeeder, which fetches best-effort avatars; fake the
     // HTTP client so this never touches the network.
     Http::fake();
+    Storage::fake('local');
 
     $this->seed(DatabaseSeeder::class);
 

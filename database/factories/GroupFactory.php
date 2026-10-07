@@ -43,7 +43,6 @@ class GroupFactory extends Factory
             'has_meetings' => false,
             'has_documents' => false,
             'has_scheduling' => false,
-            'has_content_catalog' => false,
             'has_vetting' => false,
             'has_announcements' => false,
             // Hours is always-on (ADR-0022 §3); the multiplier defaults to 1 and is
@@ -91,7 +90,6 @@ class GroupFactory extends Factory
             'scope' => Scope::Program,
             'has_documents' => true,
             'has_scheduling' => true,
-            'has_content_catalog' => true,
         ]);
     }
 

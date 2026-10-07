@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Enums\AccessTier;
 use App\Enums\Category;
+use App\Enums\DocumentKind;
+use App\Enums\DocumentVisibility;
 use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
@@ -15,6 +17,9 @@ use App\Enums\ScheduleState;
 use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
+use App\Models\Document;
+use App\Models\DocumentFolder;
+use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupStewardship;
@@ -31,12 +36,15 @@ use App\Models\ShiftKind;
 use App\Models\SignUp;
 use App\Personas\Persona;
 use App\Personas\PersonaCatalogue;
+use App\Support\DocumentStorage;
 use App\Support\OrgTime;
 use App\Support\ProfilePhotoStorage;
+use App\Support\SafeFilename;
 use Carbon\CarbonImmutable;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -398,6 +406,7 @@ class DemoSeeder extends Seeder
         $this->hours();
         $this->news();
         $this->meetings();
+        $this->documentLibraries();
     }
 
     /**
@@ -2651,6 +2660,351 @@ class DemoSeeder extends Seeder
     }
 
     /**
+     * A small Document library on every Group with the documents capability (#718, spec #290,
+     * ADR-0030), so testers find working libraries without uploading first. Each has Folders
+     * three levels deep, a few Tags, small generated files, one link Document, and one
+     * top-level Folder of each visibility. Docents carries the legacy Data Sheets shape:
+     * Category → Section → Tour.
+     *
+     * Files go through {@see DocumentStorage} onto the private disk, like a real upload.
+     * Keyed on (Group, Folder, filename or title): a reseed heals the rows and stores no
+     * second copy of a file, the same rule as {@see seedPhoto()}.
+     */
+    private function documentLibraries(): void
+    {
+        $storage = new DocumentStorage;
+
+        Group::where('has_documents', true)->orderBy('id')->get()
+            ->each(function (Group $group) use ($storage) {
+                $library = $group->slug === 'docents' ? $this->docentsLibrary() : $this->standardLibrary($group);
+                $tags = collect($library['tags'])
+                    ->mapWithKeys(fn (string $name) => [$name => $group->documentTags()->firstOrCreate(['name' => $name])]);
+
+                $this->libraryLevel($group, null, $library, $tags->all(), $this->librarian($group), $storage);
+            });
+    }
+
+    /**
+     * Seed one level of a library spec: its Documents, then its Folders and their contents.
+     *
+     * @param  array<string, mixed>  $level
+     * @param  array<string, DocumentTag>  $tags
+     */
+    private function libraryLevel(Group $group, ?DocumentFolder $folder, array $level, array $tags, ?Member $uploader, DocumentStorage $storage): void
+    {
+        foreach ($level['documents'] ?? [] as $index => $spec) {
+            $document = $this->libraryDocument($group, $folder, $spec, $uploader, $storage, $index);
+            $document->tags()->syncWithoutDetaching(array_map(fn (string $name) => $tags[$name]->id, $spec['tags'] ?? []));
+        }
+
+        foreach ($level['folders'] ?? [] as $spec) {
+            $child = $group->documentFolders()->firstOrCreate(
+                ['parent_id' => $folder?->id, 'name' => $spec['name']],
+                ['visibility' => $spec['visibility'] ?? null],
+            );
+
+            $this->libraryLevel($group, $child, $spec, $tags, $uploader, $storage);
+        }
+    }
+
+    /**
+     * Find or create one seeded Document. A file is generated and stored only when its row
+     * is new, so a reseed leaves no orphaned second copy on the disk.
+     *
+     * @param  array{file?: string, link?: string, title?: string, lines?: list<string>, tags?: list<string>}  $spec
+     */
+    private function libraryDocument(Group $group, ?DocumentFolder $folder, array $spec, ?Member $uploader, DocumentStorage $storage, int $index): Document
+    {
+        $rows = $group->documents()->where('folder_id', $folder?->id);
+
+        if (isset($spec['link'])) {
+            $document = (clone $rows)->where('kind', DocumentKind::Link)->where('title', $spec['title'])->first()
+                ?? $group->documents()->make([
+                    'folder_id' => $folder?->id,
+                    'kind' => DocumentKind::Link,
+                    'title' => $spec['title'],
+                ]);
+            $document->url = $spec['link'];
+        } else {
+            $filename = SafeFilename::from($spec['file']);
+            $document = (clone $rows)->where('kind', DocumentKind::File)->where('original_filename', $filename)->first();
+
+            if ($document === null) {
+                $document = $group->documents()->make([
+                    'folder_id' => $folder?->id,
+                    'kind' => DocumentKind::File,
+                    // The cleaned name: a Group name like "Exhibition/ Tours" must not read as a path.
+                    ...$this->storeDemoFile($storage, $filename, $spec['lines'] ?? []),
+                ]);
+            }
+        }
+
+        $document->uploaded_by_id = $uploader?->id;
+        $document->uploaded_at ??= OrgTime::now()->subDays(3 + $index * 9);
+        $document->save();
+
+        return $document;
+    }
+
+    /**
+     * Generate a small file from text lines (a one-page PDF, or plain text or CSV) and store
+     * it through the storage service, as an upload would be.
+     *
+     * @param  list<string>  $lines
+     * @return array{original_filename: string, storage_path: string, mime_type: string, size_bytes: int}
+     */
+    private function storeDemoFile(DocumentStorage $storage, string $filename, array $lines): array
+    {
+        $bytes = str_ends_with($filename, '.pdf')
+            ? $this->demoPdf(pathinfo($filename, PATHINFO_FILENAME), $lines)
+            : implode("\n", $lines)."\n";
+
+        $path = tempnam(sys_get_temp_dir(), 'demo-document');
+        file_put_contents($path, $bytes);
+
+        try {
+            return $storage->store(new UploadedFile($path, $filename, null, null, true));
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    /**
+     * A one-page PDF showing a heading and a few lines of text: small, valid, and openable.
+     *
+     * @param  list<string>  $lines
+     */
+    private function demoPdf(string $heading, array $lines): string
+    {
+        // The standard Helvetica font reads single-byte WinAnsi text, so convert from UTF-8.
+        $escape = fn (string $text) => str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], mb_convert_encoding($text, 'Windows-1252', 'UTF-8'));
+
+        $text = 'BT /F1 18 Tf 72 720 Td 16 TL ('.$escape($heading).') Tj /F1 11 Tf T*';
+        foreach ($lines as $line) {
+            $text .= ' ('.$escape($line).") '";
+        }
+        $text .= ' ET';
+
+        $objects = [
+            '<< /Type /Catalog /Pages 2 0 R >>',
+            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+            '<< /Length '.strlen($text)." >>\nstream\n{$text}\nendstream",
+        ];
+
+        $pdf = "%PDF-1.4\n";
+        $offsets = [];
+        foreach ($objects as $number => $body) {
+            $offsets[] = strlen($pdf);
+            $pdf .= ($number + 1)." 0 obj\n{$body}\nendobj\n";
+        }
+
+        $xref = strlen($pdf);
+        $pdf .= "xref\n0 ".(count($objects) + 1)."\n0000000000 65535 f \n";
+        foreach ($offsets as $offset) {
+            $pdf .= sprintf("%010d 00000 n \n", $offset);
+        }
+
+        return $pdf.'trailer << /Size '.(count($objects) + 1)." /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF\n";
+    }
+
+    /**
+     * Who the seeded Documents name as uploader: the Group's Librarian, else its Chair, else
+     * nobody. On Docents that is the Librarian Persona.
+     */
+    private function librarian(Group $group): ?Member
+    {
+        foreach ([Role::Librarian, Role::Chair] as $role) {
+            $member = Member::query()
+                ->whereHas('memberships', fn ($membership) => $membership
+                    ->where('group_id', $group->id)
+                    ->whereHas('roles', fn ($roles) => $roles->where('role', $role)))
+                ->orderBy('id')
+                ->first();
+
+            if ($member !== null) {
+                return $member;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The library every Group but Docents gets: shared reference material, Group-only
+     * committee business, and a link to the ROM's visitor page.
+     *
+     * @return array<string, mixed>
+     */
+    private function standardLibrary(Group $group): array
+    {
+        return [
+            'tags' => ['Reference', 'Forms', 'Current'],
+            'documents' => [
+                ['link' => 'https://www.rom.on.ca/en/visit', 'title' => 'Visiting the ROM', 'tags' => ['Reference']],
+            ],
+            'folders' => [
+                [
+                    'name' => 'Reference',
+                    'visibility' => DocumentVisibility::Members,
+                    'documents' => [
+                        ['file' => "{$group->name} handbook.pdf", 'tags' => ['Reference'], 'lines' => [
+                            "About {$group->name}: what the Group does, and how a new volunteer joins in.",
+                            'Read this before your first shift or meeting.',
+                        ]],
+                    ],
+                    'folders' => [
+                        [
+                            'name' => 'Orientation',
+                            'documents' => [
+                                ['file' => 'Welcome letter.txt', 'lines' => [
+                                    "Welcome to {$group->name}.",
+                                    'Your Chair will be in touch about orientation dates.',
+                                ]],
+                            ],
+                            'folders' => [
+                                [
+                                    'name' => 'Checklists',
+                                    'documents' => [
+                                        ['file' => 'First day checklist.txt', 'tags' => ['Forms'], 'lines' => [
+                                            '- Pick up your volunteer badge at the DMV office.',
+                                            '- Read the handbook.',
+                                            '- Meet your Chair.',
+                                        ]],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'name' => 'Committee business',
+                    'documents' => [
+                        ['file' => 'Meeting schedule.csv', 'tags' => ['Current'], 'lines' => [
+                            'Date,Time,Room',
+                            '2026-10-14,10:00,Volunteer lounge',
+                            '2026-11-11,10:00,Volunteer lounge',
+                            '2026-12-09,10:00,Volunteer lounge',
+                        ]],
+                    ],
+                    'folders' => [
+                        [
+                            'name' => 'Minutes',
+                            'documents' => [
+                                ['file' => 'September minutes.pdf', 'tags' => ['Current'], 'lines' => [
+                                    'Present: the Chair, the Secretary and six members.',
+                                    'Fall recruitment and the volunteer fair were discussed.',
+                                ]],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * The Docents library, in the legacy Data Sheets shape: Category → Section → Tour Folders.
+     * Natural History is shared with every Member; World Cultures stays with the Docents.
+     *
+     * @return array<string, mixed>
+     */
+    private function docentsLibrary(): array
+    {
+        return [
+            'tags' => ['Required', 'Highlights', 'Family', 'Reference'],
+            'documents' => [
+                ['file' => 'Docent handbook.pdf', 'tags' => ['Required', 'Reference'], 'lines' => [
+                    'How a Docent tour runs, from the meeting point to the last stop.',
+                    'Required reading for every new Docent.',
+                ]],
+                ['link' => 'https://collections.rom.on.ca', 'title' => 'ROM Collections Online', 'tags' => ['Reference']],
+            ],
+            'folders' => [
+                [
+                    'name' => 'Natural History',
+                    'visibility' => DocumentVisibility::Members,
+                    'folders' => [
+                        [
+                            'name' => 'Dinosaurs',
+                            'documents' => [
+                                ['file' => 'Dinosaurs gallery data sheet.pdf', 'tags' => ['Required'], 'lines' => [
+                                    'Gallery: Dinosaurs, Level 2.',
+                                    'Key objects: Barosaurus, Parasaurolophus, the Allosaurus skull.',
+                                ]],
+                            ],
+                            'folders' => [
+                                [
+                                    'name' => 'Dinosaur Highlights tour',
+                                    'documents' => [
+                                        ['file' => 'Dinosaur Highlights tour script.pdf', 'tags' => ['Highlights', 'Required'], 'lines' => [
+                                            'Stop 1: Barosaurus. Stop 2: Parasaurolophus. Stop 3: the fossil lab window.',
+                                            'Allow 45 minutes.',
+                                        ]],
+                                        ['file' => 'Dinosaur Highlights route.txt', 'tags' => ['Highlights'], 'lines' => [
+                                            'Start at the Level 2 elevators and walk the gallery clockwise.',
+                                        ]],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        [
+                            'name' => 'Earth and Space',
+                            'documents' => [
+                                ['file' => 'Meteorites data sheet.pdf', 'lines' => [
+                                    'Gallery: Earth and Space, Level 2.',
+                                    'Key objects: the Grimsby meteorite, the moon rock.',
+                                ]],
+                            ],
+                            'folders' => [
+                                [
+                                    'name' => 'Family tour',
+                                    'documents' => [
+                                        ['file' => 'Earth and Space family tour.pdf', 'tags' => ['Family'], 'lines' => [
+                                            'A 30-minute tour for children aged 6 to 10.',
+                                        ]],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'name' => 'World Cultures',
+                    'folders' => [
+                        [
+                            'name' => 'Ancient Egypt',
+                            'documents' => [
+                                ['file' => 'Ancient Egypt data sheet.pdf', 'tags' => ['Required'], 'lines' => [
+                                    'Gallery: Ancient Egypt, Level 3.',
+                                    'Key objects: the mummy of Djedmaatesankh, the Book of the Dead.',
+                                ]],
+                            ],
+                            'folders' => [
+                                [
+                                    'name' => 'Egypt Highlights tour',
+                                    'documents' => [
+                                        ['file' => 'Egypt Highlights tour script.pdf', 'tags' => ['Highlights'], 'lines' => [
+                                            'Stop 1: Djedmaatesankh. Stop 2: the coffins. Stop 3: daily life.',
+                                        ]],
+                                        ['file' => 'Egypt Highlights object list.csv', 'tags' => ['Highlights'], 'lines' => [
+                                            'Stop,Object,Case',
+                                            '1,Mummy of Djedmaatesankh,E1',
+                                            '2,Painted coffin,E4',
+                                            '3,Model granary,E9',
+                                        ]],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
      * The seeded feed, newest first. Plain notices a Group would really post.
      *
      * @return list<array{string, string}>
@@ -3103,7 +3457,6 @@ class DemoSeeder extends Seeder
             'has_meetings' => false,
             'has_documents' => false,
             'has_scheduling' => false,
-            'has_content_catalog' => false,
             'has_vetting' => false,
         ];
 
@@ -3112,7 +3465,6 @@ class DemoSeeder extends Seeder
             Kind::Program => [
                 'has_documents' => true,
                 'has_scheduling' => true,
-                'has_content_catalog' => true,
             ] + $off,
             Kind::WorkingGroup => ['has_meetings' => true] + $off,
             Kind::Project => ['has_documents' => true] + $off,

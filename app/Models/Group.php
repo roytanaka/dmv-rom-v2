@@ -69,7 +69,6 @@ class Group extends Model
         'has_meetings',
         'has_documents',
         'has_scheduling',
-        'has_content_catalog',
         'has_vetting',
         'has_announcements',
         'collects_visitor_count',
@@ -105,7 +104,6 @@ class Group extends Model
             'has_meetings' => 'boolean',
             'has_documents' => 'boolean',
             'has_scheduling' => 'boolean',
-            'has_content_catalog' => 'boolean',
             'has_vetting' => 'boolean',
             'has_announcements' => 'boolean',
             'collects_visitor_count' => 'boolean',
@@ -191,6 +189,37 @@ class Group extends Model
     public function meetings(): HasMany
     {
         return $this->hasMany(Meeting::class);
+    }
+
+    /**
+     * The Documents in this Group's Document library (#712, ADR-0030) — read and managed
+     * only while its `has_documents` capability is on.
+     *
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    /**
+     * The Folders of this Group's Document library (#714, ADR-0030 §3), at every depth.
+     *
+     * @return HasMany<DocumentFolder, $this>
+     */
+    public function documentFolders(): HasMany
+    {
+        return $this->hasMany(DocumentFolder::class);
+    }
+
+    /**
+     * The Tags this Group defines for its Document library (#717, ADR-0030 §4).
+     *
+     * @return HasMany<DocumentTag, $this>
+     */
+    public function documentTags(): HasMany
+    {
+        return $this->hasMany(DocumentTag::class);
     }
 
     /**

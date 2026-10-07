@@ -58,45 +58,54 @@ return Inertia::render('Documents/Show', [
 
 ## Documents
 
-This is the most important convention in the project — get it right.
+This is the most important convention in the project — get it right. Decisions: [ADR-0003](adr/0003-document-storage-architecture.md) as amended by [ADR-0030](adr/0030-document-library.md).
 
 **Storage:**
 
-- Documents live in `storage/app/documents/`, never in `public/`.
+- Files live on the private `local` disk under `storage/app/private/documents/`, never in `public/`.
 - Disk filenames are UUIDs with no extension (`7f3a9b2c-4d8e-11ee-be56-0242ac120002`).
-- The MIME type and original extension are stored in the database, not the disk filename.
+- The MIME type and original filename are stored in the database, not the disk filename.
+- `App\Support\DocumentStorage` is the one storage service: `store()` writes the file and returns the columns to keep, `delete()` removes it. Meetings and Schedules published as files reuse it.
 
-**Database fields (minimum):**
+**Database fields (`documents`):**
 
 ```
 id
-original_filename       // "March 2024 Board Minutes.pdf" — what the user uploaded
-storage_path            // "documents/7f3a9b2c-..." — opaque, internal
-mime_type               // "application/pdf"
-size_bytes
-uploaded_by_id          // FK to users
-uploaded_at
-committee_id            // FK to committees, nullable
-visibility              // enum: 'public', 'members', 'committee'
-title                   // optional human-curated title, single-column (as-authored)
+group_id                // FK to groups, required: every Document belongs to one Group
+folder_id               // the Folder, nullable: null is the library root
+title                   // optional, single-column (as-authored)
 description             // optional, single-column (as-authored)
+kind                    // 'file' or 'link'
+url                     // link Documents only
+original_filename       // "March 2024 Board Minutes.pdf" (file only, safe form, max 200)
+storage_path            // "documents/7f3a9b2c-..." (file only, opaque, internal)
+mime_type               // "application/pdf", sniffed from the contents (file only)
+size_bytes              // file only
+uploaded_by_id          // FK to members
+uploaded_at
+created_at, updated_at
 ```
+
+**Visibility** is set on top-level Folders, not on Documents: `group` (members of the owning Group) or `members` (every signed-in Member). Subfolders and Documents inherit it; the library root is `group`. `document_folders.visibility` is stored on top-level Folders only (null on subfolders); read the effective setting through `DocumentFolder::visibility()` / `Document::visibility()`, never the column. A subfolder moved to the top level keeps the setting it inherited. A Private Group's library is closed to non-members, and parentage never grants a read (ADR-0019, ADR-0030 §6).
+
+**Link Documents** carry a `url` and no file. Opening one passes the same policy check and access log as a file download, then redirects.
+
+**Limits:** at most 1.5 GB per file. Allowed types: pdf, doc, docx, xls, xlsx, ppt, pptx, jpg, png, webp, gif, txt, csv, mp4, mp3, zip. The extension must be allowed and the sniffed content type must fit it (`App\Rules\DocumentFile`). One request carries one file; no chunking. The PHP and web-server limits that must allow 1.5 GB are in `docs/architecture.md` § Deployment.
 
 **Upload flow:**
 
-1. User submits a file via a form.
-2. Form request validates (size, MIME type allowlist, max length on filename).
-3. Controller calls `DocumentService::upload($validated, $file)`.
-4. Service generates a UUID, sanitizes the original filename for storage in DB (preserves spaces and accents, strips dangerous characters), saves the file with the UUID name, creates the DB record, returns the model.
+1. A Librarian picks one or more files; the client sends one request per file and shows each file's progress.
+2. The Form Request authorizes through `DocumentPolicy` and validates the file.
+3. The controller calls `DocumentStorage::store($file)` and creates the row with the returned columns.
 
 **Download flow:**
 
-1. User hits `GET /documents/{document}/download`.
-2. Controller authorizes via `DocumentPolicy@download`.
-3. Controller logs the access.
-4. Controller calls `Storage::download($document->storage_path, $document->original_filename)`. Laravel sets `Content-Disposition` automatically with the friendly filename.
+1. User hits `GET /documents/{document}/download` (`/fr/documents/{document}/telecharger`). A logged-out visitor sees login, then gets the file.
+2. Controller authorizes via `DocumentPolicy@download`, on every request.
+3. Controller writes a `document_downloads` row (Document, Member, time). Rows are never edited.
+4. Controller streams `storage_path` with `original_filename`. Laravel sets `Content-Disposition` with the friendly filename.
 
-**Sanitization rules for original_filename:**
+**Sanitization rules for original_filename** (`App\Support\SafeFilename`):
 
 - Allowed: letters (including accented), numbers, spaces, hyphens, underscores, periods, parentheses, apostrophes.
 - Stripped: null bytes, control characters, path traversal sequences (`..`, `/`, `\`), reserved Windows names (`CON`, `PRN`, etc.) get a suffix.

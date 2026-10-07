@@ -123,6 +123,15 @@ Automated via GitHub Actions. See [ADR-0007](adr/0007-dev-staging-deploy-strateg
 - Composer install + `php artisan migrate` run on the server via SSH from the deploy workflow.
 - Production deploys take a `mysqldump` of the DB before running migrations (fresh recovery point).
 
+### Upload limits
+
+The Document library accepts files up to 1.5 GB in one request ([ADR-0030](adr/0030-document-library.md) §12). Every server that runs the app must allow that, or PHP drops the file before the app sees it:
+
+- PHP: `upload_max_filesize = 1536M` and `post_max_size = 1600M` (the post limit sits a little above the file limit for the form fields). `max_execution_time` and `max_input_time` must cover a slow upload; 300 seconds or more.
+- Web server: the request body limit (Apache `LimitRequestBody`, nginx `client_max_body_size`) at 1.6 GB or more, or unset.
+- Stormweb already allows 10 GB on the account. Check the staging and production domains each keep these values when their PHP version changes.
+- Local Sail: the container's PHP ini must carry the same values to try a large upload by hand; the tests fake the disk and do not need them.
+
 ### Demo seeding for a presentation (manual, staging only)
 
 `DemoSeeder` (see PRD #139) populates staging with a curated, believable slice of the DMV org — committees, programs, members, memberships, roles, stewardship — so a board pitch lands against a living app instead of the near-empty default. It is **manual and on-demand only**: deliberately not wired into `DatabaseSeeder` or the deploy pipeline, so an unrelated push never populates or alters staging. It runs by hand over SSH, and **only on staging — never on production**, where real volunteer data lives.
