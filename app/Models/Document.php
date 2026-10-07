@@ -57,13 +57,19 @@ class Document extends Model
     }
 
     /**
-     * Who reads this Document (ADR-0030 §5): its top-level Folder's setting, or `Group` at
-     * the library root. The Folders ticket (#714) extends this; until then every Document
-     * sits at the root.
+     * Who reads this Document (ADR-0030 §5): its Folder's effective setting (read from the
+     * top-level Folder, {@see DocumentFolder::visibility()}), or `Group` at the library root.
+     * A list that already holds the Folder sets the `folder` relation to skip the query.
      */
     public function visibility(): DocumentVisibility
     {
-        return DocumentVisibility::Group;
+        if ($this->folder_id === null) {
+            return DocumentVisibility::Group;
+        }
+
+        $folder = $this->relationLoaded('folder') ? $this->folder : DocumentFolder::query()->findOrFail($this->folder_id);
+
+        return $folder->visibility();
     }
 
     /**
@@ -80,6 +86,16 @@ class Document extends Model
     public function group(): BelongsTo
     {
         return $this->belongsTo(Group::class);
+    }
+
+    /**
+     * The Folder this Document sits in; null at the library root.
+     *
+     * @return BelongsTo<DocumentFolder, $this>
+     */
+    public function folder(): BelongsTo
+    {
+        return $this->belongsTo(DocumentFolder::class, 'folder_id');
     }
 
     /**

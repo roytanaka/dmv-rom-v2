@@ -4,6 +4,7 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentFolderController;
 use App\Http\Controllers\DownloadDocumentController;
 use App\Http\Controllers\DownloadFeedbackScreenshotController;
 use App\Http\Controllers\FeedbackController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MoveDocumentController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
@@ -155,6 +157,12 @@ Route::group([
     // visibility — is enforced in the controller via the SchedulePolicy.
     Route::get(LaravelLocalization::transRoute('routes.groups.scheduling.show'), [GroupController::class, 'showSchedule'])
         ->middleware('auth')->name('groups.scheduling.show');
+
+    // A Folder of a Group's Document library (#714, spec #290, ADR-0030 §3): the Documents
+    // section opened on one Folder, addressed by id under its owning Group (bound by slug).
+    // A Folder of another Group 404s; the read is the DocumentFolderPolicy's `view`.
+    Route::get(LaravelLocalization::transRoute('routes.groups.documents.folder'), [GroupController::class, 'showDocumentFolder'])
+        ->middleware('auth')->name('groups.documents.folder');
 
     // A Group's fiscal-year hours report (#411, PRD #406, ADR-0022 §5). A Member × twelve-month
     // matrix with the Group's own hours and its subtree hours side by side. A separate
@@ -333,6 +341,26 @@ Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
 Route::post('groups/{group}/documents', [DocumentController::class, 'store'])
     ->middleware(['auth'])
     ->name('documents.store');
+
+// Document library Folders and moves (#714, spec #290, ADR-0030 §3). Same seam: create nests
+// under the Group; rename, move and delete bind the Folder by id. A Document moves on its own
+// path so its other edits stay separate. Authorized in the Form Requests (DocumentFolderPolicy,
+// DocumentPolicy::move). The read lives on `groups.documents.folder`.
+Route::post('groups/{group}/document-folders', [DocumentFolderController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('document-folders.store');
+Route::patch('document-folders/{folder}', [DocumentFolderController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('document-folders.update');
+Route::patch('document-folders/{folder}/move', [DocumentFolderController::class, 'move'])
+    ->middleware(['auth'])
+    ->name('document-folders.move');
+Route::delete('document-folders/{folder}', [DocumentFolderController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('document-folders.destroy');
+Route::patch('documents/{document}/move', MoveDocumentController::class)
+    ->middleware(['auth'])
+    ->name('documents.move');
 
 // Group scheduling authoring (#354, PRD #352, ADR-0021 §1). The Scheduler's write
 // seam for a Group's Schedules: create a draft, edit its fields, publish / un-publish

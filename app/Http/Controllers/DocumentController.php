@@ -17,13 +17,14 @@ use Illuminate\Http\RedirectResponse;
 class DocumentController extends Controller
 {
     /**
-     * Upload one file to the library root.
+     * Upload one file to the library root, or into the Folder the request names (#714).
      */
     public function store(StoreDocumentRequest $request, Group $group, DocumentStorage $storage): RedirectResponse
     {
         $group->documents()->create([
             ...$storage->store($request->file('file')),
             'kind' => DocumentKind::File,
+            'folder_id' => $request->validated('folder_id'),
             'uploaded_by_id' => $request->user()->id,
             'uploaded_at' => now(),
         ]);

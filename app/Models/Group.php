@@ -203,6 +203,16 @@ class Group extends Model
     }
 
     /**
+     * The Folders of this Group's Document library (#714, ADR-0030 §3), at every depth.
+     *
+     * @return HasMany<DocumentFolder, $this>
+     */
+    public function documentFolders(): HasMany
+    {
+        return $this->hasMany(DocumentFolder::class);
+    }
+
+    /**
      * The Schedules this Group runs — present only when its `has_scheduling`
      * capability is on (#353, ADR-0021 §1).
      *

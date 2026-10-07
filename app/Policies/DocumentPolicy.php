@@ -53,6 +53,14 @@ class DocumentPolicy
     }
 
     /**
+     * Who may move a Document to another Folder of its Group, or to the root (#714).
+     */
+    public function move(Member $actor, Document $document): bool
+    {
+        return $this->managesLibraryOf($actor, $document->group);
+    }
+
+    /**
      * The shared manage predicate: the Group's Librarian (or Chair, folded in by
      * {@see Member::canActAs()}), while the documents capability is on. Edit, replace, move
      * and delete abilities reuse it.

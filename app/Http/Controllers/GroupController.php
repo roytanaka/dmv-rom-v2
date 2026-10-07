@@ -12,6 +12,7 @@ use App\Enums\ShiftAudience;
 use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\Document;
+use App\Models\DocumentFolder;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -74,10 +75,23 @@ class GroupController extends Controller
     }
 
     /**
-     * Render the committee shell on the given section, optionally opened on a specific
-     * Schedule. Shared by {@see show()} and {@see showSchedule()}.
+     * A Document library Folder (`groups.documents.folder`, #714) — the Documents section
+     * opened on one Folder. A Folder of another Group 404s; the read is the
+     * DocumentFolderPolicy's `view`, checked in {@see library()}.
      */
-    private function render(Request $request, Group $group, string $section, ?Schedule $schedule): Response
+    public function showDocumentFolder(Request $request, Group $group, DocumentFolder $folder): Response
+    {
+        abort_unless($folder->group_id === $group->id, 404);
+
+        return $this->render($request, $group, 'documents', null, $folder);
+    }
+
+    /**
+     * Render the committee shell on the given section, optionally opened on a specific
+     * Schedule or Document library Folder. Shared by {@see show()}, {@see showSchedule()} and
+     * {@see showDocumentFolder()}.
+     */
+    private function render(Request $request, Group $group, string $section, ?Schedule $schedule, ?DocumentFolder $folder = null): Response
     {
         // Container page-gate (#293, PRD #289): a Kind::Container Group is a structural
         // section peer, not a destination — no page exists. Unconditional 404 for every
@@ -291,11 +305,11 @@ class GroupController extends Controller
             'hours' => $section === 'hours'
                 ? $this->hours($request, $group)
                 : ['records' => [], 'months' => []],
-            // The Documents tab's payload (#712, ADR-0030), resolved only on that tab: the library
-            // root's Documents the viewer may read.
+            // The Documents tab's payload (#712, #714, ADR-0030), resolved only on that tab: the
+            // open Folder (or the library root) with what the viewer may read in it.
             'library' => $section === 'documents'
-                ? $this->library($request, $group)
-                : ['documents' => []],
+                ? $this->library($request, $group, $folder)
+                : ['folder' => null, 'breadcrumb' => [], 'folders' => [], 'documents' => [], 'destinations' => []],
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'
@@ -688,28 +702,52 @@ class GroupController extends Controller
     }
 
     /**
-     * The Group's Document library (#712, spec #290, ADR-0030) — the Documents at the library
-     * root that the viewer may read, sorted by name (title, or filename when there is none).
-     * Each row passes the DocumentPolicy's `download` check, so a non-member sees only what
-     * the Group shares with every Member. The uploader rides only for a manager.
+     * The Group's Document library (#712, #714, spec #290, ADR-0030) — one Folder of it, or the
+     * library root when `$folder` is null: its breadcrumb, child Folders and Documents, each
+     * sorted by name (a Document's title, or its filename when there is none). Every Folder
+     * and Document passes the policy's read check, so a non-member sees only what the Group
+     * shares with every Member. The uploader and the move destinations ride only for a manager.
      *
-     * @return array{documents: list<array<string, mixed>>}
+     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, folders: list<array<string, mixed>>, documents: list<array<string, mixed>>, destinations: list<array<string, mixed>>}
      */
-    private function library(Request $request, Group $group): array
+    private function library(Request $request, Group $group, ?DocumentFolder $folder = null): array
     {
         $viewer = $request->user();
         $canManage = $viewer->can('create', [Document::class, $group]);
 
+        $folder?->setRelation('group', $group);
+        abort_if($folder !== null && $viewer->cannot('view', $folder), 403);
+
+        $folderRow = fn (DocumentFolder $item) => [
+            'id' => $item->id,
+            // Content, as-authored (ADR-0004).
+            'name' => $item->name,
+            'href' => route('groups.documents.folder', ['group' => $group, 'folder' => $item], absolute: false),
+        ];
+
+        $folders = $group->documentFolders()
+            ->where('parent_id', $folder?->id)
+            ->get()
+            ->each(fn (DocumentFolder $child) => $child->setRelation('group', $group))
+            ->filter(fn (DocumentFolder $child) => $viewer->can('view', $child))
+            ->sortBy(fn (DocumentFolder $child) => mb_strtolower($child->name), SORT_NATURAL)
+            ->values();
+
         $documents = $group->documents()
-            ->whereNull('folder_id')
+            ->where('folder_id', $folder?->id)
             ->with('uploadedBy')
             ->get()
-            ->each(fn (Document $document) => $document->setRelation('group', $group))
+            ->each(fn (Document $document) => $document->setRelation('group', $group)->setRelation('folder', $folder))
             ->filter(fn (Document $document) => $viewer->can('download', $document))
             ->sortBy(fn (Document $document) => mb_strtolower($document->displayName()), SORT_NATURAL)
             ->values();
 
         return [
+            'folder' => $folder === null ? null : $folderRow($folder),
+            // The Folders above the current one, top-level first; the client adds the root.
+            'breadcrumb' => $folder === null ? [] : $folder->ancestors()->map($folderRow)->values()->all(),
+            'folders' => $folders->map($folderRow)->all(),
+            'destinations' => $canManage ? $this->folderDestinations($group) : [],
             'documents' => $documents
                 ->map(fn (Document $document) => [
                     'id' => $document->id,
@@ -726,6 +764,33 @@ class GroupController extends Controller
                 ])
                 ->all(),
         ];
+    }
+
+    /**
+     * Every Folder of the Group as a move destination (#714): its id, parent, depth and full
+     * path of names, in tree order. Sent to a manager only; the move Form Requests re-check the
+     * Group, the cycle and the depth limit.
+     *
+     * @return list<array{id: int, parentId: int|null, depth: int, path: list<string>}>
+     */
+    private function folderDestinations(Group $group): array
+    {
+        $children = $group->documentFolders()->get()->groupBy(fn (DocumentFolder $folder) => $folder->parent_id ?? 0);
+        $rows = [];
+
+        $walk = function (int $parentId, array $path) use (&$walk, &$rows, $children): void {
+            $siblings = ($children[$parentId] ?? collect())
+                ->sortBy(fn (DocumentFolder $folder) => mb_strtolower($folder->name), SORT_NATURAL);
+
+            foreach ($siblings as $folder) {
+                $folderPath = [...$path, $folder->name];
+                $rows[] = ['id' => $folder->id, 'parentId' => $folder->parent_id, 'depth' => count($folderPath), 'path' => $folderPath];
+                $walk($folder->id, $folderPath);
+            }
+        };
+        $walk(0, []);
+
+        return $rows;
     }
 
     /**

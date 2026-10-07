@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\MoveDocumentFolderRequest;
+use App\Http\Requests\StoreDocumentFolderRequest;
+use App\Http\Requests\UpdateDocumentFolderRequest;
+use App\Models\DocumentFolder;
+use App\Models\Group;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * The Librarian's Folder writes for a Group's Document library (#714, spec #290, ADR-0030 §3),
+ * the Meetings pattern: store nests under the Group, rename, move and delete bind the Folder
+ * by id. Authorized through the DocumentFolderPolicy; the read lives on
+ * {@see GroupController::showDocumentFolder()}.
+ */
+class DocumentFolderController extends Controller
+{
+    /**
+     * Create a Folder at the top level or inside another Folder.
+     */
+    public function store(StoreDocumentFolderRequest $request, Group $group): RedirectResponse
+    {
+        $group->documentFolders()->create($request->validated());
+
+        return back();
+    }
+
+    /**
+     * Rename a Folder.
+     */
+    public function update(UpdateDocumentFolderRequest $request, DocumentFolder $folder): RedirectResponse
+    {
+        $folder->update($request->validated());
+
+        return back();
+    }
+
+    /**
+     * Move a Folder, and everything in it, under another parent or to the top level.
+     */
+    public function move(MoveDocumentFolderRequest $request, DocumentFolder $folder): RedirectResponse
+    {
+        $folder->update(['parent_id' => $request->validated('parent_id')]);
+
+        return back();
+    }
+
+    /**
+     * Delete an empty Folder. One that still holds Folders or Documents is refused with a
+     * message; nothing is deleted along with it.
+     */
+    public function destroy(DocumentFolder $folder): RedirectResponse
+    {
+        // The capability check comes first so it holds for the super-tier too.
+        abort_unless($folder->group->has_documents, 403);
+
+        Gate::authorize('delete', $folder);
+
+        if (! $folder->isEmpty()) {
+            throw ValidationException::withMessages(['folder' => trans('document_folders.error.not_empty')]);
+        }
+
+        $folder->delete();
+
+        return back();
+    }
+}
