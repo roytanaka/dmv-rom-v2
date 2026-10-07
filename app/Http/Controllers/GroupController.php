@@ -13,7 +13,6 @@ use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\Document;
 use App\Models\DocumentFolder;
-use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -28,13 +27,13 @@ use App\Models\ShiftKind;
 use App\Models\SignUp;
 use App\Support\Audiences\AudienceContext;
 use App\Support\Audiences\AudienceResolver;
+use App\Support\DocumentLibrary;
 use App\Support\OrgTime;
 use App\Support\RouteSegments;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -79,7 +78,7 @@ class GroupController extends Controller
     /**
      * A Document library Folder (`groups.documents.folder`, #714) — the Documents section
      * opened on one Folder. A Folder of another Group 404s; the read is the
-     * DocumentFolderPolicy's `view`, checked in {@see library()}.
+     * DocumentFolderPolicy's `view`, checked in {@see DocumentLibrary::for()}.
      */
     public function showDocumentFolder(Request $request, Group $group, DocumentFolder $folder): Response
     {
@@ -277,7 +276,7 @@ class GroupController extends Controller
                 // `manageDocuments` drives the Documents tab's upload control and the uploader
                 // column (#712, ADR-0030) — the Group's Librarian or Chair, or the super-tier.
                 // UI hint only; the Document Form Requests re-check the DocumentPolicy on write.
-                'manageDocuments' => $group->has_documents && $request->user()->can('create', [Document::class, $group]),
+                'manageDocuments' => $group->has_documents && $request->user()->can('manage', [Document::class, $group]),
             ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
@@ -310,8 +309,8 @@ class GroupController extends Controller
             // The Documents tab's payload (#712, #714, ADR-0030), resolved only on that tab: the
             // open Folder (or the library root) with what the viewer may read in it.
             'library' => $section === 'documents'
-                ? $this->library($request, $group, $folder)
-                : ['folder' => null, 'breadcrumb' => [], 'folders' => [], 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH, 'documents' => [], 'tags' => [], 'tag' => null],
+                ? DocumentLibrary::for($request->user(), $group, $folder, $request->filled('tag') ? $request->integer('tag') : null)
+                : DocumentLibrary::empty(),
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'
@@ -700,173 +699,6 @@ class GroupController extends Controller
                     'delete' => $canManage,
                 ],
             ])
-            ->all();
-    }
-
-    /**
-     * The Group's Document library (#712, #714, spec #290, ADR-0030) — one Folder of it, or the
-     * library root when `$folder` is null: its breadcrumb, child Folders and Documents, each
-     * sorted by name (a Document's title, or its filename when there is none). Every Folder
-     * and Document passes the policy's read check, so a non-member sees only what the Group
-     * shares with every Member. The uploader and the move destinations ride only for a manager.
-     *
-     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, folders: list<array<string, mixed>>, destinations: list<array<string, mixed>>, maxDepth: int, documents: list<array<string, mixed>>, tags: list<array{id: int, name: string}>, tag: array{id: int, name: string}|null}
-     */
-    private function library(Request $request, Group $group, ?DocumentFolder $folder = null): array
-    {
-        $viewer = $request->user();
-        $canManage = $viewer->can('create', [Document::class, $group]);
-
-        // Every Folder of the Group, fetched once with its ancestors preloaded, so each
-        // visibility check (on Folders and on Documents, through their Folder) and the
-        // breadcrumb answer from memory (#715). The open Folder is swapped for its copy here.
-        $tree = $group->documentFolders()->get()
-            ->each(fn (DocumentFolder $item) => $item->setRelation('group', $group))
-            ->keyBy('id');
-        DocumentFolder::preloadAncestors($tree);
-        $folder = $folder === null ? null : $tree[$folder->id];
-
-        abort_if($folder !== null && $viewer->cannot('view', $folder), 403);
-
-        // The one-Tag filter (#717, ADR-0030 §4): every Document with the Tag, across all
-        // Folders, instead of one Folder's Documents. The same per-Document read check applies.
-        $tag = $request->filled('tag')
-            ? $group->documentTags()->findOrFail($request->integer('tag'))
-            : null;
-
-        $folderRow = fn (DocumentFolder $item) => [
-            'id' => $item->id,
-            // Content, as-authored (ADR-0004).
-            'name' => $item->name,
-            'href' => route('groups.documents.folder', ['group' => $group, 'folder' => $item], absolute: false),
-            // Who reads it (#715, ADR-0030 §5): its top-level Folder's setting.
-            'visibility' => $item->visibility()->value,
-        ];
-
-        // The open Folder's child Folders (#714); none under a Tag filter, which lists Documents only.
-        $folders = $tag !== null ? collect() : $tree
-            ->where('parent_id', $folder?->id)
-            ->filter(fn (DocumentFolder $child) => $viewer->can('view', $child))
-            ->sortBy(fn (DocumentFolder $child) => mb_strtolower($child->name), SORT_NATURAL)
-            ->values();
-
-        $documents = $group->documents()
-            ->when(
-                $tag === null,
-                fn (Builder $query) => $query->where('folder_id', $folder?->id),
-                fn (Builder $query) => $query->whereHas('tags', fn (Builder $query) => $query->whereKey($tag->id)),
-            )
-            ->with(['uploadedBy', 'tags'])
-            ->get()
-            // Each row's Folder from the preloaded tree, so its visibility costs no query.
-            ->each(fn (Document $document) => $document
-                ->setRelation('group', $group)
-                ->setRelation('folder', $document->folder_id === null ? null : $tree[$document->folder_id]))
-            ->filter(fn (Document $document) => $viewer->can('download', $document))
-            ->sortBy(fn (Document $document) => mb_strtolower($document->displayName()), SORT_NATURAL)
-            ->values();
-
-        return [
-            'folder' => $folder === null ? null : $folderRow($folder),
-            // The Folders above the current one, top-level first; the client adds the root.
-            'breadcrumb' => $folder === null ? [] : $folder->ancestors()->map($folderRow)->values()->all(),
-            'folders' => $folders->map($folderRow)->all(),
-            'destinations' => $canManage ? $this->folderDestinations($tree->filter(fn (DocumentFolder $item) => $viewer->can('view', $item))) : [],
-            // The depth limit, so the client offers only the Folder actions the server will accept.
-            'maxDepth' => DocumentFolder::MAX_DEPTH,
-            'documents' => $documents
-                ->map(fn (Document $document) => [
-                    'id' => $document->id,
-                    'kind' => $document->kind->value,
-                    // The Folder it sits in (#714), for the move picker; null at the root.
-                    'folderId' => $document->folder_id,
-                    // A link's address, for a manager's edit form only; readers open it
-                    // through `href`, so every open is checked and logged (#716).
-                    'url' => $canManage ? $document->url : null,
-                    // Content, as-authored (ADR-0004); the client falls back to the filename.
-                    'title' => $document->title,
-                    'description' => $document->description,
-                    'filename' => $document->original_filename,
-                    'extension' => $document->original_filename === null
-                        ? null
-                        : (strtolower(pathinfo($document->original_filename, PATHINFO_EXTENSION)) ?: null),
-                    'sizeBytes' => $document->size_bytes,
-                    'updatedAt' => $document->updated_at->toIso8601String(),
-                    'uploader' => $canManage ? $document->uploadedBy?->fullName() : null,
-                    // When the current file (or link) was put up (story 51), managers only.
-                    'uploadedAt' => $canManage ? $document->uploaded_at?->toIso8601String() : null,
-                    'href' => route('documents.download', $document, absolute: false),
-                    'tags' => $this->tagRows($document->tags),
-                ])
-                ->all(),
-            'tags' => $this->tagRows($canManage ? $group->documentTags()->get() : $this->readableTags($viewer, $group, $tree)),
-            'tag' => $tag === null ? null : ['id' => $tag->id, 'name' => $tag->name],
-        ];
-    }
-
-    /**
-     * The Group's Folders as move destinations (#714): id, parent, depth and full path of
-     * names, in tree order. Sent to a manager only, and only the Folders they may read (#715);
-     * the move Form Requests re-check the Group, the cycle and the depth limit.
-     *
-     * @param  Collection<int, DocumentFolder>  $folders
-     * @return list<array{id: int, parentId: int|null, depth: int, path: list<string>}>
-     */
-    private function folderDestinations(Collection $folders): array
-    {
-        $children = $folders->groupBy(fn (DocumentFolder $folder) => $folder->parent_id ?? 0);
-        $rows = [];
-
-        $walk = function (int $parentId, array $path) use (&$walk, &$rows, $children): void {
-            $siblings = ($children[$parentId] ?? collect())
-                ->sortBy(fn (DocumentFolder $folder) => mb_strtolower($folder->name), SORT_NATURAL);
-
-            foreach ($siblings as $folder) {
-                $folderPath = [...$path, $folder->name];
-                $rows[] = ['id' => $folder->id, 'parentId' => $folder->parent_id, 'depth' => count($folderPath), 'path' => $folderPath];
-                $walk($folder->id, $folderPath);
-            }
-        };
-        $walk(0, []);
-
-        return $rows;
-    }
-
-    /**
-     * The Tags a reader who does not manage the library may see (story 16): those on at least
-     * one Document they may read. A Tag name is content too, so one used only on Documents
-     * hidden from the viewer never reaches them.
-     *
-     * @param  Collection<int, DocumentFolder>  $tree  the Group's Folders, ancestors preloaded
-     * @return Collection<int, DocumentTag>
-     */
-    private function readableTags(Member $viewer, Group $group, Collection $tree): Collection
-    {
-        return $group->documents()
-            ->has('tags')
-            ->with('tags')
-            ->get()
-            ->each(fn (Document $document) => $document
-                ->setRelation('group', $group)
-                ->setRelation('folder', $document->folder_id === null ? null : $tree[$document->folder_id]))
-            ->filter(fn (Document $document) => $viewer->can('download', $document))
-            ->flatMap(fn (Document $document) => $document->tags)
-            ->unique('id')
-            ->values();
-    }
-
-    /**
-     * Tags as `{id, name}` rows sorted by name (#717). Names are content, as-authored.
-     *
-     * @param  iterable<DocumentTag>  $tags
-     * @return list<array{id: int, name: string}>
-     */
-    private function tagRows(iterable $tags): array
-    {
-        return collect($tags)
-            ->sortBy(fn (DocumentTag $tag) => mb_strtolower($tag->name), SORT_NATURAL)
-            ->map(fn (DocumentTag $tag) => ['id' => $tag->id, 'name' => $tag->name])
-            ->values()
             ->all();
     }
 

@@ -82,6 +82,18 @@ class Document extends Model
     }
 
     /**
+     * The original filename's extension, lower-case; null for a link or a name without one.
+     */
+    public function extension(): ?string
+    {
+        if ($this->original_filename === null) {
+            return null;
+        }
+
+        return strtolower(pathinfo($this->original_filename, PATHINFO_EXTENSION)) ?: null;
+    }
+
+    /**
      * @return BelongsTo<Group, $this>
      */
     public function group(): BelongsTo

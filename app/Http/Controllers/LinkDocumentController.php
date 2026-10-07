@@ -16,7 +16,7 @@ use Illuminate\Http\RedirectResponse;
 class LinkDocumentController extends Controller
 {
     /**
-     * Add a link Document to the library root.
+     * Add a link Document to the library root, or to the Folder named by `folder_id` (#714).
      */
     public function store(StoreLinkDocumentRequest $request, Group $group): RedirectResponse
     {

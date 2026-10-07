@@ -50,7 +50,8 @@ return [
     // Permalien d'un horaire (#353, ADR-0021 §1). « scheduling » → « horaire »
     // (comme l'onglet group.tab.scheduling) ; {group} et {schedule} restent verbatim.
     'groups.scheduling.show' => 'groupes/{group}/horaire/{schedule}',
-    // A Folder of a Group's Document library (#714, ADR-0030 §3).
+    // Un dossier de la bibliothèque de documents d'un groupe (#714, ADR-0030 §3). « folders » →
+    // « dossiers » ; {group} et {folder} restent verbatim.
     'groups.documents.folder' => 'groupes/{group}/documents/dossiers/{folder}',
 
     // Rapport annuel des heures d'un groupe (#411, ADR-0022 §5). « hours/report » →
