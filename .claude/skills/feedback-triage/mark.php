@@ -2,8 +2,9 @@
 
 // Sets one Feedback item's status and adds a comment to it, on the staging feedback database.
 // Piped over SSH and run from the staging app folder:
-//   ssh dmvromca@dmv-rom.ca 'cd ~/domains/staging.dmv-rom.ca/dmv-rom-v2 && /usr/local/php84/bin/php -- <id> <status> "<comment>"' < mark.php
+//   ssh dmvromca@dmv-rom.ca 'cd ~/domains/staging.dmv-rom.ca/dmv-rom-v2 && /usr/local/php84/bin/php -- <id> <status> "<comment>" ["<name>"]' < mark.php
 // Status is a FeedbackStatus value: new, confirmed, fixed, wont-fix, duplicate.
+// The comment is signed with the name, or Support-operator when there is none.
 
 use App\Enums\FeedbackStatus;
 use App\Models\FeedbackItem;
@@ -13,15 +14,15 @@ require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
-[, $id, $status, $comment] = $argv + [null, null, null, null];
+[, $id, $status, $comment, $name] = $argv + [null, null, null, null, 'Support-operator'];
 
 if ($id === null || $status === null || $comment === null) {
-    fwrite(STDERR, "Usage: <id> <status> \"<comment>\"\n");
+    fwrite(STDERR, "Usage: <id> <status> \"<comment>\" [\"<name>\"]\n");
     exit(1);
 }
 
 $item = FeedbackItem::findOrFail($id);
 $item->update(['status' => FeedbackStatus::from($status)]);
-$item->comments()->create(['tester_name' => 'Support-operator', 'body' => $comment]);
+$item->comments()->create(['tester_name' => $name, 'body' => $comment]);
 
 echo "#{$item->id} is now {$item->status->value}: {$comment}\n";
