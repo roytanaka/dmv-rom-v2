@@ -194,6 +194,17 @@ class Group extends Model
     }
 
     /**
+     * The Documents in this Group's Document library (#712, ADR-0030) — read and managed
+     * only while its `has_documents` capability is on.
+     *
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    /**
      * The Schedules this Group runs — present only when its `has_scheduling`
      * capability is on (#353, ADR-0021 §1).
      *

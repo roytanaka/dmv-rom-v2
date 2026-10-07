@@ -17,6 +17,8 @@ return [
     // note dans lang/en/routes.php sur la collision de segment.
     'members.show' => 'benevoles/{member}',
     'documents' => 'documents',
+    // Téléchargement d'un document (#712, ADR-0030 §13). Le {document} est l'identifiant.
+    'documents.download' => 'documents/{document}/telecharger',
     'news' => 'nouvelles',
     'profile' => 'profil',
     'renew' => 'renouveler',

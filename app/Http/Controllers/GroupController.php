@@ -11,6 +11,7 @@ use App\Enums\ScheduleState;
 use App\Enums\ShiftAudience;
 use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
+use App\Models\Document;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -115,6 +116,13 @@ class GroupController extends Controller
         // section itself is org-open (SchedulePolicy); per-Schedule read is gated below.
         if ($section === 'scheduling') {
             abort_unless($request->user()->can('viewAny', [Schedule::class, $group]), 404);
+        }
+
+        // The Documents section exists only while the Group runs a Document library (#712,
+        // ADR-0030) — a 404 for everyone, super-tier included, so the tab and the URL agree.
+        // Which Documents a viewer sees is filtered per Document by the DocumentPolicy below.
+        if ($section === 'documents') {
+            abort_unless($group->has_documents, 404);
         }
 
         // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
@@ -251,6 +259,10 @@ class GroupController extends Controller
                 // ancestor, or the super-tier. UI hint only; the report route re-checks the
                 // viewReports gate on the way in.
                 'viewReports' => $request->user()->can('viewReports', [HoursRecord::class, $group]),
+                // `manageDocuments` drives the Documents tab's upload control and the uploader
+                // column (#712, ADR-0030) — the Group's Librarian or Chair, or the super-tier.
+                // UI hint only; the Document Form Requests re-check the DocumentPolicy on write.
+                'manageDocuments' => $group->has_documents && $request->user()->can('create', [Document::class, $group]),
             ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
@@ -280,6 +292,11 @@ class GroupController extends Controller
             'hours' => $section === 'hours'
                 ? $this->hours($request, $group)
                 : ['records' => [], 'months' => []],
+            // The Documents tab's payload (#712, ADR-0030), resolved only on that tab: the library
+            // root's Documents the viewer may read.
+            'library' => $section === 'documents'
+                ? $this->library($request, $group)
+                : ['documents' => []],
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'
@@ -669,6 +686,47 @@ class GroupController extends Controller
                 ],
             ])
             ->all();
+    }
+
+    /**
+     * The Group's Document library (#712, spec #290, ADR-0030) — the Documents at the library
+     * root that the viewer may read, sorted by name (title, or filename when there is none).
+     * Each row passes the DocumentPolicy's `download` check, so a non-member sees only what
+     * the Group shares with every Member. The uploader rides only for a manager.
+     *
+     * @return array{documents: list<array<string, mixed>>}
+     */
+    private function library(Request $request, Group $group): array
+    {
+        $viewer = $request->user();
+        $canManage = $viewer->can('create', [Document::class, $group]);
+
+        $documents = $group->documents()
+            ->whereNull('folder_id')
+            ->with('uploadedBy')
+            ->get()
+            ->each(fn (Document $document) => $document->setRelation('group', $group))
+            ->filter(fn (Document $document) => $viewer->can('download', $document))
+            ->sortBy(fn (Document $document) => mb_strtolower($document->displayName()), SORT_NATURAL)
+            ->values();
+
+        return [
+            'documents' => $documents
+                ->map(fn (Document $document) => [
+                    'id' => $document->id,
+                    // Content, as-authored (ADR-0004); the client falls back to the filename.
+                    'title' => $document->title,
+                    'filename' => $document->original_filename,
+                    'extension' => $document->original_filename === null
+                        ? null
+                        : (strtolower(pathinfo($document->original_filename, PATHINFO_EXTENSION)) ?: null),
+                    'sizeBytes' => $document->size_bytes,
+                    'updatedAt' => $document->updated_at->toIso8601String(),
+                    'uploader' => $canManage ? $document->uploadedBy?->fullName() : null,
+                    'href' => route('documents.download', $document, absolute: false),
+                ])
+                ->all(),
+        ];
     }
 
     /**

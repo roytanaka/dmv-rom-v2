@@ -22,6 +22,9 @@ return [
     // server-generated via route(), so they get /benevoles from this entry directly.
     'members.show' => 'members/{member}',
     'documents' => 'documents',
+    // One Document's gated download (#712, ADR-0030 §13). A stable URL the legacy redirect
+    // map can point at; {document} is the id in both locales.
+    'documents.download' => 'documents/{document}/download',
     'news' => 'news',
     'profile' => 'profile',
     'renew' => 'renew',

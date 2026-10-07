@@ -3,6 +3,8 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DownloadDocumentController;
 use App\Http\Controllers\DownloadFeedbackScreenshotController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\FeedbackTriageController;
@@ -104,6 +106,12 @@ Route::group([
         Route::delete(LaravelLocalization::transRoute('routes.feedback.comment'), [FeedbackTriageController::class, 'destroyComment'])
             ->middleware('auth')->name('feedback.comments.destroy');
     }
+
+    // One Document's download (#712, spec #290, ADR-0030 §13): auth, the DocumentPolicy, an
+    // access-log row, then the file under its original name. Localized (/documents/{id}/download
+    // ↔ /fr/documents/{id}/telecharger); a logged-out visitor lands on login, then the file.
+    Route::get(LaravelLocalization::transRoute('routes.documents.download'), DownloadDocumentController::class)
+        ->middleware('auth')->name('documents.download');
 
     // My Hours (#409, PRD #406, ADR-0022 §8). A Member's own hours, gathered from every
     // Group they have hours in, broken out by month across a fiscal year with a year-to-date
@@ -317,6 +325,14 @@ Route::patch('meetings/{meeting}', [MeetingController::class, 'update'])
 Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('meetings.destroy');
+
+// Document library writes (#712, spec #290, ADR-0030). The Librarian's seam, the Meetings
+// pattern: store nests under the owning Group (bound by slug). Each write is authorized in its
+// Form Request through the DocumentPolicy — the Group's Librarian or Chair (plus the
+// super-tier), only while the documents capability is on. The read lives on `groups.show`.
+Route::post('groups/{group}/documents', [DocumentController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('documents.store');
 
 // Group scheduling authoring (#354, PRD #352, ADR-0021 §1). The Scheduler's write
 // seam for a Group's Schedules: create a draft, edit its fields, publish / un-publish
