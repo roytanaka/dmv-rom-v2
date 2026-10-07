@@ -294,10 +294,22 @@ export interface LibraryDocument {
     uploader: string | null;
     /** The gated download URL, localized. */
     href: string;
+    /** The Tags this Document carries, sorted by name (#717). */
+    tags: LibraryTag[];
+}
+
+// A Tag of a Group's Document library (#717, ADR-0030 §4). `name` is content, as written.
+export interface LibraryTag {
+    id: number;
+    name: string;
 }
 
 export interface GroupLibrary {
     documents: LibraryDocument[];
+    /** Every Tag the Group defines, sorted by name (#717). */
+    tags: LibraryTag[];
+    /** The active one-Tag filter, or null (#717). */
+    tag: LibraryTag | null;
 }
 
 // The Group Hours tab payload (#408, ADR-0022 §2). The viewer's own records for this
