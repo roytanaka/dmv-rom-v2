@@ -61,15 +61,17 @@ share a session. The browser keeps localStorage too, so the runner clears it at
 sign-in. A view choice from an earlier run, such as the Schedule's Calendar
 view, never carries into a shot.
 
-| Article kind                 | Persona                 | Email                     |
-| ---------------------------- | ----------------------- | ------------------------- |
-| Member tasks                 | Full-standing Docents   | `amara.abara@dmv.test`    |
-| Officer tasks (Chair)        | Chair of Docents        | `oliver.bennett@dmv.test` |
-| Officer tasks (Scheduler)    | Scheduler of Docents    | `james.tremblay@dmv.test` |
-| Officer tasks (Secretary)    | Secretary of Executive  | `elena.rossi@dmv.test`    |
-| Officer tasks (Statistician) | Statistician of Docents | `ravi.singh@dmv.test`     |
-| Support and Role-switcher    | Support operator        | `operator@dmv.test`       |
-| Super-tier (President) view  | President               | `margaret.chen@dmv.test`  |
+| Article kind                 | Persona                 | Email                      |
+| ---------------------------- | ----------------------- | -------------------------- |
+| Member tasks                 | Full-standing Docents   | `amara.abara@dmv.test`     |
+| Officer tasks (Chair)        | Chair of Docents        | `oliver.bennett@dmv.test`  |
+| Officer tasks (Scheduler)    | Scheduler of Docents    | `james.tremblay@dmv.test`  |
+| Officer tasks (Secretary)    | Secretary of Executive  | `elena.rossi@dmv.test`     |
+| Officer tasks (Statistician) | Statistician of Docents | `ravi.singh@dmv.test`      |
+| Officer tasks (Librarian)    | Librarian of Docents    | `hannah.schmidt@dmv.test`  |
+| Reading a shared library     | Outside Docents         | `felix.andersson@dmv.test` |
+| Support and Role-switcher    | Support operator        | `operator@dmv.test`        |
+| Super-tier (President) view  | President               | `margaret.chen@dmv.test`   |
 
 ## Viewport and naming
 
