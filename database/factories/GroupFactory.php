@@ -144,7 +144,7 @@ class GroupFactory extends Factory
     }
 
     /**
-     * A working group — a functional sub-team that meets.
+     * A working group — a functional sub-team that meets and holds documents (#308).
      */
     public function workingGroup(): static
     {
@@ -152,6 +152,7 @@ class GroupFactory extends Factory
             'kind' => Kind::WorkingGroup,
             'scope' => Scope::Subteam,
             'has_meetings' => true,
+            'has_documents' => true,
         ]);
     }
 
@@ -168,13 +169,15 @@ class GroupFactory extends Factory
     }
 
     /**
-     * A cohort — a time-boxed, schedulable pool (e.g. an exhibition's volunteers).
+     * A cohort — a time-boxed, schedulable pool (e.g. an exhibition's volunteers) that
+     * holds documents (#308).
      */
     public function cohort(): static
     {
         return $this->state(fn () => [
             'kind' => Kind::Cohort,
             'scope' => Scope::Program,
+            'has_documents' => true,
             'has_scheduling' => true,
         ])->timeBoxed();
     }

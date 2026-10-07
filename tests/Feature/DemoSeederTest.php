@@ -1298,6 +1298,15 @@ it('gives every Group with the documents capability a small library', function (
     });
 });
 
+it('turns the documents capability on for every Working group and Cohort', function () {
+    // Every sub-group gets a Documents tab (#308, #723, ADR-0030 §6).
+    $subgroups = Group::whereIn('kind', [Kind::WorkingGroup, Kind::Cohort])->get();
+
+    expect($subgroups->where('kind', Kind::WorkingGroup))->not->toBeEmpty()
+        ->and($subgroups->where('kind', Kind::Cohort))->not->toBeEmpty()
+        ->and($subgroups->every(fn (Group $group) => $group->has_documents))->toBeTrue();
+});
+
 it('leaves no Document library on a Group without the capability', function () {
     $without = Group::where('has_documents', false)->pluck('id');
 
