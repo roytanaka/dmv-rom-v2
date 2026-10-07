@@ -9,6 +9,7 @@
 // each file shows its own progress bar and its own error. The DocumentPolicy enforces every
 // upload regardless of what renders. Titles and filenames are content, shown as written
 // (ADR-0004); everything else is translated chrome.
+import DocumentActions from '@/components/DocumentActions.vue';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -171,6 +172,9 @@ function onDrop(event: DragEvent): void {
                     <TableHead class="hidden text-right sm:table-cell">{{ trans('documents.column.size') }}</TableHead>
                     <TableHead class="hidden md:table-cell">{{ trans('documents.column.updated') }}</TableHead>
                     <TableHead v-if="canManage" class="hidden lg:table-cell">{{ trans('documents.column.uploader') }}</TableHead>
+                    <TableHead v-if="canManage" class="w-10"
+                        ><span class="sr-only">{{ trans('documents.column.actions') }}</span></TableHead
+                    >
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -183,6 +187,7 @@ function onDrop(event: DragEvent): void {
                         >
                             {{ document.title ?? document.filename }}
                         </a>
+                        <p v-if="document.description" class="text-rom-ink text-sm whitespace-pre-line">{{ document.description }}</p>
                         <!-- On a phone the other columns hide; their facts ride under the name. -->
                         <p class="text-muted-foreground text-xs sm:hidden">
                             {{
@@ -196,6 +201,9 @@ function onDrop(event: DragEvent): void {
                     <TableCell class="text-muted-foreground hidden text-right sm:table-cell">{{ formatSize(document.sizeBytes) }}</TableCell>
                     <TableCell class="text-muted-foreground hidden md:table-cell">{{ formatDate(document.updatedAt) }}</TableCell>
                     <TableCell v-if="canManage" class="text-muted-foreground hidden lg:table-cell">{{ document.uploader }}</TableCell>
+                    <TableCell v-if="canManage" class="w-10 text-right">
+                        <DocumentActions :document="document" />
+                    </TableCell>
                 </TableRow>
             </TableBody>
         </Table>

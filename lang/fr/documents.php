@@ -12,6 +12,7 @@ return [
         'size' => 'Taille',
         'updated' => 'Mis à jour',
         'uploader' => 'Téléversé par',
+        'actions' => 'Actions',
     ],
 
     'download' => 'Télécharger :name',
@@ -25,5 +26,25 @@ return [
         'failed' => 'Non ajouté',
         'error_type' => ':name n’a pas été ajouté. Ce type de fichier n’est pas permis.',
         'error_size' => ':name n’a pas été ajouté. Il dépasse 1,5 Go.',
+    ],
+
+    // Modifier, remplacer et supprimer un document (#713).
+    'manage' => [
+        'menu' => 'Actions pour :name',
+        'edit' => 'Modifier',
+        'replace' => 'Remplacer le fichier',
+        'delete' => 'Supprimer',
+        'edit_title' => 'Modifier le document',
+        'replace_title' => 'Remplacer le fichier de :name',
+        'replace_save' => 'Remplacer',
+        'delete_title' => 'Supprimer ce document?',
+        'delete_body' => ':name et son fichier seront supprimés. Cette action est définitive.',
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
+        'field' => [
+            'title' => 'Titre',
+            'description' => 'Description',
+            'file' => 'Nouveau fichier',
+        ],
     ],
 ];
