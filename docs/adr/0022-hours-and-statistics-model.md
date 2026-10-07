@@ -43,7 +43,7 @@ Five findings from reading the code and the 2026-06-29 production dump, each of 
 2. **`Total_Hours` is derived by database trigger,** not by PHP — which is why no application code writes it. Two triggers, `dmv_MemberActivity_UpdateHours` (before insert) and `dmv_MemberActivity_AddHours` (before update), both set `NEW.Total_Hours = NEW.Total_Scheduled + NEW.Extra_Hours`. The identity holds on all 44,913 rows dated 2018-04 or later.
 3. **The rollup is free, and accidental.** A sub-committee's row stores the **parent's** symbol in `committee`. Every report that groups by `committee` therefore already includes its sub-committees, and there is no rollup code anywhere. Sub-committee rows are a small minority (5,190 under the DMV, 1,558 under ROM Travel, 373 under Special Projects, and under a hundred each elsewhere), and they only ever carry `Extra_Hours`.
 4. **`Interactions` is dead data.** Non-zero on **zero** of 74,248 rows, despite having its own entry dialog and its own column in the detailed report.
-5. **Walker multiplies by two.** `walker.php:2298` calls `_saveScheduledMemberActivity('walker', …, 2*$total)`, converting walks to hours in PHP. Every other Group multiplies by one. This is the `hoursper` trap already recorded under **Count** in `CONTEXT.md`.
+5. **Walker multiplies by two.** `walker.php:2298` calls `_saveScheduledMemberActivity('walker', …, 2*$total)`, converting walks to hours in PHP. Every other Group multiplies by one. This is the `hoursper` trap already recorded under **Count** in `GLOSSARY.md`.
 
 ### The security defect
 
@@ -140,7 +140,7 @@ Legacy renders these through a PHP PDF library. v2 renders **HTML styled for pri
 - **`groups` loses `has_hours_stats` and gains `hours_multiplier`.** ADR-0010's capability set is six, not seven. `Role::Statistician` becomes a core role by the `requiredCapability()` rule, attachable anywhere.
 - **The Hours tab renders on every Group and sub-Group,** with the entry form for everyone and the reports for officers.
 - **Reporting reads are subtree-wide.** This is the one place a Group's data crosses the parentage boundary that ADR-0019 draws for content.
-- **Migration must respect the Walker multiplier** and must not map legacy `Count → Count` (see **Count** under Legacy vocabulary in `CONTEXT.md`).
+- **Migration must respect the Walker multiplier** and must not map legacy `Count → Count` (see **Count** under Legacy vocabulary in `GLOSSARY.md`).
 - **Meeting hours import but cannot be entered** until Meetings grows an attendance roster. Reports will correctly show nothing for months after cutover.
 - **Legacy's database triggers are not ported.** The derivation moves into the model, where it is visible.
 

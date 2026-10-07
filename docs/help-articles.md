@@ -89,7 +89,7 @@ Member; it must not sound like a chatbot.
 
 ## Words
 
-Use the project's own words. The glossary in `CONTEXT.md` fixes them — Volunteer,
+Use the project's own words. The glossary in `GLOSSARY.md` fixes them — Volunteer,
 Member, Group, Shift, Scheduler, Chair. Match the case and spelling there. Do not
 drift to a synonym the glossary avoids. If the word you need is not in the
 glossary, that is a signal: either you are inventing language the project does
@@ -143,7 +143,7 @@ the entry to `status: published` in the same or a follow-up pull request.
 The French article is machine-translated in the same pull request as the English
 one and shipped unreviewed. Set `fr: FrenchState::MachineTranslated` on the
 manifest entry (the default). Match the English file heading-for-heading and
-step-for-step. Use the project's French words from `CONTEXT.md`.
+step-for-step. Use the project's French words from `GLOSSARY.md`.
 
 When a human reviews the French copy against the English, they set the entry to
 `fr: FrenchState::Reviewed`. Do not set `Reviewed` yourself for a

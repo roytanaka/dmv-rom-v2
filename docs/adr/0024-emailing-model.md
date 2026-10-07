@@ -32,7 +32,7 @@ Four findings shaped everything below.
 
 ### 1. Vocabulary
 
-Five nouns for mail, three for the machinery. All go into `CONTEXT.md`.
+Five nouns for mail, three for the machinery. All go into `GLOSSARY.md`.
 
 - **Broadcast**: a message an officer writes and sends to an Audience.
 - **Direct message**: a message any Member writes and sends to one other Member, from the Directory or a profile. A peer of Broadcast: same composer, same record, same queue, same no-email rule. Differs only in who may send it and that its Audience is one Member.

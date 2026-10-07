@@ -2,7 +2,7 @@
  * Chrome navigation model — the typed contract behind the app shell's nav.
  *
  * "Chrome" is the persistent frame (rail, top bar, breadcrumb, footer) that wraps
- * every screen (see CONTEXT.md § Chrome). This module types the nodes the *grouping
+ * every screen (see GLOSSARY.md § Chrome). This module types the nodes the *grouping
  * rail* and the contextual *top bar* render.
  *
  * ── Two-layer model ──────────────────────────────────────────────────────────

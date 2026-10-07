@@ -55,7 +55,7 @@ use Throwable;
  * The curated org tree below is the single source of truth (PRD #139): the real
  * DMV committees, programs, working groups, cohorts and projects, transcribed
  * once from the maintainer's handoff comment and living here and nowhere else —
- * not in any markdown doc, CONTEXT.md, or data file. Changing the org means
+ * not in any markdown doc, GLOSSARY.md, or data file. Changing the org means
  * editing this seeder. Each node is created with `firstOrCreate` keyed on its
  * slug, so re-running heals rather than duplicates.
  *
