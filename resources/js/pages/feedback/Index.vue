@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // The Feedback page (#676, ADR-0029 §13): every Feedback item, newest first, from every
-// Tester. Each row links to the item's page (#677). Testers filter by type and by status
+// Tester. Each row links to the item's page (#677). A muted `#N` leads each row and a
+// chat icon shows the comment count (#701). Testers filter by type and by status
 // (#679); the filters are query parameters, so a filtered list has a URL. Outside
 // production only. Type and status labels are chrome (the lang keys come from the enums);
 // the Tester's name and message are content, shown as sent.
@@ -14,7 +15,8 @@ import { formatFeedbackDate, STATUS_TONES, type FeedbackOption } from '@/feedbac
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { PhChatCircle } from '@phosphor-icons/vue';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
 interface FeedbackRow {
@@ -24,6 +26,7 @@ interface FeedbackRow {
     statusLabelKey: string;
     testerName: string;
     excerpt: string;
+    commentsCount: number;
     createdAt: string;
     href: string;
 }
@@ -115,24 +118,39 @@ const clearFilters = (): void => applyFilters({ type: null, status: null });
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead class="w-px" />
+                            <TableHead>{{ trans('feedback.column.message') }}</TableHead>
                             <TableHead>{{ trans('feedback.column.type') }}</TableHead>
                             <TableHead>{{ trans('feedback.column.status') }}</TableHead>
                             <TableHead>{{ trans('feedback.column.name') }}</TableHead>
-                            <TableHead>{{ trans('feedback.column.message') }}</TableHead>
                             <TableHead>{{ trans('feedback.column.date') }}</TableHead>
+                            <TableHead>{{ trans('feedback.column.comments') }}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         <TableRow v-for="item in items" :key="item.id">
+                            <TableCell class="text-muted-foreground text-xs whitespace-nowrap tabular-nums">#{{ item.id }}</TableCell>
+                            <TableCell class="min-w-64">
+                                <TextLink :href="item.href">{{ item.excerpt }}</TextLink>
+                            </TableCell>
                             <TableCell class="whitespace-nowrap">{{ trans(item.typeLabelKey) }}</TableCell>
                             <TableCell>
                                 <Badge :variant="STATUS_TONES[item.status]">{{ trans(item.statusLabelKey) }}</Badge>
                             </TableCell>
                             <TableCell class="whitespace-nowrap">{{ item.testerName }}</TableCell>
-                            <TableCell class="min-w-64">
-                                <TextLink :href="item.href">{{ item.excerpt }}</TextLink>
-                            </TableCell>
                             <TableCell class="whitespace-nowrap">{{ formatDate(item.createdAt) }}</TableCell>
+                            <TableCell class="text-muted-foreground whitespace-nowrap">
+                                <span
+                                    v-if="item.commentsCount > 0"
+                                    class="inline-flex items-center gap-1 tabular-nums"
+                                    :aria-label="
+                                        transChoice('feedback.column.comments_count', item.commentsCount, { count: String(item.commentsCount) })
+                                    "
+                                >
+                                    <PhChatCircle aria-hidden="true" class="size-4" />
+                                    <span aria-hidden="true">{{ item.commentsCount }}</span>
+                                </span>
+                            </TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>

@@ -27,6 +27,8 @@ return [
         'name' => 'Nom',
         'message' => 'Message',
         'date' => 'Date',
+        'comments' => 'Commentaires',
+        'comments_count' => ':count commentaire|:count commentaires',
     ],
 
     'filter' => [

@@ -26,6 +26,8 @@ return [
         'name' => 'Name',
         'message' => 'Message',
         'date' => 'Date',
+        'comments' => 'Comments',
+        'comments_count' => ':count comment|:count comments',
     ],
 
     // The Feedback page filters (#679, §13).
