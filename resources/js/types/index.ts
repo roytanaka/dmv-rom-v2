@@ -283,6 +283,10 @@ export interface Meeting {
 // Document the viewer may read. `title` and `filename` are content, shown as written.
 export interface LibraryDocument {
     id: number;
+    /** A stored file, or a link to a web address (#716). */
+    kind: 'file' | 'link';
+    /** A link's web address, sent to managers only (for editing); readers open `href`. */
+    url: string | null;
     title: string | null;
     filename: string | null;
     /** Lower-case extension of the original filename, or null. */

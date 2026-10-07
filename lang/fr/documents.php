@@ -16,6 +16,22 @@ return [
 
     'download' => 'Télécharger :name',
 
+    // Documents-liens (#716) : un titre et une adresse Web au lieu d’un fichier.
+    'link' => [
+        'add' => 'Ajouter un lien',
+        'add_title' => 'Ajouter un lien',
+        'edit_title' => 'Modifier le lien',
+        'edit' => 'Modifier :name',
+        'open' => 'Ouvrir :name',
+        'type' => 'Lien',
+        'field' => [
+            'title' => 'Titre',
+            'url' => 'Adresse Web',
+        ],
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
+    ],
+
     'upload' => [
         'button' => 'Téléverser des fichiers',
         'drop' => 'Déposez des fichiers ici ou',

@@ -9,12 +9,16 @@
 // each file shows its own progress bar and its own error. The DocumentPolicy enforces every
 // upload regardless of what renders. Titles and filenames are content, shown as written
 // (ADR-0004); everything else is translated chrome.
+//
+// A link Document (#716) shows a link icon in place of type and size and opens in a new tab
+// through the same gated route. A manager adds one, or edits one, in LinkDocumentDialog.
+import LinkDocumentDialog from '@/components/LinkDocumentDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { type GroupLibrary, type SharedData } from '@/types';
+import { type GroupLibrary, type LibraryDocument, type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
-import { PhCheckCircle, PhFile, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
+import { PhCheckCircle, PhFile, PhLink, PhPencilSimple, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { ref } from 'vue';
 
@@ -36,6 +40,16 @@ function formatSize(bytes: number | null): string {
               : (['gigabyte', bytes / 1024 ** 3] as const);
 
     return new Intl.NumberFormat(page.props.locale, { style: 'unit', unit, maximumFractionDigits: value < 10 ? 1 : 0 }).format(Math.max(value, 0.1));
+}
+
+// --- Link Documents (#716) -------------------------------------------------------------
+
+const linkDialogOpen = ref(false);
+const editingLink = ref<LibraryDocument | null>(null);
+
+function openLinkDialog(document: LibraryDocument | null): void {
+    editingLink.value = document;
+    linkDialogOpen.value = true;
 }
 
 // --- Upload ---------------------------------------------------------------------------
@@ -139,6 +153,13 @@ function onDrop(event: DragEvent): void {
                 <input ref="fileInput" type="file" multiple class="sr-only" :aria-label="trans('documents.upload.button')" @change="onPick" />
             </div>
 
+            <div>
+                <Button type="button" variant="outline" size="sm" @click="openLinkDialog(null)">
+                    <PhLink class="h-4 w-4" aria-hidden="true" />
+                    {{ trans('documents.link.add') }}
+                </Button>
+            </div>
+
             <ul v-if="uploads.length" class="flex flex-col gap-2" aria-live="polite">
                 <li v-for="upload in uploads" :key="upload.id" class="flex flex-col gap-1">
                     <div class="flex items-center gap-2 text-sm">
@@ -177,27 +198,58 @@ function onDrop(event: DragEvent): void {
                 <TableRow v-for="document in library.documents" :key="document.id">
                     <TableCell class="whitespace-normal">
                         <a
+                            v-if="document.kind === 'link'"
+                            :href="document.href"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-rom-ink font-medium underline-offset-4 hover:underline"
+                            :aria-label="trans('documents.link.open', { name: document.title ?? '' })"
+                        >
+                            {{ document.title }}
+                        </a>
+                        <a
+                            v-else
                             :href="document.href"
                             class="text-rom-ink font-medium underline-offset-4 hover:underline"
                             :aria-label="trans('documents.download', { name: document.title ?? document.filename ?? '' })"
                         >
                             {{ document.title ?? document.filename }}
                         </a>
+                        <Button
+                            v-if="canManage && document.kind === 'link'"
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="ml-1 h-7 w-7 align-middle"
+                            :aria-label="trans('documents.link.edit', { name: document.title ?? '' })"
+                            @click="openLinkDialog(document)"
+                        >
+                            <PhPencilSimple class="h-4 w-4" aria-hidden="true" />
+                        </Button>
                         <!-- On a phone the other columns hide; their facts ride under the name. -->
                         <p class="text-muted-foreground text-xs sm:hidden">
                             {{
-                                [document.extension?.toUpperCase(), formatSize(document.sizeBytes), formatDate(document.updatedAt)]
+                                [
+                                    document.kind === 'link' ? trans('documents.link.type') : document.extension?.toUpperCase(),
+                                    formatSize(document.sizeBytes),
+                                    formatDate(document.updatedAt),
+                                ]
                                     .filter(Boolean)
                                     .join(' · ')
                             }}
                         </p>
                     </TableCell>
-                    <TableCell class="text-muted-foreground hidden sm:table-cell">{{ document.extension?.toUpperCase() }}</TableCell>
+                    <TableCell class="text-muted-foreground hidden sm:table-cell">
+                        <PhLink v-if="document.kind === 'link'" class="h-4 w-4" :aria-label="trans('documents.link.type')" />
+                        <template v-else>{{ document.extension?.toUpperCase() }}</template>
+                    </TableCell>
                     <TableCell class="text-muted-foreground hidden text-right sm:table-cell">{{ formatSize(document.sizeBytes) }}</TableCell>
                     <TableCell class="text-muted-foreground hidden md:table-cell">{{ formatDate(document.updatedAt) }}</TableCell>
                     <TableCell v-if="canManage" class="text-muted-foreground hidden lg:table-cell">{{ document.uploader }}</TableCell>
                 </TableRow>
             </TableBody>
         </Table>
+
+        <LinkDocumentDialog v-if="canManage" v-model:open="linkDialogOpen" :document="editingLink" :group-slug="groupSlug" />
     </div>
 </template>
