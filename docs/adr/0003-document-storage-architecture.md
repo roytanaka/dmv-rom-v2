@@ -88,3 +88,12 @@ Profile photos (#233, PRD #228) do **not** follow the document-storage decision 
 The rationale: a document can carry volunteer PII, so obscurity is not enough and every fetch must re-check policy. A face is different — a member publishes it deliberately by uploading, it appears in the directory to every logged-in peer regardless, and routing 500 avatars through a policy-checked controller on every page would add load for no privacy gain. Unguessable UUID filenames plus disabled directory indexing keep the lane non-enumerable without a gate.
 
 This does not weaken the Documents decision: the two lanes stay separate, and anything carrying PII (including any future document-shaped member attachment) belongs in the gated lane, not this one. The shared processing/storage mechanism for photos lives in `App\Support\ProfilePhotoStorage` (reused by the replace/remove lifecycle #234 and the demo seeder #235).
+
+## Amendment (2026-10-07, [ADR-0030](0030-document-library.md)): the Document library
+
+ADR-0030 settles the library this ADR stores files for. It changes four things here:
+
+- **Ownership is `group_id`.** This ADR predates the Group model ([ADR-0010](0010-group-model.md)). `committee_id` and `program_id` are one column, `group_id`. Uploaders are **Members** (`uploaded_by_id` → `members`).
+- **Visibility moves to Folders.** A top-level Folder carries `group` or `members`, and everything inside it inherits. `committee` becomes `group`. `public` is dropped until a real case needs it.
+- **A Document may be a link.** A link Document has a URL instead of a stored file and opens it after the same access check.
+- **Size and types are answered.** One upload is at most 1.5 GB. Allowed: pdf, doc/docx, xls/xlsx, ppt/pptx, jpg/png/webp/gif, txt, csv, mp4, mp3, zip. Virus scanning stays deferred.
