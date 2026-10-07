@@ -15,6 +15,22 @@ return [
 
     'download' => 'Download :name',
 
+    // Link Documents (#716): a title and a web address in place of a file.
+    'link' => [
+        'add' => 'Add link',
+        'add_title' => 'Add a link',
+        'edit_title' => 'Edit link',
+        'edit' => 'Edit :name',
+        'open' => 'Open :name',
+        'type' => 'Link',
+        'field' => [
+            'title' => 'Title',
+            'url' => 'Web address',
+        ],
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+    ],
+
     'upload' => [
         'button' => 'Upload files',
         'drop' => 'Drop files here or',

@@ -724,6 +724,10 @@ class GroupController extends Controller
             'documents' => $documents
                 ->map(fn (Document $document) => [
                     'id' => $document->id,
+                    'kind' => $document->kind->value,
+                    // A link's address, for a manager's edit form only; readers open it
+                    // through `href`, so every open is checked and logged (#716).
+                    'url' => $canManage ? $document->url : null,
                     // Content, as-authored (ADR-0004); the client falls back to the filename.
                     'title' => $document->title,
                     'filename' => $document->original_filename,

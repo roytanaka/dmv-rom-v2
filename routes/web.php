@@ -18,6 +18,7 @@ use App\Http\Controllers\HelpController;
 use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\LinkDocumentController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
@@ -334,6 +335,15 @@ Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
 Route::post('groups/{group}/documents', [DocumentController::class, 'store'])
     ->middleware(['auth'])
     ->name('documents.store');
+
+// Link Documents (#716, ADR-0030 §7): a title and a web address in place of a file. Same
+// authorization as an upload; opening one goes through `documents.download`.
+Route::post('groups/{group}/documents/links', [LinkDocumentController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('documents.links.store');
+Route::patch('documents/{document}/link', [LinkDocumentController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('documents.links.update');
 
 // Document library Tags (#717, spec #290, ADR-0030 §4). The same Librarian seam: create nests
 // under the Group, rename and delete bind the Tag by id, and a Document's Tags are replaced as
