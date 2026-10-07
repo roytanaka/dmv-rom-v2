@@ -150,9 +150,8 @@ const formatDate = (iso: string) => new Intl.DateTimeFormat(page.props.locale, {
 // window has closed reads "Ended <date>". An open or open-ended Group shows none.
 const ended = computed(() => !props.group.archived && props.group.end_date !== null && new Date(props.group.end_date) < new Date());
 
-// The in-body section tabs. Overview · Roster are always present; Meetings is a real
-// tab when the Group runs meetings. The remaining capabilities render as muted "soon"
-// stubs only when their flag is on — the feature itself lands in a later slice. Hours
+// The in-body section tabs. Overview · Roster are always present; Meetings, Documents
+// (#712) and Scheduling each render when the Group runs that capability. Hours
 // is always-on (ADR-0022 §3): its tab renders on every Group and sub-Group, now a real
 // tab carrying the extra-hours entry surface (#408). Settings comes last, only for a viewer
 // holding a configuration right, on every visit, empty or not (ADR-0027 §1). Hrefs are
