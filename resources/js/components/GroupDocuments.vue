@@ -11,7 +11,9 @@
 // (ADR-0004); everything else is translated chrome.
 //
 // A link Document (#716) shows a link icon in place of type and size and opens in a new tab
-// through the same gated route. A manager adds one, or edits one, in LinkDocumentDialog.
+// through the same gated route. A manager adds one in LinkDocumentDialog and edits it from
+// the row's DocumentActions menu (#713).
+import DocumentActions from '@/components/DocumentActions.vue';
 import DocumentTagFilter from '@/components/DocumentTagFilter.vue';
 import DocumentTagsEditor from '@/components/DocumentTagsEditor.vue';
 import DocumentTagsManager from '@/components/DocumentTagsManager.vue';
@@ -20,9 +22,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { type GroupLibrary, type LibraryDocument, type SharedData } from '@/types';
+import { type GroupLibrary, type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
-import { PhCheckCircle, PhFile, PhLink, PhPencilSimple, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
+import { PhCheckCircle, PhFile, PhLink, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { ref } from 'vue';
 
@@ -49,12 +51,6 @@ function formatSize(bytes: number | null): string {
 // --- Link Documents (#716) -------------------------------------------------------------
 
 const linkDialogOpen = ref(false);
-const editingLink = ref<LibraryDocument | null>(null);
-
-function openLinkDialog(document: LibraryDocument | null): void {
-    editingLink.value = document;
-    linkDialogOpen.value = true;
-}
 
 // --- Upload ---------------------------------------------------------------------------
 
@@ -158,7 +154,7 @@ function onDrop(event: DragEvent): void {
             </div>
 
             <div>
-                <Button type="button" variant="outline" size="sm" @click="openLinkDialog(null)">
+                <Button type="button" variant="outline" size="sm" @click="linkDialogOpen = true">
                     <PhLink class="h-4 w-4" aria-hidden="true" />
                     {{ trans('documents.link.add') }}
                 </Button>
@@ -204,6 +200,9 @@ function onDrop(event: DragEvent): void {
                     <TableHead class="hidden text-right sm:table-cell">{{ trans('documents.column.size') }}</TableHead>
                     <TableHead class="hidden md:table-cell">{{ trans('documents.column.updated') }}</TableHead>
                     <TableHead v-if="canManage" class="hidden lg:table-cell">{{ trans('documents.column.uploader') }}</TableHead>
+                    <TableHead v-if="canManage" class="w-10"
+                        ><span class="sr-only">{{ trans('documents.column.actions') }}</span></TableHead
+                    >
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -227,17 +226,7 @@ function onDrop(event: DragEvent): void {
                         >
                             {{ document.title ?? document.filename }}
                         </a>
-                        <Button
-                            v-if="canManage && document.kind === 'link'"
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            class="ml-1 h-7 w-7 align-middle"
-                            :aria-label="trans('documents.link.edit', { name: document.title ?? '' })"
-                            @click="openLinkDialog(document)"
-                        >
-                            <PhPencilSimple class="h-4 w-4" aria-hidden="true" />
-                        </Button>
+                        <p v-if="document.description" class="text-rom-ink text-sm whitespace-pre-line">{{ document.description }}</p>
                         <span v-if="document.tags.length || canManage" class="mt-1 flex flex-wrap items-center gap-1">
                             <Badge v-for="tag in document.tags" :key="tag.id" variant="secondary">{{ tag.name }}</Badge>
                             <DocumentTagsEditor
@@ -268,10 +257,13 @@ function onDrop(event: DragEvent): void {
                     <TableCell class="text-muted-foreground hidden text-right sm:table-cell">{{ formatSize(document.sizeBytes) }}</TableCell>
                     <TableCell class="text-muted-foreground hidden md:table-cell">{{ formatDate(document.updatedAt) }}</TableCell>
                     <TableCell v-if="canManage" class="text-muted-foreground hidden lg:table-cell">{{ document.uploader }}</TableCell>
+                    <TableCell v-if="canManage" class="w-10 text-right">
+                        <DocumentActions :document="document" />
+                    </TableCell>
                 </TableRow>
             </TableBody>
         </Table>
 
-        <LinkDocumentDialog v-if="canManage" v-model:open="linkDialogOpen" :document="editingLink" :group-slug="groupSlug" />
+        <LinkDocumentDialog v-if="canManage" v-model:open="linkDialogOpen" :group-slug="groupSlug" />
     </div>
 </template>

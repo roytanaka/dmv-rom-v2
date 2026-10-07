@@ -142,14 +142,24 @@ it('lets a Librarian edit a link Document\'s title and address', function () {
     $document = linkDocumentOf($group, ['title' => 'Old', 'url' => 'https://example.org/old']);
 
     $this->actingAs(linkLibraryMemberOf($group, Role::Librarian))
-        ->patch(route('documents.links.update', $document), ['title' => 'New', 'url' => 'https://example.org/new'])
+        ->patch(route('documents.update', $document), ['title' => 'New', 'url' => 'https://example.org/new', 'description' => 'Online copy'])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
     expect($document->fresh())
         ->title->toBe('New')
         ->url->toBe('https://example.org/new')
+        ->description->toBe('Online copy')
         ->kind->toBe(DocumentKind::Link);
+});
+
+it('keeps a link Document\'s title and address required', function () {
+    $group = linkLibraryGroup();
+    $document = linkDocumentOf($group, ['title' => 'Old', 'url' => 'https://example.org/old']);
+
+    $this->actingAs(linkLibraryMemberOf($group, Role::Librarian))
+        ->patch(route('documents.update', $document), ['title' => '', 'url' => ''])
+        ->assertSessionHasErrors(['title', 'url']);
 });
 
 it('refuses an edit to a non-http address', function () {
@@ -157,7 +167,7 @@ it('refuses an edit to a non-http address', function () {
     $document = linkDocumentOf($group, ['url' => 'https://example.org/old']);
 
     $this->actingAs(linkLibraryMemberOf($group, Role::Librarian))
-        ->patch(route('documents.links.update', $document), ['title' => 'New', 'url' => 'javascript:alert(1)'])
+        ->patch(route('documents.update', $document), ['title' => 'New', 'url' => 'javascript:alert(1)'])
         ->assertSessionHasErrors('url');
 
     expect($document->fresh()->url)->toBe('https://example.org/old');
@@ -169,7 +179,7 @@ it('forbids an edit from an ordinary member or a Librarian of another Group', fu
     $actor = $who === 'member' ? linkLibraryMemberOf($group) : linkLibraryMemberOf(linkLibraryGroup(), Role::Librarian);
 
     $this->actingAs($actor)
-        ->patch(route('documents.links.update', $document), ['title' => 'New', 'url' => 'https://example.org'])
+        ->patch(route('documents.update', $document), ['title' => 'New', 'url' => 'https://example.org'])
         ->assertForbidden();
 
     expect($document->fresh()->title)->toBe('Old');
@@ -181,19 +191,19 @@ it('forbids an edit once the documents capability is off, super-tier included', 
     $group->update(['has_documents' => false]);
 
     $this->actingAs(Member::factory()->superTier()->create())
-        ->patch(route('documents.links.update', $document), ['title' => 'New', 'url' => 'https://example.org'])
+        ->patch(route('documents.update', $document), ['title' => 'New', 'url' => 'https://example.org'])
         ->assertForbidden();
 });
 
-it('returns 404 when the link edit route targets a file Document', function () {
+it('ignores a web address sent for a file Document', function () {
     $group = linkLibraryGroup();
     $document = Document::factory()->create(['group_id' => $group->id]);
 
     $this->actingAs(linkLibraryMemberOf($group, Role::Librarian))
-        ->patch(route('documents.links.update', $document), ['title' => 'New', 'url' => 'https://example.org'])
-        ->assertNotFound();
+        ->patch(route('documents.update', $document), ['title' => 'New', 'url' => 'https://example.org'])
+        ->assertSessionHasNoErrors();
 
-    expect($document->fresh()->url)->toBeNull();
+    expect($document->fresh())->title->toBe('New')->url->toBeNull();
 });
 
 // --- Open ---------------------------------------------------------------------------

@@ -37,7 +37,7 @@ class StoreLinkDocumentRequest extends FormRequest
     }
 
     /**
-     * The fields of a link Document, shared with {@see UpdateLinkDocumentRequest}. Only http
+     * The fields of a link Document, shared with {@see UpdateDocumentRequest}. Only http
      * and https pass, so a `javascript:` or `file:` address never reaches the redirect.
      *
      * @return array<string, list<string>>

@@ -343,6 +343,17 @@ Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
 Route::post('groups/{group}/documents', [DocumentController::class, 'store'])
     ->middleware(['auth'])
     ->name('documents.store');
+// Edit, replace and delete one Document (#713, ADR-0030 §8). Replace is a POST: it carries a
+// multipart file, which PHP parses only on POST.
+Route::patch('documents/{document}', [DocumentController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('documents.update');
+Route::post('documents/{document}/file', [DocumentController::class, 'replace'])
+    ->middleware(['auth'])
+    ->name('documents.replace');
+Route::delete('documents/{document}', [DocumentController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('documents.destroy');
 
 // Document library Folders and moves (#714, spec #290, ADR-0030 §3). Same seam: create nests
 // under the Group; rename, move and delete bind the Folder by id. A Document moves on its own
@@ -368,9 +379,6 @@ Route::patch('documents/{document}/move', MoveDocumentController::class)
 Route::post('groups/{group}/documents/links', [LinkDocumentController::class, 'store'])
     ->middleware(['auth'])
     ->name('documents.links.store');
-Route::patch('documents/{document}/link', [LinkDocumentController::class, 'update'])
-    ->middleware(['auth'])
-    ->name('documents.links.update');
 
 // Document library Tags (#717, spec #290, ADR-0030 §4). The same Librarian seam: create nests
 // under the Group, rename and delete bind the Tag by id, and a Document's Tags are replaced as

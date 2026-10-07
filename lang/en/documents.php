@@ -11,6 +11,7 @@ return [
         'size' => 'Size',
         'updated' => 'Updated',
         'uploader' => 'Uploaded by',
+        'actions' => 'Actions',
     ],
 
     'download' => 'Download :name',
@@ -19,8 +20,6 @@ return [
     'link' => [
         'add' => 'Add link',
         'add_title' => 'Add a link',
-        'edit_title' => 'Edit link',
-        'edit' => 'Edit :name',
         'open' => 'Open :name',
         'type' => 'Link',
         'field' => [
@@ -40,5 +39,25 @@ return [
         'failed' => 'Not added',
         'error_type' => ':name was not added. This type of file is not allowed.',
         'error_size' => ':name was not added. It is larger than 1.5 GB.',
+    ],
+
+    // Edit, replace and delete one Document (#713).
+    'manage' => [
+        'menu' => 'Actions for :name',
+        'edit' => 'Edit',
+        'replace' => 'Replace file',
+        'delete' => 'Delete',
+        'edit_title' => 'Edit document',
+        'replace_title' => 'Replace the file of :name',
+        'replace_save' => 'Replace',
+        'delete_title' => 'Delete this document?',
+        'delete_body' => ':name and its file will be deleted. This cannot be undone.',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+        'field' => [
+            'title' => 'Title',
+            'description' => 'Description',
+            'file' => 'New file',
+        ],
     ],
 ];
