@@ -279,6 +279,27 @@ export interface Meeting {
     can: { update: boolean; delete: boolean };
 }
 
+// The Group Documents tab payload (#712, ADR-0030). One row of the Document library: a
+// Document the viewer may read. `title` and `filename` are content, shown as written.
+export interface LibraryDocument {
+    id: number;
+    title: string | null;
+    filename: string | null;
+    /** Lower-case extension of the original filename, or null. */
+    extension: string | null;
+    sizeBytes: number | null;
+    /** A UTC instant. */
+    updatedAt: string;
+    /** The uploader's name, sent to managers only. */
+    uploader: string | null;
+    /** The gated download URL, localized. */
+    href: string;
+}
+
+export interface GroupLibrary {
+    documents: LibraryDocument[];
+}
+
 // The Group Hours tab payload (#408, ADR-0022 §2). The viewer's own records for this
 // Group and the two-month entry state — never another Member's hours (§4).
 export interface HoursRecordRow {

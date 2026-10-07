@@ -10,6 +10,7 @@
 // everything else is translated chrome (ADR-0004). Officer edits to the Overview
 // (#191) — inline About Us and banner selection — render only behind the server's
 // `can.update` hint; the GroupPolicy enforces every mutation regardless.
+import GroupDocuments from '@/components/GroupDocuments.vue';
 import GroupHours from '@/components/GroupHours.vue';
 import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
@@ -27,7 +28,15 @@ import EmailMenu from '@/emailing/EmailMenu.vue';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { bannerSources, defaultBannerKey, groupBannerKeys, groupBanners } from '@/groups/banners';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type GroupHours as GroupHoursData, type Meeting, type RosterMember, type RosterMeta, type Scheduling, type SharedData } from '@/types';
+import {
+    type GroupHours as GroupHoursData,
+    type GroupLibrary,
+    type Meeting,
+    type RosterMember,
+    type RosterMeta,
+    type Scheduling,
+    type SharedData,
+} from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { PhImage, PhPencilSimple } from '@phosphor-icons/vue';
@@ -99,6 +108,8 @@ const props = defineProps<{
         manageObjects: boolean;
         enterHours: boolean;
         viewReports: boolean;
+        // `manageDocuments` gates the Documents tab's upload control and uploader column (#712).
+        manageDocuments: boolean;
     };
     // The Email control's empty state (#513, ADR-0024 §6) — why the viewer can pick no
     // Audience on this Group-scoped surface, or null when at least one is pickable. Read
@@ -110,6 +121,8 @@ const props = defineProps<{
     roster: RosterMember[];
     rosterMeta: RosterMeta;
     meetings: Meeting[];
+    // The Documents tab's payload (#712, ADR-0030), resolved only on that tab.
+    library: GroupLibrary;
     scheduling: Scheduling;
     hours: GroupHoursData;
     // The Settings tab's payload (ADR-0027), resolved only on that tab. Each card's values ride
@@ -152,7 +165,7 @@ const tabs = computed<NavNode[]>(() => {
         { href: href('roster'), labelKey: 'group.tab.members' },
     ];
     if (props.group.capabilities.meetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
-    if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents', soon: true });
+    if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents' });
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
     if (props.group.capabilities.content) list.push({ href: href('content'), labelKey: 'group.tab.content', soon: true });
     list.push({ href: href('hours'), labelKey: 'group.tab.hours' });
@@ -401,6 +414,10 @@ const pickBanner = (key: string | null) => {
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
                      surface, with officer CRUD behind the `can` hints. -->
                 <GroupMeetings v-else-if="section === 'meetings'" :meetings="meetings" :can-create="can.createMeeting" :group-slug="group.slug" />
+
+                <!-- Documents (#712, ADR-0030) — the Group's Document library: the root Documents the
+                     viewer may read, with the upload control behind `can.manageDocuments`. -->
+                <GroupDocuments v-else-if="section === 'documents'" :library="library" :can-manage="can.manageDocuments" :group-slug="group.slug" />
 
                 <!-- Scheduling (#353, #354) — the Schedule read surface (a list, an
                      empty state, or a single Schedule opened directly, org-open) with
