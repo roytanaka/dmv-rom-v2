@@ -184,6 +184,35 @@ it('shows each Document\'s Tags and the Group\'s Tags, sorted by name', function
             ]));
 });
 
+it('shows a reader only the Tags on Documents they may read, and a Librarian every Tag', function () {
+    $group = taggedLibrary();
+    $shared = tagOf($group, 'Shared');
+    $internal = tagOf($group, 'Internal plans');
+    tagOf($group, 'Unused');
+    $sharedFolder = DocumentFolder::factory()->sharedWithMembers()->create(['group_id' => $group->id]);
+    $groupFolder = DocumentFolder::factory()->create(['group_id' => $group->id]);
+    Document::factory()->create(['group_id' => $group->id, 'folder_id' => $sharedFolder->id])->tags()->attach($shared);
+    Document::factory()->create(['group_id' => $group->id, 'folder_id' => $groupFolder->id])->tags()->attach($internal);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(documentsTab($group))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.tags', [['id' => $shared->id, 'name' => 'Shared']]));
+
+    $this->actingAs(taggedLibraryMemberOf($group))
+        ->get(documentsTab($group))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.tags', [
+                ['id' => $internal->id, 'name' => 'Internal plans'],
+                ['id' => $shared->id, 'name' => 'Shared'],
+            ]));
+
+    $this->actingAs(taggedLibraryMemberOf($group, Role::Librarian))
+        ->get(documentsTab($group))
+        ->assertInertia(fn (Assert $page) => $page->has('library.tags', 3));
+});
+
 it('filters by one Tag across every Folder', function () {
     $group = taggedLibrary();
     $highlights = tagOf($group, 'Highlights');

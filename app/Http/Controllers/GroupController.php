@@ -797,7 +797,7 @@ class GroupController extends Controller
                     'tags' => $this->tagRows($document->tags),
                 ])
                 ->all(),
-            'tags' => $this->tagRows($group->documentTags()->get()),
+            'tags' => $this->tagRows($canManage ? $group->documentTags()->get() : $this->readableTags($viewer, $group, $tree)),
             'tag' => $tag === null ? null : ['id' => $tag->id, 'name' => $tag->name],
         ];
     }
@@ -828,6 +828,29 @@ class GroupController extends Controller
         $walk(0, []);
 
         return $rows;
+    }
+
+    /**
+     * The Tags a reader who does not manage the library may see (story 16): those on at least
+     * one Document they may read. A Tag name is content too, so one used only on Documents
+     * hidden from the viewer never reaches them.
+     *
+     * @param  Collection<int, DocumentFolder>  $tree  the Group's Folders, ancestors preloaded
+     * @return Collection<int, DocumentTag>
+     */
+    private function readableTags(Member $viewer, Group $group, Collection $tree): Collection
+    {
+        return $group->documents()
+            ->has('tags')
+            ->with('tags')
+            ->get()
+            ->each(fn (Document $document) => $document
+                ->setRelation('group', $group)
+                ->setRelation('folder', $document->folder_id === null ? null : $tree[$document->folder_id]))
+            ->filter(fn (Document $document) => $viewer->can('download', $document))
+            ->flatMap(fn (Document $document) => $document->tags)
+            ->unique('id')
+            ->values();
     }
 
     /**
