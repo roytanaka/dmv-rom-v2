@@ -8,6 +8,8 @@ Un horaire est une plage de dates nommée dans laquelle un groupe publie ses qua
 
 ![L'onglet Horaire : la liste des horaires sous vos inscriptions, une carte chacun avec sa plage de dates](01.png)
 
+Un horaire en cours s'ouvre à aujourd'hui. Pour voir les jours passés, cliquez sur **Afficher les créneaux précédents**. Dans la vue Calendrier, aujourd'hui a un fond coloré.
+
 ## Quarts
 
 Un quart est une plage horaire datée que vous vous inscrivez à doter, comme un circuit, un poste au comptoir ou un rôle lors d'un événement. Chaque quart a une heure de début, une heure de fin et une capacité.

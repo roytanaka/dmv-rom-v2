@@ -258,3 +258,27 @@ export function monthsInRange(startsOn: string, endsOn: string): { year: number;
 
     return months;
 }
+
+/**
+ * Split ascending days at the day a view opens at (#697). Days before `opensOn` are the
+ * earlier ones the Agenda folds behind a link; `opensOn` and after show first. The server
+ * picks `opensOn` (today for a current Schedule that began earlier, else the first day), so
+ * an upcoming or past Schedule has no earlier days. Compares the plain `YYYY-MM-DD` keys.
+ */
+export function splitAtDay<T extends { date: string }>(days: T[], opensOn: string): { earlier: T[]; later: T[] } {
+    return {
+        earlier: days.filter((day) => day.date < opensOn),
+        later: days.filter((day) => day.date >= opensOn),
+    };
+}
+
+/**
+ * The index of the month that holds `date` in a {@link monthsInRange} list, or `0` when no
+ * month holds it — the page the Calendar opens on (#697).
+ */
+export function monthIndexOf(months: { year: number; month: number }[], date: string): number {
+    const [year, month] = date.split('-').map(Number);
+    const index = months.findIndex((entry) => entry.year === year && entry.month === month);
+
+    return index === -1 ? 0 : index;
+}

@@ -385,6 +385,7 @@ return [
         // l’action s’inscrire / se désister.
         'agenda' => [
             'aria_label' => 'Agenda',
+            'show_earlier' => 'Afficher les créneaux précédents',
             'empty' => 'Aucun créneau pour cet horaire pour l’instant.',
             'time_range' => 'De :start à :end',
             'seats' => ':taken / :capacity occupées',
