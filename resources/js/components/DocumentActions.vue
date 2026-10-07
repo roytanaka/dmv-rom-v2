@@ -29,15 +29,18 @@ import { computed, ref } from 'vue';
 const props = defineProps<{ document: LibraryDocument }>();
 
 const name = computed(() => props.document.title ?? props.document.filename ?? '');
-const isFile = computed(() => props.document.filename !== null);
+const isLink = computed(() => props.document.kind === 'link');
 
 // --- Edit -----------------------------------------------------------------------------
 
 const editing = ref(false);
-const editForm = useForm({ title: '', description: '' });
+// A link Document also edits its web address (#716); a file Document sends none.
+const editForm = useForm({ title: '', url: '', description: '' });
+editForm.transform(({ url, ...data }) => (isLink.value ? { ...data, url } : data));
 
 function openEdit(): void {
     editForm.title = props.document.title ?? '';
+    editForm.url = props.document.url ?? '';
     editForm.description = props.document.description ?? '';
     editForm.clearErrors();
     editing.value = true;
@@ -102,7 +105,7 @@ function confirmDelete(): void {
                 <PhPencilSimple class="size-4" />
                 {{ trans('documents.manage.edit') }}
             </DropdownMenuItem>
-            <DropdownMenuItem v-if="isFile" class="gap-2" @select="openReplace">
+            <DropdownMenuItem v-if="!isLink" class="gap-2" @select="openReplace">
                 <PhArrowsClockwise class="size-4" />
                 {{ trans('documents.manage.replace') }}
             </DropdownMenuItem>
@@ -121,8 +124,19 @@ function confirmDelete(): void {
             <form class="flex flex-col gap-4" @submit.prevent="saveEdit">
                 <div class="grid gap-2">
                     <Label :for="`document-${document.id}-title`">{{ trans('documents.manage.field.title') }}</Label>
-                    <Input :id="`document-${document.id}-title`" v-model="editForm.title" :placeholder="document.filename ?? ''" />
+                    <Input
+                        :id="`document-${document.id}-title`"
+                        v-model="editForm.title"
+                        :required="isLink"
+                        maxlength="255"
+                        :placeholder="document.filename ?? ''"
+                    />
                     <p v-if="editForm.errors.title" role="alert" class="text-destructive text-sm">{{ editForm.errors.title }}</p>
+                </div>
+                <div v-if="isLink" class="grid gap-2">
+                    <Label :for="`document-${document.id}-url`">{{ trans('documents.link.field.url') }}</Label>
+                    <Input :id="`document-${document.id}-url`" v-model="editForm.url" type="url" required maxlength="2048" />
+                    <p v-if="editForm.errors.url" role="alert" class="text-destructive text-sm">{{ editForm.errors.url }}</p>
                 </div>
                 <div class="grid gap-2">
                     <Label :for="`document-${document.id}-description`">{{ trans('documents.manage.field.description') }}</Label>

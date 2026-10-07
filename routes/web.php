@@ -17,6 +17,7 @@ use App\Http\Controllers\HelpController;
 use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\LinkDocumentController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
@@ -344,6 +345,12 @@ Route::post('documents/{document}/file', [DocumentController::class, 'replace'])
 Route::delete('documents/{document}', [DocumentController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('documents.destroy');
+
+// Link Documents (#716, ADR-0030 §7): a title and a web address in place of a file. Same
+// authorization as an upload; opening one goes through `documents.download`.
+Route::post('groups/{group}/documents/links', [LinkDocumentController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('documents.links.store');
 
 // Group scheduling authoring (#354, PRD #352, ADR-0021 §1). The Scheduler's write
 // seam for a Group's Schedules: create a draft, edit its fields, publish / un-publish

@@ -37,4 +37,20 @@ class DocumentFactory extends Factory
             'uploaded_at' => now(),
         ];
     }
+
+    /**
+     * A link Document (#716, ADR-0030 §7): a title and a web address, no stored file.
+     */
+    public function link(): static
+    {
+        return $this->state(fn () => [
+            'kind' => DocumentKind::Link,
+            'title' => fake()->sentence(3),
+            'url' => fake()->url(),
+            'original_filename' => null,
+            'storage_path' => null,
+            'mime_type' => null,
+            'size_bytes' => null,
+        ]);
+    }
 }
