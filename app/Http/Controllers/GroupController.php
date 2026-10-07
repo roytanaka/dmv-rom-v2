@@ -12,6 +12,7 @@ use App\Enums\ShiftAudience;
 use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\Document;
+use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -295,7 +296,7 @@ class GroupController extends Controller
             // root's Documents the viewer may read.
             'library' => $section === 'documents'
                 ? $this->library($request, $group)
-                : ['documents' => []],
+                : ['documents' => [], 'tags' => [], 'tag' => null],
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'
@@ -693,16 +694,26 @@ class GroupController extends Controller
      * Each row passes the DocumentPolicy's `download` check, so a non-member sees only what
      * the Group shares with every Member. The uploader rides only for a manager.
      *
-     * @return array{documents: list<array<string, mixed>>}
+     * @return array{documents: list<array<string, mixed>>, tags: list<array{id: int, name: string}>, tag: array{id: int, name: string}|null}
      */
     private function library(Request $request, Group $group): array
     {
         $viewer = $request->user();
         $canManage = $viewer->can('create', [Document::class, $group]);
 
+        // The one-Tag filter (#717, ADR-0030 §4): every Document with the Tag, across all
+        // Folders, instead of one Folder's Documents. The same per-Document read check applies.
+        $tag = $request->filled('tag')
+            ? $group->documentTags()->findOrFail($request->integer('tag'))
+            : null;
+
         $documents = $group->documents()
-            ->whereNull('folder_id')
-            ->with('uploadedBy')
+            ->when(
+                $tag === null,
+                fn (Builder $query) => $query->whereNull('folder_id'),
+                fn (Builder $query) => $query->whereHas('tags', fn (Builder $query) => $query->whereKey($tag->id)),
+            )
+            ->with(['uploadedBy', 'tags'])
             ->get()
             ->each(fn (Document $document) => $document->setRelation('group', $group))
             ->filter(fn (Document $document) => $viewer->can('download', $document))
@@ -723,9 +734,27 @@ class GroupController extends Controller
                     'updatedAt' => $document->updated_at->toIso8601String(),
                     'uploader' => $canManage ? $document->uploadedBy?->fullName() : null,
                     'href' => route('documents.download', $document, absolute: false),
+                    'tags' => $this->tagRows($document->tags),
                 ])
                 ->all(),
+            'tags' => $this->tagRows($group->documentTags()->get()),
+            'tag' => $tag === null ? null : ['id' => $tag->id, 'name' => $tag->name],
         ];
+    }
+
+    /**
+     * Tags as `{id, name}` rows sorted by name (#717). Names are content, as-authored.
+     *
+     * @param  iterable<DocumentTag>  $tags
+     * @return list<array{id: int, name: string}>
+     */
+    private function tagRows(iterable $tags): array
+    {
+        return collect($tags)
+            ->sortBy(fn (DocumentTag $tag) => mb_strtolower($tag->name), SORT_NATURAL)
+            ->map(fn (DocumentTag $tag) => ['id' => $tag->id, 'name' => $tag->name])
+            ->values()
+            ->all();
     }
 
     /**
