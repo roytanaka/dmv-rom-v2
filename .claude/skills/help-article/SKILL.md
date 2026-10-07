@@ -26,7 +26,7 @@ live in the guide, not here.
   entry shape and place the article in the right section.
 - Read one existing article as a model: `resources/help/en/getting-started.md`
   (an overview) or `resources/help/en/change-your-language.md` (a task).
-- Read `CONTEXT.md` for the project's words. Use them; do not drift to synonyms.
+- Read `GLOSSARY.md` for the project's words. Use them; do not drift to synonyms.
 
 ## 2. Settle the entry
 
@@ -69,7 +69,7 @@ sound like a chatbot. Keep every instruction; change only the wording.
 
 Write `resources/help/fr/<slug>.md`: Canadian-French, machine-translated, matched
 to the English file heading-for-heading and step-for-step. Use the project's
-French words from `CONTEXT.md`. Leave the entry `fr: FrenchState::MachineTranslated`; a human
+French words from `GLOSSARY.md`. Leave the entry `fr: FrenchState::MachineTranslated`; a human
 sets `FrenchState::Reviewed` later.
 
 ## 7. Write the step script

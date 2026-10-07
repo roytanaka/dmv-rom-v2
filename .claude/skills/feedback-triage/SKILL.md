@@ -69,7 +69,7 @@ comment you will write on the item. Wait for approval. Apply the user's changes.
 
 Create the issues with `gh` (see [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md)).
 Match the shape of recent tickets: `## What to build`, `## Acceptance criteria`, and
-`## Blocked by` when it applies. Use the words in `CONTEXT.md`.
+`## Blocked by` when it applies. Use the words in `GLOSSARY.md`.
 
 The repo is public. Name the source as a link to the item on staging:
 `[Feedback item N](https://staging.dmv-rom.ca/feedback/N) on staging`. Never write `#N`

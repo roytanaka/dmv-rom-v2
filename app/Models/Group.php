@@ -38,7 +38,7 @@ class Group extends Model
 
     /**
      * The slug of the DMV Executive Group — the top governance body, a single
-     * standing committee under the root (CONTEXT.md: "DMV Executive"; not the root
+     * standing committee under the root (GLOSSARY.md: "DMV Executive"; not the root
      * itself, and not the super-tier grant). Named so the Board-of-Directors Audience
      * ({@see AudienceResolver}) can resolve the Executive's
      * roster without hard-coding the string, and single-sourced across both seeders,

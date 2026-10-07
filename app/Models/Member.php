@@ -262,7 +262,7 @@ class Member extends Authenticatable implements HasLocalePreference
      * Group-scoped like every role check: administering Group A grants nothing in
      * Group B. Capability-specific powers (e.g. meetings) still add their own guard
      * at the policy — this answers the officer question only, not the capability one.
-     * Named `administers`, not `isOfficer`: "officer" is broader in CONTEXT.md than
+     * Named `administers`, not `isOfficer`: "officer" is broader in GLOSSARY.md than
      * this Secretary-or-Chair predicate.
      */
     public function administers(Group $group): bool

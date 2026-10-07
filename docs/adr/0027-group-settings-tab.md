@@ -37,7 +37,7 @@ ADR-0021 §6 rejected a Group admin tab on one ground: "no admin-tab precedent a
 
 The tab appears with authority, not with data. ADR-0021 §6's rule that a tab must not come and go with content still holds: a Chair sees Settings on every visit, empty or full.
 
-The label is `Settings` and not `Admin` or `Manage`. `Admin` is the word `CONTEXT.md` forbids unqualified, and ADR-0020 rejected `Administration` for colliding with it. `Settings` now appears at three scopes in the app, and the three line up: **Account settings** (the user menu, me), **Group Settings** (this tab, this Group), **DMV Settings** (Officer Tools, the organisation). Each says whose settings from where it sits.
+The label is `Settings` and not `Admin` or `Manage`. `Admin` is the word `GLOSSARY.md` forbids unqualified, and ADR-0020 rejected `Administration` for colliding with it. `Settings` now appears at three scopes in the app, and the three line up: **Account settings** (the user menu, me), **Group Settings** (this tab, this Group), **DMV Settings** (Officer Tools, the organisation). Each says whose settings from where it sits.
 
 ### 2. What moves to the tab, and what stays inline
 

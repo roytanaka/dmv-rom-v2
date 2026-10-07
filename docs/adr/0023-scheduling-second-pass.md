@@ -58,7 +58,7 @@ Both are columns on `sign_ups`. **No new entity, no new table, no lifecycle.** A
 
 **Two rather than one, because `Visitors` does not mean the same thing across Groups.** On a Visitor Guide's row it is _people I talked to at the desk_. On a Docent's row it is _people on my tour_, with the talked-to number in a second column beside it. Docents and GDR have typed that second number for years — 2,533 and 364 rows in 24 months — into a column no legacy report has ever read.
 
-Both names are new on purpose. Two legacy words name four columns and both words are spent; see the `Visitors` / `Interactions` entry in `CONTEXT.md`.
+Both names are new on purpose. Two legacy words name four columns and both words are spent; see the `Visitors` / `Interactions` entry in `GLOSSARY.md`.
 
 ### 3. Visitor provenance: five more integers, GDR only
 

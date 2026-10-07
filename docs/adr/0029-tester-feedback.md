@@ -6,7 +6,7 @@ accepted: 2026-09-26
 
 # Tester feedback lives in its own database
 
-From a grilling session on 2026-09-26. Testers on staging find many defects while the app is still being built. They need one place in the app to send them and to see what others already sent. Staging runs `migrate:fresh --seed` on every push ([architecture](../architecture.md), `scripts/deploy.sh`), so anything stored in the main database is lost on the next deploy. This ADR decides where **Feedback items** live and what the first, staging-only version does. See `CONTEXT.md` for **Tester** and **Feedback item**.
+From a grilling session on 2026-09-26. Testers on staging find many defects while the app is still being built. They need one place in the app to send them and to see what others already sent. Staging runs `migrate:fresh --seed` on every push ([architecture](../architecture.md), `scripts/deploy.sh`), so anything stored in the main database is lost on the next deploy. This ADR decides where **Feedback items** live and what the first, staging-only version does. See `GLOSSARY.md` for **Tester** and **Feedback item**.
 
 ## Decision
 

@@ -70,5 +70,5 @@ Browser automation in this repo is the `agent-browser` CLI, allowlisted but with
 - ADR-0004 gains a note: chrome includes help articles, stored outside `lang/`.
 - The `help` entry leaves `$stubRoutes`; `nav.help` stops being a placeholder.
 - A `.github/pull_request_template.md` is created (none exists today).
-- `CONTEXT.md` gains the terms Help article, Help section, Required role, Article status, and Help ledger.
+- `GLOSSARY.md` gains the terms Help article, Help section, Required role, Article status, and Help ledger.
 - Global search, contextual tooltips, French screenshots, CI screenshot diffs, and committee copy editing are all out of scope and each needs its own decision before it starts.
