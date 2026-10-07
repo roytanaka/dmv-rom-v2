@@ -27,6 +27,22 @@ return [
             'label' => 'Filter by Group',
             'all' => 'All Groups',
         ],
+        // Who's who list (#699): which Members the Directory lists. Old-site names and order.
+        'list' => [
+            'label' => 'Filter by list',
+            'all_members' => 'All Members',
+            'all_members_loa' => 'All Members +LOA',
+            'active_provisional' => 'Active and Provisional Members',
+            'active' => 'Active',
+            'provisional' => 'Provisional',
+            'pre_active' => 'PreActive',
+            'sustaining' => 'Sustaining',
+            'honourary' => 'Honourary',
+            'loa' => 'Leave of Absence',
+            'board_of_directors' => 'DMV Board of Directors',
+            'committee_chairs' => 'Committee Chairs',
+            'all_chairs' => 'Committee and DMV SubCommittee Chairs',
+        ],
     ],
     // Surname / given-name sort toggle (#171). Display order and the jump rail both
     // follow the active sort.

@@ -17,6 +17,7 @@ use App\Models\SignUp;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 /**
  * Resolves every Broadcast/Direct-message Audience (ADR-0024 §5) on the server, at
@@ -133,6 +134,25 @@ class AudienceResolver
             $reachable->values(),
             $skipped->values(),
         );
+    }
+
+    /**
+     * The Members an org-wide or leadership Audience holds — the base set alone, with
+     * no picker rule, edits, or no-email skip. The Directory's Who's who list (#699)
+     * reads it, so the Directory and email agree on who is in each set. The caller
+     * enforces who may see the list.
+     *
+     * @return Collection<int, Member>
+     */
+    public function directoryMembers(AudienceKey $key, ?string $parameter = null): Collection
+    {
+        if ($key === AudienceKey::HandPicked || ! in_array($key, $this->keysFor(ContextType::Directory), true)) {
+            throw new InvalidArgumentException("{$key->value} is not a Directory set.");
+        }
+
+        return $this->base(AudienceContext::directory(), $key, $parameter)
+            ->unique(fn (Member $member): int => $member->getKey())
+            ->values();
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Category;
+use App\Enums\DirectoryList;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use Database\Factories\MemberFactory;
@@ -314,6 +315,27 @@ class Member extends Authenticatable implements HasLocalePreference
         $records = Group::stewardOf(StewardshipFunction::MemberAdmin);
 
         return $records !== null && $this->membershipIn($records) !== null;
+    }
+
+    /**
+     * Whether this Member sees every Who's who list on the Directory (#699), not only
+     * the open ones ({@see DirectoryList::isOpen()}). As on the old site: Records, and
+     * Officers — a Chair, Secretary, Treasurer, or Statistician in any Group. Super-tier
+     * sees them too.
+     */
+    public function seesEveryDirectoryList(): bool
+    {
+        if ($this->isAllDmv() || $this->hasMemberAdminAuthority()) {
+            return true;
+        }
+
+        $this->loadMissing('memberships.roles');
+        $officerRoles = [Role::Chair, Role::Secretary, Role::Treasurer, Role::Statistician];
+
+        return $this->memberships->contains(
+            fn (GroupMember $membership): bool => $membership->roles
+                ->contains(fn (GroupMemberRole $role): bool => in_array($role->role, $officerRoles, true)),
+        );
     }
 
     /**
