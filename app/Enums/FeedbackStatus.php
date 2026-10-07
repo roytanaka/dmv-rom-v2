@@ -17,6 +17,26 @@ enum FeedbackStatus: string
     case WontFix = 'wont-fix';
     case Duplicate = 'duplicate';
 
+    /** Whether the item still needs work: New or Confirmed. The rest are closed. */
+    public function isOpen(): bool
+    {
+        return match ($this) {
+            self::New, self::Confirmed => true,
+            self::Fixed, self::WontFix, self::Duplicate => false,
+        };
+    }
+
+    /**
+     * The open statuses, or the closed ones, for the Feedback page's Open and Closed
+     * filters.
+     *
+     * @return list<self>
+     */
+    public static function grouped(bool $open): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $status) => $status->isOpen() === $open));
+    }
+
     /** The lang key for this status's translated label (chrome, ADR-0004). */
     public function labelKey(): string
     {

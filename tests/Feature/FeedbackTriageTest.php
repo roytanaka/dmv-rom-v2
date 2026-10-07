@@ -293,14 +293,22 @@ it('filters the Feedback page by type, by status, and by both', function (array 
     'type' => [['type' => 'bug'], ['bug-fixed', 'bug-new']],
     'status' => [['status' => 'fixed'], ['bug-fixed', 'translation-fixed']],
     'both' => [['type' => 'bug', 'status' => 'fixed'], ['bug-fixed']],
+    'open' => [['status' => 'open'], ['bug-new']],
+    'closed' => [['status' => 'closed'], ['bug-fixed', 'translation-fixed']],
+    'type and closed' => [['type' => 'bug', 'status' => 'closed'], ['bug-fixed']],
     'nothing matches' => [['type' => 'confusing'], []],
 ]);
+
+it('groups New and Confirmed as open, and the rest as closed', function () {
+    expect(FeedbackStatus::grouped(true))->toBe([FeedbackStatus::New, FeedbackStatus::Confirmed])
+        ->and(FeedbackStatus::grouped(false))->toBe([FeedbackStatus::Fixed, FeedbackStatus::WontFix, FeedbackStatus::Duplicate]);
+});
 
 it('ignores a filter value that does not exist', function () {
     FeedbackItem::factory()->count(2)->create();
 
     $this->actingAs(Member::factory()->create())
-        ->get('/feedback?type=nonsense&status=closed')
+        ->get('/feedback?type=nonsense&status=nonsense')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('items', 2)

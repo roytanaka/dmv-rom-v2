@@ -36,6 +36,8 @@ return [
         'status' => 'Statut',
         'all_types' => 'Tous les types',
         'all_statuses' => 'Tous les statuts',
+        'open' => 'Ouverts',
+        'closed' => 'Fermés',
         'clear' => 'Effacer les filtres',
         'empty' => 'Aucune rétroaction ne correspond à ces filtres.',
     ],
