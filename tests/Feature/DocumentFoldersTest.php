@@ -3,6 +3,7 @@
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\DocumentFolder;
+use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -335,6 +336,17 @@ it('refuses a Document move by a non-manager or into another Group\'s Folder', f
     expect($document->fresh()->folder_id)->toBeNull();
 });
 
+it('adds a link Document to the current Folder', function () {
+    $group = folderLibrary();
+    $folder = topFolder($group);
+
+    $this->actingAs(folderReader($group, Role::Librarian))
+        ->post(route('documents.links.store', $group), ['title' => 'Collections', 'url' => 'https://www.rom.on.ca', 'folder_id' => $folder->id])
+        ->assertSessionHasNoErrors();
+
+    expect(Document::sole()->folder_id)->toBe($folder->id);
+});
+
 // --- Browse ---------------------------------------------------------------------
 
 it('lists the top-level Folders and root Documents at the library root, sorted by name', function () {
@@ -412,6 +424,23 @@ it('sends a manager every Folder as a move destination, in tree order', function
             ->where('library.destinations.0', ['id' => $a->id, 'parentId' => null, 'depth' => 1, 'path' => ['A']])
             ->where('library.destinations.1', ['id' => $child->id, 'parentId' => $a->id, 'depth' => 2, 'path' => ['A', 'Child']])
             ->where('library.destinations.2.id', $b->id));
+});
+
+it('lists the Documents of a Tag across Folders, without the Folder rows', function () {
+    $group = folderLibrary();
+    $folder = topFolder($group);
+    $tag = DocumentTag::factory()->create(['group_id' => $group->id, 'name' => 'Highlights']);
+    $nested = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($folder)->create()->id]);
+    $nested->tags()->attach($tag);
+    $root = Document::factory()->create(['group_id' => $group->id]);
+    $root->tags()->attach($tag);
+
+    $this->actingAs(folderReader($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'tag' => $tag->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('library.folders', 0)
+            ->has('library.documents', 2)
+            ->where('library.tag.id', $tag->id));
 });
 
 it('returns 404 for a Folder of another Group', function () {

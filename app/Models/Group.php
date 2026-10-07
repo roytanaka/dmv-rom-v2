@@ -213,6 +213,16 @@ class Group extends Model
     }
 
     /**
+     * The Tags this Group defines for its Document library (#717, ADR-0030 §4).
+     *
+     * @return HasMany<DocumentTag, $this>
+     */
+    public function documentTags(): HasMany
+    {
+        return $this->hasMany(DocumentTag::class);
+    }
+
+    /**
      * The Schedules this Group runs — present only when its `has_scheduling`
      * capability is on (#353, ADR-0021 §1).
      *

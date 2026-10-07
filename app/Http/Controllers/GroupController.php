@@ -13,6 +13,7 @@ use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
 use App\Models\Document;
 use App\Models\DocumentFolder;
+use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -309,7 +310,7 @@ class GroupController extends Controller
             // open Folder (or the library root) with what the viewer may read in it.
             'library' => $section === 'documents'
                 ? $this->library($request, $group, $folder)
-                : ['folder' => null, 'breadcrumb' => [], 'folders' => [], 'documents' => [], 'destinations' => []],
+                : ['folder' => null, 'breadcrumb' => [], 'folders' => [], 'destinations' => [], 'documents' => [], 'tags' => [], 'tag' => null],
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
             'settings' => $section === 'settings'
@@ -708,7 +709,7 @@ class GroupController extends Controller
      * and Document passes the policy's read check, so a non-member sees only what the Group
      * shares with every Member. The uploader and the move destinations ride only for a manager.
      *
-     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, folders: list<array<string, mixed>>, documents: list<array<string, mixed>>, destinations: list<array<string, mixed>>}
+     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, folders: list<array<string, mixed>>, destinations: list<array<string, mixed>>, documents: list<array<string, mixed>>, tags: list<array{id: int, name: string}>, tag: array{id: int, name: string}|null}
      */
     private function library(Request $request, Group $group, ?DocumentFolder $folder = null): array
     {
@@ -718,6 +719,12 @@ class GroupController extends Controller
         $folder?->setRelation('group', $group);
         abort_if($folder !== null && $viewer->cannot('view', $folder), 403);
 
+        // The one-Tag filter (#717, ADR-0030 §4): every Document with the Tag, across all
+        // Folders, instead of one Folder's Documents. The same per-Document read check applies.
+        $tag = $request->filled('tag')
+            ? $group->documentTags()->findOrFail($request->integer('tag'))
+            : null;
+
         $folderRow = fn (DocumentFolder $item) => [
             'id' => $item->id,
             // Content, as-authored (ADR-0004).
@@ -725,7 +732,8 @@ class GroupController extends Controller
             'href' => route('groups.documents.folder', ['group' => $group, 'folder' => $item], absolute: false),
         ];
 
-        $folders = $group->documentFolders()
+        // The open Folder's child Folders (#714); none under a Tag filter, which lists Documents only.
+        $folders = $tag !== null ? collect() : $group->documentFolders()
             ->where('parent_id', $folder?->id)
             ->get()
             ->each(fn (DocumentFolder $child) => $child->setRelation('group', $group))
@@ -734,10 +742,17 @@ class GroupController extends Controller
             ->values();
 
         $documents = $group->documents()
-            ->where('folder_id', $folder?->id)
-            ->with('uploadedBy')
+            ->when(
+                $tag === null,
+                fn (Builder $query) => $query->where('folder_id', $folder?->id),
+                fn (Builder $query) => $query->whereHas('tags', fn (Builder $query) => $query->whereKey($tag->id)),
+            )
+            ->with(['uploadedBy', 'tags'])
             ->get()
-            ->each(fn (Document $document) => $document->setRelation('group', $group)->setRelation('folder', $folder))
+            // Every row of an unfiltered list sits in the open Folder; a Tag list spans Folders.
+            ->each(fn (Document $document) => $tag === null
+                ? $document->setRelation('group', $group)->setRelation('folder', $folder)
+                : $document->setRelation('group', $group))
             ->filter(fn (Document $document) => $viewer->can('download', $document))
             ->sortBy(fn (Document $document) => mb_strtolower($document->displayName()), SORT_NATURAL)
             ->values();
@@ -751,6 +766,10 @@ class GroupController extends Controller
             'documents' => $documents
                 ->map(fn (Document $document) => [
                     'id' => $document->id,
+                    'kind' => $document->kind->value,
+                    // A link's address, for a manager's edit form only; readers open it
+                    // through `href`, so every open is checked and logged (#716).
+                    'url' => $canManage ? $document->url : null,
                     // Content, as-authored (ADR-0004); the client falls back to the filename.
                     'title' => $document->title,
                     'filename' => $document->original_filename,
@@ -761,8 +780,11 @@ class GroupController extends Controller
                     'updatedAt' => $document->updated_at->toIso8601String(),
                     'uploader' => $canManage ? $document->uploadedBy?->fullName() : null,
                     'href' => route('documents.download', $document, absolute: false),
+                    'tags' => $this->tagRows($document->tags),
                 ])
                 ->all(),
+            'tags' => $this->tagRows($group->documentTags()->get()),
+            'tag' => $tag === null ? null : ['id' => $tag->id, 'name' => $tag->name],
         ];
     }
 
@@ -791,6 +813,21 @@ class GroupController extends Controller
         $walk(0, []);
 
         return $rows;
+    }
+
+    /**
+     * Tags as `{id, name}` rows sorted by name (#717). Names are content, as-authored.
+     *
+     * @param  iterable<DocumentTag>  $tags
+     * @return list<array{id: int, name: string}>
+     */
+    private function tagRows(iterable $tags): array
+    {
+        return collect($tags)
+            ->sortBy(fn (DocumentTag $tag) => mb_strtolower($tag->name), SORT_NATURAL)
+            ->map(fn (DocumentTag $tag) => ['id' => $tag->id, 'name' => $tag->name])
+            ->values()
+            ->all();
     }
 
     /**
