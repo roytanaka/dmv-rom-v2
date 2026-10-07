@@ -351,6 +351,28 @@ it('resolves the French Schedule permalink twin /fr/groupes/{group}/horaire/{sch
 
 // --- The Agenda read surface: a Schedule's Shifts (#355, ADR-0021 §2) --------
 
+it('opens a current Schedule at today and any other Schedule at its first day', function (string $startsOn, string $endsOn, string $opensOn) {
+    $this->travelTo(CarbonImmutable::parse('2026-08-15 10:00:00'));
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create([
+        'group_id' => $group->id,
+        'starts_on' => $startsOn,
+        'ends_on' => $endsOn,
+    ]);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open.today', '2026-08-15')
+            ->where('scheduling.open.opens_on', $opensOn));
+})->with([
+    'current, began earlier' => ['2026-08-01', '2026-08-31', '2026-08-15'],
+    'current, ends today' => ['2026-08-01', '2026-08-15', '2026-08-15'],
+    'starts today' => ['2026-08-15', '2026-08-31', '2026-08-15'],
+    'upcoming' => ['2026-09-01', '2026-09-30', '2026-09-01'],
+    'past' => ['2026-07-01', '2026-07-31', '2026-07-01'],
+]);
+
 it('lists an opened Schedule with an empty shifts array when it holds no Shifts', function () {
     $group = schedulingGroup();
     $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);

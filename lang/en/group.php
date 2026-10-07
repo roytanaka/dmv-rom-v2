@@ -394,6 +394,7 @@ return [
         // the filled-seat count against capacity; `sign_up` is the take/drop affordance.
         'agenda' => [
             'aria_label' => 'Agenda',
+            'show_earlier' => 'Show earlier shifts',
             'empty' => 'No shifts on this schedule yet.',
             'time_range' => ':start – :end',
             'seats' => ':taken / :capacity taken',

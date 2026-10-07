@@ -13,7 +13,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildAgenda, buildMonthGrid, formatShiftDate, groupShiftsByDay, monthsInRange, orgDayKey } from './agenda.ts';
+import { buildAgenda, buildMonthGrid, formatShiftDate, groupShiftsByDay, monthIndexOf, monthsInRange, orgDayKey, splitAtDay } from './agenda.ts';
 
 const TORONTO = 'America/Toronto';
 
@@ -238,4 +238,33 @@ test("formatShiftDate names a Shift's org-wall-clock day in the Agenda's long fo
 test('formatShiftDate reads the date on the org wall clock, not UTC', () => {
     // 01:00 UTC on Aug 6 is 21:00 EDT on Aug 5 in Toronto — the card names Aug 5, not Aug 6.
     assert.equal(formatShiftDate('2026-08-06T01:00:00Z', 'en-CA', TORONTO), 'Wednesday, August 5');
+});
+
+test('splitAtDay folds the days before the opening day and keeps the rest', () => {
+    const days = [{ date: '2026-08-01' }, { date: '2026-08-14' }, { date: '2026-08-15' }, { date: '2026-08-20' }];
+    const { earlier, later } = splitAtDay(days, '2026-08-15');
+
+    assert.deepEqual(
+        earlier.map((d) => d.date),
+        ['2026-08-01', '2026-08-14'],
+    );
+    assert.deepEqual(
+        later.map((d) => d.date),
+        ['2026-08-15', '2026-08-20'],
+    );
+});
+
+test('splitAtDay at the first day leaves no earlier days', () => {
+    const { earlier, later } = splitAtDay([{ date: '2026-09-01' }, { date: '2026-09-02' }], '2026-09-01');
+
+    assert.equal(earlier.length, 0);
+    assert.equal(later.length, 2);
+});
+
+test('monthIndexOf finds the month that holds a date, else the first month', () => {
+    const months = monthsInRange('2026-07-20', '2026-09-10');
+
+    assert.equal(monthIndexOf(months, '2026-08-15'), 1);
+    assert.equal(monthIndexOf(months, '2026-09-10'), 2);
+    assert.equal(monthIndexOf(months, '2026-12-01'), 0);
 });
