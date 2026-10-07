@@ -2,14 +2,17 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\DocumentVisibility;
 use App\Models\DocumentFolder;
 use App\Rules\UniqueFolderName;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
- * Rename a Folder (#714, ADR-0030 §3). The name stays unique among its siblings. Moving is
- * its own request ({@see MoveDocumentFolderRequest}).
+ * Rename a Folder (#714, ADR-0030 §3), and set a top-level Folder's visibility (#715, §5). The
+ * name stays unique among its siblings. Moving is its own request
+ * ({@see MoveDocumentFolderRequest}).
  */
 class UpdateDocumentFolderRequest extends FormRequest
 {
@@ -30,6 +33,8 @@ class UpdateDocumentFolderRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255', new UniqueFolderName($folder->group_id, $folder->parent_id, $folder->id)],
+            // A top-level Folder's setting (#715, ADR-0030 §5); left out, it stays as it is.
+            'visibility' => [Rule::prohibitedIf($folder->parent_id !== null), 'sometimes', Rule::enum(DocumentVisibility::class)],
         ];
     }
 
@@ -40,6 +45,8 @@ class UpdateDocumentFolderRequest extends FormRequest
     {
         return [
             'name.required' => trans('document_folders.error.name_required'),
+            'visibility.prohibited' => trans('document_folders.error.visibility_top_level'),
+            'visibility.enum' => trans('document_folders.error.visibility_invalid'),
         ];
     }
 

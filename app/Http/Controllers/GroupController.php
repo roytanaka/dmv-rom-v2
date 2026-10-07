@@ -34,6 +34,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -716,7 +717,15 @@ class GroupController extends Controller
         $viewer = $request->user();
         $canManage = $viewer->can('create', [Document::class, $group]);
 
-        $folder?->setRelation('group', $group);
+        // Every Folder of the Group, fetched once with its ancestors preloaded, so each
+        // visibility check (on Folders and on Documents, through their Folder) and the
+        // breadcrumb answer from memory (#715). The open Folder is swapped for its copy here.
+        $tree = $group->documentFolders()->get()
+            ->each(fn (DocumentFolder $item) => $item->setRelation('group', $group))
+            ->keyBy('id');
+        DocumentFolder::preloadAncestors($tree);
+        $folder = $folder === null ? null : $tree[$folder->id];
+
         abort_if($folder !== null && $viewer->cannot('view', $folder), 403);
 
         // The one-Tag filter (#717, ADR-0030 §4): every Document with the Tag, across all
@@ -730,13 +739,13 @@ class GroupController extends Controller
             // Content, as-authored (ADR-0004).
             'name' => $item->name,
             'href' => route('groups.documents.folder', ['group' => $group, 'folder' => $item], absolute: false),
+            // Who reads it (#715, ADR-0030 §5): its top-level Folder's setting.
+            'visibility' => $item->visibility()->value,
         ];
 
         // The open Folder's child Folders (#714); none under a Tag filter, which lists Documents only.
-        $folders = $tag !== null ? collect() : $group->documentFolders()
+        $folders = $tag !== null ? collect() : $tree
             ->where('parent_id', $folder?->id)
-            ->get()
-            ->each(fn (DocumentFolder $child) => $child->setRelation('group', $group))
             ->filter(fn (DocumentFolder $child) => $viewer->can('view', $child))
             ->sortBy(fn (DocumentFolder $child) => mb_strtolower($child->name), SORT_NATURAL)
             ->values();
@@ -749,10 +758,10 @@ class GroupController extends Controller
             )
             ->with(['uploadedBy', 'tags'])
             ->get()
-            // Every row of an unfiltered list sits in the open Folder; a Tag list spans Folders.
-            ->each(fn (Document $document) => $tag === null
-                ? $document->setRelation('group', $group)->setRelation('folder', $folder)
-                : $document->setRelation('group', $group))
+            // Each row's Folder from the preloaded tree, so its visibility costs no query.
+            ->each(fn (Document $document) => $document
+                ->setRelation('group', $group)
+                ->setRelation('folder', $document->folder_id === null ? null : $tree[$document->folder_id]))
             ->filter(fn (Document $document) => $viewer->can('download', $document))
             ->sortBy(fn (Document $document) => mb_strtolower($document->displayName()), SORT_NATURAL)
             ->values();
@@ -762,7 +771,7 @@ class GroupController extends Controller
             // The Folders above the current one, top-level first; the client adds the root.
             'breadcrumb' => $folder === null ? [] : $folder->ancestors()->map($folderRow)->values()->all(),
             'folders' => $folders->map($folderRow)->all(),
-            'destinations' => $canManage ? $this->folderDestinations($group) : [],
+            'destinations' => $canManage ? $this->folderDestinations($tree->filter(fn (DocumentFolder $item) => $viewer->can('view', $item))) : [],
             // The depth limit, so the client offers only the Folder actions the server will accept.
             'maxDepth' => DocumentFolder::MAX_DEPTH,
             'documents' => $documents
@@ -794,15 +803,16 @@ class GroupController extends Controller
     }
 
     /**
-     * Every Folder of the Group as a move destination (#714): its id, parent, depth and full
-     * path of names, in tree order. Sent to a manager only; the move Form Requests re-check the
-     * Group, the cycle and the depth limit.
+     * The Group's Folders as move destinations (#714): id, parent, depth and full path of
+     * names, in tree order. Sent to a manager only, and only the Folders they may read (#715);
+     * the move Form Requests re-check the Group, the cycle and the depth limit.
      *
+     * @param  Collection<int, DocumentFolder>  $folders
      * @return list<array{id: int, parentId: int|null, depth: int, path: list<string>}>
      */
-    private function folderDestinations(Group $group): array
+    private function folderDestinations(Collection $folders): array
     {
-        $children = $group->documentFolders()->get()->groupBy(fn (DocumentFolder $folder) => $folder->parent_id ?? 0);
+        $children = $folders->groupBy(fn (DocumentFolder $folder) => $folder->parent_id ?? 0);
         $rows = [];
 
         $walk = function (int $parentId, array $path) use (&$walk, &$rows, $children): void {

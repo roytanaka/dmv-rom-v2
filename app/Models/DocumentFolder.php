@@ -36,15 +36,84 @@ class DocumentFolder extends Model
     protected $fillable = [
         'parent_id',
         'name',
+        'visibility',
     ];
 
     /**
+     * The stored `visibility` (#715) is the top-level setting: set on a top-level Folder, null
+     * on a subfolder. Read who may see a Folder through {@see visibility()}, never the column.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'visibility' => DocumentVisibility::class,
+        ];
+    }
+
+    /**
+     * Keep `visibility` on top-level Folders only (ADR-0030 §5). A Folder that goes under
+     * another drops its own setting and inherits; a new top-level Folder defaults to `Group`;
+     * a subfolder moved to the top level keeps what it had through its old top-level Folder.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (DocumentFolder $folder): void {
+            if ($folder->parent_id !== null) {
+                $folder->visibility = null;
+
+                return;
+            }
+
+            if ($folder->visibility !== null) {
+                return;
+            }
+
+            $formerParentId = $folder->getOriginal('parent_id');
+
+            $folder->visibility = $formerParentId === null
+                ? DocumentVisibility::Group
+                : self::query()->findOrFail($formerParentId)->visibility();
+        });
+    }
+
+    /**
+     * Preload the ancestors of a whole Group's Folders from one already-fetched list, so
+     * {@see ancestors()}, {@see topLevel()} and {@see visibility()} answer without a query.
+     * A library page holds every Folder of its Group and checks many of them.
+     *
+     * @param  iterable<DocumentFolder>  $folders
+     */
+    public static function preloadAncestors(iterable $folders): void
+    {
+        $byId = collect($folders)->keyBy('id');
+
+        foreach ($byId as $folder) {
+            $ancestors = collect();
+            $parentId = $folder->parent_id;
+
+            while ($parentId !== null && $byId->has($parentId)) {
+                $ancestors->prepend($byId[$parentId]);
+                $parentId = $byId[$parentId]->parent_id;
+            }
+
+            $folder->setRelation('ancestors', $ancestors);
+        }
+    }
+
+    /**
      * The Folders above this one, top-level first, this Folder excluded. The breadcrumb.
+     * Answered from memory after {@see preloadAncestors()}.
      *
      * @return Collection<int, DocumentFolder>
      */
     public function ancestors(): Collection
     {
+        if ($this->relationLoaded('ancestors')) {
+            return $this->getRelation('ancestors');
+        }
+
         $ancestors = collect();
         $parentId = $this->parent_id;
 
@@ -67,13 +136,12 @@ class DocumentFolder extends Model
     }
 
     /**
-     * Who reads this Folder and everything in it (ADR-0030 §5): its top-level Folder's setting.
-     * The visibility ticket (#715) stores the setting on top-level Folders and reads it from
-     * {@see topLevel()}; until then every Folder is `Group`.
+     * Who reads this Folder and everything in it (ADR-0030 §5): its top-level Folder's stored
+     * setting (#715).
      */
     public function visibility(): DocumentVisibility
     {
-        return DocumentVisibility::Group;
+        return $this->topLevel()->visibility ?? DocumentVisibility::Group;
     }
 
     /** How deep this Folder sits: 1 for a top-level Folder. */

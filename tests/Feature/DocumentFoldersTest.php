@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DocumentVisibility;
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\DocumentFolder;
@@ -9,6 +10,7 @@ use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\Member;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -478,4 +480,188 @@ it('serves a Folder under /fr/ with French segments', function () {
             ->assertInertia(fn (Assert $page) => $page
                 ->where('library.folder.href', "/fr/groupes/{$group->slug}/documents/dossiers/{$folder->id}"));
     });
+});
+
+// --- Visibility (#715, ADR-0030 §5) -----------------------------------------------
+
+it('creates a top-level Folder as group by default, or members when asked', function () {
+    $group = folderLibrary();
+    $librarian = folderReader($group, Role::Librarian);
+
+    $this->actingAs($librarian)
+        ->post(route('document-folders.store', $group), ['name' => 'Minutes'])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($librarian)
+        ->post(route('document-folders.store', $group), ['name' => 'Handbooks', 'visibility' => 'members'])
+        ->assertSessionHasNoErrors();
+
+    expect(DocumentFolder::where('name', 'Minutes')->sole()->visibility)->toBe(DocumentVisibility::Group)
+        ->and(DocumentFolder::where('name', 'Handbooks')->sole()->visibility)->toBe(DocumentVisibility::Members);
+});
+
+it('stores no visibility on a subfolder, which inherits its top-level Folder\'s', function () {
+    $group = folderLibrary();
+    $librarian = folderReader($group, Role::Librarian);
+    $top = topFolder($group);
+    $top->update(['visibility' => DocumentVisibility::Members]);
+
+    $this->actingAs($librarian)
+        ->post(route('document-folders.store', $group), ['name' => 'Asia', 'parent_id' => $top->id, 'visibility' => 'group'])
+        ->assertSessionHasErrors('visibility');
+
+    $this->actingAs($librarian)
+        ->post(route('document-folders.store', $group), ['name' => 'Asia', 'parent_id' => $top->id])
+        ->assertSessionHasNoErrors();
+
+    $sub = DocumentFolder::where('name', 'Asia')->sole();
+    $deeper = DocumentFolder::factory()->in($sub)->create();
+
+    expect($sub->getRawOriginal('visibility'))->toBeNull()
+        ->and($sub->visibility())->toBe(DocumentVisibility::Members)
+        ->and($deeper->visibility())->toBe(DocumentVisibility::Members);
+
+    $this->actingAs($librarian)
+        ->patch(route('document-folders.update', $sub), ['name' => 'Asia', 'visibility' => 'group'])
+        ->assertSessionHasErrors('visibility');
+});
+
+it('changes a top-level Folder\'s visibility on rename, and its whole subtree follows', function () {
+    $group = folderLibrary();
+    $top = topFolder($group, 'Handbooks');
+    $document = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($top)->create()->id]);
+
+    $this->actingAs(folderReader($group, Role::Librarian))
+        ->patch(route('document-folders.update', $top), ['name' => 'Handbooks', 'visibility' => 'members'])
+        ->assertSessionHasNoErrors();
+
+    expect($top->fresh()->visibility())->toBe(DocumentVisibility::Members)
+        ->and($document->fresh()->visibility())->toBe(DocumentVisibility::Members);
+});
+
+it('keeps a renamed top-level Folder\'s visibility when none is sent', function () {
+    $group = folderLibrary();
+    $top = topFolder($group, 'Handbooks');
+    $top->update(['visibility' => DocumentVisibility::Members]);
+
+    $this->actingAs(folderReader($group, Role::Librarian))
+        ->patch(route('document-folders.update', $top), ['name' => 'Guides'])
+        ->assertSessionHasNoErrors();
+
+    expect($top->fresh()->visibility)->toBe(DocumentVisibility::Members);
+});
+
+it('keeps a subfolder\'s visibility when it moves to the top level', function () {
+    $group = folderLibrary();
+    $librarian = folderReader($group, Role::Librarian);
+    $shared = topFolder($group, 'Handbooks');
+    $shared->update(['visibility' => DocumentVisibility::Members]);
+    $sub = DocumentFolder::factory()->in(DocumentFolder::factory()->in($shared)->create())->create(['name' => 'Tours']);
+
+    $this->actingAs($librarian)
+        ->patch(route('document-folders.move', $sub), ['parent_id' => null])
+        ->assertSessionHasNoErrors();
+
+    expect($sub->fresh()->parent_id)->toBeNull()
+        ->and($sub->fresh()->visibility)->toBe(DocumentVisibility::Members);
+});
+
+it('drops a top-level Folder\'s own visibility when it moves under another Folder', function () {
+    $group = folderLibrary();
+    $folder = topFolder($group, 'Handbooks');
+    $folder->update(['visibility' => DocumentVisibility::Members]);
+    $target = topFolder($group, 'Internal');
+
+    $this->actingAs(folderReader($group, Role::Librarian))
+        ->patch(route('document-folders.move', $folder), ['parent_id' => $target->id])
+        ->assertSessionHasNoErrors();
+
+    expect($folder->fresh()->getRawOriginal('visibility'))->toBeNull()
+        ->and($folder->fresh()->visibility())->toBe(DocumentVisibility::Group);
+});
+
+it('sends each Folder\'s effective visibility, and the open Folder\'s', function () {
+    $group = folderLibrary();
+    $shared = topFolder($group, 'Handbooks');
+    $shared->update(['visibility' => DocumentVisibility::Members]);
+    topFolder($group, 'Minutes');
+    $sub = DocumentFolder::factory()->in($shared)->create(['name' => 'Tours']);
+    $member = folderReader($group);
+
+    $this->actingAs($member)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.folders.0.visibility', 'members')
+            ->where('library.folders.1.visibility', 'group'));
+
+    $this->actingAs($member)
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $shared]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.folder.visibility', 'members')
+            ->where('library.folders.0.id', $sub->id)
+            ->where('library.folders.0.visibility', 'members'));
+});
+
+it('sends a non-member only the Folders and Documents shared with every Member', function () {
+    $group = folderLibrary();
+    $shared = topFolder($group, 'Handbooks');
+    $shared->update(['visibility' => DocumentVisibility::Members]);
+    $internal = topFolder($group, 'Minutes');
+    $tag = DocumentTag::factory()->create(['group_id' => $group->id, 'name' => 'Required']);
+    $readable = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($shared)->create()->id]);
+    $hidden = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($internal)->create()->id]);
+    $rootDocument = Document::factory()->create(['group_id' => $group->id]);
+    foreach ([$readable, $hidden, $rootDocument] as $document) {
+        $document->tags()->attach($tag);
+    }
+    $outsider = Member::factory()->create();
+
+    $this->actingAs($outsider)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('library.folders', 1)
+            ->where('library.folders.0.id', $shared->id)
+            ->has('library.documents', 0)
+            ->where('library.destinations', []));
+
+    $this->actingAs($outsider)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'tag' => $tag->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('library.documents', 1)
+            ->where('library.documents.0.id', $readable->id));
+
+    $this->actingAs($outsider)
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $internal]))
+        ->assertForbidden();
+});
+
+it('lists a Tag across deep Folders without a query per Document', function () {
+    $group = folderLibrary();
+    $tag = DocumentTag::factory()->create(['group_id' => $group->id]);
+    $member = Member::factory()->create();
+    $url = route('groups.show', ['group' => $group, 'section' => 'documents', 'tag' => $tag->id]);
+
+    $addTaggedDocument = function () use ($group, $tag) {
+        $top = DocumentFolder::factory()->create(['group_id' => $group->id, 'visibility' => DocumentVisibility::Members]);
+        $deep = folderChain($group, 3, $top);
+        Document::factory()->create(['group_id' => $group->id, 'folder_id' => $deep->id])->tags()->attach($tag);
+    };
+
+    $countQueries = function () use ($member, $url): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->actingAs($member)->get($url)->assertOk();
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+
+    $addTaggedDocument();
+    $countQueries(); // Warm up: the first request runs one-off queries.
+    $one = $countQueries();
+    $addTaggedDocument();
+    $addTaggedDocument();
+    $three = $countQueries();
+
+    expect($three)->toBe($one);
 });

@@ -27,7 +27,17 @@ return [
     'field' => [
         'name' => 'Name',
         'destination' => 'Move to',
+        'visibility' => 'Who can read it',
     ],
+
+    // Who reads a Folder (#715, ADR-0030 §5). Set on top-level Folders; the rest inherit.
+    'edit' => 'Edit',
+    'edit_title' => 'Edit folder',
+    'visibility' => [
+        'group' => 'Group members',
+        'members' => 'All members',
+    ],
+    'readable_by' => 'Readable by: :who',
 
     // The move picker's top option: the library root.
     'top_level' => 'Top level of the library',
@@ -42,5 +52,7 @@ return [
         'into_itself' => 'A folder cannot move inside itself.',
         'not_empty' => 'This folder still holds folders or documents. Move or delete them first.',
         'not_found' => 'That folder no longer exists.',
+        'visibility_top_level' => 'Only a top-level folder sets who can read it.',
+        'visibility_invalid' => 'Choose who can read this folder.',
     ],
 ];

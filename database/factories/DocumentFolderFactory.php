@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\DocumentVisibility;
 use App\Models\DocumentFolder;
 use App\Models\Group;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -23,6 +24,15 @@ class DocumentFolderFactory extends Factory
             'parent_id' => null,
             'name' => fake()->unique()->words(2, true),
         ];
+    }
+
+    /**
+     * A top-level Folder shared with every Member (#715, ADR-0030 §5). The default is `group`,
+     * set on save ({@see DocumentFolder::booted()}).
+     */
+    public function sharedWithMembers(): static
+    {
+        return $this->state(['visibility' => DocumentVisibility::Members]);
     }
 
     /**

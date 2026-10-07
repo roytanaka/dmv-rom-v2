@@ -30,7 +30,7 @@ class DocumentFolderController extends Controller
     }
 
     /**
-     * Rename a Folder.
+     * Rename a Folder, and set a top-level Folder's visibility (#715).
      */
     public function update(UpdateDocumentFolderRequest $request, DocumentFolder $folder): RedirectResponse
     {
@@ -40,7 +40,9 @@ class DocumentFolderController extends Controller
     }
 
     /**
-     * Move a Folder, and everything in it, under another parent or to the top level.
+     * Move a Folder, and everything in it, under another parent or to the top level. The
+     * Folder's visibility follows on save ({@see DocumentFolder::booted()}): under a parent it
+     * inherits; at the top level it keeps what it had through its old top-level Folder (#715).
      */
     public function move(MoveDocumentFolderRequest $request, DocumentFolder $folder): RedirectResponse
     {

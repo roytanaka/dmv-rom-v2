@@ -86,7 +86,7 @@ uploaded_at
 created_at, updated_at
 ```
 
-**Visibility** is set on top-level Folders, not on Documents: `group` (members of the owning Group) or `members` (every signed-in Member). Subfolders and Documents inherit it; the library root is `group`. A Private Group's library is closed to non-members, and parentage never grants a read (ADR-0019, ADR-0030 §6).
+**Visibility** is set on top-level Folders, not on Documents: `group` (members of the owning Group) or `members` (every signed-in Member). Subfolders and Documents inherit it; the library root is `group`. `document_folders.visibility` is stored on top-level Folders only (null on subfolders); read the effective setting through `DocumentFolder::visibility()` / `Document::visibility()`, never the column. A subfolder moved to the top level keeps the setting it inherited. A Private Group's library is closed to non-members, and parentage never grants a read (ADR-0019, ADR-0030 §6).
 
 **Link Documents** carry a `url` and no file. Opening one passes the same policy check and access log as a file download, then redirects.
 

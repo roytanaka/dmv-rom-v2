@@ -26,7 +26,17 @@ return [
     'field' => [
         'name' => 'Nom',
         'destination' => 'Déplacer vers',
+        'visibility' => 'Qui peut le lire',
     ],
+
+    // Qui lit un dossier (#715, ADR-0030 §5). Réglé sur les dossiers de premier niveau.
+    'edit' => 'Modifier',
+    'edit_title' => 'Modifier le dossier',
+    'visibility' => [
+        'group' => 'Membres du groupe',
+        'members' => 'Tous les membres',
+    ],
+    'readable_by' => 'Lisible par : :who',
 
     'top_level' => 'Premier niveau de la bibliothèque',
 
@@ -40,5 +50,7 @@ return [
         'into_itself' => 'Un dossier ne peut pas être déplacé dans lui-même.',
         'not_empty' => 'Ce dossier contient encore des dossiers ou des documents. Déplacez-les ou supprimez-les d’abord.',
         'not_found' => 'Ce dossier n’existe plus.',
+        'visibility_top_level' => 'Seul un dossier de premier niveau règle qui peut le lire.',
+        'visibility_invalid' => 'Choisissez qui peut lire ce dossier.',
     ],
 ];
