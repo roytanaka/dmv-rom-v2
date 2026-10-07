@@ -49,12 +49,15 @@ class DownloadDocumentController extends Controller
     }
 
     /**
-     * The access-log row: who opened which Document, and when.
+     * The access-log row: who opened which Document, and when, with the Group and the
+     * Document's name snapshotted so the row still reads once the Document is deleted.
      */
     private function logAccess(Request $request, Document $document): void
     {
         $document->downloads()->create([
             'member_id' => $request->user()->id,
+            'group_id' => $document->group_id,
+            'original_filename' => $document->original_filename ?? $document->displayName(),
             'downloaded_at' => now(),
         ]);
     }

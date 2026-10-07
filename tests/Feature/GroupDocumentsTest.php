@@ -269,8 +269,23 @@ it('lets a member download a Document under its original name and logs the acces
     $this->assertDatabaseHas('document_downloads', [
         'document_id' => $document->id,
         'member_id' => $member->id,
+        'group_id' => $group->id,
+        'original_filename' => 'March 2026 Minutes.pdf',
     ]);
     expect($document->downloads()->sole()->downloaded_at)->not->toBeNull();
+});
+
+it('keeps the access log when the downloading Member is deleted', function () {
+    $group = libraryGroup();
+    $document = storedDocument($group);
+    $member = libraryMemberOf($group);
+
+    $this->actingAs($member)->get("/documents/{$document->id}/download")->assertOk();
+
+    $member->memberships()->delete();
+    $member->delete();
+
+    $this->assertDatabaseHas('document_downloads', ['document_id' => $document->id, 'member_id' => $member->id]);
 });
 
 it('refuses a non-member and logs nothing', function () {

@@ -200,18 +200,25 @@ it('refuses to replace a link Document, which has no file', function () {
 
 // --- Delete -------------------------------------------------------------------------
 
-it('deletes the row, its access log and the stored file', function () {
+it('deletes the row and the stored file but keeps its access log', function () {
     $group = keptLibrary();
-    $document = keptDocument($group);
+    $document = keptDocument($group, ['original_filename' => 'Minutes.pdf']);
     $other = keptDocument($group);
-    $document->downloads()->create(['member_id' => keeperOf($group, null)->id, 'downloaded_at' => now()]);
+    $reader = keeperOf($group, null);
+
+    $this->actingAs($reader)->get(route('documents.download', $document))->assertOk();
 
     $this->actingAs(keeperOf($group))
         ->delete(route('documents.destroy', $document))
         ->assertRedirect();
 
     $this->assertModelMissing($document);
-    $this->assertDatabaseCount('document_downloads', 0);
+    $this->assertDatabaseHas('document_downloads', [
+        'document_id' => $document->id,
+        'member_id' => $reader->id,
+        'group_id' => $group->id,
+        'original_filename' => 'Minutes.pdf',
+    ]);
     Storage::disk('local')->assertMissing($document->storage_path);
     Storage::disk('local')->assertExists($other->storage_path);
 });

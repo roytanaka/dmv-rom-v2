@@ -217,7 +217,12 @@ it('logs the access and redirects a member to the link\'s address', function () 
         ->get("/documents/{$document->id}/download")
         ->assertRedirect('https://example.org/handbook');
 
-    $this->assertDatabaseHas('document_downloads', ['document_id' => $document->id, 'member_id' => $member->id]);
+    $this->assertDatabaseHas('document_downloads', [
+        'document_id' => $document->id,
+        'member_id' => $member->id,
+        'group_id' => $group->id,
+        'original_filename' => $document->displayName(),
+    ]);
 });
 
 it('opens a link from the French download route too', function () {

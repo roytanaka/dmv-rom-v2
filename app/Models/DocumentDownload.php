@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * One row of the Document access log (#712, ADR-0030): which Member downloaded which
- * Document, and when. Written by the download route, never edited.
+ * Document, and when. Written by the download route, never edited. Rows outlive the Document
+ * and the Member (no foreign keys), so `group_id` and `original_filename` (a link's display
+ * name) are snapshots taken at log time; either relation may resolve to null.
  */
 class DocumentDownload extends Model
 {
@@ -20,6 +22,8 @@ class DocumentDownload extends Model
      */
     protected $fillable = [
         'member_id',
+        'group_id',
+        'original_filename',
         'downloaded_at',
     ];
 
