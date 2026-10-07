@@ -2,14 +2,14 @@
 // The Feedback page (#676, ADR-0029 §13): every Feedback item, newest first, from every
 // Tester. Each row links to the item's page (#677). A muted `#N` leads each row and a
 // chat icon shows the comment count (#701). Testers filter by type and by status
-// (#679); the filters are query parameters, so a filtered list has a URL. Outside
+// (#679), or by Open or Closed status; the filters are query parameters, so a filtered list has a URL. Outside
 // production only. Type and status labels are chrome (the lang keys come from the enums);
 // the Tester's name and message are content, shown as sent.
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatFeedbackDate, STATUS_TONES, type FeedbackOption } from '@/feedback/display';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -107,6 +107,9 @@ const clearFilters = (): void => applyFilters({ type: null, status: null });
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem :value="ALL">{{ trans('feedback.filter.all_statuses') }}</SelectItem>
+                            <SelectItem value="open">{{ trans('feedback.filter.open') }}</SelectItem>
+                            <SelectItem value="closed">{{ trans('feedback.filter.closed') }}</SelectItem>
+                            <SelectSeparator />
                             <SelectItem v-for="status in statuses" :key="status.value" :value="status.value">{{ trans(status.labelKey) }}</SelectItem>
                         </SelectContent>
                     </Select>

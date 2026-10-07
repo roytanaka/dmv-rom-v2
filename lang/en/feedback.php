@@ -36,6 +36,9 @@ return [
         'status' => 'Status',
         'all_types' => 'All types',
         'all_statuses' => 'All statuses',
+        // Groups of statuses: Open is New and Confirmed; Closed is the rest.
+        'open' => 'Open',
+        'closed' => 'Closed',
         'clear' => 'Clear filters',
         'empty' => 'No feedback matches these filters.',
     ],

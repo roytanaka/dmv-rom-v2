@@ -46,7 +46,8 @@ class FeedbackController extends Controller implements HasMiddleware
 
     /**
      * The Feedback page: every item, newest first, filtered by type and by status (§13),
-     * each with its comment count (#701), counted in the one query.
+     * each with its comment count (#701), counted in the one query. The status filter also
+     * takes `open` and `closed`, each a group of statuses.
      * The filters are query parameters, so a filtered list has a URL. A value that names
      * no type or status is ignored. No policy check beyond `auth`: every logged-in Tester
      * reads every item (ADR-0029 §4).
@@ -54,11 +55,18 @@ class FeedbackController extends Controller implements HasMiddleware
     public function index(Request $request): Response
     {
         $type = FeedbackType::tryFrom($this->queryString($request, 'type'));
-        $status = FeedbackStatus::tryFrom($this->queryString($request, 'status'));
+        $statusFilter = $this->queryString($request, 'status');
+        $status = FeedbackStatus::tryFrom($statusFilter);
+        $open = match ($statusFilter) {
+            'open' => true,
+            'closed' => false,
+            default => null,
+        };
 
         $items = FeedbackItem::query()
             ->when($type, fn ($query) => $query->where('type', $type))
             ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($open !== null, fn ($query) => $query->whereIn('status', FeedbackStatus::grouped($open)))
             ->withCount('comments')
             ->latest()
             ->orderByDesc('id')
@@ -72,7 +80,7 @@ class FeedbackController extends Controller implements HasMiddleware
 
         return Inertia::render('feedback/Index', [
             'items' => $items,
-            'filters' => ['type' => $type?->value, 'status' => $status?->value],
+            'filters' => ['type' => $type?->value, 'status' => $status?->value ?? ($open !== null ? $statusFilter : null)],
             'types' => $this->options(FeedbackType::cases()),
             'statuses' => $this->options(FeedbackStatus::cases()),
             'listHref' => route('feedback', [], false),
