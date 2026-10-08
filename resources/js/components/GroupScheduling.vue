@@ -1449,14 +1449,20 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     </fieldset>
                     <div class="flex flex-col gap-2">
                         <!-- Each field is a subgrid of label / input / error, so a French label
-                             that wraps never pushes its input out of line (docs/conventions.md). -->
-                        <div v-for="(time, index) in bulkForm.times" :key="time.key" class="grid grid-cols-[1fr_1fr_2rem] gap-x-4 gap-y-2">
+                             that wraps never pushes its input out of line (docs/conventions.md).
+                             Below sm the end field stacks under the start, so the hour select keeps
+                             room for "12 PM" (#739). -->
+                        <div
+                            v-for="(time, index) in bulkForm.times"
+                            :key="time.key"
+                            class="grid grid-cols-[1fr_2rem] gap-x-4 gap-y-2 sm:grid-cols-[1fr_1fr_2rem]"
+                        >
                             <div class="row-span-3 grid grid-rows-subgrid">
                                 <Label :for="`bulk-starts-time-${index}`">{{ trans('group.scheduling_panel.bulk.field.starts_time') }}</Label>
                                 <TimeField :id="`bulk-starts-time-${index}`" v-model="time.starts_time" required />
                                 <InputError :message="bulkTimeError(index, 'starts_time')" />
                             </div>
-                            <div class="row-span-3 grid grid-rows-subgrid">
+                            <div class="col-start-1 row-span-3 grid grid-rows-subgrid sm:col-start-2">
                                 <Label :for="`bulk-ends-time-${index}`">{{ trans('group.scheduling_panel.bulk.field.ends_time') }}</Label>
                                 <TimeField :id="`bulk-ends-time-${index}`" v-model="time.ends_time" required />
                                 <InputError :message="bulkTimeError(index, 'ends_time')" />
@@ -1466,7 +1472,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                class="col-start-3 row-start-2 size-8 self-center"
+                                class="col-start-2 row-start-2 size-8 self-center sm:col-start-3"
                                 :aria-label="trans('group.scheduling_panel.bulk.remove_time')"
                                 @click="removeBulkTime(index)"
                             >
@@ -1479,7 +1485,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                             {{ trans('group.scheduling_panel.bulk.add_time') }}
                         </Button>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-2">
                             <Label for="bulk-from-date">{{ trans('group.scheduling_panel.bulk.field.from_date') }}</Label>
                             <Input id="bulk-from-date" v-model="bulkForm.from_date" type="date" required />
@@ -1557,7 +1563,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         </div>
                         <InputError :message="bulkAssignForm.errors.days_of_week" />
                     </fieldset>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-2">
                             <Label for="bulk-assign-starts-time">{{ trans('group.scheduling_panel.bulk_assign.field.starts_time') }}</Label>
                             <TimeField id="bulk-assign-starts-time" v-model="bulkAssignForm.starts_time" required />
