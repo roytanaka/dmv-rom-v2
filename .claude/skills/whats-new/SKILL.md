@@ -66,8 +66,8 @@ Sections, in this order. Drop any section with nothing to say.
    now, and the earlier email's date.
 4. **Try it on staging**: the staging URL, the Persona to pick in the Role-switcher, and
    three to six numbered things to try.
-5. **Not yet**: what this release leaves out, one line each.
-6. **Tell us**: send feedback with the Feedback button on staging.
+5. **To do**: what this release leaves out, one line each.
+6. **Find a bug?**: report it with the Send feedback button on staging.
 
 Length: under 350 words. Use `<h3>` headings, `<ul>`/`<ol>` lists and `<strong>` in
 `htmlBody`. Keep the markup plain: no styling and no images.
