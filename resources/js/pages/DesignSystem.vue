@@ -9,6 +9,7 @@ import ComponentsSection from '@/components/design-system/sections/ComponentsSec
 import ElevationSection from '@/components/design-system/sections/ElevationSection.vue';
 import NavigationMenuSection from '@/components/design-system/sections/NavigationMenuSection.vue';
 import RadiusSection from '@/components/design-system/sections/RadiusSection.vue';
+import SelectSection from '@/components/design-system/sections/SelectSection.vue';
 import SeparatorSection from '@/components/design-system/sections/SeparatorSection.vue';
 import SheetSection from '@/components/design-system/sections/SheetSection.vue';
 import SpacingSection from '@/components/design-system/sections/SpacingSection.vue';
@@ -35,6 +36,7 @@ const sections = [
     { id: 'breadcrumb', label: 'Breadcrumb' },
     { id: 'collapsible', label: 'Collapsible' },
     { id: 'navigation-menu', label: 'Navigation menu' },
+    { id: 'select', label: 'Select' },
     { id: 'separator', label: 'Separator' },
     { id: 'sheet', label: 'Sheet' },
     { id: 'app-shell', label: 'App shell' },
@@ -121,6 +123,7 @@ onBeforeUnmount(() => observer?.disconnect());
                 <BreadcrumbSection />
                 <CollapsibleSection />
                 <NavigationMenuSection />
+                <SelectSection />
                 <SeparatorSection />
                 <SheetSection />
                 <AppShellSection />

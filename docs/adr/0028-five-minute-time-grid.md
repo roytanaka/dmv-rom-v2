@@ -27,6 +27,6 @@ The Scheduling forms already set `step="300"` on native `<input type="datetime-l
 
 ## Consequences
 
-- The pickers use native `<select>`, like the Roster and Scheduling pickers. Phones show their own wheel, and there is still no shadcn `Select` in the repo.
+- The pickers use native `<select>`, like the Roster and Scheduling pickers. Phones show their own wheel, and there is still no shadcn `Select` in the repo. _Amended 2026-10-08 (#735): the repo now has the shadcn `Select`, but these pickers stay native. Every native select goes through the `NativeSelect` component, and ESLint rejects a bare `<select>`._
 - A new time field with a name the guard test does not know gets past the test. Add the name to the test's pattern when that happens.
 - Legacy records off the grid still load and display. To save one, the editor must move it onto the grid.

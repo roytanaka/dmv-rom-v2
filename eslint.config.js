@@ -24,6 +24,9 @@ export default defineConfigWithVueTs(
                     message: 'Use TimeField or DateTimeField: times step in 5 minutes (ADR-0028).',
                 })),
             ],
+            // Every native select goes through NativeSelect, which hides the browser's arrow
+            // and keeps the text clear of its caret (#735). components/ui is ignored above.
+            'vue/no-restricted-html-elements': ['error', { element: 'select', message: 'Use NativeSelect from @/components/ui/native-select.' }],
         },
     },
     prettier,

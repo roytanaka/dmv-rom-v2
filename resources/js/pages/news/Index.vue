@@ -8,6 +8,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
@@ -95,13 +96,9 @@ const destroy = (item: NewsItem) => {
             <form v-if="can.create && showCreate" class="border-border flex flex-col gap-4 rounded-lg border p-4" @submit.prevent="submitCreate">
                 <div class="grid gap-2">
                     <Label for="create-group">{{ trans('news.form.group') }}</Label>
-                    <select
-                        id="create-group"
-                        v-model="createForm.posting_group_id"
-                        class="border-input bg-background h-9 rounded-md border px-3 py-1 text-sm shadow-xs"
-                    >
+                    <NativeSelect id="create-group" v-model="createForm.posting_group_id">
                         <option v-for="group in postableGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
-                    </select>
+                    </NativeSelect>
                 </div>
                 <div class="grid gap-2">
                     <Label for="create-title">{{ trans('news.form.title') }}</Label>

@@ -115,6 +115,22 @@ import { Label } from '@/components/ui/label';
   <CollapsibleContent>Wear your volunteer badge…</CollapsibleContent>
 </Collapsible>`,
 
+    nativeSelect: `import { NativeSelect } from '@/components/ui/native-select';
+
+<Label for="start-hour">Start hour</Label>
+<NativeSelect id="start-hour" v-model="form.hour" required>
+  <option v-for="hour in hours" :key="hour" :value="hour">{{ hour }}</option>
+</NativeSelect>`,
+
+    select: `import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+<Select v-model="status">
+  <SelectTrigger id="status"><SelectValue /></SelectTrigger>
+  <SelectContent>
+    <SelectItem value="open">Open</SelectItem>
+  </SelectContent>
+</Select>`,
+
     navigationMenu: `import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from '@/components/ui/navigation-menu';
 
 <NavigationMenu>
