@@ -98,7 +98,7 @@ const summary = (counts: Props['counts']) => [
                                     </div>
                                     <div class="text-muted-foreground mt-1 flex flex-col gap-1 text-sm wrap-anywhere lg:hidden">
                                         <span>{{ row.requires.length ? row.requires.join(', ') : 'Every Member' }}</span>
-                                        <span v-if="row.route" class="font-mono text-sm">{{ row.route }}</span>
+                                        <span v-if="row.route" class="font-mono">{{ row.route }}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell class="hidden md:table-cell">{{ row.section }}</TableCell>
