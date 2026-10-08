@@ -44,7 +44,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
             <slot />
 
             <DialogClose
-                class="absolute right-4 top-4 flex items-center justify-center rounded-sm text-muted-foreground ring-offset-background transition-colors hover:text-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary pointer-coarse:right-2 pointer-coarse:top-2 pointer-coarse:size-11"
+                class="absolute right-4 top-4 flex items-center justify-center rounded-none text-muted-foreground ring-offset-background transition-colors hover:text-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary pointer-coarse:right-2 pointer-coarse:top-2 pointer-coarse:size-11"
             >
                 <PhX class="h-4 w-4" />
             </DialogClose>
