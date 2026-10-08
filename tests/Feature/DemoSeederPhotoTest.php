@@ -85,3 +85,24 @@ it('never persists a photo when the endpoint rate-limits the seed', function () 
     expect(Member::whereNotNull('photo_path')->exists())->toBeFalse()
         ->and(Storage::disk('public')->allFiles())->toBeEmpty();
 });
+
+it('deletes the photos a wiped database left behind, and keeps every photo a Member points at', function () {
+    Storage::fake('public');
+    Http::fake([
+        'api.dicebear.com/*' => Http::response('fake-webp-bytes', 200, ['Content-Type' => 'image/webp']),
+    ]);
+    // A photo from before `migrate:fresh`: on the disk, with no Member pointing at it.
+    Storage::disk('public')->put(ProfilePhotoStorage::DIRECTORY.'/left-behind.webp', 'old bytes');
+    // A sibling folder on the same disk is not the seeder's to clean.
+    Storage::disk('public')->put('elsewhere/keep-me.png', 'bytes');
+
+    $this->seed(DemoSeeder::class);
+
+    Storage::disk('public')->assertMissing(ProfilePhotoStorage::DIRECTORY.'/left-behind.webp');
+    Storage::disk('public')->assertExists('elsewhere/keep-me.png');
+
+    $referenced = Member::whereNotNull('photo_path')->pluck('photo_path')->sort()->values()->all();
+    $onDisk = collect(Storage::disk('public')->allFiles(ProfilePhotoStorage::DIRECTORY))->sort()->values()->all();
+
+    expect($onDisk)->not->toBeEmpty()->toBe($referenced);
+});
