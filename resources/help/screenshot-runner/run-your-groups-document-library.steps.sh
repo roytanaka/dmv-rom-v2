@@ -18,8 +18,8 @@ act openNewFolderDialog 04         # the New folder dialog: Name, Who can read i
 nav /groups/docents/documents      # close the dialog
 act openFolderEditDialog 05        # Exhibition's Edit folder dialog: Group members, Category Data Sheets
 nav /groups/docents/documents      # close the dialog
-act openDocumentMenu 06            # Docent handbook's actions menu under Other: Edit, Replace file, Move, Delete
-nav /groups/docents/documents      # close the menu
-act openMoveDocumentDialog 07      # the Move dialog: Move to the top level, Category No category
+act openAddDocumentDialog 06       # the Add documents dialog: Category, the drop zone with Choose files (#755)
 nav /groups/docents/documents      # close the dialog
-act openAddDocumentDialog 08       # the Add documents dialog: Category, the drop zone with Choose files (#755)
+act openDocumentMenu 07            # Docent handbook's actions menu under Other: Edit, Replace file, Move, Delete
+nav /groups/docents/documents      # close the menu
+act openMoveDocumentDialog 08      # the Move dialog: Move to the top level, Category No category

@@ -57,7 +57,7 @@ Folders go up to 5 levels deep. A folder inside a top-level folder uses the top-
 1. Open the folder for the files.
 2. Select **Add document**.
 
-    ![The Add documents dialog: Category, and the upload box with Choose files](08.png)
+    ![The Add documents dialog: Category, and the upload box with Choose files](06.png)
 
 3. Choose a **Category**. All the files you add next go in this category.
 4. Drop the files on the upload box, or select **Choose files**.
@@ -67,7 +67,7 @@ The **Category** starts at the category the page shows. When the page shows all 
 
 Each file shows a progress bar while it uploads. The app does not add a file over 1.5 GB or of a type it does not allow. The dialog shows the reason under the file.
 
-> **Note:** If you close the dialog during an upload, the app asks first. Select **Keep uploading** to go on. Select **Cancel uploads** to stop. Files already uploaded stay.
+> **Note:** If you close the dialog during an upload, select **Keep uploading** or **Cancel uploads**. Files already uploaded stay.
 
 ## Add a link
 
@@ -80,13 +80,13 @@ Each file shows a progress bar while it uploads. The app does not add a file ove
 
 Select the actions button at the end of a document's row. Then select one item:
 
-![A document's actions menu under Other: Edit, Replace file, Move, and Delete](06.png)
+![A document's actions menu under Other: Edit, Replace file, Move, and Delete](07.png)
 
 1. Select **Edit** to change the title, the description, and the category. For a link, you can also change the web address.
 2. Select **Replace file** to upload a new version. Members use the same link to get it.
 3. Select **Move** to put the document in another folder. Choose the folder under **Move to**. Then choose a **Category** of that folder.
 
-    ![The Move dialog: Move to set to the top level of the library, and Category set to No category](07.png)
+    ![The Move dialog: Move to set to the top level of the library, and Category set to No category](08.png)
 
 4. Select **Delete** to remove the document and its file. You cannot undo a delete.
 

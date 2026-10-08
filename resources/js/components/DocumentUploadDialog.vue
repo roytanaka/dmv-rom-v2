@@ -73,6 +73,11 @@ function onOpenChange(value: boolean): void {
     open.value = value;
 }
 
+// The last file finished while the alert was up: nothing is left to cancel, so drop the alert.
+watch(uploading, (busy) => {
+    if (!busy) confirmOpen.value = false;
+});
+
 // Drop the waiting files first, so the queue stops once the cancelled request finishes.
 function cancelUploads(): void {
     uploads.value = uploads.value.filter((upload) => upload.state !== 'waiting');

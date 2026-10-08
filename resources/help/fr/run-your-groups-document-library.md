@@ -57,7 +57,7 @@ Les dossiers peuvent compter jusqu'à 5 niveaux. Un dossier placé dans un dossi
 1. Ouvrez le dossier qui recevra les fichiers.
 2. Sélectionnez **Ajouter un document**.
 
-    ![La fenêtre Ajouter des documents : Catégorie, et la zone de téléversement avec Choisir des fichiers](08.png)
+    ![La fenêtre Ajouter des documents : Catégorie, et la zone de téléversement avec Choisir des fichiers](06.png)
 
 3. Choisissez une **Catégorie**. Tous les fichiers que vous ajoutez ensuite vont dans cette catégorie.
 4. Déposez les fichiers sur la zone de téléversement, ou sélectionnez **Choisir des fichiers**.
@@ -67,7 +67,7 @@ La **Catégorie** commence à la catégorie que la page affiche. Quand la page a
 
 Chaque fichier affiche une barre de progression pendant le téléversement. L'application n'ajoute pas un fichier de plus de 1,5 Go ou d'un type non permis. La fenêtre affiche la raison sous le fichier.
 
-> **Note :** Si vous fermez la fenêtre pendant un téléversement, l'application demande d'abord. Sélectionnez **Continuer le téléversement** pour poursuivre. Sélectionnez **Annuler les téléversements** pour arrêter. Les fichiers déjà téléversés restent.
+> **Note :** Si vous fermez la fenêtre pendant un téléversement, sélectionnez **Continuer le téléversement** ou **Annuler les téléversements**. Les fichiers déjà téléversés restent.
 
 ## Ajouter un lien
 
@@ -80,13 +80,13 @@ Chaque fichier affiche une barre de progression pendant le téléversement. L'ap
 
 Sélectionnez le bouton d'actions au bout de la ligne d'un document. Puis sélectionnez un élément :
 
-![Le menu d'actions d'un document sous Autres : Modifier, Remplacer le fichier, Déplacer et Supprimer](06.png)
+![Le menu d'actions d'un document sous Autres : Modifier, Remplacer le fichier, Déplacer et Supprimer](07.png)
 
 1. Sélectionnez **Modifier** pour changer le titre, la description et la catégorie. Pour un lien, vous pouvez aussi changer l'adresse Web.
 2. Sélectionnez **Remplacer le fichier** pour téléverser une nouvelle version. Les membres utilisent le même lien pour l'obtenir.
 3. Sélectionnez **Déplacer** pour mettre le document dans un autre dossier. Choisissez le dossier sous **Déplacer vers**. Puis choisissez une **Catégorie** de ce dossier.
 
-    ![La fenêtre Déplacer : Déplacer vers réglé sur le premier niveau de la bibliothèque, et Catégorie réglée sur Aucune catégorie](07.png)
+    ![La fenêtre Déplacer : Déplacer vers réglé sur le premier niveau de la bibliothèque, et Catégorie réglée sur Aucune catégorie](08.png)
 
 4. Sélectionnez **Supprimer** pour retirer le document et son fichier. Une suppression est définitive.
 

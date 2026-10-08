@@ -65,8 +65,6 @@ const emptyMessage = computed(() =>
     trans(props.library.category !== null ? 'document_categories.filter.empty' : props.library.folder ? 'document_folders.empty' : 'documents.empty'),
 );
 
-// --- Upload (#755) ----------------------------------------------------------------------
-
 const uploadDialogOpen = ref(false);
 </script>
 
