@@ -308,11 +308,13 @@ const pickBanner = (key: string | null) => {
                  amendment). Reuses SectionTabs in its 'body' placement. The "Email ▾"
                  control sits at the strip's end on every section (#489, ADR-0024 §6);
                  its menu resolves the Group's pickable Audiences server-side. Below lg
-                 it slides out with the top bar on scroll down (#740). -->
+                 it slides out with the top bar on scroll down (#740). It hides by a
+                 negative sticky top, not a translate: a sticky top does nothing until the
+                 bar sticks, so the bar never slides up over the banner. -->
             <div
                 ref="sectionBar"
-                class="bg-background sticky top-16 z-20 flex items-center justify-between gap-3 px-4 py-4 shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none sm:px-6"
-                :class="{ '-translate-y-[calc(100%+var(--header-height))]': chromeHidden }"
+                class="bg-background sticky z-20 flex items-center justify-between gap-3 px-4 py-4 shadow-sm transition-[top] duration-200 ease-out motion-reduce:transition-none sm:px-6"
+                :class="chromeHidden ? 'top-[calc(var(--section-bar-height)*-1)]' : 'top-(--header-height)'"
             >
                 <SectionTabs :items="tabs" variant="body" :soon-label="trans('group.soon')" />
                 <!-- The strip carries the Email control on every section but the roster, where

@@ -15,12 +15,13 @@ const HIDE_AFTER = 64;
 const bars = shallowReactive(new Set<HTMLElement>());
 const state = shallowRef(INITIAL_REVEAL);
 const activeElement = useActiveElement();
-const isDesktop = useMediaQuery('(min-width: 64rem)');
+const isDesktop = useMediaQuery('(min-width: 1024px)');
 
+// Keyboard focus only: a tapped button keeps its focus, and that must not pin the bar.
 const focusInBar = computed(() => {
     const active = activeElement.value;
 
-    return active !== null && active !== undefined && [...bars].some((bar) => bar.contains(active));
+    return active !== null && active !== undefined && active.matches(':focus-visible') && [...bars].some((bar) => bar.contains(active));
 });
 
 // Radix menu triggers carry aria-expanded while their menu is open.

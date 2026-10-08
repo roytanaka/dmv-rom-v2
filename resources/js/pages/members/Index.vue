@@ -180,8 +180,6 @@ const anchorId = (member: DirectoryMember) => {
     return firstIdByLetter.value.get(letter) === member.id ? `directory-letter-${letter}` : undefined;
 };
 
-// A jumped-to row clears the top bar, shown or hidden (#740); the rail itself rides just
-// below whatever part of the bar is on screen.
 const jumpTo = (letter: string) => {
     document.getElementById(`directory-letter-${letter}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
@@ -354,7 +352,9 @@ const groupPicked = computed(() => groupFilter.value !== '');
                 </div>
 
                 <!-- A–Z jump rail: a large-screen scanning aid that sticks beside the
-                     table. It keys on whichever name the active sort orders by. -->
+                     table. It keys on whichever name the active sort orders by. It rides
+                     just below the top bar when shown; a jumped-to row clears the top bar,
+                     shown or hidden (#740). -->
                 <AlphaJumpRail
                     :available="availableLetters"
                     class="sticky top-[calc(var(--header-offset)+2rem)] hidden self-start transition-[top] duration-200 ease-out motion-reduce:transition-none sm:flex"

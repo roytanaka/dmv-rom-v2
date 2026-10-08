@@ -11,22 +11,22 @@ export const REVEAL_DISTANCE = 40;
 export interface RevealState {
     hidden: boolean;
     lastY: number;
-    // The lowest point reached while hidden; the reveal distance counts from here.
-    peakY: number;
+    // The furthest point down the page reached while hidden; the reveal distance counts from here.
+    deepestY: number;
 }
 
-export const INITIAL_REVEAL: RevealState = { hidden: false, lastY: 0, peakY: 0 };
+export const INITIAL_REVEAL: RevealState = { hidden: false, lastY: 0, deepestY: 0 };
 
 export const nextReveal = (state: RevealState, y: number, { hideAfter, pinned }: { hideAfter: number; pinned: boolean }): RevealState => {
     if (y <= hideAfter || pinned) {
-        return { hidden: false, lastY: y, peakY: y };
+        return { hidden: false, lastY: y, deepestY: y };
     }
 
     if (!state.hidden) {
-        return { hidden: y > state.lastY, lastY: y, peakY: y };
+        return { hidden: y > state.lastY, lastY: y, deepestY: y };
     }
 
-    const peakY = Math.max(state.peakY, y);
+    const deepestY = Math.max(state.deepestY, y);
 
-    return peakY - y >= REVEAL_DISTANCE ? { hidden: false, lastY: y, peakY: y } : { hidden: true, lastY: y, peakY };
+    return deepestY - y >= REVEAL_DISTANCE ? { hidden: false, lastY: y, deepestY: y } : { hidden: true, lastY: y, deepestY };
 };

@@ -104,8 +104,6 @@ const anchorId = (member: RosterMember) => {
     return firstIdByLetter.value.get(letter) === member.id ? `roster-letter-${letter}` : undefined;
 };
 
-// A jumped-to row clears the full sticky stack (top bar + the Group section bar), shown
-// or hidden (#740); the rail itself rides just below whatever part is on screen.
 const jumpTo = (letter: string) => {
     document.getElementById(`roster-letter-${letter}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
@@ -326,7 +324,9 @@ const hardRemove = (member: RosterMember) => {
                 </Table>
             </div>
 
-            <!-- A–Z jump rail: a large-screen scanning aid that sticks beside the table. -->
+            <!-- A–Z jump rail: a large-screen scanning aid that sticks beside the table.
+                 It rides just below whatever part of the sticky bars is on screen; a
+                 jumped-to row clears the full stack, shown or hidden (#740). -->
             <AlphaJumpRail
                 :available="availableLetters"
                 class="sticky top-[calc(var(--header-offset)+var(--section-bar-offset,0px)+2rem)] hidden self-start transition-[top] duration-200 ease-out motion-reduce:transition-none sm:flex"
