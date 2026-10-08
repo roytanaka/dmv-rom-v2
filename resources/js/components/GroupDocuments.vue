@@ -26,9 +26,13 @@
 // Document category, then Other (DocumentSection). A Folder with no Document categories shows
 // one plain list with no heading. A manager keeps the open Folder's list from the Categories
 // button (DocumentCategoriesDialog) and files an item from its Edit dialog.
+//
+// Where am I (#726): the root shows a breadcrumb with one current item, Documents; an open
+// Folder adds DocumentFolderHeader (icon, name, what it holds, who reads it).
 import DocumentCategoriesDialog from '@/components/DocumentCategoriesDialog.vue';
 import DocumentFolderBreadcrumb from '@/components/DocumentFolderBreadcrumb.vue';
 import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
+import DocumentFolderHeader from '@/components/DocumentFolderHeader.vue';
 import DocumentSection from '@/components/DocumentSection.vue';
 import LinkDocumentDialog from '@/components/LinkDocumentDialog.vue';
 import { Button } from '@/components/ui/button';
@@ -142,11 +146,15 @@ function onDrop(event: DragEvent): void {
 
 <template>
     <div class="flex flex-col gap-6">
-        <div v-if="library.folder" class="flex flex-col gap-1">
+        <div class="flex flex-col gap-4">
             <DocumentFolderBreadcrumb :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
-            <p class="text-muted-foreground text-sm">
-                {{ trans('document_folders.readable_by', { who: trans(`document_folders.visibility.${library.folder.visibility}`) }) }}
-            </p>
+            <DocumentFolderHeader
+                v-if="library.folder"
+                :folder="library.folder"
+                :category-count="library.categories.length"
+                :folder-count="library.folderCount"
+                :document-count="library.documentCount"
+            />
         </div>
 
         <!-- Upload, for a manager only. The whole zone takes a drop; the button opens the picker. -->

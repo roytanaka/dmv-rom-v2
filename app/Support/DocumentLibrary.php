@@ -24,11 +24,11 @@ class DocumentLibrary
     /**
      * The payload for every tab other than Documents.
      *
-     * @return array{folder: null, breadcrumb: list<never>, categories: list<never>, sections: list<never>, destinations: list<never>, maxDepth: int}
+     * @return array{folder: null, breadcrumb: list<never>, categories: list<never>, sections: list<never>, folderCount: int, documentCount: int, destinations: list<never>, maxDepth: int}
      */
     public static function empty(): array
     {
-        return ['folder' => null, 'breadcrumb' => [], 'categories' => [], 'sections' => [], 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH];
+        return ['folder' => null, 'breadcrumb' => [], 'categories' => [], 'sections' => [], 'folderCount' => 0, 'documentCount' => 0, 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH];
     }
 
     /**
@@ -36,7 +36,7 @@ class DocumentLibrary
      * Document categories (#724) and its child Folders and Documents in sections
      * ({@see self::sections()}). Aborts 403 for a Folder the viewer may not read.
      *
-     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, categories: list<array{id: int, name: string}>, sections: list<array<string, mixed>>, destinations: list<array<string, mixed>>, maxDepth: int}
+     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, categories: list<array{id: int, name: string}>, sections: list<array<string, mixed>>, folderCount: int, documentCount: int, destinations: list<array<string, mixed>>, maxDepth: int}
      */
     public static function for(Member $viewer, Group $group, ?DocumentFolder $folder): array
     {
@@ -115,6 +115,10 @@ class DocumentLibrary
             'breadcrumb' => $folder === null ? [] : $folder->ancestors()->map($folderRow)->values()->all(),
             'categories' => $categories,
             'sections' => self::sections($categories, $folders->map($folderRow)->all(), $documents->map($documentRow)->all()),
+            // What the open Folder holds, for its header (#726): every readable child, whichever
+            // section it sits in.
+            'folderCount' => $folders->count(),
+            'documentCount' => $documents->count(),
             'destinations' => $canManage ? self::destinations($tree->filter(fn (DocumentFolder $item) => $viewer->can('view', $item))) : [],
             // The depth limit, so the client offers only the Folder actions the server will accept.
             'maxDepth' => DocumentFolder::MAX_DEPTH,
