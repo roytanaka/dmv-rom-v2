@@ -26,7 +26,7 @@ const navMenuItems = [
 
         <div class="bg-rom-ink mt-6 flex px-4 py-3">
             <NavigationMenu>
-                <NavigationMenuList class="gap-1">
+                <NavigationMenuList class="flex-wrap gap-1">
                     <NavigationMenuItem v-for="item in navMenuItems" :key="item.label">
                         <NavigationMenuLink
                             href="#navigation-menu"

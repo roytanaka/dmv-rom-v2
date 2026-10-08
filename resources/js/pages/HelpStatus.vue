@@ -66,43 +66,66 @@ const summary = (counts: Props['counts']) => [
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Article</TableHead>
-                                <TableHead>Section</TableHead>
+                                <TableHead class="hidden md:table-cell">Section</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>French</TableHead>
-                                <TableHead>Required role</TableHead>
-                                <TableHead>Page</TableHead>
-                                <TableHead>Files</TableHead>
-                                <TableHead>Screenshots</TableHead>
+                                <TableHead class="hidden md:table-cell">French</TableHead>
+                                <TableHead class="hidden lg:table-cell">Required role</TableHead>
+                                <TableHead class="hidden lg:table-cell">Page</TableHead>
+                                <TableHead class="hidden md:table-cell">Files</TableHead>
+                                <TableHead class="hidden md:table-cell">Screenshots</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             <TableRow v-for="row in rows" :key="row.slug">
-                                <TableCell class="font-medium">{{ row.slug }}</TableCell>
-                                <TableCell>{{ row.section }}</TableCell>
+                                <TableCell>
+                                    <span class="font-medium">{{ row.slug }}</span>
+                                    <!-- On a phone the other columns hide; their facts ride under the name. -->
+                                    <div class="text-muted-foreground mt-1 flex flex-col gap-1 text-sm md:hidden">
+                                        <span>{{ row.section }}</span>
+                                        <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                            <Badge :variant="row.fr === 'reviewed' ? 'success' : 'warning'">
+                                                FR {{ row.fr === 'reviewed' ? 'reviewed' : 'machine' }}
+                                            </Badge>
+                                            <span>
+                                                <span :class="row.enFile ? '' : 'text-destructive'">EN</span>
+                                                <span> · </span>
+                                                <span :class="row.frFile ? '' : 'text-destructive'">FR</span>
+                                            </span>
+                                            <span :class="row.screenshotsPresent < row.screenshotsReferenced ? 'text-destructive' : ''">
+                                                {{ row.screenshotsPresent }} / {{ row.screenshotsReferenced }} screenshots
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class="text-muted-foreground mt-1 flex flex-col gap-1 text-sm wrap-anywhere lg:hidden">
+                                        <span>{{ row.requires.length ? row.requires.join(', ') : 'Every Member' }}</span>
+                                        <span v-if="row.route" class="font-mono text-sm">{{ row.route }}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell class="hidden md:table-cell">{{ row.section }}</TableCell>
                                 <TableCell>
                                     <Badge :variant="row.status === 'published' ? 'success' : 'secondary'">
                                         {{ row.status }}
                                     </Badge>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell class="hidden md:table-cell">
                                     <Badge :variant="row.fr === 'reviewed' ? 'success' : 'warning'">
                                         {{ row.fr === 'reviewed' ? 'reviewed' : 'machine' }}
                                     </Badge>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell class="hidden lg:table-cell">
                                     <span v-if="row.requires.length">{{ row.requires.join(', ') }}</span>
                                     <span v-else class="text-muted-foreground">Every Member</span>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell class="hidden lg:table-cell">
                                     <span v-if="row.route" class="font-mono text-sm">{{ row.route }}</span>
                                     <span v-else class="text-muted-foreground">—</span>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell class="hidden md:table-cell">
                                     <span :class="row.enFile ? '' : 'text-destructive'">EN</span>
                                     <span class="text-muted-foreground"> · </span>
                                     <span :class="row.frFile ? '' : 'text-destructive'">FR</span>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell class="hidden md:table-cell">
                                     <span :class="row.screenshotsPresent < row.screenshotsReferenced ? 'text-destructive' : ''">
                                         {{ row.screenshotsPresent }} / {{ row.screenshotsReferenced }}
                                     </span>

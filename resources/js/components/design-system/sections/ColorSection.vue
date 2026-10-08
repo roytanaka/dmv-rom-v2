@@ -91,7 +91,9 @@ const colorGroups: SwatchGroup[] = [
                 <div class="px-3 py-2.5">
                     <div class="flex flex-col items-start gap-0.5">
                         <CopyButton :value="swatch.token"
-                            ><code class="text-foreground text-sm font-medium">{{ swatch.token }}</code></CopyButton
+                            ><code class="text-foreground text-sm font-medium max-lg:wrap-anywhere max-lg:whitespace-normal">{{
+                                swatch.token
+                            }}</code></CopyButton
                         >
                         <CopyButton :value="swatch.hex"
                             ><span class="text-muted-foreground font-mono text-sm uppercase">{{ swatch.hex }}</span></CopyButton
