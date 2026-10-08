@@ -89,12 +89,10 @@ onBeforeUnmount(() => observer?.disconnect());
         </header>
 
         <div class="lg:grid lg:grid-cols-[10rem_minmax(0,1fr)] lg:gap-x-12 xl:gap-x-16">
-            <!-- Sticky in-page wayfinding: a horizontal scroller below lg, a vertical rail at lg+. -->
-            <nav
-                aria-label="Page sections"
-                class="bg-background/90 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-20 -mx-6 mb-8 border-b backdrop-blur md:-mx-10 lg:top-12 lg:z-0 lg:mx-0 lg:mb-0 lg:self-start lg:border-0 lg:bg-transparent lg:backdrop-blur-none"
-            >
-                <ul class="flex gap-x-1 overflow-x-auto px-6 py-3 md:px-10 lg:flex-col lg:gap-x-0 lg:gap-y-0.5 lg:overflow-visible lg:px-0 lg:py-0">
+            <!-- In-page wayfinding: a wrapped list below lg, so every link shows (ADR-0013 rejects scroll strips
+                 for navigation); a sticky vertical rail at lg+. -->
+            <nav aria-label="Page sections" class="mb-8 border-b pb-3 lg:sticky lg:top-12 lg:mb-0 lg:self-start lg:border-0 lg:pb-0">
+                <ul class="flex flex-wrap gap-x-1 lg:flex-col lg:gap-x-0 lg:gap-y-0.5">
                     <li v-for="section in sections" :key="section.id" class="flex-none">
                         <a
                             :href="`#${section.id}`"
