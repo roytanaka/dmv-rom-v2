@@ -12,6 +12,7 @@
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { type GroupHours, type SharedData } from '@/types';
@@ -132,7 +133,7 @@ const submit = (yearMonth: string) => {
                 <CardTitle class="text-sm font-semibold tracking-wide uppercase">{{ trans('hours.records.heading') }}</CardTitle>
             </CardHeader>
             <CardContent>
-                <table v-if="hours.records.length" class="w-full text-sm">
+                <Table v-if="hours.records.length" pin-first-column class="border-t-0">
                     <thead>
                         <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                             <th class="py-2 pr-4 font-semibold">{{ trans('hours.records.column.month') }}</th>
@@ -153,7 +154,7 @@ const submit = (yearMonth: string) => {
                             <td class="text-muted-foreground py-2">{{ record.updated_at ? formatDate(record.updated_at) : '—' }}</td>
                         </tr>
                     </tbody>
-                </table>
+                </Table>
                 <p v-else class="text-muted-foreground flex items-center gap-2 py-6 text-sm">
                     <PhClock class="h-4 w-4" />
                     {{ trans('hours.records.empty') }}

@@ -10,6 +10,7 @@
 import HoursReportActions from '@/components/HoursReportActions.vue';
 import HoursReportNav from '@/components/HoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table } from '@/components/ui/table';
 import { NativeSelect, type NativeSelectValue } from '@/components/ui/native-select';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type GroupHoursMemberHistory, type SharedData } from '@/types';
@@ -80,7 +81,7 @@ const csvHref = computed(() => route('groups.hours.member.csv', { group: props.g
                     <!-- No Member picked yet — a prompt, not a broken page. -->
                     <p v-if="!member" class="text-muted-foreground py-8 text-center">{{ trans('hours.detail.member.none') }}</p>
 
-                    <table v-else class="w-full text-sm">
+                    <Table v-else pin-first-column class="border-t-0">
                         <thead>
                             <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                                 <th class="py-2 pr-4 font-semibold">{{ trans('hours.detail.member.column.month') }}</th>
@@ -101,7 +102,7 @@ const csvHref = computed(() => route('groups.hours.member.csv', { group: props.g
                                 <td colspan="4" class="text-muted-foreground py-8 text-center">{{ trans('hours.detail.member.empty') }}</td>
                             </tr>
                         </tbody>
-                    </table>
+                    </Table>
                 </CardContent>
             </Card>
         </div>

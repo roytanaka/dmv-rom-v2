@@ -9,6 +9,7 @@
 // the `?fy=` query param. Scheduled hours read zero until recalculation ships — honest, not
 // broken. All chrome is translated (ADR-0004); Group names render as-authored.
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type MyHours, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
@@ -80,7 +81,7 @@ const formatMonth = (iso: string) =>
                     <CardTitle class="text-base">{{ group.name }}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <table class="w-full text-sm">
+                    <Table pin-first-column class="border-t-0">
                         <thead>
                             <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                                 <th class="py-2 pr-4 font-semibold">{{ trans('hours.mine.column.month') }}</th>
@@ -105,7 +106,7 @@ const formatMonth = (iso: string) =>
                                 <td class="py-2 text-right tabular-nums">{{ group.ytd.total_hours }}</td>
                             </tr>
                         </tfoot>
-                    </table>
+                    </Table>
                 </CardContent>
             </Card>
 

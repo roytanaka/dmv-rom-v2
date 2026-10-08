@@ -11,6 +11,7 @@
 import HoursReportActions from '@/components/HoursReportActions.vue';
 import OrgHoursReportNav from '@/components/OrgHoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type DmvCommitteeSummary, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
@@ -72,7 +73,7 @@ const csvHref = computed(() => route('hours.committee-summary.csv', { fy: props.
                     <CardTitle class="text-base">{{ trans('hours.dmv.fiscal_year', { year: String(fiscalYear) }) }}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <table class="w-full text-sm">
+                    <Table pin-first-column class="border-t-0">
                         <thead>
                             <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                                 <th class="py-2 pr-4 font-semibold">{{ trans('hours.dmv.summary.column.committee') }}</th>
@@ -111,7 +112,7 @@ const csvHref = computed(() => route('hours.committee-summary.csv', { fy: props.
                                 <td class="py-2 pl-2 text-right tabular-nums">{{ entry.row.ytd }}</td>
                             </tr>
                         </tfoot>
-                    </table>
+                    </Table>
                 </CardContent>
             </Card>
         </div>

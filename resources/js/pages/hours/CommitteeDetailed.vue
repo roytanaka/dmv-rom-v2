@@ -9,6 +9,7 @@
 import HoursReportActions from '@/components/HoursReportActions.vue';
 import OrgHoursReportNav from '@/components/OrgHoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type DmvCommitteeDetailed, type DmvCommitteeRow, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
@@ -78,11 +79,11 @@ const csvHref = computed(() => route('hours.committee-detailed.csv', { fy: props
                     <CardTitle class="text-base">{{ trans('hours.dmv.fiscal_year', { year: String(fiscalYear) }) }}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <table class="w-full text-sm">
+                    <Table pin-first-column class="border-t-0">
                         <thead>
                             <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                                 <th class="py-2 pr-4 font-semibold">{{ trans('hours.dmv.detailed.column.committee') }}</th>
-                                <th class="py-2 pr-4 font-semibold">{{ trans('hours.dmv.detailed.column.kind') }}</th>
+                                <th class="hidden py-2 pr-4 font-semibold md:table-cell">{{ trans('hours.dmv.detailed.column.kind') }}</th>
                                 <th v-for="column in months" :key="column.year_month" class="py-2 pr-2 text-right font-semibold">
                                     {{ formatMonth(column.month) }}
                                 </th>
@@ -95,12 +96,22 @@ const csvHref = computed(() => route('hours.committee-detailed.csv', { fy: props
                                 <tr
                                     v-for="(kind, kindIndex) in kinds"
                                     :key="kind.field"
+                                    class="align-bottom md:align-middle"
                                     :class="{ 'border-border/60 border-b': kindIndex === kinds.length - 1 }"
                                 >
-                                    <td v-if="kindIndex === 0" :rowspan="kinds.length" class="text-rom-ink py-1.5 pr-4 align-top font-medium">
-                                        {{ committee.name }}
+                                    <!-- The name rides the block's first row, not a rowspan: the pinned
+                                         column is each row's first cell, so every row needs its own.
+                                         Below md the Kind column hides and the kind shows here instead,
+                                         so a row's numbers keep their label while the months scroll. -->
+                                    <td class="text-rom-ink py-1 pr-4 font-medium md:pt-1.5 md:pb-0 md:align-top">
+                                        <span v-if="kindIndex === 0" class="block">{{ committee.name }}</span>
+                                        <span class="text-muted-foreground block text-sm font-normal md:hidden">
+                                            {{ trans(`hours.dmv.detailed.kind.${kind.label}`) }}
+                                        </span>
                                     </td>
-                                    <td class="text-muted-foreground py-1 pr-4">{{ trans(`hours.dmv.detailed.kind.${kind.label}`) }}</td>
+                                    <td class="text-muted-foreground hidden py-1 pr-4 md:table-cell">
+                                        {{ trans(`hours.dmv.detailed.kind.${kind.label}`) }}
+                                    </td>
                                     <td v-for="(column, monthIndex) in months" :key="column.year_month" class="py-1 pr-2 text-right tabular-nums">
                                         {{ cell(committee, monthIndex, kind.field) }}
                                     </td>
@@ -118,20 +129,27 @@ const csvHref = computed(() => route('hours.committee-detailed.csv', { fy: props
                             <tr
                                 v-for="(kind, kindIndex) in kinds"
                                 :key="kind.field"
-                                class="text-rom-ink font-semibold"
+                                class="text-rom-ink align-bottom font-semibold md:align-middle"
                                 :class="{ 'border-border border-t-2': kindIndex === 0 }"
                             >
-                                <td v-if="kindIndex === 0" :rowspan="kinds.length" class="py-2 pr-4 align-top text-sm tracking-wide uppercase">
-                                    {{ trans('hours.dmv.detailed.total') }}
+                                <td class="py-1 pr-4 md:pt-2 md:pb-0 md:align-top">
+                                    <span v-if="kindIndex === 0" class="block text-sm tracking-wide uppercase">{{
+                                        trans('hours.dmv.detailed.total')
+                                    }}</span>
+                                    <span class="text-muted-foreground block text-sm font-normal md:hidden">
+                                        {{ trans(`hours.dmv.detailed.kind.${kind.label}`) }}
+                                    </span>
                                 </td>
-                                <td class="text-muted-foreground py-1 pr-4 font-normal">{{ trans(`hours.dmv.detailed.kind.${kind.label}`) }}</td>
+                                <td class="text-muted-foreground hidden py-1 pr-4 font-normal md:table-cell">
+                                    {{ trans(`hours.dmv.detailed.kind.${kind.label}`) }}
+                                </td>
                                 <td v-for="(column, monthIndex) in months" :key="column.year_month" class="py-1 pr-2 text-right tabular-nums">
                                     {{ cell(org, monthIndex, kind.field) }}
                                 </td>
                                 <td class="py-1 pl-2 text-right tabular-nums">{{ org.ytd[kind.field] }}</td>
                             </tr>
                         </tfoot>
-                    </table>
+                    </Table>
                 </CardContent>
             </Card>
         </div>
