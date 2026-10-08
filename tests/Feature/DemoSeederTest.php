@@ -15,6 +15,7 @@ use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
 use App\Models\Group;
 use App\Models\GroupMember;
@@ -1274,28 +1275,59 @@ it('is idempotent across the meeting rows — re-seeding heals rather than dupli
 });
 
 /*
- * Demo Document libraries (#718, spec #290). Testers on staging find working libraries
- * without uploading first; Docents carries the legacy Data Sheets shape. The stored files
- * themselves are checked in DemoSeederDocumentsTest, on a fresh faked disk.
+ * Demo Document libraries (#718, #727, specs #290 and #721). Testers on staging find working
+ * libraries without uploading first, sampled from legacy: Docents carries the legacy Data
+ * Sheets shape. The stored files themselves are checked in DemoSeederDocumentsTest, on a
+ * fresh faked disk.
  */
 
-it('gives every Group with the documents capability a small library', function () {
+it('gives every Group with the documents capability a library', function () {
     $groups = Group::where('has_documents', true)->get();
 
     expect($groups)->not->toBeEmpty();
 
     $groups->each(function (Group $group) {
         $folders = DocumentFolder::where('group_id', $group->id)->get();
-        DocumentFolder::preloadAncestors($folders);
         $documents = Document::where('group_id', $group->id)->get();
-        $visibilities = $folders->whereNull('parent_id')->map(fn (DocumentFolder $folder) => $folder->visibility->value);
+        $rootItems = $folders->whereNull('parent_id')->concat($documents->whereNull('folder_id'));
 
-        expect($folders->max(fn (DocumentFolder $folder) => $folder->depth()))->toBe(3)
-            ->and($documents->where('kind', DocumentKind::File)->count())->toBeGreaterThanOrEqual(2)
-            ->and($documents->where('kind', DocumentKind::Link))->toHaveCount(1)
-            ->and($visibilities->unique()->sort()->values()->all())
-            ->toBe([DocumentVisibility::Group->value, DocumentVisibility::Members->value]);
+        expect($folders)->not->toBeEmpty()
+            ->and($documents->where('kind', DocumentKind::File))->not->toBeEmpty()
+            ->and($documents->where('kind', DocumentKind::Link))->not->toBeEmpty()
+            // Some root items sit under a Document category, and some under none, so Other shows.
+            ->and($rootItems->whereNotNull('category_id'))->not->toBeEmpty()
+            ->and($rootItems->whereNull('category_id'))->not->toBeEmpty();
     });
+});
+
+it('samples the legacy Topics of Committees and Programs', function (string $slug, string $topic) {
+    $group = Group::where('slug', $slug)->firstOrFail();
+
+    expect(DocumentFolder::where('group_id', $group->id)->whereNull('parent_id')->where('name', $topic)->exists())->toBeTrue();
+})->with([
+    'DMV' => ['dmv', 'DMV Handbook'],
+    'Records' => ['records', 'Records Room Key Inventory'],
+    'Visitor Wayfinders' => ['visitor-wayfinders', 'RAD-ROM After Dark'],
+    'Friends of Palaeontology' => ['friends-of-palaeontology-fop', 'Resources to Share'],
+    'ROMForYou' => ['romforyou', 'RFY Objects'],
+    'Blue Whale' => ['blue-whale', 'Additional Whale Facts'],
+    'Gallery Interpreters Events' => ['gallery-interpreters-events', 'Offsite Events Information'],
+]);
+
+it('keys every sampled library to a Group with the documents capability', function () {
+    $slugs = array_keys(require database_path('seeders/data/document-libraries.php'));
+
+    expect(Group::whereIn('slug', $slugs)->where('has_documents', true)->pluck('slug')->sort()->values()->all())
+        ->toBe(collect($slugs)->sort()->values()->all());
+});
+
+it('seeds top-level Folders of both visibilities, and Folders a few levels deep', function () {
+    $folders = DocumentFolder::all();
+    DocumentFolder::preloadAncestors($folders);
+
+    expect($folders->whereNull('parent_id')->map(fn (DocumentFolder $folder) => $folder->visibility->value)->unique()->sort()->values()->all())
+        ->toBe([DocumentVisibility::Group->value, DocumentVisibility::Members->value])
+        ->and($folders->max(fn (DocumentFolder $folder) => $folder->depth()))->toBe(3);
 });
 
 it('turns the documents capability on for every Working group and Cohort', function () {
@@ -1314,17 +1346,76 @@ it('leaves no Document library on a Group without the capability', function () {
         ->and(DocumentFolder::whereIn('group_id', $without)->exists())->toBeFalse();
 });
 
-it('shapes the Docents library as Category, Section and Tour Folders', function () {
+it('heads the Docents library root with Data Sheets and Publications', function () {
     $docents = Group::where('slug', 'docents')->firstOrFail();
-    $folders = DocumentFolder::where('group_id', $docents->id)->get();
-    DocumentFolder::preloadAncestors($folders);
+    $root = DocumentCategory::where('group_id', $docents->id)->whereNull('folder_id')->get();
+    $dataSheets = $root->firstWhere('name', 'Data Sheets');
 
-    $tour = $folders->first(fn (DocumentFolder $folder) => $folder->name === 'Dinosaur Highlights tour');
+    expect($root->pluck('name')->sort()->values()->all())->toBe(['Data Sheets', 'Publications'])
+        ->and(DocumentFolder::where('group_id', $docents->id)->whereNull('parent_id')
+            ->where('category_id', $dataSheets->id)->pluck('name')->sort()->values()->all())
+        ->toBe(['Exhibition', 'Museum/Theme', 'Natural History', 'Spot', 'World Culture']);
+});
 
-    expect($tour)->not->toBeNull()
-        ->and($tour->ancestors()->pluck('name')->push($tour->name)->all())
-        ->toBe(['Natural History', 'Dinosaurs', 'Dinosaur Highlights tour'])
+it('heads the Docents World Culture Folder with the legacy Sections, tour Folders under each', function () {
+    $docents = Group::where('slug', 'docents')->firstOrFail();
+    $worldCulture = DocumentFolder::where('group_id', $docents->id)->whereNull('parent_id')
+        ->where('name', 'World Culture')->firstOrFail();
+    $headings = DocumentCategory::where('folder_id', $worldCulture->id)->get();
+    $egypt = $headings->firstWhere('name', 'Egypt & Nubia');
+    $tour = DocumentFolder::where('parent_id', $worldCulture->id)->where('name', 'Ancient Egypt & Nubia')->firstOrFail();
+
+    expect($headings->pluck('name')->sort()->values()->all())->toBe([
+        'AAAP',
+        'Canadian Heritage',
+        'Cyprus, Bronze Age & Ancient Greece',
+        'East Asia - China and Korea',
+        'East Asia - Japan',
+        'Egypt & Nubia',
+        'Europe',
+    ])
+        ->and(DocumentFolder::where('parent_id', $worldCulture->id)->whereNull('category_id')->exists())->toBeFalse()
+        ->and($tour->category_id)->toBe($egypt->id)
         ->and($tour->documents()->exists())->toBeTrue();
+});
+
+it('seeds legacy members-only Topics as Group-only Folders', function () {
+    $guides = Group::where('slug', 'visitor-guides')->firstOrFail();
+    $topLevel = DocumentFolder::where('group_id', $guides->id)->whereNull('parent_id')->get()->keyBy('name');
+
+    expect($topLevel['General']->visibility)->toBe(DocumentVisibility::Members)
+        ->and($topLevel['ROM Exhibitions, Installations & Briefings']->visibility)->toBe(DocumentVisibility::Group);
+});
+
+it('gives Gallery Interpreters, Guides du ROM and ROMWalks short samples of their Data Sheets', function (string $slug, array $path) {
+    $group = Group::where('slug', $slug)->firstOrFail();
+    $folder = null;
+
+    foreach ($path as $name) {
+        $folder = DocumentFolder::where('group_id', $group->id)->where('parent_id', $folder?->id)
+            ->where('name', $name)->firstOrFail();
+    }
+
+    expect($folder->documents()->where('kind', DocumentKind::File)->exists())->toBeTrue();
+})->with([
+    'Gallery Interpreters' => ['gallery-interpreters', ['Natural History', 'Earth Sciences']],
+    'Guides du ROM' => ['guides-du-rom', ['Fiches - Cultures du monde', 'Korea']],
+    'ROMWalks' => ['romwalks', ['Walks', 'Yorkville']],
+]);
+
+it('names no seeded Member in any library Folder, Document category or Document', function () {
+    $words = collect([
+        ...DocumentFolder::pluck('name'),
+        ...DocumentCategory::pluck('name'),
+        ...Document::where('kind', DocumentKind::Link)->pluck('title'),
+        ...Document::where('kind', DocumentKind::File)->pluck('original_filename'),
+    ])->flatMap(fn (string $text) => preg_split('/[^\p{L}]+/u', mb_strtolower($text), -1, PREG_SPLIT_NO_EMPTY))->unique();
+
+    $names = Member::get(['first_name', 'last_name'])
+        ->flatMap(fn (Member $member) => [mb_strtolower($member->first_name), mb_strtolower($member->last_name)])
+        ->unique();
+
+    expect($words->intersect($names)->values()->all())->toBe([]);
 });
 
 it('seeds a Docents Librarian Persona who manages the Docents library', function () {
@@ -1339,8 +1430,8 @@ it('seeds a Persona outside Docents who reads its shared Folders but not its Gro
     $reader = Member::where('email', PersonaCatalogue::LIBRARY_READER_EMAIL)->firstOrFail();
     $docents = Group::where('slug', 'docents')->firstOrFail();
     $topLevel = DocumentFolder::with('group')->where('group_id', $docents->id)->whereNull('parent_id')->get();
-    $shared = $topLevel->first(fn (DocumentFolder $folder) => $folder->visibility === DocumentVisibility::Members);
-    $groupOnly = $topLevel->first(fn (DocumentFolder $folder) => $folder->visibility === DocumentVisibility::Group);
+    $shared = $topLevel->firstWhere('name', 'Natural History');
+    $groupOnly = $topLevel->firstWhere('name', 'World Culture');
     $sharedDocument = Document::with(['group', 'folder'])->whereIn('folder_id', [$shared->id, ...$shared->descendantIds()])->firstOrFail();
 
     expect(GroupMember::where('group_id', $docents->id)->where('member_id', $reader->id)->exists())->toBeFalse()
@@ -1351,7 +1442,7 @@ it('seeds a Persona outside Docents who reads its shared Folders but not its Gro
 });
 
 it('is idempotent across the Document library rows — re-seeding heals rather than duplicates', function () {
-    $counts = fn () => [Document::count(), DocumentFolder::count()];
+    $counts = fn () => [Document::count(), DocumentFolder::count(), DocumentCategory::count(), Document::whereNotNull('category_id')->count()];
     $before = $counts();
 
     $this->seed(DemoSeeder::class);
