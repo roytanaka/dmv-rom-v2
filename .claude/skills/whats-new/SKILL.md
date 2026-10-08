@@ -30,7 +30,7 @@ list of every spec item that changed or was cut before shipping.
    missing.
 2. Sent emails: `search_threads` with `label:<id>`, then `get_thread` (`PLAIN_TEXT`) on each
    one that touches this feature or its neighbours. `search_threads` never returns drafts.
-3. Unsent drafts: `list_drafts`, and read each one whose subject starts `What's new:`.
+3. Unsent drafts: `list_drafts`, and read each one whose subject starts `DMV v2, what's new:`.
 
 Done when every past statement that this release changes is listed with its email date.
 These go in the email's "Changed since last time" section.
@@ -56,7 +56,7 @@ left out on purpose.
 
 ## Email shape
 
-Subject: `What's new: <feature name>`. The fixed prefix makes past emails easy to find
+Subject: `DMV v2, what's new: <feature name>`. The fixed prefix makes past emails easy to find
 even without the label.
 
 Sections, in this order. Drop any section with nothing to say.
