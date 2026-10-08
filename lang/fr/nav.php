@@ -41,6 +41,9 @@ return [
         'no_results' => 'Aucun groupe correspondant',
     ],
 
+    // Le nom du menu replié de la barre supérieure quand aucun lien n'est actif (#741).
+    'menu' => 'Menu',
+
     // Utilitaire de la barre supérieure — le menu Aide (#194, #675).
     'help' => 'Aide',
     'help_menu' => [

@@ -7,7 +7,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { activeSectionHref } from './activeSection.ts';
+import { activeDestination, activeSectionHref } from './activeSection.ts';
 
 const tabs = ['/groups/docents', '/groups/docents/roster', '/groups/docents/scheduling', '/groups/docents/hours'];
 
@@ -37,4 +37,20 @@ test('French paths match their localised hrefs the same way', () => {
 test('no match returns null', () => {
     assert.equal(activeSectionHref(tabs, '/news'), null);
     assert.equal(activeSectionHref(['/'], '/news'), null);
+});
+
+// The top bar's destinations (#741): the active one names the collapsed menu trigger.
+const destinations = [
+    { key: 'hours', href: '/hours' },
+    { key: 'directory', href: '/directory' },
+];
+
+test('the active destination is the one the page sits under', () => {
+    assert.equal(activeDestination(destinations, '/directory')?.key, 'directory');
+    assert.equal(activeDestination(destinations, '/directory?page=2')?.key, 'directory');
+    assert.equal(activeDestination(destinations, '/hours/2026')?.key, 'hours');
+});
+
+test('no active destination off the destination pages', () => {
+    assert.equal(activeDestination(destinations, '/dashboard'), null);
 });

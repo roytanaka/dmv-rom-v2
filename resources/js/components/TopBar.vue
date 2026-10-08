@@ -7,7 +7,9 @@
 //            linking Home. The wordmark drops below sm (no square mark exists yet).
 //   Centre — the primary destinations (My Hours · My Calendar · News · Directory),
 //            persistent locale-aware links shared from the server (`chromeNav`); the
-//            active one is highlighted in heritage-blue.
+//            active one is highlighted in heritage-blue. Below lg they don't fit, so
+//            they collapse into one menu named for the current page (#741, ADR-0013
+//            option C): a horizontal scroll strip hides links from this audience.
 //   Right  — the Help menu (ADR-0025 amendment), the language switcher (globe, lg+
 //            only), and the avatar menu. Search lives in the rail. Below lg the globe is
 //            hidden and the locale list moves into the avatar menu (UserMenuContent).
@@ -15,6 +17,7 @@
 // Destinations are resolved and gated SERVER-side and shared via `chromeNav` — their
 // hrefs are already localized to the active locale (ADR-0008), so they are used
 // verbatim and matched against the current URL for the active state.
+import { activeDestination } from '@/chrome/activeSection';
 import BrandLogo from '@/components/BrandLogo.vue';
 import FeedbackDialog from '@/components/FeedbackDialog.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
@@ -26,7 +29,7 @@ import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import type { ChromeDestination, PhosphorIcon, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { PhBookOpen, PhCaretDown, PhChatCenteredText, PhLifebuoy, PhListBullets, PhQuestion } from '@phosphor-icons/vue';
+import { PhBookOpen, PhCaretDown, PhChatCenteredText, PhCheck, PhLifebuoy, PhListBullets, PhQuestion } from '@phosphor-icons/vue';
 import { computed, ref, useTemplateRef } from 'vue';
 
 const page = usePage<SharedData>();
@@ -39,7 +42,13 @@ const { hidden } = useChromeBar(useTemplateRef<HTMLElement>('bar'));
 // current URL. The Home wordmark is authored English-canonical, so it still localizes
 // client-side to stay in-locale on /fr/ (ADR-0008).
 const localizeHref = useLocalizedHref();
-const isActive = (dest: ChromeDestination) => dest.href === page.url;
+const isCurrentPage = (dest: ChromeDestination) => dest.href === page.url;
+
+// A primary destination stays active on the pages beneath it (`/directory?page=2`), so the
+// collapsed menu keeps the page's name. With none active the trigger reads "Menu".
+const activeDest = computed(() => activeDestination(nav.value.destinations, page.url));
+const isDestActive = (dest: ChromeDestination) => activeDest.value?.key === dest.key;
+const menuLabel = computed(() => trans(activeDest.value?.labelKey ?? 'nav.menu'));
 
 // Help menu item icons are fixed client config keyed by item `key`, like the rail's
 // officer items; the server ships only key, label, and href.
@@ -64,7 +73,7 @@ const startsFeedback = (item: ChromeDestination) => item.key.startsWith('feedbac
 // at white/70 and brighten on hover. The bottom border always renders (no layout shift).
 const destClass = (dest: ChromeDestination): string => {
     const base = 'flex shrink-0 items-center gap-1.5 border-b-[3px] px-3 whitespace-nowrap transition-colors text-sm font-medium';
-    return isActive(dest) ? `${base} border-rom-slate-300 font-semibold text-white` : `${base} border-transparent text-white/70 hover:text-white`;
+    return isDestActive(dest) ? `${base} border-rom-slate-300 font-semibold text-white` : `${base} border-transparent text-white/70 hover:text-white`;
 };
 </script>
 
@@ -85,17 +94,42 @@ const destClass = (dest: ChromeDestination): string => {
             </Link>
         </div>
 
-        <!-- Primary destinations — the fixed global strip, identical on every page. -->
-        <nav class="flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto" aria-label="Primary">
-            <Link
-                v-for="dest in nav.destinations"
-                :key="dest.key"
-                :href="dest.href"
-                :aria-current="isActive(dest) ? 'page' : undefined"
-                :class="destClass(dest)"
-            >
-                {{ trans(dest.labelKey) }}
-            </Link>
+        <!-- Primary destinations — the fixed global set, identical on every page. -->
+        <nav class="flex min-w-0 flex-1 items-stretch" aria-label="Primary">
+            <!-- Below lg: one trigger naming the current page, opening every destination. -->
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    class="border-rom-slate-300/40 text-rom-slate-300 ring-offset-rom-ink flex h-11 max-w-56 min-w-0 items-center justify-between gap-2 self-center border bg-white/5 px-3 text-base font-medium transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:outline-none lg:hidden"
+                >
+                    <span class="truncate">{{ menuLabel }}</span>
+                    <PhCaretDown class="size-4 shrink-0 opacity-80" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent class="w-56" align="start" :side-offset="8">
+                    <DropdownMenuItem v-for="dest in nav.destinations" :key="dest.key" :as-child="true" class="py-3 text-base">
+                        <Link
+                            :href="dest.href"
+                            :aria-current="isDestActive(dest) ? 'page' : undefined"
+                            :class="['flex w-full items-center gap-3', { 'text-rom-ink font-semibold': isDestActive(dest) }]"
+                        >
+                            {{ trans(dest.labelKey) }}
+                            <PhCheck v-if="isDestActive(dest)" class="ml-auto size-4" />
+                        </Link>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <!-- lg+: the destinations inline. -->
+            <div class="hidden items-stretch gap-1 lg:flex">
+                <Link
+                    v-for="dest in nav.destinations"
+                    :key="dest.key"
+                    :href="dest.href"
+                    :aria-current="isDestActive(dest) ? 'page' : undefined"
+                    :class="destClass(dest)"
+                >
+                    {{ trans(dest.labelKey) }}
+                </Link>
+            </div>
         </nav>
 
         <!-- Right utilities — Help, the language switcher (globe, lg+), the avatar
@@ -121,7 +155,7 @@ const destClass = (dest: ChromeDestination): string => {
                             {{ trans(item.labelKey) }}
                         </DropdownMenuItem>
                         <DropdownMenuItem v-else class="py-2.5" :as-child="true">
-                            <Link class="w-full" :href="item.href" :aria-current="isActive(item) ? 'page' : undefined">
+                            <Link class="w-full" :href="item.href" :aria-current="isCurrentPage(item) ? 'page' : undefined">
                                 <component :is="HELP_ICONS[item.key]" class="text-muted-foreground size-4" />
                                 {{ trans(item.labelKey) }}
                             </Link>

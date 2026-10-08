@@ -44,6 +44,9 @@ return [
         'no_results' => 'No matching groups',
     ],
 
+    // The collapsed top-bar menu's name when none of its links is active (#741).
+    'menu' => 'Menu',
+
     // Top-bar utility — the Help menu in the right cluster (#194, #675).
     'help' => 'Help',
     'help_menu' => [
