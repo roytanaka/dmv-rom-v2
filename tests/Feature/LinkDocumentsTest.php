@@ -278,14 +278,14 @@ it('lists a link Document beside files, with its kind and no type or size', func
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->has('library.documents', 2)
-            ->where('library.documents.0.id', $link->id)
-            ->where('library.documents.0.kind', 'link')
-            ->where('library.documents.0.extension', null)
-            ->where('library.documents.0.sizeBytes', null)
-            ->where('library.documents.0.url', null)
-            ->where('library.documents.0.href', "/documents/{$link->id}/download")
-            ->where('library.documents.1.kind', 'file'));
+            ->has('library.sections.0.documents', 2)
+            ->where('library.sections.0.documents.0.id', $link->id)
+            ->where('library.sections.0.documents.0.kind', 'link')
+            ->where('library.sections.0.documents.0.extension', null)
+            ->where('library.sections.0.documents.0.sizeBytes', null)
+            ->where('library.sections.0.documents.0.url', null)
+            ->where('library.sections.0.documents.0.href', "/documents/{$link->id}/download")
+            ->where('library.sections.0.documents.1.kind', 'file'));
 });
 
 it('sends the link\'s address to a manager for editing', function () {
@@ -295,5 +295,5 @@ it('sends the link\'s address to a manager for editing', function () {
     $this->actingAs(linkLibraryMemberOf($group, Role::Librarian))
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('library.documents.0.url', 'https://example.org/handbook'));
+            ->where('library.sections.0.documents.0.url', 'https://example.org/handbook'));
 });

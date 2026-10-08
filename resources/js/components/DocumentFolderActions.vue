@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// One Folder's manage menu on the Group Documents tab (#714, ADR-0030 §3): rename (edit, with
-// who can read it, for a top-level Folder, #715), move, or delete after a confirm. Rendered only for a manager; the DocumentFolderPolicy enforces every
+// One Folder's manage menu on the Group Documents tab (#714, ADR-0030 §3): edit (its name, who
+// can read it for a top-level Folder, #715, and its Document category, #724), move, or delete after a confirm. Rendered only for a manager; the DocumentFolderPolicy enforces every
 // write. A Folder that still holds Folders or Documents is refused by the server, and the
 // confirm shows that message.
 import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { type FolderDestination, type LibraryFolder } from '@/types';
+import { type FolderDestination, type LibraryCategory, type LibraryFolder } from '@/types';
 import { router } from '@inertiajs/vue3';
 import { PhArrowBendUpRight, PhDotsThreeVertical, PhPencilSimple, PhTrash } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
@@ -27,7 +27,11 @@ defineProps<{
     folder: LibraryFolder;
     /** The open Folder this one sits in, or null at the top level. */
     parentId: number | null;
+    /** The Document categories of the open Folder this one sits in (#724). */
+    categories: LibraryCategory[];
     destinations: FolderDestination[];
+    /** The library root's Document categories, for a move to the top level (#728). */
+    rootCategories: LibraryCategory[];
     maxDepth: number;
 }>();
 
@@ -62,7 +66,7 @@ function confirmDelete(id: number): void {
         <DropdownMenuContent align="end">
             <DropdownMenuItem class="gap-2" @select="renaming = true">
                 <PhPencilSimple class="size-4" />
-                {{ trans(parentId === null ? 'document_folders.edit' : 'document_folders.rename') }}
+                {{ trans('document_folders.edit') }}
             </DropdownMenuItem>
             <DropdownMenuItem class="gap-2" @select="moving = true">
                 <PhArrowBendUpRight class="size-4" />
@@ -75,7 +79,7 @@ function confirmDelete(id: number): void {
         </DropdownMenuContent>
     </DropdownMenu>
 
-    <DocumentFolderDialog v-model:open="renaming" :folder="folder" :top-level="parentId === null" />
+    <DocumentFolderDialog v-model:open="renaming" :folder="folder" :top-level="parentId === null" :categories="categories" />
 
     <DocumentMoveDialog
         v-model:open="moving"
@@ -83,7 +87,9 @@ function confirmDelete(id: number): void {
         :id="folder.id"
         :name="folder.name"
         :current-folder-id="parentId"
+        :current-category-id="folder.categoryId"
         :destinations="destinations"
+        :root-categories="rootCategories"
         :max-depth="maxDepth"
     />
 

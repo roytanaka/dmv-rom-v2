@@ -34,8 +34,8 @@ class DocumentPolicy
     }
 
     /**
-     * Who may manage a Group's library: the named Group-level ability the Folder and Tag
-     * policies and the `can.manageDocuments` hint defer to.
+     * Who may manage a Group's library: the named Group-level ability the Folder
+     * policy and the `can.manageDocuments` hint defer to.
      */
     public function manage(Member $actor, Group $group): bool
     {

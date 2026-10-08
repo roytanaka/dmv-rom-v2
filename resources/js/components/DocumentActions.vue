@@ -3,7 +3,9 @@
 // its title and description, upload a new file over it, or delete it after a confirm. Rendered
 // only for a manager (the server's `canManage` hint); the DocumentPolicy enforces every write.
 // Title and description are content, kept as written (ADR-0004). Move (#714) sends it to
-// another Folder or the library root through DocumentMoveDialog.
+// another Folder or the library root through DocumentMoveDialog. Edit also files it under one of
+// its Folder's Document categories (#724, ADR-0030 §4).
+import DocumentCategorySelect from '@/components/DocumentCategorySelect.vue';
 import DocumentMoveDialog from '@/components/DocumentMoveDialog.vue';
 import {
     AlertDialog,
@@ -22,13 +24,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { type FolderDestination, type LibraryDocument } from '@/types';
+import { type FolderDestination, type LibraryCategory, type LibraryDocument } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
 import { PhArrowBendUpRight, PhArrowsClockwise, PhDotsThreeVertical, PhPencilSimple, PhTrash } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
-const props = defineProps<{ document: LibraryDocument; destinations: FolderDestination[]; maxDepth: number }>();
+const props = defineProps<{
+    document: LibraryDocument;
+    /** The Document categories of the Folder it sits in (#724). */
+    categories: LibraryCategory[];
+    destinations: FolderDestination[];
+    /** The library root's Document categories, for a move to the top level (#728). */
+    rootCategories: LibraryCategory[];
+    maxDepth: number;
+}>();
 
 const moving = ref(false);
 
@@ -39,13 +49,19 @@ const isLink = computed(() => props.document.kind === 'link');
 
 const editing = ref(false);
 // A link Document also edits its web address (#716); a file Document sends none.
-const editForm = useForm({ title: '', url: '', description: '' });
+const editForm = useForm<{ title: string; url: string; description: string; category_id: number | null }>({
+    title: '',
+    url: '',
+    description: '',
+    category_id: null,
+});
 editForm.transform(({ url, ...data }) => (isLink.value ? { ...data, url } : data));
 
 function openEdit(): void {
     editForm.title = props.document.title ?? '';
     editForm.url = props.document.url ?? '';
     editForm.description = props.document.description ?? '';
+    editForm.category_id = props.document.categoryId;
     editForm.clearErrors();
     editing.value = true;
 }
@@ -151,6 +167,12 @@ function confirmDelete(): void {
                     <Textarea :id="`document-${document.id}-description`" v-model="editForm.description" :rows="4" />
                     <p v-if="editForm.errors.description" role="alert" class="text-destructive text-sm">{{ editForm.errors.description }}</p>
                 </div>
+                <DocumentCategorySelect
+                    :id="`document-${document.id}-category`"
+                    v-model="editForm.category_id"
+                    :categories="categories"
+                    :error="editForm.errors.category_id"
+                />
                 <div class="flex gap-2">
                     <Button type="submit" size="sm" :disabled="editForm.processing">{{ trans('documents.manage.save') }}</Button>
                     <Button type="button" variant="ghost" size="sm" :disabled="editForm.processing" @click="editing = false">
@@ -191,7 +213,9 @@ function confirmDelete(): void {
         :id="document.id"
         :name="name"
         :current-folder-id="document.folderId"
+        :current-category-id="document.categoryId"
         :destinations="destinations"
+        :root-categories="rootCategories"
         :max-depth="maxDepth"
     />
 

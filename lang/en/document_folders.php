@@ -12,14 +12,12 @@ return [
 
     'new' => 'New folder',
     'actions' => 'Actions for :name',
-    'rename' => 'Rename',
     'move' => 'Move',
     'delete' => 'Delete',
     'save' => 'Save',
     'cancel' => 'Cancel',
 
     'create_title' => 'New folder',
-    'rename_title' => 'Rename folder',
     'move_title' => 'Move :name',
     'delete_title' => 'Delete :name?',
     'delete_body' => 'Only an empty folder can be deleted.',

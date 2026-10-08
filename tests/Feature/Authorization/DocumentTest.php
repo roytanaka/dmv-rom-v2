@@ -3,6 +3,7 @@
 use App\Enums\DocumentVisibility;
 use App\Enums\Role;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
 use App\Models\Group;
 use App\Models\GroupMember;
@@ -22,8 +23,9 @@ use Inertia\Testing\AssertableInertia as Assert;
  * (ADR-0030 §6). Exercised through every layer: route → auth → Form Request / controller →
  * DocumentPolicy / DocumentFolderPolicy → Gate::before.
  *
- * The Folder visibility matrix at the end proves read three ways (the Folder listed in the
- * props, the Folder's page, the download) and manage by setting a Folder's visibility.
+ * The Folder visibility matrix proves read three ways (the Folder listed in the props, the
+ * Folder's page, the download) and manage by setting a Folder's visibility. The Document
+ * category matrix at the end (#724) gives managing Document categories the same rows.
  */
 
 beforeEach(function () {
@@ -240,7 +242,7 @@ it('reads a Folder, its subfolders and their Documents per the Folder\'s visibil
     $this->actingAs($actor)
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->has('library.folders', $reads ? 1 : 0));
+        ->assertInertia(fn (Assert $page) => $page->has('library.sections', $reads ? 1 : 0));
 
     foreach ([$folder, $sub] as $item) {
         $this->actingAs($actor)
@@ -334,3 +336,66 @@ it('refuses every write to a non-member who reads a members Folder', function ()
 
     expect(DocumentFolder::count())->toBe(2)->and(Document::count())->toBe(1);
 });
+
+// --- Document categories (#724) ------------------------------------------------------
+
+it('lets only the Librarian, the Chair and the super-tier manage Document categories', function (string $who, bool $manages) {
+    $group = documentsGroup();
+    $folder = DocumentFolder::factory()->create(['group_id' => $group->id]);
+    $category = DocumentCategory::factory()->in($folder)->create(['name' => 'Europe']);
+    $doomed = DocumentCategory::factory()->in($folder)->create(['name' => 'Asia']);
+    $actor = libraryActor($group, $who);
+    $status = $manages ? 302 : 403;
+
+    $this->actingAs($actor)
+        ->post(route('document-categories.store', $group), ['name' => 'Egypt', 'folder_id' => $folder->id])
+        ->assertStatus($status);
+    $this->actingAs($actor)
+        ->patch(route('document-categories.update', $category), ['name' => 'Europe & Near East'])
+        ->assertStatus($status);
+    $this->actingAs($actor)
+        ->delete(route('document-categories.destroy', $doomed))
+        ->assertStatus($status);
+
+    expect(DocumentCategory::where('name', 'Egypt')->exists())->toBe($manages)
+        ->and($category->fresh()->name)->toBe($manages ? 'Europe & Near East' : 'Europe')
+        ->and($doomed->fresh() === null)->toBe($manages);
+})->with([
+    'Librarian' => ['Librarian', true],
+    'Chair' => ['Chair', true],
+    'super-tier' => ['super-tier', true],
+    'member' => ['member', false],
+    'non-member' => ['non-member', false],
+    'parent Chair' => ['parent Chair', false],
+]);
+
+it('refuses Document category writes once the capability is off, super-tier included', function (string $who) {
+    $group = Group::factory()->create(['has_documents' => false]);
+    $category = DocumentCategory::factory()->create(['group_id' => $group->id, 'name' => 'Europe']);
+    $actor = $who === 'super-tier' ? Member::factory()->superTier()->create() : documentsMemberOf($group, Role::Chair);
+
+    $this->actingAs($actor)->post(route('document-categories.store', $group), ['name' => 'Egypt'])->assertForbidden();
+    $this->actingAs($actor)->patch(route('document-categories.update', $category), ['name' => 'Asia'])->assertForbidden();
+    $this->actingAs($actor)->delete(route('document-categories.destroy', $category))->assertForbidden();
+
+    expect(DocumentCategory::sole()->name)->toBe('Europe');
+})->with(['Chair', 'super-tier']);
+
+it('reads a Folder filed under a Document category per its top-level Folder only', function (string $who, bool $reads) {
+    $group = documentsGroup();
+    [$folder, $sub, $document] = sharedFolderOf($group, DocumentVisibility::Group);
+    $category = DocumentCategory::factory()->in($folder)->create();
+    $sub->update(['category_id' => $category->id]);
+    $document->update(['category_id' => DocumentCategory::factory()->in($sub)->create()->id]);
+    $actor = libraryActor($group, $who);
+
+    $this->actingAs($actor)->get(route('groups.documents.folder', ['group' => $group, 'folder' => $sub]))->assertStatus($reads ? 200 : 403);
+    // The Category filter (#725) opens nothing the Folder does not.
+    $this->actingAs($actor)
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $folder, 'category' => $category->id]))
+        ->assertStatus($reads ? 200 : 403);
+    $this->actingAs($actor)->get(route('documents.download', $document))->assertStatus($reads ? 200 : 403);
+})->with([
+    'member' => ['member', true],
+    'non-member' => ['non-member', false],
+]);

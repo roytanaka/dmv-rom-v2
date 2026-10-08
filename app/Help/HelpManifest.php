@@ -277,8 +277,8 @@ final class HelpManifest
             new HelpArticle('group-settings', HelpSection::Groups, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             // Document library (#719, spec #290, ADR-0030) — reading a Group's library, then the
             // Librarian's work on it. Both map the Folder page; the tab itself rides on groups.show.
-            new HelpArticle('find-a-document-in-a-groups-library', HelpSection::Groups, status: ArticleStatus::Draft, route: 'groups.documents.folder'),
-            new HelpArticle('run-your-groups-document-library', HelpSection::Groups, requires: ['librarian', 'chair'], status: ArticleStatus::Draft, route: 'groups.documents.folder'),
+            new HelpArticle('find-a-document-in-a-groups-library', HelpSection::Groups, status: ArticleStatus::Published, route: 'groups.documents.folder'),
+            new HelpArticle('run-your-groups-document-library', HelpSection::Groups, requires: ['librarian', 'chair'], status: ArticleStatus::Published, route: 'groups.documents.folder'),
 
             new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
             new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),

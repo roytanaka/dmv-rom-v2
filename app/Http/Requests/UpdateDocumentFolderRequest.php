@@ -37,6 +37,9 @@ class UpdateDocumentFolderRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', new UniqueFolderName($folder->group_id, $folder->parent_id, $folder->id)],
             // A top-level Folder's setting (#715, ADR-0030 §5); left out, it stays as it is.
             'visibility' => [Rule::prohibitedIf($folder->parent_id !== null), 'sometimes', Rule::enum(DocumentVisibility::class)],
+            // Its section in the parent Folder (#724, ADR-0030 §4): one of the parent's (or the
+            // root's) Document categories; null files it under Other. Left out, it stays.
+            'category_id' => ['sometimes', 'nullable', 'integer', $this->categoryOf($folder->group_id, $folder->parent_id)],
         ];
     }
 
@@ -49,6 +52,7 @@ class UpdateDocumentFolderRequest extends FormRequest
             'name.required' => trans('document_folders.error.name_required'),
             'visibility.prohibited' => trans('document_folders.error.visibility_top_level'),
             'visibility.enum' => trans('document_folders.error.visibility_invalid'),
+            ...$this->categoryMessages(),
         ];
     }
 

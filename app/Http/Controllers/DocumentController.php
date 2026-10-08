@@ -21,7 +21,8 @@ use Illuminate\Http\RedirectResponse;
 class DocumentController extends Controller
 {
     /**
-     * Upload one file to the library root, or into the Folder the request names (#714).
+     * Upload one file to the library root, or into the Folder the request names (#714), under
+     * the Document category it names (#728).
      */
     public function store(StoreDocumentRequest $request, Group $group, DocumentStorage $storage): RedirectResponse
     {
@@ -29,6 +30,8 @@ class DocumentController extends Controller
             ...$storage->store($request->file('file')),
             'kind' => DocumentKind::File,
             'folder_id' => $request->validated('folder_id'),
+            // One Document category for the whole batch (#728): each file's request carries it.
+            'category_id' => $request->validated('category_id'),
             'uploaded_by_id' => $request->user()->id,
             'uploaded_at' => now(),
         ]);
@@ -48,7 +51,7 @@ class DocumentController extends Controller
 
     /**
      * Upload a new file over a Document (#713, ADR-0030 §8). The row keeps its id, so its
-     * download link, Folder and Tags stay; the file's columns and the uploader change. The old
+     * download link and Folder stay; the file's columns and the uploader change. The old
      * file is deleted only once the row points at the new one.
      */
     public function replace(ReplaceDocumentFileRequest $request, Document $document, DocumentStorage $storage): RedirectResponse

@@ -307,9 +307,10 @@ class GroupController extends Controller
                 ? $this->hours($request, $group)
                 : ['records' => [], 'months' => []],
             // The Documents tab's payload (#712, #714, ADR-0030), resolved only on that tab: the
-            // open Folder (or the library root) with what the viewer may read in it.
+            // open Folder (or the library root) with what the viewer may read in it, filtered to
+            // one Document category by `?category=` (#725).
             'library' => $section === 'documents'
-                ? DocumentLibrary::for($request->user(), $group, $folder, $request->filled('tag') ? $request->integer('tag') : null)
+                ? DocumentLibrary::for($request->user(), $group, $folder, $request->filled('category') ? $request->integer('category') : null)
                 : DocumentLibrary::empty(),
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.

@@ -12,9 +12,9 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Download one Document (#712, ADR-0003, ADR-0030 §13) under its original filename. Every
- * download passes {@see DocumentPolicy::download()} and writes an access-log row before the
- * file streams. The URL `/documents/{document}/download` is stable so the legacy redirect map
+ * Serve one Document (#712, ADR-0003, ADR-0030 §13) under its original filename: a PDF opens
+ * in the browser, any other file downloads. Every download passes
+ * {@see DocumentPolicy::download()} and writes an access-log row before the file streams. The URL `/documents/{document}/download` is stable so the legacy redirect map
  * can point at it. A logged-out visitor gets the login page, then the file (`auth` keeps the
  * intended URL).
  *
@@ -43,9 +43,12 @@ class DownloadDocumentController extends Controller
 
         $this->logAccess($request, $document);
 
-        return $disk->download($document->storage_path, $document->original_filename, [
-            'Content-Type' => $document->mime_type,
-        ]);
+        // A PDF opens in the browser's viewer; anything else downloads. Only PDF goes inline:
+        // an uploaded HTML or SVG file shown inline could run script on this origin.
+        $headers = ['Content-Type' => $document->mime_type, 'X-Content-Type-Options' => 'nosniff'];
+        $disposition = $document->mime_type === 'application/pdf' ? 'inline' : 'attachment';
+
+        return $disk->response($document->storage_path, $document->original_filename, $headers, $disposition);
     }
 
     /**

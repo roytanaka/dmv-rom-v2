@@ -97,7 +97,7 @@ it('sends each row\'s description to the tab', function () {
     $this->actingAs(keeperOf($group, null))
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('library.documents.0.description', 'Read before the tour.'));
+            ->where('library.sections.0.documents.0.description', 'Read before the tour.'));
 });
 
 // --- Replace ------------------------------------------------------------------------
@@ -143,19 +143,6 @@ it('swaps the file and keeps the Document', function () {
         ->get(route('documents.download', $document))
         ->assertOk()
         ->assertDownload('Data Sheet v2.docx');
-});
-
-it('keeps the Document\'s Tags when its file is replaced', function () {
-    $group = keptLibrary();
-    $document = keptDocument($group);
-    $tag = $group->documentTags()->create(['name' => 'Required']);
-    $document->tags()->attach($tag);
-
-    $this->actingAs(keeperOf($group))
-        ->post(route('documents.replace', $document), ['file' => UploadedFile::fake()->create('new.pdf', 5, 'application/pdf')])
-        ->assertSessionHasNoErrors();
-
-    expect($document->fresh()->tags->pluck('id')->all())->toBe([$tag->id]);
 });
 
 it('keeps the old file when the new one is refused', function () {

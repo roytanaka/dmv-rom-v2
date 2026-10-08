@@ -26,11 +26,43 @@ trait WritesDocumentLibrary
     }
 
     /**
+     * An optional id field as an int, or null when it is absent or empty (the library root
+     * for a Folder field).
+     */
+    protected function nullableId(string $key): ?int
+    {
+        return $this->filled($key) ? $this->integer($key) : null;
+    }
+
+    /**
      * A Folder id that must name one of the given Group's Folders.
      */
     protected function folderOfGroup(int $groupId): Exists
     {
         return Rule::exists('document_folders', 'id')->where('group_id', $groupId);
+    }
+
+    /**
+     * A Document category id that must name one of the given Folder's Document categories (the
+     * library root's when `$folderId` is null), in the given Group (#724, ADR-0030 §4). Another
+     * Folder's Document category is refused. Pair it with the `category_id.exists` message
+     * from {@see categoryMessages()}.
+     */
+    protected function categoryOf(int $groupId, ?int $folderId): Exists
+    {
+        return Rule::exists('document_categories', 'id')
+            ->where('group_id', $groupId)
+            ->where('folder_id', $folderId);
+    }
+
+    /**
+     * The messages for a `category_id` field checked with {@see categoryOf()}.
+     *
+     * @return array<string, string>
+     */
+    protected function categoryMessages(): array
+    {
+        return ['category_id.exists' => trans('document_categories.error.not_here')];
     }
 
     /**

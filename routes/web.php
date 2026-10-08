@@ -3,9 +3,9 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentFolderController;
-use App\Http\Controllers\DocumentTagController;
 use App\Http\Controllers\DownloadDocumentController;
 use App\Http\Controllers\DownloadFeedbackScreenshotController;
 use App\Http\Controllers\FeedbackController;
@@ -374,27 +374,23 @@ Route::delete('document-folders/{folder}', [DocumentFolderController::class, 'de
 Route::patch('documents/{document}/move', MoveDocumentController::class)
     ->middleware(['auth'])
     ->name('documents.move');
+// Document categories (#724, spec #721, ADR-0030 §4). The Folder pattern: create nests under
+// the Group with the owning Folder (none for the root); rename and delete bind the Document
+// category by id. Authorized in the Form Requests (DocumentPolicy::manage).
+Route::post('groups/{group}/document-categories', [DocumentCategoryController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('document-categories.store');
+Route::patch('document-categories/{category}', [DocumentCategoryController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('document-categories.update');
+Route::delete('document-categories/{category}', [DocumentCategoryController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('document-categories.destroy');
 // Link Documents (#716, ADR-0030 §7): a title and a web address in place of a file. Same
 // authorization as an upload; opening one goes through `documents.download`.
 Route::post('groups/{group}/documents/links', [LinkDocumentController::class, 'store'])
     ->middleware(['auth'])
     ->name('documents.links.store');
-
-// Document library Tags (#717, spec #290, ADR-0030 §4). The same Librarian seam: create nests
-// under the Group, rename and delete bind the Tag by id, and a Document's Tags are replaced as
-// one set. Each is authorized in its Form Request through the DocumentTagPolicy.
-Route::post('groups/{group}/document-tags', [DocumentTagController::class, 'store'])
-    ->middleware(['auth'])
-    ->name('document-tags.store');
-Route::patch('document-tags/{documentTag}', [DocumentTagController::class, 'update'])
-    ->middleware(['auth'])
-    ->name('document-tags.update');
-Route::delete('document-tags/{documentTag}', [DocumentTagController::class, 'destroy'])
-    ->middleware(['auth'])
-    ->name('document-tags.destroy');
-Route::put('documents/{document}/tags', [DocumentTagController::class, 'sync'])
-    ->middleware(['auth'])
-    ->name('documents.tags.update');
 
 // Group scheduling authoring (#354, PRD #352, ADR-0021 §1). The Scheduler's write
 // seam for a Group's Schedules: create a draft, edit its fields, publish / un-publish

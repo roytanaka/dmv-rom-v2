@@ -213,13 +213,14 @@ class Group extends Model
     }
 
     /**
-     * The Tags this Group defines for its Document library (#717, ADR-0030 §4).
+     * The Document categories of this Group's library (#724, ADR-0030 §4): the root's list and
+     * every Folder's.
      *
-     * @return HasMany<DocumentTag, $this>
+     * @return HasMany<DocumentCategory, $this>
      */
-    public function documentTags(): HasMany
+    public function documentCategories(): HasMany
     {
-        return $this->hasMany(DocumentTag::class);
+        return $this->hasMany(DocumentCategory::class);
     }
 
     /**

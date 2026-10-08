@@ -7,19 +7,31 @@ Open the files and links a Group keeps on its **Documents** tab.
 1. Open the Group from the Left Side Bar.
 2. Select the **Documents** tab.
 
-    ![The Documents tab: one folder, Natural History, readable by All members](01.png)
+    ![The Documents tab: the path, the category list, then the Data Sheets category with its folders](01.png)
 
-The tab lists folders first, then documents. Only a Group with a Document library has this tab.
+Only a Group with a Document library has this tab.
+
+The tab puts folders and files under categories, for example Data Sheets and Publications. Each category shows a heading and a count. Items with no category show at the end, under **Other**.
+
+![The Other heading at the end of the tab: a PDF file and two links](02.png)
+
+You see only the categories that hold something you can read.
 
 ## Browse the folders
 
 1. Select a folder name to open it.
 
-    ![Inside Natural History: the path at the top, then two folders](02.png)
+    ![Inside World Culture: the path, then the folder name, 7 categories and 13 folders, and who can read it](03.png)
 
 2. Select a name in the path at the top to go back up.
 
-Each folder shows who can read it. **Group members** means only the Group's members. **All members** means every DMV member.
+An open folder shows its name at the top. Under the name, it shows how many categories, folders, and files it holds. Then it shows who can read it.
+
+**Group members** means only the Group's members. **All members** means every DMV member.
+
+Each folder has its own categories. A folder with no categories shows one list with no headings.
+
+![Inside Ancient Egypt & Nubia: no categories, one list of three PDF files](04.png)
 
 > **Note:** A Group can share a top-level folder with all members. You can read that folder when you are not in the Group.
 
@@ -28,25 +40,21 @@ Each folder shows who can read it. **Group members** means only the Group's memb
 1. Select the name of a file to download it.
 2. Select the name of a link to open its web page in a new tab.
 
-![A folder with a subfolder and a PDF data sheet, with its type, size, date, and tag](03.png)
-
 A link shows a link icon in the **Type** column. A file shows its type and size.
 
-## Filter by tag
+## Show one category
 
-A Group can put tags on its documents, for example Highlights or Required.
+1. Open the category list at the top right.
 
-1. Open the **Tag** list above the table.
+    ![The category list open in World Culture: All categories, then the seven categories](05.png)
 
-    ![The Tag list open: All documents, then the Group's tags](04.png)
+2. Select a category. The page shows only that category.
 
-2. Select a tag.
+    ![World Culture filtered to Egypt & Nubia: one heading and one folder](06.png)
 
-    ![The tab filtered by Highlights: two documents from different folders](05.png)
+3. Select **All categories** to show all of them again.
 
-3. Select **All documents** to clear the filter.
-
-The tag filter shows every document with that tag, from all folders you can read.
+The list shows the categories of the open folder only. When you open another folder, the page shows all its categories again.
 
 ## What next
 

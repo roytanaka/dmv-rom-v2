@@ -3,8 +3,8 @@
 use App\Enums\DocumentVisibility;
 use App\Enums\Role;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
-use App\Models\DocumentTag;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -365,13 +365,13 @@ it('lists the top-level Folders and root Documents at the library root, sorted b
         ->assertInertia(fn (Assert $page) => $page
             ->where('library.folder', null)
             ->where('library.breadcrumb', [])
-            ->has('library.folders', 2)
-            ->where('library.folders.0.id', $minutes->id)
-            ->where('library.folders.0.name', 'minutes')
-            ->where('library.folders.0.href', "/groups/{$group->slug}/documents/folders/{$minutes->id}")
-            ->where('library.folders.1.id', $reports->id)
-            ->has('library.documents', 1)
-            ->where('library.documents.0.id', $root->id)
+            ->has('library.sections.0.folders', 2)
+            ->where('library.sections.0.folders.0.id', $minutes->id)
+            ->where('library.sections.0.folders.0.name', 'minutes')
+            ->where('library.sections.0.folders.0.href', "/groups/{$group->slug}/documents/folders/{$minutes->id}")
+            ->where('library.sections.0.folders.1.id', $reports->id)
+            ->has('library.sections.0.documents', 1)
+            ->where('library.sections.0.documents.0.id', $root->id)
             ->where('library.destinations', []));
 });
 
@@ -395,11 +395,11 @@ it('opens a Folder with its breadcrumb, child Folders and Documents', function (
             ->has('library.breadcrumb', 1)
             ->where('library.breadcrumb.0.id', $top->id)
             ->where('library.breadcrumb.0.name', 'Data Sheets')
-            ->has('library.folders', 1)
-            ->where('library.folders.0.id', $tour->id)
-            ->has('library.documents', 1)
-            ->where('library.documents.0.id', $sheet->id)
-            ->where('library.documents.0.folderId', $section->id)
+            ->has('library.sections.0.folders', 1)
+            ->where('library.sections.0.folders.0.id', $tour->id)
+            ->has('library.sections.0.documents', 1)
+            ->where('library.sections.0.documents.0.id', $sheet->id)
+            ->where('library.sections.0.documents.0.folderId', $section->id)
             ->where('library.maxDepth', DocumentFolder::MAX_DEPTH));
 });
 
@@ -411,8 +411,7 @@ it('shows an empty Folder with nothing in it', function () {
         ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $folder]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->has('library.folders', 0)
-            ->has('library.documents', 0));
+            ->has('library.sections', 0));
 });
 
 it('sends a manager every Folder as a move destination, in tree order', function () {
@@ -425,26 +424,9 @@ it('sends a manager every Folder as a move destination, in tree order', function
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertInertia(fn (Assert $page) => $page
             ->has('library.destinations', 3)
-            ->where('library.destinations.0', ['id' => $a->id, 'parentId' => null, 'depth' => 1, 'path' => ['A']])
-            ->where('library.destinations.1', ['id' => $child->id, 'parentId' => $a->id, 'depth' => 2, 'path' => ['A', 'Child']])
+            ->where('library.destinations.0', ['id' => $a->id, 'parentId' => null, 'depth' => 1, 'path' => ['A'], 'categories' => []])
+            ->where('library.destinations.1', ['id' => $child->id, 'parentId' => $a->id, 'depth' => 2, 'path' => ['A', 'Child'], 'categories' => []])
             ->where('library.destinations.2.id', $b->id));
-});
-
-it('lists the Documents of a Tag across Folders, without the Folder rows', function () {
-    $group = folderLibrary();
-    $folder = topFolder($group);
-    $tag = DocumentTag::factory()->create(['group_id' => $group->id, 'name' => 'Highlights']);
-    $nested = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($folder)->create()->id]);
-    $nested->tags()->attach($tag);
-    $root = Document::factory()->create(['group_id' => $group->id]);
-    $root->tags()->attach($tag);
-
-    $this->actingAs(folderReader($group))
-        ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'tag' => $tag->id]))
-        ->assertInertia(fn (Assert $page) => $page
-            ->has('library.folders', 0)
-            ->has('library.documents', 2)
-            ->where('library.tag.id', $tag->id));
 });
 
 it('returns 404 for a Folder of another Group', function () {
@@ -465,7 +447,7 @@ it('refuses a non-member a Folder the Group keeps to its members', function () {
 
     $this->actingAs(Member::factory()->create())
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
-        ->assertInertia(fn (Assert $page) => $page->has('library.folders', 0));
+        ->assertInertia(fn (Assert $page) => $page->has('library.sections', 0));
 });
 
 it('serves a Folder under /fr/ with French segments', function () {
@@ -591,15 +573,15 @@ it('sends each Folder\'s effective visibility, and the open Folder\'s', function
     $this->actingAs($member)
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('library.folders.0.visibility', 'members')
-            ->where('library.folders.1.visibility', 'group'));
+            ->where('library.sections.0.folders.0.visibility', 'members')
+            ->where('library.sections.0.folders.1.visibility', 'group'));
 
     $this->actingAs($member)
         ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $shared]))
         ->assertInertia(fn (Assert $page) => $page
             ->where('library.folder.visibility', 'members')
-            ->where('library.folders.0.id', $sub->id)
-            ->where('library.folders.0.visibility', 'members'));
+            ->where('library.sections.0.folders.0.id', $sub->id)
+            ->where('library.sections.0.folders.0.visibility', 'members'));
 });
 
 it('sends a non-member only the Folders and Documents shared with every Member', function () {
@@ -607,44 +589,40 @@ it('sends a non-member only the Folders and Documents shared with every Member',
     $shared = topFolder($group, 'Handbooks');
     $shared->update(['visibility' => DocumentVisibility::Members]);
     $internal = topFolder($group, 'Minutes');
-    $tag = DocumentTag::factory()->create(['group_id' => $group->id, 'name' => 'Required']);
-    $readable = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($shared)->create()->id]);
-    $hidden = Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($internal)->create()->id]);
-    $rootDocument = Document::factory()->create(['group_id' => $group->id]);
-    foreach ([$readable, $hidden, $rootDocument] as $document) {
-        $document->tags()->attach($tag);
-    }
+    $sharedSub = DocumentFolder::factory()->in($shared)->create();
+    $readable = Document::factory()->create(['group_id' => $group->id, 'folder_id' => $sharedSub->id]);
+    Document::factory()->create(['group_id' => $group->id, 'folder_id' => DocumentFolder::factory()->in($internal)->create()->id]);
+    Document::factory()->create(['group_id' => $group->id]);
     $outsider = Member::factory()->create();
 
     $this->actingAs($outsider)
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('library.folders', 1)
-            ->where('library.folders.0.id', $shared->id)
-            ->has('library.documents', 0)
+            ->has('library.sections.0.folders', 1)
+            ->where('library.sections.0.folders.0.id', $shared->id)
+            ->has('library.sections.0.documents', 0)
             ->where('library.destinations', []));
 
     $this->actingAs($outsider)
-        ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'tag' => $tag->id]))
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $sharedSub]))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('library.documents', 1)
-            ->where('library.documents.0.id', $readable->id));
+            ->has('library.sections.0.documents', 1)
+            ->where('library.sections.0.documents.0.id', $readable->id));
 
     $this->actingAs($outsider)
         ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $internal]))
         ->assertForbidden();
 });
 
-it('lists a Tag across deep Folders without a query per Document', function () {
+it('lists a deep Folder without a query per Document', function () {
     $group = folderLibrary();
-    $tag = DocumentTag::factory()->create(['group_id' => $group->id]);
+    $top = DocumentFolder::factory()->create(['group_id' => $group->id, 'visibility' => DocumentVisibility::Members]);
+    $deep = folderChain($group, 3, $top);
     $member = Member::factory()->create();
-    $url = route('groups.show', ['group' => $group, 'section' => 'documents', 'tag' => $tag->id]);
+    $url = route('groups.documents.folder', ['group' => $group, 'folder' => $deep]);
 
-    $addTaggedDocument = function () use ($group, $tag) {
-        $top = DocumentFolder::factory()->create(['group_id' => $group->id, 'visibility' => DocumentVisibility::Members]);
-        $deep = folderChain($group, 3, $top);
-        Document::factory()->create(['group_id' => $group->id, 'folder_id' => $deep->id])->tags()->attach($tag);
+    $addDocument = function () use ($group, $deep) {
+        Document::factory()->create(['group_id' => $group->id, 'folder_id' => $deep->id]);
     };
 
     $countQueries = function () use ($member, $url): int {
@@ -656,12 +634,38 @@ it('lists a Tag across deep Folders without a query per Document', function () {
         return count(DB::getQueryLog());
     };
 
-    $addTaggedDocument();
+    $addDocument();
     $countQueries(); // Warm up: the first request runs one-off queries.
     $one = $countQueries();
-    $addTaggedDocument();
-    $addTaggedDocument();
+    $addDocument();
+    $addDocument();
     $three = $countQueries();
 
     expect($three)->toBe($one);
+});
+
+it('counts what the open Folder holds for its header, whichever section they sit in', function () {
+    $group = folderLibrary();
+    $tours = topFolder($group, 'Tours');
+    $europe = DocumentCategory::factory()->in($tours)->create(['name' => 'Europe']);
+    DocumentCategory::factory()->in($tours)->create(['name' => 'Asia']);
+    DocumentFolder::factory()->create(['group_id' => $group->id, 'parent_id' => $tours->id, 'category_id' => $europe->id]);
+    DocumentFolder::factory()->create(['group_id' => $group->id, 'parent_id' => $tours->id]);
+    Document::factory()->create(['group_id' => $group->id, 'folder_id' => $tours->id, 'category_id' => $europe->id]);
+    $member = folderReader($group);
+
+    $this->actingAs($member)
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $tours]))
+        ->assertInertia(fn (Assert $page) => $page
+            // The header counts the Document categories the viewer sees: empty Asia is left out
+            // for a reader who cannot manage the library (#725).
+            ->has('library.categories', 1)
+            ->where('library.folderCount', 2)
+            ->where('library.documentCount', 1));
+
+    $this->actingAs($member)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.folderCount', 1)
+            ->where('library.documentCount', 0));
 });

@@ -11,14 +11,12 @@ return [
 
     'new' => 'Nouveau dossier',
     'actions' => 'Actions pour :name',
-    'rename' => 'Renommer',
     'move' => 'Déplacer',
     'delete' => 'Supprimer',
     'save' => 'Enregistrer',
     'cancel' => 'Annuler',
 
     'create_title' => 'Nouveau dossier',
-    'rename_title' => 'Renommer le dossier',
     'move_title' => 'Déplacer :name',
     'delete_title' => 'Supprimer :name?',
     'delete_body' => 'Seul un dossier vide peut être supprimé.',

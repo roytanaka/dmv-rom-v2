@@ -11,7 +11,7 @@ use Illuminate\Http\RedirectResponse;
  * The Librarian's writes for link Documents (#716, spec #290, ADR-0030 §7): a title and a
  * web address in place of a stored file. Opening one goes through the download route
  * ({@see DownloadDocumentController}), which checks access, logs, then redirects.
- * Edit, delete, move and Tags are shared with file Documents on {@see DocumentController}.
+ * Edit, delete and move are shared with file Documents on {@see DocumentController}.
  */
 class LinkDocumentController extends Controller
 {

@@ -287,6 +287,8 @@ export interface LibraryDocument {
     kind: 'file' | 'link';
     /** The Folder it sits in, or null at the library root (#714). */
     folderId: number | null;
+    /** Its Document category in that Folder, or null for Other (#724). */
+    categoryId: number | null;
     /** A link's web address, sent to managers only (for editing); readers open `href`. */
     url: string | null;
     title: string | null;
@@ -304,14 +306,6 @@ export interface LibraryDocument {
     uploadedAt: string | null;
     /** The gated download URL, localized. */
     href: string;
-    /** The Tags this Document carries, sorted by name (#717). */
-    tags: LibraryTag[];
-}
-
-// A Tag of a Group's Document library (#717, ADR-0030 §4). `name` is content, as written.
-export interface LibraryTag {
-    id: number;
-    name: string;
 }
 
 // A Folder of the Document library (#714, ADR-0030 §3). `name` is content, shown as written.
@@ -320,6 +314,8 @@ export interface LibraryFolder {
     name: string;
     /** The Folder's page, localized. */
     href: string;
+    /** Its Document category in its parent Folder, or null for Other (#724). */
+    categoryId: number | null;
     /** Who reads it: its top-level Folder's setting (#715, ADR-0030 §5). */
     visibility: FolderVisibility;
 }
@@ -335,6 +331,25 @@ export interface FolderDestination {
     depth: number;
     /** Folder names from the top level down to this one. */
     path: string[];
+    /** Its Document categories, sorted by name: a move into it picks one (#728). */
+    categories: LibraryCategory[];
+}
+
+// A Document category (#724, ADR-0030 §4): a heading in one Folder's (or the root's) list.
+// `name` is content, shown as written.
+export interface LibraryCategory {
+    id: number;
+    name: string;
+}
+
+// One section of the open Folder (#724): a Document category's items, or Other (`category`
+// null). Folders then Documents, each sorted by name.
+export interface LibrarySection {
+    category: LibraryCategory | null;
+    folders: LibraryFolder[];
+    documents: LibraryDocument[];
+    folderCount: number;
+    documentCount: number;
 }
 
 export interface GroupLibrary {
@@ -342,17 +357,24 @@ export interface GroupLibrary {
     folder: LibraryFolder | null;
     /** The Folders above the open one, top-level first (#714). */
     breadcrumb: LibraryFolder[];
-    /** The open Folder's child Folders, sorted by name; none under a Tag filter (#714). */
-    folders: LibraryFolder[];
+    /** The open Folder's own Document categories, sorted by name (#724). */
+    categories: LibraryCategory[];
+    /**
+     * The active Category filter (#725): the `?category=` id as asked, or null for all. It may
+     * name no entry of `categories` (another Folder's, or hidden), and then `sections` is empty.
+     */
+    category: number | null;
+    /** The open Folder's child Folders and Documents, one section per Document category, then Other (#724). */
+    sections: LibrarySection[];
+    /** The open Folder's readable child Folders and Documents, across every section, for its header (#726). */
+    folderCount: number;
+    documentCount: number;
     /** Every Folder as a move destination; managers only (#714). */
     destinations: FolderDestination[];
+    /** The library root's Document categories, for a move to the top level; managers only (#728). */
+    rootCategories: LibraryCategory[];
     /** How deep Folders may go (DocumentFolder::MAX_DEPTH). */
     maxDepth: number;
-    documents: LibraryDocument[];
-    /** Every Tag the Group defines, sorted by name (#717). */
-    tags: LibraryTag[];
-    /** The active one-Tag filter, or null (#717). */
-    tag: LibraryTag | null;
 }
 
 // The Group Hours tab payload (#408, ADR-0022 §2). The viewer's own records for this
