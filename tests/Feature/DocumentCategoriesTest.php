@@ -155,7 +155,8 @@ it('shows the root in a section per Document category, sorted by name, then Othe
     $loose = DocumentFolder::factory()->create(['group_id' => $group->id, 'name' => 'Loose']);
     $note = Document::factory()->create(['group_id' => $group->id, 'title' => 'Note']);
 
-    $this->actingAs(categoryReader($group))
+    // A Librarian, who sees the empty Document category too (#725).
+    $this->actingAs(categoryReader($group, Role::Librarian))
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -240,6 +241,116 @@ it('never lets a Document category change who reads a Folder or Document', funct
 
     $this->actingAs($outsider)->get(route('groups.documents.folder', ['group' => $group, 'folder' => $internal]))->assertForbidden();
     $this->actingAs($outsider)->get(route('documents.download', $rootDocument))->assertForbidden();
+});
+
+// --- Filter (#725) --------------------------------------------------------------
+
+it('filters the root to one Document category with ?category=', function () {
+    $group = categoryLibrary();
+    $sheets = DocumentCategory::factory()->create(['group_id' => $group->id, 'name' => 'Data Sheets']);
+    $publications = DocumentCategory::factory()->create(['group_id' => $group->id, 'name' => 'Publications']);
+    $sheet = Document::factory()->create(['group_id' => $group->id, 'category_id' => $sheets->id]);
+    Document::factory()->create(['group_id' => $group->id, 'category_id' => $publications->id]);
+    Document::factory()->create(['group_id' => $group->id]);
+    $member = categoryReader($group);
+
+    $this->actingAs($member)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'category' => $sheets->id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.category', $sheets->id)
+            ->has('library.categories', 2)
+            ->has('library.sections', 1)
+            ->where('library.sections.0.category.id', $sheets->id)
+            ->where('library.sections.0.documents.0.id', $sheet->id));
+
+    $this->actingAs($member)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.category', null)
+            ->has('library.sections', 3));
+});
+
+it('filters a Folder page, and its sub folders open unfiltered', function () {
+    $group = categoryLibrary();
+    $tours = DocumentFolder::factory()->create(['group_id' => $group->id]);
+    $europe = DocumentCategory::factory()->in($tours)->create(['name' => 'Europe']);
+    $aaap = DocumentCategory::factory()->in($tours)->create(['name' => 'AAAP']);
+    DocumentFolder::factory()->in($tours)->create(['category_id' => $aaap->id]);
+    $tour = DocumentFolder::factory()->in($tours)->create(['category_id' => $europe->id]);
+
+    $this->actingAs(categoryReader($group))
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $tours, 'category' => $europe->id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.category', $europe->id)
+            ->has('library.categories', 2)
+            ->has('library.sections', 1)
+            ->where('library.sections.0.folders.0.id', $tour->id)
+            ->where('library.sections.0.folders.0.href', route('groups.documents.folder', ['group' => $group, 'folder' => $tour], absolute: false)));
+});
+
+it('gives an empty result, not an error, for another Folder\'s Document category', function () {
+    $group = categoryLibrary();
+    $tours = DocumentFolder::factory()->create(['group_id' => $group->id]);
+    $europe = DocumentCategory::factory()->in($tours)->create();
+    $sheets = DocumentCategory::factory()->create(['group_id' => $group->id]);
+    Document::factory()->create(['group_id' => $group->id, 'category_id' => $sheets->id]);
+    Document::factory()->create(['group_id' => $group->id]);
+    $member = categoryReader($group);
+
+    foreach ([$europe->id, 999999] as $id) {
+        $this->actingAs($member)
+            ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'category' => $id]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('library.category', $id)
+                ->has('library.categories', 1)
+                ->has('library.sections', 0));
+    }
+});
+
+it('leaves out a Document category with nothing readable for a viewer who cannot manage', function () {
+    $group = categoryLibrary();
+    $empty = DocumentCategory::factory()->create(['group_id' => $group->id, 'name' => 'Archive']);
+    $internal = DocumentCategory::factory()->create(['group_id' => $group->id, 'name' => 'Internal']);
+    $public = DocumentCategory::factory()->create(['group_id' => $group->id, 'name' => 'Public']);
+    DocumentFolder::factory()->create(['group_id' => $group->id, 'category_id' => $internal->id]);
+    Document::factory()->create(['group_id' => $group->id, 'category_id' => $internal->id]);
+    $shared = DocumentFolder::factory()->sharedWithMembers()->create(['group_id' => $group->id, 'category_id' => $public->id]);
+    $outsider = Member::factory()->create();
+
+    // A member of the Group reads the Internal items; the empty Document category still goes.
+    $this->actingAs(categoryReader($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.categories', [['id' => $internal->id, 'name' => 'Internal'], ['id' => $public->id, 'name' => 'Public']])
+            ->has('library.sections', 2));
+
+    // An outsider sees only the section holding the shared Folder, in the sections and the filter.
+    $this->actingAs($outsider)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.categories', [['id' => $public->id, 'name' => 'Public']])
+            ->has('library.sections', 1)
+            ->where('library.sections.0.category.id', $public->id)
+            ->where('library.sections.0.folders.0.id', $shared->id));
+
+    // A filter link to a section the outsider may not read shows nothing.
+    $this->actingAs($outsider)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'category' => $internal->id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('library.sections', 0));
+
+    // A Librarian keeps every Document category, the empty one included, to manage them.
+    $this->actingAs(categoryReader($group, Role::Librarian))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents', 'category' => $empty->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('library.categories', 3)
+            ->has('library.sections', 1)
+            ->where('library.sections.0.category.id', $empty->id)
+            ->where('library.sections.0.folderCount', 0)
+            ->where('library.sections.0.documentCount', 0));
 });
 
 // --- Assign ---------------------------------------------------------------------

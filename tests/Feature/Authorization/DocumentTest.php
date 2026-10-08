@@ -390,6 +390,10 @@ it('reads a Folder filed under a Document category per its top-level Folder only
     $actor = libraryActor($group, $who);
 
     $this->actingAs($actor)->get(route('groups.documents.folder', ['group' => $group, 'folder' => $sub]))->assertStatus($reads ? 200 : 403);
+    // The Category filter (#725) opens nothing the Folder does not.
+    $this->actingAs($actor)
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $folder, 'category' => $category->id]))
+        ->assertStatus($reads ? 200 : 403);
     $this->actingAs($actor)->get(route('documents.download', $document))->assertStatus($reads ? 200 : 403);
 })->with([
     'member' => ['member', true],

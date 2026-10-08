@@ -21,6 +21,13 @@ return [
         'category' => 'Category',
     ],
 
+    // The Category filter beside the breadcrumb (#725).
+    'filter' => [
+        'label' => 'Filter by category',
+        'all' => 'All categories',
+        'empty' => 'Nothing in this category.',
+    ],
+
     // The section for items with no Document category, and the select's choice for it.
     'other' => 'Other',
     'none' => 'No category',

@@ -25,8 +25,10 @@
 // Document categories (#724, ADR-0030 §4): the open Folder's items come in sections, one per
 // Document category, then Other (DocumentSection). A Folder with no Document categories shows
 // one plain list with no heading. A manager keeps the open Folder's list from the Categories
-// button (DocumentCategoriesDialog) and files an item from its Edit dialog.
+// button (DocumentCategoriesDialog) and files an item from its Edit dialog. The Category filter
+// beside the breadcrumb (#725, DocumentCategoryFilter) narrows the page to one section.
 import DocumentCategoriesDialog from '@/components/DocumentCategoriesDialog.vue';
+import DocumentCategoryFilter from '@/components/DocumentCategoryFilter.vue';
 import DocumentFolderBreadcrumb from '@/components/DocumentFolderBreadcrumb.vue';
 import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
 import DocumentSection from '@/components/DocumentSection.vue';
@@ -56,7 +58,9 @@ const isEmpty = computed(() => props.library.sections.length === 0);
 // --- Document categories (#724) ---------------------------------------------------------
 
 const categoriesDialogOpen = ref(false);
-const emptyMessage = computed(() => trans(props.library.folder ? 'document_folders.empty' : 'documents.empty'));
+const emptyMessage = computed(() =>
+    trans(props.library.category !== null ? 'document_categories.filter.empty' : props.library.folder ? 'document_folders.empty' : 'documents.empty'),
+);
 
 // --- Upload ---------------------------------------------------------------------------
 
@@ -142,11 +146,22 @@ function onDrop(event: DragEvent): void {
 
 <template>
     <div class="flex flex-col gap-6">
-        <div v-if="library.folder" class="flex flex-col gap-1">
-            <DocumentFolderBreadcrumb :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
-            <p class="text-muted-foreground text-sm">
-                {{ trans('document_folders.readable_by', { who: trans(`document_folders.visibility.${library.folder.visibility}`) }) }}
-            </p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div v-if="library.folder" class="flex flex-col gap-1">
+                <DocumentFolderBreadcrumb :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
+                <p class="text-muted-foreground text-sm">
+                    {{ trans('document_folders.readable_by', { who: trans(`document_folders.visibility.${library.folder.visibility}`) }) }}
+                </p>
+            </div>
+
+            <!-- The Category filter (#725), and a manager's Categories button (#724), beside the breadcrumb. -->
+            <div class="flex items-center gap-2 sm:ml-auto">
+                <DocumentCategoryFilter :categories="library.categories" :category="library.category" />
+                <Button v-if="canManage" type="button" variant="outline" size="sm" @click="categoriesDialogOpen = true">
+                    <PhListBullets class="h-4 w-4" aria-hidden="true" />
+                    {{ trans('document_categories.manage') }}
+                </Button>
+            </div>
         </div>
 
         <!-- Upload, for a manager only. The whole zone takes a drop; the button opens the picker. -->
@@ -174,10 +189,6 @@ function onDrop(event: DragEvent): void {
                 <Button v-if="canAddFolder" type="button" variant="outline" size="sm" @click="folderDialogOpen = true">
                     <PhFolderPlus class="h-4 w-4" aria-hidden="true" />
                     {{ trans('document_folders.new') }}
-                </Button>
-                <Button type="button" variant="outline" size="sm" @click="categoriesDialogOpen = true">
-                    <PhListBullets class="h-4 w-4" aria-hidden="true" />
-                    {{ trans('document_categories.manage') }}
                 </Button>
             </div>
 

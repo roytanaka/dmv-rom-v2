@@ -357,6 +357,11 @@ export interface GroupLibrary {
     breadcrumb: LibraryFolder[];
     /** The open Folder's own Document categories, sorted by name (#724). */
     categories: LibraryCategory[];
+    /**
+     * The active Category filter (#725): the `?category=` id as asked, or null for all. It may
+     * name no entry of `categories` (another Folder's, or hidden), and then `sections` is empty.
+     */
+    category: number | null;
     /** The open Folder's child Folders and Documents, one section per Document category, then Other (#724). */
     sections: LibrarySection[];
     /** Every Folder as a move destination; managers only (#714). */
