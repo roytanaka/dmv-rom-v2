@@ -73,6 +73,7 @@ This is the most important convention in the project — get it right. Decisions
 id
 group_id                // FK to groups, required: every Document belongs to one Group
 folder_id               // the Folder, nullable: null is the library root
+category_id             // the Document category, nullable: null is Other
 title                   // optional, single-column (as-authored)
 description             // optional, single-column (as-authored)
 kind                    // 'file' or 'link'
@@ -87,6 +88,8 @@ created_at, updated_at
 ```
 
 **Visibility** is set on top-level Folders, not on Documents: `group` (members of the owning Group) or `members` (every signed-in Member). Subfolders and Documents inherit it; the library root is `group`. `document_folders.visibility` is stored on top-level Folders only (null on subfolders); read the effective setting through `DocumentFolder::visibility()` / `Document::visibility()`, never the column. A subfolder moved to the top level keeps the setting it inherited. A Private Group's library is closed to non-members, and parentage never grants a read (ADR-0019, ADR-0030 §6).
+
+**Document categories** (`document_categories`) are headings, not Folder levels. Each Folder, and the library root (`folder_id` null), keeps its own list, names unique within it. A Folder or Document points at one Document category of its parent Folder (or the root) through `category_id`; the Form Requests refuse another Folder's (`WritesDocumentLibrary::categoryOf()`). Deleting a Document category moves its items to Other (null); deleting an empty Folder deletes its list. A Document category never changes who reads anything (ADR-0030 §4).
 
 **Link Documents** carry a `url` and no file. Opening one passes the same policy check and access log as a file download, then redirects.
 

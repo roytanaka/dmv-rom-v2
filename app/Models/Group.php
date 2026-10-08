@@ -213,6 +213,17 @@ class Group extends Model
     }
 
     /**
+     * The Document categories of this Group's library (#724, ADR-0030 §4): the root's list and
+     * every Folder's.
+     *
+     * @return HasMany<DocumentCategory, $this>
+     */
+    public function documentCategories(): HasMany
+    {
+        return $this->hasMany(DocumentCategory::class);
+    }
+
+    /**
      * The Schedules this Group runs — present only when its `has_scheduling`
      * capability is on (#353, ADR-0021 §1).
      *

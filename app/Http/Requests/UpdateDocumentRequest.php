@@ -39,6 +39,17 @@ class UpdateDocumentRequest extends FormRequest
             'title' => ['nullable', 'string', 'max:255'],
             ...($document->kind === DocumentKind::Link ? StoreLinkDocumentRequest::linkRules() : []),
             'description' => ['nullable', 'string', 'max:10000'],
+            // Its section in its Folder (#724, ADR-0030 §4): one of that Folder's (or the
+            // root's) Document categories; null files it under Other. Left out, it stays.
+            'category_id' => ['sometimes', 'nullable', 'integer', $this->categoryOf($document->group_id, $document->folder_id)],
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->categoryMessages();
     }
 }

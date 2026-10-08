@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
 use App\Models\Group;
 use App\Models\Member;
@@ -23,19 +24,19 @@ class DocumentLibrary
     /**
      * The payload for every tab other than Documents.
      *
-     * @return array{folder: null, breadcrumb: list<never>, folders: list<never>, destinations: list<never>, maxDepth: int, documents: list<never>}
+     * @return array{folder: null, breadcrumb: list<never>, categories: list<never>, sections: list<never>, destinations: list<never>, maxDepth: int}
      */
     public static function empty(): array
     {
-        return ['folder' => null, 'breadcrumb' => [], 'folders' => [], 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH, 'documents' => []];
+        return ['folder' => null, 'breadcrumb' => [], 'categories' => [], 'sections' => [], 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH];
     }
 
     /**
-     * One Folder of the library (the root when `$folder` is null): its breadcrumb, child
-     * Folders and Documents, each sorted by name (a Document's title, or its filename when
-     * there is none). Aborts 403 for a Folder the viewer may not read.
+     * One Folder of the library (the root when `$folder` is null): its breadcrumb, its
+     * Document categories (#724) and its child Folders and Documents in sections
+     * ({@see self::sections()}). Aborts 403 for a Folder the viewer may not read.
      *
-     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, folders: list<array<string, mixed>>, destinations: list<array<string, mixed>>, maxDepth: int, documents: list<array<string, mixed>>}
+     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, categories: list<array{id: int, name: string}>, sections: list<array<string, mixed>>, destinations: list<array<string, mixed>>, maxDepth: int}
      */
     public static function for(Member $viewer, Group $group, ?DocumentFolder $folder): array
     {
@@ -57,6 +58,8 @@ class DocumentLibrary
             // Content, as-authored (ADR-0004).
             'name' => $item->name,
             'href' => route('groups.documents.folder', ['group' => $group, 'folder' => $item], absolute: false),
+            // Its section in its parent Folder (#724); null is Other.
+            'categoryId' => $item->category_id,
             // Who reads it (#715, ADR-0030 §5): its top-level Folder's setting.
             'visibility' => $item->visibility()->value,
         ];
@@ -74,37 +77,91 @@ class DocumentLibrary
             ->sortBy(fn (Document $document) => mb_strtolower($document->displayName()), SORT_NATURAL)
             ->values();
 
+        // The open Folder's own Document categories (#724, ADR-0030 §4), sorted by name.
+        $categories = $group->documentCategories()
+            ->where('folder_id', $folder?->id)
+            ->get(['id', 'name'])
+            ->sortBy(fn (DocumentCategory $category) => mb_strtolower($category->name), SORT_NATURAL)
+            ->map(fn (DocumentCategory $category) => ['id' => $category->id, 'name' => $category->name])
+            ->values()
+            ->all();
+
+        $documentRow = fn (Document $document) => [
+            'id' => $document->id,
+            'kind' => $document->kind->value,
+            // The Folder it sits in (#714), for the move picker; null at the root.
+            'folderId' => $document->folder_id,
+            // Its section in that Folder (#724); null is Other.
+            'categoryId' => $document->category_id,
+            // A link's address, for a manager's edit form only; readers open it
+            // through `href`, so every open is checked and logged (#716).
+            'url' => $canManage ? $document->url : null,
+            // Content, as-authored (ADR-0004); the client falls back to the filename.
+            'title' => $document->title,
+            'description' => $document->description,
+            'filename' => $document->original_filename,
+            'extension' => $document->extension(),
+            'sizeBytes' => $document->size_bytes,
+            'updatedAt' => $document->updated_at->toIso8601String(),
+            'uploader' => $canManage ? $document->uploadedBy?->fullName() : null,
+            // When the current file (or link) was put up (story 51), managers only.
+            'uploadedAt' => $canManage ? $document->uploaded_at?->toIso8601String() : null,
+            'href' => route('documents.download', $document, absolute: false),
+        ];
+
         return [
             'folder' => $folder === null ? null : $folderRow($folder),
             // The Folders above the current one, top-level first; the client adds the root.
             'breadcrumb' => $folder === null ? [] : $folder->ancestors()->map($folderRow)->values()->all(),
-            'folders' => $folders->map($folderRow)->all(),
+            'categories' => $categories,
+            'sections' => self::sections($categories, $folders->map($folderRow)->all(), $documents->map($documentRow)->all()),
             'destinations' => $canManage ? self::destinations($tree->filter(fn (DocumentFolder $item) => $viewer->can('view', $item))) : [],
             // The depth limit, so the client offers only the Folder actions the server will accept.
             'maxDepth' => DocumentFolder::MAX_DEPTH,
-            'documents' => $documents
-                ->map(fn (Document $document) => [
-                    'id' => $document->id,
-                    'kind' => $document->kind->value,
-                    // The Folder it sits in (#714), for the move picker; null at the root.
-                    'folderId' => $document->folder_id,
-                    // A link's address, for a manager's edit form only; readers open it
-                    // through `href`, so every open is checked and logged (#716).
-                    'url' => $canManage ? $document->url : null,
-                    // Content, as-authored (ADR-0004); the client falls back to the filename.
-                    'title' => $document->title,
-                    'description' => $document->description,
-                    'filename' => $document->original_filename,
-                    'extension' => $document->extension(),
-                    'sizeBytes' => $document->size_bytes,
-                    'updatedAt' => $document->updated_at->toIso8601String(),
-                    'uploader' => $canManage ? $document->uploadedBy?->fullName() : null,
-                    // When the current file (or link) was put up (story 51), managers only.
-                    'uploadedAt' => $canManage ? $document->uploaded_at?->toIso8601String() : null,
-                    'href' => route('documents.download', $document, absolute: false),
-                ])
-                ->all(),
         ];
+    }
+
+    /**
+     * The open Folder's rows in sections (#724, ADR-0030 §4): one per Document category, in
+     * the order given (by name), then Other (`category` null) for the rows with none. Other
+     * appears only when it holds something, so a Folder with no Document categories is one
+     * plain section and an empty Folder has none. Each section keeps its rows' order (Folders,
+     * then Documents, each by name) and counts them. A row whose Document category is not in
+     * the list falls to Other.
+     *
+     * @param  list<array{id: int, name: string}>  $categories
+     * @param  list<array<string, mixed>>  $folders  rows carrying `categoryId`
+     * @param  list<array<string, mixed>>  $documents  rows carrying `categoryId`
+     * @return list<array{category: array{id: int, name: string}|null, folders: list<array<string, mixed>>, documents: list<array<string, mixed>>, folderCount: int, documentCount: int}>
+     */
+    private static function sections(array $categories, array $folders, array $documents): array
+    {
+        $known = array_column($categories, 'id');
+        $keyOf = fn (array $row) => in_array($row['categoryId'], $known, true) ? $row['categoryId'] : 0;
+        $foldersBy = collect($folders)->groupBy($keyOf);
+        $documentsBy = collect($documents)->groupBy($keyOf);
+
+        $section = function (?array $category, int $key) use ($foldersBy, $documentsBy): array {
+            $sectionFolders = ($foldersBy[$key] ?? collect())->values()->all();
+            $sectionDocuments = ($documentsBy[$key] ?? collect())->values()->all();
+
+            return [
+                'category' => $category,
+                'folders' => $sectionFolders,
+                'documents' => $sectionDocuments,
+                'folderCount' => count($sectionFolders),
+                'documentCount' => count($sectionDocuments),
+            ];
+        };
+
+        $sections = array_map(fn (array $category) => $section($category, $category['id']), $categories);
+        $other = $section(null, 0);
+
+        if ($other['folderCount'] + $other['documentCount'] > 0) {
+            $sections[] = $other;
+        }
+
+        return $sections;
     }
 
     /**

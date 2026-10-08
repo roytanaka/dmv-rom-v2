@@ -188,17 +188,17 @@ it('lists the root Documents for a member, sorted by name', function () {
             ->component('groups/Show')
             ->where('section', 'documents')
             ->where('can.manageDocuments', false)
-            ->has('library.documents', 2)
-            ->where('library.documents.0.title', 'Annual report')
-            ->where('library.documents.1.id', $minutes->id)
-            ->where('library.documents.1.title', null)
-            ->where('library.documents.1.filename', 'minutes.pdf')
-            ->where('library.documents.1.extension', 'pdf')
-            ->where('library.documents.1.sizeBytes', 2048)
-            ->where('library.documents.1.updatedAt', $minutes->updated_at->toIso8601String())
-            ->where('library.documents.1.uploader', null)
-            ->where('library.documents.1.uploadedAt', null)
-            ->where('library.documents.1.href', "/documents/{$minutes->id}/download"));
+            ->has('library.sections.0.documents', 2)
+            ->where('library.sections.0.documents.0.title', 'Annual report')
+            ->where('library.sections.0.documents.1.id', $minutes->id)
+            ->where('library.sections.0.documents.1.title', null)
+            ->where('library.sections.0.documents.1.filename', 'minutes.pdf')
+            ->where('library.sections.0.documents.1.extension', 'pdf')
+            ->where('library.sections.0.documents.1.sizeBytes', 2048)
+            ->where('library.sections.0.documents.1.updatedAt', $minutes->updated_at->toIso8601String())
+            ->where('library.sections.0.documents.1.uploader', null)
+            ->where('library.sections.0.documents.1.uploadedAt', null)
+            ->where('library.sections.0.documents.1.href', "/documents/{$minutes->id}/download"));
 });
 
 it('shows the uploader, the upload time and the upload control to a Librarian', function () {
@@ -211,8 +211,8 @@ it('shows the uploader, the upload time and the upload control to a Librarian', 
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageDocuments', true)
-            ->where('library.documents.0.uploader', $uploader->fullName())
-            ->where('library.documents.0.uploadedAt', Carbon::parse('2026-03-14 09:30:00')->toIso8601String()));
+            ->where('library.sections.0.documents.0.uploader', $uploader->fullName())
+            ->where('library.sections.0.documents.0.uploadedAt', Carbon::parse('2026-03-14 09:30:00')->toIso8601String()));
 });
 
 it('withholds root Documents from a non-member', function () {
@@ -224,7 +224,7 @@ it('withholds root Documents from a non-member', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageDocuments', false)
-            ->has('library.documents', 0));
+            ->has('library.sections', 0));
 });
 
 it('returns 404 for the Documents tab of a Group without the documents capability', function () {
@@ -246,7 +246,7 @@ it('serves the Documents tab and download links under /fr/', function () {
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('section', 'documents')
-                ->where('library.documents.0.href', "/fr/documents/{$document->id}/telecharger"));
+                ->where('library.sections.0.documents.0.href', "/fr/documents/{$document->id}/telecharger"));
 
         $this->get("/fr/documents/{$document->id}/telecharger")
             ->assertOk()

@@ -287,6 +287,8 @@ export interface LibraryDocument {
     kind: 'file' | 'link';
     /** The Folder it sits in, or null at the library root (#714). */
     folderId: number | null;
+    /** Its Document category in that Folder, or null for Other (#724). */
+    categoryId: number | null;
     /** A link's web address, sent to managers only (for editing); readers open `href`. */
     url: string | null;
     title: string | null;
@@ -312,6 +314,8 @@ export interface LibraryFolder {
     name: string;
     /** The Folder's page, localized. */
     href: string;
+    /** Its Document category in its parent Folder, or null for Other (#724). */
+    categoryId: number | null;
     /** Who reads it: its top-level Folder's setting (#715, ADR-0030 §5). */
     visibility: FolderVisibility;
 }
@@ -329,18 +333,36 @@ export interface FolderDestination {
     path: string[];
 }
 
+// A Document category (#724, ADR-0030 §4): a heading in one Folder's (or the root's) list.
+// `name` is content, shown as written.
+export interface LibraryCategory {
+    id: number;
+    name: string;
+}
+
+// One section of the open Folder (#724): a Document category's items, or Other (`category`
+// null). Folders then Documents, each sorted by name.
+export interface LibrarySection {
+    category: LibraryCategory | null;
+    folders: LibraryFolder[];
+    documents: LibraryDocument[];
+    folderCount: number;
+    documentCount: number;
+}
+
 export interface GroupLibrary {
     /** The open Folder, or null at the library root (#714). */
     folder: LibraryFolder | null;
     /** The Folders above the open one, top-level first (#714). */
     breadcrumb: LibraryFolder[];
-    /** The open Folder's child Folders, sorted by name (#714). */
-    folders: LibraryFolder[];
+    /** The open Folder's own Document categories, sorted by name (#724). */
+    categories: LibraryCategory[];
+    /** The open Folder's child Folders and Documents, one section per Document category, then Other (#724). */
+    sections: LibrarySection[];
     /** Every Folder as a move destination; managers only (#714). */
     destinations: FolderDestination[];
     /** How deep Folders may go (DocumentFolder::MAX_DEPTH). */
     maxDepth: number;
-    documents: LibraryDocument[];
 }
 
 // The Group Hours tab payload (#408, ADR-0022 §2). The viewer's own records for this

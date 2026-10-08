@@ -364,13 +364,13 @@ it('lists the top-level Folders and root Documents at the library root, sorted b
         ->assertInertia(fn (Assert $page) => $page
             ->where('library.folder', null)
             ->where('library.breadcrumb', [])
-            ->has('library.folders', 2)
-            ->where('library.folders.0.id', $minutes->id)
-            ->where('library.folders.0.name', 'minutes')
-            ->where('library.folders.0.href', "/groups/{$group->slug}/documents/folders/{$minutes->id}")
-            ->where('library.folders.1.id', $reports->id)
-            ->has('library.documents', 1)
-            ->where('library.documents.0.id', $root->id)
+            ->has('library.sections.0.folders', 2)
+            ->where('library.sections.0.folders.0.id', $minutes->id)
+            ->where('library.sections.0.folders.0.name', 'minutes')
+            ->where('library.sections.0.folders.0.href', "/groups/{$group->slug}/documents/folders/{$minutes->id}")
+            ->where('library.sections.0.folders.1.id', $reports->id)
+            ->has('library.sections.0.documents', 1)
+            ->where('library.sections.0.documents.0.id', $root->id)
             ->where('library.destinations', []));
 });
 
@@ -394,11 +394,11 @@ it('opens a Folder with its breadcrumb, child Folders and Documents', function (
             ->has('library.breadcrumb', 1)
             ->where('library.breadcrumb.0.id', $top->id)
             ->where('library.breadcrumb.0.name', 'Data Sheets')
-            ->has('library.folders', 1)
-            ->where('library.folders.0.id', $tour->id)
-            ->has('library.documents', 1)
-            ->where('library.documents.0.id', $sheet->id)
-            ->where('library.documents.0.folderId', $section->id)
+            ->has('library.sections.0.folders', 1)
+            ->where('library.sections.0.folders.0.id', $tour->id)
+            ->has('library.sections.0.documents', 1)
+            ->where('library.sections.0.documents.0.id', $sheet->id)
+            ->where('library.sections.0.documents.0.folderId', $section->id)
             ->where('library.maxDepth', DocumentFolder::MAX_DEPTH));
 });
 
@@ -410,8 +410,7 @@ it('shows an empty Folder with nothing in it', function () {
         ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $folder]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->has('library.folders', 0)
-            ->has('library.documents', 0));
+            ->has('library.sections', 0));
 });
 
 it('sends a manager every Folder as a move destination, in tree order', function () {
@@ -447,7 +446,7 @@ it('refuses a non-member a Folder the Group keeps to its members', function () {
 
     $this->actingAs(Member::factory()->create())
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
-        ->assertInertia(fn (Assert $page) => $page->has('library.folders', 0));
+        ->assertInertia(fn (Assert $page) => $page->has('library.sections', 0));
 });
 
 it('serves a Folder under /fr/ with French segments', function () {
@@ -573,15 +572,15 @@ it('sends each Folder\'s effective visibility, and the open Folder\'s', function
     $this->actingAs($member)
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('library.folders.0.visibility', 'members')
-            ->where('library.folders.1.visibility', 'group'));
+            ->where('library.sections.0.folders.0.visibility', 'members')
+            ->where('library.sections.0.folders.1.visibility', 'group'));
 
     $this->actingAs($member)
         ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $shared]))
         ->assertInertia(fn (Assert $page) => $page
             ->where('library.folder.visibility', 'members')
-            ->where('library.folders.0.id', $sub->id)
-            ->where('library.folders.0.visibility', 'members'));
+            ->where('library.sections.0.folders.0.id', $sub->id)
+            ->where('library.sections.0.folders.0.visibility', 'members'));
 });
 
 it('sends a non-member only the Folders and Documents shared with every Member', function () {
@@ -598,16 +597,16 @@ it('sends a non-member only the Folders and Documents shared with every Member',
     $this->actingAs($outsider)
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('library.folders', 1)
-            ->where('library.folders.0.id', $shared->id)
-            ->has('library.documents', 0)
+            ->has('library.sections.0.folders', 1)
+            ->where('library.sections.0.folders.0.id', $shared->id)
+            ->has('library.sections.0.documents', 0)
             ->where('library.destinations', []));
 
     $this->actingAs($outsider)
         ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $sharedSub]))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('library.documents', 1)
-            ->where('library.documents.0.id', $readable->id));
+            ->has('library.sections.0.documents', 1)
+            ->where('library.sections.0.documents.0.id', $readable->id));
 
     $this->actingAs($outsider)
         ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $internal]))

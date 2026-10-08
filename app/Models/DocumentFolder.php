@@ -35,6 +35,7 @@ class DocumentFolder extends Model
      */
     protected $fillable = [
         'parent_id',
+        'category_id',
         'name',
         'visibility',
     ];

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentFolderController;
 use App\Http\Controllers\DownloadDocumentController;
@@ -373,6 +374,18 @@ Route::delete('document-folders/{folder}', [DocumentFolderController::class, 'de
 Route::patch('documents/{document}/move', MoveDocumentController::class)
     ->middleware(['auth'])
     ->name('documents.move');
+// Document categories (#724, spec #721, ADR-0030 §4). The Folder pattern: create nests under
+// the Group with the owning Folder (none for the root); rename and delete bind the Document
+// category by id. Authorized in the Form Requests (DocumentPolicy::manage).
+Route::post('groups/{group}/document-categories', [DocumentCategoryController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('document-categories.store');
+Route::patch('document-categories/{category}', [DocumentCategoryController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('document-categories.update');
+Route::delete('document-categories/{category}', [DocumentCategoryController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('document-categories.destroy');
 // Link Documents (#716, ADR-0030 §7): a title and a web address in place of a file. Same
 // authorization as an upload; opening one goes through `documents.download`.
 Route::post('groups/{group}/documents/links', [LinkDocumentController::class, 'store'])

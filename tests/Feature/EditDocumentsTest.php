@@ -97,7 +97,7 @@ it('sends each row\'s description to the tab', function () {
     $this->actingAs(keeperOf($group, null))
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('library.documents.0.description', 'Read before the tour.'));
+            ->where('library.sections.0.documents.0.description', 'Read before the tour.'));
 });
 
 // --- Replace ------------------------------------------------------------------------

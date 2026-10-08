@@ -30,6 +30,7 @@ class Document extends Model
      */
     protected $fillable = [
         'folder_id',
+        'category_id',
         'title',
         'description',
         'kind',

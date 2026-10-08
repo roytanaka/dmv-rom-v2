@@ -21,39 +21,25 @@
 //
 // Visibility (#715, ADR-0030 §5): each Folder row and the open Folder say who can read them.
 // A manager sets it on a top-level Folder in DocumentFolderDialog; the rest inherit.
-import DocumentActions from '@/components/DocumentActions.vue';
-import DocumentFolderActions from '@/components/DocumentFolderActions.vue';
+//
+// Document categories (#724, ADR-0030 §4): the open Folder's items come in sections, one per
+// Document category, then Other (DocumentSection). A Folder with no Document categories shows
+// one plain list with no heading. A manager keeps the open Folder's list from the Categories
+// button (DocumentCategoriesDialog) and files an item from its Edit dialog.
+import DocumentCategoriesDialog from '@/components/DocumentCategoriesDialog.vue';
 import DocumentFolderBreadcrumb from '@/components/DocumentFolderBreadcrumb.vue';
 import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
+import DocumentSection from '@/components/DocumentSection.vue';
 import LinkDocumentDialog from '@/components/LinkDocumentDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { type GroupLibrary, type SharedData } from '@/types';
-import { Link, router, usePage } from '@inertiajs/vue3';
-import { PhCheckCircle, PhFile, PhFolder, PhFolderPlus, PhLink, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
+import { type GroupLibrary } from '@/types';
+import { router } from '@inertiajs/vue3';
+import { PhCheckCircle, PhFile, PhFolderPlus, PhLink, PhListBullets, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{ library: GroupLibrary; canManage: boolean; groupSlug: string }>();
-
-const page = usePage<SharedData>();
-
-const formatDate = (iso: string) =>
-    new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium', timeZone: page.props.timezone }).format(new Date(iso));
-
-// A file size in the page's language: KB under a megabyte, MB under a gigabyte, then GB.
-function formatSize(bytes: number | null): string {
-    if (bytes === null) return '';
-    const [unit, value] =
-        bytes < 1024 ** 2
-            ? (['kilobyte', bytes / 1024] as const)
-            : bytes < 1024 ** 3
-              ? (['megabyte', bytes / 1024 ** 2] as const)
-              : (['gigabyte', bytes / 1024 ** 3] as const);
-
-    return new Intl.NumberFormat(page.props.locale, { style: 'unit', unit, maximumFractionDigits: value < 10 ? 1 : 0 }).format(Math.max(value, 0.1));
-}
 
 // --- Link Documents (#716) -------------------------------------------------------------
 
@@ -65,7 +51,11 @@ const folderDialogOpen = ref(false);
 const folderId = computed(() => props.library.folder?.id ?? null);
 // A new Folder goes inside the open one, so it fits only while the open one sits above the limit.
 const canAddFolder = computed(() => props.library.breadcrumb.length + (props.library.folder ? 1 : 0) < props.library.maxDepth);
-const isEmpty = computed(() => props.library.folders.length === 0 && props.library.documents.length === 0);
+const isEmpty = computed(() => props.library.sections.length === 0);
+
+// --- Document categories (#724) ---------------------------------------------------------
+
+const categoriesDialogOpen = ref(false);
 const emptyMessage = computed(() => trans(props.library.folder ? 'document_folders.empty' : 'documents.empty'));
 
 // --- Upload ---------------------------------------------------------------------------
@@ -185,6 +175,10 @@ function onDrop(event: DragEvent): void {
                     <PhFolderPlus class="h-4 w-4" aria-hidden="true" />
                     {{ trans('document_folders.new') }}
                 </Button>
+                <Button type="button" variant="outline" size="sm" @click="categoriesDialogOpen = true">
+                    <PhListBullets class="h-4 w-4" aria-hidden="true" />
+                    {{ trans('document_categories.manage') }}
+                </Button>
             </div>
 
             <ul v-if="uploads.length" class="flex flex-col gap-2" aria-live="polite">
@@ -211,99 +205,27 @@ function onDrop(event: DragEvent): void {
 
         <p v-if="isEmpty" class="text-muted-foreground py-12 text-center text-base">{{ emptyMessage }}</p>
 
-        <Table v-else>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>{{ trans('documents.column.name') }}</TableHead>
-                    <TableHead class="hidden sm:table-cell">{{ trans('documents.column.type') }}</TableHead>
-                    <TableHead class="hidden text-right sm:table-cell">{{ trans('documents.column.size') }}</TableHead>
-                    <TableHead class="hidden md:table-cell">{{ trans('documents.column.updated') }}</TableHead>
-                    <TableHead v-if="canManage" class="hidden lg:table-cell">{{ trans('documents.column.uploader') }}</TableHead>
-                    <TableHead v-if="canManage" class="w-10"
-                        ><span class="sr-only">{{ trans('documents.column.actions') }}</span></TableHead
-                    >
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                <!-- Folders first (#714), each a link into it. -->
-                <TableRow v-for="folder in library.folders" :key="`folder-${folder.id}`">
-                    <TableCell class="whitespace-normal">
-                        <Link
-                            :href="folder.href"
-                            class="text-rom-ink inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline"
-                            :aria-label="trans('document_folders.open', { name: folder.name })"
-                        >
-                            <PhFolder class="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
-                            {{ folder.name }}
-                        </Link>
-                        <p class="text-muted-foreground text-xs">
-                            {{ trans('document_folders.readable_by', { who: trans(`document_folders.visibility.${folder.visibility}`) }) }}
-                        </p>
-                    </TableCell>
-                    <TableCell class="text-muted-foreground hidden sm:table-cell">{{ trans('document_folders.kind') }}</TableCell>
-                    <TableCell class="hidden sm:table-cell" />
-                    <TableCell class="hidden md:table-cell" />
-                    <TableCell v-if="canManage" class="hidden lg:table-cell" />
-                    <TableCell v-if="canManage" class="w-10 text-right">
-                        <DocumentFolderActions
-                            :folder="folder"
-                            :parent-id="folderId"
-                            :destinations="library.destinations"
-                            :max-depth="library.maxDepth"
-                        />
-                    </TableCell>
-                </TableRow>
-                <TableRow v-for="document in library.documents" :key="document.id">
-                    <TableCell class="whitespace-normal">
-                        <a
-                            v-if="document.kind === 'link'"
-                            :href="document.href"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-rom-ink font-medium underline-offset-4 hover:underline"
-                            :aria-label="trans('documents.link.open', { name: document.title ?? '' })"
-                        >
-                            {{ document.title }}
-                        </a>
-                        <a
-                            v-else
-                            :href="document.href"
-                            class="text-rom-ink font-medium underline-offset-4 hover:underline"
-                            :aria-label="trans('documents.download', { name: document.title ?? document.filename ?? '' })"
-                        >
-                            {{ document.title ?? document.filename }}
-                        </a>
-                        <p v-if="document.description" class="text-rom-ink text-sm whitespace-pre-line">{{ document.description }}</p>
-                        <!-- On a phone the other columns hide; their facts ride under the name. -->
-                        <p class="text-muted-foreground text-xs sm:hidden">
-                            {{
-                                [
-                                    document.kind === 'link' ? trans('documents.link.type') : document.extension?.toUpperCase(),
-                                    formatSize(document.sizeBytes),
-                                    formatDate(document.updatedAt),
-                                ]
-                                    .filter(Boolean)
-                                    .join(' · ')
-                            }}
-                        </p>
-                    </TableCell>
-                    <TableCell class="text-muted-foreground hidden sm:table-cell">
-                        <PhLink v-if="document.kind === 'link'" class="h-4 w-4" :aria-label="trans('documents.link.type')" />
-                        <template v-else>{{ document.extension?.toUpperCase() }}</template>
-                    </TableCell>
-                    <TableCell class="text-muted-foreground hidden text-right sm:table-cell">{{ formatSize(document.sizeBytes) }}</TableCell>
-                    <TableCell class="text-muted-foreground hidden md:table-cell">{{ formatDate(document.updatedAt) }}</TableCell>
-                    <TableCell v-if="canManage" class="text-muted-foreground hidden lg:table-cell">
-                        {{ document.uploader }}
-                        <p v-if="document.uploadedAt" class="text-xs">{{ formatDate(document.uploadedAt) }}</p>
-                    </TableCell>
-                    <TableCell v-if="canManage" class="w-10 text-right">
-                        <DocumentActions :document="document" :destinations="library.destinations" :max-depth="library.maxDepth" />
-                    </TableCell>
-                </TableRow>
-            </TableBody>
-        </Table>
+        <template v-else>
+            <DocumentSection
+                v-for="section in library.sections"
+                :key="section.category?.id ?? 'other'"
+                :section="section"
+                :headed="library.categories.length > 0"
+                :can-manage="canManage"
+                :folder-id="folderId"
+                :categories="library.categories"
+                :destinations="library.destinations"
+                :max-depth="library.maxDepth"
+            />
+        </template>
 
+        <DocumentCategoriesDialog
+            v-if="canManage"
+            v-model:open="categoriesDialogOpen"
+            :group-slug="groupSlug"
+            :folder-id="folderId"
+            :categories="library.categories"
+        />
         <LinkDocumentDialog v-if="canManage" v-model:open="linkDialogOpen" :group-slug="groupSlug" :folder-id="folderId" />
         <DocumentFolderDialog
             v-if="canManage"

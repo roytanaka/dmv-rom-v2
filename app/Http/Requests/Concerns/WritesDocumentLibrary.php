@@ -34,6 +34,29 @@ trait WritesDocumentLibrary
     }
 
     /**
+     * A Document category id that must name one of the given Folder's Document categories (the
+     * library root's when `$folderId` is null), in the given Group (#724, ADR-0030 §4). Another
+     * Folder's Document category is refused. Pair it with the `category_id.exists` message
+     * from {@see categoryMessages()}.
+     */
+    protected function categoryOf(int $groupId, ?int $folderId): Exists
+    {
+        return Rule::exists('document_categories', 'id')
+            ->where('group_id', $groupId)
+            ->where('folder_id', $folderId);
+    }
+
+    /**
+     * The messages for a `category_id` field checked with {@see categoryOf()}.
+     *
+     * @return array<string, string>
+     */
+    protected function categoryMessages(): array
+    {
+        return ['category_id.exists' => trans('document_categories.error.not_here')];
+    }
+
+    /**
      * The message for a Folder action that would nest past {@see DocumentFolder::MAX_DEPTH}.
      */
     protected function tooDeepMessage(): string
