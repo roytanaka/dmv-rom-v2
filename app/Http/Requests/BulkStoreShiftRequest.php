@@ -15,8 +15,9 @@ use Illuminate\Validation\Rule;
  * the days of week and the date range live in the form, never in a row. There is no
  * interval option; a Shift lands on *every* matching day in the range.
  *
- * The whitelist is the shape of one Shift (start / end time, capacity, optional kind)
- * plus the fan-out inputs (days of week, date range). Authorization is the same
+ * The whitelist is the shape of one Shift (capacity, optional kind) plus the fan-out
+ * inputs: one or more start / end times (#734), days of week, and a date range. Every
+ * time pair lands on every matching day. Authorization is the same
  * schedule-admin gate as a single add — {@see ShiftPolicy::create} on the route-bound
  * Schedule; bulk is not a privileged path.
  *
@@ -37,11 +38,12 @@ class BulkStoreShiftRequest extends FormRequest
     }
 
     /**
-     * The whitelist. `starts_time` / `ends_time` are wall-clock times (`H:i`) stamped onto
-     * every matching day; `ends_time` must be after `starts_time` so every generated Shift
-     * has a positive duration. `days_of_week` is a non-empty list of Carbon day numbers
-     * (0 = Sunday … 6 = Saturday). The date range is `from_date`..`to_date`. `capacity`
-     * defaults to 1 and `shift_kind_id`, when given, must be one of the owning Group's kinds.
+     * The whitelist. `times` is a non-empty list of `starts_time` / `ends_time` pairs,
+     * wall-clock times (`H:i`) stamped onto every matching day; each pair's `ends_time` must
+     * be after its `starts_time` so every generated Shift has a positive duration.
+     * `days_of_week` is a non-empty list of Carbon day numbers (0 = Sunday … 6 = Saturday).
+     * The date range is `from_date`..`to_date`. `capacity` defaults to 1 and
+     * `shift_kind_id`, when given, must be one of the owning Group's kinds.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -50,8 +52,9 @@ class BulkStoreShiftRequest extends FormRequest
         $schedule = $this->route('schedule');
 
         return [
-            'starts_time' => ['required', 'date_format:H:i', new OnMinuteGrid],
-            'ends_time' => ['required', 'date_format:H:i', 'after:starts_time', new OnMinuteGrid],
+            'times' => ['required', 'array', 'min:1'],
+            'times.*.starts_time' => ['required', 'date_format:H:i', new OnMinuteGrid],
+            'times.*.ends_time' => ['required', 'date_format:H:i', 'after:times.*.starts_time', new OnMinuteGrid],
             'capacity' => ['sometimes', 'integer', 'min:1'],
             'shift_kind_id' => [
                 'nullable',

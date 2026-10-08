@@ -322,9 +322,12 @@ return [
             // confirms before firing, since it removes many rows at once.
             'open' => 'Bulk shifts',
             'title' => 'Bulk-create shifts',
-            'description' => 'Create one shift on every chosen weekday across a date range. Delete removes every shift matching the same filter.',
+            'description' => 'Create a shift at each time on every chosen weekday across a date range. Delete removes every shift matching the same filter.',
             'create' => 'Create shifts',
             'delete' => 'Delete matching',
+            // One run takes one or more start / end pairs (#734).
+            'add_time' => 'Add time',
+            'remove_time' => 'Remove time',
             'confirm_delete' => 'Delete every shift matching this filter? Shifts with members signed up are kept. This cannot be undone.',
             'field' => [
                 'starts_time' => 'Start time',

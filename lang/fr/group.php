@@ -309,9 +309,12 @@ return [
             // plage. La suppression cible le même filtre et se confirme avant de s’exécuter.
             'open' => 'Créneaux en lot',
             'title' => 'Créer des créneaux en lot',
-            'description' => 'Créez un créneau sur chaque jour de semaine choisi d’une plage de dates. La suppression retire tous les créneaux correspondant au même filtre.',
+            'description' => 'Créez un créneau à chaque heure, sur chaque jour de semaine choisi d’une plage de dates. La suppression retire tous les créneaux correspondant au même filtre.',
             'create' => 'Créer les créneaux',
             'delete' => 'Supprimer les correspondants',
+            // Une exécution prend une ou plusieurs paires début / fin (#734).
+            'add_time' => 'Ajouter une heure',
+            'remove_time' => 'Retirer l’heure',
             'confirm_delete' => 'Supprimer tous les créneaux correspondant à ce filtre ? Les créneaux comptant des membres inscrits sont conservés. Cette action est irréversible.',
             'field' => [
                 'starts_time' => 'Heure de début',

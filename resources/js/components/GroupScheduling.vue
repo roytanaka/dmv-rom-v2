@@ -672,23 +672,28 @@ const WEEKDAYS = computed(() =>
 
 const bulkOpen = ref(false);
 
+// One run takes one or more start / end pairs (#734): a Group that runs the same Shift
+// three times a day enters each time once, and every pair lands on every chosen weekday.
+// `key` is client-only: TimeField holds a half-picked time in its own state, so a row keeps
+// a stable key when a row above it is removed. It is stripped before the run is sent.
+type BulkTime = { key: number; starts_time: string; ends_time: string };
+let nextBulkTimeKey = 1;
+
 const bulkForm = useForm<{
-    starts_time: string;
-    ends_time: string;
+    times: BulkTime[];
     capacity: number;
     shift_kind_id: number | null;
     days_of_week: number[];
     from_date: string;
     to_date: string;
 }>({
-    starts_time: '',
-    ends_time: '',
+    times: [{ key: 0, starts_time: '', ends_time: '' }],
     capacity: 1,
     shift_kind_id: null,
     days_of_week: [],
     from_date: '',
     to_date: '',
-});
+}).transform((data) => ({ ...data, times: data.times.map(({ starts_time, ends_time }) => ({ starts_time, ends_time })) }));
 
 const openBulk = () => {
     bulkForm.reset();
@@ -712,6 +717,13 @@ const closeBulk = () => {
     bulkOpen.value = false;
     bulkForm.reset();
 };
+
+const addBulkTime = () => bulkForm.times.push({ key: nextBulkTimeKey++, starts_time: '', ends_time: '' });
+const removeBulkTime = (index: number) => bulkForm.times.splice(index, 1);
+
+// The server names a bad pair by its index (`times.1.ends_time`), so each row reads its own error.
+const bulkTimeError = (index: number, field: 'starts_time' | 'ends_time'): string | undefined =>
+    (bulkForm.errors as Record<string, string | undefined>)[`times.${index}.${field}`];
 
 // The run report rides back in the shared `flash` prop (HandleInertiaRequests). It is
 // output, not an error — so it renders on the page, dismissable, until the next run or a
@@ -1006,7 +1018,9 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     </p>
                     <ul class="text-muted-foreground flex flex-col gap-0.5 text-sm">
                         <li v-for="(row, index) in shiftsReport.skipped" :key="index">
-                            <span v-if="row.date" class="text-rom-ink font-medium">{{ formatDate(row.date) }} — </span>
+                            <span v-if="row.date" class="text-rom-ink font-medium"
+                                >{{ formatDate(row.date) }}<template v-if="row.time"> {{ row.time }}</template> —
+                            </span>
                             {{ trans(row.reason) }}
                         </li>
                     </ul>
@@ -1414,7 +1428,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
         </Dialog>
 
         <!-- Bulk-create / bulk-delete dialog (#362 front end) — one filter, two verbs. It
-             takes a kind, a start and end time, a capacity, a set of weekdays and a date
+             takes a kind, one or more start / end times (#734), a capacity, a set of weekdays and a date
              range — no interval (ADR-0021 §2): a Shift lands on every matching weekday.
              "Create shifts" fans out; "Delete matching" removes every Shift on the same
              filter and confirms first, since it clears many rows at once. Server rejections
@@ -1436,17 +1450,39 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         </div>
                         <InputError :message="bulkForm.errors.days_of_week" />
                     </fieldset>
+                    <div class="flex flex-col gap-2">
+                        <!-- Each field is a subgrid of label / input / error, so a French label
+                             that wraps never pushes its input out of line (docs/conventions.md). -->
+                        <div v-for="(time, index) in bulkForm.times" :key="time.key" class="grid grid-cols-[1fr_1fr_2rem] gap-x-4 gap-y-2">
+                            <div class="row-span-3 grid grid-rows-subgrid">
+                                <Label :for="`bulk-starts-time-${index}`">{{ trans('group.scheduling_panel.bulk.field.starts_time') }}</Label>
+                                <TimeField :id="`bulk-starts-time-${index}`" v-model="time.starts_time" required />
+                                <InputError :message="bulkTimeError(index, 'starts_time')" />
+                            </div>
+                            <div class="row-span-3 grid grid-rows-subgrid">
+                                <Label :for="`bulk-ends-time-${index}`">{{ trans('group.scheduling_panel.bulk.field.ends_time') }}</Label>
+                                <TimeField :id="`bulk-ends-time-${index}`" v-model="time.ends_time" required />
+                                <InputError :message="bulkTimeError(index, 'ends_time')" />
+                            </div>
+                            <Button
+                                v-if="index > 0"
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                class="col-start-3 row-start-2 size-8 self-center"
+                                :aria-label="trans('group.scheduling_panel.bulk.remove_time')"
+                                @click="removeBulkTime(index)"
+                            >
+                                <PhX class="size-4" />
+                            </Button>
+                        </div>
+                        <InputError :message="bulkForm.errors.times" />
+                        <Button type="button" variant="outline" size="sm" class="gap-1.5 self-start" @click="addBulkTime">
+                            <PhPlus class="size-4" />
+                            {{ trans('group.scheduling_panel.bulk.add_time') }}
+                        </Button>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="grid gap-2">
-                            <Label for="bulk-starts-time">{{ trans('group.scheduling_panel.bulk.field.starts_time') }}</Label>
-                            <TimeField id="bulk-starts-time" v-model="bulkForm.starts_time" required />
-                            <InputError :message="bulkForm.errors.starts_time" />
-                        </div>
-                        <div class="grid gap-2">
-                            <Label for="bulk-ends-time">{{ trans('group.scheduling_panel.bulk.field.ends_time') }}</Label>
-                            <TimeField id="bulk-ends-time" v-model="bulkForm.ends_time" required />
-                            <InputError :message="bulkForm.errors.ends_time" />
-                        </div>
                         <div class="grid gap-2">
                             <Label for="bulk-from-date">{{ trans('group.scheduling_panel.bulk.field.from_date') }}</Label>
                             <Input id="bulk-from-date" v-model="bulkForm.from_date" type="date" required />

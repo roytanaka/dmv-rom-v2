@@ -536,8 +536,7 @@ it('carries the bulk-create report into the page props via the shared flash prop
     // Every Monday from August into the first week of September: the five August Mondays
     // are written, and the September Monday (Sept 7) falls outside the range and is skipped.
     $this->actingAs($scheduler)->post(route('shifts.bulk-store', $schedule), [
-        'starts_time' => '10:00',
-        'ends_time' => '13:00',
+        'times' => [['starts_time' => '10:00', 'ends_time' => '13:00']],
         'days_of_week' => [1],
         'from_date' => '2026-08-01',
         'to_date' => '2026-09-07',
