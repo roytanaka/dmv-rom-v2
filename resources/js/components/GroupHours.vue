@@ -133,7 +133,7 @@ const submit = (yearMonth: string) => {
                 <CardTitle class="text-sm font-semibold tracking-wide uppercase">{{ trans('hours.records.heading') }}</CardTitle>
             </CardHeader>
             <CardContent>
-                <Table v-if="hours.records.length" class="border-t-0">
+                <Table v-if="hours.records.length" pin-first-column class="border-t-0">
                     <thead>
                         <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                             <th class="py-2 pr-4 font-semibold">{{ trans('hours.records.column.month') }}</th>

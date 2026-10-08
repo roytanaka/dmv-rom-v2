@@ -16,7 +16,7 @@
 // `bg-card`, the surface the hours grids sit on, so columns slide behind them.
 import { cn } from '@/lib/utils';
 import { useResizeObserver, useScroll } from '@vueuse/core';
-import { computed, ref, type HTMLAttributes } from 'vue';
+import { computed, ref, type HTMLAttributes, type Ref } from 'vue';
 import { fadeMask } from './fadeMask';
 
 const props = defineProps<{
@@ -29,10 +29,12 @@ const table = ref<HTMLTableElement | null>(null);
 
 // `useScroll` measures on mount and on scroll; a resize (rotation, a font
 // loading, a wider month label) changes the overflow without a scroll, so
-// re-measure then too, along with the pinned column's width.
-const { arrivedState, measure } = useScroll(scroller);
+// re-measure then too, along with the pinned column's width. A table without
+// the prop watches nothing.
+const watched = (el: Ref<HTMLElement | null>) => () => (props.pinFirstColumn ? el.value : null);
+const { arrivedState, measure } = useScroll(watched(scroller));
 const inset = ref(0);
-useResizeObserver([scroller, table], () => {
+useResizeObserver([watched(scroller), watched(table)], () => {
     measure();
     inset.value = table.value?.rows[0]?.cells[0]?.offsetWidth ?? 0;
 });

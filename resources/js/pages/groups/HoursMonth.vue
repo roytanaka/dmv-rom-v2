@@ -73,7 +73,7 @@ const csvHref = computed(() => route('groups.hours.month.csv', { group: props.gr
                     <CardTitle class="text-base">{{ formatMonth(month.month) }}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Table class="border-t-0">
+                    <Table pin-first-column class="border-t-0">
                         <thead>
                             <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                                 <th class="py-2 pr-4 font-semibold">{{ trans('hours.detail.month.column.member') }}</th>

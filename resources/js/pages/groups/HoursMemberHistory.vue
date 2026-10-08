@@ -81,7 +81,7 @@ const csvHref = computed(() => route('groups.hours.member.csv', { group: props.g
                     <!-- No Member picked yet — a prompt, not a broken page. -->
                     <p v-if="!member" class="text-muted-foreground py-8 text-center">{{ trans('hours.detail.member.none') }}</p>
 
-                    <Table v-else class="border-t-0">
+                    <Table v-else pin-first-column class="border-t-0">
                         <thead>
                             <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                                 <th class="py-2 pr-4 font-semibold">{{ trans('hours.detail.member.column.month') }}</th>
