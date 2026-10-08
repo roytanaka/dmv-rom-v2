@@ -324,7 +324,7 @@ const hardRemove = (member: RosterMember) => {
                             <TableCell v-if="canManage" class="text-right">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
-                                        <Button type="button" variant="ghost" size="icon" class="size-8 pointer-coarse:size-11">
+                                        <Button type="button" variant="ghost" size="icon" class="size-8">
                                             <PhDotsThree class="size-4" />
                                             <span class="sr-only">{{ trans('group.roster.manage') }}</span>
                                         </Button>
