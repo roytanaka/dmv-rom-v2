@@ -10,6 +10,8 @@ Trouvez les quarts passés qui attendent encore un nombre de visiteur·euses de 
 
     ![Le panneau Mes inscriptions : un quart récent dont le rapport après le quart attend encore votre nombre](01.png)
 
+Un quart à une date après aujourd'hui n'a pas encore de section **Rapport après le quart**.
+
 ## Noter le nombre
 
 1. Allez à la section **Rapport après le quart** du quart. Votre formulaire y est déjà ouvert.

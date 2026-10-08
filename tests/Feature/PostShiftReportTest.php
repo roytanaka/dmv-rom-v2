@@ -808,3 +808,113 @@ it('keeps both seats in My sign-ups after two saves in a row', function () {
 
     $this->get($url)->assertInertia(fn (Assert $page) => $page->where('scheduling.mine', []));
 });
+
+// --- No report on a Shift dated after today (#772) -----------------------------------------
+//
+// Nobody records a count before the sign-out window, so a Shift on a later date shows no
+// section. "Today" is the org wall clock's date, not the server's UTC date.
+
+/** A Shift on 2026-09-11, the day after the pinned clock. */
+function postShiftTomorrowShift(Schedule $schedule): Shift
+{
+    return postShiftShift($schedule, [
+        'starts_at' => CarbonImmutable::parse('2026-09-11 10:00'),
+        'ends_at' => CarbonImmutable::parse('2026-09-11 13:00'),
+    ]);
+}
+
+it('sends no report on a Shift dated after today, in My sign-ups and on the Agenda', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = postShiftTomorrowShift($schedule);
+    $me = postShiftMemberOf($group);
+    postShiftSeat($shift, $me);
+
+    $this->actingAs($me)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.mine.0.can.readReport', false)
+            ->missing('scheduling.mine.0.signups.0.visitor_count'));
+
+    viewPostShiftReport($me, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.can.readReport', false)
+        ->missing('scheduling.open.shifts.0.signups.0.visitor_count'));
+});
+
+it('sends a schedule admin no report on a Shift dated after today', function () {
+    $this->travelTo(postShiftNow());
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    postShiftSeat(postShiftTomorrowShift($schedule), postShiftMemberOf($group));
+
+    viewPostShiftReport(postShiftMemberOf($group, Role::Scheduler), $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.can.readReport', false)
+        ->missing('scheduling.open.shifts.0.signups.0.can_record'));
+});
+
+it('sends the report on a Shift dated today, before and after the window opens', function () {
+    // The Shift runs 10:00 to 13:00; at 08:00 the window is shut, at 12:56 it is open.
+    $this->travelTo(CarbonImmutable::parse('2026-09-10 08:00'));
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    postShiftSeat(postShiftShift($schedule), $me);
+
+    viewPostShiftReport($me, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.can.readReport', true)
+        ->where('scheduling.open.shifts.0.can.record', false));
+
+    $this->travelTo(CarbonImmutable::parse('2026-09-10 12:56'));
+
+    viewPostShiftReport($me, $group, $schedule)->assertInertia(fn (Assert $page) => $page
+        ->where('scheduling.open.shifts.0.can.readReport', true)
+        ->where('scheduling.open.shifts.0.can.record', true));
+});
+
+it('sends the report and the form on a past Shift still owed a count in My sign-ups', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-09-12 14:00'));
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    postShiftSeat(postShiftShift($schedule), $me);
+
+    $this->actingAs($me)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.mine.0.can.readReport', true)
+            ->where('scheduling.mine.0.can.record', true));
+});
+
+it('reads today on the org wall clock, not the server’s UTC date', function (string $today, string $tomorrow) {
+    // 23:00 in Toronto is already the next day in UTC. A Shift at 23:30 tonight is today; one at
+    // 00:30 tomorrow is not, though both share the UTC date of the clock. Summer and winter, so a
+    // fixed offset cannot pass.
+    $zone = 'America/Toronto';
+    $this->travelTo(CarbonImmutable::parse("{$today} 23:00", $zone));
+
+    $group = postShiftGroup();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $me = postShiftMemberOf($group);
+    postShiftSeat(postShiftShift($schedule, [
+        'starts_at' => CarbonImmutable::parse("{$today} 23:30", $zone)->utc(),
+        'ends_at' => CarbonImmutable::parse("{$today} 23:50", $zone)->utc(),
+    ]), $me);
+    postShiftSeat(postShiftShift($schedule, [
+        'starts_at' => CarbonImmutable::parse("{$tomorrow} 00:30", $zone)->utc(),
+        'ends_at' => CarbonImmutable::parse("{$tomorrow} 01:30", $zone)->utc(),
+    ]), $me);
+
+    $this->actingAs($me)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.mine.0.can.readReport', true)
+            ->where('scheduling.mine.1.can.readReport', false));
+})->with([
+    'summer' => ['2026-09-10', '2026-09-11'],
+    'winter' => ['2027-01-14', '2027-01-15'],
+]);

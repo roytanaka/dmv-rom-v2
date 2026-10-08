@@ -1089,8 +1089,10 @@ class GroupController extends Controller
         // Who reads the Post-shift report (#652, ADR-0023 §5 amendment): every Member holding a
         // seat on this Shift, and a schedule admin, on a Group that collects a visitor count.
         // Co-volunteers see each other's numbers so a double count is visible to the people who
-        // made it. A reader with no seat and no admin role gets no seat numbers at all.
+        // made it. A reader with no seat and no admin role gets no seat numbers at all. A Shift on
+        // a later date has no report yet, for anyone (#772): nobody records before its window.
         $readsReport = $shift->schedule->group->collects_visitor_count
+            && ! $shift->isAfterToday()
             && ($canManage || $ownSignUp !== null);
 
         return [
