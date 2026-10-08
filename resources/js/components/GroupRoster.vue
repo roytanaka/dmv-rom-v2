@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import EmailMenu from '@/emailing/EmailMenu.vue';
+import { telHref } from '@/directory/contact';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { type RosterMember, type RosterMeta } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
@@ -229,7 +230,7 @@ const hardRemove = (member: RosterMember) => {
             <!-- Officer controls: show-past toggle + add member (#192), and the Email control
                  (#490, ADR-0024 §6.2) — the Group-context Audiences, moved into the roster
                  toolbar. The Email menu is present for every member; the officer CRUD is gated. -->
-            <div class="flex items-center gap-4">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <template v-if="canManage">
                     <label class="text-muted-foreground flex items-center gap-2 text-sm">
                         <Checkbox :checked="meta.showingPast" @update:checked="toggleShowPast" />
@@ -253,9 +254,9 @@ const hardRemove = (member: RosterMember) => {
                                 ><span class="sr-only">{{ trans('group.roster.column.name') }}</span></TableHead
                             >
                             <TableHead>{{ trans('group.roster.column.name') }}</TableHead>
-                            <TableHead>{{ trans('group.roster.column.roles') }}</TableHead>
-                            <TableHead>{{ trans('group.roster.column.contact') }}</TableHead>
-                            <TableHead>{{ trans('group.roster.column.standing') }}</TableHead>
+                            <TableHead class="hidden md:table-cell">{{ trans('group.roster.column.roles') }}</TableHead>
+                            <TableHead class="hidden lg:table-cell">{{ trans('group.roster.column.contact') }}</TableHead>
+                            <TableHead class="hidden md:table-cell">{{ trans('group.roster.column.standing') }}</TableHead>
                             <TableHead v-if="canManage" class="w-12 text-right"
                                 ><span class="sr-only">{{ trans('group.roster.column.actions') }}</span></TableHead
                             >
@@ -274,28 +275,56 @@ const hardRemove = (member: RosterMember) => {
                                     <AvatarFallback>{{ initials(member) }}</AvatarFallback>
                                 </Avatar>
                             </TableCell>
-                            <TableCell class="font-medium">
-                                <TextLink :href="route('members.show', { member: member.id })">{{ displayName(member) }}</TextLink>
+                            <TableCell class="whitespace-normal">
+                                <TextLink class="font-medium" :href="route('members.show', { member: member.id })">{{
+                                    displayName(member)
+                                }}</TextLink>
+                                <!-- On a phone the other columns hide; their facts ride under the name. -->
+                                <div
+                                    v-if="member.group_roles.length || member.group_standing !== 'full'"
+                                    class="mt-1 flex flex-wrap gap-1.5 md:hidden"
+                                >
+                                    <Badge v-for="role in member.group_roles" :key="role" variant="secondary" class="whitespace-normal">{{
+                                        trans(`group.role.${role}`)
+                                    }}</Badge>
+                                    <GroupStandingBadge :standing="member.group_standing" class="whitespace-normal" />
+                                </div>
+                                <!-- A narrow cell breaks the address after the @ first, and mid-word only if it must. -->
+                                <div v-if="hasContact(member)" class="text-muted-foreground mt-1 flex flex-col text-sm wrap-anywhere lg:hidden">
+                                    <a v-if="member.email !== undefined" :href="`mailto:${member.email}`" class="underline-offset-4 hover:underline"
+                                        >{{ member.email.split('@')[0] }}@<wbr />{{ member.email.split('@')[1] }}</a
+                                    >
+                                    <a v-if="member.phone" :href="telHref(member.phone)" class="underline-offset-4 hover:underline">{{
+                                        member.phone
+                                    }}</a>
+                                </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell class="hidden md:table-cell">
                                 <div v-if="member.group_roles.length" class="flex flex-wrap gap-1.5">
                                     <Badge v-for="role in member.group_roles" :key="role" variant="secondary">{{
                                         trans(`group.role.${role}`)
                                     }}</Badge>
                                 </div>
                             </TableCell>
-                            <TableCell class="text-muted-foreground text-sm">
+                            <TableCell class="text-muted-foreground hidden text-sm lg:table-cell">
                                 <div v-if="hasContact(member)" class="flex flex-col">
-                                    <span v-if="member.email !== undefined">{{ member.email }}</span>
-                                    <span v-if="member.phone !== undefined">{{ member.phone }}</span>
+                                    <a
+                                        v-if="member.email !== undefined"
+                                        :href="`mailto:${member.email}`"
+                                        class="underline-offset-4 hover:underline"
+                                        >{{ member.email }}</a
+                                    >
+                                    <a v-if="member.phone" :href="telHref(member.phone)" class="underline-offset-4 hover:underline">{{
+                                        member.phone
+                                    }}</a>
                                 </div>
                                 <span v-else>{{ trans('group.roster.no_contact') }}</span>
                             </TableCell>
-                            <TableCell><GroupStandingBadge :standing="member.group_standing" /></TableCell>
+                            <TableCell class="hidden md:table-cell"><GroupStandingBadge :standing="member.group_standing" /></TableCell>
                             <TableCell v-if="canManage" class="text-right">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
-                                        <Button type="button" variant="ghost" size="icon" class="size-8">
+                                        <Button type="button" variant="ghost" size="icon" class="size-8 pointer-coarse:size-11">
                                             <PhDotsThree class="size-4" />
                                             <span class="sr-only">{{ trans('group.roster.manage') }}</span>
                                         </Button>
