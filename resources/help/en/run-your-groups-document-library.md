@@ -8,10 +8,10 @@ Categories put the folders and files of one folder under headings. The top level
 
 1. Open your Group's **Documents** tab.
 
-    ![The Documents tab for a Librarian: the category list, Categories, the Category for uploads, the upload box, Add link, and New folder](01.png)
+    ![The Documents tab for a Librarian: the category list, Manage categories, Add document, Add link, and New folder](01.png)
 
 2. Open the folder for the categories, or stay at the top.
-3. Select **Categories**.
+3. Select **Manage categories**.
 
     ![The Categories dialog: Data Sheets and Publications, each with rename and delete, then New category](02.png)
 
@@ -55,12 +55,19 @@ Folders go up to 5 levels deep. A folder inside a top-level folder uses the top-
 ## Upload files
 
 1. Open the folder for the files.
-2. Choose a **Category** above the upload box. All the files you add next go in this category.
-3. Drop the files on the upload box, or select **Choose files**.
+2. Select **Add document**.
+
+    ![The Add documents dialog: Category, and the upload box with Choose files](08.png)
+
+3. Choose a **Category**. All the files you add next go in this category.
+4. Drop the files on the upload box, or select **Choose files**.
+5. When all the files show a result, close the dialog.
 
 The **Category** starts at the category the page shows. When the page shows all categories, it starts at **No category**.
 
-Each file shows a progress bar while it uploads. The app does not add a file over 1.5 GB or of a type it does not allow.
+Each file shows a progress bar while it uploads. The app does not add a file over 1.5 GB or of a type it does not allow. The dialog shows the reason under the file.
+
+> **Note:** If you close the dialog during an upload, the app asks first. Select **Keep uploading** to go on. Select **Cancel uploads** to stop. Files already uploaded stay.
 
 ## Add a link
 

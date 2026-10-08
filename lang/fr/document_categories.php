@@ -3,7 +3,7 @@
 // Les catégories de documents de la bibliothèque d'un groupe (#724, spec #721, ADR-0030 §4).
 // Interface seulement : les noms de catégories sont du contenu, affichés tels qu'écrits (ADR-0004).
 return [
-    'manage' => 'Catégories',
+    'manage' => 'Gérer les catégories',
     'title' => 'Catégories',
     'empty' => 'Aucune catégorie pour l’instant.',
     'add' => 'Ajouter',

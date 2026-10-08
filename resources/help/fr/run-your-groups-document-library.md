@@ -8,10 +8,10 @@ Les catégories rangent les dossiers et les fichiers d'un dossier sous des titre
 
 1. Ouvrez l'onglet **Documents** de votre groupe.
 
-    ![L'onglet Documents pour un·e bibliothécaire : la liste des catégories, Catégories, la Catégorie des téléversements, la zone de téléversement, Ajouter un lien et Nouveau dossier](01.png)
+    ![L'onglet Documents pour un·e bibliothécaire : la liste des catégories, Gérer les catégories, Ajouter un document, Ajouter un lien et Nouveau dossier](01.png)
 
 2. Ouvrez le dossier qui recevra les catégories, ou restez au premier niveau.
-3. Sélectionnez **Catégories**.
+3. Sélectionnez **Gérer les catégories**.
 
     ![La fenêtre Catégories : Data Sheets et Publications, chacune avec renommer et supprimer, puis Nouvelle catégorie](02.png)
 
@@ -55,12 +55,19 @@ Les dossiers peuvent compter jusqu'à 5 niveaux. Un dossier placé dans un dossi
 ## Téléverser des fichiers
 
 1. Ouvrez le dossier qui recevra les fichiers.
-2. Choisissez une **Catégorie** au-dessus de la zone de téléversement. Tous les fichiers que vous ajoutez ensuite vont dans cette catégorie.
-3. Déposez les fichiers sur la zone de téléversement, ou sélectionnez **Choisir des fichiers**.
+2. Sélectionnez **Ajouter un document**.
+
+    ![La fenêtre Ajouter des documents : Catégorie, et la zone de téléversement avec Choisir des fichiers](08.png)
+
+3. Choisissez une **Catégorie**. Tous les fichiers que vous ajoutez ensuite vont dans cette catégorie.
+4. Déposez les fichiers sur la zone de téléversement, ou sélectionnez **Choisir des fichiers**.
+5. Quand tous les fichiers affichent un résultat, fermez la fenêtre.
 
 La **Catégorie** commence à la catégorie que la page affiche. Quand la page affiche toutes les catégories, elle commence à **Aucune catégorie**.
 
-Chaque fichier affiche une barre de progression pendant le téléversement. L'application n'ajoute pas un fichier de plus de 1,5 Go ou d'un type non permis.
+Chaque fichier affiche une barre de progression pendant le téléversement. L'application n'ajoute pas un fichier de plus de 1,5 Go ou d'un type non permis. La fenêtre affiche la raison sous le fichier.
+
+> **Note :** Si vous fermez la fenêtre pendant un téléversement, l'application demande d'abord. Sélectionnez **Continuer le téléversement** pour poursuivre. Sélectionnez **Annuler les téléversements** pour arrêter. Les fichiers déjà téléversés restent.
 
 ## Ajouter un lien
 

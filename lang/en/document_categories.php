@@ -3,7 +3,7 @@
 // Document categories in a Group's Document library (#724, spec #721, ADR-0030 §4). Chrome
 // only: Document category names are content, shown as written (ADR-0004).
 return [
-    'manage' => 'Categories',
+    'manage' => 'Manage categories',
     'title' => 'Categories',
     'empty' => 'No categories yet.',
     'add' => 'Add',
