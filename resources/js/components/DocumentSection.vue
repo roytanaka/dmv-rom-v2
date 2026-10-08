@@ -127,6 +127,7 @@ const headingId = computed(() => `document-section-${props.section.category?.id 
                         <a
                             v-else
                             :href="document.href"
+                            :target="document.extension === 'pdf' ? '_blank' : undefined"
                             class="text-rom-ink font-medium underline-offset-4 hover:underline"
                             :aria-label="trans('documents.download', { name: document.title ?? document.filename ?? '' })"
                         >

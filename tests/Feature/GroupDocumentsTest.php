@@ -250,13 +250,13 @@ it('serves the Documents tab and download links under /fr/', function () {
 
         $this->get("/fr/documents/{$document->id}/telecharger")
             ->assertOk()
-            ->assertDownload($document->original_filename);
+            ->assertHeader('Content-Disposition', "inline; filename={$document->original_filename}");
     });
 });
 
 // --- Download -------------------------------------------------------------------
 
-it('lets a member download a Document under its original name and logs the access', function () {
+it('opens a PDF in the browser under its original name and logs the access', function () {
     $group = libraryGroup();
     $document = storedDocument($group, ['original_filename' => 'March 2026 Minutes.pdf', 'mime_type' => 'application/pdf']);
     $member = libraryMemberOf($group);
@@ -264,8 +264,9 @@ it('lets a member download a Document under its original name and logs the acces
     $response = $this->actingAs($member)
         ->get("/documents/{$document->id}/download")
         ->assertOk()
-        ->assertDownload('March 2026 Minutes.pdf')
-        ->assertHeader('Content-Type', 'application/pdf');
+        ->assertHeader('Content-Disposition', 'inline; filename="March 2026 Minutes.pdf"')
+        ->assertHeader('Content-Type', 'application/pdf')
+        ->assertHeader('X-Content-Type-Options', 'nosniff');
 
     expect($response->streamedContent())->toBe('file-bytes');
 
@@ -276,6 +277,20 @@ it('lets a member download a Document under its original name and logs the acces
         'original_filename' => 'March 2026 Minutes.pdf',
     ]);
     expect($document->downloads()->sole()->downloaded_at)->not->toBeNull();
+});
+
+it('downloads any file that is not a PDF', function () {
+    $group = libraryGroup();
+    $document = storedDocument($group, [
+        'original_filename' => 'Data Sheet.docx',
+        'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ]);
+
+    $this->actingAs(libraryMemberOf($group))
+        ->get("/documents/{$document->id}/download")
+        ->assertOk()
+        ->assertDownload('Data Sheet.docx')
+        ->assertHeader('X-Content-Type-Options', 'nosniff');
 });
 
 it('keeps the access log when the downloading Member is deleted', function () {
@@ -322,5 +337,5 @@ it('sends a logged-out visitor to login, then hands over the file', function () 
 
     $this->get("/documents/{$document->id}/download")
         ->assertOk()
-        ->assertDownload('minutes.pdf');
+        ->assertHeader('Content-Disposition', 'inline; filename=minutes.pdf');
 });

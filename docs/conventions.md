@@ -106,7 +106,7 @@ created_at, updated_at
 1. User hits `GET /documents/{document}/download` (`/fr/documents/{document}/telecharger`). A logged-out visitor sees login, then gets the file.
 2. Controller authorizes via `DocumentPolicy@download`, on every request.
 3. Controller writes a `document_downloads` row (Document, Member, time). Rows are never edited.
-4. Controller streams `storage_path` with `original_filename`. Laravel sets `Content-Disposition` with the friendly filename.
+4. Controller streams `storage_path` with `original_filename`. Laravel sets `Content-Disposition` with the friendly filename: `inline` for a PDF, so it opens in the browser, and `attachment` for every other type. Never serve another type inline: an HTML or SVG file could run script on this origin.
 
 **Sanitization rules for original_filename** (`App\Support\SafeFilename`):
 

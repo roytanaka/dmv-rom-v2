@@ -20,7 +20,7 @@ Document handling has three structural requirements:
 The rebuild treats **Document as a first-class entity** with a single `documents` table, opaque disk storage, and a controller-gated download path. The model is:
 
 1. **Files live in `storage/app/documents/`, outside the webroot.** Apache never serves them directly.
-2. **Disk filename is a UUID with no extension.** The user-facing filename and MIME type are stored in DB columns and applied at download time via `Content-Disposition: attachment; filename="..."` (Laravel's `Storage::download()` handles this).
+2. **Disk filename is a UUID with no extension.** The user-facing filename and MIME type are stored in DB columns and applied at download time via `Content-Disposition: attachment; filename="..."` (Laravel's `Storage::download()` handles this). _Amended 2026-10-07: a PDF is served `inline` so it opens in the browser's viewer; every other type stays `attachment`. All files carry `X-Content-Type-Options: nosniff`._
 3. **Every download routes through a controller.** The controller authenticates the user, authorizes via `DocumentPolicy`, logs the access, then streams the file.
 4. **One `documents` table for the whole app.** Schema (minimum) per `docs/conventions.md § Documents`: `id`, `original_filename`, `storage_path`, `mime_type`, `size_bytes`, `uploaded_by_id`, `uploaded_at`, `visibility` enum (`public` / `members` / `committee`), optional `title` / `description` (single-column, rendered as-authored — content is not translated; see [ADR-0004](0004-chrome-only-translation.md)).
 5. **Ownership is expressed via multiple explicit nullable FKs** on the documents table — `committee_id`, `program_id`, `meeting_id`, etc. — added per-feature as migration scripts surface them. **Not polymorphic.**
@@ -78,12 +78,12 @@ Stormweb's Enterprise plan is "unlimited" storage but shared-host I/O is shared-
 
 Profile photos (#233, PRD #228) do **not** follow the document-storage decision above, and that divergence is intentional — recorded here so a later reader does not "fix" one lane to match the other.
 
-| | Documents lane (this ADR) | Profile-photo lane (#233) |
-|---|---|---|
-| Storage | `storage/app/documents`, outside the webroot | Public disk (`storage/app/public`), served via `storage:link` |
-| Access | Controller-gated per download, `DocumentPolicy` + audit log | Plain static URL, no per-fetch authorization |
-| Identifier | UUID, no extension, filename in DB | UUID `.webp` filename, no DB row beyond `members.photo_path` |
-| Default visibility | `members` (least privilege) | Public — opt-in by uploading |
+|                    | Documents lane (this ADR)                                   | Profile-photo lane (#233)                                     |
+| ------------------ | ----------------------------------------------------------- | ------------------------------------------------------------- |
+| Storage            | `storage/app/documents`, outside the webroot                | Public disk (`storage/app/public`), served via `storage:link` |
+| Access             | Controller-gated per download, `DocumentPolicy` + audit log | Plain static URL, no per-fetch authorization                  |
+| Identifier         | UUID, no extension, filename in DB                          | UUID `.webp` filename, no DB row beyond `members.photo_path`  |
+| Default visibility | `members` (least privilege)                                 | Public — opt-in by uploading                                  |
 
 The rationale: a document can carry volunteer PII, so obscurity is not enough and every fetch must re-check policy. A face is different — a member publishes it deliberately by uploading, it appears in the directory to every logged-in peer regardless, and routing 500 avatars through a policy-checked controller on every page would add load for no privacy gain. Unguessable UUID filenames plus disabled directory indexing keep the lane non-enumerable without a gate.
 
