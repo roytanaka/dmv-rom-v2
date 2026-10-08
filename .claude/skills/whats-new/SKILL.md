@@ -28,8 +28,9 @@ list of every spec item that changed or was cut before shipping.
 
 1. `list_labels`. Find the ID of `DMV/What's new`. Create it with `create_label` when it is
    missing.
-2. `search_threads` with `label:<id>` and again with `in:draft label:<id>`, then
-   `get_thread` (`PLAIN_TEXT`) on each one that touches this feature or its neighbours.
+2. Sent emails: `search_threads` with `label:<id>`, then `get_thread` (`PLAIN_TEXT`) on each
+   one that touches this feature or its neighbours. `search_threads` never returns drafts.
+3. Unsent drafts: `list_drafts`, and read each one whose subject starts `What's new:`.
 
 Done when every past statement that this release changes is listed with its email date.
 These go in the email's "Changed since last time" section.
