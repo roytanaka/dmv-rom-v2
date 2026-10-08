@@ -509,7 +509,7 @@ return [
 
     'gallery-interpreters' => [
         'sections' => [
-            'Data Sheets' => [
+            'Information Packages' => [
                 ['name' => 'General Museum', 'visibility' => 'members', 'items' => [
                     ['name' => 'Object Handling', 'items' => ['Handling Guidelines.pdf']],
                     ['name' => 'Training Materials', 'items' => ['Training Day 1 - Learning From Objects.pdf']],
@@ -532,6 +532,7 @@ return [
                 ['name' => 'Special Exhibition', 'visibility' => 'group', 'items' => [
                     ['name' => 'Pompeii: In the Shadow of the Volcano', 'items' => ['Pompeii Presentation.pdf']],
                 ]],
+                ['name' => 'Special Events', 'visibility' => 'group', 'items' => ['Special Events Briefing.pdf']],
             ],
         ],
     ],
