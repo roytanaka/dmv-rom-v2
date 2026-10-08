@@ -181,7 +181,7 @@ function onDrop(event: DragEvent): void {
                 <DocumentFolderBreadcrumb :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
 
                 <!-- The Category filter (#725), and a manager's Categories button (#724), beside the breadcrumb. -->
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <DocumentCategoryFilter :categories="library.categories" :category="library.category" />
                     <Button v-if="canManage" type="button" variant="outline" size="sm" @click="categoriesDialogOpen = true">
                         <PhListBullets class="h-4 w-4" aria-hidden="true" />

@@ -148,9 +148,9 @@ const destroy = (item: NewsItem) => {
                         </form>
                     </template>
                     <template v-else>
-                        <div class="flex items-start justify-between gap-4">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                             <h2 class="text-rom-ink font-semibold">{{ item.title }}</h2>
-                            <div v-if="item.can.update || item.can.delete" class="flex shrink-0 gap-2">
+                            <div v-if="item.can.update || item.can.delete" class="flex shrink-0 flex-wrap gap-2">
                                 <Button v-if="item.can.update" type="button" variant="ghost" size="sm" @click="startEdit(item)">
                                     {{ trans('news.edit') }}
                                 </Button>
