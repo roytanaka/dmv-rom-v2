@@ -37,6 +37,10 @@ return [
     ],
     'readable_by' => 'Readable by: :who',
 
+    // The open Folder's header (#726): what it holds, beside the Document category and
+    // file counts in document_categories.count.
+    'count_categories' => '{1} :count category|[2,*] :count categories',
+
     // The move picker's top option: the library root.
     'top_level' => 'Top level of the library',
 

@@ -21,6 +21,12 @@ return [
         'category' => 'Catégorie',
     ],
 
+    'filter' => [
+        'label' => 'Filtrer par catégorie',
+        'all' => 'Toutes les catégories',
+        'empty' => 'Rien dans cette catégorie.',
+    ],
+
     'other' => 'Autres',
     'none' => 'Aucune catégorie',
 

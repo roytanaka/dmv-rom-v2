@@ -24,21 +24,22 @@ class DocumentLibrary
     /**
      * The payload for every tab other than Documents.
      *
-     * @return array{folder: null, breadcrumb: list<never>, categories: list<never>, sections: list<never>, destinations: list<never>, maxDepth: int}
+     * @return array{folder: null, breadcrumb: list<never>, categories: list<never>, category: null, sections: list<never>, folderCount: int, documentCount: int, destinations: list<never>, maxDepth: int}
      */
     public static function empty(): array
     {
-        return ['folder' => null, 'breadcrumb' => [], 'categories' => [], 'sections' => [], 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH];
+        return ['folder' => null, 'breadcrumb' => [], 'categories' => [], 'category' => null, 'sections' => [], 'folderCount' => 0, 'documentCount' => 0, 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH];
     }
 
     /**
      * One Folder of the library (the root when `$folder` is null): its breadcrumb, its
      * Document categories (#724) and its child Folders and Documents in sections
-     * ({@see self::sections()}). Aborts 403 for a Folder the viewer may not read.
+     * ({@see self::sections()}), narrowed to one Document category when `$category` is given
+     * (#725). Aborts 403 for a Folder the viewer may not read.
      *
-     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, categories: list<array{id: int, name: string}>, sections: list<array<string, mixed>>, destinations: list<array<string, mixed>>, maxDepth: int}
+     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, categories: list<array{id: int, name: string}>, category: int|null, sections: list<array<string, mixed>>, folderCount: int, documentCount: int, destinations: list<array<string, mixed>>, maxDepth: int}
      */
-    public static function for(Member $viewer, Group $group, ?DocumentFolder $folder): array
+    public static function for(Member $viewer, Group $group, ?DocumentFolder $folder, ?int $category = null): array
     {
         $canManage = $viewer->can('manage', [Document::class, $group]);
 
@@ -109,12 +110,36 @@ class DocumentLibrary
             'href' => route('documents.download', $document, absolute: false),
         ];
 
+        $sections = self::sections($categories, $folders->map($folderRow)->all(), $documents->map($documentRow)->all());
+
+        // A reader who cannot manage the library never sees a Document category with nothing
+        // they may read (#725, ADR-0030 §4): not as a section, not in the filter. So the names
+        // of members-only sections stay hidden from a non-member. A manager keeps every one.
+        if (! $canManage) {
+            $sections = array_values(array_filter($sections, self::holdsItems(...)));
+            $shown = array_map(fn (array $section) => $section['category']['id'] ?? null, $sections);
+            $categories = array_values(array_filter($categories, fn (array $category) => in_array($category['id'], $shown, true)));
+        }
+
+        // The Category filter (#725): only that Document category's section. An id that is not
+        // one of the shown Document categories (another Folder's, or one hidden above) leaves
+        // nothing, never an error.
+        if ($category !== null) {
+            $sections = array_values(array_filter($sections, fn (array $section) => ($section['category']['id'] ?? null) === $category));
+        }
+
         return [
             'folder' => $folder === null ? null : $folderRow($folder),
             // The Folders above the current one, top-level first; the client adds the root.
             'breadcrumb' => $folder === null ? [] : $folder->ancestors()->map($folderRow)->values()->all(),
             'categories' => $categories,
-            'sections' => self::sections($categories, $folders->map($folderRow)->all(), $documents->map($documentRow)->all()),
+            // The active Category filter (#725): the `?category=` id as asked, or null for all.
+            'category' => $category,
+            'sections' => $sections,
+            // What the open Folder holds, for its header (#726): every readable child, whichever
+            // section it sits in. The Category filter leaves these whole.
+            'folderCount' => $folders->count(),
+            'documentCount' => $documents->count(),
             'destinations' => $canManage ? self::destinations($tree->filter(fn (DocumentFolder $item) => $viewer->can('view', $item))) : [],
             // The depth limit, so the client offers only the Folder actions the server will accept.
             'maxDepth' => DocumentFolder::MAX_DEPTH,
@@ -157,11 +182,21 @@ class DocumentLibrary
         $sections = array_map(fn (array $category) => $section($category, $category['id']), $categories);
         $other = $section(null, 0);
 
-        if ($other['folderCount'] + $other['documentCount'] > 0) {
+        if (self::holdsItems($other)) {
             $sections[] = $other;
         }
 
         return $sections;
+    }
+
+    /**
+     * Whether a section holds a Folder or a Document.
+     *
+     * @param  array{folderCount: int, documentCount: int}  $section
+     */
+    private static function holdsItems(array $section): bool
+    {
+        return $section['folderCount'] + $section['documentCount'] > 0;
     }
 
     /**
