@@ -10,7 +10,7 @@
 import HoursReportActions from '@/components/HoursReportActions.vue';
 import HoursReportNav from '@/components/HoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { NativeSelect } from '@/components/ui/native-select';
+import { NativeSelect, type NativeSelectValue } from '@/components/ui/native-select';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type GroupHoursMemberHistory, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
@@ -35,7 +35,7 @@ const formatMonth = (iso: string) =>
 
 // Picking a Member navigates by the `?member=` param, so the view is addressable and the
 // back button walks the history a Chair reviewed.
-const pick = (value: unknown) => {
+const pick = (value: NativeSelectValue) => {
     router.get(route('groups.hours.member', { group: props.group.slug, ...(value ? { member: value } : {}) }));
 };
 

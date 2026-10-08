@@ -1,12 +1,14 @@
 <script setup lang="ts">
+// Added from the new-york-v4 registry (#735) and changed from it:
+// - restyled to match Input: h-11, square corners, text-base, rom-slate focus ring;
+// - Phosphor caret instead of Lucide, with pr-9 so the text stops short of it;
+// - `class` sizes the wrapper (w-full by default, upstream is w-fit), not the <select>;
+// - the value type is local (NativeSelectValue), not reka-ui's AcceptableValue.
 import type { HTMLAttributes } from 'vue'
+import type { NativeSelectValue } from '.'
 import { PhCaretDown } from '@phosphor-icons/vue'
 import { useVModel } from '@vueuse/core'
 import { cn } from '@/lib/utils'
-
-// The registry types this as reka-ui's AcceptableValue; spelled out here so the
-// component needs no direct reka-ui dependency.
-type NativeSelectValue = string | number | bigint | Record<string, any> | null
 
 defineOptions({
   inheritAttrs: false,

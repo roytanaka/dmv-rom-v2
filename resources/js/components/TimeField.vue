@@ -7,7 +7,7 @@
 //
 // The value is the `HH:mm` the forms send, or '' until an hour is chosen. The outer <Label>
 // targets `id`, which lands on the hour select; the minute select names itself.
-import { NativeSelect } from '@/components/ui/native-select';
+import { NativeSelect, type NativeSelectValue } from '@/components/ui/native-select';
 import { DEFAULT_STEP_MINUTES, joinTime, minuteOptions, splitTime } from '@/scheduling/timeGrid';
 import { type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -46,13 +46,13 @@ function current(): string {
     return hour.value === null ? '' : joinTime(hour.value, minute.value ?? 0);
 }
 
-function pickHour(value: unknown) {
+function pickHour(value: NativeSelectValue) {
     hour.value = Number(value);
     minute.value ??= 0;
     model.value = current();
 }
 
-function pickMinute(value: unknown) {
+function pickMinute(value: NativeSelectValue) {
     minute.value = Number(value);
     model.value = current();
 }
