@@ -257,7 +257,7 @@ const destroy = (meeting: Meeting) => {
 
                     <fieldset class="grid gap-2">
                         <legend class="text-muted-foreground mb-2 text-sm font-medium">{{ trans('group.meetings.field.links') }}</legend>
-                        <div v-for="kind in LINK_KINDS" :key="kind" class="grid grid-cols-[6rem_1fr] items-center gap-2">
+                        <div v-for="kind in LINK_KINDS" :key="kind" class="grid gap-2 sm:grid-cols-[6rem_1fr] sm:items-center">
                             <Label :for="`meeting-link-${kind}`">{{ trans(`group.meetings.link.${kind}`) }}</Label>
                             <Input :id="`meeting-link-${kind}`" v-model="form.links[kind]" type="url" />
                         </div>

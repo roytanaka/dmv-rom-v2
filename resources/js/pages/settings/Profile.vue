@@ -137,14 +137,14 @@ const submit = () => {
                             <AvatarImage v-if="previewSrc" :src="previewSrc" :alt="`${user.first_name} ${user.last_name}`" />
                             <AvatarFallback>{{ initials }}</AvatarFallback>
                         </Avatar>
-                        <div class="grid gap-2">
+                        <div class="grid min-w-0 gap-2">
                             <Label for="photo">{{ trans('settings.profile.photo') }}</Label>
                             <input
                                 id="photo"
                                 ref="photoInput"
                                 type="file"
                                 accept="image/jpeg,image/png,image/webp"
-                                class="file:bg-secondary file:text-foreground hover:file:bg-secondary/80 block text-sm text-neutral-700 file:mr-4 file:rounded-md file:border-0 file:px-4 file:py-2 file:text-sm file:font-medium"
+                                class="file:bg-secondary file:text-foreground hover:file:bg-secondary/80 block w-full text-sm text-neutral-700 file:mr-4 file:rounded-md file:border-0 file:px-4 file:py-2 file:text-sm file:font-medium"
                                 @change="onPhotoChange"
                             />
                             <p class="text-sm text-neutral-600">{{ trans('settings.profile.photo_hint') }}</p>
