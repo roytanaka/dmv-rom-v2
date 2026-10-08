@@ -379,7 +379,7 @@ function close(): void {
                         <button
                             v-if="messageChips.hidden > 0"
                             type="button"
-                            class="text-rom-slate text-xs font-semibold hover:underline"
+                            class="text-rom-slate text-sm font-semibold hover:underline"
                             @click="chipsExpanded = true"
                         >
                             {{ trans('broadcasts.composer.more', { count: String(messageChips.hidden) }) }}

@@ -84,7 +84,7 @@ const csvHref = computed(() => route('hours.committee-summary.csv', { fy: props.
                         </thead>
                         <tbody>
                             <!-- Scheduled hours, one row per committee that runs scheduling. -->
-                            <tr class="text-muted-foreground text-xs tracking-wide uppercase">
+                            <tr class="text-muted-foreground text-sm tracking-wide uppercase">
                                 <td class="pt-3 pb-1 font-semibold" :colspan="months.length + 2">{{ trans('hours.dmv.summary.scheduled') }}</td>
                             </tr>
                             <tr v-for="row in scheduled" :key="row.id" class="border-border/60 border-b">
@@ -106,7 +106,7 @@ const csvHref = computed(() => route('hours.committee-summary.csv', { fy: props.
                                 class="text-rom-ink font-semibold"
                                 :class="{ 'border-border border-t-2': entry.key === 'meetings' }"
                             >
-                                <td class="py-2 pr-4 text-xs tracking-wide uppercase">{{ trans(`hours.dmv.summary.${entry.key}`) }}</td>
+                                <td class="py-2 pr-4 text-sm tracking-wide uppercase">{{ trans(`hours.dmv.summary.${entry.key}`) }}</td>
                                 <td v-for="(hours, index) in entry.row.months" :key="index" class="py-2 pr-2 text-right tabular-nums">{{ hours }}</td>
                                 <td class="py-2 pl-2 text-right tabular-nums">{{ entry.row.ytd }}</td>
                             </tr>

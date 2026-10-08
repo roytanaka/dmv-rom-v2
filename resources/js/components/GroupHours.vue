@@ -93,11 +93,11 @@ const submit = (yearMonth: string) => {
                 >
                     <div class="flex min-w-40 flex-col gap-0.5">
                         <span class="text-rom-ink font-medium">{{ formatMonth(month.month) }}</span>
-                        <span class="text-muted-foreground text-xs">{{ trans('hours.entry.on_file', { hours: String(month.extra_hours) }) }}</span>
-                        <span class="text-muted-foreground text-xs">{{
+                        <span class="text-muted-foreground text-sm">{{ trans('hours.entry.on_file', { hours: String(month.extra_hours) }) }}</span>
+                        <span class="text-muted-foreground text-sm">{{
                             trans('hours.entry.interactions_on_file', { interactions: String(month.extra_interactions) })
                         }}</span>
-                        <span class="text-muted-foreground text-xs">
+                        <span class="text-muted-foreground text-sm">
                             {{
                                 month.updated_at
                                     ? trans('hours.entry.last_updated', { date: formatDate(month.updated_at) })
@@ -106,12 +106,12 @@ const submit = (yearMonth: string) => {
                         </span>
                     </div>
                     <div class="flex flex-col gap-1">
-                        <Label :for="`hours-${month.year_month}`" class="text-xs">{{ trans('hours.entry.hours_label') }}</Label>
+                        <Label :for="`hours-${month.year_month}`">{{ trans('hours.entry.hours_label') }}</Label>
                         <Input :id="`hours-${month.year_month}`" v-model="forms.get(month.year_month)!.hours" type="number" step="1" class="w-28" />
                         <InputError :message="forms.get(month.year_month)!.errors.hours" />
                     </div>
                     <div class="flex flex-col gap-1">
-                        <Label :for="`interactions-${month.year_month}`" class="text-xs">{{ trans('hours.entry.interactions_label') }}</Label>
+                        <Label :for="`interactions-${month.year_month}`">{{ trans('hours.entry.interactions_label') }}</Label>
                         <Input
                             :id="`interactions-${month.year_month}`"
                             v-model="forms.get(month.year_month)!.interactions"

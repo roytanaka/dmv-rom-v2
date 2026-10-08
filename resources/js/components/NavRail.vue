@@ -89,7 +89,7 @@ const isActive = (href: string) => currentPath.value === href;
                         <!-- Override the button variant's [&>span:last-child]:truncate: the breadcrumb's
                              tail (the immediate parent) is its most identifying crumb, so wrap instead
                              of clipping it. whitespace-normal! beats the variant's whitespace-nowrap. -->
-                        <span v-if="result.breadcrumb.length" class="text-sidebar-muted text-xs break-words whitespace-normal!">{{
+                        <span v-if="result.breadcrumb.length" class="text-sidebar-muted text-sm break-words whitespace-normal!">{{
                             result.breadcrumb.join(' › ')
                         }}</span>
                     </Link>
@@ -115,7 +115,7 @@ const isActive = (href: string) => currentPath.value === href;
         <SidebarGroup class="px-2 py-0">
             <SidebarGroupLabel as-child>
                 <CollapsibleTrigger
-                    class="text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground flex w-full items-center justify-between text-xs font-semibold tracking-wide uppercase"
+                    class="text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground flex w-full items-center justify-between text-sm font-semibold tracking-wide uppercase"
                 >
                     {{ trans(otherGroupsSection.labelKey) }}
                     <PhCaretDown class="size-4 transition-transform group-data-[state=open]/other-groups:rotate-180" />

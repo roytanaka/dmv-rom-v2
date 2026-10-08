@@ -98,14 +98,14 @@ const csvHref = computed(() => route('groups.hours.report.csv', { group: props.g
                         <tfoot>
                             <!-- The two rollups side by side: the group's own hours and its subtree hours. -->
                             <tr class="text-rom-ink border-border border-t-2 font-semibold">
-                                <td class="py-2 pr-4 text-xs tracking-wide uppercase">{{ trans('hours.report.own') }}</td>
+                                <td class="py-2 pr-4 text-sm tracking-wide uppercase">{{ trans('hours.report.own') }}</td>
                                 <td v-for="(hours, index) in totals.own.months" :key="index" class="py-2 pr-2 text-right tabular-nums">
                                     {{ hours }}
                                 </td>
                                 <td class="py-2 pl-2 text-right tabular-nums">{{ totals.own.ytd }}</td>
                             </tr>
                             <tr class="text-rom-ink font-semibold">
-                                <td class="py-2 pr-4 text-xs tracking-wide uppercase">{{ trans('hours.report.subtree') }}</td>
+                                <td class="py-2 pr-4 text-sm tracking-wide uppercase">{{ trans('hours.report.subtree') }}</td>
                                 <td v-for="(hours, index) in totals.subtree.months" :key="index" class="py-2 pr-2 text-right tabular-nums">
                                     {{ hours }}
                                 </td>

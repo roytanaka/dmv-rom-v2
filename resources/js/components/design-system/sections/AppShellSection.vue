@@ -111,7 +111,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                 </Avatar>
             </div>
         </div>
-        <p class="text-muted-foreground mt-2 text-xs">Above — the <strong>Zone A</strong> set shown on the Dashboard, when no Group is selected.</p>
+        <p class="text-muted-foreground mt-2 text-sm">Above — the <strong>Zone A</strong> set shown on the Dashboard, when no Group is selected.</p>
 
         <p class="text-muted-foreground mt-4 max-w-2xl text-sm">
             Select a Group and the same strip becomes that Group’s <strong>Menu</strong> — its capability slots, labelled per program (the same slot
@@ -148,7 +148,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                 <PhCaretDown class="size-5 shrink-0 opacity-80" />
             </button>
         </div>
-        <p class="text-muted-foreground mt-2 text-xs">The collapsed below-<code>lg</code> trigger, naming the current section.</p>
+        <p class="text-muted-foreground mt-2 text-sm">The collapsed below-<code>lg</code> trigger, naming the current section.</p>
 
         <!-- Grouping rail ───────────────────────────────────────────────────── -->
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Grouping rail</h3>
@@ -191,7 +191,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
                 </div>
             </div>
         </div>
-        <p class="text-muted-foreground mt-2 max-w-2xl text-xs">
+        <p class="text-muted-foreground mt-2 max-w-2xl text-sm">
             Active row in the heritage-blue <code>sidebar-active</code> token; inactive labels in the <code>sidebar-muted</code> support gray.
             Subcommittees nest under their parent Group, and the split row (label navigates, chevron toggles) is the rail’s pattern.
         </p>
@@ -235,11 +235,11 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
             <div class="bg-popover text-popover-foreground border-border w-56 border shadow-md">
                 <div class="border-border flex flex-col border-b px-2 py-1.5">
                     <span class="text-sm font-medium">Alex Rivera</span>
-                    <span class="text-muted-foreground text-xs">alex.rivera@example.org</span>
+                    <span class="text-muted-foreground text-sm">alex.rivera@example.org</span>
                 </div>
                 <div class="flex items-center gap-2 px-2 py-2.5 text-sm"><PhUserCircle class="size-4" /> My Profile</div>
                 <div class="text-muted-foreground flex items-center gap-2 px-2 py-2.5 text-sm opacity-60">
-                    <PhTranslate class="size-4" /> Language <span class="ml-auto text-xs">EN / FR</span>
+                    <PhTranslate class="size-4" /> Language <span class="ml-auto text-sm">EN / FR</span>
                 </div>
                 <div class="border-border flex items-center gap-2 border-t px-2 py-2.5 text-sm"><PhSignOut class="size-4" /> Log out</div>
             </div>
@@ -256,7 +256,7 @@ const shellGroupTabs = (groupMenus.docents ?? []).map((node) => ({
             <div class="mx-auto flex max-w-5xl flex-col gap-4 text-sm">
                 <p>{{ trans('institutional.land_acknowledgement') }}</p>
                 <p>{{ trans('institutional.inclusion') }}</p>
-                <p class="text-xs text-white/45">
+                <p class="text-white/45">
                     {{ trans('footer.copyright', { start: '2011', current: '2026', org: trans('institutional.department') }) }}
                 </p>
             </div>

@@ -28,7 +28,7 @@ const shadowSteps = [
                     <CopyButton :value="step.class"
                         ><code class="text-foreground text-sm font-medium">{{ step.class }}</code></CopyButton
                     >
-                    <p class="text-muted-foreground mt-1 text-xs leading-snug">{{ step.role }}</p>
+                    <p class="text-muted-foreground mt-1 text-sm leading-snug">{{ step.role }}</p>
                 </div>
             </li>
         </ul>

@@ -542,7 +542,7 @@ const formId = useId();
                                 <!-- Against double counting (#651): a shared station counts each
                                      visitor once. An officer's correction speaks of the volunteer's
                                      count (#668). -->
-                                <span :id="`${formId}-count-help`" class="text-muted-foreground text-xs sm:w-40">
+                                <span :id="`${formId}-count-help`" class="text-muted-foreground text-sm sm:w-40">
                                     {{ countHelp }}
                                 </span>
                                 <InputError :message="recordErrors.count" class="sm:w-40" />
@@ -609,10 +609,10 @@ const formId = useId();
                                     :maxlength="COMMENT_MAX"
                                     :aria-describedby="`${formId}-comment-help ${formId}-comment-count`"
                                 />
-                                <span :id="`${formId}-comment-help`" class="text-muted-foreground text-xs">
+                                <span :id="`${formId}-comment-help`" class="text-muted-foreground text-sm">
                                     {{ trans('group.scheduling_panel.agenda.sign_out.comment_help') }}
                                 </span>
-                                <span :id="`${formId}-comment-count`" class="text-muted-foreground text-xs tabular-nums">
+                                <span :id="`${formId}-comment-count`" class="text-muted-foreground text-sm tabular-nums">
                                     {{ commentCount }}
                                 </span>
                                 <InputError :message="recordErrors.comment" />
@@ -645,7 +645,7 @@ const formId = useId();
                                 >
                                     {{ trans('group.scheduling_panel.agenda.sign_out.cancel') }}
                                 </Button>
-                                <span v-if="!canSubmit" :id="`${formId}-disabled-reason`" class="text-muted-foreground text-xs">
+                                <span v-if="!canSubmit" :id="`${formId}-disabled-reason`" class="text-muted-foreground text-sm">
                                     {{ disabledReason }}
                                 </span>
                             </div>
@@ -684,7 +684,7 @@ const formId = useId();
                                 >
                                     {{ trans('group.scheduling_panel.agenda.sign_out.change') }}
                                 </Button>
-                                <span v-if="changeDisabled" :id="`${formId}-change-blocked-${signUp.id}`" class="text-muted-foreground text-xs">
+                                <span v-if="changeDisabled" :id="`${formId}-change-blocked-${signUp.id}`" class="text-muted-foreground text-sm">
                                     {{ trans('group.scheduling_panel.agenda.sign_out.change_blocked') }}
                                 </span>
                             </div>

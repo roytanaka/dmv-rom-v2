@@ -92,7 +92,7 @@ const csvHref = computed(() => route('hours.visitor-summary.csv', { fy: props.fi
                                     <abbr
                                         v-if="row.incomplete"
                                         :title="trans('hours.dmv.visitors.incomplete_note')"
-                                        class="text-muted-foreground ml-1 cursor-help text-xs font-normal no-underline"
+                                        class="text-muted-foreground ml-1 cursor-help text-sm font-normal no-underline"
                                     >
                                         ({{ trans('hours.dmv.visitors.incomplete') }})
                                     </abbr>
@@ -112,7 +112,7 @@ const csvHref = computed(() => route('hours.visitor-summary.csv', { fy: props.fi
 
                     <!-- The reason the marker stands for, spelled out once below the table for readers
                          who cannot hover the abbreviation (touch, print, screen readers). -->
-                    <p v-if="hasIncomplete" class="text-muted-foreground mt-4 text-xs">
+                    <p v-if="hasIncomplete" class="text-muted-foreground mt-4 text-sm">
                         ({{ trans('hours.dmv.visitors.incomplete') }}) — {{ trans('hours.dmv.visitors.incomplete_note') }}
                     </p>
                 </CardContent>

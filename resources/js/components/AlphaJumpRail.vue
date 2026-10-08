@@ -28,7 +28,7 @@ const isAvailable = (letter: string) => props.available.includes(letter);
             type="button"
             :disabled="!isAvailable(letter)"
             :aria-label="trans('directory.jump.letter', { letter })"
-            class="text-muted-foreground hover:text-rom-slate hover:bg-rom-slate-50 focus-visible:ring-rom-slate flex size-5 items-center justify-center text-xs font-medium tabular-nums outline-hidden transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-30"
+            class="text-muted-foreground hover:text-rom-slate hover:bg-rom-slate-50 focus-visible:ring-rom-slate flex size-5 items-center justify-center text-sm font-medium tabular-nums outline-hidden transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-30"
             @click="emit('jump', letter)"
         >
             {{ letter }}

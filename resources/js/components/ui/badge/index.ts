@@ -14,7 +14,7 @@ export { default as Badge } from './Badge.vue';
 // design system. `info` references the rom-slate utilities, which resolve to the
 // identical value as the `info` status tokens (--info → --rom-slate).
 export const badgeVariants = cva(
-    'inline-flex items-center gap-1.5 rounded-none px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    'inline-flex items-center gap-1.5 rounded-none px-2.5 py-0.5 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     {
         variants: {
             variant: {

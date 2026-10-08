@@ -14,7 +14,7 @@ const props = defineProps<{
 
 <template>
     <div class="border-border bg-muted/40 relative mt-4 border">
-        <pre class="text-foreground/80 overflow-x-auto px-3 py-2.5 font-mono text-xs leading-relaxed"><code>{{ props.value }}</code></pre>
+        <pre class="text-foreground/80 overflow-x-auto px-3 py-2.5 font-mono text-sm leading-relaxed"><code>{{ props.value }}</code></pre>
         <ClipboardCopy
             :value="value"
             :label="label ?? 'Copy code snippet'"

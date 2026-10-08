@@ -160,7 +160,7 @@ const destroy = (item: NewsItem) => {
                             </div>
                         </div>
                         <p class="text-rom-ink mt-2 text-sm whitespace-pre-line">{{ item.body }}</p>
-                        <p class="text-muted-foreground mt-3 text-xs">
+                        <p class="text-muted-foreground mt-3 text-sm">
                             {{ trans('news.posted_by') }} {{ item.group }} · {{ formatDate(item.posted_at) }}
                         </p>
                     </template>

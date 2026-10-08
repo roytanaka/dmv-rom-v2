@@ -160,19 +160,28 @@ const formatDay = (date: string) =>
                         @click="openSheet(cell)"
                     >
                         <span class="text-rom-ink text-sm font-medium tabular-nums">{{ dayNumber(cell.date) }}</span>
+                        <!-- A phone cell is too narrow for "3 shifts" at the 16px floor (ADR-0031 §3),
+                             so below sm the chip shows the bare count and the phrase stays for
+                             screen readers. -->
                         <span
                             v-if="cell.shifts.length"
-                            class="bg-secondary text-secondary-foreground mt-auto self-start rounded-full px-1.5 py-0.5 text-xs"
+                            class="bg-secondary text-secondary-foreground mt-auto self-start rounded-full px-1.5 py-0.5 text-sm"
                         >
-                            {{ transChoice('group.scheduling_panel.calendar.shift_count', cell.shifts.length) }}
+                            <span class="tabular-nums sm:hidden" aria-hidden="true">{{ cell.shifts.length }}</span>
+                            <span class="sr-only sm:not-sr-only">{{
+                                transChoice('group.scheduling_panel.calendar.shift_count', cell.shifts.length)
+                            }}</span>
                         </span>
                         <!-- Foreign open Shifts, chips off until the master switch turns them on
                              (a grid cell has no room for a band). -->
                         <span
                             v-if="foreignExpanded && foreignOn(cell.date).length"
-                            class="border-rom-ink/30 text-muted-foreground mt-auto self-start rounded-full border border-dashed px-1.5 py-0.5 text-xs"
+                            class="border-rom-ink/30 text-muted-foreground mt-auto self-start rounded-full border border-dashed px-1.5 py-0.5 text-sm"
                         >
-                            {{ trans('group.scheduling_panel.foreign.chip', { count: String(foreignOn(cell.date).length) }) }}
+                            <span class="tabular-nums sm:hidden" aria-hidden="true">+{{ foreignOn(cell.date).length }}</span>
+                            <span class="sr-only sm:not-sr-only">{{
+                                trans('group.scheduling_panel.foreign.chip', { count: String(foreignOn(cell.date).length) })
+                            }}</span>
                         </span>
                     </button>
                     <div

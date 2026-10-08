@@ -264,7 +264,7 @@ function submit(): void {
                                 </Button>
                             </div>
                             <span class="truncate text-sm">{{ shotName(shot.file) }}</span>
-                            <span class="text-muted-foreground text-xs">{{ screenshotSize(shot.file.size) }}</span>
+                            <span class="text-muted-foreground text-sm">{{ screenshotSize(shot.file.size) }}</span>
                         </li>
                     </ul>
                     <ul v-if="fileErrors.length || serverFileErrors.length" role="alert" class="text-destructive flex flex-col gap-1 text-sm">

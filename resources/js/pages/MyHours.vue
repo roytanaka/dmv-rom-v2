@@ -99,7 +99,7 @@ const formatMonth = (iso: string) =>
                         </tbody>
                         <tfoot>
                             <tr class="text-rom-ink border-border border-t-2 font-semibold">
-                                <td class="py-2 pr-4 text-xs tracking-wide uppercase">{{ trans('hours.mine.ytd') }}</td>
+                                <td class="py-2 pr-4 text-sm tracking-wide uppercase">{{ trans('hours.mine.ytd') }}</td>
                                 <td class="py-2 pr-4 text-right tabular-nums">{{ group.ytd.scheduled_hours }}</td>
                                 <td class="py-2 pr-4 text-right tabular-nums">{{ group.ytd.extra_hours }}</td>
                                 <td class="py-2 text-right tabular-nums">{{ group.ytd.total_hours }}</td>

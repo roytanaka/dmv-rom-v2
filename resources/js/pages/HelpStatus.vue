@@ -94,7 +94,7 @@ const summary = (counts: Props['counts']) => [
                                     <span v-else class="text-muted-foreground">Every Member</span>
                                 </TableCell>
                                 <TableCell>
-                                    <span v-if="row.route" class="font-mono text-xs">{{ row.route }}</span>
+                                    <span v-if="row.route" class="font-mono text-sm">{{ row.route }}</span>
                                     <span v-else class="text-muted-foreground">—</span>
                                 </TableCell>
                                 <TableCell>
@@ -120,7 +120,7 @@ const summary = (counts: Props['counts']) => [
                 </p>
                 <ul v-if="gaps.length" class="flex flex-wrap gap-2">
                     <li v-for="name in gaps" :key="name">
-                        <span class="bg-muted rounded px-2 py-1 font-mono text-xs">{{ name }}</span>
+                        <span class="bg-muted rounded px-2 py-1 font-mono text-sm">{{ name }}</span>
                     </li>
                 </ul>
                 <p v-else class="text-muted-foreground text-sm">Every page has an article.</p>

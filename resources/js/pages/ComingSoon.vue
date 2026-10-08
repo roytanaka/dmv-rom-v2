@@ -29,7 +29,7 @@ const groupLine = computed(() => [props.group, props.section].filter(Boolean).jo
             <h1 class="text-rom-ink text-lg font-semibold">{{ trans('placeholder.coming_soon.title') }}</h1>
             <p class="text-muted-foreground max-w-md text-sm">{{ trans('placeholder.coming_soon.body') }}</p>
             <!-- As-authored Group slug, rendered verbatim (content, not chrome). -->
-            <p v-if="groupLine" class="text-muted-foreground font-mono text-xs">{{ groupLine }}</p>
+            <p v-if="groupLine" class="text-muted-foreground font-mono text-sm">{{ groupLine }}</p>
         </div>
     </AppLayout>
 </template>
