@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ShiftAudience;
+use App\Support\OrgTime;
 use App\Support\Scheduling\ObjectHold;
 use Carbon\CarbonImmutable;
 use Database\Factories\ShiftFactory;
@@ -117,6 +118,18 @@ class Shift extends Model
     public function signOutWindowIsOpen(): bool
     {
         return ! CarbonImmutable::now()->isBefore($this->ends_at->subMinutes(5));
+    }
+
+    /**
+     * Whether the Shift falls on a date after today on the org wall clock (#772). A Shift at
+     * 00:30 tomorrow is after today even while the server's UTC date already reads tomorrow.
+     */
+    public function isAfterToday(): bool
+    {
+        return CarbonImmutable::instance($this->starts_at)
+            ->setTimezone(config('app.org_timezone'))
+            ->startOfDay()
+            ->isAfter(OrgTime::now()->startOfDay());
     }
 
     /**
