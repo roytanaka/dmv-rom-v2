@@ -44,6 +44,9 @@ class StoreDocumentFolderRequest extends FormRequest
             // Set on a top-level Folder only (#715, ADR-0030 §5); a subfolder inherits. Left
             // out, a top-level Folder is `group`.
             'visibility' => [Rule::prohibitedIf($parentId !== null), 'nullable', Rule::enum(DocumentVisibility::class)],
+            // Its section in the parent Folder (#728, ADR-0030 §4): one of the parent's (or the
+            // root's) Document categories; null or absent files it under Other.
+            'category_id' => ['nullable', 'integer', $this->categoryOf($group->id, $parentId)],
         ];
     }
 
@@ -79,6 +82,7 @@ class StoreDocumentFolderRequest extends FormRequest
             'parent_id.exists' => trans('document_folders.error.not_found'),
             'visibility.prohibited' => trans('document_folders.error.visibility_top_level'),
             'visibility.enum' => trans('document_folders.error.visibility_invalid'),
+            ...$this->categoryMessages(),
         ];
     }
 

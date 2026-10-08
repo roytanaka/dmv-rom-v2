@@ -24,11 +24,11 @@ class DocumentLibrary
     /**
      * The payload for every tab other than Documents.
      *
-     * @return array{folder: null, breadcrumb: list<never>, categories: list<never>, category: null, sections: list<never>, folderCount: int, documentCount: int, destinations: list<never>, maxDepth: int}
+     * @return array{folder: null, breadcrumb: list<never>, categories: list<never>, category: null, sections: list<never>, folderCount: int, documentCount: int, destinations: list<never>, rootCategories: list<never>, maxDepth: int}
      */
     public static function empty(): array
     {
-        return ['folder' => null, 'breadcrumb' => [], 'categories' => [], 'category' => null, 'sections' => [], 'folderCount' => 0, 'documentCount' => 0, 'destinations' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH];
+        return ['folder' => null, 'breadcrumb' => [], 'categories' => [], 'category' => null, 'sections' => [], 'folderCount' => 0, 'documentCount' => 0, 'destinations' => [], 'rootCategories' => [], 'maxDepth' => DocumentFolder::MAX_DEPTH];
     }
 
     /**
@@ -37,7 +37,7 @@ class DocumentLibrary
      * ({@see self::sections()}), narrowed to one Document category when `$category` is given
      * (#725). Aborts 403 for a Folder the viewer may not read.
      *
-     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, categories: list<array{id: int, name: string}>, category: int|null, sections: list<array<string, mixed>>, folderCount: int, documentCount: int, destinations: list<array<string, mixed>>, maxDepth: int}
+     * @return array{folder: array<string, mixed>|null, breadcrumb: list<array<string, mixed>>, categories: list<array{id: int, name: string}>, category: int|null, sections: list<array<string, mixed>>, folderCount: int, documentCount: int, destinations: list<array<string, mixed>>, rootCategories: list<array{id: int, name: string}>, maxDepth: int}
      */
     public static function for(Member $viewer, Group $group, ?DocumentFolder $folder, ?int $category = null): array
     {
@@ -110,6 +110,10 @@ class DocumentLibrary
             'href' => route('documents.download', $document, absolute: false),
         ];
 
+        // Every Document category list of the Group, for a manager's move dialog (#728): a move
+        // picks one from the destination's list. Keyed by Folder id, 0 for the root.
+        $lists = $canManage ? self::categoryLists($group) : collect();
+
         $sections = self::sections($categories, $folders->map($folderRow)->all(), $documents->map($documentRow)->all());
 
         // A reader who cannot manage the library never sees a Document category with nothing
@@ -140,7 +144,9 @@ class DocumentLibrary
             // section it sits in. The Category filter leaves these whole.
             'folderCount' => $folders->count(),
             'documentCount' => $documents->count(),
-            'destinations' => $canManage ? self::destinations($tree->filter(fn (DocumentFolder $item) => $viewer->can('view', $item))) : [],
+            'destinations' => $canManage ? self::destinations($tree->filter(fn (DocumentFolder $item) => $viewer->can('view', $item)), $lists) : [],
+            // The library root's Document categories, for a move to the top level (#728).
+            'rootCategories' => $lists[0] ?? [],
             // The depth limit, so the client offers only the Folder actions the server will accept.
             'maxDepth' => DocumentFolder::MAX_DEPTH,
         ];
@@ -220,28 +226,51 @@ class DocumentLibrary
     /**
      * The Group's Folders as move destinations (#714): id, parent, depth and full path of
      * names, in tree order. Sent to a manager only, and only the Folders they may read (#715);
-     * the move Form Requests re-check the Group, the cycle and the depth limit.
+     * the move Form Requests re-check the Group, the cycle and the depth limit. Each carries its
+     * Document categories (#728), so the move can file the item in its new Folder.
      *
      * @param  Collection<int, DocumentFolder>  $folders
-     * @return list<array{id: int, parentId: int|null, depth: int, path: list<string>}>
+     * @param  Collection<int, list<array{id: int, name: string}>>  $lists  {@see self::categoryLists()}
+     * @return list<array{id: int, parentId: int|null, depth: int, path: list<string>, categories: list<array{id: int, name: string}>}>
      */
-    private static function destinations(Collection $folders): array
+    private static function destinations(Collection $folders, Collection $lists): array
     {
         $children = $folders->groupBy(fn (DocumentFolder $folder) => $folder->parent_id ?? 0);
         $rows = [];
 
-        $walk = function (int $parentId, array $path) use (&$walk, &$rows, $children): void {
+        $walk = function (int $parentId, array $path) use (&$walk, &$rows, $children, $lists): void {
             $siblings = ($children[$parentId] ?? collect())
                 ->sortBy(fn (DocumentFolder $folder) => mb_strtolower($folder->name), SORT_NATURAL);
 
             foreach ($siblings as $folder) {
                 $folderPath = [...$path, $folder->name];
-                $rows[] = ['id' => $folder->id, 'parentId' => $folder->parent_id, 'depth' => count($folderPath), 'path' => $folderPath];
+                $rows[] = [
+                    'id' => $folder->id,
+                    'parentId' => $folder->parent_id,
+                    'depth' => count($folderPath),
+                    'path' => $folderPath,
+                    'categories' => $lists[$folder->id] ?? [],
+                ];
                 $walk($folder->id, $folderPath);
             }
         };
         $walk(0, []);
 
         return $rows;
+    }
+
+    /**
+     * Every Document category of the Group as one list per Folder (#728), keyed by Folder id
+     * (0 for the library root), each sorted by name. One query.
+     *
+     * @return Collection<int, list<array{id: int, name: string}>>
+     */
+    private static function categoryLists(Group $group): Collection
+    {
+        return $group->documentCategories()
+            ->get(['id', 'folder_id', 'name'])
+            ->sortBy(fn (DocumentCategory $category) => mb_strtolower($category->name), SORT_NATURAL)
+            ->groupBy(fn (DocumentCategory $category) => $category->folder_id ?? 0)
+            ->map(fn (Collection $list) => $list->map(fn (DocumentCategory $category) => ['id' => $category->id, 'name' => $category->name])->values()->all());
     }
 }

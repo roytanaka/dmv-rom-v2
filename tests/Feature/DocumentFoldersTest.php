@@ -424,8 +424,8 @@ it('sends a manager every Folder as a move destination, in tree order', function
         ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
         ->assertInertia(fn (Assert $page) => $page
             ->has('library.destinations', 3)
-            ->where('library.destinations.0', ['id' => $a->id, 'parentId' => null, 'depth' => 1, 'path' => ['A']])
-            ->where('library.destinations.1', ['id' => $child->id, 'parentId' => $a->id, 'depth' => 2, 'path' => ['A', 'Child']])
+            ->where('library.destinations.0', ['id' => $a->id, 'parentId' => null, 'depth' => 1, 'path' => ['A'], 'categories' => []])
+            ->where('library.destinations.1', ['id' => $child->id, 'parentId' => $a->id, 'depth' => 2, 'path' => ['A', 'Child'], 'categories' => []])
             ->where('library.destinations.2.id', $b->id));
 });
 

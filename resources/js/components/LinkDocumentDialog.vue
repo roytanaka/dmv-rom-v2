@@ -1,21 +1,25 @@
 <script setup lang="ts">
-// Add a link Document (#716, ADR-0030 §7): a title and a web address, at the library root.
-// Editing a link lives in DocumentActions (#713). The server allows http and https only; the
-// Form Request re-checks who may write.
+// Add a link Document (#716, ADR-0030 §7): a title and a web address, in the open Folder, filed
+// under one of its Document categories or none (#728, §4). Editing a link lives in
+// DocumentActions (#713). The server allows http and https only; the Form Request re-checks who
+// may write and refuses another Folder's Document category.
+import DocumentCategorySelect from '@/components/DocumentCategorySelect.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { type LibraryCategory } from '@/types';
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { watch } from 'vue';
 
 // `folderId`: the open Folder the link lands in (#714); null at the library root.
-const props = defineProps<{ groupSlug: string; folderId?: number | null }>();
+// `categories`: that Folder's Document categories (#728).
+const props = defineProps<{ groupSlug: string; folderId?: number | null; categories: LibraryCategory[] }>();
 const open = defineModel<boolean>('open', { required: true });
 
-const form = useForm({ title: '', url: '' });
+const form = useForm<{ title: string; url: string; category_id: number | null }>({ title: '', url: '', category_id: null });
 
 // Start blank each time the dialog opens.
 watch(open, (isOpen) => {
@@ -49,6 +53,12 @@ function submit(): void {
                     <Input id="link-document-url" v-model="form.url" type="url" required maxlength="2048" />
                     <InputError :message="form.errors.url" />
                 </div>
+                <DocumentCategorySelect
+                    id="link-document-category"
+                    v-model="form.category_id"
+                    :categories="categories"
+                    :error="form.errors.category_id"
+                />
                 <div class="flex gap-2">
                     <Button type="submit" size="sm" :disabled="form.processing">{{ trans('documents.link.save') }}</Button>
                     <Button type="button" variant="ghost" size="sm" :disabled="form.processing" @click="open = false">

@@ -35,6 +35,8 @@ const props = defineProps<{
     /** The Document categories of the Folder it sits in (#724). */
     categories: LibraryCategory[];
     destinations: FolderDestination[];
+    /** The library root's Document categories, for a move to the top level (#728). */
+    rootCategories: LibraryCategory[];
     maxDepth: number;
 }>();
 
@@ -211,7 +213,9 @@ function confirmDelete(): void {
         :id="document.id"
         :name="name"
         :current-folder-id="document.folderId"
+        :current-category-id="document.categoryId"
         :destinations="destinations"
+        :root-categories="rootCategories"
         :max-depth="maxDepth"
     />
 

@@ -21,7 +21,8 @@ use Illuminate\Http\RedirectResponse;
 class DocumentController extends Controller
 {
     /**
-     * Upload one file to the library root, or into the Folder the request names (#714).
+     * Upload one file to the library root, or into the Folder the request names (#714), under
+     * the Document category it names (#728).
      */
     public function store(StoreDocumentRequest $request, Group $group, DocumentStorage $storage): RedirectResponse
     {
@@ -29,6 +30,8 @@ class DocumentController extends Controller
             ...$storage->store($request->file('file')),
             'kind' => DocumentKind::File,
             'folder_id' => $request->validated('folder_id'),
+            // One Document category for the whole batch (#728): each file's request carries it.
+            'category_id' => $request->validated('category_id'),
             'uploaded_by_id' => $request->user()->id,
             'uploaded_at' => now(),
         ]);

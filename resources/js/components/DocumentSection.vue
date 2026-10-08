@@ -28,6 +28,8 @@ const props = defineProps<{
     /** The open Folder's Document categories, for the rows' Edit dialogs. */
     categories: LibraryCategory[];
     destinations: FolderDestination[];
+    /** The library root's Document categories, for a move to the top level (#728). */
+    rootCategories: LibraryCategory[];
     maxDepth: number;
 }>();
 
@@ -117,6 +119,7 @@ const headingId = computed(() => `document-section-${props.section.category?.id 
                             :parent-id="folderId"
                             :categories="categories"
                             :destinations="destinations"
+                            :root-categories="rootCategories"
                             :max-depth="maxDepth"
                         />
                     </TableCell>
@@ -166,7 +169,13 @@ const headingId = computed(() => `document-section-${props.section.category?.id 
                         <p v-if="document.uploadedAt" class="text-xs">{{ formatDate(document.uploadedAt) }}</p>
                     </TableCell>
                     <TableCell v-if="canManage" class="w-10 text-right">
-                        <DocumentActions :document="document" :categories="categories" :destinations="destinations" :max-depth="maxDepth" />
+                        <DocumentActions
+                            :document="document"
+                            :categories="categories"
+                            :destinations="destinations"
+                            :root-categories="rootCategories"
+                            :max-depth="maxDepth"
+                        />
                     </TableCell>
                 </TableRow>
             </TableBody>

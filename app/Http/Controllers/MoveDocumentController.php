@@ -14,7 +14,12 @@ class MoveDocumentController extends Controller
 {
     public function __invoke(MoveDocumentRequest $request, Document $document): RedirectResponse
     {
-        $document->update(['folder_id' => $request->validated('folder_id')]);
+        // A Document category belongs to one Folder, so the move clears it or sets the
+        // destination's (#728, ADR-0030 §4).
+        $document->update([
+            'folder_id' => $request->validated('folder_id'),
+            'category_id' => $request->validated('category_id'),
+        ]);
 
         return back();
     }

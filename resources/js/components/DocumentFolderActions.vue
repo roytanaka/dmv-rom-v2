@@ -30,6 +30,8 @@ defineProps<{
     /** The Document categories of the open Folder this one sits in (#724). */
     categories: LibraryCategory[];
     destinations: FolderDestination[];
+    /** The library root's Document categories, for a move to the top level (#728). */
+    rootCategories: LibraryCategory[];
     maxDepth: number;
 }>();
 
@@ -85,7 +87,9 @@ function confirmDelete(id: number): void {
         :id="folder.id"
         :name="folder.name"
         :current-folder-id="parentId"
+        :current-category-id="folder.categoryId"
         :destinations="destinations"
+        :root-categories="rootCategories"
         :max-depth="maxDepth"
     />
 

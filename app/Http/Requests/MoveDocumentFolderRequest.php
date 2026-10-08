@@ -11,7 +11,8 @@ use Illuminate\Validation\Validator;
 
 /**
  * Move a Folder, with everything in it, to another parent in the same Group or to the top
- * level (`parent_id` null) (#714, ADR-0030 §3). Refused when the target is the Folder itself
+ * level (`parent_id` null) (#714, ADR-0030 §3). The move clears its Document category, or
+ * sets one of the destination's (#728, §4). Refused when the target is the Folder itself
  * or one of its descendants, when the moved subtree would end up past
  * {@see DocumentFolder::MAX_DEPTH}, or when the target already has a Folder of that name.
  */
@@ -31,8 +32,13 @@ class MoveDocumentFolderRequest extends FormRequest
      */
     public function rules(): array
     {
+        $groupId = $this->folder()->group_id;
+
         return [
-            'parent_id' => ['present', 'nullable', 'integer', $this->folderOfGroup($this->folder()->group_id)],
+            'parent_id' => ['present', 'nullable', 'integer', $this->folderOfGroup($groupId)],
+            // Its section in the destination (#728, ADR-0030 §4): one of the new parent's (or the
+            // root's) Document categories. Absent or null, the move files it under Other.
+            'category_id' => ['nullable', 'integer', $this->categoryOf($groupId, $this->filled('parent_id') ? $this->integer('parent_id') : null)],
         ];
     }
 
@@ -80,6 +86,7 @@ class MoveDocumentFolderRequest extends FormRequest
     {
         return [
             'parent_id.exists' => trans('document_folders.error.not_found'),
+            ...$this->categoryMessages(),
         ];
     }
 

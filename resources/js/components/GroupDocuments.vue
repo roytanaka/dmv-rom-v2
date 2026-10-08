@@ -26,12 +26,15 @@
 // Document category, then Other (DocumentSection). A Folder with no Document categories shows
 // one plain list with no heading. A manager keeps the open Folder's list from the Categories
 // button (DocumentCategoriesDialog) and files an item from its Edit dialog. The Category filter
-// beside the breadcrumb (#725, DocumentCategoryFilter) narrows the page to one section.
+// beside the breadcrumb (#725, DocumentCategoryFilter) narrows the page to one section. New
+// Folders, links and uploads are filed on the way in (#728): the upload's Category select
+// covers the whole batch and starts at the active filter.
 //
 // Where am I (#726): the root shows a breadcrumb with one current item, Documents; an open
 // Folder adds DocumentFolderHeader (icon, name, what it holds, who reads it).
 import DocumentCategoriesDialog from '@/components/DocumentCategoriesDialog.vue';
 import DocumentCategoryFilter from '@/components/DocumentCategoryFilter.vue';
+import DocumentCategorySelect from '@/components/DocumentCategorySelect.vue';
 import DocumentFolderBreadcrumb from '@/components/DocumentFolderBreadcrumb.vue';
 import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
 import DocumentFolderHeader from '@/components/DocumentFolderHeader.vue';
@@ -43,7 +46,7 @@ import { type GroupLibrary } from '@/types';
 import { router } from '@inertiajs/vue3';
 import { PhCheckCircle, PhFile, PhFolderPlus, PhLink, PhListBullets, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{ library: GroupLibrary; canManage: boolean; groupSlug: string }>();
 
@@ -72,6 +75,8 @@ interface Upload {
     id: number;
     name: string;
     file: File;
+    /** The batch's Document category, fixed when the files were picked (#728). */
+    categoryId: number | null;
     progress: number;
     state: 'waiting' | 'uploading' | 'done' | 'failed';
     error: string | null;
@@ -83,6 +88,18 @@ const dragging = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 let nextId = 0;
 
+// One Document category for the whole batch (#728, ADR-0030 §4). It starts at the active
+// Category filter when that is one of the open Folder's, else "No category", and again on
+// every Folder or filter change.
+const uploadCategory = ref<number | null>(null);
+watch(
+    () => [props.library.category, folderId.value] as const,
+    ([category]) => {
+        uploadCategory.value = props.library.categories.some((item) => item.id === category) ? category : null;
+    },
+    { immediate: true },
+);
+
 // One request per file (no chunking, ADR-0030 §12). Inertia runs one visit at a time, so the
 // files go up in turn; each visit's progress events drive that file's bar.
 function send(upload: Upload): Promise<void> {
@@ -90,7 +107,7 @@ function send(upload: Upload): Promise<void> {
         upload.state = 'uploading';
         router.post(
             route('documents.store', { group: props.groupSlug }),
-            { file: upload.file, folder_id: folderId.value },
+            { file: upload.file, folder_id: folderId.value, category_id: upload.categoryId },
             {
                 forceFormData: true,
                 preserveScroll: true,
@@ -113,7 +130,15 @@ function send(upload: Upload): Promise<void> {
 async function addFiles(files: File[]): Promise<void> {
     if (files.length === 0) return;
 
-    const added = files.map((file) => ({ id: nextId++, name: file.name, file, progress: 0, state: 'waiting' as const, error: null }));
+    const added = files.map((file) => ({
+        id: nextId++,
+        name: file.name,
+        file,
+        categoryId: uploadCategory.value,
+        progress: 0,
+        state: 'waiting' as const,
+        error: null,
+    }));
     uploads.value = [...uploads.value.filter((upload) => upload.state !== 'done'), ...added];
 
     if (uploading.value) return;
@@ -174,6 +199,8 @@ function onDrop(event: DragEvent): void {
 
         <!-- Upload, for a manager only. The whole zone takes a drop; the button opens the picker. -->
         <section v-if="canManage" class="flex flex-col gap-3">
+            <!-- The upload's Document category (#728), picked before the files go up. -->
+            <DocumentCategorySelect id="upload-category" v-model="uploadCategory" :categories="library.categories" class="sm:max-w-xs" />
             <div
                 class="flex flex-col items-center justify-center gap-2 border-2 border-dashed px-4 py-6 text-center text-sm sm:flex-row"
                 :class="dragging ? 'border-rom-slate bg-muted' : 'border-border'"
@@ -234,6 +261,7 @@ function onDrop(event: DragEvent): void {
                 :folder-id="folderId"
                 :categories="library.categories"
                 :destinations="library.destinations"
+                :root-categories="library.rootCategories"
                 :max-depth="library.maxDepth"
             />
         </template>
@@ -245,13 +273,20 @@ function onDrop(event: DragEvent): void {
             :folder-id="folderId"
             :categories="library.categories"
         />
-        <LinkDocumentDialog v-if="canManage" v-model:open="linkDialogOpen" :group-slug="groupSlug" :folder-id="folderId" />
+        <LinkDocumentDialog
+            v-if="canManage"
+            v-model:open="linkDialogOpen"
+            :group-slug="groupSlug"
+            :folder-id="folderId"
+            :categories="library.categories"
+        />
         <DocumentFolderDialog
             v-if="canManage"
             v-model:open="folderDialogOpen"
             :group-slug="groupSlug"
             :parent-id="folderId"
             :top-level="folderId === null"
+            :categories="library.categories"
         />
     </div>
 </template>

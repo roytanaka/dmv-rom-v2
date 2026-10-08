@@ -331,6 +331,8 @@ export interface FolderDestination {
     depth: number;
     /** Folder names from the top level down to this one. */
     path: string[];
+    /** Its Document categories, sorted by name: a move into it picks one (#728). */
+    categories: LibraryCategory[];
 }
 
 // A Document category (#724, ADR-0030 §4): a heading in one Folder's (or the root's) list.
@@ -369,6 +371,8 @@ export interface GroupLibrary {
     documentCount: number;
     /** Every Folder as a move destination; managers only (#714). */
     destinations: FolderDestination[];
+    /** The library root's Document categories, for a move to the top level; managers only (#728). */
+    rootCategories: LibraryCategory[];
     /** How deep Folders may go (DocumentFolder::MAX_DEPTH). */
     maxDepth: number;
 }

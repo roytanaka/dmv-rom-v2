@@ -433,3 +433,172 @@ it('keeps a Document\'s Document category when its file is replaced', function (
 
     expect($document->fresh()->category_id)->toBe($category->id);
 });
+
+// --- Assign on create and move (#728) --------------------------------------------
+
+it('files a new Folder under one of its parent\'s Document categories, or the root\'s', function () {
+    $group = categoryLibrary();
+    $parent = DocumentFolder::factory()->create(['group_id' => $group->id]);
+    $europe = DocumentCategory::factory()->in($parent)->create();
+    $sheets = DocumentCategory::factory()->create(['group_id' => $group->id]);
+    $librarian = categoryReader($group, Role::Librarian);
+
+    $this->actingAs($librarian)
+        ->post(route('document-folders.store', $group), ['name' => 'Tour 1', 'parent_id' => $parent->id, 'category_id' => $europe->id])
+        ->assertSessionHasNoErrors();
+    $this->actingAs($librarian)
+        ->post(route('document-folders.store', $group), ['name' => 'Asia', 'category_id' => $sheets->id])
+        ->assertSessionHasNoErrors();
+    $this->actingAs($librarian)
+        ->post(route('document-folders.store', $group), ['name' => 'Loose', 'category_id' => null])
+        ->assertSessionHasNoErrors();
+
+    expect(DocumentFolder::where('name', 'Tour 1')->sole()->category_id)->toBe($europe->id)
+        ->and(DocumentFolder::where('name', 'Asia')->sole()->category_id)->toBe($sheets->id)
+        ->and(DocumentFolder::where('name', 'Loose')->sole()->category_id)->toBeNull();
+});
+
+it('files a new link under one of its Folder\'s Document categories', function () {
+    $group = categoryLibrary();
+    $folder = DocumentFolder::factory()->create(['group_id' => $group->id]);
+    $europe = DocumentCategory::factory()->in($folder)->create();
+
+    $this->actingAs(categoryReader($group, Role::Librarian))
+        ->post(route('documents.links.store', $group), [
+            'title' => 'Map', 'url' => 'https://example.com/map', 'folder_id' => $folder->id, 'category_id' => $europe->id,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Document::where('title', 'Map')->sole()->category_id)->toBe($europe->id);
+});
+
+it('files every file of an upload batch under the one Document category sent with it', function () {
+    Storage::fake('local');
+    $group = categoryLibrary();
+    $folder = DocumentFolder::factory()->create(['group_id' => $group->id]);
+    $europe = DocumentCategory::factory()->in($folder)->create();
+    $librarian = categoryReader($group, Role::Librarian);
+
+    // The client sends a multi-file pick as one request per file, each with the batch's category.
+    foreach (['one.pdf', 'two.pdf'] as $name) {
+        $this->actingAs($librarian)
+            ->post(route('documents.store', $group), [
+                'file' => UploadedFile::fake()->create($name, 10, 'application/pdf'), 'folder_id' => $folder->id, 'category_id' => $europe->id,
+            ])
+            ->assertSessionHasNoErrors();
+    }
+    $this->actingAs($librarian)
+        ->post(route('documents.store', $group), ['file' => UploadedFile::fake()->create('three.pdf', 10, 'application/pdf'), 'folder_id' => $folder->id])
+        ->assertSessionHasNoErrors();
+
+    expect(Document::where('category_id', $europe->id)->pluck('original_filename')->sort()->values()->all())->toBe(['one.pdf', 'two.pdf'])
+        ->and(Document::where('original_filename', 'three.pdf')->sole()->category_id)->toBeNull();
+});
+
+it('refuses another Folder\'s Document category on a new Folder, link or upload', function () {
+    Storage::fake('local');
+    $group = categoryLibrary();
+    $folder = DocumentFolder::factory()->create(['group_id' => $group->id]);
+    $rootCategory = DocumentCategory::factory()->create(['group_id' => $group->id]);
+    $foreign = DocumentCategory::factory()->create(['group_id' => categoryLibrary()->id]);
+    $librarian = categoryReader($group, Role::Librarian);
+
+    // Inside $folder, the root's list and another Group's are both elsewhere.
+    foreach ([$rootCategory, $foreign] as $category) {
+        $this->actingAs($librarian)
+            ->post(route('document-folders.store', $group), ['name' => 'Sub', 'parent_id' => $folder->id, 'category_id' => $category->id])
+            ->assertSessionHasErrors(['category_id' => 'Choose a category of this folder.']);
+        $this->actingAs($librarian)
+            ->post(route('documents.links.store', $group), ['title' => 'Map', 'url' => 'https://example.com', 'folder_id' => $folder->id, 'category_id' => $category->id])
+            ->assertSessionHasErrors('category_id');
+        $this->actingAs($librarian)
+            ->post(route('documents.store', $group), [
+                'file' => UploadedFile::fake()->create('one.pdf', 10, 'application/pdf'), 'folder_id' => $folder->id, 'category_id' => $category->id,
+            ])
+            ->assertSessionHasErrors('category_id');
+    }
+
+    expect(DocumentFolder::count())->toBe(1)->and(Document::count())->toBe(0);
+});
+
+it('clears a moved Folder\'s or Document\'s Document category', function () {
+    $group = categoryLibrary();
+    $from = DocumentFolder::factory()->create(['group_id' => $group->id, 'name' => 'From']);
+    $to = DocumentFolder::factory()->create(['group_id' => $group->id, 'name' => 'To']);
+    $old = DocumentCategory::factory()->in($from)->create();
+    $folder = DocumentFolder::factory()->in($from)->create(['category_id' => $old->id]);
+    $document = Document::factory()->create(['group_id' => $group->id, 'folder_id' => $from->id, 'category_id' => $old->id]);
+    $librarian = categoryReader($group, Role::Librarian);
+
+    $this->actingAs($librarian)
+        ->patch(route('document-folders.move', $folder), ['parent_id' => $to->id])
+        ->assertSessionHasNoErrors();
+    $this->actingAs($librarian)
+        ->patch(route('documents.move', $document), ['folder_id' => null])
+        ->assertSessionHasNoErrors();
+
+    expect($folder->fresh()->category_id)->toBeNull()->and($document->fresh()->category_id)->toBeNull();
+});
+
+it('files a moved Folder or Document under one of its destination\'s Document categories', function () {
+    $group = categoryLibrary();
+    $from = DocumentFolder::factory()->create(['group_id' => $group->id, 'name' => 'From']);
+    $to = DocumentFolder::factory()->create(['group_id' => $group->id, 'name' => 'To']);
+    $europe = DocumentCategory::factory()->in($to)->create();
+    $sheets = DocumentCategory::factory()->create(['group_id' => $group->id]);
+    $folder = DocumentFolder::factory()->in($from)->create();
+    $document = Document::factory()->create(['group_id' => $group->id, 'folder_id' => $from->id]);
+    $librarian = categoryReader($group, Role::Librarian);
+
+    $this->actingAs($librarian)
+        ->patch(route('document-folders.move', $folder), ['parent_id' => $to->id, 'category_id' => $europe->id])
+        ->assertSessionHasNoErrors();
+    // To the library root, with one of the root's.
+    $this->actingAs($librarian)
+        ->patch(route('documents.move', $document), ['folder_id' => null, 'category_id' => $sheets->id])
+        ->assertSessionHasNoErrors();
+
+    expect($folder->fresh()->category_id)->toBe($europe->id)->and($document->fresh()->category_id)->toBe($sheets->id);
+});
+
+it('refuses a Document category from outside the move\'s destination', function () {
+    $group = categoryLibrary();
+    $from = DocumentFolder::factory()->create(['group_id' => $group->id, 'name' => 'From']);
+    $to = DocumentFolder::factory()->create(['group_id' => $group->id, 'name' => 'To']);
+    $old = DocumentCategory::factory()->in($from)->create();
+    $folder = DocumentFolder::factory()->in($from)->create(['category_id' => $old->id]);
+    $document = Document::factory()->create(['group_id' => $group->id, 'folder_id' => $from->id, 'category_id' => $old->id]);
+    $librarian = categoryReader($group, Role::Librarian);
+
+    // The source Folder's list is not the destination's.
+    $this->actingAs($librarian)
+        ->patch(route('document-folders.move', $folder), ['parent_id' => $to->id, 'category_id' => $old->id])
+        ->assertSessionHasErrors(['category_id' => 'Choose a category of this folder.']);
+    $this->actingAs($librarian)
+        ->patch(route('documents.move', $document), ['folder_id' => $to->id, 'category_id' => $old->id])
+        ->assertSessionHasErrors('category_id');
+
+    expect($folder->fresh()->parent_id)->toBe($from->id)->and($document->fresh()->folder_id)->toBe($from->id);
+});
+
+it('gives a manager each move destination\'s Document categories, and the root\'s', function () {
+    $group = categoryLibrary();
+    $tours = DocumentFolder::factory()->create(['group_id' => $group->id, 'name' => 'Tours']);
+    $europe = DocumentCategory::factory()->in($tours)->create(['name' => 'Europe']);
+    $asia = DocumentCategory::factory()->in($tours)->create(['name' => 'Asia']);
+    $sheets = DocumentCategory::factory()->create(['group_id' => $group->id, 'name' => 'Data Sheets']);
+
+    $this->actingAs(categoryReader($group, Role::Librarian))
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $tours]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.rootCategories', [['id' => $sheets->id, 'name' => 'Data Sheets']])
+            ->where('library.destinations.0.id', $tours->id)
+            ->where('library.destinations.0.categories', [['id' => $asia->id, 'name' => 'Asia'], ['id' => $europe->id, 'name' => 'Europe']]));
+
+    // A reader who cannot move anything gets neither.
+    $this->actingAs(categoryReader($group))
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $tours]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.rootCategories', [])
+            ->where('library.destinations', []));
+});
