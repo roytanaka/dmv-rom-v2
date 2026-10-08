@@ -104,7 +104,8 @@ const tableRows: TableSpecimenRow[] = [
             The six variants across the <code>sm</code> / <code>default</code> / <code>lg</code> / <code>icon</code> sizes, with the
             <code>disabled</code> and <code>loading</code> states. The <code>loading</code> prop shows a spinning <code>PhCircleNotch</code> (a
             documented <code>rounded-full</code> exception) and disables the button so a pending submit can't be re-triggered. The
-            <code>link</code> variant carries the heritage-blue accent.
+            <code>link</code> variant carries the heritage-blue accent. On a touch screen, <code>sm</code>, <code>default</code> and
+            <code>icon</code> grow to 44px.
         </p>
 
         <div class="mt-6 space-y-5">
@@ -235,7 +236,7 @@ const tableRows: TableSpecimenRow[] = [
         <h3 class="text-muted-foreground mt-10 text-sm font-semibold tracking-wide uppercase">Checkbox</h3>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
             Square (<code>rounded-none</code>) and bumped to <strong>20px</strong> (<code>size-5</code>) for the audience, with a Phosphor check
-            glyph. Shown checked, unchecked, and disabled.
+            glyph. On a touch screen, an invisible 44px tap area surrounds the box. Shown checked, unchecked, and disabled.
         </p>
 
         <div class="mt-6 space-y-4">

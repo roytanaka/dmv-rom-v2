@@ -38,7 +38,7 @@ const toggle = (id: number, checked: boolean) => {
             <legend class="text-base font-semibold text-neutral-900">{{ category.name }}</legend>
 
             <div class="space-y-2">
-                <div v-for="skill in category.skills" :key="skill.id" class="flex items-center gap-3">
+                <div v-for="skill in category.skills" :key="skill.id" class="flex items-center gap-3 pointer-coarse:min-h-11">
                     <Checkbox
                         :id="`skill-${skill.id}`"
                         :checked="isChecked(skill.id)"

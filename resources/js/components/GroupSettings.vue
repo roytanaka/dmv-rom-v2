@@ -267,7 +267,7 @@ const moveObject = (index: number, delta: number) => {
                         <p v-if="emptyDesk.shiftKinds.length === 0" class="text-muted-foreground text-sm">
                             {{ trans('group.scheduling_panel.empty_desk.no_kinds') }}
                         </p>
-                        <label v-for="kind in emptyDesk.shiftKinds" :key="kind.id" class="flex items-center gap-2 text-sm">
+                        <label v-for="kind in emptyDesk.shiftKinds" :key="kind.id" class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
                             <Checkbox
                                 :checked="emptyDeskForm.watched_shift_kinds.includes(kind.id)"
                                 @update:checked="(on: boolean) => toggleWatchedKind(kind.id, on)"
