@@ -725,7 +725,11 @@
     }
 
     function openCategoriesDialog() {
-        return clickAndSettle(buttonLabelled(/^categories$/i));
+        return clickAndSettle(buttonLabelled(/^manage categories$/i));
+    }
+
+    function openAddDocumentDialog() {
+        return clickAndSettle(buttonLabelled(/^add document$/i));
     }
 
     // The Categories dialog's delete button for its first Document category, which asks first.
@@ -829,6 +833,7 @@
         filterByEgyptAndNubia,
         openNewFolderDialog,
         openCategoriesDialog,
+        openAddDocumentDialog,
         openDeleteCategoryDialog,
         openFolderMenu,
         openFolderEditDialog,

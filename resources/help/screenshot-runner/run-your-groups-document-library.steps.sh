@@ -9,7 +9,7 @@
 persona hannah.schmidt@dmv.test
 start /groups/docents/documents
 
-nav /groups/docents/documents 01   # the root as a Librarian: Categories button, upload Category, drop zone, Add link, New folder
+nav /groups/docents/documents 01   # the root as a Librarian: Manage categories, Add document, Add link, New folder (#755)
 act openCategoriesDialog 02        # the Categories dialog: Data Sheets and Publications with rename and delete, then New category
 nav /groups/docents/documents      # close the dialog
 act openDeleteCategoryDialog 03    # Delete Data Sheets? Its folders and files move to Other.
@@ -18,6 +18,8 @@ act openNewFolderDialog 04         # the New folder dialog: Name, Who can read i
 nav /groups/docents/documents      # close the dialog
 act openFolderEditDialog 05        # Exhibition's Edit folder dialog: Group members, Category Data Sheets
 nav /groups/docents/documents      # close the dialog
-act openDocumentMenu 06            # Docent handbook's actions menu under Other: Edit, Replace file, Move, Delete
+act openAddDocumentDialog 06       # the Add documents dialog: Category, the drop zone with Choose files (#755)
+nav /groups/docents/documents      # close the dialog
+act openDocumentMenu 07            # Docent handbook's actions menu under Other: Edit, Replace file, Move, Delete
 nav /groups/docents/documents      # close the menu
-act openMoveDocumentDialog 07      # the Move dialog: Move to the top level, Category No category
+act openMoveDocumentDialog 08      # the Move dialog: Move to the top level, Category No category

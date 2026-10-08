@@ -8,10 +8,10 @@ Les catégories rangent les dossiers et les fichiers d'un dossier sous des titre
 
 1. Ouvrez l'onglet **Documents** de votre groupe.
 
-    ![L'onglet Documents pour un·e bibliothécaire : la liste des catégories, Catégories, la Catégorie des téléversements, la zone de téléversement, Ajouter un lien et Nouveau dossier](01.png)
+    ![L'onglet Documents pour un·e bibliothécaire : la liste des catégories, Gérer les catégories, Ajouter un document, Ajouter un lien et Nouveau dossier](01.png)
 
 2. Ouvrez le dossier qui recevra les catégories, ou restez au premier niveau.
-3. Sélectionnez **Catégories**.
+3. Sélectionnez **Gérer les catégories**.
 
     ![La fenêtre Catégories : Data Sheets et Publications, chacune avec renommer et supprimer, puis Nouvelle catégorie](02.png)
 
@@ -55,12 +55,19 @@ Les dossiers peuvent compter jusqu'à 5 niveaux. Un dossier placé dans un dossi
 ## Téléverser des fichiers
 
 1. Ouvrez le dossier qui recevra les fichiers.
-2. Choisissez une **Catégorie** au-dessus de la zone de téléversement. Tous les fichiers que vous ajoutez ensuite vont dans cette catégorie.
-3. Déposez les fichiers sur la zone de téléversement, ou sélectionnez **Choisir des fichiers**.
+2. Sélectionnez **Ajouter un document**.
+
+    ![La fenêtre Ajouter des documents : Catégorie, et la zone de téléversement avec Choisir des fichiers](06.png)
+
+3. Choisissez une **Catégorie**. Tous les fichiers que vous ajoutez ensuite vont dans cette catégorie.
+4. Déposez les fichiers sur la zone de téléversement, ou sélectionnez **Choisir des fichiers**.
+5. Quand tous les fichiers affichent un résultat, fermez la fenêtre.
 
 La **Catégorie** commence à la catégorie que la page affiche. Quand la page affiche toutes les catégories, elle commence à **Aucune catégorie**.
 
-Chaque fichier affiche une barre de progression pendant le téléversement. L'application n'ajoute pas un fichier de plus de 1,5 Go ou d'un type non permis.
+Chaque fichier affiche une barre de progression pendant le téléversement. L'application n'ajoute pas un fichier de plus de 1,5 Go ou d'un type non permis. La fenêtre affiche la raison sous le fichier.
+
+> **Note :** Si vous fermez la fenêtre pendant un téléversement, sélectionnez **Continuer le téléversement** ou **Annuler les téléversements**. Les fichiers déjà téléversés restent.
 
 ## Ajouter un lien
 
@@ -73,13 +80,13 @@ Chaque fichier affiche une barre de progression pendant le téléversement. L'ap
 
 Sélectionnez le bouton d'actions au bout de la ligne d'un document. Puis sélectionnez un élément :
 
-![Le menu d'actions d'un document sous Autres : Modifier, Remplacer le fichier, Déplacer et Supprimer](06.png)
+![Le menu d'actions d'un document sous Autres : Modifier, Remplacer le fichier, Déplacer et Supprimer](07.png)
 
 1. Sélectionnez **Modifier** pour changer le titre, la description et la catégorie. Pour un lien, vous pouvez aussi changer l'adresse Web.
 2. Sélectionnez **Remplacer le fichier** pour téléverser une nouvelle version. Les membres utilisent le même lien pour l'obtenir.
 3. Sélectionnez **Déplacer** pour mettre le document dans un autre dossier. Choisissez le dossier sous **Déplacer vers**. Puis choisissez une **Catégorie** de ce dossier.
 
-    ![La fenêtre Déplacer : Déplacer vers réglé sur le premier niveau de la bibliothèque, et Catégorie réglée sur Aucune catégorie](07.png)
+    ![La fenêtre Déplacer : Déplacer vers réglé sur le premier niveau de la bibliothèque, et Catégorie réglée sur Aucune catégorie](08.png)
 
 4. Sélectionnez **Supprimer** pour retirer le document et son fichier. Une suppression est définitive.
 

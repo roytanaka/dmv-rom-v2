@@ -5,10 +5,9 @@
 // name links to the gated download route.
 //
 // A manager (the Librarian, the Chair, or the super-tier; the server's `canManage` hint) gets
-// the upload drop zone. A multi-file pick goes up one file per request, one after another, so
-// each file shows its own progress bar and its own error. The DocumentPolicy enforces every
-// upload regardless of what renders. Titles and filenames are content, shown as written
-// (ADR-0004); everything else is translated chrome.
+// the toolbar beside the Category filter: Manage categories, Add document, Add link and New
+// folder (#755). Add document opens DocumentUploadDialog. Titles and filenames are content,
+// shown as written (ADR-0004); everything else is translated chrome.
 //
 // A link Document (#716) shows a link icon in place of type and size and opens in a new tab
 // through the same gated route. A manager adds one in LinkDocumentDialog and edits it from
@@ -24,30 +23,26 @@
 //
 // Document categories (#724, ADR-0030 §4): the open Folder's items come in sections, one per
 // Document category, then Other (DocumentSection). A Folder with no Document categories shows
-// one plain list with no heading. A manager keeps the open Folder's list from the Categories
-// button (DocumentCategoriesDialog) and files an item from its Edit dialog. The Category filter
-// beside the breadcrumb (#725, DocumentCategoryFilter) narrows the page to one section. New
-// Folders, links and uploads are filed on the way in (#728): the upload's Category select
-// covers the whole batch and starts at the active filter.
+// one plain list with no heading. A manager keeps the open Folder's list from the Manage
+// categories button (DocumentCategoriesDialog) and files an item from its Edit dialog. The
+// Category filter beside the breadcrumb (#725, DocumentCategoryFilter) narrows the page to one
+// section. New Folders, links and uploads are filed on the way in (#728).
 //
 // Where am I (#726): the root shows a breadcrumb with one current item, Documents; an open
 // Folder adds DocumentFolderHeader (icon, name, what it holds, who reads it).
 import DocumentCategoriesDialog from '@/components/DocumentCategoriesDialog.vue';
 import DocumentCategoryFilter from '@/components/DocumentCategoryFilter.vue';
-import DocumentCategorySelect from '@/components/DocumentCategorySelect.vue';
 import DocumentFolderBreadcrumb from '@/components/DocumentFolderBreadcrumb.vue';
 import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
 import DocumentFolderHeader from '@/components/DocumentFolderHeader.vue';
 import DocumentSection from '@/components/DocumentSection.vue';
+import DocumentUploadDialog from '@/components/DocumentUploadDialog.vue';
 import LinkDocumentDialog from '@/components/LinkDocumentDialog.vue';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { defaultUploadCategory } from '@/documents/uploadCategory';
 import { type GroupLibrary } from '@/types';
-import { router } from '@inertiajs/vue3';
-import { PhCheckCircle, PhFile, PhFolderPlus, PhLink, PhListBullets, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
+import { PhFolderPlus, PhLink, PhListBullets, PhUploadSimple } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{ library: GroupLibrary; canManage: boolean; groupSlug: string }>();
 
@@ -70,108 +65,7 @@ const emptyMessage = computed(() =>
     trans(props.library.category !== null ? 'document_categories.filter.empty' : props.library.folder ? 'document_folders.empty' : 'documents.empty'),
 );
 
-// --- Upload ---------------------------------------------------------------------------
-
-interface Upload {
-    id: number;
-    name: string;
-    file: File;
-    /** The batch's Document category, fixed when the files were picked (#728). */
-    categoryId: number | null;
-    progress: number;
-    state: 'waiting' | 'uploading' | 'done' | 'failed';
-    error: string | null;
-}
-
-const uploads = ref<Upload[]>([]);
-const uploading = ref(false);
-const dragging = ref(false);
-const fileInput = ref<HTMLInputElement | null>(null);
-let nextId = 0;
-
-// One Document category for the whole batch (#728, ADR-0030 §4), reset on every Folder or
-// filter change (defaultUploadCategory). Offered only when the open Folder has Document
-// categories; otherwise the batch goes up with none.
-const uploadCategory = ref<number | null>(null);
-watch(
-    () => [props.library.category, folderId.value] as const,
-    ([category]) => {
-        uploadCategory.value = defaultUploadCategory(props.library.categories, category);
-    },
-    { immediate: true },
-);
-
-// One request per file (no chunking, ADR-0030 §12). Inertia runs one visit at a time, so the
-// files go up in turn; each visit's progress events drive that file's bar.
-function send(upload: Upload): Promise<void> {
-    return new Promise((resolve) => {
-        upload.state = 'uploading';
-        router.post(
-            route('documents.store', { group: props.groupSlug }),
-            { file: upload.file, folder_id: folderId.value, category_id: upload.categoryId },
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                preserveState: true,
-                onProgress: (event) => (upload.progress = event?.percentage ?? upload.progress),
-                onSuccess: () => {
-                    upload.state = 'done';
-                    upload.progress = 100;
-                },
-                onError: (errors) => {
-                    upload.state = 'failed';
-                    upload.error = errors.file ?? Object.values(errors)[0] ?? null;
-                },
-                onFinish: () => resolve(),
-            },
-        );
-    });
-}
-
-async function addFiles(files: File[]): Promise<void> {
-    if (files.length === 0) return;
-
-    const added = files.map((file) => ({
-        id: nextId++,
-        name: file.name,
-        file,
-        categoryId: uploadCategory.value,
-        progress: 0,
-        state: 'waiting' as const,
-        error: null,
-    }));
-    uploads.value = [...uploads.value.filter((upload) => upload.state !== 'done'), ...added];
-
-    if (uploading.value) return;
-
-    uploading.value = true;
-    let upload: Upload | undefined;
-    while ((upload = uploads.value.find((item) => item.state === 'waiting'))) {
-        await send(upload);
-    }
-    uploading.value = false;
-}
-
-function onPick(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    addFiles(Array.from(input.files ?? []));
-    input.value = '';
-}
-
-const dragsFiles = (event: DragEvent): boolean => event.dataTransfer?.types.includes('Files') ?? false;
-
-function onDragOver(event: DragEvent): void {
-    if (!dragsFiles(event)) return;
-    event.preventDefault();
-    dragging.value = true;
-}
-
-function onDrop(event: DragEvent): void {
-    if (!dragsFiles(event)) return;
-    event.preventDefault();
-    dragging.value = false;
-    addFiles(Array.from(event.dataTransfer?.files ?? []));
-}
+const uploadDialogOpen = ref(false);
 </script>
 
 <template>
@@ -180,13 +74,27 @@ function onDrop(event: DragEvent): void {
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <DocumentFolderBreadcrumb :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
 
-                <!-- The Category filter (#725), and a manager's Categories button (#724), beside the breadcrumb. -->
+                <!-- The Category filter (#725), then a manager's actions (#755), beside the breadcrumb. They wrap under it on a phone. -->
                 <div class="flex flex-wrap items-center gap-2">
                     <DocumentCategoryFilter :categories="library.categories" :category="library.category" />
-                    <Button v-if="canManage" type="button" variant="outline" size="sm" @click="categoriesDialogOpen = true">
-                        <PhListBullets class="h-4 w-4" aria-hidden="true" />
-                        {{ trans('document_categories.manage') }}
-                    </Button>
+                    <template v-if="canManage">
+                        <Button type="button" variant="outline" size="sm" @click="categoriesDialogOpen = true">
+                            <PhListBullets class="h-4 w-4" aria-hidden="true" />
+                            {{ trans('document_categories.manage') }}
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" @click="uploadDialogOpen = true">
+                            <PhUploadSimple class="h-4 w-4" aria-hidden="true" />
+                            {{ trans('documents.upload.add') }}
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" @click="linkDialogOpen = true">
+                            <PhLink class="h-4 w-4" aria-hidden="true" />
+                            {{ trans('documents.link.add') }}
+                        </Button>
+                        <Button v-if="canAddFolder" type="button" variant="outline" size="sm" @click="folderDialogOpen = true">
+                            <PhFolderPlus class="h-4 w-4" aria-hidden="true" />
+                            {{ trans('document_folders.new') }}
+                        </Button>
+                    </template>
                 </div>
             </div>
             <DocumentFolderHeader
@@ -197,58 +105,6 @@ function onDrop(event: DragEvent): void {
                 :document-count="library.documentCount"
             />
         </div>
-
-        <!-- Upload, for a manager only. The whole zone takes a drop; the button opens the picker. -->
-        <section v-if="canManage" class="flex flex-col gap-3">
-            <!-- The upload's Document category (#728), picked before the files go up. -->
-            <DocumentCategorySelect id="upload-category" v-model="uploadCategory" :categories="library.categories" class="sm:max-w-xs" />
-            <div
-                class="flex flex-col items-center justify-center gap-2 border-2 border-dashed px-4 py-6 text-center text-sm sm:flex-row"
-                :class="dragging ? 'border-rom-slate bg-muted' : 'border-border'"
-                @dragover="onDragOver"
-                @dragleave="dragging = false"
-                @drop="onDrop"
-            >
-                <PhUploadSimple class="text-muted-foreground h-5 w-5" aria-hidden="true" />
-                <span class="text-muted-foreground">{{ trans('documents.upload.drop') }}</span>
-                <Button type="button" variant="outline" size="sm" @click="fileInput?.click()">
-                    {{ trans('documents.upload.choose') }}
-                </Button>
-                <input ref="fileInput" type="file" multiple class="sr-only" :aria-label="trans('documents.upload.button')" @change="onPick" />
-            </div>
-
-            <div class="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" size="sm" @click="linkDialogOpen = true">
-                    <PhLink class="h-4 w-4" aria-hidden="true" />
-                    {{ trans('documents.link.add') }}
-                </Button>
-                <Button v-if="canAddFolder" type="button" variant="outline" size="sm" @click="folderDialogOpen = true">
-                    <PhFolderPlus class="h-4 w-4" aria-hidden="true" />
-                    {{ trans('document_folders.new') }}
-                </Button>
-            </div>
-
-            <ul v-if="uploads.length" class="flex flex-col gap-2" aria-live="polite">
-                <li v-for="upload in uploads" :key="upload.id" class="flex flex-col gap-1">
-                    <div class="flex items-center gap-2 text-sm">
-                        <PhCheckCircle
-                            v-if="upload.state === 'done'"
-                            class="text-success h-4 w-4 shrink-0"
-                            :aria-label="trans('documents.upload.done')"
-                        />
-                        <PhWarningCircle
-                            v-else-if="upload.state === 'failed'"
-                            class="text-destructive h-4 w-4 shrink-0"
-                            :aria-label="trans('documents.upload.failed')"
-                        />
-                        <PhFile v-else class="text-muted-foreground h-4 w-4 shrink-0" :aria-label="trans('documents.upload.uploading')" />
-                        <span class="truncate">{{ upload.name }}</span>
-                    </div>
-                    <Progress v-if="upload.state === 'uploading' || upload.state === 'waiting'" :model-value="upload.progress" class="h-1.5" />
-                    <p v-if="upload.error" role="alert" class="text-destructive text-sm">{{ upload.error }}</p>
-                </li>
-            </ul>
-        </section>
 
         <p v-if="isEmpty" class="text-muted-foreground py-12 text-center text-base">{{ emptyMessage }}</p>
 
@@ -273,6 +129,14 @@ function onDrop(event: DragEvent): void {
             :group-slug="groupSlug"
             :folder-id="folderId"
             :categories="library.categories"
+        />
+        <DocumentUploadDialog
+            v-if="canManage"
+            v-model:open="uploadDialogOpen"
+            :group-slug="groupSlug"
+            :folder-id="folderId"
+            :categories="library.categories"
+            :filter="library.category"
         />
         <LinkDocumentDialog
             v-if="canManage"
