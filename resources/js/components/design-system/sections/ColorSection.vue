@@ -94,10 +94,10 @@ const colorGroups: SwatchGroup[] = [
                             ><code class="text-foreground text-sm font-medium">{{ swatch.token }}</code></CopyButton
                         >
                         <CopyButton :value="swatch.hex"
-                            ><span class="text-muted-foreground font-mono text-xs uppercase">{{ swatch.hex }}</span></CopyButton
+                            ><span class="text-muted-foreground font-mono text-sm uppercase">{{ swatch.hex }}</span></CopyButton
                         >
                     </div>
-                    <p v-if="swatch.note" class="text-muted-foreground mt-1.5 text-xs leading-snug">{{ swatch.note }}</p>
+                    <p v-if="swatch.note" class="text-muted-foreground mt-1.5 text-sm leading-snug">{{ swatch.note }}</p>
                 </div>
             </li>
         </ul>

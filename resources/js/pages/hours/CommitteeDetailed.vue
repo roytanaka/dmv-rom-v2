@@ -121,7 +121,7 @@ const csvHref = computed(() => route('hours.committee-detailed.csv', { fy: props
                                 class="text-rom-ink font-semibold"
                                 :class="{ 'border-border border-t-2': kindIndex === 0 }"
                             >
-                                <td v-if="kindIndex === 0" :rowspan="kinds.length" class="py-2 pr-4 align-top text-xs tracking-wide uppercase">
+                                <td v-if="kindIndex === 0" :rowspan="kinds.length" class="py-2 pr-4 align-top text-sm tracking-wide uppercase">
                                     {{ trans('hours.dmv.detailed.total') }}
                                 </td>
                                 <td class="text-muted-foreground py-1 pr-4 font-normal">{{ trans(`hours.dmv.detailed.kind.${kind.label}`) }}</td>

@@ -132,7 +132,7 @@ const clearFilters = (): void => applyFilters({ type: null, status: null });
                     </TableHeader>
                     <TableBody>
                         <TableRow v-for="item in items" :key="item.id">
-                            <TableCell class="text-muted-foreground text-xs whitespace-nowrap tabular-nums">#{{ item.id }}</TableCell>
+                            <TableCell class="text-muted-foreground text-sm whitespace-nowrap tabular-nums">#{{ item.id }}</TableCell>
                             <TableCell class="min-w-64">
                                 <TextLink :href="item.href">{{ item.excerpt }}</TextLink>
                             </TableCell>

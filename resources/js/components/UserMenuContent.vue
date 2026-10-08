@@ -56,7 +56,7 @@ const localeSwitcher = computed(() => page.props.localeSwitcher);
     <template v-if="localeSwitcher.options.length">
         <DropdownMenuSeparator class="lg:hidden" />
         <DropdownMenuGroup class="lg:hidden">
-            <DropdownMenuLabel class="text-muted-foreground px-2 py-1.5 text-xs font-normal">
+            <DropdownMenuLabel class="text-muted-foreground px-2 py-1.5 text-sm font-normal">
                 {{ trans('user.language') }}
             </DropdownMenuLabel>
             <LocaleOptionList :switcher="localeSwitcher" icon-class="mr-2 h-4 w-4" />

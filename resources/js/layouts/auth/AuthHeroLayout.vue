@@ -50,8 +50,8 @@ defineProps<{
 
         <!-- Photo captions in the viewport's bottom corners. -->
         <div class="pointer-events-none relative flex w-full max-w-7xl items-end justify-between gap-4 px-6 pb-4 sm:px-8">
-            <p class="text-xs text-white/90">{{ trans('auth.login.photo_location') }}</p>
-            <p class="text-right text-xs text-white/70">{{ trans('auth.login.photo_credit') }}</p>
+            <p class="text-sm text-white/90">{{ trans('auth.login.photo_location') }}</p>
+            <p class="text-right text-sm text-white/70">{{ trans('auth.login.photo_credit') }}</p>
         </div>
     </div>
 </template>

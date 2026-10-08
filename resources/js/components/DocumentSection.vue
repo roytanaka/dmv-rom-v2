@@ -93,7 +93,7 @@ const headingId = computed(() => `document-section-${props.section.category?.id 
                             <PhFolder class="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
                             {{ folder.name }}
                         </Link>
-                        <p class="text-muted-foreground text-xs">
+                        <p class="text-muted-foreground text-sm">
                             {{ trans('document_folders.readable_by', { who: trans(`document_folders.visibility.${folder.visibility}`) }) }}
                         </p>
                     </TableCell>
@@ -135,7 +135,7 @@ const headingId = computed(() => `document-section-${props.section.category?.id 
                         </a>
                         <p v-if="document.description" class="text-rom-ink text-sm whitespace-pre-line">{{ document.description }}</p>
                         <!-- On a phone the other columns hide; their facts ride under the name. -->
-                        <p class="text-muted-foreground text-xs sm:hidden">
+                        <p class="text-muted-foreground text-sm sm:hidden">
                             {{
                                 [
                                     document.kind === 'link' ? trans('documents.link.type') : document.extension?.toUpperCase(),

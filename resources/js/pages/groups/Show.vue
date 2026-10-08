@@ -265,7 +265,7 @@ const pickBanner = (key: string | null) => {
                                     <source :srcset="groupBanners[key].avif" type="image/avif" />
                                     <img :src="groupBanners[key].jpg" alt="" class="h-full w-full object-cover" />
                                 </picture>
-                                <span class="text-muted-foreground text-xs">{{ trans(`group.banner.option.${key}`) }}</span>
+                                <span class="text-muted-foreground text-sm">{{ trans(`group.banner.option.${key}`) }}</span>
                             </button>
                         </div>
                     </DialogContent>

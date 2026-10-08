@@ -180,8 +180,11 @@
 }
 
 /* TYPE — the scale is sized UP for the DMV's retiree volunteer base: body is
-   1.125rem (18px), persistent UI text never drops below the 1rem (16px)
-   accessibility floor. Every step is expressed in rem against the 16px root, so
+   1.125rem (18px) from sm (640px) up and 1rem (16px) on phones (ADR-0031), and
+   text a person reads or acts on never drops below the 1rem (16px) floor.
+   text-xs (13px) is only for passive labels: table column heads, eyebrows and
+   timestamps. Form controls never go under text-base, or iOS Safari zooms the
+   page on focus. Every step is expressed in rem against the 16px root, so
    the whole ramp scales from one knob — a future "larger text" control adjusts
    the root font-size and headings, body, and chrome all grow together; rem also
    honours the browser's own font-size preference. (px equivalents in comments
@@ -218,6 +221,16 @@
        tight on large headings, wide on uppercase eyebrows. */
     --tracking-tight: -0.02em;
     --tracking-wide: 0.04em;
+}
+
+/* Phone body (ADR-0031 §1–2): below sm (40rem, 640px) text-base drops to the
+   1rem (16px) floor, so body text and form controls are 16px. A clean step, not
+   a clamp(). Only text-base changes; text-sm is already 16px and the heading
+   steps stay fluid. */
+@media (width < 40rem) {
+    :root {
+        --text-base: 1rem;
+    }
 }
 
 @layer base {

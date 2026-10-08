@@ -39,7 +39,7 @@ const version = computed(() => {
         <div class="mx-auto flex max-w-5xl flex-col gap-4 text-sm">
             <p>{{ trans('institutional.land_acknowledgement') }}</p>
             <p>{{ trans('institutional.inclusion') }}</p>
-            <p class="flex flex-wrap gap-x-4 text-xs text-white/45">
+            <p class="flex flex-wrap gap-x-4 text-white/45">
                 <span>{{ trans('footer.copyright', { start: startYear, current: currentYear, org: trans('institutional.department') }) }}</span>
                 <span>{{ version }}</span>
             </p>

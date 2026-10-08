@@ -1599,7 +1599,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <div v-if="bulkAssignForm.interval === 'biweekly'" class="grid gap-2">
                         <Label for="bulk-assign-anchor-date">{{ trans('group.scheduling_panel.bulk_assign.field.anchor_date') }}</Label>
                         <Input id="bulk-assign-anchor-date" v-model="bulkAssignForm.anchor_date" type="date" required />
-                        <p class="text-muted-foreground text-xs">{{ trans('group.scheduling_panel.bulk_assign.field.anchor_hint') }}</p>
+                        <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.bulk_assign.field.anchor_hint') }}</p>
                         <InputError :message="bulkAssignForm.errors.anchor_date" />
                     </div>
 

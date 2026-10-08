@@ -179,7 +179,7 @@ function deleteComment(): void {
                                 class="text-rom-slate decoration-rom-slate/40 group-hover:text-rom-slate-700 text-sm break-all underline underline-offset-4"
                                 >{{ screenshot.filename }}</span
                             >
-                            <span class="text-muted-foreground text-xs">{{ screenshotSize(screenshot.sizeBytes) }}</span>
+                            <span class="text-muted-foreground text-sm">{{ screenshotSize(screenshot.sizeBytes) }}</span>
                         </a>
                     </li>
                 </ul>

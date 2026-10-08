@@ -5,7 +5,7 @@ import DesignNote from '@/components/DesignNote.vue';
 // utility (size + coupled line-height from the remapped --text-* ramp) and
 // labels it with the px size and role. Values mirror resources/css/app.css —
 // the scale is verified by eye here, not asserted in tests (PRD #37).
-type TypeStep = { name: string; px: number; lh: string; class: string; role: string };
+type TypeStep = { name: string; px: number | string; lh: string; class: string; role: string };
 
 const typeScale: TypeStep[] = [
     { name: 'text-5xl', px: 54, lh: '1.2', class: 'text-5xl', role: 'hero / login title' },
@@ -14,9 +14,9 @@ const typeScale: TypeStep[] = [
     { name: 'text-2xl', px: 28, lh: '1.35', class: 'text-2xl', role: 'section heading (h3)' },
     { name: 'text-xl', px: 23, lh: '1.35', class: 'text-xl', role: 'card title (h4)' },
     { name: 'text-lg', px: 20, lh: '1.55', class: 'text-lg', role: 'lead paragraph' },
-    { name: 'text-base', px: 18, lh: '1.55', class: 'text-base', role: 'body — the default' },
+    { name: 'text-base', px: '16→18', lh: '1.55', class: 'text-base', role: 'body — 16 on phones' },
     { name: 'text-sm', px: 16, lh: '1.55', class: 'text-sm', role: 'secondary UI, cells' },
-    { name: 'text-xs', px: 13, lh: '1.55', class: 'text-xs', role: 'micro-labels, timestamps' },
+    { name: 'text-xs', px: 13, lh: '1.55', class: 'text-xs', role: 'column heads, eyebrows, timestamps' },
 ];
 
 // Element specimens — bare <h1>–<h4> and the .eyebrow / .caption helpers prove
@@ -34,13 +34,19 @@ const headingSpecimens = [
         <h2 id="type-heading" class="text-xl font-semibold tracking-tight">Typography</h2>
         <p class="text-muted-foreground mt-1 max-w-2xl text-sm">
             One native system-font stack, no webfont. The scale is sized up for the DMV’s retiree volunteers — body is
-            <strong>18px</strong>; persistent UI text never drops below <strong>16px</strong>. Each step carries a coupled line-height (body 1.55,
-            headings 1.2–1.35).
+            <strong>18px</strong> from <code>sm</code> (640px) up and <strong>16px</strong> on phones; text a volunteer reads or acts on never drops
+            below <strong>16px</strong>. Each step carries a coupled line-height (body 1.55, headings 1.2–1.35).
         </p>
         <DesignNote variant="dont" title="Don’t go below 16px">
             The audience is the DMV’s retiree volunteers, so persistent UI text — labels, table cells, secondary copy — is floored at
-            <strong>16px</strong> (<code>text-sm</code>). Reach for <code>text-xs</code> (13px) only for incidental micro-labels like timestamps,
-            never for content a volunteer has to act on.
+            <strong>16px</strong> (<code>text-sm</code>). Reach for <code>text-xs</code> (13px) only for passive labels: table column heads, eyebrows
+            and timestamps. Never for content a volunteer reads or acts on. Form controls stay at <code>text-base</code> or more, or iOS Safari zooms
+            the page on focus. See <a href="/docs/adr/0031-phone-type-and-tap-sizes.md" class="underline">ADR-0031</a>.
+        </DesignNote>
+        <DesignNote title="16px body on phones">
+            Below <code>sm</code> (640px), <code>text-base</code> is <strong>16px</strong>, so body text and form controls are 16px. On a phone
+            <code>text-sm</code> and <code>text-base</code> look the same: use weight or color, not size, for two text levels. Headings stay fluid.
+            See <a href="/docs/adr/0031-phone-type-and-tap-sizes.md" class="underline">ADR-0031</a>.
         </DesignNote>
         <DesignNote title="Sized in rem, not px">
             Every step is expressed in <code>rem</code> against the 16px root, so the whole scale honours the browser’s own font-size preference and
@@ -73,8 +79,8 @@ const headingSpecimens = [
         <div class="mt-4 max-w-2xl space-y-4">
             <p class="text-lg">Lead paragraph — sign up for a maximum of three tours this month.</p>
             <p class="text-base">
-                Body copy at 18px with a roomy 1.55 line-height. Enter your email and password below to log in to your account, then choose the tours
-                you would like to lead.
+                Body copy at 18px (16px on phones) with a roomy 1.55 line-height. Enter your email and password below to log in to your account, then
+                choose the tours you would like to lead.
             </p>
             <p class="text-sm">Secondary UI · 01 WED @ 11:00 — Museum Highlights</p>
             <p class="text-xs">Micro-label · last updated 2 hours ago</p>

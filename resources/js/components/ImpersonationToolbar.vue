@@ -64,7 +64,7 @@ const stop = () => {
                     class="group/section border-b last:border-b-0"
                 >
                     <summary
-                        class="text-muted-foreground flex cursor-pointer list-none items-center justify-between px-2 py-1.5 text-xs font-medium hover:bg-neutral-100 [&::-webkit-details-marker]:hidden"
+                        class="text-muted-foreground flex cursor-pointer list-none items-center justify-between px-2 py-1.5 text-sm font-medium hover:bg-neutral-100 [&::-webkit-details-marker]:hidden"
                     >
                         {{ group.label }}
                         <span class="flex items-center gap-1">
@@ -79,7 +79,7 @@ const stop = () => {
                         @select="become(persona.email)"
                     >
                         <span class="font-medium">{{ persona.name }}</span>
-                        <span class="text-muted-foreground text-xs">{{ persona.descriptor }}</span>
+                        <span class="text-muted-foreground text-sm">{{ persona.descriptor }}</span>
                     </DropdownMenuItem>
                 </details>
             </DropdownMenuContent>
