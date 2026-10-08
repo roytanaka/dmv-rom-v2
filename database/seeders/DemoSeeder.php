@@ -400,6 +400,7 @@ class DemoSeeder extends Seeder
 
         $this->roster();
         $this->bulkRoster();
+        $this->prunePhotoFiles();
         $this->objects();
         $this->scheduling();
         $this->afterShiftRecords();
@@ -512,6 +513,22 @@ class DemoSeeder extends Seeder
 
         $member->photo_path = (new ProfilePhotoStorage)->putWebp($response->body());
         $member->save();
+    }
+
+    /**
+     * Delete each photo under profile-photos/ that no Member points at. `migrate:fresh --seed`
+     * (every staging deploy) drops the Members but not their photos, so without this each
+     * reseed leaves the last set of avatars behind. Photos a Member still points at stay, so
+     * a reseed on a live database loses nothing. Same rule as {@see pruneDocumentFiles()}.
+     */
+    private function prunePhotoFiles(): void
+    {
+        $storage = new ProfilePhotoStorage;
+        $referenced = Member::whereNotNull('photo_path')->pluck('photo_path')->flip();
+
+        collect(Storage::disk('public')->files(ProfilePhotoStorage::DIRECTORY))
+            ->reject(fn (string $path) => $referenced->has($path))
+            ->each(fn (string $path) => $storage->delete($path));
     }
 
     /** How many generated volunteers populate the bulk roster. */
