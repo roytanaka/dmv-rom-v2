@@ -246,7 +246,7 @@ const groupPicked = computed(() => groupFilter.value !== '');
                         <span class="truncate">{{ activeGroupLabel }}</span>
                         <PhCaretDown class="size-4 shrink-0 opacity-60" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" class="max-h-80 w-56 overflow-y-auto">
+                    <DropdownMenuContent align="start" class="max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height))] w-56">
                         <DropdownMenuRadioGroup v-model="groupFilter">
                             <DropdownMenuRadioItem value="">{{ trans('directory.filter.group.all') }}</DropdownMenuRadioItem>
                             <DropdownMenuRadioItem v-for="group in groupOptions" :key="group.slug" :value="group.slug">
@@ -264,7 +264,7 @@ const groupPicked = computed(() => groupFilter.value !== '');
                         <span class="truncate">{{ trans(`directory.filter.list.${list}`) }}</span>
                         <PhCaretDown class="size-4 shrink-0 opacity-60" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" class="max-h-80 w-64 overflow-y-auto">
+                    <DropdownMenuContent align="start" class="max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height))] w-64">
                         <DropdownMenuRadioGroup v-model="listFilter">
                             <DropdownMenuRadioItem v-for="option in lists" :key="option" :value="option">
                                 {{ trans(`directory.filter.list.${option}`) }}
