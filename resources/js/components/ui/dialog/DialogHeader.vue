@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Customised (#739): sticks to the top of the scrolling dialog body. The offsets cancel the body's
+// p-6 and half its gap-4; see DialogContent.
 import { cn } from '@/lib/utils';
 import type { HTMLAttributes } from 'vue';
 

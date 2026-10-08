@@ -1,4 +1,8 @@
 <script setup lang="ts">
+// Customised (#739): the box caps at the viewport height and a phone's width less a 1rem gutter.
+// Its body scrolls in an inner flex column (p-6, gap-4). Sticky fails inside a grid, so the column
+// is flex. The Header and Footer offsets (-top-6, -mx-6, -mt-6 and so on) cancel this p-6 and half
+// of gap-4: change them together.
 import { cn } from '@/lib/utils';
 import {
     AlertDialogContent,
@@ -36,7 +40,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
                 )
             "
         >
-            <!-- Scrolls like DialogContent's body (#739). -->
             <div class="flex min-h-0 flex-col gap-4 overflow-y-auto p-6 *:shrink-0">
                 <slot />
             </div>

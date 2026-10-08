@@ -189,7 +189,6 @@ const formatDay = (date: string) =>
 
         <!-- Day sheet — the clicked day's Shifts, each the same card the Agenda renders. -->
         <Dialog v-model:open="sheetOpen">
-            <!-- A Docents day holds five tours or more: the sheet scrolls rather than run off the screen. -->
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{{ openDay?.date ? formatDay(openDay.date) : '' }}</DialogTitle>
