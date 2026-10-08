@@ -10,7 +10,7 @@ export const activeSectionHref = (hrefs: string[], url: string): string | null =
         .reduce<string | null>((best, href) => (best === null || href.length > best.length ? href : best), null);
 };
 
-// The item whose href the page sits under, by the same rule (#741: the top bar's four links).
+// The item whose href the page sits under, by the same rule (#741: the top bar's destinations).
 export const activeDestination = <T extends { href: string }>(items: T[], url: string): T | null => {
     const href = activeSectionHref(
         items.map((item) => item.href),

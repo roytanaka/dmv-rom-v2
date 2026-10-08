@@ -7,7 +7,7 @@
 //            linking Home. The wordmark drops below sm (no square mark exists yet).
 //   Centre — the primary destinations (My Hours · My Calendar · News · Directory),
 //            persistent locale-aware links shared from the server (`chromeNav`); the
-//            active one is highlighted in heritage-blue. Below lg the four don't fit, so
+//            active one is highlighted in heritage-blue. Below lg they don't fit, so
 //            they collapse into one menu named for the current page (#741, ADR-0013
 //            option C): a horizontal scroll strip hides links from this audience.
 //   Right  — the Help menu (ADR-0025 amendment), the language switcher (globe, lg+
@@ -42,7 +42,7 @@ const { hidden } = useChromeBar(useTemplateRef<HTMLElement>('bar'));
 // current URL. The Home wordmark is authored English-canonical, so it still localizes
 // client-side to stay in-locale on /fr/ (ADR-0008).
 const localizeHref = useLocalizedHref();
-const isActive = (dest: ChromeDestination) => dest.href === page.url;
+const isCurrentPage = (dest: ChromeDestination) => dest.href === page.url;
 
 // A primary destination stays active on the pages beneath it (`/directory?page=2`), so the
 // collapsed menu keeps the page's name. With none active the trigger reads "Menu".
@@ -96,7 +96,7 @@ const destClass = (dest: ChromeDestination): string => {
 
         <!-- Primary destinations — the fixed global set, identical on every page. -->
         <nav class="flex min-w-0 flex-1 items-stretch" aria-label="Primary">
-            <!-- Below lg: one trigger naming the current page, opening all four. -->
+            <!-- Below lg: one trigger naming the current page, opening every destination. -->
             <DropdownMenu>
                 <DropdownMenuTrigger
                     class="border-rom-slate-300/40 text-rom-slate-300 ring-offset-rom-ink flex h-11 max-w-56 min-w-0 items-center justify-between gap-2 self-center border bg-white/5 px-3 text-base font-medium transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:outline-none lg:hidden"
@@ -118,7 +118,7 @@ const destClass = (dest: ChromeDestination): string => {
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <!-- lg+: the four links inline. -->
+            <!-- lg+: the destinations inline. -->
             <div class="hidden items-stretch gap-1 lg:flex">
                 <Link
                     v-for="dest in nav.destinations"
@@ -155,7 +155,7 @@ const destClass = (dest: ChromeDestination): string => {
                             {{ trans(item.labelKey) }}
                         </DropdownMenuItem>
                         <DropdownMenuItem v-else class="py-2.5" :as-child="true">
-                            <Link class="w-full" :href="item.href" :aria-current="isActive(item) ? 'page' : undefined">
+                            <Link class="w-full" :href="item.href" :aria-current="isCurrentPage(item) ? 'page' : undefined">
                                 <component :is="HELP_ICONS[item.key]" class="text-muted-foreground size-4" />
                                 {{ trans(item.labelKey) }}
                             </Link>

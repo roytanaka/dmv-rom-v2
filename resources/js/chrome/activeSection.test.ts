@@ -39,7 +39,7 @@ test('no match returns null', () => {
     assert.equal(activeSectionHref(['/'], '/news'), null);
 });
 
-// The top bar's four links (#741): the active one names the collapsed menu trigger.
+// The top bar's destinations (#741): the active one names the collapsed menu trigger.
 const destinations = [
     { key: 'hours', href: '/hours' },
     { key: 'directory', href: '/directory' },
@@ -51,6 +51,6 @@ test('the active destination is the one the page sits under', () => {
     assert.equal(activeDestination(destinations, '/hours/2026')?.key, 'hours');
 });
 
-test('no active destination off the four pages', () => {
+test('no active destination off the destination pages', () => {
     assert.equal(activeDestination(destinations, '/dashboard'), null);
 });
