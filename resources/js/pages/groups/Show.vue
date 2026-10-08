@@ -27,6 +27,7 @@ import type { NavNode } from '@/chrome/types';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { bannerSources, defaultBannerKey, groupBannerKeys, groupBanners } from '@/groups/banners';
+import { useChromeBar } from '@/composables/useChromeReveal';
 import AppLayout from '@/layouts/AppLayout.vue';
 import {
     type GroupHours as GroupHoursData,
@@ -40,7 +41,8 @@ import {
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { PhImage, PhPencilSimple } from '@phosphor-icons/vue';
-import { computed, ref } from 'vue';
+import { useElementSize } from '@vueuse/core';
+import { computed, ref, useTemplateRef } from 'vue';
 
 interface Parent {
     name: string;
@@ -170,6 +172,18 @@ const tabs = computed<NavNode[]>(() => {
     return list;
 });
 
+// The section bar is chrome too (#740): below lg it hides and shows with the top bar as
+// one unit. Its measured height feeds the jump offsets of the roster's A–Z rail:
+// --section-bar-height is the full height (rows always clear the whole stack), and
+// --section-bar-offset is the part on screen now (the rail sits just below it).
+const sectionBar = useTemplateRef<HTMLElement>('sectionBar');
+const { hidden: chromeHidden } = useChromeBar(sectionBar);
+const { height: sectionBarHeight } = useElementSize(sectionBar, undefined, { box: 'border-box' });
+const stickyOffsets = computed(() => ({
+    '--section-bar-height': `${sectionBarHeight.value}px`,
+    '--section-bar-offset': chromeHidden.value ? '0px' : `${sectionBarHeight.value}px`,
+}));
+
 // The time-boxed dates fact, phrased by which ends are known.
 const datesFact = computed(() => {
     const { start_date, end_date } = props.overview.facts;
@@ -223,7 +237,7 @@ const pickBanner = (key: string | null) => {
     <Head :title="group.name" />
 
     <AppLayout>
-        <div class="flex h-full flex-1 flex-col">
+        <div class="flex h-full flex-1 flex-col" :style="stickyOffsets">
             <!-- Persistent header — a full-bleed banner from the curated set (#191),
                  the Group name on a dark bottom gradient, the parent breadcrumb, and
                  the lifecycle badge. The heritage gradient shows through as the
@@ -293,8 +307,15 @@ const pickBanner = (key: string | null) => {
             <!-- Sticky in-body section-tab strip, directly under the header (ADR-0013
                  amendment). Reuses SectionTabs in its 'body' placement. The "Email ▾"
                  control sits at the strip's end on every section (#489, ADR-0024 §6);
-                 its menu resolves the Group's pickable Audiences server-side. -->
-            <div class="bg-background sticky top-16 z-20 flex items-center justify-between gap-3 px-4 py-4 shadow-sm sm:px-6">
+                 its menu resolves the Group's pickable Audiences server-side. Below lg
+                 it slides out with the top bar on scroll down (#740). It hides by a
+                 negative sticky top, not a translate: a sticky top does nothing until the
+                 bar sticks, so the bar never slides up over the banner. -->
+            <div
+                ref="sectionBar"
+                class="bg-background sticky z-20 flex items-center justify-between gap-3 px-4 py-4 shadow-sm transition-[top] duration-200 ease-out motion-reduce:transition-none sm:px-6"
+                :class="chromeHidden ? 'top-[calc(var(--section-bar-height)*-1)]' : 'top-(--header-height)'"
+            >
                 <SectionTabs :items="tabs" variant="body" :soon-label="trans('group.soon')" />
                 <!-- The strip carries the Email control on every section but the roster, where
                      it moves into the roster toolbar beside the officer controls (#490,

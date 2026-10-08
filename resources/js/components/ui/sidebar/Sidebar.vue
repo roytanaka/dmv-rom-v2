@@ -61,7 +61,9 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
     >
         <!-- This is what handles the sidebar gap on desktop. Local customisation:
              the gap + fixed rail are offset by --header-height (default 0px) so the
-             rail starts below a full-width top bar; see AppShell/AppSidebarLayout. -->
+             rail starts below a full-width top bar; see AppShell/AppSidebarLayout. The
+             fixed rail follows --header-offset instead, which drops to 0 while the top
+             bar is hidden on scroll (#740). -->
 
         <div
             :class="
@@ -78,7 +80,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
         <div
             :class="
                 cn(
-                    'fixed top-[var(--header-height,0px)] bottom-0 z-10 hidden h-[calc(100svh_-_var(--header-height,0px))] w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
+                    'fixed top-[var(--header-offset,var(--header-height,0px))] bottom-0 z-10 hidden h-[calc(100svh_-_var(--header-offset,var(--header-height,0px)))] w-(--sidebar-width) transition-[left,right,width,top,height] duration-200 ease-linear motion-reduce:transition-none md:flex',
                     side === 'left'
                         ? 'left-0 group-data-[collapsible=offcanvas]:-left-(--sidebar-width)'
                         : 'right-0 group-data-[collapsible=offcanvas]:-right-(--sidebar-width)',

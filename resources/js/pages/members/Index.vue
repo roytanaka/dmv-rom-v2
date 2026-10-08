@@ -315,7 +315,12 @@ const groupPicked = computed(() => groupFilter.value !== '');
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow v-for="member in sortedMembers" :id="anchorId(member)" :key="member.id" class="scroll-mt-24">
+                            <TableRow
+                                v-for="member in sortedMembers"
+                                :id="anchorId(member)"
+                                :key="member.id"
+                                class="scroll-mt-[calc(var(--header-height)+2rem)]"
+                            >
                                 <TableCell>
                                     <Avatar size="sm">
                                         <AvatarImage v-if="member.photo" :src="member.photo" :alt="`${member.first_name} ${member.last_name}`" />
@@ -347,8 +352,14 @@ const groupPicked = computed(() => groupFilter.value !== '');
                 </div>
 
                 <!-- A–Z jump rail: a large-screen scanning aid that sticks beside the
-                     table. It keys on whichever name the active sort orders by. -->
-                <AlphaJumpRail :available="availableLetters" class="sticky top-24 hidden self-start sm:flex" @jump="jumpTo" />
+                     table. It keys on whichever name the active sort orders by. It rides
+                     just below the top bar when shown; a jumped-to row clears the top bar,
+                     shown or hidden (#740). -->
+                <AlphaJumpRail
+                    :available="availableLetters"
+                    class="sticky top-[calc(var(--header-offset)+2rem)] hidden self-start transition-[top] duration-200 ease-out motion-reduce:transition-none sm:flex"
+                    @jump="jumpTo"
+                />
             </div>
         </div>
     </AppLayout>

@@ -262,7 +262,12 @@ const hardRemove = (member: RosterMember) => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow v-for="member in filteredMembers" :id="anchorId(member)" :key="member.id" class="scroll-mt-24">
+                        <TableRow
+                            v-for="member in filteredMembers"
+                            :id="anchorId(member)"
+                            :key="member.id"
+                            class="scroll-mt-[calc(var(--header-height)+var(--section-bar-height,0px)+2rem)]"
+                        >
                             <TableCell>
                                 <Avatar size="sm">
                                     <AvatarImage v-if="member.photo" :src="member.photo" :alt="`${member.first_name} ${member.last_name}`" />
@@ -319,8 +324,14 @@ const hardRemove = (member: RosterMember) => {
                 </Table>
             </div>
 
-            <!-- A–Z jump rail: a large-screen scanning aid that sticks beside the table. -->
-            <AlphaJumpRail :available="availableLetters" class="sticky top-24 hidden self-start sm:flex" @jump="jumpTo" />
+            <!-- A–Z jump rail: a large-screen scanning aid that sticks beside the table.
+                 It rides just below whatever part of the sticky bars is on screen; a
+                 jumped-to row clears the full stack, shown or hidden (#740). -->
+            <AlphaJumpRail
+                :available="availableLetters"
+                class="sticky top-[calc(var(--header-offset)+var(--section-bar-offset,0px)+2rem)] hidden self-start transition-[top] duration-200 ease-out motion-reduce:transition-none sm:flex"
+                @jump="jumpTo"
+            />
         </div>
 
         <!-- Add member dialog (#192) — search all Members, set standing, assign roles. -->
