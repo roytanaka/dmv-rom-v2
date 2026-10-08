@@ -11,6 +11,7 @@
 import HoursReportActions from '@/components/HoursReportActions.vue';
 import OrgHoursReportNav from '@/components/OrgHoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type DmvVisitorSummary, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
@@ -74,7 +75,7 @@ const csvHref = computed(() => route('hours.visitor-summary.csv', { fy: props.fi
                     <CardTitle class="text-base">{{ trans('hours.dmv.fiscal_year', { year: String(fiscalYear) }) }}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <table class="w-full text-sm">
+                    <Table pin-first-column class="border-t-0">
                         <thead>
                             <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                                 <th class="py-2 pr-4 font-semibold">{{ trans('hours.dmv.visitors.column.group') }}</th>
@@ -108,7 +109,7 @@ const csvHref = computed(() => route('hours.visitor-summary.csv', { fy: props.fi
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
+                    </Table>
 
                     <!-- The reason the marker stands for, spelled out once below the table for readers
                          who cannot hover the abbreviation (touch, print, screen readers). -->

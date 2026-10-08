@@ -9,6 +9,7 @@
 import HoursReportActions from '@/components/HoursReportActions.vue';
 import HoursReportNav from '@/components/HoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type GroupHoursReport, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
@@ -70,7 +71,7 @@ const csvHref = computed(() => route('groups.hours.report.csv', { group: props.g
                     <CardTitle class="text-base">{{ trans('hours.report.fiscal_year', { year: String(fiscalYear) }) }}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <table class="w-full text-sm">
+                    <Table pin-first-column class="border-t-0">
                         <thead>
                             <tr class="text-muted-foreground border-border border-b text-left text-xs tracking-wide uppercase">
                                 <th class="py-2 pr-4 font-semibold">{{ trans('hours.report.column.member') }}</th>
@@ -112,7 +113,7 @@ const csvHref = computed(() => route('groups.hours.report.csv', { group: props.g
                                 <td class="py-2 pl-2 text-right tabular-nums">{{ totals.subtree.ytd }}</td>
                             </tr>
                         </tfoot>
-                    </table>
+                    </Table>
                 </CardContent>
             </Card>
         </div>
