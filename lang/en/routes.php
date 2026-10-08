@@ -51,6 +51,8 @@ return [
     'officer.reports' => 'officer/reports',
     'officer.flash-messages' => 'officer/flash-messages',
     'officer.settings' => 'officer/settings',
+    // The Document download log (#754, ADR-0030): super-tier only, read-only.
+    'officer.document-downloads' => 'officer/document-downloads',
 
     // Dynamic group route. The {group} slug is content and echoes back
     // as-authored — it is NOT resolved against a Group model (ADR-0008).

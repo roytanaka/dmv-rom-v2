@@ -42,6 +42,8 @@ return [
     'officer.reports' => 'officier/rapports',
     'officer.flash-messages' => 'officier/messages-eclair',
     'officer.settings' => 'officier/parametres',
+    // Le journal des téléchargements de documents (#754, ADR-0030) : super-tier seulement.
+    'officer.document-downloads' => 'officier/telechargements-documents',
 
     // Dynamic group route. The {group} slug echoes back as-authored even under
     // /fr/ (/fr/groupes/docents) — no per-record slug translation (ADR-0008).

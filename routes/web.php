@@ -5,6 +5,7 @@ use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentDownloadLogController;
 use App\Http\Controllers\DocumentFolderController;
 use App\Http\Controllers\DownloadDocumentController;
 use App\Http\Controllers\DownloadFeedbackScreenshotController;
@@ -116,6 +117,12 @@ Route::group([
     // ↔ /fr/documents/{id}/telecharger); a logged-out visitor lands on login, then the file.
     Route::get(LaravelLocalization::transRoute('routes.documents.download'), DownloadDocumentController::class)
         ->middleware('auth')->name('documents.download');
+
+    // The Document download log (#754, spec #290 story 55, ADR-0030): who opened which
+    // Document, and when. Read-only, super-tier only via the `view-document-downloads` gate.
+    // Localized (/officer/document-downloads ↔ /fr/officier/telechargements-documents).
+    Route::get(LaravelLocalization::transRoute('routes.officer.document-downloads'), DocumentDownloadLogController::class)
+        ->middleware('auth')->name('officer.document-downloads');
 
     // My Hours (#409, PRD #406, ADR-0022 §8). A Member's own hours, gathered from every
     // Group they have hours in, broken out by month across a fiscal year with a year-to-date

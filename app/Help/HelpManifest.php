@@ -234,6 +234,8 @@ final class HelpManifest
             'help', 'help.show',
             // Tester feedback — a staging tool with no help article (ADR-0029 §14).
             'feedback',
+            // The Document download log — a super-tier operations page with no help article (#754).
+            'officer.document-downloads',
         ];
     }
 

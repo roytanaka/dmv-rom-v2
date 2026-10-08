@@ -65,6 +65,7 @@ return [
         'reports' => 'Rapports',
         'flash_messages' => 'Messages éclair',
         'dmv_settings' => 'Paramètres du DMV',
+        'document_downloads' => 'Journal des téléchargements',
         'mail_status' => 'État du courriel',
         'help_status' => 'État de l’aide',
     ],
