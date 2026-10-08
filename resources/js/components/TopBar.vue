@@ -21,15 +21,19 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import TopBarUser from '@/components/TopBarUser.vue';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useChromeBar } from '@/composables/useChromeReveal';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import type { ChromeDestination, PhosphorIcon, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { PhBookOpen, PhCaretDown, PhChatCenteredText, PhLifebuoy, PhListBullets, PhQuestion } from '@phosphor-icons/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, useTemplateRef } from 'vue';
 
 const page = usePage<SharedData>();
 const nav = computed(() => page.props.chromeNav);
+
+// Below lg the bar slides out on scroll down and back in on scroll up (#740).
+const { hidden } = useChromeBar(useTemplateRef<HTMLElement>('bar'));
 
 // Hrefs arrive already localized (server-side); match the active one against the
 // current URL. The Home wordmark is authored English-canonical, so it still localizes
@@ -65,7 +69,11 @@ const destClass = (dest: ChromeDestination): string => {
 </script>
 
 <template>
-    <header class="bg-rom-ink flex h-16 shrink-0 items-stretch text-white print:hidden">
+    <header
+        ref="bar"
+        class="bg-rom-ink flex h-16 shrink-0 items-stretch text-white transition-transform duration-200 ease-out motion-reduce:transition-none print:hidden"
+        :class="{ '-translate-y-full': hidden }"
+    >
         <!-- Left cluster spans exactly the sidebar's width at md+ (where the fixed rail
              is visible), so the primary nav starts at the sidebar's right edge. Below md
              the rail is an off-canvas sheet, so this stays auto-width. -->

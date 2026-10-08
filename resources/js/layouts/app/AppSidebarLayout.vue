@@ -21,7 +21,7 @@ withDefaults(defineProps<Props>(), {
     <AppShell>
         <!-- Full-width top bar spans above both the rail and the content. Sticky so it
              stays pinned while the page scrolls and the fixed rail (offset below it)
-             remains aligned. -->
+             remains aligned. Below lg it hides on scroll down (#740, in TopBar). -->
         <TopBar class="sticky top-0 z-30" />
         <div class="flex w-full flex-1">
             <AppSidebar />
