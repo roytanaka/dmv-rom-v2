@@ -61,6 +61,10 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href
 const formatWhen = (iso: string): string =>
     new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: page.props.timezone }).format(new Date(iso));
 
+// A Member or Group deleted since the download shows as such; the row itself stays.
+const memberLabel = (row: DownloadRow): string => row.memberName ?? trans('document_downloads.deleted_member');
+const groupLabel = (row: DownloadRow): string => row.groupName ?? trans('document_downloads.deleted_group');
+
 const filtered = computed(() => Object.values(props.filters).some((value) => value !== null));
 
 function applyFilters(filters: Filters): void {
@@ -149,42 +153,46 @@ const clearFilters = (): void => applyFilters({ group: null, member: null, from:
                 <Button v-if="filtered" type="button" variant="link" @click="clearFilters">{{ trans('document_downloads.filter.clear') }}</Button>
             </form>
 
-            <div v-if="downloads.data.length" class="overflow-x-auto border">
+            <div v-if="downloads.data.length" class="border">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>{{ trans('document_downloads.column.when') }}</TableHead>
-                            <TableHead>{{ trans('document_downloads.column.member') }}</TableHead>
-                            <TableHead>{{ trans('document_downloads.column.group') }}</TableHead>
                             <TableHead>{{ trans('document_downloads.column.file') }}</TableHead>
+                            <TableHead class="hidden sm:table-cell">{{ trans('document_downloads.column.member') }}</TableHead>
+                            <TableHead class="hidden sm:table-cell">{{ trans('document_downloads.column.group') }}</TableHead>
+                            <TableHead class="hidden sm:table-cell">{{ trans('document_downloads.column.when') }}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         <TableRow v-for="row in downloads.data" :key="row.id">
-                            <TableCell class="whitespace-nowrap tabular-nums">{{ formatWhen(row.downloadedAt) }}</TableCell>
-                            <TableCell class="whitespace-nowrap">
-                                <template v-if="row.memberName">{{ row.memberName }}</template>
-                                <span v-else class="text-muted-foreground italic">{{ trans('document_downloads.deleted_member') }}</span>
-                            </TableCell>
-                            <TableCell class="whitespace-nowrap">
-                                <template v-if="row.groupName">{{ row.groupName }}</template>
-                                <span v-else class="text-muted-foreground italic">{{ trans('document_downloads.deleted_group') }}</span>
-                            </TableCell>
-                            <TableCell class="min-w-48">
+                            <TableCell class="whitespace-normal">
                                 <!-- A plain link: the download route serves a file or redirects away, never an Inertia page. -->
                                 <a
                                     v-if="row.documentHref"
                                     :href="row.documentHref"
                                     target="_blank"
                                     rel="noopener"
-                                    class="text-rom-slate decoration-rom-slate/40 hover:text-rom-slate-700 underline underline-offset-4"
+                                    class="text-rom-slate decoration-rom-slate/40 hover:text-rom-slate-700 underline underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current!"
                                     >{{ row.filename }}</a
                                 >
                                 <template v-else>
                                     {{ row.filename }}
                                     <span class="text-muted-foreground text-sm italic">({{ trans('document_downloads.deleted_document') }})</span>
                                 </template>
+                                <!-- On a phone the other columns hide; their facts ride under the name. -->
+                                <p class="text-muted-foreground text-sm sm:hidden">
+                                    {{ [memberLabel(row), groupLabel(row), formatWhen(row.downloadedAt)].join(' · ') }}
+                                </p>
                             </TableCell>
+                            <TableCell class="hidden sm:table-cell">
+                                <template v-if="row.memberName">{{ row.memberName }}</template>
+                                <span v-else class="text-muted-foreground italic">{{ memberLabel(row) }}</span>
+                            </TableCell>
+                            <TableCell class="hidden sm:table-cell">
+                                <template v-if="row.groupName">{{ row.groupName }}</template>
+                                <span v-else class="text-muted-foreground italic">{{ groupLabel(row) }}</span>
+                            </TableCell>
+                            <TableCell class="hidden tabular-nums sm:table-cell">{{ formatWhen(row.downloadedAt) }}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>

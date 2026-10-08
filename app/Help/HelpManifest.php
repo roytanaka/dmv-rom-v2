@@ -234,8 +234,6 @@ final class HelpManifest
             'help', 'help.show',
             // Tester feedback — a staging tool with no help article (ADR-0029 §14).
             'feedback',
-            // The Document download log — a super-tier operations page with no help article (#754).
-            'officer.document-downloads',
         ];
     }
 
@@ -281,6 +279,7 @@ final class HelpManifest
             // Librarian's work on it. Both map the Folder page; the tab itself rides on groups.show.
             new HelpArticle('find-a-document-in-a-groups-library', HelpSection::Groups, status: ArticleStatus::Published, route: 'groups.documents.folder'),
             new HelpArticle('run-your-groups-document-library', HelpSection::Groups, requires: ['librarian', 'chair'], status: ArticleStatus::Published, route: 'groups.documents.folder'),
+            new HelpArticle('check-who-opened-a-document', HelpSection::Groups, requires: ['super_tier'], status: ArticleStatus::Draft, route: 'officer.document-downloads'),
 
             new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
             new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DocumentDownload;
 use App\Models\Group;
 use App\Models\Member;
+use App\Support\OrgTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -44,8 +45,8 @@ class DocumentDownloadLogController extends Controller
             ->with(['member', 'group', 'document:id'])
             ->when($filters['group'], fn (Builder $query, int $id) => $query->where('group_id', $id))
             ->when($filters['member'], fn (Builder $query, int $id) => $query->where('member_id', $id))
-            ->when($filters['from'], fn (Builder $query, string $date) => $query->where('downloaded_at', '>=', $this->startOfOrgDay($date)))
-            ->when($filters['to'], fn (Builder $query, string $date) => $query->where('downloaded_at', '<', $this->startOfOrgDay($date)->addDay()))
+            ->when($filters['from'], fn (Builder $query, string $date) => $query->where('downloaded_at', '>=', OrgTime::toUtc($date)))
+            ->when($filters['to'], fn (Builder $query, string $date) => $query->where('downloaded_at', '<', OrgTime::toUtc(CarbonImmutable::parse($date)->addDay()->toDateString())))
             ->when($filters['q'], fn (Builder $query, string $q) => $query->whereLike('original_filename', '%'.addcslashes($q, '%_\\').'%'))
             ->orderByDesc('downloaded_at')
             ->orderByDesc('id')
@@ -60,7 +61,7 @@ class DocumentDownloadLogController extends Controller
                 'documentHref' => $download->document ? route('documents.download', $download->document, false) : null,
             ]);
 
-        return Inertia::render('DocumentDownloads', [
+        return Inertia::render('DocumentDownloadLog', [
             'downloads' => $downloads,
             'filters' => $filters,
             'groups' => Group::query()
@@ -104,11 +105,5 @@ class DocumentDownloadLogController extends Controller
         $value = $request->query($key);
 
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
-    }
-
-    /** Midnight of a `Y-m-d` day in the org timezone, as UTC (the stored zone). */
-    private function startOfOrgDay(string $date): CarbonImmutable
-    {
-        return CarbonImmutable::createFromFormat('Y-m-d', $date, config('app.org_timezone'))->startOfDay()->utc();
     }
 }

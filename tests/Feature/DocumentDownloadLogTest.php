@@ -40,7 +40,7 @@ it('shows the page to the super-tier', function () {
     $this->actingAs(Member::factory()->superTier()->create())
         ->get('/officer/document-downloads')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('DocumentDownloads'));
+        ->assertInertia(fn (Assert $page) => $page->component('DocumentDownloadLog'));
 });
 
 it('resolves the French twin under /fr/', function () {
@@ -50,7 +50,7 @@ it('resolves the French twin under /fr/', function () {
         $this->actingAs($member)
             ->get('/fr/officier/telechargements-documents')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('DocumentDownloads')->where('locale', 'fr'));
+            ->assertInertia(fn (Assert $page) => $page->component('DocumentDownloadLog')->where('locale', 'fr'));
     });
 });
 
@@ -99,7 +99,7 @@ it('lists rows newest first with when, Member, Group, filename and a Document li
     $this->actingAs(Member::factory()->superTier()->create())
         ->get('/officer/document-downloads')
         ->assertInertia(fn (Assert $page) => $page
-            ->component('DocumentDownloads')
+            ->component('DocumentDownloadLog')
             ->count('downloads.data', 2)
             ->where('downloads.data.0', [
                 'id' => $newest->id,
