@@ -2659,45 +2659,70 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * A small Document library on every Group with the documents capability (#718, spec #290,
-     * ADR-0030), so testers find working libraries without uploading first. Each has Folders
-     * three levels deep, small generated files, one link Document, and one
-     * top-level Folder of each visibility. Docents carries the legacy Data Sheets shape:
-     * Category → Section → Tour.
+     * A Document library on every Group with the documents capability (#718, #727, spec #721,
+     * ADR-0030), so testers find working libraries without uploading first. Groups sampled
+     * from legacy take their library from data/document-libraries.php: Docents in the legacy
+     * Data Sheets shape, Committees and Programs with their legacy Topics. Every other Group
+     * gets {@see standardLibrary()}. Each root has Document categories and an item with none,
+     * so Other shows.
      *
      * Files go through {@see DocumentStorage} onto the private disk, like a real upload.
-     * Keyed on (Group, Folder, filename or title): a reseed heals the rows and stores no
-     * second copy of a file, the same rule as {@see seedPhoto()}.
+     * Keyed on (Group, Folder, name, filename or title): a reseed heals the rows and stores
+     * no second copy of a file, the same rule as {@see seedPhoto()}.
      */
     private function documentLibraries(): void
     {
         $storage = new DocumentStorage;
+        $libraries = require __DIR__.'/data/document-libraries.php';
 
         Group::where('has_documents', true)->orderBy('id')->get()
-            ->each(function (Group $group) use ($storage) {
-                $library = $group->slug === 'docents' ? $this->docentsLibrary() : $this->standardLibrary($group);
+            ->each(function (Group $group) use ($storage, $libraries) {
+                $library = $libraries[$group->slug] ?? $this->standardLibrary($group);
+                $library['items'][] = ['link' => 'https://www.rom.on.ca/en/visit', 'title' => 'Visiting the ROM'];
+
                 $this->libraryLevel($group, null, $library, $this->librarian($group), $storage);
             });
     }
 
     /**
-     * Seed one level of a library spec: its Documents, then its Folders and their contents.
+     * Seed one level of a library spec: its Document categories, then its items (Documents,
+     * and Folders with their contents), each under its Document category or none. The spec
+     * format is described in data/document-libraries.php.
      *
      * @param  array<string, mixed>  $level
      */
     private function libraryLevel(Group $group, ?DocumentFolder $folder, array $level, ?Member $uploader, DocumentStorage $storage): void
     {
-        foreach ($level['documents'] ?? [] as $index => $spec) {
-            $this->libraryDocument($group, $folder, $spec, $uploader, $storage, $index);
+        $entries = [];
+
+        foreach ($level['sections'] ?? [] as $name => $items) {
+            $category = $group->documentCategories()->firstOrCreate(['folder_id' => $folder?->id, 'name' => $name]);
+
+            foreach ($items as $item) {
+                $entries[] = [$item, $category->id];
+            }
         }
 
-        foreach ($level['folders'] ?? [] as $spec) {
-            $child = $group->documentFolders()->firstOrCreate(
-                ['parent_id' => $folder?->id, 'name' => $spec['name']],
-                ['visibility' => $spec['visibility'] ?? null],
-            );
+        foreach ($level['items'] ?? [] as $item) {
+            $entries[] = [$item, null];
+        }
 
-            $this->libraryLevel($group, $child, $spec, $uploader, $storage);
+        $index = 0;
+        foreach ($entries as [$spec, $categoryId]) {
+            if (is_array($spec) && isset($spec['name'])) {
+                $child = $group->documentFolders()->firstOrCreate(
+                    ['parent_id' => $folder?->id, 'name' => $spec['name']],
+                    ['visibility' => isset($spec['visibility']) ? DocumentVisibility::from($spec['visibility']) : null],
+                );
+                $child->category_id = $categoryId;
+                $child->save();
+
+                $this->libraryLevel($group, $child, $spec, $uploader, $storage);
+
+                continue;
+            }
+
+            $this->libraryDocument($group, $folder, $categoryId, is_string($spec) ? ['file' => $spec] : $spec, $uploader, $storage, $index++);
         }
     }
 
@@ -2707,7 +2732,7 @@ class DemoSeeder extends Seeder
      *
      * @param  array{file?: string, link?: string, title?: string, lines?: list<string>}  $spec
      */
-    private function libraryDocument(Group $group, ?DocumentFolder $folder, array $spec, ?Member $uploader, DocumentStorage $storage, int $index): Document
+    private function libraryDocument(Group $group, ?DocumentFolder $folder, ?int $categoryId, array $spec, ?Member $uploader, DocumentStorage $storage, int $index): void
     {
         $rows = $group->documents()->where('folder_id', $folder?->id);
 
@@ -2728,16 +2753,15 @@ class DemoSeeder extends Seeder
                     'folder_id' => $folder?->id,
                     'kind' => DocumentKind::File,
                     // The cleaned name: a Group name like "Exhibition/ Tours" must not read as a path.
-                    ...$this->storeDemoFile($storage, $filename, $spec['lines'] ?? []),
+                    ...$this->storeDemoFile($storage, $filename, $spec['lines'] ?? ['A sample file for the demo Document library.']),
                 ]);
             }
         }
 
+        $document->category_id = $categoryId;
         $document->uploaded_by_id = $uploader?->id;
         $document->uploaded_at ??= OrgTime::now()->subDays(3 + $index * 9);
         $document->save();
-
-        return $document;
     }
 
     /**
@@ -2826,167 +2850,65 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * The library every Group but Docents gets: shared reference material, Group-only
-     * committee business, and a link to the ROM's visitor page.
+     * The library every Group not sampled from legacy gets: shared reference material and
+     * Group-only committee business, each under its own Document category. Filenames never
+     * carry the Group's name, since some Group names name a person.
      *
      * @return array<string, mixed>
      */
     private function standardLibrary(Group $group): array
     {
         return [
-            'documents' => [
-                ['link' => 'https://www.rom.on.ca/en/visit', 'title' => 'Visiting the ROM'],
-            ],
-            'folders' => [
-                [
-                    'name' => 'Reference',
-                    'visibility' => DocumentVisibility::Members,
-                    'documents' => [
-                        ['file' => "{$group->name} handbook.pdf", 'lines' => [
-                            "About {$group->name}: what the Group does, and how a new volunteer joins in.",
-                            'Read this before your first shift or meeting.',
-                        ]],
-                    ],
-                    'folders' => [
-                        [
-                            'name' => 'Orientation',
-                            'documents' => [
-                                ['file' => 'Welcome letter.txt', 'lines' => [
-                                    "Welcome to {$group->name}.",
-                                    'Your Chair will be in touch about orientation dates.',
-                                ]],
-                            ],
-                            'folders' => [
-                                [
-                                    'name' => 'Checklists',
-                                    'documents' => [
-                                        ['file' => 'First day checklist.txt', 'lines' => [
-                                            '- Pick up your volunteer badge at the DMV office.',
-                                            '- Read the handbook.',
-                                            '- Meet your Chair.',
-                                        ]],
+            'sections' => [
+                'Reference' => [
+                    [
+                        'name' => 'Handbook',
+                        'visibility' => DocumentVisibility::Members->value,
+                        'items' => [
+                            ['file' => 'Group handbook.pdf', 'lines' => [
+                                "About {$group->name}: what the Group does, and how a new volunteer joins in.",
+                                'Read this before your first shift or meeting.',
+                            ]],
+                            [
+                                'name' => 'Orientation',
+                                'items' => [
+                                    ['file' => 'Welcome letter.txt', 'lines' => [
+                                        "Welcome to {$group->name}.",
+                                        'Your Chair will be in touch about orientation dates.',
+                                    ]],
+                                    [
+                                        'name' => 'Checklists',
+                                        'items' => [
+                                            ['file' => 'First day checklist.txt', 'lines' => [
+                                                '- Pick up your volunteer badge at the DMV office.',
+                                                '- Read the handbook.',
+                                                '- Meet your Chair.',
+                                            ]],
+                                        ],
                                     ],
                                 ],
                             ],
                         ],
                     ],
                 ],
-                [
-                    'name' => 'Committee business',
-                    'documents' => [
-                        ['file' => 'Meeting schedule.csv', 'lines' => [
-                            'Date,Time,Room',
-                            '2026-10-14,10:00,Volunteer lounge',
-                            '2026-11-11,10:00,Volunteer lounge',
-                            '2026-12-09,10:00,Volunteer lounge',
-                        ]],
-                    ],
-                    'folders' => [
-                        [
-                            'name' => 'Minutes',
-                            'documents' => [
-                                ['file' => 'September minutes.pdf', 'lines' => [
-                                    'Present: the Chair, the Secretary and six members.',
-                                    'Fall recruitment and the volunteer fair were discussed.',
-                                ]],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * The Docents library, in the legacy Data Sheets shape: Category → Section → Tour Folders.
-     * Natural History is shared with every Member; World Cultures stays with the Docents.
-     *
-     * @return array<string, mixed>
-     */
-    private function docentsLibrary(): array
-    {
-        return [
-            'documents' => [
-                ['file' => 'Docent handbook.pdf', 'lines' => [
-                    'How a Docent tour runs, from the meeting point to the last stop.',
-                    'Required reading for every new Docent.',
-                ]],
-                ['link' => 'https://collections.rom.on.ca', 'title' => 'ROM Collections Online'],
-            ],
-            'folders' => [
-                [
-                    'name' => 'Natural History',
-                    'visibility' => DocumentVisibility::Members,
-                    'folders' => [
-                        [
-                            'name' => 'Dinosaurs',
-                            'documents' => [
-                                ['file' => 'Dinosaurs gallery data sheet.pdf', 'lines' => [
-                                    'Gallery: Dinosaurs, Level 2.',
-                                    'Key objects: Barosaurus, Parasaurolophus, the Allosaurus skull.',
-                                ]],
-                            ],
-                            'folders' => [
-                                [
-                                    'name' => 'Dinosaur Highlights tour',
-                                    'documents' => [
-                                        ['file' => 'Dinosaur Highlights tour script.pdf', 'lines' => [
-                                            'Stop 1: Barosaurus. Stop 2: Parasaurolophus. Stop 3: the fossil lab window.',
-                                            'Allow 45 minutes.',
-                                        ]],
-                                        ['file' => 'Dinosaur Highlights route.txt', 'lines' => [
-                                            'Start at the Level 2 elevators and walk the gallery clockwise.',
-                                        ]],
-                                    ],
-                                ],
-                            ],
-                        ],
-                        [
-                            'name' => 'Earth and Space',
-                            'documents' => [
-                                ['file' => 'Meteorites data sheet.pdf', 'lines' => [
-                                    'Gallery: Earth and Space, Level 2.',
-                                    'Key objects: the Grimsby meteorite, the moon rock.',
-                                ]],
-                            ],
-                            'folders' => [
-                                [
-                                    'name' => 'Family tour',
-                                    'documents' => [
-                                        ['file' => 'Earth and Space family tour.pdf', 'lines' => [
-                                            'A 30-minute tour for children aged 6 to 10.',
-                                        ]],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                [
-                    'name' => 'World Cultures',
-                    'folders' => [
-                        [
-                            'name' => 'Ancient Egypt',
-                            'documents' => [
-                                ['file' => 'Ancient Egypt data sheet.pdf', 'lines' => [
-                                    'Gallery: Ancient Egypt, Level 3.',
-                                    'Key objects: the mummy of Djedmaatesankh, the Book of the Dead.',
-                                ]],
-                            ],
-                            'folders' => [
-                                [
-                                    'name' => 'Egypt Highlights tour',
-                                    'documents' => [
-                                        ['file' => 'Egypt Highlights tour script.pdf', 'lines' => [
-                                            'Stop 1: Djedmaatesankh. Stop 2: the coffins. Stop 3: daily life.',
-                                        ]],
-                                        ['file' => 'Egypt Highlights object list.csv', 'lines' => [
-                                            'Stop,Object,Case',
-                                            '1,Mummy of Djedmaatesankh,E1',
-                                            '2,Painted coffin,E4',
-                                            '3,Model granary,E9',
-                                        ]],
-                                    ],
+                'Meetings' => [
+                    [
+                        'name' => 'Committee business',
+                        'visibility' => DocumentVisibility::Group->value,
+                        'items' => [
+                            ['file' => 'Meeting schedule.csv', 'lines' => [
+                                'Date,Time,Room',
+                                '2026-10-14,10:00,Volunteer lounge',
+                                '2026-11-11,10:00,Volunteer lounge',
+                                '2026-12-09,10:00,Volunteer lounge',
+                            ]],
+                            [
+                                'name' => 'Minutes',
+                                'items' => [
+                                    ['file' => 'September minutes.pdf', 'lines' => [
+                                        'Present: the Chair, the Secretary and six members.',
+                                        'Fall recruitment and the volunteer fair were discussed.',
+                                    ]],
                                 ],
                             ],
                         ],
