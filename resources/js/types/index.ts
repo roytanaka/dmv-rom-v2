@@ -364,6 +364,9 @@ export interface GroupLibrary {
     category: number | null;
     /** The open Folder's child Folders and Documents, one section per Document category, then Other (#724). */
     sections: LibrarySection[];
+    /** The open Folder's readable child Folders and Documents, across every section, for its header (#726). */
+    folderCount: number;
+    documentCount: number;
     /** Every Folder as a move destination; managers only (#714). */
     destinations: FolderDestination[];
     /** How deep Folders may go (DocumentFolder::MAX_DEPTH). */

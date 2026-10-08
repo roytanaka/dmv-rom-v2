@@ -3,6 +3,7 @@
 use App\Enums\DocumentVisibility;
 use App\Enums\Role;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
 use App\Models\Group;
 use App\Models\GroupMember;
@@ -641,4 +642,30 @@ it('lists a deep Folder without a query per Document', function () {
     $three = $countQueries();
 
     expect($three)->toBe($one);
+});
+
+it('counts what the open Folder holds for its header, whichever section they sit in', function () {
+    $group = folderLibrary();
+    $tours = topFolder($group, 'Tours');
+    $europe = DocumentCategory::factory()->in($tours)->create(['name' => 'Europe']);
+    DocumentCategory::factory()->in($tours)->create(['name' => 'Asia']);
+    DocumentFolder::factory()->create(['group_id' => $group->id, 'parent_id' => $tours->id, 'category_id' => $europe->id]);
+    DocumentFolder::factory()->create(['group_id' => $group->id, 'parent_id' => $tours->id]);
+    Document::factory()->create(['group_id' => $group->id, 'folder_id' => $tours->id, 'category_id' => $europe->id]);
+    $member = folderReader($group);
+
+    $this->actingAs($member)
+        ->get(route('groups.documents.folder', ['group' => $group, 'folder' => $tours]))
+        ->assertInertia(fn (Assert $page) => $page
+            // The header counts the Document categories the viewer sees: empty Asia is left out
+            // for a reader who cannot manage the library (#725).
+            ->has('library.categories', 1)
+            ->where('library.folderCount', 2)
+            ->where('library.documentCount', 1));
+
+    $this->actingAs($member)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('library.folderCount', 1)
+            ->where('library.documentCount', 0));
 });
