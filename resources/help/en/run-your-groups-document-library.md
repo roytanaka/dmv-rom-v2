@@ -2,39 +2,63 @@
 
 Keep your Group's files and links in order, and decide who reads them. You need the Librarian or Chair role.
 
-## Add a folder
+## Set up categories
+
+Categories put the folders and files of one folder under headings. The top level of the library and each folder have their own categories.
 
 1. Open your Group's **Documents** tab.
 
-    ![The Documents tab for a Librarian: the upload box, Add link, New folder, Manage tags, and an actions button on each row](01.png)
+    ![The Documents tab for a Librarian: the category list, Categories, the Category for uploads, the upload box, Add link, and New folder](01.png)
 
-2. Open the folder for the new folder, or stay at the top.
-3. Select **New folder**.
+2. Open the folder for the categories, or stay at the top.
+3. Select **Categories**.
 
-    ![The New folder dialog: Name, and Who can read it set to Group members](02.png)
+    ![The Categories dialog: Data Sheets and Publications, each with rename and delete, then New category](02.png)
 
-4. Type a **Name**.
-5. For a top-level folder, set **Who can read it**.
+4. To add a category, type its name under **New category**. Then select **Add**.
+5. To rename a category, select its pencil button. Type the new name and select **Save**.
+6. To delete a category, select its bin button. Then select **Delete**.
+
+    ![Delete Data Sheets? Its folders and files move to Other.](03.png)
+
+A delete keeps the folders and files. They move to **Other**.
+
+> **Note:** A category does not change who can read a folder or a file.
+
+## Add a folder
+
+1. Open the folder for the new folder, or stay at the top.
+2. Select **New folder**.
+
+    ![The New folder dialog: Name, Who can read it, and Category](04.png)
+
+3. Type a **Name**.
+4. For a top-level folder, set **Who can read it**.
+5. Choose a **Category**, or leave **No category**.
 6. Select **Save**.
 
 Folders go up to 5 levels deep. A folder inside a top-level folder uses the top-level setting.
 
-## Choose who can read a folder
+## Edit a folder
 
-1. Select the actions button at the end of a top-level folder's row.
+1. Select the actions button at the end of a folder's row.
 2. Select **Edit**.
 
-    ![The Edit folder dialog for Natural History, readable by All members](03.png)
+    ![The Edit folder dialog for Exhibition: Group members, and the Data Sheets category](05.png)
 
-3. Set **Who can read it** to **Group members** or **All members**.
-4. Select **Save**.
+3. Change the **Name** or the **Category**.
+4. For a top-level folder, set **Who can read it** to **Group members** or **All members**.
+5. Select **Save**.
 
 > **Note:** Documents at the top of the library, outside all folders, are for Group members only.
 
 ## Upload files
 
 1. Open the folder for the files.
-2. Drop the files on the upload box, or select **Choose files**.
+2. Choose a **Category** above the upload box. All the files you add next go in this category.
+3. Drop the files on the upload box, or select **Choose files**.
+
+The **Category** starts at the category the page shows. When the page shows all categories, it starts at **No category**.
 
 Each file shows a progress bar while it uploads. The app does not add a file over 1.5 GB or of a type it does not allow.
 
@@ -42,42 +66,32 @@ Each file shows a progress bar while it uploads. The app does not add a file ove
 
 1. Select **Add link**.
 2. Type a **Title** and a **Web address**.
-3. Select **Save**.
+3. Choose a **Category**, or leave **No category**.
+4. Select **Save**.
 
 ## Change a document
 
 Select the actions button at the end of a document's row. Then select one item:
 
-![A document's actions menu: Edit, Replace file, Move, and Delete](04.png)
+![A document's actions menu under Other: Edit, Replace file, Move, and Delete](06.png)
 
-1. Select **Edit** to change the title and description. For a link, you can also change the web address.
+1. Select **Edit** to change the title, the description, and the category. For a link, you can also change the web address.
 2. Select **Replace file** to upload a new version. Members use the same link to get it.
-3. Select **Move** to put the document in another folder. Choose the folder under **Move to**.
+3. Select **Move** to put the document in another folder. Choose the folder under **Move to**. Then choose a **Category** of that folder.
 
-    ![The Move dialog: the Move to list, then Move](05.png)
+    ![The Move dialog: Move to set to the top level of the library, and Category set to No category](07.png)
 
 4. Select **Delete** to remove the document and its file. You cannot undo a delete.
 
-## Rename, move, or delete a folder
+Each folder has its own categories. When you change **Move to**, the **Category** goes back to **No category**.
 
-Select the actions button at the end of a folder's row. Select **Rename** or **Edit**, **Move**, or **Delete**. You can delete only an empty folder.
+## Move or delete a folder
 
-## Use tags
+Select the actions button at the end of a folder's row. Then select **Move** or **Delete**.
 
-1. Select **Manage tags** to add, rename, or delete your Group's tags.
+A folder moves with all its contents. In the **Move** dialog, choose a **Category** of the new place, the same as for a document.
 
-    ![The Tags dialog: each tag with rename and delete, then New tag](06.png)
-
-2. Select the tag button under a document's name.
-
-    ![One document's Tags dialog: a checkbox for each tag](07.png)
-
-3. Check the tags for that document.
-4. Select **Save**.
-
-A delete removes the tag from every document.
-
-> **Tip:** Use a tag to show one document in more than one view. A document sits in one folder only.
+You can delete only an empty folder. Its categories go with it.
 
 ## What next
 

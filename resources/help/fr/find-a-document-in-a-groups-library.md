@@ -4,22 +4,34 @@ Ouvrez les fichiers et les liens qu'un groupe garde dans son onglet **Documents*
 
 ## Ouvrir l'onglet Documents
 
-1. Ouvrez le groupe depuis la barre latérale.
+1. Ouvrez le groupe depuis la barre latérale gauche.
 2. Sélectionnez l'onglet **Documents**.
 
-    ![L'onglet Documents : un dossier, Natural History, lisible par tous les membres](01.png)
+    ![L'onglet Documents : le chemin, la liste des catégories, puis la catégorie Data Sheets et ses dossiers](01.png)
 
-L'onglet affiche d'abord les dossiers, puis les documents. Seul un groupe doté d'une bibliothèque de documents a cet onglet.
+Seul un groupe doté d'une bibliothèque de documents a cet onglet.
+
+L'onglet range les dossiers et les fichiers sous des catégories, par exemple Data Sheets et Publications. Chaque catégorie affiche un titre et un compte. Les éléments sans catégorie s'affichent à la fin, sous **Autres**.
+
+![Le titre Autres à la fin de l'onglet : un fichier PDF et deux liens](02.png)
+
+Vous voyez seulement les catégories qui contiennent un élément que vous pouvez lire.
 
 ## Parcourir les dossiers
 
 1. Sélectionnez le nom d'un dossier pour l'ouvrir.
 
-    ![Dans Natural History : le chemin en haut, puis deux dossiers](02.png)
+    ![Dans World Culture : le chemin, puis le nom du dossier, 7 catégories et 13 dossiers, et qui peut le lire](03.png)
 
 2. Sélectionnez un nom dans le chemin en haut pour remonter.
 
-Chaque dossier indique qui peut le lire. **Membres du groupe** veut dire seulement les membres du groupe. **Tous les membres** veut dire tous les membres du DMV.
+Un dossier ouvert affiche son nom en haut. Sous le nom, il indique combien de catégories, de dossiers et de fichiers il contient. Puis il indique qui peut le lire.
+
+**Membres du groupe** veut dire seulement les membres du groupe. **Tous les membres** veut dire tous les membres du DMV.
+
+Chaque dossier a ses propres catégories. Un dossier sans catégorie affiche une seule liste, sans titres.
+
+![Dans Ancient Egypt & Nubia : aucune catégorie, une liste de trois fichiers PDF](04.png)
 
 > **Note :** Un groupe peut partager un dossier de premier niveau avec tous les membres. Vous pouvez lire ce dossier même si vous n'êtes pas dans le groupe.
 
@@ -28,25 +40,21 @@ Chaque dossier indique qui peut le lire. **Membres du groupe** veut dire seuleme
 1. Sélectionnez le nom d'un fichier pour le télécharger.
 2. Sélectionnez le nom d'un lien pour ouvrir sa page Web dans un nouvel onglet.
 
-![Un dossier avec un sous-dossier et une fiche PDF, avec son type, sa taille, sa date et son étiquette](03.png)
-
 Un lien affiche une icône de lien dans la colonne **Type**. Un fichier affiche son type et sa taille.
 
-## Filtrer par étiquette
+## Afficher une seule catégorie
 
-Un groupe peut mettre des étiquettes sur ses documents, par exemple Highlights ou Required.
+1. Ouvrez la liste des catégories en haut à droite.
 
-1. Ouvrez la liste **Étiquette** au-dessus du tableau.
+    ![La liste des catégories ouverte dans World Culture : Toutes les catégories, puis les sept catégories](05.png)
 
-    ![La liste Étiquette ouverte : Tous les documents, puis les étiquettes du groupe](04.png)
+2. Sélectionnez une catégorie. La page affiche seulement cette catégorie.
 
-2. Sélectionnez une étiquette.
+    ![World Culture filtré sur Egypt & Nubia : un titre et un dossier](06.png)
 
-    ![L'onglet filtré par Highlights : deux documents de dossiers différents](05.png)
+3. Sélectionnez **Toutes les catégories** pour les afficher toutes de nouveau.
 
-3. Sélectionnez **Tous les documents** pour retirer le filtre.
-
-Le filtre affiche tous les documents qui portent cette étiquette, dans tous les dossiers que vous pouvez lire.
+La liste affiche seulement les catégories du dossier ouvert. Quand vous ouvrez un autre dossier, la page affiche de nouveau toutes ses catégories.
 
 ## Et ensuite
 
