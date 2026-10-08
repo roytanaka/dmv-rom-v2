@@ -89,8 +89,7 @@ function shiftInstant(string $date, string $time): string
 function bulkShiftPayload(array $overrides = []): array
 {
     return [
-        'starts_time' => '10:00',
-        'ends_time' => '13:00',
+        'times' => [['starts_time' => '10:00', 'ends_time' => '13:00']],
         'days_of_week' => [1],
         'from_date' => '2026-08-01',
         'to_date' => '2026-08-31',
@@ -594,8 +593,105 @@ it('rejects a bulk-create whose end time is not after its start time', function 
     $schedule = augustSchedule();
 
     $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
-        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload(['ends_time' => '10:00']))
-        ->assertSessionHasErrors('ends_time');
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload([
+            'times' => [['starts_time' => '10:00', 'ends_time' => '10:00']],
+        ]))
+        ->assertSessionHasErrors('times.0.ends_time');
+
+    expect(Shift::count())->toBe(0);
+});
+
+// --- Several start/end times in one run (#734) --------------------------------
+//
+// A Group that runs the same Shift several times a day enters each start/end pair once.
+// The run stamps every pair on every matching day — still N single writes plus a report.
+
+/** The Docents' day: three tours, an hour each. */
+function threeTimes(): array
+{
+    return [
+        ['starts_time' => '11:00', 'ends_time' => '12:00'],
+        ['starts_time' => '13:00', 'ends_time' => '14:00'],
+        ['starts_time' => '15:00', 'ends_time' => '16:00'],
+    ];
+}
+
+it('bulk-creates every start/end pair on every matching weekday', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload(['times' => threeTimes()]))
+        ->assertSessionHasNoErrors()
+        ->assertSessionHas('shiftsBulk', fn ($report) => $report['created'] === 15 && $report['skipped'] === []);
+
+    $zone = config('app.org_timezone');
+    $firstMonday = Shift::orderBy('starts_at')->take(3)->get()
+        ->map(fn (Shift $shift) => $shift->starts_at->setTimezone($zone)->format('Y-m-d H:i'))
+        ->all();
+
+    expect(Shift::count())->toBe(15)
+        ->and($firstMonday)->toBe(['2026-08-03 11:00', '2026-08-03 13:00', '2026-08-03 15:00']);
+});
+
+it('reports the time of each skipped row when a run has several times', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload([
+            'times' => threeTimes(),
+            'from_date' => '2026-09-07',
+            'to_date' => '2026-09-07',
+        ]))
+        ->assertSessionHas('shiftsBulk', function ($report) {
+            return $report['created'] === 0
+                && collect($report['skipped'])->pluck('time')->all() === ['11:00', '13:00', '15:00']
+                && collect($report['skipped'])->pluck('date')->unique()->all() === ['2026-09-07'];
+        });
+});
+
+it('bulk-deletes every start/end pair the same filter created', function () {
+    $schedule = augustSchedule();
+    $scheduler = shiftOfficerOf($schedule->group, Role::Scheduler);
+    $filter = bulkShiftPayload(['times' => threeTimes()]);
+
+    $this->actingAs($scheduler)->post(route('shifts.bulk-store', $schedule), $filter);
+    // A 10:00 Monday Shift that no pair names must survive.
+    $this->actingAs($scheduler)->post(route('shifts.bulk-store', $schedule), bulkShiftPayload());
+    expect(Shift::count())->toBe(20);
+
+    $this->actingAs($scheduler)
+        ->delete(route('shifts.bulk-destroy', $schedule), $filter)
+        ->assertSessionHasNoErrors()
+        ->assertSessionHas('shiftsBulk', fn ($report) => $report['deleted'] === 15);
+
+    expect(Shift::count())->toBe(5);
+});
+
+it('rejects a bulk run with no times', function () {
+    $schedule = augustSchedule();
+    $scheduler = shiftOfficerOf($schedule->group, Role::Scheduler);
+
+    $this->actingAs($scheduler)
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload(['times' => []]))
+        ->assertSessionHasErrors('times');
+
+    $this->actingAs($scheduler)
+        ->delete(route('shifts.bulk-destroy', $schedule), bulkShiftPayload(['times' => []]))
+        ->assertSessionHasErrors('times');
+});
+
+it('names the bad pair when one of several times is invalid', function () {
+    $schedule = augustSchedule();
+
+    $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
+        ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload([
+            'times' => [
+                ['starts_time' => '11:00', 'ends_time' => '12:00'],
+                ['starts_time' => '14:00', 'ends_time' => '13:00'],
+            ],
+        ]))
+        ->assertSessionHasErrors('times.1.ends_time')
+        ->assertSessionDoesntHaveErrors('times.0.ends_time');
 
     expect(Shift::count())->toBe(0);
 });
@@ -662,6 +758,8 @@ it('deletes the rest and names the one Shift that has Sign-ups', function () {
             return $report['deleted'] === 4
                 && count($report['skipped']) === 1
                 && $report['skipped'][0]['shift_id'] === $taken->id
+                && $report['skipped'][0]['date'] === '2026-08-10'
+                && $report['skipped'][0]['time'] === '10:00'
                 && $report['skipped'][0]['reason'] === 'group.scheduling_panel.bulk.skipped_has_sign_ups';
         });
 
@@ -764,8 +862,7 @@ it('bulk-creates evening Shifts on the weekday the museum ran them', function ()
     // weekdays in UTC would write them on the wrong day.
     $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
         ->post(route('shifts.bulk-store', $schedule), bulkShiftPayload([
-            'starts_time' => '20:00',
-            'ends_time' => '23:00',
+            'times' => [['starts_time' => '20:00', 'ends_time' => '23:00']],
         ]))
         ->assertSessionHas('shiftsBulk', fn ($report) => $report['created'] === 5 && $report['skipped'] === []);
 
@@ -786,7 +883,7 @@ it('bulk-creates evening Shifts on the weekday the museum ran them', function ()
 it('bulk-deletes the evening Shifts a matching filter created', function () {
     $schedule = augustSchedule();
     $scheduler = shiftOfficerOf($schedule->group, Role::Scheduler);
-    $filter = bulkShiftPayload(['starts_time' => '20:00', 'ends_time' => '23:00']);
+    $filter = bulkShiftPayload(['times' => [['starts_time' => '20:00', 'ends_time' => '23:00']]]);
 
     $this->actingAs($scheduler)->post(route('shifts.bulk-store', $schedule), $filter);
     expect(Shift::count())->toBe(5);
@@ -812,8 +909,7 @@ it('bulk-creates on the winter wall clock too — the offset is not fixed', func
 
     $this->actingAs(shiftOfficerOf($schedule->group, Role::Scheduler))
         ->post(route('shifts.bulk-store', $schedule), [
-            'starts_time' => '20:00',
-            'ends_time' => '23:00',
+            'times' => [['starts_time' => '20:00', 'ends_time' => '23:00']],
             'days_of_week' => [1],
             'from_date' => '2027-01-01',
             'to_date' => '2027-01-31',

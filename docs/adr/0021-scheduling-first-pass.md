@@ -145,12 +145,12 @@ Case 2 is allowed on purpose — a Member may hold a morning desk slot and an af
 
 A future reader looking for the pattern engine should find this note and stop looking: **this section adds no entity, no column, and no table.** "Bulk operations" reads like a feature; it is a loop over a date range.
 
-|          | Bulk-create Shifts                                       | Bulk-place a Member                                               |
-| -------- | -------------------------------------------------------- | ----------------------------------------------------------------- |
-| Writes   | `Shift` rows                                             | `Sign-up` rows                                                    |
-| Inputs   | kind, start/end time, capacity, days of week, date range | Member, target Shifts (days of week + time), date range, interval |
-| Interval | **none** — every matching day in the range               | **weekly or biweekly**, from a chosen start date                  |
-| Run from | the Schedule builder                                     | a Member-in-Schedule context                                      |
+|          | Bulk-create Shifts                                                    | Bulk-place a Member                                               |
+| -------- | --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Writes   | `Shift` rows                                                          | `Sign-up` rows                                                    |
+| Inputs   | kind, one or more start/end times, capacity, days of week, date range | Member, target Shifts (days of week + time), date range, interval |
+| Interval | **none** — every matching day in the range                            | **weekly or biweekly**, from a chosen start date                  |
+| Run from | the Schedule builder                                                  | a Member-in-Schedule context                                      |
 
 Two entry points, not one form with a mode toggle: they take different inputs and are run at different moments.
 
@@ -254,6 +254,7 @@ Recorded here because a closed map is a bad place to keep them. None is rejected
 - **Whether Docents' (and Outreach's) shift kinds are `ShiftKind` rows or the content catalog's Tours.** [ADR-0010](0010-group-model.md) makes the docents' content catalog `Category → Section → Tour`, and Docents' shift kinds _are_ tours; Outreach's are _presentations_ (`outreachGalleryTheme`). Either their `ShiftKind` rows duplicate that list, or a Shift's kind points into another capability's data, taking the qualification requirement with it. Named plainly because it dents §3's own reasoning — part of the case for an entity was that it settles the question before Docents arrive, and Docents may reopen it from a direction that argument did not check. Not decided here, because answering it means specifying the content catalog inside a scheduling decision, and no first-pass Group has one.
 
     > **Settled (2026-10-07, [ADR-0030](0030-document-library.md)).** `ShiftKind` rows. The content catalog is withdrawn: a Tour's files go to the Group's Document library, and the Tour as a vetted, schedulable thing is a Shift kind. The tour names exist twice, as Shift kinds and as Folder names, and that cost is accepted.
+
 - **Legacy scheduling data migration** — handled by the separate migration plan. This ADR takes _facts_ about legacy from research, never the data itself.
 
 ## References

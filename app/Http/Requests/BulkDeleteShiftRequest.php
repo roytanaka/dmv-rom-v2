@@ -32,7 +32,7 @@ class BulkDeleteShiftRequest extends FormRequest
     }
 
     /**
-     * The same whitelist as bulk-create — start / end time, capacity, kind, days of week,
+     * The same whitelist as bulk-create — the start / end time pairs, capacity, kind, days of week,
      * and the date range that together name the rows to remove.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -42,8 +42,9 @@ class BulkDeleteShiftRequest extends FormRequest
         $schedule = $this->route('schedule');
 
         return [
-            'starts_time' => ['required', 'date_format:H:i', new OnMinuteGrid],
-            'ends_time' => ['required', 'date_format:H:i', 'after:starts_time', new OnMinuteGrid],
+            'times' => ['required', 'array', 'min:1'],
+            'times.*.starts_time' => ['required', 'date_format:H:i', new OnMinuteGrid],
+            'times.*.ends_time' => ['required', 'date_format:H:i', 'after:times.*.starts_time', new OnMinuteGrid],
             'capacity' => ['sometimes', 'integer', 'min:1'],
             'shift_kind_id' => [
                 'nullable',

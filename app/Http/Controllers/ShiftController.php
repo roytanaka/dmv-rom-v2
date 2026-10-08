@@ -64,7 +64,7 @@ class ShiftController extends Controller
 
     /**
      * Bulk-create a month of Shifts in one form run (#362, ADR-0021 §2): one Shift on
-     * every matching weekday in the range, at the given wall-clock times. This is N single
+     * every matching weekday in the range for each start / end pair (#734). This is N single
      * writes plus a report — never all-or-nothing. A day whose Shift would fall outside
      * the Schedule's date range is skipped and reported (the range is honoured per row),
      * and the rest are still written. It adds no stored pattern: the days of week and the
@@ -91,25 +91,28 @@ class ShiftController extends Controller
                 continue;
             }
 
-            $startsAt = CarbonImmutable::instance($day)->setTimeFromTimeString($data['starts_time'])->utc();
-            $endsAt = CarbonImmutable::instance($day)->setTimeFromTimeString($data['ends_time'])->utc();
+            foreach ($data['times'] as $time) {
+                $startsAt = CarbonImmutable::instance($day)->setTimeFromTimeString($time['starts_time'])->utc();
+                $endsAt = CarbonImmutable::instance($day)->setTimeFromTimeString($time['ends_time'])->utc();
 
-            if (! $schedule->coversInterval($startsAt, $endsAt)) {
-                $skipped[] = [
-                    'date' => $day->toDateString(),
-                    'reason' => 'group.scheduling_panel.bulk.skipped_outside_range',
-                ];
+                if (! $schedule->coversInterval($startsAt, $endsAt)) {
+                    $skipped[] = [
+                        'date' => $day->toDateString(),
+                        'time' => $time['starts_time'],
+                        'reason' => 'group.scheduling_panel.bulk.skipped_outside_range',
+                    ];
 
-                continue;
+                    continue;
+                }
+
+                $schedule->shifts()->create([
+                    'starts_at' => $startsAt,
+                    'ends_at' => $endsAt,
+                    'capacity' => $data['capacity'] ?? 1,
+                    'shift_kind_id' => $data['shift_kind_id'] ?? null,
+                ]);
+                $created++;
             }
-
-            $schedule->shifts()->create([
-                'starts_at' => $startsAt,
-                'ends_at' => $endsAt,
-                'capacity' => $data['capacity'] ?? 1,
-                'shift_kind_id' => $data['shift_kind_id'] ?? null,
-            ]);
-            $created++;
         }
 
         return back()->with('shiftsBulk', ['created' => $created, 'skipped' => $skipped]);
@@ -117,8 +120,9 @@ class ShiftController extends Controller
 
     /**
      * Bulk-delete the Shifts matching the same filter that created them (#362, ADR-0021 §2)
-     * — legacy's skip-dates job without a field. A Shift matches when its weekday, wall-clock
-     * times, capacity and kind all match the filter and it falls in the range. Each match
+     * — legacy's skip-dates job without a field. A Shift matches when its weekday, capacity
+     * and kind match the filter, its wall-clock times equal one of the start / end pairs
+     * (#734), and it falls in the range. Each match
      * honours the zero-Sign-ups delete rule per row: one with Members on it is skipped and
      * named, and the batch removes the rest.
      */
@@ -128,6 +132,7 @@ class ShiftController extends Controller
         $days = $data['days_of_week'];
         $capacity = $data['capacity'] ?? 1;
         $kindId = $data['shift_kind_id'] ?? null;
+        $times = collect($data['times']);
         $zone = config('app.org_timezone');
 
         // The filter is read on the same wall clock that wrote it: the range bounds are
@@ -142,13 +147,13 @@ class ShiftController extends Controller
             ->whereBetween('starts_at', [$from, $to])
             ->orderBy('starts_at')
             ->get()
-            ->filter(function (Shift $shift) use ($days, $data, $capacity, $kindId, $zone): bool {
+            ->filter(function (Shift $shift) use ($days, $times, $capacity, $kindId, $zone): bool {
                 $startsAt = $shift->starts_at->setTimezone($zone);
                 $endsAt = $shift->ends_at->setTimezone($zone);
 
                 return in_array($startsAt->dayOfWeek, $days, true)
-                    && $startsAt->format('H:i') === $data['starts_time']
-                    && $endsAt->format('H:i') === $data['ends_time']
+                    && $times->contains(fn (array $time): bool => $time['starts_time'] === $startsAt->format('H:i')
+                        && $time['ends_time'] === $endsAt->format('H:i'))
                     && $shift->capacity === $capacity
                     && $shift->shift_kind_id === $kindId;
             });
@@ -158,8 +163,13 @@ class ShiftController extends Controller
 
         foreach ($matches as $shift) {
             if ($shift->signUps()->exists()) {
+                // Named by its museum date and start time too, so a Scheduler running
+                // several times a day can tell which kept Shift is which (#734).
+                $startsAt = $shift->starts_at->setTimezone($zone);
                 $skipped[] = [
                     'shift_id' => $shift->id,
+                    'date' => $startsAt->toDateString(),
+                    'time' => $startsAt->format('H:i'),
                     'reason' => 'group.scheduling_panel.bulk.skipped_has_sign_ups',
                 ];
 

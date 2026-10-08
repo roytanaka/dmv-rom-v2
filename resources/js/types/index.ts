@@ -880,8 +880,9 @@ export interface ShiftKind {
 // carried to the page in `SharedData['flash']`. A run is N single writes plus this report:
 // the count written or removed (exactly one of `created` / `deleted` / `removed`, by
 // action) and every row it skipped. Each skip carries its own translated `reason` lang key
-// and the identifier the row was skipped on — a `date` for a bulk-create day outside the
-// range, a `shift_id` for a bulk-delete match that could not be removed.
+// and the identifier the row was skipped on — a `date` and start `time` for a bulk-create
+// row outside the range, and a `shift_id` plus its `date` and `time` for a bulk-delete
+// match that could not be removed.
 export interface BulkReport {
     created?: number;
     deleted?: number;
@@ -891,6 +892,7 @@ export interface BulkReport {
 
 export interface BulkSkip {
     date?: string;
+    time?: string;
     shift_id?: number;
     reason: string;
 }

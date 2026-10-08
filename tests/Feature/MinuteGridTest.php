@@ -89,13 +89,12 @@ it('rejects an off-grid bulk Shift time', function () {
 
     $this->actingAs(gridOfficerOf($schedule->group, Role::Scheduler))
         ->post(route('shifts.bulk-store', $schedule), [
-            'starts_time' => '10:01',
-            'ends_time' => '13:00',
+            'times' => [['starts_time' => '10:01', 'ends_time' => '13:00']],
             'days_of_week' => [1],
             'from_date' => '2026-08-01',
             'to_date' => '2026-08-31',
         ])
-        ->assertSessionHasErrors('starts_time');
+        ->assertSessionHasErrors('times.0.starts_time');
 
     expect(Shift::count())->toBe(0);
 });
@@ -126,7 +125,7 @@ it('accepts an on-grid Meeting time', function () {
 // --- Guard -------------------------------------------------------------------
 
 it('puts every Form Request time field on the minute grid', function () {
-    $timeField = "/'(starts_at|ends_at|held_at|starts_time|ends_time)' => \[/";
+    $timeField = "/'(times\.\*\.)?(starts_at|ends_at|held_at|starts_time|ends_time)' => \[/";
 
     $missing = collect(File::files(app_path('Http/Requests')))
         ->filter(fn ($file) => preg_match($timeField, $file->getContents()) === 1)
