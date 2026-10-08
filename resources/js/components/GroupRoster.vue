@@ -29,6 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
@@ -115,10 +116,6 @@ const hasContact = (member: RosterMember) => member.email !== undefined || membe
 
 // Empty-state colspan tracks the optional officer Actions column.
 const columnCount = computed(() => (props.canManage ? 6 : 5));
-
-// Native select styling shared by both the add and manage dialogs.
-const SELECT_CLASS =
-    'border-input bg-background focus-visible:border-rom-slate focus-visible:ring-rom-slate-50 flex h-11 w-full rounded-none border px-3 py-2 text-base focus-visible:ring-2 focus-visible:outline-hidden';
 
 // --- Officer CRUD (#192) ----------------------------------------------------
 
@@ -354,11 +351,11 @@ const hardRemove = (member: RosterMember) => {
 
                     <div class="grid gap-2">
                         <Label for="add-standing">{{ trans('group.roster.field.standing') }}</Label>
-                        <select id="add-standing" v-model="addForm.status" :class="SELECT_CLASS">
+                        <NativeSelect id="add-standing" v-model="addForm.status">
                             <option v-for="standing in SETTABLE_STANDINGS" :key="standing" :value="standing">
                                 {{ trans(`group.standing.${standing}`) }}
                             </option>
-                        </select>
+                        </NativeSelect>
                     </div>
 
                     <fieldset v-if="meta.assignableRoles.length" class="grid gap-2">
@@ -393,11 +390,11 @@ const hardRemove = (member: RosterMember) => {
                 <form class="flex flex-col gap-4" @submit.prevent="submitManage">
                     <div class="grid gap-2">
                         <Label for="edit-standing">{{ trans('group.roster.field.standing') }}</Label>
-                        <select id="edit-standing" v-model="editForm.status" :class="SELECT_CLASS">
+                        <NativeSelect id="edit-standing" v-model="editForm.status">
                             <option v-for="standing in SETTABLE_STANDINGS" :key="standing" :value="standing">
                                 {{ trans(`group.standing.${standing}`) }}
                             </option>
-                        </select>
+                        </NativeSelect>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">

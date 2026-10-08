@@ -10,6 +10,7 @@
 import HoursReportActions from '@/components/HoursReportActions.vue';
 import HoursReportNav from '@/components/HoursReportNav.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { NativeSelect } from '@/components/ui/native-select';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type GroupHoursMemberHistory, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
@@ -34,8 +35,7 @@ const formatMonth = (iso: string) =>
 
 // Picking a Member navigates by the `?member=` param, so the view is addressable and the
 // back button walks the history a Chair reviewed.
-const pick = (event: Event) => {
-    const value = (event.target as HTMLSelectElement).value;
+const pick = (value: unknown) => {
     router.get(route('groups.hours.member', { group: props.group.slug, ...(value ? { member: value } : {}) }));
 };
 
@@ -62,15 +62,10 @@ const csvHref = computed(() => route('groups.hours.member.csv', { group: props.g
                 <label for="member-pick" class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                     {{ trans('hours.detail.member.pick') }}
                 </label>
-                <select
-                    id="member-pick"
-                    class="border-border text-rom-ink rounded-md border px-3 py-1 text-sm"
-                    :value="member?.id ?? ''"
-                    @change="pick"
-                >
+                <NativeSelect id="member-pick" class="w-auto" :model-value="member?.id ?? ''" @update:model-value="pick">
                     <option value="">—</option>
                     <option v-for="option in members" :key="option.id" :value="option.id">{{ option.name }}</option>
-                </select>
+                </NativeSelect>
             </div>
 
             <Card>

@@ -7,6 +7,7 @@
 //
 // The value is the `HH:mm` the forms send, or '' until an hour is chosen. The outer <Label>
 // targets `id`, which lands on the hour select; the minute select names itself.
+import { NativeSelect } from '@/components/ui/native-select';
 import { DEFAULT_STEP_MINUTES, joinTime, minuteOptions, splitTime } from '@/scheduling/timeGrid';
 import { type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -45,14 +46,14 @@ function current(): string {
     return hour.value === null ? '' : joinTime(hour.value, minute.value ?? 0);
 }
 
-function pickHour(event: Event) {
-    hour.value = Number((event.target as HTMLSelectElement).value);
+function pickHour(value: unknown) {
+    hour.value = Number(value);
     minute.value ??= 0;
     model.value = current();
 }
 
-function pickMinute(event: Event) {
-    minute.value = Number((event.target as HTMLSelectElement).value);
+function pickMinute(value: unknown) {
+    minute.value = Number(value);
     model.value = current();
 }
 
@@ -62,28 +63,31 @@ const hourFormat = new Intl.DateTimeFormat(locale, { hour: 'numeric', timeZone: 
 const hours = Array.from({ length: 24 }, (_, value) => ({ value, label: hourFormat.format(Date.UTC(2000, 0, 1, value)) }));
 
 const minutes = computed(() => minuteOptions(props.stepMinutes, minute.value));
-
-// The native-select styling, matching the Roster's and Scheduling's pickers.
-const SELECT_CLASS =
-    'border-input bg-background focus-visible:border-rom-slate focus-visible:ring-rom-slate-50 flex h-11 min-w-0 flex-1 rounded-none border px-3 py-2 text-base focus-visible:ring-2 focus-visible:outline-hidden';
 </script>
 
 <template>
     <div class="flex items-center gap-2">
-        <select :id="id" :value="hour ?? ''" :required="required" :aria-label="hourLabel" :class="SELECT_CLASS" @change="pickHour">
+        <NativeSelect
+            :id="id"
+            :model-value="hour ?? ''"
+            :required="required"
+            :aria-label="hourLabel"
+            class="min-w-0 flex-1"
+            @update:model-value="pickHour"
+        >
             <option value="" disabled>–</option>
             <option v-for="option in hours" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
+        </NativeSelect>
         <span aria-hidden="true">:</span>
-        <select
-            :value="minute ?? ''"
+        <NativeSelect
+            :model-value="minute ?? ''"
             :required="required"
             :aria-label="trans('scheduling.time_field.minute')"
-            :class="SELECT_CLASS"
-            @change="pickMinute"
+            class="w-auto shrink-0"
+            @update:model-value="pickMinute"
         >
             <option value="" disabled>–</option>
             <option v-for="option in minutes" :key="option" :value="option">{{ String(option).padStart(2, '0') }}</option>
-        </select>
+        </NativeSelect>
     </div>
 </template>

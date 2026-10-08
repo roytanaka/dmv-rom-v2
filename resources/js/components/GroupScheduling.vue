@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
@@ -429,10 +430,6 @@ const removeSeat = (signUpId: number) => {
 // The two audience cases a Shift can carry (ShiftAudience) — the discovery filter the picker
 // offers, labelled from the lang file. `group` is the default; `open` invites the whole org.
 const AUDIENCES = ['group', 'open'] as const;
-
-// The native-select styling, matching the Roster's pickers (no shadcn Select in the repo yet).
-const SELECT_CLASS =
-    'border-input bg-background focus-visible:border-rom-slate focus-visible:ring-rom-slate-50 flex h-11 w-full rounded-none border px-3 py-2 text-base focus-visible:ring-2 focus-visible:outline-hidden';
 
 // A Shift's times are instants on the org wall clock, like a Meeting's. A DateTimeField value
 // has no zone of its own, so pre-fill renders the UTC instant on the org wall clock and the
@@ -1321,19 +1318,19 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     </div>
                     <div class="grid gap-2">
                         <Label for="shift-kind">{{ trans('group.scheduling_panel.shift_field.kind') }}</Label>
-                        <select id="shift-kind" v-model="shiftForm.shift_kind_id" :class="SELECT_CLASS">
+                        <NativeSelect id="shift-kind" v-model="shiftForm.shift_kind_id">
                             <option :value="null">{{ trans('group.scheduling_panel.shift_field.kind_none') }}</option>
                             <option v-for="kind in scheduling.shift_kinds" :key="kind.id" :value="kind.id">{{ kind.name }}</option>
-                        </select>
+                        </NativeSelect>
                         <InputError :message="shiftForm.errors.shift_kind_id" />
                     </div>
                     <div class="grid gap-2">
                         <Label for="shift-audience">{{ trans('group.scheduling_panel.shift_field.audience') }}</Label>
-                        <select id="shift-audience" v-model="shiftForm.audience" :class="SELECT_CLASS">
+                        <NativeSelect id="shift-audience" v-model="shiftForm.audience">
                             <option v-for="value in AUDIENCES" :key="value" :value="value">
                                 {{ trans(`group.scheduling_panel.audience.${value}`) }}
                             </option>
-                        </select>
+                        </NativeSelect>
                         <InputError :message="shiftForm.errors.audience" />
                     </div>
 
@@ -1360,10 +1357,10 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 <form class="flex flex-col gap-4" @submit.prevent="submitSelfServe">
                     <div class="grid gap-2">
                         <Label for="self-serve-kind">{{ trans('group.scheduling_panel.self_serve.field.kind') }}</Label>
-                        <select id="self-serve-kind" v-model="writeShiftForm.shift_kind_id" :class="SELECT_CLASS" required>
+                        <NativeSelect id="self-serve-kind" v-model="writeShiftForm.shift_kind_id" required>
                             <option :value="null" disabled>{{ trans('group.scheduling_panel.self_serve.field.kind_placeholder') }}</option>
                             <option v-for="kind in scheduling.shift_kinds" :key="kind.id" :value="kind.id">{{ kind.name }}</option>
-                        </select>
+                        </NativeSelect>
                         <!-- The station clash warning takes over the actions below, so its message
                              is not repeated as a field error here (#588, ADR-0026 §5). -->
                         <InputError :message="stationClashPending ? undefined : writeShiftForm.errors.shift_kind_id" />
@@ -1380,11 +1377,11 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     </div>
                     <div class="grid gap-2">
                         <Label for="self-serve-units">{{ trans('group.scheduling_panel.self_serve.field.units') }}</Label>
-                        <select id="self-serve-units" v-model.number="writeShiftForm.units" :class="SELECT_CLASS" required>
+                        <NativeSelect id="self-serve-units" v-model.number="writeShiftForm.units" required>
                             <option v-for="count in unitOptions" :key="count" :value="count">
                                 {{ transChoice('group.scheduling_panel.self_serve.units_option', count, { count: String(count) }) }}
                             </option>
-                        </select>
+                        </NativeSelect>
                         <p v-if="selfServeEnd" class="text-muted-foreground text-sm">{{ selfServeEnd }}</p>
                         <InputError :message="writeShiftForm.errors.units" />
                     </div>
@@ -1501,10 +1498,10 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     </div>
                     <div class="grid gap-2">
                         <Label for="bulk-kind">{{ trans('group.scheduling_panel.bulk.field.kind') }}</Label>
-                        <select id="bulk-kind" v-model="bulkForm.shift_kind_id" :class="SELECT_CLASS">
+                        <NativeSelect id="bulk-kind" v-model="bulkForm.shift_kind_id">
                             <option :value="null">{{ trans('group.scheduling_panel.bulk.field.kind_none') }}</option>
                             <option v-for="kind in scheduling.shift_kinds" :key="kind.id" :value="kind.id">{{ kind.name }}</option>
-                        </select>
+                        </NativeSelect>
                         <InputError :message="bulkForm.errors.shift_kind_id" />
                     </div>
 
@@ -1537,12 +1534,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 <form class="flex flex-col gap-4" @submit.prevent="runBulkAssign('place')">
                     <div class="grid gap-2">
                         <Label for="bulk-assign-member">{{ trans('group.scheduling_panel.bulk_assign.field.member') }}</Label>
-                        <select id="bulk-assign-member" v-model="bulkAssignForm.member_id" :class="SELECT_CLASS">
+                        <NativeSelect id="bulk-assign-member" v-model="bulkAssignForm.member_id">
                             <option :value="null" disabled>{{ trans('group.scheduling_panel.bulk_assign.field.member_none') }}</option>
                             <option v-for="candidate in scheduling.roster" :key="candidate.id" :value="candidate.id">
                                 {{ candidate.first_name }} {{ candidate.last_name }}
                             </option>
-                        </select>
+                        </NativeSelect>
                         <p v-if="!scheduling.roster.length" class="text-muted-foreground text-sm">
                             {{ trans('group.scheduling_panel.bulk_assign.field.member_empty') }}
                         </p>
@@ -1584,11 +1581,11 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     </div>
                     <div class="grid gap-2">
                         <Label for="bulk-assign-interval">{{ trans('group.scheduling_panel.bulk_assign.field.interval') }}</Label>
-                        <select id="bulk-assign-interval" v-model="bulkAssignForm.interval" :class="SELECT_CLASS">
+                        <NativeSelect id="bulk-assign-interval" v-model="bulkAssignForm.interval">
                             <option v-for="value in INTERVALS" :key="value" :value="value">
                                 {{ trans(`group.scheduling_panel.bulk_assign.interval.${value}`) }}
                             </option>
-                        </select>
+                        </NativeSelect>
                         <InputError :message="bulkAssignForm.errors.interval" />
                     </div>
                     <!-- The anchor only phases the biweekly cadence, so it shows only then; it is
