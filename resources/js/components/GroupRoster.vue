@@ -324,7 +324,7 @@ const hardRemove = (member: RosterMember) => {
                             <TableCell v-if="canManage" class="text-right">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
-                                        <Button type="button" variant="ghost" size="icon" class="size-8 pointer-coarse:size-11">
+                                        <Button type="button" variant="ghost" size="icon" class="size-8">
                                             <PhDotsThree class="size-4" />
                                             <span class="sr-only">{{ trans('group.roster.manage') }}</span>
                                         </Button>
@@ -400,7 +400,7 @@ const hardRemove = (member: RosterMember) => {
 
                     <fieldset v-if="meta.assignableRoles.length" class="grid gap-2">
                         <legend class="text-muted-foreground mb-2 text-sm font-medium">{{ trans('group.roster.field.roles') }}</legend>
-                        <label v-for="role in meta.assignableRoles" :key="role" class="flex items-center gap-2 text-sm">
+                        <label v-for="role in meta.assignableRoles" :key="role" class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
                             <Checkbox
                                 :checked="addForm.roles.includes(role)"
                                 @update:checked="(on: boolean) => toggleRole(addForm.roles, role, on)"
@@ -451,7 +451,7 @@ const hardRemove = (member: RosterMember) => {
 
                     <fieldset v-if="meta.assignableRoles.length" class="grid gap-2">
                         <legend class="text-muted-foreground mb-2 text-sm font-medium">{{ trans('group.roster.field.roles') }}</legend>
-                        <label v-for="role in meta.assignableRoles" :key="role" class="flex items-center gap-2 text-sm">
+                        <label v-for="role in meta.assignableRoles" :key="role" class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
                             <Checkbox
                                 :checked="editForm.roles.includes(role)"
                                 @update:checked="(on: boolean) => toggleRole(editForm.roles, role, on)"

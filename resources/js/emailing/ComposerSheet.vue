@@ -338,13 +338,15 @@ function close(): void {
                             <PhMagnifyingGlass class="text-muted-foreground absolute top-1/2 left-2 size-4 -translate-y-1/2" />
                             <Input v-model="search" class="h-9 pl-8" :placeholder="trans('broadcasts.composer.search_placeholder')" />
                         </div>
-                        <label class="border-input flex items-center gap-2 border-b pb-2 text-sm font-medium">
+                        <label
+                            class="border-input flex items-center gap-2 border-b pb-2 text-sm font-medium pointer-coarse:min-h-11 pointer-coarse:pl-3"
+                        >
                             <Checkbox :checked="allTicked" @update:checked="toggleAll" />
                             {{ trans('broadcasts.composer.select_all') }}
                         </label>
                         <ul class="max-h-64 overflow-y-auto">
                             <li v-for="member in filteredRoster" :key="member.id">
-                                <label class="flex items-center gap-2 py-1.5 text-sm">
+                                <label class="flex items-center gap-2 py-1.5 text-sm pointer-coarse:min-h-11 pointer-coarse:pl-3">
                                     <Checkbox :checked="ticked.has(member.id)" @update:checked="(on: boolean) => toggleMember(member.id, on)" />
                                     <Avatar size="sm">
                                         <AvatarImage v-if="member.photo" :src="member.photo" :alt="recipientName(member)" />

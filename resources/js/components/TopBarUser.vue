@@ -21,7 +21,7 @@ const { getInitials } = useInitials();
             <button
                 type="button"
                 aria-label="Account menu"
-                class="ring-offset-rom-ink flex shrink-0 items-center rounded-full focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:outline-none"
+                class="ring-offset-rom-ink flex shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:outline-none pointer-coarse:size-11"
             >
                 <!-- bg-transparent drops the Avatar's default light bg-secondary so the
                      translucent fallback sits on the black bar — white initials on a

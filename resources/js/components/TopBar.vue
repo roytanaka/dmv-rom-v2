@@ -141,7 +141,7 @@ const destClass = (dest: ChromeDestination): string => {
             <DropdownMenu>
                 <DropdownMenuTrigger
                     :aria-label="trans(nav.help.labelKey)"
-                    class="ring-offset-rom-ink flex h-10 items-center gap-1.5 px-2 text-sm font-medium text-white/70 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:outline-none data-[state=open]:text-white"
+                    class="ring-offset-rom-ink flex h-10 items-center gap-1.5 px-2 text-sm font-medium text-white/70 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:outline-none data-[state=open]:text-white pointer-coarse:h-11"
                 >
                     <PhQuestion class="size-4 opacity-80" />
                     <span class="hidden sm:inline">{{ trans(nav.help.labelKey) }}</span>
