@@ -47,6 +47,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -2682,6 +2683,23 @@ class DemoSeeder extends Seeder
 
                 $this->libraryLevel($group, null, $library, $this->librarian($group), $storage);
             });
+
+        $this->pruneDocumentFiles($storage);
+    }
+
+    /**
+     * Delete each file under documents/ that no Document points at. `migrate:fresh --seed`
+     * (every staging deploy) drops the rows but not the files, so without this each reseed
+     * leaves the last set of demo files behind. Files a Document still points at stay, so a
+     * reseed on a live database loses nothing.
+     */
+    private function pruneDocumentFiles(DocumentStorage $storage): void
+    {
+        $referenced = Document::whereNotNull('storage_path')->pluck('storage_path')->flip();
+
+        collect(Storage::disk('local')->files(DocumentStorage::DIRECTORY))
+            ->reject(fn (string $path) => $referenced->has($path))
+            ->each(fn (string $path) => $storage->delete($path));
     }
 
     /**

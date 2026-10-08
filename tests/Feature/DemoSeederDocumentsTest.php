@@ -43,3 +43,20 @@ it('stores no second copy of a seeded file when the seed runs again', function (
 
     expect(Storage::disk('local')->allFiles(DocumentStorage::DIRECTORY))->toHaveCount($before);
 });
+
+it('deletes the files a wiped database left behind, and keeps every file a Document points at', function () {
+    // A file from before `migrate:fresh`: on the disk, with no Document row pointing at it.
+    Storage::disk('local')->put(DocumentStorage::DIRECTORY.'/left-behind', 'old bytes');
+    // A sibling folder on the same disk is not the seeder's to clean.
+    Storage::disk('local')->put('feedback-screenshots/keep-me', 'screenshot');
+
+    $this->seed(DemoSeeder::class);
+
+    Storage::disk('local')->assertMissing(DocumentStorage::DIRECTORY.'/left-behind');
+    Storage::disk('local')->assertExists('feedback-screenshots/keep-me');
+
+    $referenced = Document::whereNotNull('storage_path')->pluck('storage_path')->sort()->values()->all();
+    $onDisk = collect(Storage::disk('local')->allFiles(DocumentStorage::DIRECTORY))->sort()->values()->all();
+
+    expect($onDisk)->toBe($referenced);
+});
