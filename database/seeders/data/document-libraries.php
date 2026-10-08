@@ -509,7 +509,7 @@ return [
 
     'gallery-interpreters' => [
         'sections' => [
-            'Data Sheets' => [
+            'Information Packages' => [
                 ['name' => 'General Museum', 'visibility' => 'members', 'items' => [
                     ['name' => 'Object Handling', 'items' => ['Handling Guidelines.pdf']],
                     ['name' => 'Training Materials', 'items' => ['Training Day 1 - Learning From Objects.pdf']],
