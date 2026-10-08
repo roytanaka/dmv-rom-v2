@@ -19,7 +19,7 @@ Les filtres fonctionnent ensemble. Sélectionnez **Effacer les filtres** pour re
 
 ## Lire une ligne
 
-- **Nom du fichier** mène au document. L'ouvrir ajoute une ligne à votre nom.
+- **Nom du fichier** ouvre le dossier qui contient le document.
 - Un document supprimé garde son nom, marqué **Supprimé**, sans lien.
 - **Membre supprimé** ou **Groupe supprimé** veut dire que cette fiche n'existe plus. La ligne reste.
 
@@ -27,4 +27,4 @@ Les filtres fonctionnent ensemble. Sélectionnez **Effacer les filtres** pour re
 
 ## Et ensuite
 
-Pour voir où se trouve un document, lisez [Trouver un document dans la bibliothèque d'un groupe](find-a-document-in-a-groups-library).
+Pour ouvrir le fichier depuis son dossier, lisez [Trouver un document dans la bibliothèque d'un groupe](find-a-document-in-a-groups-library).

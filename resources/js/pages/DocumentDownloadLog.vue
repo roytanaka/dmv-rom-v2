@@ -4,6 +4,7 @@
 // parameters, so a filtered list has a URL: the selects and dates apply on change, the filename
 // search on submit. A row outlives its Document, Member and Group: the filename is a snapshot,
 // and the link and names drop away once their record is gone. Names are content, shown as stored.
+import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +22,7 @@ interface DownloadRow {
     memberName: string | null;
     groupName: string | null;
     filename: string;
-    documentHref: string | null;
+    libraryHref: string | null;
 }
 
 interface Filters {
@@ -166,15 +167,8 @@ const clearFilters = (): void => applyFilters({ group: null, member: null, from:
                     <TableBody>
                         <TableRow v-for="row in downloads.data" :key="row.id">
                             <TableCell class="whitespace-normal">
-                                <!-- A plain link: the download route serves a file or redirects away, never an Inertia page. -->
-                                <a
-                                    v-if="row.documentHref"
-                                    :href="row.documentHref"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="text-rom-slate decoration-rom-slate/40 hover:text-rom-slate-700 underline underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current!"
-                                    >{{ row.filename }}</a
-                                >
+                                <!-- The Document's Folder, not its download: opening the file here would log this look. -->
+                                <TextLink v-if="row.libraryHref" :href="row.libraryHref">{{ row.filename }}</TextLink>
                                 <template v-else>
                                     {{ row.filename }}
                                     <span class="text-muted-foreground text-sm italic">({{ trans('document_downloads.deleted_document') }})</span>

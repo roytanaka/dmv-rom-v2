@@ -19,7 +19,7 @@ The filters work together. Select **Clear filters** to see every row again.
 
 ## Read a row
 
-- **File name** links to the Document. Opening it adds a row for you.
+- **File name** opens the folder that holds the Document.
 - A deleted Document keeps its name, marked **Deleted**, with no link.
 - **Deleted Member** or **Deleted Group** means that record is gone. The row stays.
 
@@ -27,4 +27,4 @@ The filters work together. Select **Clear filters** to see every row again.
 
 ## What next
 
-To see where a Document lives, read [Find a document in a Group's library](find-a-document-in-a-groups-library).
+To open the file from its folder, read [Find a document in a Group's library](find-a-document-in-a-groups-library).

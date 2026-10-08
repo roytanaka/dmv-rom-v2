@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Document;
 use App\Models\DocumentDownload;
 use App\Models\Group;
 use App\Models\Member;
@@ -42,7 +43,7 @@ class DocumentDownloadLogController extends Controller
         ];
 
         $downloads = DocumentDownload::query()
-            ->with(['member', 'group', 'document:id'])
+            ->with(['member', 'group', 'document:id,group_id,folder_id', 'document.group:id,slug'])
             ->when($filters['group'], fn (Builder $query, int $id) => $query->where('group_id', $id))
             ->when($filters['member'], fn (Builder $query, int $id) => $query->where('member_id', $id))
             ->when($filters['from'], fn (Builder $query, string $date) => $query->where('downloaded_at', '>=', OrgTime::toUtc($date)))
@@ -58,7 +59,7 @@ class DocumentDownloadLogController extends Controller
                 'memberName' => $download->member?->fullName(),
                 'groupName' => $download->group?->name,
                 'filename' => $download->original_filename,
-                'documentHref' => $download->document ? route('documents.download', $download->document, false) : null,
+                'libraryHref' => $download->document ? $this->libraryHref($download->document) : null,
             ]);
 
         return Inertia::render('DocumentDownloadLog', [
@@ -77,6 +78,17 @@ class DocumentDownloadLogController extends Controller
                 ->map(fn (Member $member) => ['value' => $member->id, 'label' => $member->fullName()]),
             'listHref' => route('officer.document-downloads', [], false),
         ]);
+    }
+
+    /**
+     * Where the Document lives in its Group's library: its Folder, or the library root. Not the
+     * download route, which would log the super-tier's own look at the file into this log.
+     */
+    private function libraryHref(Document $document): string
+    {
+        return $document->folder_id === null
+            ? route('groups.show', ['group' => $document->group, 'section' => 'documents'], false)
+            : route('groups.documents.folder', ['group' => $document->group, 'folder' => $document->folder_id], false);
     }
 
     /** A positive integer id from the query string, or null. */

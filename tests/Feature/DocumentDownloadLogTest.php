@@ -88,7 +88,7 @@ it('offers no write route', function () {
 
 // --- Rows -----------------------------------------------------------------------------
 
-it('lists rows newest first with when, Member, Group, filename and a Document link', function () {
+it('lists rows newest first with when, Member, Group, filename and a library link', function () {
     $group = Group::factory()->create(['has_documents' => true, 'name' => 'Visitor Wayfinders']);
     $reader = Member::factory()->create(['first_name' => 'Ada', 'last_name' => 'Lovelace']);
     $document = Document::factory()->create(['group_id' => $group->id, 'original_filename' => 'roster.pdf']);
@@ -107,8 +107,20 @@ it('lists rows newest first with when, Member, Group, filename and a Document li
                 'memberName' => 'Ada Lovelace',
                 'groupName' => 'Visitor Wayfinders',
                 'filename' => 'roster.pdf',
-                'documentHref' => route('documents.download', $document, false),
+                'libraryHref' => route('groups.show', ['group' => $group, 'section' => 'documents'], false),
             ]));
+});
+
+it('links a Document in a Folder to that Folder, not to the download', function () {
+    $document = Document::factory()->create();
+    $folder = $document->group->documentFolders()->create(['name' => 'Rosters']);
+    $document->update(['folder_id' => $folder->id]);
+    downloadLogRow(Member::factory()->create(), $document, '2026-09-01 12:00');
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/officer/document-downloads')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('downloads.data.0.libraryHref', route('groups.documents.folder', ['group' => $document->group, 'folder' => $folder], false)));
 });
 
 it('keeps a deleted Document row with its snapshotted filename and no link', function () {
@@ -121,7 +133,7 @@ it('keeps a deleted Document row with its snapshotted filename and no link', fun
         ->assertInertia(fn (Assert $page) => $page
             ->count('downloads.data', 1)
             ->where('downloads.data.0.filename', 'members-pii.xlsx')
-            ->where('downloads.data.0.documentHref', null));
+            ->where('downloads.data.0.libraryHref', null));
 });
 
 it('shows a null name for a deleted Member and a deleted Group', function () {
