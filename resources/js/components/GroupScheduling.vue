@@ -1207,7 +1207,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                                 </CardTitle>
                                 <p class="text-muted-foreground text-sm">{{ dateRange(schedule.starts_on, schedule.ends_on) }}</p>
                             </div>
-                            <div v-if="schedule.can.update || schedule.can.delete" class="flex shrink-0 flex-wrap gap-1">
+                            <div v-if="schedule.can.update || schedule.can.delete" class="flex max-w-full shrink-0 flex-wrap gap-1">
                                 <Button
                                     v-if="schedule.can.update"
                                     type="button"
