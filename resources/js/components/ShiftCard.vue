@@ -605,7 +605,6 @@ const formId = useId();
                                 <Textarea
                                     v-model="commentDraft"
                                     rows="3"
-                                    class="text-sm"
                                     :maxlength="COMMENT_MAX"
                                     :aria-describedby="`${formId}-comment-help ${formId}-comment-count`"
                                 />

@@ -59,7 +59,7 @@ const csvHref = computed(() => route('groups.hours.member.csv', { group: props.g
 
             <!-- Member picker — a plain select over the Members with hours in this group. -->
             <div class="flex flex-wrap items-center gap-2 print:hidden">
-                <label for="member-pick" class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                <label for="member-pick" class="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                     {{ trans('hours.detail.member.pick') }}
                 </label>
                 <NativeSelect id="member-pick" class="w-auto" :model-value="member?.id ?? ''" @update:model-value="pick">
