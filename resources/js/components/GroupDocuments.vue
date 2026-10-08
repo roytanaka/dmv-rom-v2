@@ -42,6 +42,7 @@ import DocumentSection from '@/components/DocumentSection.vue';
 import LinkDocumentDialog from '@/components/LinkDocumentDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { defaultUploadCategory } from '@/documents/uploadCategory';
 import { type GroupLibrary } from '@/types';
 import { router } from '@inertiajs/vue3';
 import { PhCheckCircle, PhFile, PhFolderPlus, PhLink, PhListBullets, PhUploadSimple, PhWarningCircle } from '@phosphor-icons/vue';
@@ -88,14 +89,14 @@ const dragging = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 let nextId = 0;
 
-// One Document category for the whole batch (#728, ADR-0030 §4). It starts at the active
-// Category filter when that is one of the open Folder's, else "No category", and again on
-// every Folder or filter change.
+// One Document category for the whole batch (#728, ADR-0030 §4), reset on every Folder or
+// filter change (defaultUploadCategory). Offered only when the open Folder has Document
+// categories; otherwise the batch goes up with none.
 const uploadCategory = ref<number | null>(null);
 watch(
     () => [props.library.category, folderId.value] as const,
     ([category]) => {
-        uploadCategory.value = props.library.categories.some((item) => item.id === category) ? category : null;
+        uploadCategory.value = defaultUploadCategory(props.library.categories, category);
     },
     { immediate: true },
 );

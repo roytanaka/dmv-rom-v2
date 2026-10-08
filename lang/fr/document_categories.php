@@ -24,6 +24,7 @@ return [
     'filter' => [
         'label' => 'Filtrer par catégorie',
         'all' => 'Toutes les catégories',
+        'unavailable' => 'Catégorie non disponible',
         'empty' => 'Rien dans cette catégorie.',
     ],
 
@@ -31,6 +32,7 @@ return [
     'none' => 'Aucune catégorie',
 
     'count' => [
+        'categories' => '{1} :count catégorie|[2,*] :count catégories',
         'folders' => '{1} :count dossier|[2,*] :count dossiers',
         'files' => '{0} :count fichier|{1} :count fichier|[2,*] :count fichiers',
     ],

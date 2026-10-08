@@ -36,7 +36,7 @@ class StoreDocumentFolderRequest extends FormRequest
     public function rules(): array
     {
         $group = $this->group();
-        $parentId = $this->filled('parent_id') ? $this->integer('parent_id') : null;
+        $parentId = $this->nullableId('parent_id');
 
         return [
             'name' => ['required', 'string', 'max:255', new UniqueFolderName($group->id, $parentId)],

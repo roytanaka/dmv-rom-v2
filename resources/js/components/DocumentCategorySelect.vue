@@ -2,7 +2,9 @@
 // The Category field of a Document library dialog (#724, spec #721, ADR-0030 §4): label,
 // select, error (Lean forms). The choices are one Folder's Document categories plus "No
 // category" (Other). The model is the Document category id, or null for none; the dialog sends
-// it as `category_id`, and the server refuses another Folder's Document category.
+// it as `category_id`, and the server refuses another Folder's Document category. A Folder with
+// no Document categories gets no field at all: "No category" alone is no choice, so the item
+// goes in with none.
 import InputError from '@/components/InputError.vue';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,7 +32,7 @@ const known = computed(() => model.value === null || props.categories.some((cate
 </script>
 
 <template>
-    <div class="grid gap-2">
+    <div v-if="categories.length" class="grid gap-2">
         <Label :for="id">{{ trans('document_categories.field.category') }}</Label>
         <Select :model-value="known ? value : NONE" @update:model-value="(picked) => (value = String(picked))">
             <SelectTrigger :id="id" class="w-full">

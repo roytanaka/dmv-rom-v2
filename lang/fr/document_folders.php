@@ -36,9 +36,6 @@ return [
     ],
     'readable_by' => 'Lisible par : :who',
 
-    // L'en-tête du dossier ouvert (#726) : ce qu'il contient.
-    'count_categories' => '{1} :count catégorie|[2,*] :count catégories',
-
     'top_level' => 'Premier niveau de la bibliothèque',
 
     'move_document' => 'Déplacer',

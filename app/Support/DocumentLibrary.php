@@ -78,14 +78,15 @@ class DocumentLibrary
             ->sortBy(fn (Document $document) => mb_strtolower($document->displayName()), SORT_NATURAL)
             ->values();
 
+        // The Document category lists, keyed by Folder id, 0 for the root: every Folder's for a
+        // manager's move dialog (#728), which picks from the destination's list; only the open
+        // Folder's for a reader.
+        $lists = self::categoryLists($canManage
+            ? $group->documentCategories()
+            : $group->documentCategories()->where('folder_id', $folder?->id));
+
         // The open Folder's own Document categories (#724, ADR-0030 §4), sorted by name.
-        $categories = $group->documentCategories()
-            ->where('folder_id', $folder?->id)
-            ->get(['id', 'name'])
-            ->sortBy(fn (DocumentCategory $category) => mb_strtolower($category->name), SORT_NATURAL)
-            ->map(fn (DocumentCategory $category) => ['id' => $category->id, 'name' => $category->name])
-            ->values()
-            ->all();
+        $categories = $lists[$folder?->id ?? 0] ?? [];
 
         $documentRow = fn (Document $document) => [
             'id' => $document->id,
@@ -109,10 +110,6 @@ class DocumentLibrary
             'uploadedAt' => $canManage ? $document->uploaded_at?->toIso8601String() : null,
             'href' => route('documents.download', $document, absolute: false),
         ];
-
-        // Every Document category list of the Group, for a manager's move dialog (#728): a move
-        // picks one from the destination's list. Keyed by Folder id, 0 for the root.
-        $lists = $canManage ? self::categoryLists($group) : collect();
 
         $sections = self::sections($categories, $folders->map($folderRow)->all(), $documents->map($documentRow)->all());
 
@@ -146,7 +143,7 @@ class DocumentLibrary
             'documentCount' => $documents->count(),
             'destinations' => $canManage ? self::destinations($tree->filter(fn (DocumentFolder $item) => $viewer->can('view', $item)), $lists) : [],
             // The library root's Document categories, for a move to the top level (#728).
-            'rootCategories' => $lists[0] ?? [],
+            'rootCategories' => $canManage ? $lists[0] ?? [] : [],
             // The depth limit, so the client offers only the Folder actions the server will accept.
             'maxDepth' => DocumentFolder::MAX_DEPTH,
         ];
@@ -260,14 +257,15 @@ class DocumentLibrary
     }
 
     /**
-     * Every Document category of the Group as one list per Folder (#728), keyed by Folder id
-     * (0 for the library root), each sorted by name. One query.
+     * The Document categories of `$query` as one list per Folder (#728), keyed by Folder id (0
+     * for the library root), each sorted by name. One query.
      *
+     * @param  HasMany<DocumentCategory, Group>  $query
      * @return Collection<int, list<array{id: int, name: string}>>
      */
-    private static function categoryLists(Group $group): Collection
+    private static function categoryLists(HasMany $query): Collection
     {
-        return $group->documentCategories()
+        return $query
             ->get(['id', 'folder_id', 'name'])
             ->sortBy(fn (DocumentCategory $category) => mb_strtolower($category->name), SORT_NATURAL)
             ->groupBy(fn (DocumentCategory $category) => $category->folder_id ?? 0)

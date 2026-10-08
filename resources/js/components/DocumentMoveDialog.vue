@@ -6,7 +6,8 @@
 //
 // A Document category belongs to one Folder, so a move files the item under one of the
 // destination's Document categories, or Other (#728, ADR-0030 §4). Picking another destination
-// resets the Category to "No category"; the server refuses another Folder's.
+// resets the Category to "No category"; the server refuses another Folder's. A destination with
+// no Document categories shows no Category field.
 import DocumentCategorySelect from '@/components/DocumentCategorySelect.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';

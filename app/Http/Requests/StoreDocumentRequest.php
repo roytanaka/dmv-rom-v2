@@ -41,7 +41,7 @@ class StoreDocumentRequest extends FormRequest
             'folder_id' => ['nullable', 'integer', $this->folderOfGroup($group->id)],
             // Its section in that Folder (#728, ADR-0030 §4): one of the Folder's (or the root's)
             // Document categories; null or absent files it under Other.
-            'category_id' => ['nullable', 'integer', $this->categoryOf($group->id, $this->filled('folder_id') ? $this->integer('folder_id') : null)],
+            'category_id' => ['nullable', 'integer', $this->categoryOf($group->id, $this->nullableId('folder_id'))],
         ];
     }
 

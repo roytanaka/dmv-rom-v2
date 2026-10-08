@@ -31,7 +31,7 @@ class StoreDocumentCategoryRequest extends FormRequest
     public function rules(): array
     {
         $group = $this->group();
-        $folderId = $this->filled('folder_id') ? $this->integer('folder_id') : null;
+        $folderId = $this->nullableId('folder_id');
 
         return [
             'name' => ['required', 'string', 'max:255', new UniqueCategoryName($group->id, $folderId)],

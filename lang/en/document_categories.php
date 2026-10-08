@@ -25,6 +25,7 @@ return [
     'filter' => [
         'label' => 'Filter by category',
         'all' => 'All categories',
+        'unavailable' => 'Unavailable category',
         'empty' => 'Nothing in this category.',
     ],
 
@@ -32,8 +33,9 @@ return [
     'other' => 'Other',
     'none' => 'No category',
 
-    // A section heading's count.
+    // What a section or the open Folder's header (#726) holds.
     'count' => [
+        'categories' => '{1} :count category|[2,*] :count categories',
         'folders' => '{1} :count folder|[2,*] :count folders',
         'files' => '{0} :count files|{1} :count file|[2,*] :count files',
     ],

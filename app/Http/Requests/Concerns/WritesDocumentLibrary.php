@@ -26,6 +26,15 @@ trait WritesDocumentLibrary
     }
 
     /**
+     * An optional id field as an int, or null when it is absent or empty (the library root
+     * for a Folder field).
+     */
+    protected function nullableId(string $key): ?int
+    {
+        return $this->filled($key) ? $this->integer($key) : null;
+    }
+
+    /**
      * A Folder id that must name one of the given Group's Folders.
      */
     protected function folderOfGroup(int $groupId): Exists

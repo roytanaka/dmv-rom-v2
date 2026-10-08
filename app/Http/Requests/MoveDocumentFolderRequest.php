@@ -38,7 +38,7 @@ class MoveDocumentFolderRequest extends FormRequest
             'parent_id' => ['present', 'nullable', 'integer', $this->folderOfGroup($groupId)],
             // Its section in the destination (#728, ADR-0030 §4): one of the new parent's (or the
             // root's) Document categories. Absent or null, the move files it under Other.
-            'category_id' => ['nullable', 'integer', $this->categoryOf($groupId, $this->filled('parent_id') ? $this->integer('parent_id') : null)],
+            'category_id' => ['nullable', 'integer', $this->categoryOf($groupId, $this->nullableId('parent_id'))],
         ];
     }
 
@@ -57,9 +57,8 @@ class MoveDocumentFolderRequest extends FormRequest
                 }
 
                 $folder = $this->folder();
-                $target = $this->filled('parent_id')
-                    ? DocumentFolder::query()->findOrFail($this->integer('parent_id'))
-                    : null;
+                $targetId = $this->nullableId('parent_id');
+                $target = $targetId !== null ? DocumentFolder::query()->findOrFail($targetId) : null;
 
                 if ($target !== null && ($target->is($folder) || in_array($target->id, $folder->descendantIds(), true))) {
                     $validator->errors()->add('parent_id', trans('document_folders.error.into_itself'));

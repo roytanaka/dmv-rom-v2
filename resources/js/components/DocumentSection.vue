@@ -11,11 +11,12 @@
 // (ADR-0004).
 import DocumentActions from '@/components/DocumentActions.vue';
 import DocumentFolderActions from '@/components/DocumentFolderActions.vue';
+import { describeCounts } from '@/documents/counts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { type FolderDestination, type LibraryCategory, type LibrarySection, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { PhFolder, PhLink, PhStack } from '@phosphor-icons/vue';
-import { trans, transChoice } from 'laravel-vue-i18n';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -52,20 +53,7 @@ function formatSize(bytes: number | null): string {
 }
 
 const name = computed(() => props.section.category?.name ?? trans('document_categories.other'));
-// "2 folders · 3 files": the Folders part only when there are some; the files part otherwise
-// always, so an empty section reads "0 files".
-const count = computed(() =>
-    [
-        props.section.folderCount > 0
-            ? transChoice('document_categories.count.folders', props.section.folderCount, { count: String(props.section.folderCount) })
-            : null,
-        props.section.documentCount > 0 || props.section.folderCount === 0
-            ? transChoice('document_categories.count.files', props.section.documentCount, { count: String(props.section.documentCount) })
-            : null,
-    ]
-        .filter(Boolean)
-        .join(' · '),
-);
+const count = computed(() => describeCounts({ folders: props.section.folderCount, files: props.section.documentCount }));
 const isEmpty = computed(() => props.section.folderCount + props.section.documentCount === 0);
 const headingId = computed(() => `document-section-${props.section.category?.id ?? 'other'}`);
 </script>

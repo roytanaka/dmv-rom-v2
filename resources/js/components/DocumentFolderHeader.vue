@@ -3,28 +3,15 @@
 // open-folder icon, the Folder name and what it holds ("7 categories · 13 folders", "4 files"),
 // then who can read it (#715). The counts cover the whole Folder, not a filtered section, so the
 // header stays put while the Category filter changes. The name is content, shown as written.
+import { describeCounts } from '@/documents/counts';
 import { type LibraryFolder } from '@/types';
 import { PhFolderOpen } from '@phosphor-icons/vue';
-import { trans, transChoice } from 'laravel-vue-i18n';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
 const props = defineProps<{ folder: LibraryFolder; categoryCount: number; folderCount: number; documentCount: number }>();
 
-// Each part only when there is some; files also when the Folder holds nothing, so an empty
-// Folder reads "0 files".
-const holds = computed(() =>
-    [
-        props.categoryCount > 0
-            ? transChoice('document_folders.count_categories', props.categoryCount, { count: String(props.categoryCount) })
-            : null,
-        props.folderCount > 0 ? transChoice('document_categories.count.folders', props.folderCount, { count: String(props.folderCount) }) : null,
-        props.documentCount > 0 || props.categoryCount + props.folderCount === 0
-            ? transChoice('document_categories.count.files', props.documentCount, { count: String(props.documentCount) })
-            : null,
-    ]
-        .filter(Boolean)
-        .join(' · '),
-);
+const holds = computed(() => describeCounts({ categories: props.categoryCount, folders: props.folderCount, files: props.documentCount }));
 </script>
 
 <template>

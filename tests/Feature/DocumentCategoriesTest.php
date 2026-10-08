@@ -243,6 +243,34 @@ it('never lets a Document category change who reads a Folder or Document', funct
     $this->actingAs($outsider)->get(route('documents.download', $rootDocument))->assertForbidden();
 });
 
+it('never counts a Document category as a Folder level', function () {
+    $group = categoryLibrary();
+    $librarian = categoryReader($group, Role::Librarian);
+
+    // Four nested Folders, each filed under one of its parent's (or the root's) Document categories.
+    $parent = null;
+    foreach (range(1, 4) as $level) {
+        $category = $parent === null
+            ? DocumentCategory::factory()->create(['group_id' => $group->id])
+            : DocumentCategory::factory()->in($parent)->create();
+        $parent = DocumentFolder::factory()->create(['group_id' => $group->id, 'parent_id' => $parent?->id, 'category_id' => $category->id]);
+    }
+
+    $fifthCategory = DocumentCategory::factory()->in($parent)->create();
+    $this->actingAs($librarian)
+        ->post(route('document-folders.store', $group), ['name' => 'Fifth', 'parent_id' => $parent->id, 'category_id' => $fifthCategory->id])
+        ->assertSessionHasNoErrors();
+
+    $fifth = DocumentFolder::where('name', 'Fifth')->sole();
+    $sixthCategory = DocumentCategory::factory()->in($fifth)->create();
+    $this->actingAs($librarian)
+        ->post(route('document-folders.store', $group), ['name' => 'Sixth', 'parent_id' => $fifth->id, 'category_id' => $sixthCategory->id])
+        ->assertSessionHasErrors(['parent_id' => 'Folders can be at most 5 levels deep.']);
+
+    expect(DocumentFolder::where('name', 'Sixth')->exists())->toBeFalse()
+        ->and(DocumentFolder::MAX_DEPTH)->toBe(5);
+});
+
 // --- Filter (#725) --------------------------------------------------------------
 
 it('filters the root to one Document category with ?category=', function () {

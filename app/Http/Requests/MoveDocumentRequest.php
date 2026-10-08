@@ -34,7 +34,7 @@ class MoveDocumentRequest extends FormRequest
             'folder_id' => ['present', 'nullable', 'integer', $this->folderOfGroup($groupId)],
             // Its section in the destination (#728, ADR-0030 §4): one of the new Folder's (or the
             // root's) Document categories. Absent or null, the move files it under Other.
-            'category_id' => ['nullable', 'integer', $this->categoryOf($groupId, $this->filled('folder_id') ? $this->integer('folder_id') : null)],
+            'category_id' => ['nullable', 'integer', $this->categoryOf($groupId, $this->nullableId('folder_id'))],
         ];
     }
 
