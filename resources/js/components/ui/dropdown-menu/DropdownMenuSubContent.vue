@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// Customised (#748): the submenu caps at the space radix measures on its open side and scrolls.
+// A caller's max-h-* replaces this cap, so a caller that wants a shorter menu writes
+// max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height))], not max-h-80.
 import { cn } from '@/lib/utils';
 import { DropdownMenuSubContent, useForwardPropsEmits, type DropdownMenuSubContentEmits, type DropdownMenuSubContentProps } from 'radix-vue';
 import { computed, type HTMLAttributes } from 'vue';

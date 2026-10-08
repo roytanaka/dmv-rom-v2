@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Customised (#748): the list caps at 24rem or the space radix measures on its open side,
+// whichever is smaller, so it stays on a short screen.
 import type { SelectContentEmits, SelectContentProps } from 'radix-vue'
 import type { HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
