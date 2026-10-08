@@ -48,7 +48,8 @@ to step 1 or step 2.
 
 1. `create_draft` with `subject`, `htmlBody`, and a plain-text `body`. Leave the recipients
    empty: the user adds them.
-2. `label_thread` with the draft's `threadId` and the label ID.
+2. `label_thread` with the draft's `threadId` and the label ID. `update_draft` returns a
+   new `threadId`: label it again after every edit.
 
 Done when the draft exists with the label. Report the `viewUrl` and list any spec item you
 left out on purpose.
