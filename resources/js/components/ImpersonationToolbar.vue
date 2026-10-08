@@ -55,7 +55,7 @@ const stop = () => {
                     <PhDetective v-else class="h-5 w-5" />
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" :side-offset="8" class="max-h-96 w-72 overflow-y-auto">
+            <DropdownMenuContent align="center" :side-offset="8" class="max-h-[min(24rem,var(--radix-dropdown-menu-content-available-height))] w-72">
                 <!-- Each section collapses so the list stays short; Super-tier opens by default. -->
                 <details
                     v-for="group in impersonation.personas"
