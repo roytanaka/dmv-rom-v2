@@ -68,6 +68,7 @@ return [
         'reports' => 'Reports',
         'flash_messages' => 'Flash Messages',
         'dmv_settings' => 'DMV Settings',
+        'document_downloads' => 'Download log',
         'mail_status' => 'Mail status',
         'help_status' => 'Help status',
     ],
