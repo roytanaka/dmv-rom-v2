@@ -309,9 +309,11 @@ const groupPicked = computed(() => groupFilter.value !== '');
                                     ><span class="sr-only">{{ trans('directory.column.name') }}</span></TableHead
                                 >
                                 <TableHead>{{ trans('directory.column.name') }}</TableHead>
-                                <TableHead v-if="groupPicked">{{ trans('directory.column.role') }}</TableHead>
-                                <TableHead>{{ trans(groupPicked ? 'directory.column.other_groups' : 'directory.column.groups') }}</TableHead>
-                                <TableHead>{{ trans('directory.column.standing') }}</TableHead>
+                                <TableHead v-if="groupPicked" class="hidden md:table-cell">{{ trans('directory.column.role') }}</TableHead>
+                                <TableHead class="hidden md:table-cell">{{
+                                    trans(groupPicked ? 'directory.column.other_groups' : 'directory.column.groups')
+                                }}</TableHead>
+                                <TableHead class="hidden md:table-cell">{{ trans('directory.column.standing') }}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -327,12 +329,20 @@ const groupPicked = computed(() => groupFilter.value !== '');
                                         <AvatarFallback>{{ initials(member) }}</AvatarFallback>
                                     </Avatar>
                                 </TableCell>
-                                <TableCell class="font-medium">
-                                    <TextLink :href="route('members.show', { member: member.id })">{{ displayName(member) }}</TextLink>
+                                <TableCell class="whitespace-normal">
+                                    <TextLink class="font-medium" :href="route('members.show', { member: member.id })">{{
+                                        displayName(member)
+                                    }}</TextLink>
+                                    <!-- On a phone the other columns hide; their facts ride under the name. -->
+                                    <div class="mt-1 flex flex-col gap-1 md:hidden">
+                                        <span v-if="groupPicked && roleNames(member)" class="text-sm">{{ roleNames(member) }}</span>
+                                        <span v-if="groupNames(member)" class="text-muted-foreground text-sm">{{ groupNames(member) }}</span>
+                                        <StandingBadge :standing="member.standing" class="self-start" />
+                                    </div>
                                 </TableCell>
-                                <TableCell v-if="groupPicked">{{ roleNames(member) }}</TableCell>
-                                <TableCell class="text-muted-foreground">{{ groupNames(member) }}</TableCell>
-                                <TableCell><StandingBadge :standing="member.standing" /></TableCell>
+                                <TableCell v-if="groupPicked" class="hidden md:table-cell">{{ roleNames(member) }}</TableCell>
+                                <TableCell class="text-muted-foreground hidden md:table-cell">{{ groupNames(member) }}</TableCell>
+                                <TableCell class="hidden md:table-cell"><StandingBadge :standing="member.standing" /></TableCell>
                             </TableRow>
 
                             <!-- No-matches row: an empty result reads as a filter state, with a

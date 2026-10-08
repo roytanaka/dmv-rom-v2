@@ -234,7 +234,7 @@ export interface RosterMember {
     group_roles: string[];
     group_standing: string;
     email?: string;
-    phone?: string;
+    phone?: string | null;
     // Officer roster CRUD targeting (#192) — the membership id, its leave window, and
     // whether it may be hard-removed (no dependent records). Inert for a non-officer.
     membership_id: number;
