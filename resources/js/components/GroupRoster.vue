@@ -397,7 +397,7 @@ const hardRemove = (member: RosterMember) => {
                         </NativeSelect>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid gap-3 sm:grid-cols-2">
                         <div class="grid gap-2">
                             <Label for="edit-loa-start">{{ trans('group.roster.field.loa_start') }}</Label>
                             <Input id="edit-loa-start" v-model="editForm.loa_start" type="date" />
