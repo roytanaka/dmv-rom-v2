@@ -532,6 +532,7 @@ return [
                 ['name' => 'Special Exhibition', 'visibility' => 'group', 'items' => [
                     ['name' => 'Pompeii: In the Shadow of the Volcano', 'items' => ['Pompeii Presentation.pdf']],
                 ]],
+                ['name' => 'Special Events', 'visibility' => 'group', 'items' => ['Special Events Briefing.pdf']],
             ],
         ],
     ],
