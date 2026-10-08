@@ -45,6 +45,9 @@ return [
     ],
 
     // Top-bar utility — the Help menu in the right cluster (#194, #675).
+    // The collapsed top-bar menu's name when none of its links is active (#741).
+    'menu' => 'Menu',
+
     'help' => 'Help',
     'help_menu' => [
         'page' => 'Help for this page',

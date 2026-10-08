@@ -42,6 +42,9 @@ return [
     ],
 
     // Utilitaire de la barre supérieure — le menu Aide (#194, #675).
+    // Le nom du menu replié de la barre supérieure quand aucun lien n'est actif (#741).
+    'menu' => 'Menu',
+
     'help' => 'Aide',
     'help_menu' => [
         'page' => 'Aide pour cette page',

@@ -9,3 +9,13 @@ export const activeSectionHref = (hrefs: string[], url: string): string | null =
         .filter((href) => path === href || path.startsWith(`${href}/`))
         .reduce<string | null>((best, href) => (best === null || href.length > best.length ? href : best), null);
 };
+
+// The item whose href the page sits under, by the same rule (#741: the top bar's four links).
+export const activeDestination = <T extends { href: string }>(items: T[], url: string): T | null => {
+    const href = activeSectionHref(
+        items.map((item) => item.href),
+        url,
+    );
+
+    return items.find((item) => item.href === href) ?? null;
+};
