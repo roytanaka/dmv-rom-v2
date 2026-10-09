@@ -46,7 +46,7 @@ Dans la visionneuse, sélectionnez **Précédent** ou **Suivant**, ou appuyez su
 
 Un PDF s'ouvre dans un nouvel onglet. Tout autre fichier se télécharge.
 
-Un lien affiche une icône de lien dans la colonne **Type**. Un fichier affiche son type et sa taille.
+Chaque élément affiche une icône de son type devant son nom. Un fichier affiche son type et sa taille dans la colonne **Type**. Un lien affiche **Lien**.
 
 ## Afficher une seule catégorie
 

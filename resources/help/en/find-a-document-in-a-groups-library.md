@@ -46,7 +46,7 @@ In the viewer, select **Previous** or **Next**, or press the Left or Right arrow
 
 A PDF opens in a new tab. Any other file downloads.
 
-A link shows a link icon in the **Type** column. A file shows its type and size.
+Each item shows an icon for its type before its name. A file shows its type and size in the **Type** column. A link shows **Link**.
 
 ## Show one category
 
