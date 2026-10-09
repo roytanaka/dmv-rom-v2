@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\DocumentKind;
 use App\Models\Document;
 use App\Policies\DocumentPolicy;
-use App\Rules\FeedbackScreenshotImage;
+use App\Support\FileResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -49,12 +49,13 @@ class DownloadDocumentController extends Controller
         // (#779); anything else downloads, and so does any file asked for with `?download=1`
         // (the viewer's Download button). Only those types go inline: an uploaded HTML or SVG
         // file shown inline could run script on this origin.
-        $headers = ['Content-Type' => $document->mime_type, 'X-Content-Type-Options' => 'nosniff'];
-        $inline = ! $request->boolean('download')
-            && in_array($document->mime_type, ['application/pdf', ...FeedbackScreenshotImage::ALLOWED_MIMES], true);
-        $disposition = $inline ? 'inline' : 'attachment';
-
-        return $disk->response($document->storage_path, $document->original_filename, $headers, $disposition);
+        return FileResponse::make(
+            $document->storage_path,
+            $document->original_filename,
+            $document->mime_type,
+            ['application/pdf', ...FileResponse::INLINE_IMAGE_MIMES],
+            $request->boolean('download'),
+        );
     }
 
     /**

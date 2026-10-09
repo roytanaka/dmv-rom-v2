@@ -45,24 +45,19 @@ class FeedbackScreenshotStorage
     /**
      * Serve one stored image. Inline for the page and the image viewer (#776), or as an
      * attachment with its original filename when `$download` is set. Only a PNG, JPEG,
-     * WebP, or GIF goes inline: any other type always downloads, because an SVG or HTML
-     * file shown inline could run script on this origin. Every response sends `nosniff`,
-     * so the browser never second-guesses the stored type. The caller has already checked
-     * the policy.
+     * WebP, or GIF goes inline, with `nosniff` ({@see FileResponse}). The caller has
+     * already checked the policy.
      */
     public function response(FeedbackScreenshot|FeedbackCommentImage $image, bool $download): StreamedResponse
     {
-        $disk = Storage::disk('local');
+        abort_unless(Storage::disk('local')->exists($image->storage_path), 404);
 
-        abort_unless($disk->exists($image->storage_path), 404);
-
-        $inline = ! $download && in_array($image->mime_type, FeedbackScreenshotImage::ALLOWED_MIMES, true);
-
-        return $disk->response(
+        return FileResponse::make(
             $image->storage_path,
             $image->original_filename,
-            ['Content-Type' => $image->mime_type, 'X-Content-Type-Options' => 'nosniff'],
-            $inline ? 'inline' : 'attachment',
+            $image->mime_type,
+            FileResponse::INLINE_IMAGE_MIMES,
+            $download,
         );
     }
 }

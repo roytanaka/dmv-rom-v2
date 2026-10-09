@@ -79,8 +79,6 @@ return [
         'list' => 'Screenshots to send',
         'remove' => 'Remove :name',
         'pasted' => 'Pasted image',
-        'size_kb' => ':size KB',
-        'size_mb' => ':size MB',
         'error_type' => ':name was not added. Use a PNG, JPEG, WebP, or GIF image.',
         'error_size' => ':name was not added. It is larger than 5 MB.',
         'error_limit' => ':name was not added. You can add up to :max screenshots.',

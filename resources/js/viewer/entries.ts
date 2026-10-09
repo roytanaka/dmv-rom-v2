@@ -33,7 +33,8 @@ export interface ViewerLinkEntry {
 export type ViewerEntry = ViewerFileEntry | ViewerLinkEntry;
 
 // The image types every browser displays. Never an SVG, which can run script on this
-// origin. The server keeps the same list (App\Rules\FeedbackScreenshotImage::ALLOWED_MIMES).
+// origin. The server keeps the same list (App\Support\FileResponse::INLINE_IMAGE_MIMES). A
+// Feedback screenshot or comment image may be only one of these.
 export const VIEWABLE_IMAGE_TYPES: readonly string[] = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
 export function isViewableImage(mimeType: string): boolean {

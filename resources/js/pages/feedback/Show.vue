@@ -25,7 +25,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatFeedbackDate, screenshotSize, STATUS_TONES, type FeedbackOption } from '@/feedback/display';
+import { formatFileSize } from '@/documents/fileSize';
+import { formatFeedbackDate, STATUS_TONES, type FeedbackOption } from '@/feedback/display';
 import { fileErrorMessages } from '@/feedback/screenshots';
 import { rememberedName, rememberName } from '@/feedback/testerName';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -230,7 +231,7 @@ function deleteComment(): void {
                                 class="text-rom-slate decoration-rom-slate/40 group-hover:text-rom-slate-700 text-sm break-all underline underline-offset-4"
                                 >{{ screenshot.filename }}</span
                             >
-                            <span class="text-muted-foreground text-sm">{{ screenshotSize(screenshot.sizeBytes) }}</span>
+                            <span class="text-muted-foreground text-sm">{{ formatFileSize(screenshot.sizeBytes, page.props.locale) }}</span>
                         </button>
                     </li>
                 </ul>

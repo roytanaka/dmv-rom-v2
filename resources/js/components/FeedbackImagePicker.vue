@@ -9,8 +9,11 @@
 // Setting the model to an empty list clears the control.
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { screenshotSize } from '@/feedback/display';
-import { addScreenshots, MAX_SCREENSHOTS, SCREENSHOT_TYPES, type ScreenshotError } from '@/feedback/screenshots';
+import { formatFileSize } from '@/documents/fileSize';
+import { addScreenshots, MAX_SCREENSHOTS, type ScreenshotError } from '@/feedback/screenshots';
+import type { SharedData } from '@/types';
+import { VIEWABLE_IMAGE_TYPES } from '@/viewer/entries';
+import { usePage } from '@inertiajs/vue3';
 import { PhUploadSimple, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { onBeforeUnmount, ref, watch } from 'vue';
@@ -27,6 +30,7 @@ const props = defineProps<{
 }>();
 
 const files = defineModel<File[]>({ required: true });
+const page = usePage<SharedData>();
 
 // Each image with the preview URL its thumbnail shows. The URL is revoked when the image
 // leaves the list.
@@ -151,7 +155,7 @@ defineExpose({ onPaste, onFormDragOver, onFormDrop });
                 class="sr-only"
                 tabindex="-1"
                 multiple
-                :accept="SCREENSHOT_TYPES.join(',')"
+                :accept="VIEWABLE_IMAGE_TYPES.join(',')"
                 @change="onPick"
             />
         </div>
@@ -171,7 +175,7 @@ defineExpose({ onPaste, onFormDragOver, onFormDrop });
                     </Button>
                 </div>
                 <span class="truncate text-sm">{{ shotName(shot.file) }}</span>
-                <span class="text-muted-foreground text-sm">{{ screenshotSize(shot.file.size) }}</span>
+                <span class="text-muted-foreground text-sm">{{ formatFileSize(shot.file.size, page.props.locale) }}</span>
             </li>
         </ul>
         <ul v-if="fileErrors.length || serverErrors.length" role="alert" class="text-destructive flex flex-col gap-1 text-sm">

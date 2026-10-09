@@ -117,14 +117,7 @@ class FeedbackController extends Controller implements HasMiddleware
             'screenshots' => $feedbackItem->screenshots()
                 ->orderBy('id')
                 ->get()
-                ->map(fn (FeedbackScreenshot $screenshot) => [
-                    'id' => $screenshot->id,
-                    'filename' => $screenshot->original_filename,
-                    'sizeBytes' => $screenshot->size_bytes,
-                    'mimeType' => $screenshot->mime_type,
-                    'href' => route('feedback.screenshots.download', $screenshot, false),
-                    'downloadHref' => route('feedback.screenshots.download', [$screenshot, 'download' => 1], false),
-                ]),
+                ->map(fn (FeedbackScreenshot $screenshot) => $this->image($screenshot, 'feedback.screenshots.download')),
             'comments' => $feedbackItem->comments()
                 ->with(['images' => fn ($query) => $query->orderBy('id')])
                 ->oldest()
@@ -135,14 +128,7 @@ class FeedbackController extends Controller implements HasMiddleware
                     'testerName' => $comment->tester_name,
                     'body' => $comment->body,
                     'createdAt' => $comment->created_at->toIso8601String(),
-                    'images' => $comment->images->map(fn (FeedbackCommentImage $image) => [
-                        'id' => $image->id,
-                        'filename' => $image->original_filename,
-                        'sizeBytes' => $image->size_bytes,
-                        'mimeType' => $image->mime_type,
-                        'href' => route('feedback.comment-images.download', $image, false),
-                        'downloadHref' => route('feedback.comment-images.download', [$image, 'download' => 1], false),
-                    ]),
+                    'images' => $comment->images->map(fn (FeedbackCommentImage $image) => $this->image($image, 'feedback.comment-images.download')),
                     'deleteHref' => route('feedback.comments.destroy', [$feedbackItem, $comment], false),
                 ]),
             'listHref' => route('feedback', [], false),
@@ -197,6 +183,24 @@ class FeedbackController extends Controller implements HasMiddleware
         });
 
         return back();
+    }
+
+    /**
+     * One image on the item page, a screenshot or a comment's image: `href` loads it inline,
+     * `downloadHref` saves it, both through `$route`, its policy-checked download route.
+     *
+     * @return array<string, mixed>
+     */
+    private function image(FeedbackScreenshot|FeedbackCommentImage $image, string $route): array
+    {
+        return [
+            'id' => $image->id,
+            'filename' => $image->original_filename,
+            'sizeBytes' => $image->size_bytes,
+            'mimeType' => $image->mime_type,
+            'href' => route($route, $image, false),
+            'downloadHref' => route($route, [$image, 'download' => 1], false),
+        ];
     }
 
     /**

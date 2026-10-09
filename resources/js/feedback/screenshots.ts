@@ -1,11 +1,12 @@
 // The send dialog's screenshot list (#678, ADR-0029 §9). An upload, a drop, and a paste all
 // add through `addScreenshots`, which refuses a file before sending for the same reasons
 // the server does (`FeedbackScreenshotImage`, `StoreFeedbackItemRequest`). Errors are lang
-// keys plus the file's name, so this module has no i18n dependency.
+// keys plus the file's name, so this module has no i18n dependency. A screenshot may be
+// only an image type the viewer shows inline (`VIEWABLE_IMAGE_TYPES`), as on the server.
+import { VIEWABLE_IMAGE_TYPES } from '../viewer/entries.ts';
 
 export const MAX_SCREENSHOTS = 3;
 export const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
-export const SCREENSHOT_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
 export interface ScreenshotError {
     key: string;
@@ -26,7 +27,7 @@ export function addScreenshots(
     for (const file of incoming) {
         const name = file.name || fallbackName;
 
-        if (!SCREENSHOT_TYPES.includes(file.type)) {
+        if (!VIEWABLE_IMAGE_TYPES.includes(file.type)) {
             errors.push({ key: 'feedback.screenshots.error_type', name });
         } else if (file.size > MAX_SCREENSHOT_BYTES) {
             errors.push({ key: 'feedback.screenshots.error_size', name });
@@ -46,13 +47,4 @@ export function fileErrorMessages(errors: Record<string, string>, field: string)
     return Object.entries(errors)
         .filter(([key]) => key === field || key.startsWith(`${field}.`))
         .map(([, message]) => message);
-}
-
-// A file size as a lang key and number: whole KB below 1 MB, one decimal in MB from 1 MB.
-export function sizeLabel(bytes: number): { key: string; size: string } {
-    if (bytes >= 1024 * 1024) {
-        return { key: 'feedback.screenshots.size_mb', size: (bytes / (1024 * 1024)).toFixed(1) };
-    }
-
-    return { key: 'feedback.screenshots.size_kb', size: String(Math.max(1, Math.round(bytes / 1024))) };
 }
