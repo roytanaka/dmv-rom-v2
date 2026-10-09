@@ -58,7 +58,8 @@ class OrgTime
      * Today's date on the organization's wall clock, as midnight in the storage zone — the
      * same shape a `date` cast loads, so it compares day-for-day with columns like a
      * Schedule's `starts_on` / `ends_on` (#782). Midnight in the org zone would be 04:00 or
-     * 05:00 UTC, and would put a date column's own day before "today".
+     * 05:00 UTC, and would put a date column's own day before "today". To compare against
+     * an instant (a Shift's `starts_at`), use `now()->startOfDay()` instead.
      */
     public static function today(): CarbonImmutable
     {
