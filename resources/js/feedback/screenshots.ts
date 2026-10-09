@@ -12,7 +12,14 @@ export interface ScreenshotError {
     name: string;
 }
 
-export function addScreenshots(current: File[], incoming: File[], fallbackName: string): { files: File[]; errors: ScreenshotError[] } {
+// `limitKey` names the error for a file past the limit: the send dialog says "screenshots",
+// a comment's form says "images".
+export function addScreenshots(
+    current: File[],
+    incoming: File[],
+    fallbackName: string,
+    limitKey = 'feedback.screenshots.error_limit',
+): { files: File[]; errors: ScreenshotError[] } {
     const files = [...current];
     const errors: ScreenshotError[] = [];
 
@@ -24,7 +31,7 @@ export function addScreenshots(current: File[], incoming: File[], fallbackName: 
         } else if (file.size > MAX_SCREENSHOT_BYTES) {
             errors.push({ key: 'feedback.screenshots.error_size', name });
         } else if (files.length >= MAX_SCREENSHOTS) {
-            errors.push({ key: 'feedback.screenshots.error_limit', name });
+            errors.push({ key: limitKey, name });
         } else {
             files.push(file);
         }

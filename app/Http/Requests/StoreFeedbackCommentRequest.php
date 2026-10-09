@@ -43,7 +43,7 @@ class StoreFeedbackCommentRequest extends FormRequest
     {
         return [
             'body.required_without' => __('feedback.comments.error_empty'),
-            'images.max' => __('feedback.screenshots.error_count', ['max' => StoreFeedbackItemRequest::MAX_SCREENSHOTS]),
+            'images.max' => __('feedback.comments.error_count', ['max' => StoreFeedbackItemRequest::MAX_SCREENSHOTS]),
         ];
     }
 }

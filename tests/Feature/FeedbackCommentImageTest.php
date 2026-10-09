@@ -103,7 +103,7 @@ it('rejects a fourth image', function () {
                 UploadedFile::fake()->image('4.png'),
             ],
         ])
-        ->assertSessionHasErrors(['images' => 'You can add up to 3 screenshots.']);
+        ->assertSessionHasErrors(['images' => 'You can add up to 3 images.']);
 
     expect(FeedbackComment::count())->toBe(0)
         ->and(Storage::disk('local')->allFiles())->toBe([]);
@@ -152,7 +152,7 @@ it('rejects a comment in French for a French page', function () {
                 UploadedFile::fake()->create('notes.pdf', 10, 'application/pdf'),
             ],
         ])->assertSessionHasErrors([
-            'images' => 'Vous pouvez ajouter jusqu’à 3 captures d’écran.',
+            'images' => 'Vous pouvez ajouter jusqu’à 3 images.',
             'images.3' => 'notes.pdf n’a pas été ajouté. Utilisez une image PNG, JPEG, WebP ou GIF.',
         ]);
 

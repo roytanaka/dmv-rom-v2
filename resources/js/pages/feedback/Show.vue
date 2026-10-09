@@ -362,6 +362,7 @@ function deleteComment(): void {
                         input-id="comment-images"
                         :label="trans('feedback.comments.images')"
                         :list-label="trans('feedback.comments.images_list')"
+                        limit-error-key="feedback.comments.error_limit"
                         :server-errors="serverImageErrors"
                     />
                     <div>

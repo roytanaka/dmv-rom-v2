@@ -97,6 +97,8 @@ return [
         'error_empty' => 'Add a comment, an image, or both.',
         'images' => 'Images',
         'images_list' => 'Images to add',
+        'error_limit' => ':name was not added. You can add up to :max images.',
+        'error_count' => 'You can add up to :max images.',
         'delete' => 'Delete',
         'delete_label' => 'Delete the comment by :name',
         'delete_title' => 'Delete this comment?',

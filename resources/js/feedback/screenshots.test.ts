@@ -63,6 +63,17 @@ test('refuses every image past the third', () => {
     ]);
 });
 
+test('refuses an image past the third with the limit key it is given', () => {
+    const result = addScreenshots(
+        [image('1.png'), image('2.png'), image('3.png')],
+        [image('4.png')],
+        'Pasted image',
+        'feedback.comments.error_limit',
+    );
+
+    assert.deepEqual(result.errors, [{ key: 'feedback.comments.error_limit', name: '4.png' }]);
+});
+
 test('names a file with no name by the fallback', () => {
     const result = addScreenshots([], [image('', 'text/plain')], 'Pasted image');
 

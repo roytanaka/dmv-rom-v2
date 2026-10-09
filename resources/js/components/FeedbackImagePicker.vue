@@ -15,13 +15,15 @@ import { PhUploadSimple, PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { onBeforeUnmount, ref, watch } from 'vue';
 
-defineProps<{
+const props = defineProps<{
     inputId: string;
     label: string;
     // The accessible name of the list of chosen images.
     listLabel: string;
     // The server's errors for these files, already in the page's language.
     serverErrors: string[];
+    // The lang key for a file past the limit; the send dialog's "screenshots" wording by default.
+    limitErrorKey?: string;
 }>();
 
 const files = defineModel<File[]>({ required: true });
@@ -41,7 +43,7 @@ function sync(): void {
 
 function addFiles(incoming: File[]): void {
     const current = shots.value.map((shot) => shot.file);
-    const result = addScreenshots(current, incoming, trans('feedback.screenshots.pasted'));
+    const result = addScreenshots(current, incoming, trans('feedback.screenshots.pasted'), props.limitErrorKey);
 
     shots.value = [...shots.value, ...result.files.slice(current.length).map((file) => ({ file, url: URL.createObjectURL(file) }))];
     fileErrors.value = result.errors;

@@ -91,6 +91,8 @@ return [
         'error_empty' => 'Ajoutez un commentaire, une image ou les deux.',
         'images' => 'Images',
         'images_list' => 'Images à ajouter',
+        'error_limit' => ':name n’a pas été ajouté. Vous pouvez ajouter jusqu’à :max images.',
+        'error_count' => 'Vous pouvez ajouter jusqu’à :max images.',
         'delete' => 'Supprimer',
         'delete_label' => 'Supprimer le commentaire de :name',
         'delete_title' => 'Supprimer ce commentaire?',
