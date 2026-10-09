@@ -26,8 +26,9 @@ return [
         'name' => 'Name',
         'message' => 'Message',
         'date' => 'Date',
-        'comments' => 'Comments',
+        'comments_and_attachments' => 'Comments and attachments',
         'comments_count' => ':count comment|:count comments',
+        'attachments_count' => ':count attachment|:count attachments',
     ],
 
     // The Feedback page filters (#679, §13).

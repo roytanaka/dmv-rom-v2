@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // The Feedback page (#676, ADR-0029 §13): every Feedback item, newest first, from every
-// Tester. Each row links to the item's page (#677). A muted `#N` leads each row and a
-// chat icon shows the comment count (#701). Testers filter by type and by status
+// Tester. Each row links to the item's page (#677). A muted `#N` leads each row, a
+// chat icon shows the comment count (#701), and a paperclip the count of the item's images,
+// its screenshots and its comments' images (#780). That last column's heading is screen-reader only. Testers filter by type and by status
 // (#679), or by Open or Closed status; the filters are query parameters, so a filtered list has a URL. The index
 // opens on the filters chosen last, kept in the browser (#775); with none kept, on Open. Outside
 // production only. Type and status labels are chrome (the lang keys come from the enums);
@@ -17,7 +18,7 @@ import { openingFilters, rememberFilters, type FeedbackFilters } from '@/feedbac
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { PhChatCircle } from '@phosphor-icons/vue';
+import { PhChatCircle, PhPaperclip } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, onMounted } from 'vue';
 
@@ -29,6 +30,7 @@ interface FeedbackRow {
     testerName: string;
     excerpt: string;
     commentsCount: number;
+    attachmentsCount: number;
     createdAt: string;
     href: string;
 }
@@ -133,7 +135,9 @@ onMounted(() => {
                             <TableHead>{{ trans('feedback.column.status') }}</TableHead>
                             <TableHead>{{ trans('feedback.column.name') }}</TableHead>
                             <TableHead>{{ trans('feedback.column.date') }}</TableHead>
-                            <TableHead>{{ trans('feedback.column.comments') }}</TableHead>
+                            <TableHead
+                                ><span class="sr-only">{{ trans('feedback.column.comments_and_attachments') }}</span></TableHead
+                            >
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -148,7 +152,7 @@ onMounted(() => {
                             </TableCell>
                             <TableCell class="whitespace-nowrap">{{ item.testerName }}</TableCell>
                             <TableCell class="whitespace-nowrap">{{ formatDate(item.createdAt) }}</TableCell>
-                            <TableCell class="text-muted-foreground whitespace-nowrap">
+                            <TableCell class="text-muted-foreground space-x-3 whitespace-nowrap">
                                 <span
                                     v-if="item.commentsCount > 0"
                                     class="inline-flex items-center gap-1 tabular-nums"
@@ -158,6 +162,18 @@ onMounted(() => {
                                 >
                                     <PhChatCircle aria-hidden="true" class="size-4" />
                                     <span aria-hidden="true">{{ item.commentsCount }}</span>
+                                </span>
+                                <span
+                                    v-if="item.attachmentsCount > 0"
+                                    class="inline-flex items-center gap-1 tabular-nums"
+                                    :aria-label="
+                                        transChoice('feedback.column.attachments_count', item.attachmentsCount, {
+                                            count: String(item.attachmentsCount),
+                                        })
+                                    "
+                                >
+                                    <PhPaperclip aria-hidden="true" class="size-4" />
+                                    <span aria-hidden="true">{{ item.attachmentsCount }}</span>
                                 </span>
                             </TableCell>
                         </TableRow>
