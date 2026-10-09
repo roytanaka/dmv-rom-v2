@@ -68,7 +68,7 @@ class FeedbackController extends Controller implements HasMiddleware
             ->when($type, fn ($query) => $query->where('type', $type))
             ->when($status, fn ($query) => $query->where('status', $status))
             ->when($open !== null, fn ($query) => $query->whereIn('status', FeedbackStatus::grouped($open)))
-            ->withCount('comments')
+            ->withCount(['comments', 'screenshots', 'commentImages'])
             ->latest()
             ->orderByDesc('id')
             ->get()
@@ -76,6 +76,8 @@ class FeedbackController extends Controller implements HasMiddleware
                 ...$this->summary($item),
                 'excerpt' => Str::limit($item->message, 160),
                 'commentsCount' => $item->comments_count,
+                // Every image on the item: its screenshots and its comments' images (#780).
+                'attachmentsCount' => $item->screenshots_count + $item->comment_images_count,
                 'href' => route('feedback.show', $item, false),
             ]);
 

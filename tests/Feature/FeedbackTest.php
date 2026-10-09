@@ -4,7 +4,9 @@ use App\Enums\FeedbackStatus;
 use App\Enums\FeedbackType;
 use App\Http\Controllers\ImpersonationController;
 use App\Models\FeedbackComment;
+use App\Models\FeedbackCommentImage;
 use App\Models\FeedbackItem;
+use App\Models\FeedbackScreenshot;
 use App\Models\Member;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
@@ -211,6 +213,25 @@ it('counts each Feedback item\'s comments on the Feedback page', function () {
             ->where('items.0.commentsCount', 3)
             ->where('items.1.id', $quiet->id)
             ->where('items.1.commentsCount', 0));
+});
+
+it('counts each Feedback item\'s screenshots and comment images together on the Feedback page', function () {
+    $illustrated = FeedbackItem::factory()->create(['created_at' => now()]);
+    $plain = FeedbackItem::factory()->create(['created_at' => now()->subDay()]);
+    FeedbackScreenshot::factory()->count(2)->for($illustrated)->create();
+    FeedbackCommentImage::factory()->count(3)->for(FeedbackComment::factory()->for($illustrated))->create();
+    FeedbackCommentImage::factory()->for(FeedbackComment::factory()->for($illustrated))->create();
+    FeedbackComment::factory()->for($plain)->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get('/feedback')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('items.0.id', $illustrated->id)
+            ->where('items.0.attachmentsCount', 6)
+            ->where('items.0.commentsCount', 2)
+            ->where('items.1.id', $plain->id)
+            ->where('items.1.attachmentsCount', 0));
 });
 
 it('shows a sent item at the top of the Feedback page', function () {

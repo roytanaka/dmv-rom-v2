@@ -27,8 +27,9 @@ return [
         'name' => 'Nom',
         'message' => 'Message',
         'date' => 'Date',
-        'comments' => 'Commentaires',
+        'comments_and_attachments' => 'Commentaires et pièces jointes',
         'comments_count' => ':count commentaire|:count commentaires',
+        'attachments_count' => ':count pièce jointe|:count pièces jointes',
     ],
 
     'filter' => [
