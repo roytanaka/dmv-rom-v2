@@ -6,16 +6,20 @@
 //
 // Rows as on the Folder page (#712, #714): Folders first, each a link into it, then files with
 // name, type, size and update date, plus the uploader and upload date for a manager. Each name
-// links to the gated download route. A link Document (#716) shows a link icon in place of type
-// and size. A manager gets each row's actions menu. Names are content, shown as written
+// links to the gated download route, after its file-type icon (#777); a PNG, JPEG, WebP or GIF
+// name opens the image viewer instead, through the `view` event (#779). A link Document (#716)
+// shows the link icon, and the word Link in place of type and size. A manager gets each row's actions menu. Names are content, shown as written
 // (ADR-0004).
 import DocumentActions from '@/components/DocumentActions.vue';
 import DocumentFolderActions from '@/components/DocumentFolderActions.vue';
 import { describeCounts } from '@/documents/counts';
+import { formatFileSize } from '@/documents/fileSize';
+import { fileTypeIcon } from '@/documents/fileTypeIcon';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { isViewableImage } from '@/viewer/entries';
 import { type FolderDestination, type LibraryCategory, type LibrarySection, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { PhFolder, PhLink, PhStack } from '@phosphor-icons/vue';
+import { PhFolder, PhStack } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
@@ -34,23 +38,17 @@ const props = defineProps<{
     maxDepth: number;
 }>();
 
+const emit = defineEmits<{
+    /** A click on an image Document's name (#779): open it in the image viewer. */
+    view: [documentId: number];
+}>();
+
 const page = usePage<SharedData>();
 
 const formatDate = (iso: string) =>
     new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium', timeZone: page.props.timezone }).format(new Date(iso));
 
-// A file size in the page's language: KB under a megabyte, MB under a gigabyte, then GB.
-function formatSize(bytes: number | null): string {
-    if (bytes === null) return '';
-    const [unit, value] =
-        bytes < 1024 ** 2
-            ? (['kilobyte', bytes / 1024] as const)
-            : bytes < 1024 ** 3
-              ? (['megabyte', bytes / 1024 ** 2] as const)
-              : (['gigabyte', bytes / 1024 ** 3] as const);
-
-    return new Intl.NumberFormat(page.props.locale, { style: 'unit', unit, maximumFractionDigits: value < 10 ? 1 : 0 }).format(Math.max(value, 0.1));
-}
+const formatSize = (bytes: number | null): string => formatFileSize(bytes, page.props.locale);
 
 const name = computed(() => props.section.category?.name ?? trans('document_categories.other'));
 const count = computed(() => describeCounts({ folders: props.section.folderCount, files: props.section.documentCount }));
@@ -119,18 +117,31 @@ const headingId = computed(() => `document-section-${props.section.category?.id 
                             :href="document.href"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="text-rom-ink font-medium underline-offset-4 hover:underline"
+                            class="text-rom-ink inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline"
                             :aria-label="trans('documents.link.open', { name: document.title ?? '' })"
                         >
+                            <component :is="fileTypeIcon(document)" class="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
                             {{ document.title }}
+                        </a>
+                        <!-- An image opens in the page's image viewer (#779); the href stays for a new-tab open. -->
+                        <a
+                            v-else-if="isViewableImage(document.mimeType ?? '')"
+                            :href="document.href"
+                            class="text-rom-ink inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline"
+                            :aria-label="trans('documents.view', { name: document.title ?? document.filename ?? '' })"
+                            @click.prevent="emit('view', document.id)"
+                        >
+                            <component :is="fileTypeIcon(document)" class="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
+                            {{ document.title ?? document.filename }}
                         </a>
                         <a
                             v-else
                             :href="document.href"
                             :target="document.extension === 'pdf' ? '_blank' : undefined"
-                            class="text-rom-ink font-medium underline-offset-4 hover:underline"
+                            class="text-rom-ink inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline"
                             :aria-label="trans('documents.download', { name: document.title ?? document.filename ?? '' })"
                         >
+                            <component :is="fileTypeIcon(document)" class="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
                             {{ document.title ?? document.filename }}
                         </a>
                         <p v-if="document.description" class="text-rom-ink text-sm whitespace-pre-line">{{ document.description }}</p>
@@ -148,8 +159,7 @@ const headingId = computed(() => `document-section-${props.section.category?.id 
                         </p>
                     </TableCell>
                     <TableCell class="text-muted-foreground hidden sm:table-cell">
-                        <PhLink v-if="document.kind === 'link'" class="h-4 w-4" :aria-label="trans('documents.link.type')" />
-                        <template v-else>{{ document.extension?.toUpperCase() }}</template>
+                        {{ document.kind === 'link' ? trans('documents.link.type') : document.extension?.toUpperCase() }}
                     </TableCell>
                     <TableCell class="text-muted-foreground hidden text-right sm:table-cell">{{ formatSize(document.sizeBytes) }}</TableCell>
                     <TableCell class="text-muted-foreground hidden md:table-cell">{{ formatDate(document.updatedAt) }}</TableCell>

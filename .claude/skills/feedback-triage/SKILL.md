@@ -25,14 +25,14 @@ ssh dmvromca@dmv-rom.ca 'cd ~/domains/staging.dmv-rom.ca/dmv-rom-v2 && /usr/loca
 ```
 
 - `list.php [status ...]` — read-only. Prints items with full context, comments, and
-  screenshot paths. With no args, it prints `new` and `confirmed` items.
+  screenshot and comment-image paths. With no args, it prints `new` and `confirmed` items.
 - `mark.php <id> <status> "<comment>" ["<name>"]` — sets the status and adds a comment
   signed with the name, or `Support-operator` when there is no name. Use a name only when
   the user asks for one. Statuses: `new`, `confirmed`, `fixed`, `wont-fix`, `duplicate`.
   The arguments sit inside the single-quoted SSH command, so write each `'` in a
   comment as `'\''`.
 
-To view a screenshot, `scp` its path into the scratchpad and Read it.
+To view a screenshot or comment image, `scp` its path into the scratchpad and Read it.
 
 ## 1. Read the items
 

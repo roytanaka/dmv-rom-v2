@@ -289,7 +289,7 @@ export interface LibraryDocument {
     folderId: number | null;
     /** Its Document category in that Folder, or null for Other (#724). */
     categoryId: number | null;
-    /** A link's web address, sent to managers only (for editing); readers open `href`. */
+    /** A link's web address, for a manager's edit form and the viewer's link card (#781); null for a file. Opening goes through `href`. */
     url: string | null;
     title: string | null;
     /** Content, shown as written (#713). */
@@ -297,6 +297,8 @@ export interface LibraryDocument {
     filename: string | null;
     /** Lower-case extension of the original filename, or null. */
     extension: string | null;
+    /** The stored file's MIME type, for its file-type icon (#777); null for a link. */
+    mimeType: string | null;
     sizeBytes: number | null;
     /** A UTC instant. */
     updatedAt: string;
@@ -304,8 +306,10 @@ export interface LibraryDocument {
     uploader: string | null;
     /** When the uploader put it up, a UTC instant; sent to managers only (story 51). */
     uploadedAt: string | null;
-    /** The gated download URL, localized. */
+    /** The gated download URL, localized. An image loads inline from it (#779). */
     href: string;
+    /** The same route as an attachment, for the image viewer's Download button (#779); null for a link. */
+    downloadHref: string | null;
 }
 
 // A Folder of the Document library (#714, ADR-0030 §3). `name` is content, shown as written.

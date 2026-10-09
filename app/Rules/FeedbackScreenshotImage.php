@@ -2,6 +2,7 @@
 
 namespace App\Rules;
 
+use App\Support\FileResponse;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Http\UploadedFile;
@@ -12,13 +13,12 @@ use Illuminate\Http\UploadedFile;
  * dialog shows when it refuses the file before sending.
  *
  * The type comes from getMimeType(), which sniffs the file's contents, so a renamed file
- * is caught. The download serves that sniffed type.
+ * is caught. The download serves that sniffed type. The allowed types are the ones the
+ * image viewer shows inline ({@see FileResponse::INLINE_IMAGE_MIMES}).
  */
 class FeedbackScreenshotImage implements ValidationRule
 {
     public const MAX_BYTES = 5 * 1024 * 1024;
-
-    public const ALLOWED_MIMES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
@@ -40,7 +40,7 @@ class FeedbackScreenshotImage implements ValidationRule
             return;
         }
 
-        if (! in_array($value->getMimeType(), self::ALLOWED_MIMES, true)) {
+        if (! in_array($value->getMimeType(), FileResponse::INLINE_IMAGE_MIMES, true)) {
             $fail('feedback.screenshots.error_type')->translate($name);
 
             return;

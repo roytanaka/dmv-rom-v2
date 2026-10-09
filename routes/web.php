@@ -7,6 +7,7 @@ use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentFolderController;
 use App\Http\Controllers\DownloadDocumentController;
+use App\Http\Controllers\DownloadFeedbackCommentImageController;
 use App\Http\Controllers\DownloadFeedbackScreenshotController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\FeedbackTriageController;
@@ -102,6 +103,8 @@ Route::group([
             ->middleware('auth')->name('feedback.comments.store');
         Route::get(LaravelLocalization::transRoute('routes.feedback.screenshot'), DownloadFeedbackScreenshotController::class)
             ->middleware('auth')->name('feedback.screenshots.download');
+        Route::get(LaravelLocalization::transRoute('routes.feedback.comment-image'), DownloadFeedbackCommentImageController::class)
+            ->middleware('auth')->name('feedback.comment-images.download');
         // The Support-operator's triage (#679, ADR-0029 §7): status, delete an item, delete a comment.
         Route::patch(LaravelLocalization::transRoute('routes.feedback.status'), [FeedbackTriageController::class, 'updateStatus'])
             ->middleware('auth')->name('feedback.status.update');

@@ -4,17 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\FeedbackScreenshot;
 use App\Policies\FeedbackScreenshotPolicy;
+use App\Support\FeedbackScreenshotStorage;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Download one Feedback screenshot (#678, ADR-0029 §9) with its original filename. The
- * item page shows each screenshot through this route. Every download passes a policy
- * check, as the hard rules require ({@see FeedbackScreenshotPolicy}).
+ * Serve one Feedback screenshot (#678, #776, ADR-0029 §9). The item page and its image
+ * viewer load it inline; `?download=1` saves it as an attachment with its original
+ * filename. Every request passes a policy check, as the hard rules require
+ * ({@see FeedbackScreenshotPolicy}).
+ *
+ * Only a PNG, JPEG, WebP, or GIF goes inline, and every response sends `nosniff`
+ * ({@see FeedbackScreenshotStorage::response()}).
  *
  * No access log, unlike the Documents download flow (docs/conventions.md § Documents): the
  * item page loads every screenshot as an image, so a log line would record page views, and
@@ -34,16 +38,10 @@ class DownloadFeedbackScreenshotController extends Controller implements HasMidd
         ];
     }
 
-    public function __invoke(FeedbackScreenshot $feedbackScreenshot): StreamedResponse
+    public function __invoke(Request $request, FeedbackScreenshot $feedbackScreenshot, FeedbackScreenshotStorage $storage): StreamedResponse
     {
         Gate::authorize('download', $feedbackScreenshot);
 
-        $disk = Storage::disk('local');
-
-        abort_unless($disk->exists($feedbackScreenshot->storage_path), 404);
-
-        return $disk->download($feedbackScreenshot->storage_path, $feedbackScreenshot->original_filename, [
-            'Content-Type' => $feedbackScreenshot->mime_type,
-        ]);
+        return $storage->response($feedbackScreenshot, $request->boolean('download'));
     }
 }

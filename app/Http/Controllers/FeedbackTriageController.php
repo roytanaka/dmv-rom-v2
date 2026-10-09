@@ -6,6 +6,7 @@ use App\Http\Requests\DeleteFeedbackCommentRequest;
 use App\Http\Requests\DeleteFeedbackItemRequest;
 use App\Http\Requests\UpdateFeedbackStatusRequest;
 use App\Models\FeedbackComment;
+use App\Models\FeedbackCommentImage;
 use App\Models\FeedbackItem;
 use App\Models\Member;
 use Closure;
@@ -17,7 +18,8 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * The Support-operator's triage of Tester feedback (#679, ADR-0029 §7): set an item's
- * status, delete an item with its comments and screenshots, and delete one comment.
+ * status, delete an item with its comments and images, and delete one comment with its
+ * images.
  *
  * Each action's Form Request authorizes it (ADR-0017 §4) by
  * {@see Member::isSupportOperator()} on the request's Member, read directly and never
@@ -48,16 +50,21 @@ class FeedbackTriageController extends Controller implements HasMiddleware
     }
 
     /**
-     * Delete an item, its comments, its screenshot rows, and its screenshot files. The rows
-     * go in one transaction on the feedback connection. The deletes are explicit, not left
-     * to the foreign keys' cascade, so SQLite in the tests behaves like MariaDB. The files
-     * go after the commit, so a failed delete never leaves rows without their files.
+     * Delete an item, its comments, its screenshots, and its comments' images (#778): the
+     * rows and the files. The rows go in one transaction on the feedback connection. The
+     * deletes are explicit, not left to the foreign keys' cascade, so SQLite in the tests
+     * behaves like MariaDB. The files go after the commit, so a failed delete never leaves
+     * rows without their files.
      */
     public function destroy(DeleteFeedbackItemRequest $request, FeedbackItem $feedbackItem): RedirectResponse
     {
-        $paths = $feedbackItem->screenshots()->pluck('storage_path')->all();
+        $paths = [
+            ...$feedbackItem->screenshots()->pluck('storage_path'),
+            ...$feedbackItem->commentImages()->pluck('storage_path'),
+        ];
 
         DB::connection('feedback')->transaction(function () use ($feedbackItem) {
+            FeedbackCommentImage::whereIn('feedback_comment_id', $feedbackItem->comments()->select('id'))->delete();
             $feedbackItem->comments()->delete();
             $feedbackItem->screenshots()->delete();
             $feedbackItem->delete();
@@ -69,13 +76,21 @@ class FeedbackTriageController extends Controller implements HasMiddleware
     }
 
     /**
-     * Delete one comment. The comment must sit under the item in the URL.
+     * Delete one comment with its images (#778): the rows in one transaction, then the
+     * files, as for an item. The comment must sit under the item in the URL.
      */
     public function destroyComment(DeleteFeedbackCommentRequest $request, FeedbackItem $feedbackItem, FeedbackComment $feedbackComment): RedirectResponse
     {
         abort_unless($feedbackComment->feedback_item_id === $feedbackItem->id, 404);
 
-        $feedbackComment->delete();
+        $paths = $feedbackComment->images()->pluck('storage_path')->all();
+
+        DB::connection('feedback')->transaction(function () use ($feedbackComment) {
+            $feedbackComment->images()->delete();
+            $feedbackComment->delete();
+        });
+
+        Storage::disk('local')->delete($paths);
 
         return back();
     }

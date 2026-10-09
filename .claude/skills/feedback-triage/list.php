@@ -15,7 +15,7 @@ $app->make(Kernel::class)->bootstrap();
 
 $statuses = array_slice($argv, 1) ?: ['new', 'confirmed'];
 
-$items = FeedbackItem::with(['comments', 'screenshots'])
+$items = FeedbackItem::with(['comments.images', 'screenshots'])
     ->whereIn('status', $statuses)
     ->oldest()
     ->get();
@@ -33,7 +33,11 @@ foreach ($items as $item) {
     }
 
     foreach ($item->comments as $comment) {
-        echo "  comment ({$comment->tester_name}, {$comment->created_at}): ".str_replace("\n", "\n    ", $comment->body)."\n";
+        echo "  comment ({$comment->tester_name}, {$comment->created_at}): ".str_replace("\n", "\n    ", (string) $comment->body)."\n";
+
+        foreach ($comment->images as $image) {
+            echo '    image: '.Storage::disk('local')->path($image->storage_path)."\n";
+        }
     }
 
     echo "\n";

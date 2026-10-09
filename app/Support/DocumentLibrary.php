@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\DocumentKind;
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
@@ -95,20 +96,27 @@ class DocumentLibrary
             'folderId' => $document->folder_id,
             // Its section in that Folder (#724); null is Other.
             'categoryId' => $document->category_id,
-            // A link's address, for a manager's edit form only; readers open it
-            // through `href`, so every open is checked and logged (#716).
-            'url' => $canManage ? $document->url : null,
+            // A link's address: a manager's edit form, and the viewer's link card (#781). Its
+            // Open button still goes through `href`, so every open is checked and logged (#716).
+            'url' => $document->url,
             // Content, as-authored (ADR-0004); the client falls back to the filename.
             'title' => $document->title,
             'description' => $document->description,
             'filename' => $document->original_filename,
             'extension' => $document->extension(),
+            // Picks the row's file-type icon (#777); null for a link.
+            'mimeType' => $document->mime_type,
             'sizeBytes' => $document->size_bytes,
             'updatedAt' => $document->updated_at->toIso8601String(),
             'uploader' => $canManage ? $document->uploadedBy?->fullName() : null,
             // When the current file (or link) was put up (story 51), managers only.
             'uploadedAt' => $canManage ? $document->uploaded_at?->toIso8601String() : null,
             'href' => route('documents.download', $document, absolute: false),
+            // The image viewer's Download button (#779): the same gated, logged route, as an
+            // attachment. A link has nothing to save.
+            'downloadHref' => $document->kind === DocumentKind::Link
+                ? null
+                : route('documents.download', [$document, 'download' => 1], absolute: false),
         ];
 
         $sections = self::sections($categories, $folders->map($folderRow)->all(), $documents->map($documentRow)->all());
