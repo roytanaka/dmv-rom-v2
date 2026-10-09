@@ -55,6 +55,18 @@ class OrgTime
     }
 
     /**
+     * Today's date on the organization's wall clock, as midnight in the storage zone — the
+     * same shape a `date` cast loads, so it compares day-for-day with columns like a
+     * Schedule's `starts_on` / `ends_on` (#782). Midnight in the org zone would be 04:00 or
+     * 05:00 UTC, and would put a date column's own day before "today". To compare against
+     * an instant (a Shift's `starts_at`), use `now()->startOfDay()` instead.
+     */
+    public static function today(): CarbonImmutable
+    {
+        return CarbonImmutable::parse(self::now()->toDateString());
+    }
+
+    /**
      * The fiscal year a `YYYYMM` bucket falls in (ADR-0022 §8). The fiscal year runs 1 April
      * to 31 March and is named for the year it *ends* in — so "Fiscal 2026" runs 2025-04
      * through 2026-03. A month in April or later opens the fiscal year named for the next
