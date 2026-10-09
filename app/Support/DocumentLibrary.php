@@ -103,6 +103,8 @@ class DocumentLibrary
             'description' => $document->description,
             'filename' => $document->original_filename,
             'extension' => $document->extension(),
+            // Picks the row's file-type icon (#777); null for a link.
+            'mimeType' => $document->mime_type,
             'sizeBytes' => $document->size_bytes,
             'updatedAt' => $document->updated_at->toIso8601String(),
             'uploader' => $canManage ? $document->uploadedBy?->fullName() : null,
