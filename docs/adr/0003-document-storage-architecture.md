@@ -20,7 +20,7 @@ Document handling has three structural requirements:
 The rebuild treats **Document as a first-class entity** with a single `documents` table, opaque disk storage, and a controller-gated download path. The model is:
 
 1. **Files live in `storage/app/documents/`, outside the webroot.** Apache never serves them directly.
-2. **Disk filename is a UUID with no extension.** The user-facing filename and MIME type are stored in DB columns and applied at download time via `Content-Disposition: attachment; filename="..."` (Laravel's `Storage::download()` handles this). _Amended 2026-10-07: a PDF is served `inline` so it opens in the browser's viewer; every other type stays `attachment`. All files carry `X-Content-Type-Options: nosniff`._
+2. **Disk filename is a UUID with no extension.** The user-facing filename and MIME type are stored in DB columns and applied at download time via `Content-Disposition: attachment; filename="..."` (Laravel's `Storage::download()` handles this). _Amended 2026-10-07: a PDF is served `inline` so it opens in the browser's viewer; every other type stays `attachment`. All files carry `X-Content-Type-Options: nosniff`._ _Amended 2026-10-08: a PNG, JPEG, WebP or GIF is also served `inline`, for the image viewer (see below)._
 3. **Every download routes through a controller.** The controller authenticates the user, authorizes via `DocumentPolicy`, logs the access, then streams the file.
 4. **One `documents` table for the whole app.** Schema (minimum) per `docs/conventions.md § Documents`: `id`, `original_filename`, `storage_path`, `mime_type`, `size_bytes`, `uploaded_by_id`, `uploaded_at`, `visibility` enum (`public` / `members` / `committee`), optional `title` / `description` (single-column, rendered as-authored — content is not translated; see [ADR-0004](0004-chrome-only-translation.md)).
 5. **Ownership is expressed via multiple explicit nullable FKs** on the documents table — `committee_id`, `program_id`, `meeting_id`, etc. — added per-feature as migration scripts surface them. **Not polymorphic.**
@@ -97,3 +97,10 @@ ADR-0030 settles the library this ADR stores files for. It changes four things h
 - **Visibility moves to Folders.** A top-level Folder carries `group` or `members`, and everything inside it inherits. `committee` becomes `group`. `public` is dropped until a real case needs it.
 - **A Document may be a link.** A link Document has a URL instead of a stored file and opens it after the same access check.
 - **Size and types are answered.** One upload is at most 1.5 GB. Allowed: pdf, doc/docx, xls/xlsx, ppt/pptx, jpg/png/webp/gif, txt, csv, mp4, mp3, zip. Virus scanning stays deferred.
+
+## Amendment (2026-10-08, [#773](https://github.com/roytanaka/dmv-rom-v2/issues/773)): the Document viewer
+
+Spec #773 opens Documents in an in-app viewer. It changes two things here:
+
+- **Images are served inline too.** A PDF and a PNG, JPEG, WebP or GIF are served `inline`, unless the request asks for `?download=1` (the viewer's Download button). An SVG and every other type stay `attachment`: an SVG or HTML file shown inline could run script on this origin. Every image response sends `X-Content-Type-Options: nosniff`, so the browser never second-guesses the stored type.
+- **A link Document's address goes to every reader.** The library sends each link Document's `url` to everyone who can see the Document, so the viewer's link card can show where it leads (spec #773 §5). **Open** still goes through the gated route, which checks the policy and writes the access log before it redirects.
