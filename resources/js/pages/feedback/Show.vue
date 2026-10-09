@@ -107,9 +107,12 @@ const viewport = computed(() =>
 );
 
 const toEntry = (image: FeedbackImageRow, kind: string): ViewerEntry => ({
+    kind: 'file',
     key: `${kind}-${image.id}`,
     filename: image.filename,
     mimeType: image.mimeType,
+    typeLabel: null,
+    sizeBytes: null,
     src: image.href,
     downloadHref: image.downloadHref,
 });

@@ -5,4 +5,8 @@
 return [
     'download' => 'Télécharger',
     'close' => 'Fermer',
+    'previous' => 'Précédent',
+    'next' => 'Suivant',
+    'position' => ':current sur :total',
+    'open' => 'Ouvrir',
 ];

@@ -96,9 +96,9 @@ class DocumentLibrary
             'folderId' => $document->folder_id,
             // Its section in that Folder (#724); null is Other.
             'categoryId' => $document->category_id,
-            // A link's address, for a manager's edit form only; readers open it
-            // through `href`, so every open is checked and logged (#716).
-            'url' => $canManage ? $document->url : null,
+            // A link's address: a manager's edit form, and the viewer's link card (#781). Its
+            // Open button still goes through `href`, so every open is checked and logged (#716).
+            'url' => $document->url,
             // Content, as-authored (ADR-0004); the client falls back to the filename.
             'title' => $document->title,
             'description' => $document->description,

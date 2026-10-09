@@ -42,6 +42,8 @@ Each folder has its own categories. A folder with no categories shows one list w
 
 A picture opens in a viewer over the page. This works for PNG, JPEG, WebP, and GIF files. Select **Download** to save the picture. Select **Close**, or press Escape, to go back to the list.
 
+In the viewer, select **Previous** or **Next**, or press the Left or Right arrow key, to step through every item in the list. The viewer shows where you are, for example "2 of 5". A file that is not a picture shows a card with its type and size, and a **Download** button. A link shows a card with its web address, and an **Open** button.
+
 A PDF opens in a new tab. Any other file downloads.
 
 A link shows a link icon in the **Type** column. A file shows its type and size.

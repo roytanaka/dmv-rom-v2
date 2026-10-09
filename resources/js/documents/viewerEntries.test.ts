@@ -33,31 +33,85 @@ function section(documents: LibraryDocument[]): LibrarySection {
     return { category: null, folders: [], documents, folderCount: 0, documentCount: documents.length };
 }
 
-test('lists the file Documents of every section, in page order', () => {
+test('lists every file Document of every section, in page order, with its type and size', () => {
     const entries = libraryViewerEntries([
-        section([doc({ id: 3, filename: 'b.jpg', mimeType: 'image/jpeg', href: '/d/3', downloadHref: '/d/3?download=1' })]),
-        section([doc({ id: 7, filename: 'a.pdf', mimeType: 'application/pdf', href: '/d/7', downloadHref: '/d/7?download=1' })]),
+        section([
+            doc({
+                id: 3,
+                filename: 'b.jpg',
+                extension: 'jpg',
+                mimeType: 'image/jpeg',
+                sizeBytes: 2048,
+                href: '/d/3',
+                downloadHref: '/d/3?download=1',
+            }),
+        ]),
+        section([
+            doc({
+                id: 7,
+                filename: 'a.pdf',
+                extension: 'pdf',
+                mimeType: 'application/pdf',
+                sizeBytes: 99,
+                href: '/d/7',
+                downloadHref: '/d/7?download=1',
+            }),
+        ]),
     ]);
 
     assert.deepEqual(entries, [
-        { key: 3, filename: 'b.jpg', mimeType: 'image/jpeg', src: '/d/3', downloadHref: '/d/3?download=1' },
-        { key: 7, filename: 'a.pdf', mimeType: 'application/pdf', src: '/d/7', downloadHref: '/d/7?download=1' },
+        {
+            kind: 'file',
+            key: 3,
+            filename: 'b.jpg',
+            mimeType: 'image/jpeg',
+            typeLabel: 'JPG',
+            sizeBytes: 2048,
+            src: '/d/3',
+            downloadHref: '/d/3?download=1',
+        },
+        {
+            kind: 'file',
+            key: 7,
+            filename: 'a.pdf',
+            mimeType: 'application/pdf',
+            typeLabel: 'PDF',
+            sizeBytes: 99,
+            src: '/d/7',
+            downloadHref: '/d/7?download=1',
+        },
     ]);
 });
 
 test('names an entry by its title when it has one', () => {
     const [entry] = libraryViewerEntries([section([doc({ title: 'Gallery map', filename: 'map.png' })])]);
 
-    assert.equal(entry.filename, 'Gallery map');
+    assert.equal(entry.kind === 'file' && entry.filename, 'Gallery map');
 });
 
-test('leaves out link Documents, which have nothing to show or save', () => {
+test('keeps a link Document in its place, as a link card with its title, address and gated open route', () => {
     const entries = libraryViewerEntries([
-        section([doc({ id: 1 }), doc({ id: 2, kind: 'link', filename: null, mimeType: null, title: 'ROM', downloadHref: null })]),
+        section([
+            doc({ id: 1 }),
+            doc({
+                id: 2,
+                kind: 'link',
+                filename: null,
+                extension: null,
+                mimeType: null,
+                sizeBytes: null,
+                title: 'ROM',
+                url: 'https://www.rom.on.ca',
+                href: '/documents/2/download',
+                downloadHref: null,
+            }),
+            doc({ id: 3 }),
+        ]),
     ]);
 
     assert.deepEqual(
         entries.map((entry) => entry.key),
-        [1],
+        [1, 2, 3],
     );
+    assert.deepEqual(entries[1], { kind: 'link', key: 2, title: 'ROM', address: 'https://www.rom.on.ca', href: '/documents/2/download' });
 });

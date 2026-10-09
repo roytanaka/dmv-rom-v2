@@ -289,7 +289,7 @@ export interface LibraryDocument {
     folderId: number | null;
     /** Its Document category in that Folder, or null for Other (#724). */
     categoryId: number | null;
-    /** A link's web address, sent to managers only (for editing); readers open `href`. */
+    /** A link's web address, for a manager's edit form and the viewer's link card (#781); null for a file. Opening goes through `href`. */
     url: string | null;
     title: string | null;
     /** Content, shown as written (#713). */

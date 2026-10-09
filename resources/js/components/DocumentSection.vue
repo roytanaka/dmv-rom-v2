@@ -13,6 +13,7 @@
 import DocumentActions from '@/components/DocumentActions.vue';
 import DocumentFolderActions from '@/components/DocumentFolderActions.vue';
 import { describeCounts } from '@/documents/counts';
+import { formatFileSize } from '@/documents/fileSize';
 import { fileTypeIcon } from '@/documents/fileTypeIcon';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { isViewableImage } from '@/viewer/entries';
@@ -47,18 +48,7 @@ const page = usePage<SharedData>();
 const formatDate = (iso: string) =>
     new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium', timeZone: page.props.timezone }).format(new Date(iso));
 
-// A file size in the page's language: KB under a megabyte, MB under a gigabyte, then GB.
-function formatSize(bytes: number | null): string {
-    if (bytes === null) return '';
-    const [unit, value] =
-        bytes < 1024 ** 2
-            ? (['kilobyte', bytes / 1024] as const)
-            : bytes < 1024 ** 3
-              ? (['megabyte', bytes / 1024 ** 2] as const)
-              : (['gigabyte', bytes / 1024 ** 3] as const);
-
-    return new Intl.NumberFormat(page.props.locale, { style: 'unit', unit, maximumFractionDigits: value < 10 ? 1 : 0 }).format(Math.max(value, 0.1));
-}
+const formatSize = (bytes: number | null): string => formatFileSize(bytes, page.props.locale);
 
 const name = computed(() => props.section.category?.name ?? trans('document_categories.other'));
 const count = computed(() => describeCounts({ folders: props.section.folderCount, files: props.section.documentCount }));

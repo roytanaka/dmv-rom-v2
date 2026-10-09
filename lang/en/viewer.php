@@ -5,4 +5,10 @@
 return [
     'download' => 'Download',
     'close' => 'Close',
+    // Previous and next (#781).
+    'previous' => 'Previous',
+    'next' => 'Next',
+    'position' => ':current of :total',
+    // A link Document's card (#781).
+    'open' => 'Open',
 ];

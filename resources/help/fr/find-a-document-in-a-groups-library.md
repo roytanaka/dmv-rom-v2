@@ -42,6 +42,8 @@ Chaque dossier a ses propres catégories. Un dossier sans catégorie affiche une
 
 Une image s'ouvre dans une visionneuse par-dessus la page. Cela vaut pour les fichiers PNG, JPEG, WebP et GIF. Sélectionnez **Télécharger** pour enregistrer l'image. Sélectionnez **Fermer**, ou appuyez sur Échap, pour revenir à la liste.
 
+Dans la visionneuse, sélectionnez **Précédent** ou **Suivant**, ou appuyez sur la flèche gauche ou droite, pour parcourir tous les éléments de la liste. La visionneuse indique où vous êtes, par exemple « 2 sur 5 ». Un fichier qui n'est pas une image s'affiche sur une fiche avec son type et sa taille, et un bouton **Télécharger**. Un lien s'affiche sur une fiche avec son adresse Web, et un bouton **Ouvrir**.
+
 Un PDF s'ouvre dans un nouvel onglet. Tout autre fichier se télécharge.
 
 Un lien affiche une icône de lien dans la colonne **Type**. Un fichier affiche son type et sa taille.

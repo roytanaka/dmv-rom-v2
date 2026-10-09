@@ -72,10 +72,11 @@ const emptyMessage = computed(() =>
 
 const uploadDialogOpen = ref(false);
 
-// --- Image viewer (#779) -------------------------------------------------------------------
+// --- Image viewer (#779, #781) -------------------------------------------------------------
 
-// Every file Document on screen, across the sections, so previous/next (#781) can step
-// through the whole list. A click on an image Document opens the viewer at its entry.
+// Every Document on screen, files and links, across the sections, so previous/next (#781)
+// steps through the whole list. A click on an image Document opens the viewer at its entry;
+// other names keep their link (a PDF opens in the browser, other files download).
 const viewerEntries = computed(() => libraryViewerEntries(props.library.sections));
 const viewerOpen = ref(false);
 const viewerStart = ref(0);
