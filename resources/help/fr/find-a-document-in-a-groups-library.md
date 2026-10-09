@@ -35,10 +35,14 @@ Chaque dossier a ses propres catégories. Un dossier sans catégorie affiche une
 
 > **Note :** Un groupe peut partager un dossier de premier niveau avec tous les membres. Vous pouvez lire ce dossier même si vous n'êtes pas dans le groupe.
 
-## Télécharger un fichier ou ouvrir un lien
+## Ouvrir un fichier ou un lien
 
-1. Sélectionnez le nom d'un fichier pour le télécharger.
+1. Sélectionnez le nom d'un fichier pour l'ouvrir.
 2. Sélectionnez le nom d'un lien pour ouvrir sa page Web dans un nouvel onglet.
+
+Une image s'ouvre dans une visionneuse par-dessus la page. Cela vaut pour les fichiers PNG, JPEG, WebP et GIF. Sélectionnez **Télécharger** pour enregistrer l'image. Sélectionnez **Fermer**, ou appuyez sur Échap, pour revenir à la liste.
+
+Un PDF s'ouvre dans un nouvel onglet. Tout autre fichier se télécharge.
 
 Un lien affiche une icône de lien dans la colonne **Type**. Un fichier affiche son type et sa taille.
 

@@ -199,7 +199,8 @@ it('lists the root Documents for a member, sorted by name', function () {
             ->where('library.sections.0.documents.1.updatedAt', $minutes->updated_at->toIso8601String())
             ->where('library.sections.0.documents.1.uploader', null)
             ->where('library.sections.0.documents.1.uploadedAt', null)
-            ->where('library.sections.0.documents.1.href', "/documents/{$minutes->id}/download"));
+            ->where('library.sections.0.documents.1.href', "/documents/{$minutes->id}/download")
+            ->where('library.sections.0.documents.1.downloadHref', "/documents/{$minutes->id}/download?download=1"));
 });
 
 it('shows the uploader, the upload time and the upload control to a Librarian', function () {
@@ -247,7 +248,8 @@ it('serves the Documents tab and download links under /fr/', function () {
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('section', 'documents')
-                ->where('library.sections.0.documents.0.href', "/fr/documents/{$document->id}/telecharger"));
+                ->where('library.sections.0.documents.0.href', "/fr/documents/{$document->id}/telecharger")
+                ->where('library.sections.0.documents.0.downloadHref', "/fr/documents/{$document->id}/telecharger?download=1"));
 
         $this->get("/fr/documents/{$document->id}/telecharger")
             ->assertOk()
@@ -293,6 +295,85 @@ it('downloads any file that is not a PDF', function () {
         ->assertDownload('Data Sheet.docx')
         ->assertHeader('X-Content-Type-Options', 'nosniff');
 });
+
+it('shows an image inline for the viewer and logs the access', function (string $name, string $mime) {
+    $group = libraryGroup();
+    $document = storedDocument($group, ['original_filename' => $name, 'mime_type' => $mime]);
+    $member = libraryMemberOf($group);
+
+    $response = $this->actingAs($member)
+        ->get("/documents/{$document->id}/download")
+        ->assertOk()
+        ->assertHeader('Content-Disposition', "inline; filename=\"{$name}\"")
+        ->assertHeader('Content-Type', $mime)
+        ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+    expect($response->streamedContent())->toBe('file-bytes');
+    $this->assertDatabaseHas('document_downloads', ['document_id' => $document->id, 'member_id' => $member->id]);
+})->with([
+    ['Gallery Tour.png', 'image/png'],
+    ['Gallery Tour.jpg', 'image/jpeg'],
+    ['Gallery Tour.webp', 'image/webp'],
+    ['Gallery Tour.gif', 'image/gif'],
+]);
+
+it('saves an image as an attachment for the Download button and logs the access', function () {
+    $group = libraryGroup();
+    $document = storedDocument($group, ['original_filename' => 'Gallery Tour.png', 'mime_type' => 'image/png']);
+    $member = libraryMemberOf($group);
+
+    $response = $this->actingAs($member)
+        ->get("/documents/{$document->id}/download?download=1")
+        ->assertOk()
+        ->assertDownload('Gallery Tour.png')
+        ->assertHeader('Content-Type', 'image/png')
+        ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+    expect($response->streamedContent())->toBe('file-bytes');
+    $this->assertDatabaseHas('document_downloads', ['document_id' => $document->id, 'member_id' => $member->id]);
+});
+
+it('logs one access row each for opening and downloading an image', function () {
+    $group = libraryGroup();
+    $document = storedDocument($group, ['mime_type' => 'image/jpeg']);
+    $member = libraryMemberOf($group);
+
+    $this->actingAs($member)->get("/documents/{$document->id}/download")->assertOk();
+    $this->actingAs($member)->get("/documents/{$document->id}/download?download=1")->assertOk();
+
+    expect($document->downloads()->count())->toBe(2);
+});
+
+it('saves a PDF as an attachment when asked to download', function () {
+    $group = libraryGroup();
+    $document = storedDocument($group, ['original_filename' => 'March Minutes.pdf', 'mime_type' => 'application/pdf']);
+
+    $this->actingAs(libraryMemberOf($group))
+        ->get("/documents/{$document->id}/download?download=1")
+        ->assertOk()
+        ->assertDownload('March Minutes.pdf');
+});
+
+it('never shows an SVG inline', function (string $query) {
+    $group = libraryGroup();
+    $document = storedDocument($group, ['original_filename' => 'Floor Plan.svg', 'mime_type' => 'image/svg+xml']);
+
+    $this->actingAs(libraryMemberOf($group))
+        ->get("/documents/{$document->id}/download{$query}")
+        ->assertOk()
+        ->assertDownload('Floor Plan.svg')
+        ->assertHeader('X-Content-Type-Options', 'nosniff');
+})->with(['open' => '', 'download' => '?download=1']);
+
+it('refuses an image to a non-member, open or download, and logs nothing', function (string $query) {
+    $document = storedDocument(libraryGroup(), ['mime_type' => 'image/png']);
+
+    $this->actingAs(Member::factory()->create())
+        ->get("/documents/{$document->id}/download{$query}")
+        ->assertForbidden();
+
+    $this->assertDatabaseCount('document_downloads', 0);
+})->with(['open' => '', 'download' => '?download=1']);
 
 it('keeps the access log when the downloading Member is deleted', function () {
     $group = libraryGroup();

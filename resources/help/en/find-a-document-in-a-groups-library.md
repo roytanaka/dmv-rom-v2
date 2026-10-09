@@ -35,10 +35,14 @@ Each folder has its own categories. A folder with no categories shows one list w
 
 > **Note:** A Group can share a top-level folder with all members. You can read that folder when you are not in the Group.
 
-## Download a file or open a link
+## Open a file or a link
 
-1. Select the name of a file to download it.
+1. Select the name of a file to open it.
 2. Select the name of a link to open its web page in a new tab.
+
+A picture opens in a viewer over the page. This works for PNG, JPEG, WebP, and GIF files. Select **Download** to save the picture. Select **Close**, or press Escape, to go back to the list.
+
+A PDF opens in a new tab. Any other file downloads.
 
 A link shows a link icon in the **Type** column. A file shows its type and size.
 
