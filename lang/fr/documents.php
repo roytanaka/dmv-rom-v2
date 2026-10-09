@@ -16,6 +16,8 @@ return [
     ],
 
     'download' => 'Télécharger :name',
+    // Le nom d’un document image l’ouvre dans la visionneuse (#779).
+    'view' => 'Afficher :name',
 
     // Documents-liens (#716) : un titre et une adresse Web au lieu d’un fichier.
     'link' => [

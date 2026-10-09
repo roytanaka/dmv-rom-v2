@@ -285,6 +285,7 @@ it('lists a link Document beside files, with its kind and no type or size', func
             ->where('library.sections.0.documents.0.sizeBytes', null)
             ->where('library.sections.0.documents.0.url', null)
             ->where('library.sections.0.documents.0.href', "/documents/{$link->id}/download")
+            ->where('library.sections.0.documents.0.downloadHref', null)
             ->where('library.sections.0.documents.1.kind', 'file'));
 });
 

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\DocumentKind;
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
@@ -111,6 +112,11 @@ class DocumentLibrary
             // When the current file (or link) was put up (story 51), managers only.
             'uploadedAt' => $canManage ? $document->uploaded_at?->toIso8601String() : null,
             'href' => route('documents.download', $document, absolute: false),
+            // The image viewer's Download button (#779): the same gated, logged route, as an
+            // attachment. A link has nothing to save.
+            'downloadHref' => $document->kind === DocumentKind::Link
+                ? null
+                : route('documents.download', [$document, 'download' => 1], absolute: false),
         ];
 
         $sections = self::sections($categories, $folders->map($folderRow)->all(), $documents->map($documentRow)->all());

@@ -15,6 +15,8 @@ return [
     ],
 
     'download' => 'Download :name',
+    // An image Document's name opens it in the image viewer (#779).
+    'view' => 'View :name',
 
     // Link Documents (#716): a title and a web address in place of a file.
     'link' => [

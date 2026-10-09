@@ -6,7 +6,8 @@
 //
 // Rows as on the Folder page (#712, #714): Folders first, each a link into it, then files with
 // name, type, size and update date, plus the uploader and upload date for a manager. Each name
-// links to the gated download route, after its file-type icon (#777). A link Document (#716)
+// links to the gated download route, after its file-type icon (#777); a PNG, JPEG, WebP or GIF
+// name opens the image viewer instead, through the `view` event (#779). A link Document (#716)
 // shows the link icon, and the word Link in place of type and size. A manager gets each row's actions menu. Names are content, shown as written
 // (ADR-0004).
 import DocumentActions from '@/components/DocumentActions.vue';
@@ -14,6 +15,7 @@ import DocumentFolderActions from '@/components/DocumentFolderActions.vue';
 import { describeCounts } from '@/documents/counts';
 import { fileTypeIcon } from '@/documents/fileTypeIcon';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { isViewableImage } from '@/viewer/entries';
 import { type FolderDestination, type LibraryCategory, type LibrarySection, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { PhFolder, PhStack } from '@phosphor-icons/vue';
@@ -33,6 +35,11 @@ const props = defineProps<{
     /** The library root's Document categories, for a move to the top level (#728). */
     rootCategories: LibraryCategory[];
     maxDepth: number;
+}>();
+
+const emit = defineEmits<{
+    /** A click on an image Document's name (#779): open it in the image viewer. */
+    view: [documentId: number];
 }>();
 
 const page = usePage<SharedData>();
@@ -125,6 +132,17 @@ const headingId = computed(() => `document-section-${props.section.category?.id 
                         >
                             <component :is="fileTypeIcon(document)" class="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
                             {{ document.title }}
+                        </a>
+                        <!-- An image opens in the page's image viewer (#779); the href stays for a new-tab open. -->
+                        <a
+                            v-else-if="isViewableImage(document.mimeType ?? '')"
+                            :href="document.href"
+                            class="text-rom-ink inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline"
+                            :aria-label="trans('documents.view', { name: document.title ?? document.filename ?? '' })"
+                            @click.prevent="emit('view', document.id)"
+                        >
+                            <component :is="fileTypeIcon(document)" class="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
+                            {{ document.title ?? document.filename }}
                         </a>
                         <a
                             v-else

@@ -306,8 +306,10 @@ export interface LibraryDocument {
     uploader: string | null;
     /** When the uploader put it up, a UTC instant; sent to managers only (story 51). */
     uploadedAt: string | null;
-    /** The gated download URL, localized. */
+    /** The gated download URL, localized. An image loads inline from it (#779). */
     href: string;
+    /** The same route as an attachment, for the image viewer's Download button (#779); null for a link. */
+    downloadHref: string | null;
 }
 
 // A Folder of the Document library (#714, ADR-0030 §3). `name` is content, shown as written.

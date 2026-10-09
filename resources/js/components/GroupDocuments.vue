@@ -28,6 +28,9 @@
 // Category filter beside the breadcrumb (#725, DocumentCategoryFilter) narrows the page to one
 // section. New Folders, links and uploads are filed on the way in (#728).
 //
+// Image Documents (#779): a click on a PNG, JPEG, WebP or GIF name opens the ImageViewer over
+// the page; its Download button saves the file through the same gated, logged route.
+//
 // Where am I (#726): the root shows a breadcrumb with one current item, Documents; an open
 // Folder adds DocumentFolderHeader (icon, name, what it holds, who reads it).
 import DocumentCategoriesDialog from '@/components/DocumentCategoriesDialog.vue';
@@ -37,8 +40,10 @@ import DocumentFolderDialog from '@/components/DocumentFolderDialog.vue';
 import DocumentFolderHeader from '@/components/DocumentFolderHeader.vue';
 import DocumentSection from '@/components/DocumentSection.vue';
 import DocumentUploadDialog from '@/components/DocumentUploadDialog.vue';
+import ImageViewer from '@/components/ImageViewer.vue';
 import LinkDocumentDialog from '@/components/LinkDocumentDialog.vue';
 import { Button } from '@/components/ui/button';
+import { libraryViewerEntries } from '@/documents/viewerEntries';
 import { type GroupLibrary } from '@/types';
 import { PhFolderPlus, PhLink, PhListBullets, PhUploadSimple } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
@@ -66,6 +71,21 @@ const emptyMessage = computed(() =>
 );
 
 const uploadDialogOpen = ref(false);
+
+// --- Image viewer (#779) -------------------------------------------------------------------
+
+// Every file Document on screen, across the sections, so previous/next (#781) can step
+// through the whole list. A click on an image Document opens the viewer at its entry.
+const viewerEntries = computed(() => libraryViewerEntries(props.library.sections));
+const viewerOpen = ref(false);
+const viewerStart = ref(0);
+
+function openViewer(documentId: number): void {
+    const index = viewerEntries.value.findIndex((entry) => entry.key === documentId);
+    if (index === -1) return;
+    viewerStart.value = index;
+    viewerOpen.value = true;
+}
 </script>
 
 <template>
@@ -120,8 +140,11 @@ const uploadDialogOpen = ref(false);
                 :destinations="library.destinations"
                 :root-categories="library.rootCategories"
                 :max-depth="library.maxDepth"
+                @view="openViewer"
             />
         </template>
+
+        <ImageViewer v-model:open="viewerOpen" :entries="viewerEntries" :start-index="viewerStart" />
 
         <DocumentCategoriesDialog
             v-if="canManage"

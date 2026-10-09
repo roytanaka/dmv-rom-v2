@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\DocumentKind;
 use App\Models\Document;
 use App\Policies\DocumentPolicy;
+use App\Rules\FeedbackScreenshotImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -13,7 +14,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Serve one Document (#712, ADR-0003, ADR-0030 §13) under its original filename: a PDF opens
- * in the browser, any other file downloads. Every download passes
+ * in the browser, an image loads inline for the image viewer (#779), any other file downloads.
+ * `?download=1` always downloads. Every download passes
  * {@see DocumentPolicy::download()} and writes an access-log row before the file streams. The URL `/documents/{document}/download` is stable so the legacy redirect map
  * can point at it. A logged-out visitor gets the login page, then the file (`auth` keeps the
  * intended URL).
@@ -43,10 +45,14 @@ class DownloadDocumentController extends Controller
 
         $this->logAccess($request, $document);
 
-        // A PDF opens in the browser's viewer; anything else downloads. Only PDF goes inline:
-        // an uploaded HTML or SVG file shown inline could run script on this origin.
+        // A PDF opens in the browser's viewer and a PNG, JPEG, WebP or GIF in the image viewer
+        // (#779); anything else downloads, and so does any file asked for with `?download=1`
+        // (the viewer's Download button). Only those types go inline: an uploaded HTML or SVG
+        // file shown inline could run script on this origin.
         $headers = ['Content-Type' => $document->mime_type, 'X-Content-Type-Options' => 'nosniff'];
-        $disposition = $document->mime_type === 'application/pdf' ? 'inline' : 'attachment';
+        $inline = ! $request->boolean('download')
+            && in_array($document->mime_type, ['application/pdf', ...FeedbackScreenshotImage::ALLOWED_MIMES], true);
+        $disposition = $inline ? 'inline' : 'attachment';
 
         return $disk->response($document->storage_path, $document->original_filename, $headers, $disposition);
     }
