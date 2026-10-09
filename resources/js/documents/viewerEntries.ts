@@ -18,7 +18,7 @@ function toEntry(document: LibraryDocument): ViewerEntry {
     return {
         kind: 'file',
         key: document.id,
-        filename: document.title ?? document.filename ?? '',
+        filename: document.filename ?? '',
         mimeType: document.mimeType ?? '',
         typeLabel: document.extension?.toUpperCase() ?? null,
         sizeBytes: document.sizeBytes,

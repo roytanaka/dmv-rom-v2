@@ -83,10 +83,10 @@ test('lists every file Document of every section, in page order, with its type a
     ]);
 });
 
-test('names an entry by its title when it has one', () => {
+test('shows a file by its filename, even when it has a title', () => {
     const [entry] = libraryViewerEntries([section([doc({ title: 'Gallery map', filename: 'map.png' })])]);
 
-    assert.equal(entry.kind === 'file' && entry.filename, 'Gallery map');
+    assert.equal(entry.kind === 'file' && entry.filename, 'map.png');
 });
 
 test('keeps a link Document in its place, as a link card with its title, address and gated open route', () => {
