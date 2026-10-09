@@ -373,6 +373,52 @@ it('opens a current Schedule at today and any other Schedule at its first day', 
     'past' => ['2026-07-01', '2026-07-31', '2026-07-01'],
 ]);
 
+// --- Wall clock: today is the org's day, not the server's UTC day (#782) ------
+// 21:00 in Toronto is already tomorrow in UTC. Summer (EDT) and winter (EST).
+
+it('keeps a Schedule current through the evening of its last day', function (string $now, string $today) {
+    $this->travelTo(CarbonImmutable::parse($now));
+    $group = schedulingGroup();
+    Schedule::factory()->published()->create([
+        'group_id' => $group->id,
+        'name' => 'Last day',
+        'starts_on' => CarbonImmutable::parse($today)->subDays(10)->toDateString(),
+        'ends_on' => $today,
+    ]);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.schedules.0.name', 'Last day')
+            ->where('scheduling.schedules.0.is_past', false));
+})->with([
+    'summer (EDT)' => ['2026-08-16 01:00:00', '2026-08-15'],
+    'winter (EST)' => ['2026-01-16 02:00:00', '2026-01-15'],
+]);
+
+it('opens a current Schedule at the org date in the evening', function (string $now, string $today, string $startsOn, string $endsOn, string $opensOn) {
+    $this->travelTo(CarbonImmutable::parse($now));
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->create([
+        'group_id' => $group->id,
+        'starts_on' => $startsOn,
+        'ends_on' => $endsOn,
+    ]);
+
+    $this->actingAs(schedulingMemberOf($group))
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open.today', $today)
+            ->where('scheduling.open.opens_on', $opensOn));
+})->with([
+    'summer, began earlier' => ['2026-08-16 01:00:00', '2026-08-15', '2026-08-01', '2026-08-31', '2026-08-15'],
+    'summer, ends today' => ['2026-08-16 01:00:00', '2026-08-15', '2026-08-01', '2026-08-15', '2026-08-15'],
+    'summer, starts tomorrow' => ['2026-08-16 01:00:00', '2026-08-15', '2026-08-16', '2026-08-31', '2026-08-16'],
+    'winter, began earlier' => ['2026-01-16 02:00:00', '2026-01-15', '2026-01-01', '2026-01-31', '2026-01-15'],
+    'winter, ends today' => ['2026-01-16 02:00:00', '2026-01-15', '2026-01-01', '2026-01-15', '2026-01-15'],
+    'winter, starts tomorrow' => ['2026-01-16 02:00:00', '2026-01-15', '2026-01-16', '2026-01-31', '2026-01-16'],
+]);
+
 it('lists an opened Schedule with an empty shifts array when it holds no Shifts', function () {
     $group = schedulingGroup();
     $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);

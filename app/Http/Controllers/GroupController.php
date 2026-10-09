@@ -791,7 +791,7 @@ class GroupController extends Controller
     private function scheduling(Request $request, Group $group, ?Schedule $schedule): array
     {
         $user = $request->user();
-        $today = CarbonImmutable::now()->startOfDay();
+        $today = OrgTime::today();
 
         // A permalink opens the addressed Schedule — but only if it belongs to this
         // Group and the viewer may read it. 404 (not 403) so an unreadable draft or a
@@ -932,14 +932,14 @@ class GroupController extends Controller
      */
     private function scheduleDetail(Request $request, Schedule $schedule): array
     {
-        $today = CarbonImmutable::today();
+        $today = OrgTime::today();
 
         return [
             'id' => $schedule->id,
             'name' => $schedule->name,
             'starts_on' => $schedule->starts_on->toDateString(),
             'ends_on' => $schedule->ends_on->toDateString(),
-            // Today on the app clock, for the Calendar's today marker (#697).
+            // Today on the org wall clock, for the Calendar's today marker (#697, #782).
             'today' => $today->toDateString(),
             // The day both views open at (#697): today for a current Schedule that began
             // before today, so a reader lands on what is still ahead; the first day for an
