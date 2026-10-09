@@ -6,8 +6,10 @@ use App\Models\FeedbackItem;
 use App\Models\Member;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\RouteCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -351,4 +353,23 @@ it('returns 404 from the comment image action in production (controller layer)',
     $this->actingAs(Member::factory()->create())
         ->get("/feedback/comment-images/{$image->id}")
         ->assertNotFound();
+});
+
+// --- Migration ----------------------------------------------------------------
+
+it('rolls back to a required comment body, keeping an image-only comment as an empty one', function () {
+    $comment = FeedbackComment::factory()->create(['body' => null]);
+
+    $this->artisan('migrate:rollback', [
+        '--database' => 'feedback',
+        '--path' => 'database/migrations/feedback',
+        '--step' => 1,
+    ])->assertSuccessful();
+
+    $schema = Schema::connection('feedback');
+    $body = collect($schema->getColumns('feedback_comments'))->firstWhere('name', 'body');
+
+    expect($schema->hasTable('feedback_comment_images'))->toBeFalse()
+        ->and($body['nullable'])->toBeFalse()
+        ->and(DB::connection('feedback')->table('feedback_comments')->where('id', $comment->id)->value('body'))->toBe('');
 });

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -32,8 +33,18 @@ return new class extends Migration
         });
     }
 
+    /**
+     * The body becomes required again. An image-only comment keeps an empty body, so the
+     * rollback does not fail on it.
+     */
     public function down(): void
     {
         Schema::dropIfExists('feedback_comment_images');
+
+        DB::connection($this->connection)->table('feedback_comments')->whereNull('body')->update(['body' => '']);
+
+        Schema::table('feedback_comments', function (Blueprint $table) {
+            $table->text('body')->nullable(false)->change();
+        });
     }
 };
