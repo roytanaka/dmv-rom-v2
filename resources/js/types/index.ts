@@ -297,6 +297,8 @@ export interface LibraryDocument {
     filename: string | null;
     /** Lower-case extension of the original filename, or null. */
     extension: string | null;
+    /** The stored file's MIME type, for its file-type icon (#777); null for a link. */
+    mimeType: string | null;
     sizeBytes: number | null;
     /** A UTC instant. */
     updatedAt: string;

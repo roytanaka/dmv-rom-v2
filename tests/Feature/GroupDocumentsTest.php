@@ -194,6 +194,7 @@ it('lists the root Documents for a member, sorted by name', function () {
             ->where('library.sections.0.documents.1.title', null)
             ->where('library.sections.0.documents.1.filename', 'minutes.pdf')
             ->where('library.sections.0.documents.1.extension', 'pdf')
+            ->where('library.sections.0.documents.1.mimeType', 'application/pdf')
             ->where('library.sections.0.documents.1.sizeBytes', 2048)
             ->where('library.sections.0.documents.1.updatedAt', $minutes->updated_at->toIso8601String())
             ->where('library.sections.0.documents.1.uploader', null)

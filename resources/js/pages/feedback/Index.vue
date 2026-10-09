@@ -2,7 +2,8 @@
 // The Feedback page (#676, ADR-0029 §13): every Feedback item, newest first, from every
 // Tester. Each row links to the item's page (#677). A muted `#N` leads each row and a
 // chat icon shows the comment count (#701). Testers filter by type and by status
-// (#679), or by Open or Closed status; the filters are query parameters, so a filtered list has a URL. Outside
+// (#679), or by Open or Closed status; the filters are query parameters, so a filtered list has a URL. The index
+// opens on the filters chosen last, kept in the browser (#775); with none kept, on Open. Outside
 // production only. Type and status labels are chrome (the lang keys come from the enums);
 // the Tester's name and message are content, shown as sent.
 import TextLink from '@/components/TextLink.vue';
@@ -12,12 +13,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatFeedbackDate, STATUS_TONES, type FeedbackOption } from '@/feedback/display';
+import { openingFilters, rememberFilters, type FeedbackFilters } from '@/feedback/indexFilters';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { PhChatCircle } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 
 interface FeedbackRow {
     id: number;
@@ -29,11 +31,6 @@ interface FeedbackRow {
     commentsCount: number;
     createdAt: string;
     href: string;
-}
-
-interface FeedbackFilters {
-    type: string | null;
-    status: string | null;
 }
 
 const props = defineProps<{
@@ -58,6 +55,8 @@ const ALL = 'all';
 const filtered = computed(() => props.filters.type !== null || props.filters.status !== null);
 
 function applyFilters(filters: FeedbackFilters): void {
+    rememberFilters(filters);
+
     const query: Record<string, string> = {};
 
     if (filters.type !== null) query.type = filters.type;
@@ -77,6 +76,13 @@ const statusFilter = computed({
 });
 
 const clearFilters = (): void => applyFilters({ type: null, status: null });
+
+// A URL without filters opens on the remembered ones; a URL with filters wins and is remembered.
+onMounted(() => {
+    const opening = openingFilters(page.url, props.filters);
+
+    if (opening !== null) applyFilters(opening);
+});
 </script>
 
 <template>
