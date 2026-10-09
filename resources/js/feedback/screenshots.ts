@@ -33,6 +33,14 @@ export function addScreenshots(current: File[], incoming: File[], fallbackName: 
     return { files, errors };
 }
 
+// The server's errors for one file field, in order: `field` for the count, `field.N` for
+// each file. The send dialog's field is `screenshots`; a comment's is `images` (#778).
+export function fileErrorMessages(errors: Record<string, string>, field: string): string[] {
+    return Object.entries(errors)
+        .filter(([key]) => key === field || key.startsWith(`${field}.`))
+        .map(([, message]) => message);
+}
+
 // A file size as a lang key and number: whole KB below 1 MB, one decimal in MB from 1 MB.
 export function sizeLabel(bytes: number): { key: string; size: string } {
     if (bytes >= 1024 * 1024) {

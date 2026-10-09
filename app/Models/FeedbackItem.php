@@ -8,6 +8,7 @@ use Database\Factories\FeedbackItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 /**
  * A Feedback item (ADR-0029): one thing a Tester sends from a non-production app. It lives
@@ -103,5 +104,16 @@ class FeedbackItem extends Model
     public function screenshots(): HasMany
     {
         return $this->hasMany(FeedbackScreenshot::class);
+    }
+
+    /**
+     * Every image on this item's comments (#778), through the comments. Countable with
+     * `withCount('commentImages')`.
+     *
+     * @return HasManyThrough<FeedbackCommentImage, FeedbackComment, $this>
+     */
+    public function commentImages(): HasManyThrough
+    {
+        return $this->hasManyThrough(FeedbackCommentImage::class, FeedbackComment::class);
     }
 }

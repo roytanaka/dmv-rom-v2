@@ -7,6 +7,7 @@ use App\Enums\FeedbackType;
 use App\Http\Requests\StoreFeedbackCommentRequest;
 use App\Http\Requests\StoreFeedbackItemRequest;
 use App\Models\FeedbackComment;
+use App\Models\FeedbackCommentImage;
 use App\Models\FeedbackItem;
 use App\Models\FeedbackScreenshot;
 use App\Models\Member;
@@ -89,7 +90,7 @@ class FeedbackController extends Controller implements HasMiddleware
 
     /**
      * One Feedback item's page (§13): the message, its screenshots (§9), everything
-     * captured with it, and the comments, oldest first (§8). Every logged-in Tester reads every item (§4).
+     * captured with it, and the comments, oldest first (§8), each with its images (#778). Every logged-in Tester reads every item (§4).
      * Only the Support-operator sees the status picker and the delete controls (§7, #679).
      * `can.manage` reads the same direct predicate as the triage Form Requests.
      */
@@ -123,6 +124,7 @@ class FeedbackController extends Controller implements HasMiddleware
                     'downloadHref' => route('feedback.screenshots.download', [$screenshot, 'download' => 1], false),
                 ]),
             'comments' => $feedbackItem->comments()
+                ->with(['images' => fn ($query) => $query->orderBy('id')])
                 ->oldest()
                 ->orderBy('id')
                 ->get()
@@ -131,6 +133,14 @@ class FeedbackController extends Controller implements HasMiddleware
                     'testerName' => $comment->tester_name,
                     'body' => $comment->body,
                     'createdAt' => $comment->created_at->toIso8601String(),
+                    'images' => $comment->images->map(fn (FeedbackCommentImage $image) => [
+                        'id' => $image->id,
+                        'filename' => $image->original_filename,
+                        'sizeBytes' => $image->size_bytes,
+                        'mimeType' => $image->mime_type,
+                        'href' => route('feedback.comment-images.download', $image, false),
+                        'downloadHref' => route('feedback.comment-images.download', [$image, 'download' => 1], false),
+                    ]),
                     'deleteHref' => route('feedback.comments.destroy', [$feedbackItem, $comment], false),
                 ]),
             'listHref' => route('feedback', [], false),
@@ -144,11 +154,16 @@ class FeedbackController extends Controller implements HasMiddleware
 
     /**
      * Add a comment under a Feedback item (§8). Any logged-in Member may comment; the
-     * name is the Tester's typed one, like on a send. Comments are never edited.
+     * name is the Tester's typed one, like on a send. Comments are never edited. Its
+     * images (#778) are stored with it, in one transaction on the feedback connection.
      */
-    public function storeComment(StoreFeedbackCommentRequest $request, FeedbackItem $feedbackItem): RedirectResponse
+    public function storeComment(StoreFeedbackCommentRequest $request, FeedbackItem $feedbackItem, FeedbackScreenshotStorage $images): RedirectResponse
     {
-        $feedbackItem->comments()->create($request->validated());
+        DB::connection('feedback')->transaction(function () use ($request, $feedbackItem, $images) {
+            $comment = $feedbackItem->comments()->create($request->safe()->except('images'));
+
+            $images->store($comment->images(), $request->file('images', []));
+        });
 
         return back();
     }
@@ -176,7 +191,7 @@ class FeedbackController extends Controller implements HasMiddleware
                 'app_version' => AppVersion::label(),
             ]);
 
-            $screenshots->store($item, $request->file('screenshots', []));
+            $screenshots->store($item->screenshots(), $request->file('screenshots', []));
         });
 
         return back();

@@ -4,12 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\FeedbackScreenshot;
 use App\Policies\FeedbackScreenshotPolicy;
-use App\Rules\FeedbackScreenshotImage;
+use App\Support\FeedbackScreenshotStorage;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -18,9 +17,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * filename. Every request passes a policy check, as the hard rules require
  * ({@see FeedbackScreenshotPolicy}).
  *
- * Only a PNG, JPEG, WebP, or GIF goes inline. Any other type always downloads, because an
- * SVG or HTML file shown inline could run script on this origin. Every response sends
- * `nosniff`, so the browser never second-guesses the stored type.
+ * Only a PNG, JPEG, WebP, or GIF goes inline, and every response sends `nosniff`
+ * ({@see FeedbackScreenshotStorage::response()}).
  *
  * No access log, unlike the Documents download flow (docs/conventions.md § Documents): the
  * item page loads every screenshot as an image, so a log line would record page views, and
@@ -40,22 +38,10 @@ class DownloadFeedbackScreenshotController extends Controller implements HasMidd
         ];
     }
 
-    public function __invoke(Request $request, FeedbackScreenshot $feedbackScreenshot): StreamedResponse
+    public function __invoke(Request $request, FeedbackScreenshot $feedbackScreenshot, FeedbackScreenshotStorage $storage): StreamedResponse
     {
         Gate::authorize('download', $feedbackScreenshot);
 
-        $disk = Storage::disk('local');
-
-        abort_unless($disk->exists($feedbackScreenshot->storage_path), 404);
-
-        $inline = ! $request->boolean('download')
-            && in_array($feedbackScreenshot->mime_type, FeedbackScreenshotImage::ALLOWED_MIMES, true);
-
-        return $disk->response(
-            $feedbackScreenshot->storage_path,
-            $feedbackScreenshot->original_filename,
-            ['Content-Type' => $feedbackScreenshot->mime_type, 'X-Content-Type-Options' => 'nosniff'],
-            $inline ? 'inline' : 'attachment',
-        );
+        return $storage->response($feedbackScreenshot, $request->boolean('download'));
     }
 }

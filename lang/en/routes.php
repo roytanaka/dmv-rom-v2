@@ -44,6 +44,7 @@ return [
     'feedback.comments' => 'feedback/{feedbackItem}/comments',
     'feedback.comment' => 'feedback/{feedbackItem}/comments/{feedbackComment}',
     'feedback.screenshot' => 'feedback/screenshots/{feedbackScreenshot}',
+    'feedback.comment-image' => 'feedback/comment-images/{feedbackCommentImage}',
 
     // Zone C — officer/admin
     'officer.members' => 'officer/members',

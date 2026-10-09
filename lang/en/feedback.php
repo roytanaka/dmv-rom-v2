@@ -92,6 +92,10 @@ return [
         'name' => 'Your name',
         'body' => 'Comment',
         'add' => 'Add comment',
+        // A comment carries text, images (#778), or both.
+        'error_empty' => 'Add a comment, an image, or both.',
+        'images' => 'Images',
+        'images_list' => 'Images to add',
         'delete' => 'Delete',
         'delete_label' => 'Delete the comment by :name',
         'delete_title' => 'Delete this comment?',
