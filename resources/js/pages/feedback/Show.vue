@@ -9,6 +9,7 @@
 //
 // The Support-operator (`can.manage`, #679, §7) also sets the status, deletes the item, and
 // deletes a comment. Each delete asks first. The server checks again on every request.
+import ImageViewer from '@/components/ImageViewer.vue';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatFeedbackDate, screenshotSize, STATUS_TONES, type FeedbackOption } from '@/feedback/display';
 import { rememberedName, rememberName } from '@/feedback/testerName';
 import AppLayout from '@/layouts/AppLayout.vue';
+import type { ViewerEntry } from '@/viewer/entries';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { PhTrash } from '@phosphor-icons/vue';
@@ -50,12 +52,15 @@ interface FeedbackItemDetail {
     appVersion: string | null;
 }
 
-// Each screenshot loads through its download route, which checks the policy.
+// Each screenshot loads through its route, which checks the policy: `href` inline for the
+// thumbnail and the viewer (#776), `downloadHref` as an attachment.
 interface FeedbackScreenshotRow {
     id: number;
     filename: string;
     sizeBytes: number;
+    mimeType: string;
     href: string;
+    downloadHref: string;
 }
 
 interface FeedbackCommentRow {
@@ -92,6 +97,24 @@ const formatDate = (iso: string): string => formatFeedbackDate(iso, page.props.l
 const viewport = computed(() =>
     props.item.viewportWidth === null || props.item.viewportHeight === null ? null : `${props.item.viewportWidth} × ${props.item.viewportHeight}`,
 );
+
+// A click on a screenshot opens it in the image viewer (#776).
+const viewerEntries = computed<ViewerEntry[]>(() =>
+    props.screenshots.map((screenshot) => ({
+        key: screenshot.id,
+        filename: screenshot.filename,
+        mimeType: screenshot.mimeType,
+        src: screenshot.href,
+        downloadHref: screenshot.downloadHref,
+    })),
+);
+const viewerOpen = ref(false);
+const viewerStart = ref(0);
+
+function openViewer(index: number): void {
+    viewerStart.value = index;
+    viewerOpen.value = true;
+}
 
 const form = useForm({
     tester_name: rememberedName(),
@@ -171,18 +194,18 @@ function deleteComment(): void {
             <section v-if="screenshots.length" class="flex flex-col gap-3" aria-labelledby="feedback-item-screenshots">
                 <h2 id="feedback-item-screenshots" class="text-rom-ink text-base font-semibold">{{ trans('feedback.screenshots.title') }}</h2>
                 <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <li v-for="screenshot in screenshots" :key="screenshot.id">
-                        <!-- A plain link, not TextLink: TextLink makes an Inertia visit, and this is a file download. -->
-                        <a :href="screenshot.href" class="group flex flex-col gap-1">
+                    <li v-for="(screenshot, index) in screenshots" :key="screenshot.id">
+                        <button type="button" class="group flex w-full cursor-pointer flex-col gap-1 text-left" @click="openViewer(index)">
                             <img :src="screenshot.href" :alt="screenshot.filename" class="bg-muted aspect-video w-full border object-contain" />
                             <span
                                 class="text-rom-slate decoration-rom-slate/40 group-hover:text-rom-slate-700 text-sm break-all underline underline-offset-4"
                                 >{{ screenshot.filename }}</span
                             >
                             <span class="text-muted-foreground text-sm">{{ screenshotSize(screenshot.sizeBytes) }}</span>
-                        </a>
+                        </button>
                     </li>
                 </ul>
+                <ImageViewer v-model:open="viewerOpen" :entries="viewerEntries" :start-index="viewerStart" />
             </section>
 
             <Card v-if="can.manage">

@@ -118,7 +118,9 @@ class FeedbackController extends Controller implements HasMiddleware
                     'id' => $screenshot->id,
                     'filename' => $screenshot->original_filename,
                     'sizeBytes' => $screenshot->size_bytes,
+                    'mimeType' => $screenshot->mime_type,
                     'href' => route('feedback.screenshots.download', $screenshot, false),
+                    'downloadHref' => route('feedback.screenshots.download', [$screenshot, 'download' => 1], false),
                 ]),
             'comments' => $feedbackItem->comments()
                 ->oldest()
