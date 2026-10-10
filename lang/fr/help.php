@@ -52,6 +52,7 @@ return [
             'vetting' => 'Vérification',
             'librarian' => 'Bibliothécaire',
             'news_editor' => 'Responsable des nouvelles',
+            'booker' => 'Responsable des réservations',
             'super_tier' => 'Super-niveau',
             'support_operator' => 'Opérateur de soutien',
             'records' => 'Records',

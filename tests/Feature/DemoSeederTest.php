@@ -14,6 +14,7 @@ use App\Enums\ScheduleState;
 use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
+use App\Models\BookingType;
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
@@ -1542,4 +1543,54 @@ it('is idempotent across the Document library rows — re-seeding heals rather t
     $this->seed(DemoSeeder::class);
 
     expect($counts())->toBe($before);
+});
+
+/*
+ * Bookings (#794, ADR-0032 §2, §6): Docents and GDR run bookings, each with its five booking
+ * types (GDR's in French), its group-tour shift kind and its group-tour Schedule label.
+ */
+it('turns bookings on for Docents and GDR only', function () {
+    expect(Group::where('has_bookings', true)->pluck('slug')->sort()->values()->all())
+        ->toBe(['docents', 'guides-du-rom']);
+});
+
+it('seeds the Docents and GDR booking types with their rates, in order', function (string $slug, array $expected) {
+    $group = Group::where('slug', $slug)->firstOrFail();
+
+    expect($group->bookingTypes()->ordered()->get()
+        ->map(fn ($type) => [$type->name, $type->rate_per_visitor, $type->rate_per_docent_hour, $type->active])
+        ->all())->toBe($expected);
+})->with([
+    'Docents' => ['docents', [
+        ['Tour Paid', '5.00', '0.00', true],
+        ['Tour Free', '0.00', '0.00', true],
+        ['Tour Internal', '0.00', '0.00', true],
+        ['Spot Paid', '0.00', '25.00', true],
+        ['Spot Free', '0.00', '0.00', true],
+    ]],
+    'GDR' => ['guides-du-rom', [
+        ['Visite payante', '5.00', '0.00', true],
+        ['Visite gratuite', '0.00', '0.00', true],
+        ['Visite interne', '0.00', '0.00', true],
+        ['Poste payant', '0.00', '25.00', true],
+        ['Poste gratuit', '0.00', '0.00', true],
+    ]],
+]);
+
+it('seeds the group-tour shift kind and Schedule label for Docents and GDR', function (string $slug, string $kind, string $label) {
+    $group = Group::where('slug', $slug)->firstOrFail();
+
+    expect(ShiftKind::find($group->group_tour_shift_kind_id)?->name)->toBe($kind)
+        ->and($group->group_tour_label)->toBe($label);
+})->with([
+    'Docents' => ['docents', 'Group Tour', 'Group tours'],
+    'GDR' => ['guides-du-rom', 'Visite de groupe', 'Visites de groupe'],
+]);
+
+it('keeps the booking types idempotent across a reseed', function () {
+    $before = BookingType::count();
+
+    $this->seed(DemoSeeder::class);
+
+    expect(BookingType::count())->toBe($before)->toBe(10);
 });

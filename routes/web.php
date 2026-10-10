@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
+use App\Http\Controllers\BookingTypeController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
@@ -485,6 +486,27 @@ Route::patch('tours/{tour}/shift-kinds', [TourController::class, 'updateShiftKin
 Route::delete('tours/{tour}', [TourController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('tours.destroy');
+
+// Booking types and group-tour settings (#794, ADR-0032 §6). The Settings tab's Group tours card —
+// add, rename, re-rate, retire, restore, reorder and delete types, and set the group-tour shift kind
+// and Schedule label — edited by a Booker or Chair of a Group running bookings. Add, reorder and the
+// settings nest under the Group (bound by slug); the rest bind the type by id. Each is authorized in
+// its Form Request through the BookingTypePolicy's `manage` gate.
+Route::post('groups/{group}/booking-types', [BookingTypeController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('groups.booking-types.store');
+Route::patch('groups/{group}/booking-types/order', [BookingTypeController::class, 'reorder'])
+    ->middleware(['auth'])
+    ->name('groups.booking-types.reorder');
+Route::patch('groups/{group}/group-tours', [BookingTypeController::class, 'updateSettings'])
+    ->middleware(['auth'])
+    ->name('groups.group-tours.update');
+Route::patch('booking-types/{bookingType}', [BookingTypeController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('booking-types.update');
+Route::delete('booking-types/{bookingType}', [BookingTypeController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('booking-types.destroy');
 
 // The status rules (#793, ADR-0033 §7) — the Settings tab's Tour rules card: the trainee Tour,
 // the starter Tours and the LOA rule, edited by the Chair of a vetting Group. Authorized in

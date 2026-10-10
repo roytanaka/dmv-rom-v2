@@ -11,6 +11,7 @@ use App\Enums\ScheduleState;
 use App\Enums\ShiftAudience;
 use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
+use App\Models\BookingType;
 use App\Models\Document;
 use App\Models\DocumentFolder;
 use App\Models\Group;
@@ -208,6 +209,7 @@ class GroupController extends Controller
         $canManageObjects = $request->user()->can('manageObjects', [Schedule::class, $group]);
         $canManageTours = $request->user()->can('manage', [Tour::class, $group]);
         $canManageTourRules = $request->user()->can('manageRules', [Tour::class, $group]);
+        $canManageBookings = $request->user()->can('manage', [BookingType::class, $group]);
 
         return Inertia::render('groups/Show', [
             'group' => [
@@ -311,6 +313,10 @@ class GroupController extends Controller
                 // `manageTourRules` drives the Settings tab's Tour rules card (#793, ADR-0033 §7) —
                 // the Chair of a vetting Group. UI hint only; UpdateTourRulesRequest re-checks.
                 'manageTourRules' => $canManageTourRules,
+                // `manageBookings` drives the Settings tab's Group tours card (#794, ADR-0032 §6) —
+                // a Booker or Chair of a Group running bookings. UI hint only; the booking-type
+                // Form Requests re-check the BookingTypePolicy on write.
+                'manageBookings' => $canManageBookings,
                 // `viewTours` drives the Tours tab (#792, ADR-0033 §5) — a Member of a vetting Group,
                 // or the super-tier. UI hint only; the section re-checks it.
                 'viewTours' => $canViewTours,
@@ -377,8 +383,8 @@ class GroupController extends Controller
             // gate above — not on the qualification screens that share the section.
             'tours' => $section === 'tours' && $qualifications === null ? TourPayloads::toursPage($group) : [],
             'settings' => $section === 'settings'
-                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours, $canManageTourRules)
-                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null, 'tourRules' => null],
+                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours, $canManageTourRules, $canManageBookings)
+                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null, 'tourRules' => null, 'bookings' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -409,6 +415,7 @@ class GroupController extends Controller
     private function canManageSettings(Request $request, Group $group): bool
     {
         return $request->user()->can('manage', [Tour::class, $group])
+            || $request->user()->can('manage', [BookingType::class, $group])
             || collect(['updateReminders', 'updateEmptyDeskAlert', 'updateSelfServe', 'manageShiftKinds', 'manageObjects'])
                 ->contains(fn (string $ability): bool => $request->user()->can($ability, [Schedule::class, $group]));
     }
@@ -436,6 +443,7 @@ class GroupController extends Controller
      *     objects: list<array{id: int, name: string, active: bool, sortOrder: int}>|null,
      *     tours: array{tours: list<array<string, mixed>>, shiftKinds: list<array{id: int, name: string, active: bool}>}|null,
      *     tourRules: array{traineeTourId: int|null, starterTourIds: list<int>, loaRemovesQualifications: bool, tours: list<array{id: int, name: string, active: bool}>}|null,
+     *     bookings: array<string, mixed>|null,
      * }
      */
     private function settings(
@@ -447,6 +455,7 @@ class GroupController extends Controller
         bool $canManageObjects,
         bool $canManageTours,
         bool $canManageTourRules,
+        bool $canManageBookings,
     ): array {
         // The Empty-desk, Shift kinds and Tours cards all read the Group's kinds in picker order,
         // so they share one query.
@@ -511,6 +520,7 @@ class GroupController extends Controller
                     ])->values()->all(),
             ] : null,
             'tourRules' => $group->has_vetting && $canManageTourRules ? $this->tourRules($group) : null,
+            'bookings' => $group->has_bookings && $canManageBookings ? $this->bookingSettings($group) : null,
         ];
     }
 
@@ -533,6 +543,36 @@ class GroupController extends Controller
                     'id' => $tour->id,
                     'name' => $tour->name,
                     'active' => $tour->active,
+                ])->values()->all(),
+        ];
+    }
+
+    /**
+     * The Group tours card (#794, ADR-0032 §1, §4, §6): the booking types in order, retired ones
+     * included, with their rates; the group-tour shift kind and Schedule label; and the Group's
+     * shift kinds to pick from.
+     *
+     * @return array{types: list<array{id: int, name: string, ratePerVisitor: string, ratePerDocentHour: string, active: bool, sortOrder: int}>, shiftKindId: int|null, label: string|null, shiftKinds: list<array{id: int, name: string, active: bool}>}
+     */
+    private function bookingSettings(Group $group): array
+    {
+        return [
+            'types' => $group->bookingTypes()->ordered()->get()
+                ->map(fn (BookingType $type): array => [
+                    'id' => $type->id,
+                    'name' => $type->name,
+                    'ratePerVisitor' => $type->rate_per_visitor,
+                    'ratePerDocentHour' => $type->rate_per_docent_hour,
+                    'active' => $type->active,
+                    'sortOrder' => $type->sort_order,
+                ])->values()->all(),
+            'shiftKindId' => $group->group_tour_shift_kind_id,
+            'label' => $group->group_tour_label,
+            'shiftKinds' => $group->shiftKinds()->orderBy('sort_order')->get()
+                ->map(fn (ShiftKind $kind): array => [
+                    'id' => $kind->id,
+                    'name' => $kind->name,
+                    'active' => $kind->active,
                 ])->values()->all(),
         ];
     }

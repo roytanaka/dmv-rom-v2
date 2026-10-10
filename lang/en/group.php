@@ -190,6 +190,35 @@ return [
     ],
 
     // The Tour rules card (#793, ADR-0033 §7): what happens to qualifications when a standing changes.
+    // The Group tours card (#794, ADR-0032 §6): the booking types and the group-tour settings.
+    'booking_types' => [
+        'heading' => 'Group tours',
+        'types_heading' => 'Booking types',
+        'empty' => 'This group has no booking types yet.',
+        'name' => 'Name',
+        'rate_per_visitor' => 'Rate per visitor ($)',
+        'rate_per_docent_hour' => 'Rate per docent-hour ($)',
+        'rates' => ':visitor per visitor, :hour per docent-hour',
+        'add' => 'Add booking type',
+        'add_title' => 'Add a booking type',
+        'edit' => 'Edit',
+        'edit_title' => 'Edit :type',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+        'retire' => 'Retire',
+        'restore' => 'Restore',
+        'retired_badge' => 'Retired',
+        'move_up' => 'Move up',
+        'move_down' => 'Move down',
+        'delete' => 'Delete',
+        'delete_title' => 'Delete :type?',
+        'delete_body' => 'You cannot undo this.',
+        'cannot_delete' => 'Group tours use this booking type. Retire it instead.',
+        'shift_kind_label' => 'Group-tour shift kind',
+        'none' => 'None',
+        'label_label' => 'Group-tour schedule name',
+    ],
+
     'tour_rules' => [
         'heading' => 'Tour rules',
         'trainee_label' => 'Trainee tour',
@@ -632,6 +661,7 @@ return [
         'vetting' => 'Vetting',
         'librarian' => 'Librarian',
         'news_editor' => 'News Editor',
+        'booker' => 'Booker',
         // Synthetic label for the root DMV Group's executive leadership (President /
         // VPs), which carry no per-Group role row — see GroupController::leadership.
         'executive' => 'Executive',
