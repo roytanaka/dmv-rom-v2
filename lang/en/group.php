@@ -328,6 +328,8 @@ return [
             'placeholder' => 'Choose a tour',
             'required' => 'Choose the tour you will give.',
             'not_givable' => 'You cannot give this tour on this shift.',
+            // A Scheduler setting a Tour the kind does not offer (#806).
+            'not_offered' => 'This tour is not given on this shift.',
             'none_here' => 'This shift has no tours.',
             // Officer placement and changing a seat's Tour (#791, ADR-0033 §6).
             'none' => 'No tour',

@@ -102,4 +102,19 @@ trait ChoosesTour
             'tour_id.prohibited' => trans('group.scheduling_panel.tour.none_here'),
         ];
     }
+
+    /**
+     * Messages for {@see officerTourRules()} (#806): the Scheduler does not give the Tour, so a
+     * Tour the kind does not offer is refused as not given on the Shift.
+     *
+     * @return array<string, string>
+     */
+    protected function officerTourMessages(): array
+    {
+        return [
+            ...$this->tourMessages(),
+            'tour_id.integer' => trans('group.scheduling_panel.tour.not_offered'),
+            'tour_id.in' => trans('group.scheduling_panel.tour.not_offered'),
+        ];
+    }
 }

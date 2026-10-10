@@ -138,7 +138,7 @@ it('refuses a placement on a retired or unmapped Tour, and any Tour on a Tour-le
     foreach ([$retired, $unmapped] as $tour) {
         $this->actingAs($scheduler)
             ->post(route('assignments.store', $shift), ['member_id' => $member->id, 'tour_id' => $tour->id])
-            ->assertSessionHasErrors('tour_id');
+            ->assertSessionHasErrors(['tour_id' => 'This tour is not given on this shift.']);
     }
 
     $this->actingAs($scheduler)
@@ -333,7 +333,7 @@ it('refuses a Scheduler a retired or unmapped Tour, and any Tour on a Tour-less 
     foreach ([$retired, $unmapped] as $tour) {
         $this->actingAs($scheduler)
             ->patch(route('sign-ups.tour.update', $signUp), ['tour_id' => $tour->id])
-            ->assertSessionHasErrors('tour_id');
+            ->assertSessionHasErrors(['tour_id' => 'This tour is not given on this shift.']);
     }
 
     $this->actingAs($scheduler)

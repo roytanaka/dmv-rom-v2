@@ -78,7 +78,7 @@ class StoreAssignmentRequest extends FormRequest
      */
     public function messages(): array
     {
-        return $this->tourMessages();
+        return $this->officerTourMessages();
     }
 
     /**
