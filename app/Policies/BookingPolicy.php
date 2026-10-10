@@ -80,12 +80,13 @@ class BookingPolicy
 
     /**
      * Read a Booking's office fields (§5): the order number and order date, and Earned (#797). The
-     * Booker and the Statistician; the Chair implies both.
+     * Booker and the Statistician; the Chair implies both. While the Group runs bookings.
      */
     public function viewOfficerFields(Member $actor, Booking $booking): bool
     {
-        return $actor->canActAs(Role::Booker, $booking->group)
-            || $actor->canActAs(Role::Statistician, $booking->group);
+        return $booking->group->has_bookings
+            && ($actor->canActAs(Role::Booker, $booking->group)
+                || $actor->canActAs(Role::Statistician, $booking->group));
     }
 
     /**
@@ -118,11 +119,11 @@ class BookingPolicy
     }
 
     /**
-     * Read the Group's past client names for the form's suggestions (§10): whoever may add a
-     * Booking.
+     * Read the Group's past client names for the form's suggestions (§10): whoever may add or
+     * change a Booking, so the Statistician's change form gets them too.
      */
     public function suggestClients(Member $actor, Group $group): bool
     {
-        return $this->create($actor, $group);
+        return $this->change($actor, $group);
     }
 }

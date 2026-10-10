@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Category;
 use App\Enums\DeliveryKind;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
@@ -158,6 +159,23 @@ it('sends the Request to the whole current roster when the Tour is open to all',
 
     expect(queuedAddresses())->toBe(['a@example.test', 'b@example.test', 'booker@example.test']);
 });
+
+it('leaves Members on DMV-wide LOA or withdrawn out of the Request', function (Category $category) {
+    [$group, $tour, $type] = mailBookingGroup();
+    $tour->update(['open_to_all' => true]);
+    $booker = mailBookingMember($group, Role::Booker, attributes: ['email' => 'booker@example.test']);
+    mailBookingMember($group, attributes: ['email' => 'a@example.test']);
+    mailBookingMember($group, attributes: ['email' => 'away@example.test', 'category' => $category]);
+
+    $this->actingAs($booker)
+        ->post(route('bookings.store', ['group' => $group]), mailBookingPayload($tour, $type))
+        ->assertSessionHasNoErrors();
+
+    expect(queuedAddresses())->toBe(['a@example.test', 'booker@example.test']);
+})->with([
+    'LOA' => [Category::Loa],
+    'withdrawn' => [Category::Withdrawn],
+]);
 
 it('sends a Confirmation instead when the Booking is already full', function () {
     [$group, $tour, $type] = mailBookingGroup();

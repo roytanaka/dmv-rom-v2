@@ -325,6 +325,17 @@ it('shows the order number and date to the Booker, Statistician, Chair and super
     'super-tier' => [null],
 ]);
 
+it('withholds the order fields once the Group stops running bookings', function () {
+    [$group, $tour, $type] = addBookingGroup();
+    $schedule = bookedSchedule($group, $tour, $type);
+    $chair = addBookingMember($group, Role::Chair);
+    $group->update(['has_bookings' => false]);
+
+    $this->actingAs($chair)
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule]))
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.shifts.0.booking.officer', null));
+});
+
 it('shows anyone else only the time, Tour and seats', function () {
     [$group, $tour, $type] = addBookingGroup();
     $schedule = bookedSchedule($group, $tour, $type);

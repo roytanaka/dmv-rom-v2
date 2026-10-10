@@ -169,6 +169,19 @@ it('lets a Booker or Scheduler place any Member of the Group, qualified or not',
     'Scheduler' => [Role::Scheduler],
 ]);
 
+it('records the Booking Tour on a placement that names no Tour', function () {
+    [$group, $tour, $type] = bookingSignUpGroup();
+    $booking = bookingSignUpBooking($group, $tour, $type);
+    $booker = bookingSignUpMember($group, Role::Booker);
+    $docent = bookingSignUpMember($group);
+
+    $this->actingAs($booker)
+        ->post(route('assignments.store', ['shift' => $booking->shift_id]), ['member_id' => $docent->id])
+        ->assertSessionHasNoErrors();
+
+    expect(SignUp::sole()->tour_id)->toBe($tour->id);
+});
+
 it('refuses a Booker placing on a Shift that is not a Booking, and a plain Member placing anyone', function () {
     [$group, $tour, $type] = bookingSignUpGroup();
     $booking = bookingSignUpBooking($group, $tour, $type);

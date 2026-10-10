@@ -2,8 +2,10 @@
 
 namespace App\Support\Notices;
 
+use App\Enums\Category;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Enums\MembershipStatus;
 use App\Mail\BookingMail;
 use App\Models\Booking;
 use App\Models\Delivery;
@@ -44,7 +46,9 @@ class BookingMailWriter
     /**
      * The Request: to every current Member of the Group with an active qualification on the
      * Booking's Tour, or the whole current roster when the Tour is open to all. "Current" is the
-     * sign-up floor ({@see MembershipStatus::canSignUp}): asking someone who cannot sign up is noise.
+     * same two floors that gate taking a seat: the DMV-wide standing ({@see Category::canSignUp})
+     * and the Group standing ({@see MembershipStatus::canSignUp}). Asking someone who cannot sign
+     * up, a Member on LOA or withdrawn, is noise.
      */
     public function request(Booking $booking, Member $sender): void
     {
@@ -53,7 +57,8 @@ class BookingMailWriter
         $recipients = $booking->group->memberships()
             ->with(['member', 'qualifications'])
             ->get()
-            ->filter(fn (GroupMember $membership): bool => $membership->status->canSignUp())
+            ->filter(fn (GroupMember $membership): bool => $membership->status->canSignUp()
+                && $membership->member->category->canSignUp())
             ->filter(fn (GroupMember $membership): bool => $tour->open_to_all
                 || $membership->qualifications->contains(fn ($held) => $held->active && $held->tour_id === $tour->id))
             ->map(fn (GroupMember $membership): Member => $membership->member);
