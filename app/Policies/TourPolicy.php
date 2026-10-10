@@ -33,4 +33,15 @@ class TourPolicy
         return $group->has_vetting
             && $actor->canActAs(Role::Vetting, $group);
     }
+
+    /**
+     * Set the Group's status rules (#793, ADR-0033 §7): the trainee Tour, the starter Tours and
+     * the LOA rule. A Chair's call, not the Vetting officer's: the rules act on every Member's
+     * qualifications when their standing changes.
+     */
+    public function manageRules(Member $actor, Group $group): bool
+    {
+        return $group->has_vetting
+            && $actor->canActAs(Role::Chair, $group);
+    }
 }

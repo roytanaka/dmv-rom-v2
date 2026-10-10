@@ -907,6 +907,20 @@ it('lets a seeded Docent sign up for a free Gallery/Theme slot with a Tour, and 
         ->exists())->toBeFalse();
 });
 
+it('seeds the Tour rules for Docents and GDR (#793)', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $gdr = Group::where('slug', DemoSeeder::GUIDES_DU_ROM)->firstOrFail();
+
+    // Docents: the trainee Tour, Museum Highlights as the one starter Tour, LOA keeps qualifications.
+    expect($docents->traineeTour()->sole()->name)->toBe('Museum Highlights – New Docents')
+        ->and($docents->tours()->where('starter', true)->pluck('name')->all())->toBe(['Museum Highlights'])
+        ->and($docents->loa_removes_qualifications)->toBeFalse();
+
+    // GDR: two starter Tours, and LOA removes qualifications.
+    expect($gdr->tours()->where('starter', true)->count())->toBe(2)
+        ->and($gdr->loa_removes_qualifications)->toBeTrue();
+});
+
 it('turns Reminders on with 3 lead days for the five Reminder Groups, off elsewhere', function () {
     // The five Groups that run Reminders today (ADR-0024 §7), each at the standard 3 lead days.
     foreach (['docents', 'guides-du-rom', 'visitor-wayfinders', 'visitor-guides', 'reception'] as $slug) {

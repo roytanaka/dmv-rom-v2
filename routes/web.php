@@ -16,6 +16,7 @@ use App\Http\Controllers\GroupEmptyDeskSettingsController;
 use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\GroupReminderSettingsController;
 use App\Http\Controllers\GroupSelfServeSettingsController;
+use App\Http\Controllers\GroupTourRulesController;
 use App\Http\Controllers\HelpController;
 use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
@@ -484,6 +485,13 @@ Route::patch('tours/{tour}/shift-kinds', [TourController::class, 'updateShiftKin
 Route::delete('tours/{tour}', [TourController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('tours.destroy');
+
+// The status rules (#793, ADR-0033 §7) — the Settings tab's Tour rules card: the trainee Tour,
+// the starter Tours and the LOA rule, edited by the Chair of a vetting Group. Authorized in
+// UpdateTourRulesRequest through the TourPolicy's `manageRules` gate.
+Route::patch('groups/{group}/tour-rules', [GroupTourRulesController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('groups.tour-rules.update');
 
 // Qualification maintenance (#789, ADR-0033 §3, §4) — the by-Tour and by-Member screens' add,
 // change-date and remove. Add nests under the Group (bound by slug) and reactivates an inactive

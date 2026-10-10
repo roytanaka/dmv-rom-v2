@@ -4,6 +4,7 @@
 // roster lines) stay inline on the section where they are read (§2). The tab renders only to a
 // viewer holding a configuration right; each card renders only behind its own `can` hint, and
 // a scheduling card only while the Group runs scheduling. The server re-checks every save.
+import GroupTourRulesCard, { type SettingsTourRules } from '@/components/GroupTourRulesCard.vue';
 import GroupToursCard, { type SettingsTour } from '@/components/GroupToursCard.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,10 @@ const props = defineProps<{
     // `canManageTours`, on a Group that runs vetting.
     tours: { tours: SettingsTour[]; shiftKinds: { id: number; name: string; active: boolean }[] } | null;
     canManageTours: boolean;
+    // The Group's status rules (#793, ADR-0033 §7). Resolved only with `canManageTourRules`, on a
+    // Group that runs vetting.
+    tourRules: SettingsTourRules | null;
+    canManageTourRules: boolean;
     groupSlug: string;
 }>();
 
@@ -52,8 +57,16 @@ const showSelfServe = computed(() => props.canManageSelfServe && props.runsSched
 const showShiftKinds = computed(() => props.canManageShiftKinds && props.runsScheduling && props.shiftKinds !== null);
 const showObjects = computed(() => props.canManageObjects && props.runsScheduling && props.objects !== null);
 const showTours = computed(() => props.canManageTours && props.tours !== null);
+const showTourRules = computed(() => props.canManageTourRules && props.tourRules !== null);
 const showAnyCard = computed(
-    () => showReminders.value || showEmptyDesk.value || showSelfServe.value || showShiftKinds.value || showObjects.value || showTours.value,
+    () =>
+        showReminders.value ||
+        showEmptyDesk.value ||
+        showSelfServe.value ||
+        showShiftKinds.value ||
+        showObjects.value ||
+        showTours.value ||
+        showTourRules.value,
 );
 
 // --- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and lead
@@ -507,6 +520,10 @@ const moveObject = (index: number, delta: number) => {
             <!-- Tours (#788, ADR-0033 §1, §4) — the Group's Tour list and kind mapping, for a Vetting
                  officer or Chair of a vetting Group. -->
             <GroupToursCard v-if="showTours && tours" :tours="tours.tours" :shift-kinds="tours.shiftKinds" :group-slug="groupSlug" />
+
+            <!-- Tour rules (#793, ADR-0033 §7) — the trainee Tour, the starter Tours and the LOA rule,
+                 for the Chair of a vetting Group. -->
+            <GroupTourRulesCard v-if="showTourRules && tourRules" :rules="tourRules" :group-slug="groupSlug" />
         </template>
 
         <!-- The tab appears with authority, not with data (ADR-0027 §1): a viewer whose rights

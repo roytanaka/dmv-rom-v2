@@ -49,4 +49,14 @@ class TourFactory extends Factory
             'open_to_all' => true,
         ]);
     }
+
+    /**
+     * A starter Tour, given to a Member who becomes Full (ADR-0033 §7).
+     */
+    public function starter(): static
+    {
+        return $this->state(fn () => [
+            'starter' => true,
+        ]);
+    }
 }
