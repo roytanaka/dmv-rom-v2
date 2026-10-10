@@ -47,7 +47,7 @@
         "@tailwindcss/vite": "^4.3.3",
         "@types/node": "^26.6.3",
         "@vitejs/plugin-vue": "^6.0.9",
-        "@vueuse/core": "^14.4.0",
+        "@vueuse/core": "^15.0.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "concurrently": "^10.0.5",
