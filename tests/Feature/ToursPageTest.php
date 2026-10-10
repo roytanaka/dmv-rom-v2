@@ -71,6 +71,31 @@ it('shows a Member each active Tour with its active holders and Last vet dates',
             ]));
 });
 
+it('marks open-to-all Tours so an empty one reads as open to any Member, not "No one yet"', function () {
+    $group = toursPageGroup();
+    $viewer = toursPageMembershipOf($group)->member;
+    $open = Tour::factory()->openToAll()->create(['group_id' => $group->id, 'name' => 'Canada', 'sort_order' => 0]);
+    $openHeld = Tour::factory()->openToAll()->create(['group_id' => $group->id, 'name' => 'Dinos', 'sort_order' => 1]);
+    $closed = Tour::factory()->create(['group_id' => $group->id, 'name' => 'Egypt', 'sort_order' => 2]);
+    $ada = toursPageMembershipOf($group, member: ['first_name' => 'Ada', 'last_name' => 'Lovelace']);
+    Qualification::factory()->create(['group_member_id' => $ada->id, 'tour_id' => $openHeld->id, 'last_vet_date' => '2025-03-01']);
+
+    $this->actingAs($viewer)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('tours', [
+            ['id' => $open->id, 'name' => 'Canada', 'openToAll' => true, 'members' => []],
+            ['id' => $openHeld->id, 'name' => 'Dinos', 'openToAll' => true, 'members' => [
+                ['memberId' => $ada->member_id, 'name' => 'Ada Lovelace', 'lastVetDate' => '2025-03-01'],
+            ]],
+            ['id' => $closed->id, 'name' => 'Egypt', 'openToAll' => false, 'members' => []],
+        ]));
+
+    expect(__('group.tours_page.open_to_all_none', [], 'en'))->toBe('Any member may give this tour.')
+        ->and(__('group.tours_page.open_to_all_none', [], 'fr'))->toBe('Tout membre peut donner cette visite.')
+        ->and(__('group.tours_page.none', [], 'en'))->toBe('No one yet.');
+});
+
 it('sends no Tours payload on other sections', function () {
     $group = toursPageGroup();
     Tour::factory()->create(['group_id' => $group->id]);

@@ -44,8 +44,8 @@ class StoreSignUpRequest extends FormRequest
     {
         $this->route('shift')->loadMissing('schedule.group');
 
-        // A one-Tour kind fills in its Tour (#790, ADR-0033 §2).
-        $this->fillOnlyTour($this->route('shift'));
+        // The one Tour the taker may give is filled in (#790, #803, ADR-0033 §2).
+        $this->fillOnlyTour($this->route('shift'), $this->user());
     }
 
     /**

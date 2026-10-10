@@ -113,12 +113,13 @@ it('records the chosen Tour on a multi-Tour kind when the Member is qualified', 
     expect(SignUp::sole()->tour_id)->toBe($dinos->id);
 });
 
-it('refuses a sign-up on a Tour kind with no Tour', function () {
+it('refuses a sign-up with no Tour when the Member may give several of the kind\'s Tours', function () {
     $group = signUpTourGroup();
     $egypt = signUpTourTour($group, 'Ancient Egypt');
     $dinos = signUpTourTour($group, 'Dinosaurs');
     $shift = signUpTourShift($group, signUpTourKind($group, [$egypt, $dinos]));
     $member = signUpTourMember($group);
+    signUpTourQualify($member, $egypt);
     signUpTourQualify($member, $dinos);
 
     $this->actingAs($member)
@@ -174,6 +175,36 @@ it('fills in the Tour on a one-Tour kind without asking', function () {
         ->assertSessionHasNoErrors();
 
     expect(SignUp::sole()->tour_id)->toBe($highlights->id);
+});
+
+it('fills in the one Tour the Member may give on a multi-Tour kind (#803)', function () {
+    $group = signUpTourGroup();
+    $highlights = signUpTourTour($group, 'Museum Highlights');
+    $trainee = signUpTourTour($group, 'Museum Highlights – New Docents');
+    $shift = signUpTourShift($group, signUpTourKind($group, [$highlights, $trainee], 'Museum Highlights'));
+    $member = signUpTourMember($group);
+    signUpTourQualify($member, $highlights);
+
+    $this->actingAs($member)
+        ->post(route('sign-ups.store', $shift))
+        ->assertSessionHasNoErrors();
+
+    expect(SignUp::sole()->tour_id)->toBe($highlights->id);
+});
+
+it('still refuses a Tour the Member may not give when they may give only one (#803)', function () {
+    $group = signUpTourGroup();
+    $highlights = signUpTourTour($group, 'Museum Highlights');
+    $trainee = signUpTourTour($group, 'Museum Highlights – New Docents');
+    $shift = signUpTourShift($group, signUpTourKind($group, [$highlights, $trainee], 'Museum Highlights'));
+    $member = signUpTourMember($group);
+    signUpTourQualify($member, $highlights);
+
+    $this->actingAs($member)
+        ->post(route('sign-ups.store', $shift), ['tour_id' => $trainee->id])
+        ->assertSessionHasErrors(['tour_id' => 'You cannot give this tour on this shift.']);
+
+    expect(SignUp::count())->toBe(0);
 });
 
 it('ignores a retired Tour on the kind', function () {
@@ -291,6 +322,21 @@ it('offers only the Tours the Member may give, and says whether the kind asks', 
                 ['id' => $egypt->id, 'name' => 'Ancient Egypt'],
                 ['id' => $highlights->id, 'name' => 'Museum Highlights'],
             ]));
+});
+
+it('marks a multi-Tour kind as filled in when the Member may give only one of its Tours (#803)', function () {
+    $group = signUpTourGroup();
+    $highlights = signUpTourTour($group, 'Museum Highlights');
+    $trainee = signUpTourTour($group, 'Museum Highlights – New Docents');
+    $shift = signUpTourShift($group, signUpTourKind($group, [$highlights, $trainee], 'Museum Highlights'));
+    $member = signUpTourMember($group);
+    signUpTourQualify($member, $highlights);
+
+    $this->actingAs($member)
+        ->get(signUpTourPage($shift))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.open.shifts.0.tour_choice', 'fill')
+            ->where('scheduling.open.shifts.0.tours', [['id' => $highlights->id, 'name' => 'Museum Highlights']]));
 });
 
 it('marks a one-Tour kind as filled in and a Tour-less kind as none', function () {

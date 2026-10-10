@@ -784,8 +784,9 @@ export interface ShiftAgendaItem {
     capacity: number;
     taken: number;
     kind: string | null;
-    // How a take settles its Tour (#790, ADR-0033 §2): `fill` on a kind mapping one Tour (the
-    // server fills it in), `pick` on several (the take dialog asks), null on a kind with none.
+    // How a take settles its Tour (#790, #803, ADR-0033 §2): `fill` when the viewer may give at
+    // most one of the kind's Tours (the server fills it in), `pick` when they may give several (the
+    // take dialog asks), null on a kind with none.
     // `tours` are the ones the viewer may give, in the Group's order — the picker's options.
     tour_choice: 'fill' | 'pick' | null;
     tours: TourOption[];

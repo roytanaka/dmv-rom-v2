@@ -187,6 +187,7 @@ return [
         'empty' => 'Ce groupe n’a pas encore de visites.',
         'open_to_all' => 'Ouverte à tous',
         'none' => 'Personne pour l’instant.',
+        'open_to_all_none' => 'Tout membre peut donner cette visite.',
         'last_vet_date' => 'Dernière vérification',
         'no_date' => 'Aucune date',
     ],
@@ -308,6 +309,8 @@ return [
             'placeholder' => 'Choisissez une visite',
             'required' => 'Choisissez la visite que vous donnerez.',
             'not_givable' => 'Vous ne pouvez pas donner cette visite à ce quart.',
+            // Un·e responsable de l'horaire choisit une visite que le type n'offre pas (#806).
+            'not_offered' => 'Cette visite n’est pas donnée à ce quart.',
             'none_here' => 'Ce quart n’a pas de visites.',
             // Placement par un·e responsable et changement de visite (#791, ADR-0033 §6).
             'none' => 'Aucune visite',

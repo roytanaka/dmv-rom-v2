@@ -27,11 +27,9 @@ class UpdateSignUpTourRequest extends FormRequest
      */
     public function rules(): array
     {
-        $signUp = $this->route('signUp');
-        $shift = $signUp->shift;
+        $shift = $this->route('signUp')->shift;
 
-        // The schedule-admin gate on the Shift (ShiftPolicy::update) picks the officer rules.
-        return $this->user()->can('update', $shift)
+        return $this->byOfficer()
             ? $this->officerTourRules($shift)
             : $this->tourRules($shift, $this->user());
     }
@@ -41,6 +39,15 @@ class UpdateSignUpTourRequest extends FormRequest
      */
     public function messages(): array
     {
-        return $this->tourMessages();
+        return $this->byOfficer() ? $this->officerTourMessages() : $this->tourMessages();
+    }
+
+    /**
+     * Whether the actor writes as a schedule admin (ShiftPolicy::update on the Shift), which picks
+     * the officer rules and messages (#791, #806).
+     */
+    private function byOfficer(): bool
+    {
+        return $this->user()->can('update', $this->route('signUp')->shift);
     }
 }

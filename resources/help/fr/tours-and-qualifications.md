@@ -128,10 +128,10 @@ Un membre donne une visite quand il s'inscrit à un quart dont le type contient 
 
 1. Ouvrez l'horaire dans l'onglet **Horaire** de votre groupe.
 2. Sélectionnez **S'inscrire** sur le quart.
-3. Si le type contient plusieurs visites, choisissez-en une sous **Visite**.
+3. Si vous pouvez donner plusieurs des visites du type, choisissez-en une sous **Visite**.
 4. Sélectionnez **S'inscrire**.
 
-La liste ne montre que les visites que vous pouvez donner. Ce sont les visites pour lesquelles vous avez une qualification active, et les visites ouvertes à tous. Un type qui n'a qu'une visite la choisit pour vous.
+La liste ne montre que les visites que vous pouvez donner. Ce sont les visites pour lesquelles vous avez une qualification active, et les visites ouvertes à tous. Si vous ne pouvez donner qu'une des visites du type, elle est choisie pour vous.
 
 La visite s'affiche à côté de votre nom sur le quart, dans **Mes inscriptions** et dans le calendrier.
 

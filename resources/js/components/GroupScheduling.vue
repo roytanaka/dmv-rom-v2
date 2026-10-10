@@ -279,9 +279,9 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
 // Take a free seat: the server re-checks both floors, the `audience`, capacity, and the
 // one-seat rule (StoreSignUpRequest → SignUpPolicy). `can.signUp` gates the button, so it
 // only shows where a Sign-up would take. On a Group with Objects the taker first picks the
-// Objects they carry (#586, ADR-0026 §3), and on a kind mapping several Tours they pick the Tour
-// they give (#790, ADR-0033 §2), so the take opens a dialog; otherwise the POST carries no body
-// and seats them in one click (a one-Tour kind's Tour is filled in by the server).
+// Objects they carry (#586, ADR-0026 §3), and where they may give several of the kind's Tours
+// they pick the Tour they give (#790, ADR-0033 §2), so the take opens a dialog; otherwise the
+// POST carries no body and seats them in one click (the server fills in their one Tour, #803).
 const takingShift = ref<ShiftAgendaItem | null>(null);
 const takeForm = useForm<{ objects: number[]; tour_id: number | null }>({ objects: [], tour_id: null });
 const takePicksTour = computed(() => takingShift.value?.tour_choice === 'pick');
@@ -308,8 +308,6 @@ const take = (shift: ShiftAgendaItem) => {
 
     takeForm.reset();
     takeForm.clearErrors();
-    // A lone Tour the Member may give is pre-selected; several leave the choice to them.
-    takeForm.tour_id = shift.tour_choice === 'pick' && shift.tours.length === 1 ? shift.tours[0].id : null;
     takingShift.value = shift;
 };
 

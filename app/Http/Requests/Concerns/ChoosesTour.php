@@ -11,22 +11,24 @@ use Illuminate\Validation\Rule;
  * The Tour a Sign-up records (#790, ADR-0033 §2, §6), for the write seams that seat a Member on a
  * Shift. On a kind that maps to Tours the field is **required** and must be one of the Tours the
  * Member may give ({@see Member::toursGivableOn()}); on any other Shift it is prohibited, so the
- * Sign-up stays Tour-less. A one-Tour kind fills the Tour in when the body leaves it out.
+ * Sign-up stays Tour-less. When the Member may give only one Tour, it is filled in when the body
+ * leaves it out.
  *
  * The server checks it, not the browser (ADR-0033 §6 deviation from legacy).
  */
 trait ChoosesTour
 {
     /**
-     * Fill in the Tour on a one-Tour kind (#790) when the body carries none, so a take on a
-     * single-Tour slot needs no dialog. Call from `prepareForValidation()`.
+     * Fill in the Tour when the Member may give exactly one of the kind's Tours (#790, #803) and
+     * the body carries none, so the take needs no dialog. Call from `prepareForValidation()`.
+     * A Tour in the body is left alone; the rules still refuse one the Member may not give.
      */
-    protected function fillOnlyTour(Shift $shift): void
+    protected function fillOnlyTour(Shift $shift, Member $member): void
     {
-        $offered = $shift->toursOffered();
+        $givable = $member->toursGivableOn($shift);
 
-        if ($offered->count() === 1 && $this->input('tour_id') === null) {
-            $this->merge(['tour_id' => $offered->first()->id]);
+        if ($givable->count() === 1 && $this->input('tour_id') === null) {
+            $this->merge(['tour_id' => $givable->first()->id]);
         }
     }
 
@@ -98,6 +100,21 @@ trait ChoosesTour
             'tour_id.integer' => trans('group.scheduling_panel.tour.not_givable'),
             'tour_id.in' => trans('group.scheduling_panel.tour.not_givable'),
             'tour_id.prohibited' => trans('group.scheduling_panel.tour.none_here'),
+        ];
+    }
+
+    /**
+     * Messages for {@see officerTourRules()} (#806): the Scheduler does not give the Tour, so a
+     * Tour the kind does not offer is refused as not given on the Shift.
+     *
+     * @return array<string, string>
+     */
+    protected function officerTourMessages(): array
+    {
+        return [
+            ...$this->tourMessages(),
+            'tour_id.integer' => trans('group.scheduling_panel.tour.not_offered'),
+            'tour_id.in' => trans('group.scheduling_panel.tour.not_offered'),
         ];
     }
 }
