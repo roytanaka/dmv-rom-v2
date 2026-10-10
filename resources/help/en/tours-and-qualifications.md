@@ -128,10 +128,10 @@ A Member gives a Tour when they sign up for a Shift whose kind holds Tours.
 
 1. Open the Schedule on your Group's **Scheduling** tab.
 2. Select **Sign up** on the Shift.
-3. If the kind holds several Tours, choose one under **Tour**.
+3. If you may give several of the kind's Tours, choose one under **Tour**.
 4. Select **Sign up**.
 
-The list shows only the Tours you may give. These are the Tours you hold an active qualification for, and the Tours open to all. A kind with one Tour fills it in for you.
+The list shows only the Tours you may give. These are the Tours you hold an active qualification for, and the Tours open to all. If you may give only one of the kind's Tours, it is filled in for you.
 
 The Tour shows beside your name on the Shift, in **My sign-ups** and on the Calendar.
 

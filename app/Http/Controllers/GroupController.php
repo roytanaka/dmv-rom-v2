@@ -1206,6 +1206,7 @@ class GroupController extends Controller
         // made it. A reader with no seat and no admin role gets no seat numbers at all. A Shift on
         // a later date has no report yet, for anyone (#772): nobody records before its window.
         $offered = $shift->toursOffered();
+        $givable = $viewer->toursGivableOn($shift);
 
         $readsReport = $shift->schedule->group->collects_visitor_count
             && ! $shift->isAfterToday()
@@ -1218,16 +1219,17 @@ class GroupController extends Controller
             'capacity' => $shift->capacity,
             'taken' => $taken,
             'kind' => $shift->kind?->name,
-            // How a take on this Shift settles its Tour (#790, ADR-0033 §2): `fill` on a kind
-            // mapping one active Tour (no question asked), `pick` on several (the take dialog asks),
-            // null on a kind with none. `tours` lists the ones this viewer may give, in the
-            // Group's order — the picker's options. UI hints; StoreSignUpRequest re-checks.
-            'tour_choice' => match ($offered->count()) {
-                0 => null,
-                1 => 'fill',
+            // How a take on this Shift settles its Tour (#790, #803, ADR-0033 §2): `fill` when the
+            // viewer may give at most one of the kind's active Tours (no question asked; the server
+            // fills it in), `pick` when they may give several (the take dialog asks), null on a
+            // kind with none. `tours` lists the ones this viewer may give, in the Group's order —
+            // the picker's options. UI hints; StoreSignUpRequest re-checks.
+            'tour_choice' => match (true) {
+                $offered->isEmpty() => null,
+                $givable->count() <= 1 => 'fill',
                 default => 'pick',
             },
-            'tours' => $viewer->toursGivableOn($shift)
+            'tours' => $givable
                 ->map(fn (Tour $tour) => ['id' => $tour->id, 'name' => $tour->name])
                 ->all(),
             // Every active Tour of the kind (#791, ADR-0033 §6), for a schedule admin only: the
