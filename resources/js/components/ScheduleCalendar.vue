@@ -39,6 +39,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     take: [shift: ShiftAgendaItem];
     drop: [shift: ShiftAgendaItem];
+    substitute: [shift: ShiftAgendaItem];
     assign: [shift: ShiftAgendaItem];
     remove: [signUpId: number];
     changeTour: [shift: ShiftAgendaItem, signUp: ShiftSignUp];
@@ -213,6 +214,7 @@ const formatDay = (date: string) =>
                         allow-self-serve-controls
                         @take="emit('take', $event)"
                         @drop="emit('drop', $event)"
+                        @substitute="emit('substitute', $event)"
                         @assign="emit('assign', $event)"
                         @remove="emit('remove', $event)"
                         @change-tour="(changed, signUp) => emit('changeTour', changed, signUp)"

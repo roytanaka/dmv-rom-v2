@@ -634,6 +634,16 @@ Route::patch('sign-ups/{signUp}/tour', [SignUpController::class, 'updateTour'])
     ->middleware(['auth', 'localizeFromReferer'])
     ->name('sign-ups.tour.update');
 
+// Substituting on a Booking (#798, ADR-0032 §8). A Booking seat cannot be dropped; its holder
+// hands it to a Member who could take it themselves. The JSON read feeds the picker; the PATCH
+// moves the seat. Both are the holder's alone, until the Shift starts (SignUpPolicy::substitute).
+Route::get('sign-ups/{signUp}/substitutes', [SignUpController::class, 'substitutes'])
+    ->middleware(['auth'])
+    ->name('sign-ups.substitutes');
+Route::patch('sign-ups/{signUp}/substitute', [SignUpController::class, 'substitute'])
+    ->middleware(['auth', 'localizeFromReferer'])
+    ->name('sign-ups.substitute');
+
 // Officer assignment write seam (#359, PRD #352, ADR-0021 §Sign-up). A Scheduler placing a
 // named Member on a Shift directly — Reception's whole operating model. A distinct actor
 // from the self-service Sign-up above (a Scheduler seating someone else), so a separate

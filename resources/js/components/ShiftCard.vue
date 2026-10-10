@@ -78,6 +78,8 @@ const props = withDefaults(
 const emit = defineEmits<{
     take: [shift: ShiftAgendaItem];
     drop: [shift: ShiftAgendaItem];
+    // Hand the viewer's seat on a Booking to a substitute (#798); the parent opens the picker.
+    substitute: [shift: ShiftAgendaItem];
     assign: [shift: ShiftAgendaItem];
     remove: [signUpId: number];
     // Change a seat's Tour (#791, ADR-0033 §6) — the seat-holder's own, or any seat for a
@@ -481,9 +483,17 @@ const formId = useId();
                  them — the officer path onto a Shift with a free seat. -->
             <div class="flex flex-wrap items-center gap-2">
                 <template v-if="!shift.has_started">
-                    <Button v-if="shift.signup_id !== null" type="button" variant="outline" size="sm" @click="emit('drop', shift)">
-                        {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
-                    </Button>
+                    <!-- A seat on a Booking has no Drop: its holder hands it to a substitute
+                         instead (#798, ADR-0032 §8). `can.drop` / `can.substitute` are the server's
+                         word; the write seams re-check. -->
+                    <template v-if="shift.signup_id !== null">
+                        <Button v-if="shift.can.drop" type="button" variant="outline" size="sm" @click="emit('drop', shift)">
+                            {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
+                        </Button>
+                        <Button v-else-if="shift.can.substitute" type="button" variant="outline" size="sm" @click="emit('substitute', shift)">
+                            {{ trans('group.scheduling_panel.substitute.action') }}
+                        </Button>
+                    </template>
                     <Button v-else-if="shift.can.signUp" type="button" size="sm" @click="emit('take', shift)">
                         {{ trans('group.scheduling_panel.agenda.sign_up.take') }}
                     </Button>

@@ -378,6 +378,17 @@ return [
             'none' => 'Aucune visite',
             'change' => 'Changer de visite',
         ],
+        // Remplacement sur une visite de groupe (#798, ADR-0032 §8) : on ne peut pas se désinscrire,
+        // on cède sa place à un membre qui pourrait la prendre.
+        'substitute' => [
+            'action' => 'Se faire remplacer',
+            'title' => 'Choisir un·e remplaçant·e',
+            'field_label' => 'Remplaçant·e',
+            'placeholder' => 'Choisissez un membre',
+            'none' => 'Personne d’autre ne peut donner cette visite.',
+            'submit' => 'Céder la place',
+            'not_eligible' => 'Ce membre ne peut pas donner cette visite.',
+        ],
         // Maintenance des objets (#584, ADR-0026 §3) — la collection à manipuler qu’un·e
         // interprète de galerie apporte sur le plancher. Même forme que les types de quart.
         'objects' => [
