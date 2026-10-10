@@ -108,6 +108,16 @@ class BookingPolicy
     }
 
     /**
+     * Enter the Group's monthly exhibition revenue from the Tour Summary (#800, §12): the
+     * Statistician; the Chair implies it. While the Group runs bookings.
+     */
+    public function enterExhibitionRevenue(Member $actor, Group $group): bool
+    {
+        return $group->has_bookings
+            && $actor->canActAs(Role::Statistician, $group);
+    }
+
+    /**
      * Read the Group's past client names for the form's suggestions (§10): whoever may add a
      * Booking.
      */

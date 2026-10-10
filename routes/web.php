@@ -41,6 +41,7 @@ use App\Http\Controllers\ShiftKindController;
 use App\Http\Controllers\SignUpController;
 use App\Http\Controllers\SuperTierController;
 use App\Http\Controllers\TourController;
+use App\Http\Controllers\TourReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -223,6 +224,19 @@ Route::group([
         ->middleware('auth')->name('groups.hours.extra.csv');
     Route::get(LaravelLocalization::transRoute('routes.groups.hours.meetings.csv'), [HoursController::class, 'meetingSummaryCsv'])
         ->middleware('auth')->name('groups.hours.meetings.csv');
+
+    // Tour Summary and Tour Detail (#800, ADR-0032 §12) — a Group's group tours by booking type
+    // (and Tour), with the scheduled tours and exhibition revenue in a grand total, for a month or
+    // the fiscal year to date. Behind the same viewReports gate as the hours reports, enforced in
+    // the controller; a Group that runs no bookings 404s. Each with its CSV sibling.
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.tour-summary'), [TourReportController::class, 'summary'])
+        ->middleware('auth')->name('groups.hours.tour-summary');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.tour-detail'), [TourReportController::class, 'detail'])
+        ->middleware('auth')->name('groups.hours.tour-detail');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.tour-summary.csv'), [TourReportController::class, 'summaryCsv'])
+        ->middleware('auth')->name('groups.hours.tour-summary.csv');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.tour-detail.csv'), [TourReportController::class, 'detailCsv'])
+        ->middleware('auth')->name('groups.hours.tour-detail.csv');
 
     // The six DMV-wide fiscal-year reports (#413, PRD #406, ADR-0022 §8) — the single output the
     // whole Hours feature exists to produce, the fiscal-year statistics the ROM asks the DMV for.
@@ -527,6 +541,12 @@ Route::get('booking-clients/{group}', [BookingController::class, 'clients'])
 Route::patch('bookings/{booking}/earned', [BookingEarnedController::class, 'update'])
     ->middleware(['auth'])
     ->name('bookings.earned.update');
+
+// A Group's exhibition revenue for a month (#800, ADR-0032 §12), entered from the Tour Summary.
+// Authorized in UpdateExhibitionRevenueRequest through the BookingPolicy's `enterExhibitionRevenue`.
+Route::put('groups/{group}/exhibition-revenue', [TourReportController::class, 'updateExhibitionRevenue'])
+    ->middleware(['auth'])
+    ->name('groups.exhibition-revenue.update');
 
 // Changing and deleting a Booking (#796, ADR-0032 §1, §3, §4) — a Booker, Chair or Statistician.
 // Authorized in UpdateBookingRequest / DeleteBookingRequest through the BookingPolicy.
