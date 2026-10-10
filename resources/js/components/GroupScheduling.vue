@@ -24,6 +24,16 @@ import ScheduleCalendar from '@/components/ScheduleCalendar.vue';
 import ShiftCard from '@/components/ShiftCard.vue';
 import TextLink from '@/components/TextLink.vue';
 import TimeField from '@/components/TimeField.vue';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -225,14 +235,28 @@ const openBookingEdit = (shift: ShiftAgendaItem) => {
     bookingEditOpen.value = true;
 };
 
-// Deleting removes the Shift's Sign-ups too, so the confirmation names the Members it removes.
-const destroyBooking = (shift: ShiftAgendaItem) => {
-    const names = shift.signups.map((signUp) => `${signUp.first_name} ${signUp.last_name}`).join(', ');
-    const message = names ? trans('group.bookings.confirm_delete_signups', { names }) : trans('group.bookings.confirm_delete');
+// Deleting removes the Shift's Sign-ups too, so the confirmation dialog names the Members it
+// removes. `bookingDeleting` is the group tour awaiting confirmation; null closes the dialog.
+const bookingDeleting = ref<ShiftAgendaItem | null>(null);
+const bookingDeleteBody = computed(() => {
+    const names = (bookingDeleting.value?.signups ?? []).map((signUp) => `${signUp.first_name} ${signUp.last_name}`).join(', ');
+    return names ? trans('group.bookings.delete_signups_body', { names }) : trans('group.bookings.delete_body');
+});
 
-    if (shift.booking && window.confirm(message)) {
-        router.delete(route('bookings.destroy', { booking: shift.booking.id }), { preserveScroll: true });
-    }
+const destroyBooking = (shift: ShiftAgendaItem) => {
+    bookingDeleting.value = shift;
+};
+
+const confirmDestroyBooking = () => {
+    const booking = bookingDeleting.value?.booking;
+    if (!booking) return;
+
+    router.delete(route('bookings.destroy', { booking: booking.id }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            bookingDeleting.value = null;
+        },
+    });
 };
 
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
@@ -1444,6 +1468,24 @@ const runBulkAssign = (action: 'place' | 'remove') => {
             :clients="bookingClients"
             :booking="bookingEditing?.booking ?? null"
         />
+        <!-- Delete a group tour (#796) — confirms, naming the Members whose sign-ups go with it. -->
+        <AlertDialog :open="bookingDeleting !== null" @update:open="(open: boolean) => !open && (bookingDeleting = null)">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{{ trans('group.bookings.confirm_delete') }}</AlertDialogTitle>
+                    <AlertDialogDescription>{{ bookingDeleteBody }}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>{{ trans('group.bookings.cancel') }}</AlertDialogCancel>
+                    <AlertDialogAction
+                        class="bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                        @click.prevent="confirmDestroyBooking"
+                    >
+                        {{ trans('group.bookings.delete') }}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
         <!-- Authoring create/edit dialog (#354) — one form, reused; opened by the
              "New schedule" control or a per-Schedule edit. -->

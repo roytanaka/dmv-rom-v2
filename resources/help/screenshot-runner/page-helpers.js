@@ -375,6 +375,13 @@
         return clickAndWaitFor(button, () => openDialog());
     }
 
+    // The Delete group tour confirmation (#796): the first group tour's Delete opens an alert
+    // dialog naming everyone signed up. Shot open, never confirmed.
+    function openDeleteGroupTour() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^delete$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => document.querySelector('[role="alertdialog"]'));
+    }
+
     // A group tour's Substitute dialog (#798): the persona's own seat on an upcoming group tour.
     // The picker's Members arrive by a partial reload, so wait for the picker to enable.
     function openSubstituteDialog() {
@@ -921,6 +928,7 @@
         openAddGroupTour,
         openGroupTourSchedule,
         openEditGroupTour,
+        openDeleteGroupTour,
         openSubstituteDialog,
         openCorrectEarned,
         openTourQualifications,

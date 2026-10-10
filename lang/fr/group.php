@@ -238,7 +238,8 @@ return [
         'edit_title' => 'Modifier la visite de groupe',
         'update' => 'Enregistrer',
         'confirm_delete' => 'Supprimer cette visite de groupe ?',
-        'confirm_delete_signups' => 'Supprimer cette visite de groupe ? Les inscriptions de :names seront aussi supprimées.',
+        'delete_body' => 'Cette action est irréversible.',
+        'delete_signups_body' => 'Les inscriptions de :names seront aussi supprimées. Cette action est irréversible.',
         'group_tour_schedule_holds_bookings' => 'Cet horaire contient encore des visites de groupe. Déplacez-les ou supprimez-les d’abord.',
         // Montant gagné et la correction du ou de la statisticien·ne (#797, ADR-0032 §7).
         'earned' => [
