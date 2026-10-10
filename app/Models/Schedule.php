@@ -118,6 +118,16 @@ class Schedule extends Model
     }
 
     /**
+     * Whether this Schedule still holds a Booking's Shift (#796, ADR-0032 §4). Deleting it would
+     * cascade to the Bookings, so a group-tour Schedule is deletable only once empty. Only a
+     * group-tour Schedule can hold one, so any other answers without a query.
+     */
+    public function holdsBookings(): bool
+    {
+        return $this->isGroupTour() && $this->shifts()->whereHas('booking')->exists();
+    }
+
+    /**
      * Whether this Schedule is still current — its range has not yet passed. Past-ness
      * derives from `ends_on` (ADR-0021 §1); a Schedule ending today is still current.
      * Resolved in PHP against the given day so date semantics never depend on the DB

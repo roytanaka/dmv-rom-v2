@@ -967,6 +967,7 @@ class GroupController extends Controller
                 // flows that reserve Objects.
                 'objects' => $this->activeObjects($group),
                 'booking_options' => $this->bookingOptions($request, $group),
+                'booking_change_options' => $this->bookingChangeOptions($request, $group),
                 // The outstanding-shifts panel rides on the tab regardless of which Schedule is
                 // open — it crosses Schedules, so it is not the opened Schedule's concern (#449).
                 'mine' => $this->mine($request, $group),
@@ -1015,6 +1016,7 @@ class GroupController extends Controller
             // The Booking form's pickers (#795), for a Booker on the list as on an opened Schedule:
             // the month's first Booking creates its Schedule, so the add starts from the list.
             'booking_options' => $this->bookingOptions($request, $group),
+            'booking_change_options' => $this->bookingChangeOptions($request, $group),
             // The outstanding-shifts panel rides on the list view too — a volunteer landing on
             // the bare section URL sees what they still owe without opening any Schedule (#449).
             'mine' => $this->mine($request, $group),
@@ -1430,7 +1432,7 @@ class GroupController extends Controller
      * Reads the eager-loaded `booking.tour` and `booking.bookingType`; the Group is set from the
      * Shift's Schedule so the policy never lazy-loads it.
      *
-     * @return array{id: int, tour: string, tour_id: int, details: array<string, mixed>|null, officer: array<string, mixed>|null}|null
+     * @return array{id: int, tour: string, tour_id: int, details: array<string, mixed>|null, officer: array<string, mixed>|null, edit: array<string, mixed>|null, can_delete: bool}|null
      */
     private function bookingPayload(Request $request, Shift $shift): ?array
     {
@@ -1459,7 +1461,55 @@ class GroupController extends Controller
                 'order_number' => $booking->order_number,
                 'order_date' => $booking->order_date?->toDateString(),
             ] : null,
+            // The change form's values (#796), for a viewer who may change the Booking; null
+            // otherwise, and the Edit control does not render.
+            'edit' => $viewer->can('update', $booking) ? $this->bookingEditValues($shift, $booking) : null,
+            'can_delete' => $viewer->can('delete', $booking),
         ];
+    }
+
+    /**
+     * A Booking's change-form values (#796): every field, the date and times on the org wall clock
+     * and the docents needed from the Shift. Never the Earned correction (#797).
+     *
+     * @return array<string, mixed>
+     */
+    private function bookingEditValues(Shift $shift, Booking $booking): array
+    {
+        $zone = config('app.org_timezone');
+
+        return [
+            'date' => $shift->starts_at->setTimezone($zone)->toDateString(),
+            'starts_time' => $shift->starts_at->setTimezone($zone)->format('H:i'),
+            'ends_time' => $shift->ends_at->setTimezone($zone)->format('H:i'),
+            'docents_needed' => $shift->capacity,
+            'tour_id' => $booking->tour_id,
+            'booking_type_id' => $booking->booking_type_id,
+            // The type's name, so the form can offer the Booking's own type once retired.
+            'booking_type' => $booking->bookingType->name,
+            'client' => $booking->client,
+            'visitors' => $booking->visitors,
+            'leader' => $booking->leader,
+            'order_number' => $booking->order_number,
+            'order_date' => $booking->order_date?->toDateString(),
+            'comments' => $booking->comments,
+        ];
+    }
+
+    /**
+     * The change form's pickers (#796), for a viewer who may change the Group's Bookings (a Booker,
+     * Statistician, Chair or super-tier): the same active Tours and types as the add form. The
+     * form adds a Booking's own retired Tour or type itself. Null for everyone else.
+     *
+     * @return array{tours: list<array{id: int, name: string}>, types: list<array{id: int, name: string}>}|null
+     */
+    private function bookingChangeOptions(Request $request, Group $group): ?array
+    {
+        if (! $request->user()->can('change', [Booking::class, $group])) {
+            return null;
+        }
+
+        return $this->bookingPickers($group);
     }
 
     /**
@@ -1475,6 +1525,16 @@ class GroupController extends Controller
             return null;
         }
 
+        return $this->bookingPickers($group);
+    }
+
+    /**
+     * The Group's active Tours and active booking types, each in the Group's order.
+     *
+     * @return array{tours: list<array{id: int, name: string}>, types: list<array{id: int, name: string}>}
+     */
+    private function bookingPickers(Group $group): array
+    {
         return [
             'tours' => $group->tours()->active()->ordered()->get()
                 ->map(fn (Tour $tour): array => ['id' => $tour->id, 'name' => $tour->name])
@@ -1581,7 +1641,9 @@ class GroupController extends Controller
             'update' => $user->can('update', $schedule),
             'publish' => $user->can('publish', $schedule),
             'unpublish' => $user->can('unpublish', $schedule),
-            'delete' => $user->can('delete', $schedule),
+            // A group-tour Schedule holding Bookings is never deleted (#796); DeleteScheduleRequest
+            // refuses it to super-tier too.
+            'delete' => $user->can('delete', $schedule) && ! $schedule->holdsBookings(),
         ];
     }
 }

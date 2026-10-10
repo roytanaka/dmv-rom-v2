@@ -31,6 +31,34 @@ class BookingPolicy
     }
 
     /**
+     * Change the Group's Bookings (#796, §3): a Booker or Statistician, the Chair implying both,
+     * while the Group runs bookings and scheduling. Unlike {@see create()}, the Statistician may.
+     * Group-level, so the Schedule tab can send the change form's pickers.
+     */
+    public function change(Member $actor, Group $group): bool
+    {
+        return $group->has_bookings
+            && $group->has_scheduling
+            && ($actor->canActAs(Role::Booker, $group) || $actor->canActAs(Role::Statistician, $group));
+    }
+
+    /**
+     * Change one Booking's fields, times or docents needed (#796, §3).
+     */
+    public function update(Member $actor, Booking $booking): bool
+    {
+        return $this->change($actor, $booking->group);
+    }
+
+    /**
+     * Delete a Booking with its Shift and Sign-ups (#796, §3): the same people as a change.
+     */
+    public function delete(Member $actor, Booking $booking): bool
+    {
+        return $this->change($actor, $booking->group);
+    }
+
+    /**
      * Read a Booking's client half (§5): the client, visitors, type, leader and comments. Current
      * Members of the Group only (a standing that counts as belonging); everyone else who can read
      * the Schedule sees only the time, Tour and seats.

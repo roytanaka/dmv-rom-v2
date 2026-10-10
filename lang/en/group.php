@@ -251,6 +251,14 @@ return [
         'group_tour_schedule_locked' => 'Shifts on a group-tour schedule come from group tours. Add a group tour instead.',
         'booking_shift_locked' => 'This shift belongs to a group tour. Change the group tour instead.',
         'group_tour_schedule_published' => 'A group-tour schedule stays published.',
+        // Changing and deleting (#796).
+        'edit' => 'Edit',
+        'delete' => 'Delete',
+        'edit_title' => 'Edit group tour',
+        'update' => 'Save',
+        'confirm_delete' => 'Delete this group tour?',
+        'confirm_delete_signups' => 'Delete this group tour? The sign-ups of :names will be removed too.',
+        'group_tour_schedule_holds_bookings' => 'This schedule still holds group tours. Move or delete them first.',
     ],
 
     'tour_rules' => [

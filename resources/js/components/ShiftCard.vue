@@ -506,6 +506,17 @@ const formId = useId();
                     <PhTrash class="size-4" />
                     {{ trans('group.scheduling_panel.delete') }}
                 </Button>
+                <!-- A group tour's Edit / Delete (#796) — a Booker, Statistician, Chair or super-tier
+                     changes the Booking, never the Shift. They ride the same `edit` / `delete` emits;
+                     the parent routes a Booking Shift to the Booking form. -->
+                <Button v-if="shift.booking?.edit" type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('edit', shift)">
+                    <PhPencilSimple class="size-4" />
+                    {{ trans('group.bookings.edit') }}
+                </Button>
+                <Button v-if="shift.booking?.can_delete" type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('delete', shift)">
+                    <PhTrash class="size-4" />
+                    {{ trans('group.bookings.delete') }}
+                </Button>
                 <!-- The self-serve owner's Edit / Delete (#585, ADR-0026 §1) — shown to the Member
                      who wrote the Shift, until it starts (`can.manageSelfServe`). They route through
                      the self-serve seam, so they are their own emits, not the Scheduler's above.

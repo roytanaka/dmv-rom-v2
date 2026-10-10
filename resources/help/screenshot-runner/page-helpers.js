@@ -368,6 +368,13 @@
         return followLink(link);
     }
 
+    // The Edit group tour dialog (#796): on an opened group-tour Schedule, every Shift is a group
+    // tour's, so the first "Edit" button is a group tour's.
+    function openEditGroupTour() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^edit$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
     // The by-Tour qualification screen (#789): follow the Tours card's "Dinosaurs" link. A Tour's
     // id is not stable across seeds, so the script cannot `nav` to it.
     function openTourQualifications() {
@@ -900,6 +907,7 @@
         openAddBookingType,
         openAddGroupTour,
         openGroupTourSchedule,
+        openEditGroupTour,
         openTourQualifications,
         openAddQualification,
         openMemberQualifications,

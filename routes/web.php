@@ -521,6 +521,15 @@ Route::get('booking-clients/{group}', [BookingController::class, 'clients'])
     ->middleware(['auth'])
     ->name('bookings.clients');
 
+// Changing and deleting a Booking (#796, ADR-0032 §1, §3, §4) — a Booker, Chair or Statistician.
+// Authorized in UpdateBookingRequest / DeleteBookingRequest through the BookingPolicy.
+Route::patch('bookings/{booking}', [BookingController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('bookings.update');
+Route::delete('bookings/{booking}', [BookingController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('bookings.destroy');
+
 // The status rules (#793, ADR-0033 §7) — the Settings tab's Tour rules card: the trainee Tour,
 // the starter Tours and the LOA rule, edited by the Chair of a vetting Group. Authorized in
 // UpdateTourRulesRequest through the TourPolicy's `manageRules` gate.
