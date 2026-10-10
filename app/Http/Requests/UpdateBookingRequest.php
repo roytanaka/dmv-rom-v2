@@ -2,9 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\DescribesBooking;
 use App\Models\Booking;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Validation\Rule;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 /**
@@ -12,14 +13,16 @@ use Illuminate\Validation\Validator;
  * included. Authorized through the BookingPolicy's `update` gate: a Booker, the Chair, the
  * Statistician or super-tier.
  *
- * The same form as adding ({@see StoreBookingRequest}), with two differences. The Booking's own
- * Tour and booking type stay valid once retired, so an old Booking stays editable, but it can never
+ * The same form as adding ({@see DescribesBooking}), with two differences. The Booking's own Tour
+ * and booking type stay valid once retired, so an old Booking stays editable, but it can never
  * move onto a different retired one. And the docents needed may not drop below the Shift's current
  * Sign-ups: the Booker removes people first, visibly. The Earned correction (#797) is never part of
  * this form.
  */
-class UpdateBookingRequest extends StoreBookingRequest
+class UpdateBookingRequest extends FormRequest
 {
+    use DescribesBooking;
+
     /**
      * Authorize against the BookingPolicy on the route-bound Booking.
      */
@@ -33,26 +36,7 @@ class UpdateBookingRequest extends StoreBookingRequest
      */
     public function rules(): array
     {
-        $booking = $this->booking();
-
-        return [
-            ...self::staffingRules(),
-            ...self::clientRules($booking->group_id),
-            'tour_id' => [
-                'required',
-                'integer',
-                Rule::exists('tours', 'id')
-                    ->where('group_id', $booking->group_id)
-                    ->where(fn ($query) => $query->where('active', true)->orWhere('id', $booking->tour_id)),
-            ],
-            'booking_type_id' => [
-                'required',
-                'integer',
-                Rule::exists('booking_types', 'id')
-                    ->where('group_id', $booking->group_id)
-                    ->where(fn ($query) => $query->where('active', true)->orWhere('id', $booking->booking_type_id)),
-            ],
-        ];
+        return $this->bookingRules($this->booking()->group_id, keep: $this->booking());
     }
 
     /**

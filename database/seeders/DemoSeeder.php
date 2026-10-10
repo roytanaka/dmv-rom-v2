@@ -1969,8 +1969,8 @@ class DemoSeeder extends Seeder
 
     /**
      * Add a month's group tours as Bookings (#795, ADR-0032 §1, §4), each with its one Shift on
-     * the month's group-tour Schedule, created and published on the first. The Schedule's month is
-     * spelled in `$locale` (GDR's in French). The order number and date are drawn per Booking.
+     * the month's group-tour Schedule, created up front so its month is spelled in `$locale` (GDR's
+     * in French); each Booking then finds it. The order number and date are drawn per Booking.
      * Keyed on (Group, client, start) so a reseed heals rather than duplicates. Returns the
      * month's group-tour Schedule.
      *
@@ -1978,6 +1978,7 @@ class DemoSeeder extends Seeder
      */
     private function bookings(Group $group, CarbonImmutable $month, array $specs, string $locale): Schedule
     {
+        $schedule = GroupTourSchedule::for($group, CarbonImmutable::parse($month->toDateString(), config('app.org_timezone')), $locale);
         $tours = $group->tours()->pluck('id', 'name');
         $types = $group->bookingTypes()->pluck('id', 'name');
 
@@ -2002,10 +2003,10 @@ class DemoSeeder extends Seeder
                 'order_number' => (string) (400000 + $this->spread($start->timestamp, 0, 99999)),
                 'order_date' => $month->subDays(20 - $spec['day'] % 7)->toDateString(),
                 'comments' => $spec['comments'],
-            ], $locale);
+            ]);
         }
 
-        return GroupTourSchedule::for($group, CarbonImmutable::parse($month->toDateString(), config('app.org_timezone')), $locale);
+        return $schedule;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ReadsMoney;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,6 +13,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateEarnedCorrectionRequest extends FormRequest
 {
+    use ReadsMoney;
+
     /**
      * Authorize against the BookingPolicy on the route-bound Booking.
      */
