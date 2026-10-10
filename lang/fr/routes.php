@@ -54,6 +54,10 @@ return [
     // Un dossier de la bibliothèque de documents d'un groupe (#714, ADR-0030 §3). « folders » →
     // « dossiers » ; {group} et {folder} restent verbatim.
     'groups.documents.folder' => 'groupes/{group}/documents/dossiers/{folder}',
+    // Les écrans des qualifications d'un groupe (#789, ADR-0033 §4) : par visite et par membre.
+    // « tours » → « visites », « members » → « membres » ; {tour} et {membership} restent verbatim.
+    'groups.tours.show' => 'groupes/{group}/visites/{tour}',
+    'groups.tours.member' => 'groupes/{group}/visites/membres/{membership}',
 
     // Rapport annuel des heures d'un groupe (#411, ADR-0022 §5). « hours/report » →
     // « heures/rapport » ; {group} reste verbatim.

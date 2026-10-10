@@ -63,6 +63,10 @@ return [
     'groups.scheduling.show' => 'groups/{group}/scheduling/{schedule}',
     // A Folder of a Group's Document library (#714, ADR-0030 §3).
     'groups.documents.folder' => 'groups/{group}/documents/folders/{folder}',
+    // A Group's qualification screens (#789, ADR-0033 §4): by Tour (who gives this Tour) and by
+    // Member (which Tours this Member gives). {tour} and {membership} are ids.
+    'groups.tours.show' => 'groups/{group}/tours/{tour}',
+    'groups.tours.member' => 'groups/{group}/tours/members/{membership}',
 
     // A Group's fiscal-year hours report (#411, ADR-0022 §5). A separate addressable route
     // rather than a mode of the Hours tab, so it is linkable and the CSV export can be its

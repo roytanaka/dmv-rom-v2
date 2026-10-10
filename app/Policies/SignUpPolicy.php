@@ -71,13 +71,19 @@ class SignUpPolicy
 
         $membership = $actor->membershipIn($schedule->group);
 
-        if ($shift->audience === ShiftAudience::Group) {
-            return $membership !== null && $membership->status->canSignUp();
+        $clearsAudience = $shift->audience === ShiftAudience::Group
+            ? $membership !== null && $membership->status->canSignUp()
+            // `open`: a Member of the owning Group still answers to their per-Group floor
+            // there; a Member of another Group has none and passes on the read check above.
+            : $membership === null || $membership->status->canSignUp();
+
+        if (! $clearsAudience) {
+            return false;
         }
 
-        // `open`: a Member of the owning Group still answers to their per-Group floor
-        // there; a Member of another Group has none and passes on the read check above.
-        return $membership === null || $membership->status->canSignUp();
+        // A Tour-carrying kind (#790, ADR-0033 §6): the Member must be able to give at least one
+        // of its Tours. Which one they give is the Form Request's to check.
+        return $shift->toursOffered()->isEmpty() || $actor->toursGivableOn($shift)->isNotEmpty();
     }
 
     /**
@@ -161,6 +167,23 @@ class SignUpPolicy
      * an officer removal stays silent even though it reuses this ability.
      */
     public function delete(Member $actor, SignUp $signUp): bool
+    {
+        if ($this->administersSchedulingFor($actor, $signUp->shift->schedule->group)) {
+            return true;
+        }
+
+        return $signUp->member_id === $actor->getKey()
+            && ! $signUp->shift->hasStarted();
+    }
+
+    /**
+     * Who may change the Tour on a seat (#791, ADR-0033 §6), the same owner/admin split as
+     * {@see delete}: a schedule admin of the owning Group on any seat, any time; the seat-holder
+     * on their own seat until the Shift starts. Which Tour each may pick is the Form Request's
+     * to check (any of the kind's active Tours or blank for the admin; one they may give for the
+     * seat-holder).
+     */
+    public function changeTour(Member $actor, SignUp $signUp): bool
     {
         if ($this->administersSchedulingFor($actor, $signUp->shift->schedule->group)) {
             return true;

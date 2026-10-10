@@ -13,9 +13,13 @@
 import GroupDocuments from '@/components/GroupDocuments.vue';
 import GroupHours from '@/components/GroupHours.vue';
 import GroupMeetings from '@/components/GroupMeetings.vue';
+import GroupQualifications, { type QualificationScreen } from '@/components/GroupQualifications.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
 import GroupScheduling from '@/components/GroupScheduling.vue';
 import GroupSettings from '@/components/GroupSettings.vue';
+import type { SettingsTourRules } from '@/components/GroupTourRulesCard.vue';
+import GroupTours, { type ToursPageTour } from '@/components/GroupTours.vue';
+import type { SettingsTour } from '@/components/GroupToursCard.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +83,8 @@ const props = defineProps<{
         banner_key: string | null;
         capabilities: {
             meetings: boolean;
+            // Whether the Group runs vetting (#792) — with `can.viewTours`, opens the Tours tab.
+            vetting: boolean;
             documents: boolean;
             scheduling: boolean;
             collectsVisitorCount: boolean;
@@ -107,6 +113,12 @@ const props = defineProps<{
         manageSelfServe: boolean;
         manageShiftKinds: boolean;
         manageObjects: boolean;
+        // `manageTours` gates the Settings tab's Tours card (#788).
+        manageTours: boolean;
+        // `manageTourRules` gates the Settings tab's Tour rules card (#793).
+        manageTourRules: boolean;
+        // `viewTours` gates the Tours tab (#792) — a current Member of a vetting Group, or the super-tier.
+        viewTours: boolean;
         enterHours: boolean;
         viewReports: boolean;
         // `manageDocuments` gates the Documents tab's upload control and uploader column (#712).
@@ -126,6 +138,10 @@ const props = defineProps<{
     library: GroupLibrary;
     scheduling: Scheduling;
     hours: GroupHoursData;
+    // A qualification screen's payload (#789) — by Tour or by Member — or null on every other page.
+    qualifications: QualificationScreen | null;
+    // The Tours page's payload (#792), resolved only on that page.
+    tours: ToursPageTour[];
     // The Settings tab's payload (ADR-0027), resolved only on that tab. Each card's values ride
     // only with that card's right: the Reminders card (#486) reads `reminders`, the Empty-desk
     // alert card (#487) `emptyDesk`, the Self-serve shifts card (#582) `selfServe`, the Shift kinds
@@ -134,8 +150,12 @@ const props = defineProps<{
         reminders: { enabled: boolean; leadDays: number } | null;
         emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] } | null;
         selfServe: { enabled: boolean; unitMinutes: number } | null;
-        shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[] | null;
+        shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number; tours: string[] }[] | null;
         objects: { id: number; name: string; active: boolean; sortOrder: number }[] | null;
+        // The Tours card (#788): the Tour list and the kinds to map onto.
+        tours: { tours: SettingsTour[]; shiftKinds: { id: number; name: string; active: boolean }[] } | null;
+        // The Tour rules card (#793): the trainee Tour, the starter Tours and the LOA rule.
+        tourRules: SettingsTourRules | null;
     };
     overview: {
         description: string | null;
@@ -167,6 +187,7 @@ const tabs = computed<NavNode[]>(() => {
     if (props.group.capabilities.meetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents' });
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
+    if (props.group.capabilities.vetting && props.can.viewTours) list.push({ href: href('tours'), labelKey: 'group.tab.tours' });
     list.push({ href: href('hours'), labelKey: 'group.tab.hours' });
     if (props.can.manageSettings) list.push({ href: href('settings'), labelKey: 'group.tab.settings' });
     return list;
@@ -427,6 +448,7 @@ const pickBanner = (key: string | null) => {
                     :group-slug="group.slug"
                     :group-name="group.name"
                     :email-reason="email.reason"
+                    :can-manage-tours="can.manageTours"
                 />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
@@ -478,8 +500,20 @@ const pickBanner = (key: string | null) => {
                     :can-manage-shift-kinds="can.manageShiftKinds"
                     :objects="settings.objects"
                     :can-manage-objects="can.manageObjects"
+                    :tours="settings.tours"
+                    :can-manage-tours="can.manageTours"
+                    :tour-rules="settings.tourRules"
+                    :can-manage-tour-rules="can.manageTourRules"
                     :group-slug="group.slug"
                 />
+
+                <!-- The qualification screens (#789, ADR-0033 §4) — by Tour and by Member, for a Vetting
+                     officer, the Chair or super-tier. -->
+                <GroupQualifications v-else-if="section === 'tours' && qualifications" :screen="qualifications" :group-slug="group.slug" />
+
+                <!-- Tours (#792, ADR-0033 §5) — who gives each active Tour, for Members of a vetting
+                     Group. Tour names link to the by-Tour screens behind `can.manageTours`. -->
+                <GroupTours v-else-if="section === 'tours'" :tours="tours" :can-manage="can.manageTours" :group-slug="group.slug" />
 
                 <!-- The capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>

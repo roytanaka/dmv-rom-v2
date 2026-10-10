@@ -14,6 +14,7 @@ return [
         'meetings' => 'Meetings',
         'documents' => 'Documents',
         'scheduling' => 'Scheduling',
+        'tours' => 'Tours',
         'hours' => 'Hours',
         'settings' => 'Settings',
     ],
@@ -160,6 +161,87 @@ return [
 
     // The Settings tab (#604, ADR-0027) when none of its cards applies to the viewer.
     'settings_empty' => 'This group has no settings you can change.',
+    // The Settings tab's Tours card (#788, ADR-0033 §1, §4) — the Group's Tour list and which
+    // shift kinds each Tour is given on, kept by a Vetting officer or the Chair.
+    'tours' => [
+        'heading' => 'Tours',
+        'description' => 'List the tours this group gives. Choose the shift kinds each tour is given on. A tour open to all needs no qualification. Retire a tour to keep it off new sign-ups.',
+        'empty' => 'This group has no tours yet.',
+        'add_label' => 'Add a tour',
+        'add' => 'Add',
+        'rename' => 'Rename',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+        'retire' => 'Retire',
+        'restore' => 'Restore',
+        'retired_badge' => 'Retired',
+        'open_to_all' => 'Open to all',
+        'move_up' => 'Move up',
+        'move_down' => 'Move down',
+        'shift_kinds' => 'Shift kinds',
+        'shift_kinds_title' => 'Shift kinds for :tour',
+        'no_kinds' => 'This group has no shift kinds yet.',
+        'delete' => 'Delete',
+        'delete_title' => 'Delete :tour?',
+        'delete_body' => 'You cannot undo this.',
+        'cannot_delete' => 'This tour has qualifications or sign-ups. Retire it instead.',
+        // The read-only list of a kind's Tours on the Shift kinds card.
+        'kind_tours' => 'Tours: :tours',
+    ],
+
+    // The Tour rules card (#793, ADR-0033 §7): what happens to qualifications when a standing changes.
+    'tour_rules' => [
+        'heading' => 'Tour rules',
+        'trainee_label' => 'Trainee tour',
+        'none' => 'None',
+        'starter_label' => 'Starter tours',
+        'no_tours' => 'This group has no tours yet.',
+        'loa_label' => 'LOA removes qualifications',
+        'trainee_is_starter' => 'The trainee tour cannot also be a starter tour.',
+    ],
+
+    // The Tours page (#792, ADR-0033 §5): who gives each active Tour, for Members of the Group.
+    'tours_page' => [
+        'empty' => 'This group has no tours yet.',
+        'open_to_all' => 'Open to all',
+        'none' => 'No one yet.',
+        'open_to_all_none' => 'Any member may give this tour.',
+        'last_vet_date' => 'Last vet date',
+        'no_date' => 'No date',
+    ],
+
+    // The qualification screens (#789, ADR-0033 §3, §4): by Tour and by Member.
+    'qualifications' => [
+        'back' => 'Back to tours',
+        'tour_heading' => 'Who gives :tour',
+        'member_heading' => 'Tours :name gives',
+        'active_heading' => 'Qualified',
+        'inactive_heading' => 'Inactive',
+        'none_active' => 'No one yet.',
+        'none_active_member' => 'No tours yet.',
+        'column_member' => 'Member',
+        'column_tour' => 'Tour',
+        'column_last_vet_date' => 'Last vet date',
+        'no_date' => 'No date',
+        'add' => 'Add',
+        'add_member_title' => 'Add a member to :tour',
+        'add_tour_title' => 'Add a tour for :name',
+        'member_label' => 'Member',
+        'tour_label' => 'Tour',
+        'last_vet_date_label' => 'Last vet date',
+        'change_date' => 'Change date',
+        'change_date_title' => 'Change the last vet date',
+        'remove' => 'Remove',
+        'remove_title' => 'Remove this qualification?',
+        'remove_body' => 'The member can no longer sign up for this tour.',
+        'retired_tour' => 'Retired',
+        'not_current' => 'Not a current member',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+        // The roster row's link to the by-Member screen.
+        'future_date' => "The last vet date can't be in the future.",
+        'roster_link' => 'Tours',
+    ],
 
     // Section panels not yet built in this slice.
     'coming_soon' => 'This section is coming soon.',
@@ -217,6 +299,8 @@ return [
             'ends_at_preview' => 'Ends at :time',
             'units_option' => '{1} :count unit|[2,*] :count units',
             'start_before_today' => 'Choose today or a later day.',
+            // A station whose kind maps to Tours (ADR-0033 §2) — those Shifts are the Scheduler's.
+            'tour_kind' => 'You cannot write your own shift on a station that has tours.',
             // The station clash warning (#588, ADR-0026 §5) — another interpreter is already on this
             // station at that time. A warning, not a block: the confirm below lets the Member go ahead.
             'station_clash' => 'Another interpreter is already at this station at that time.',
@@ -239,6 +323,19 @@ return [
             'off_site' => 'Off-site',
             'move_up' => 'Move up',
             'move_down' => 'Move down',
+        ],
+        // The Tour a Member gives on a sign-up (#790, ADR-0033 §2) — the take dialog's picker.
+        'tour' => [
+            'field_label' => 'Tour',
+            'placeholder' => 'Choose a tour',
+            'required' => 'Choose the tour you will give.',
+            'not_givable' => 'You cannot give this tour on this shift.',
+            // A Scheduler setting a Tour the kind does not offer (#806).
+            'not_offered' => 'This tour is not given on this shift.',
+            'none_here' => 'This shift has no tours.',
+            // Officer placement and changing a seat's Tour (#791, ADR-0033 §6).
+            'none' => 'No tour',
+            'change' => 'Change tour',
         ],
         // Objects maintenance (#584, ADR-0026 §3) — the handling collection a Gallery
         // Interpreter takes onto the floor. The same block shape as shift kinds.

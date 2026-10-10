@@ -48,6 +48,10 @@ class ShiftController extends Controller
     {
         $shift->update($request->validated());
 
+        if ($shift->wasChanged('shift_kind_id')) {
+            $shift->clearToursNotOffered();
+        }
+
         return back();
     }
 

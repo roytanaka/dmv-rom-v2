@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DeleteSignUpRequest;
 use App\Http\Requests\RecordSignUpVisitorsRequest;
 use App\Http\Requests\StoreSignUpRequest;
+use App\Http\Requests\UpdateSignUpTourRequest;
 use App\Models\Shift;
 use App\Models\SignUp;
 use App\Support\Notices\SignUpCancellationNoticeWriter;
@@ -31,7 +32,11 @@ class SignUpController extends Controller
      */
     public function store(StoreSignUpRequest $request, Shift $shift): RedirectResponse
     {
-        $signUp = $shift->signUps()->create(['member_id' => $request->user()->getKey()]);
+        // The Tour the taker gives (#790, ADR-0033 §2) — null on a kind with no Tours.
+        $signUp = $shift->signUps()->create([
+            'member_id' => $request->user()->getKey(),
+            'tour_id' => $request->validated('tour_id'),
+        ]);
 
         // The Objects the taker is reserving on this seat (#586, ADR-0026 §3) — absent on a Group
         // with no Objects; the Form Request has refused a retired or double-booked one.
@@ -95,5 +100,16 @@ class SignUpController extends Controller
         $signUp->record($request->validated(), $request->user());
 
         return back()->with(SignUp::JUST_SAVED_FLASH, [...$request->session()->get(SignUp::SHOWN_SAVED_KEY, []), $signUp->id]);
+    }
+
+    /**
+     * Change the Tour on a Sign-up (#791, ADR-0033 §6): the seat-holder until the Shift starts,
+     * or a schedule admin any time. The Form Request has resolved who may and which Tour.
+     */
+    public function updateTour(UpdateSignUpTourRequest $request, SignUp $signUp): RedirectResponse
+    {
+        $signUp->update(['tour_id' => $request->validated('tour_id')]);
+
+        return back();
     }
 }

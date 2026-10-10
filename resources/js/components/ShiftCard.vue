@@ -80,6 +80,9 @@ const emit = defineEmits<{
     drop: [shift: ShiftAgendaItem];
     assign: [shift: ShiftAgendaItem];
     remove: [signUpId: number];
+    // Change a seat's Tour (#791, ADR-0033 §6) — the seat-holder's own, or any seat for a
+    // schedule admin; the parent opens the picker.
+    changeTour: [shift: ShiftAgendaItem, signUp: ShiftSignUp];
     edit: [shift: ShiftAgendaItem];
     delete: [shift: ShiftAgendaItem];
     // The self-serve owner's own controls (#585, ADR-0026 §1) — distinct from the Scheduler's
@@ -401,6 +404,19 @@ const formId = useId();
                     class="max-w-full flex-wrap gap-1 font-normal whitespace-normal"
                 >
                     {{ signUpName(signUp) }}
+                    <!-- The Tour this seat gives (#790, ADR-0033 §2), as-authored. -->
+                    <span v-if="signUp.tour" class="text-muted-foreground">· {{ signUp.tour }}</span>
+                    <!-- Change the seat's Tour (#791) — the seat-holder until the start, a schedule admin
+                         any time (`can_change_tour`, re-checked on PATCH). -->
+                    <button
+                        v-if="signUp.can_change_tour"
+                        type="button"
+                        class="hover:text-rom-ink -my-3.5 inline-flex size-11 items-center justify-center rounded-full transition-colors sm:-my-1 sm:size-6"
+                        :aria-label="trans('group.scheduling_panel.tour.change')"
+                        @click="emit('changeTour', shift, signUp)"
+                    >
+                        <PhPencilSimple class="size-4" />
+                    </button>
                     <!-- The Objects on this seat (#586, ADR-0026 §3) — what the Member is taking
                          onto the floor, named under them so a colleague sees what is already out
                          before they pick. A retired Object still shows its name here. -->
