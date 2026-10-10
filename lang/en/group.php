@@ -251,6 +251,18 @@ return [
         'group_tour_schedule_locked' => 'Shifts on a group-tour schedule come from group tours. Add a group tour instead.',
         'booking_shift_locked' => 'This shift belongs to a group tour. Change the group tour instead.',
         'group_tour_schedule_published' => 'A group-tour schedule stays published.',
+        // Earned and the Statistician's correction (#797, ADR-0032 §7).
+        'earned' => [
+            'line' => 'Earned: :amount',
+            'worked_out' => 'worked out',
+            'corrected' => 'corrected',
+            'correct' => 'Correct Earned',
+            'title' => 'Correct Earned',
+            'field' => 'Earned',
+            'save' => 'Save',
+            'clear' => 'Clear correction',
+            'cancel' => 'Cancel',
+        ],
     ],
 
     'tour_rules' => [

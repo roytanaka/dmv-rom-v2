@@ -25,7 +25,7 @@ La première visite de groupe d’un mois crée l’horaire des visites de group
 Ouvrez l’horaire des visites de groupe du mois depuis l’onglet **Horaire**. Chaque visite de groupe affiche son heure, sa visite et ses places.
 
 - Les membres de votre groupe voient aussi le client, les visiteurs, le type de réservation, le responsable et les commentaires.
-- Les responsables des réservations, le statisticien et le ou la président·e voient aussi le numéro et la date de commande.
+- Les responsables des réservations, le statisticien et le ou la président·e voient aussi le numéro et la date de commande, et le montant gagné.
 - Les autres ne voient que l’heure, la visite et les places.
 
 ## Et ensuite

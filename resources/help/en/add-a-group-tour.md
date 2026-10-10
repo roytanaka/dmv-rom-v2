@@ -25,7 +25,7 @@ The first group tour in a month creates that month's group-tour schedule. The sc
 Open the month's group-tour schedule from the **Scheduling** tab. Each group tour shows its time, tour and seats.
 
 - Members of your Group also see the client, visitors, booking type, leader and comments.
-- Bookers, the Statistician and the Chair also see the order number and order date.
+- Bookers, the Statistician and the Chair also see the order number, the order date and Earned.
 - Anyone else sees only the time, tour and seats.
 
 ## What next

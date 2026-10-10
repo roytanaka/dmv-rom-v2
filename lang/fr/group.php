@@ -232,6 +232,18 @@ return [
         'group_tour_schedule_locked' => 'Les quarts d’un horaire de visites de groupe viennent des visites de groupe. Ajoutez plutôt une visite de groupe.',
         'booking_shift_locked' => 'Ce quart appartient à une visite de groupe. Modifiez plutôt la visite de groupe.',
         'group_tour_schedule_published' => 'Un horaire de visites de groupe reste publié.',
+        // Montant gagné et la correction du ou de la statisticien·ne (#797, ADR-0032 §7).
+        'earned' => [
+            'line' => 'Montant gagné : :amount',
+            'worked_out' => 'calculé',
+            'corrected' => 'corrigé',
+            'correct' => 'Corriger le montant gagné',
+            'title' => 'Corriger le montant gagné',
+            'field' => 'Montant gagné',
+            'save' => 'Enregistrer',
+            'clear' => 'Effacer la correction',
+            'cancel' => 'Annuler',
+        ],
     ],
 
     'tour_rules' => [

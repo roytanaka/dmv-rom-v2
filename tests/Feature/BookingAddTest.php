@@ -316,7 +316,8 @@ it('shows the order number and date to the Booker, Statistician, Chair and super
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule]))
         ->assertInertia(fn (Assert $page) => $page
             ->where('scheduling.open.shifts.0.booking.details.client', 'Bayview Public School')
-            ->where('scheduling.open.shifts.0.booking.officer', ['order_number' => '418820', 'order_date' => '2026-10-02']));
+            ->where('scheduling.open.shifts.0.booking.officer.order_number', '418820')
+            ->where('scheduling.open.shifts.0.booking.officer.order_date', '2026-10-02'));
 })->with([
     'Booker' => [Role::Booker],
     'Statistician' => [Role::Statistician],

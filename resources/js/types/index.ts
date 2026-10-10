@@ -850,6 +850,12 @@ export interface ShiftBooking {
     officer: {
         order_number: string | null;
         order_date: string | null;
+        // Earned (#797, ADR-0032 §7): the correction while set, else worked out on read. Decimal
+        // strings with two places. `can_correct_earned` is the Statistician / Chair / super-tier.
+        earned: string;
+        earned_is_corrected: boolean;
+        earned_correction: string | null;
+        can_correct_earned: boolean;
     } | null;
 }
 

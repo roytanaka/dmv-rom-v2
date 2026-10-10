@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\BookingEarnedController;
 use App\Http\Controllers\BookingTypeController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\DocumentCategoryController;
@@ -520,6 +521,11 @@ Route::post('groups/{group}/bookings', [BookingController::class, 'store'])
 Route::get('booking-clients/{group}', [BookingController::class, 'clients'])
     ->middleware(['auth'])
     ->name('bookings.clients');
+// The Statistician's correction to a Booking's Earned (#797, ADR-0032 §7): set, or cleared with
+// null. Authorized in UpdateEarnedCorrectionRequest through the BookingPolicy's `correctEarned`.
+Route::patch('bookings/{booking}/earned', [BookingEarnedController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('bookings.earned.update');
 
 // The status rules (#793, ADR-0033 §7) — the Settings tab's Tour rules card: the trainee Tour,
 // the starter Tours and the LOA rule, edited by the Chair of a vetting Group. Authorized in
