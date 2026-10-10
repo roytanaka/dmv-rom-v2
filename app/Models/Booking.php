@@ -44,7 +44,6 @@ class Booking extends Model
         'order_number',
         'order_date',
         'comments',
-        'earned_correction',
     ];
 
     /**
@@ -130,6 +129,57 @@ class Booking extends Model
                 $this->shift->signUps()->update(['tour_id' => $this->tour_id]);
             }
         });
+    }
+
+    /**
+     * Earned (§7, #797): the Statistician's correction while one is set, else the worked-out
+     * figure ({@see workedOutEarned()}). Decimal string with two places, like the rate columns.
+     * Reads `shift.signUps` and `bookingType`; eager-load them (strict mode).
+     */
+    public function earned(): string
+    {
+        return $this->earned_correction ?? $this->workedOutEarned();
+    }
+
+    /**
+     * Whether the Statistician's correction stands in for the worked-out figure. A 0 correction
+     * counts; only null means none.
+     */
+    public function isEarnedCorrected(): bool
+    {
+        return $this->earned_correction !== null;
+    }
+
+    /**
+     * Earned worked out on read (§7): rate per visitor × visitors + rate per docent-hour ×
+     * docent-hours, where docent-hours = Sign-ups × the Shift's length in hours (unrounded, so
+     * 45 minutes is 0.75, as {@see HoursRecord::recalculateScheduled()} measures a Shift). Summed
+     * in cents so no float drift reaches the figure; the docent-hour part rounds to the cent.
+     */
+    public function workedOutEarned(): string
+    {
+        $type = $this->bookingType;
+        $shift = $this->shift;
+        $minutes = (int) $shift->starts_at->diffInMinutes($shift->ends_at);
+
+        $cents = self::toCents($type->rate_per_visitor) * $this->visitors
+            + (int) round(self::toCents($type->rate_per_docent_hour) * $shift->signUps->count() * $minutes / 60);
+
+        return number_format($cents / 100, 2, '.', '');
+    }
+
+    /**
+     * Set or clear (null) the Statistician's correction (§7). Kept out of `$fillable`, so an
+     * ordinary edit of the Booking never touches it.
+     */
+    public function correctEarned(?string $amount): void
+    {
+        $this->forceFill(['earned_correction' => $amount])->save();
+    }
+
+    private static function toCents(string $amount): int
+    {
+        return (int) round((float) $amount * 100);
     }
 
     /**

@@ -99,6 +99,15 @@ class BookingPolicy
     }
 
     /**
+     * Set or clear the correction to Earned (§7, #797): the Statistician; the Chair implies it.
+     * Not the Booker, who sees Earned but cannot correct it.
+     */
+    public function correctEarned(Member $actor, Booking $booking): bool
+    {
+        return $actor->canActAs(Role::Statistician, $booking->group);
+    }
+
+    /**
      * Read the Group's past client names for the form's suggestions (§10): whoever may add a
      * Booking.
      */

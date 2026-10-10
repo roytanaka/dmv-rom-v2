@@ -259,6 +259,18 @@ return [
         'confirm_delete' => 'Delete this group tour?',
         'confirm_delete_signups' => 'Delete this group tour? The sign-ups of :names will be removed too.',
         'group_tour_schedule_holds_bookings' => 'This schedule still holds group tours. Move or delete them first.',
+        // Earned and the Statistician's correction (#797, ADR-0032 §7).
+        'earned' => [
+            'line' => 'Earned: :amount',
+            'worked_out' => 'worked out',
+            'corrected' => 'corrected',
+            'correct' => 'Correct Earned',
+            'title' => 'Correct Earned',
+            'field' => 'Earned',
+            'save' => 'Save',
+            'clear' => 'Clear correction',
+            'cancel' => 'Cancel',
+        ],
     ],
 
     // Booking mails (#799, ADR-0032 §9): the buttons on a group tour and the copy-address field on

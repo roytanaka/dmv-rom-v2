@@ -1461,6 +1461,7 @@ class GroupController extends Controller
 
         $viewer = $request->user();
         $booking->setRelation('group', $shift->schedule->group);
+        $booking->setRelation('shift', $shift);
 
         return [
             'id' => $booking->id,
@@ -1477,6 +1478,11 @@ class GroupController extends Controller
             'officer' => $viewer->can('viewOfficerFields', $booking) ? [
                 'order_number' => $booking->order_number,
                 'order_date' => $booking->order_date?->toDateString(),
+                // Earned (#797, ADR-0032 §7): the correction while set, else worked out on read.
+                'earned' => $booking->earned(),
+                'earned_is_corrected' => $booking->isEarnedCorrected(),
+                'earned_correction' => $booking->earned_correction,
+                'can_correct_earned' => $viewer->can('correctEarned', $booking),
             ] : null,
             // The change form's values (#796), for a viewer who may change the Booking; null
             // otherwise, and the Edit control does not render.

@@ -381,6 +381,12 @@
         return clickAndWaitFor(button, () => openDialog());
     }
 
+    // The Correct Earned dialog (#797): the first group tour's pencil beside its Earned line.
+    function openCorrectEarned() {
+        const button = document.querySelector('button[aria-label="Correct Earned"]');
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
     // The by-Tour qualification screen (#789): follow the Tours card's "Dinosaurs" link. A Tour's
     // id is not stable across seeds, so the script cannot `nav` to it.
     function openTourQualifications() {
@@ -915,6 +921,7 @@
         openGroupTourSchedule,
         openEditGroupTour,
         openSubstituteDialog,
+        openCorrectEarned,
         openTourQualifications,
         openAddQualification,
         openMemberQualifications,

@@ -240,6 +240,18 @@ return [
         'confirm_delete' => 'Supprimer cette visite de groupe ?',
         'confirm_delete_signups' => 'Supprimer cette visite de groupe ? Les inscriptions de :names seront aussi supprimées.',
         'group_tour_schedule_holds_bookings' => 'Cet horaire contient encore des visites de groupe. Déplacez-les ou supprimez-les d’abord.',
+        // Montant gagné et la correction du ou de la statisticien·ne (#797, ADR-0032 §7).
+        'earned' => [
+            'line' => 'Montant gagné : :amount',
+            'worked_out' => 'calculé',
+            'corrected' => 'corrigé',
+            'correct' => 'Corriger le montant gagné',
+            'title' => 'Corriger le montant gagné',
+            'field' => 'Montant gagné',
+            'save' => 'Enregistrer',
+            'clear' => 'Effacer la correction',
+            'cancel' => 'Annuler',
+        ],
     ],
 
     // Courriels des visites de groupe (#799, ADR-0032 §9) : les boutons d'une visite de groupe et le

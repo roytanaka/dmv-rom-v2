@@ -5,6 +5,7 @@
 // Members — and the same take / drop / assign / remove affordances, because they are this
 // one component. It owns no policy: the server-sent `can` hints and `signup_id` decide what
 // renders, and the parent handles each action (every mutation is re-checked server-side).
+import BookingEarned from '@/components/BookingEarned.vue';
 import BookingMailButtons from '@/components/BookingMailButtons.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -427,6 +428,10 @@ const formId = useId();
                 </p>
                 <p v-if="orderLine" class="text-muted-foreground">{{ orderLine }}</p>
                 <p v-if="shift.booking.details.comments" class="text-rom-ink break-words whitespace-pre-line">{{ shift.booking.details.comments }}</p>
+            </div>
+            <!-- Earned (#797, ADR-0032 §7): sent to a Booker, Statistician, Chair or super-tier only. -->
+            <div v-if="shift.booking?.officer" class="text-sm">
+                <BookingEarned :booking-id="shift.booking.id" :officer="shift.booking.officer" />
             </div>
 
             <!-- Send a group tour's Request or Confirmation again (#799, ADR-0032 §9). -->
