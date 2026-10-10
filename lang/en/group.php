@@ -186,6 +186,17 @@ return [
         'kind_tours' => 'Tours: :tours',
     ],
 
+    // The Tour rules card (#793, ADR-0033 §7): what happens to qualifications when a standing changes.
+    'tour_rules' => [
+        'heading' => 'Tour rules',
+        'trainee_label' => 'Trainee tour',
+        'none' => 'None',
+        'starter_label' => 'Starter tours',
+        'no_tours' => 'This group has no tours yet.',
+        'loa_label' => 'LOA removes qualifications',
+        'trainee_is_starter' => 'The trainee tour cannot also be a starter tour.',
+    ],
+
     // The qualification screens (#789, ADR-0033 §3, §4): by Tour and by Member.
     'qualifications' => [
         'back' => 'Back to tours',

@@ -335,6 +335,11 @@
         return showCardTitled(/^tours/i);
     }
 
+    // The Tour rules card (#793): the trainee Tour, the starter Tours and the LOA rule.
+    function showTourRules() {
+        return showCardTitled(/^tour rules/i);
+    }
+
     // The by-Tour qualification screen (#789): follow the Tours card's "Dinosaurs" link. A Tour's
     // id is not stable across seeds, so the script cannot `nav` to it.
     function openTourQualifications() {
@@ -819,6 +824,7 @@
         showEmptyDeskAlert,
         showShiftKinds,
         showTours,
+        showTourRules,
         openTourQualifications,
         openAddQualification,
         openMemberQualifications,

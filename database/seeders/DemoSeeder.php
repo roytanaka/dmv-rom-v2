@@ -1174,6 +1174,7 @@ class DemoSeeder extends Seeder
 
         $kinds = $this->shiftKinds($docents);
         $this->tours($docents, self::DOCENT_TOURS, $kinds);
+        $this->tourRules($docents, 'Museum Highlights – New Docents', ['Museum Highlights'], false);
         $this->qualifications($docents, 'Museum Highlights – New Docents');
 
         $previous = $this->monthSchedule($docents, $lastMonth, 'Last month\'s docent tour roster, worked and signed out.');
@@ -1418,6 +1419,7 @@ class DemoSeeder extends Seeder
             );
         }
         $this->tours($group, self::GDR_TOURS, $kinds);
+        $this->tourRules($group, null, ['Le choix du guide', 'Les trésors'], true);
         $this->qualifications($group);
 
         $previous = $this->monthSchedule($group, $lastMonth, 'Le calendrier des visites du mois dernier, données et signées.');
@@ -2378,6 +2380,22 @@ class DemoSeeder extends Seeder
                 collect($kindNames)->map(fn (string $kind): int => $kinds[$kind]->id)->all(),
             );
         }
+    }
+
+    /**
+     * Seed a Group's status-rule settings (#793, ADR-0033 §7): the trainee Tour, the starter
+     * Tours and the LOA rule, naming Tours already seeded by {@see tours()}. Plain overwrites, so
+     * a reseed lands on the same state.
+     *
+     * @param  list<string>  $starterTours
+     */
+    private function tourRules(Group $group, ?string $traineeTour, array $starterTours, bool $loaRemovesQualifications): void
+    {
+        $group->update([
+            'trainee_tour_id' => $traineeTour === null ? null : $group->tours()->where('name', $traineeTour)->value('id'),
+            'loa_removes_qualifications' => $loaRemovesQualifications,
+        ]);
+        $group->tours()->whereIn('name', $starterTours)->update(['starter' => true]);
     }
 
     /**

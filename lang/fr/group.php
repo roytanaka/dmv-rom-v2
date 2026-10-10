@@ -168,6 +168,17 @@ return [
         'kind_tours' => 'Visites : :tours',
     ],
 
+    // La carte des règles des visites (#793, ADR-0033 §7) : ce que deviennent les qualifications quand le statut change.
+    'tour_rules' => [
+        'heading' => 'Règles des visites',
+        'trainee_label' => 'Visite des stagiaires',
+        'none' => 'Aucune',
+        'starter_label' => 'Visites de départ',
+        'no_tours' => 'Ce groupe n’a pas encore de visites.',
+        'loa_label' => 'Le congé retire les qualifications',
+        'trainee_is_starter' => 'La visite des stagiaires ne peut pas aussi être une visite de départ.',
+    ],
+
     // Les écrans des qualifications (#789, ADR-0033 §3, §4) : par visite et par membre.
     'qualifications' => [
         'back' => 'Retour aux visites',

@@ -83,6 +83,32 @@ Adding an inactive qualification makes it active again with the new date.
 
 The Member can no longer sign up for that Tour themselves.
 
+## Set the Tour rules
+
+The Tour rules decide what happens to qualifications when a Member's standing changes. Only the Chair can set them.
+
+1. Open your Group's **Settings** tab.
+2. Find the **Tour rules** card.
+3. Choose the **Trainee tour**, or **None**.
+4. Tick each **Starter tour**.
+5. Tick **LOA removes qualifications** if your Group wants that.
+6. Select **Save**.
+
+The trainee Tour cannot also be a starter Tour.
+
+## When a Member's standing changes
+
+The app updates qualifications by itself when a Secretary changes a Member's standing:
+
+- **Trainee:** every qualification goes inactive, and the trainee Tour becomes active.
+- **Full:** the starter Tours become active, and the trainee Tour goes inactive.
+- **Emeritus, Resigned or Deceased:** every qualification goes inactive.
+- **LOA:** every qualification goes inactive, but only if **LOA removes qualifications** is ticked.
+
+Other standings change nothing. A qualification that becomes active gets today's date as its last vet date.
+
+> **Note:** The rules never delete a qualification. Removing a Member from the Group deletes all their qualifications.
+
 ## What next
 
 Read [Manage your Group's shift kinds](manage-your-groups-shift-kinds) to add the kinds your Tours fill.
