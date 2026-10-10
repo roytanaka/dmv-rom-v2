@@ -4,6 +4,7 @@ namespace App\Http\Requests\Concerns;
 
 use App\Models\Member;
 use App\Models\Shift;
+use App\Models\ShiftKind;
 use Illuminate\Validation\Rule;
 
 /**
@@ -64,6 +65,24 @@ trait ChoosesTour
         return [
             'tour_id' => ['nullable', 'integer', Rule::in($offered->pluck('id')->all())],
         ];
+    }
+
+    /**
+     * A `shift_kind_id` rule for a self-serve Shift (ADR-0026, ADR-0033 §2): a Member writing
+     * their own Shift never picks a Tour, so a station whose kind maps to an active Tour is
+     * refused. A kind whose Tours are all retired offers none and stays a plain station.
+     */
+    protected function notATourKind(): callable
+    {
+        return function (string $attribute, mixed $value, callable $fail): void {
+            $offersTours = ShiftKind::whereKey($value)
+                ->whereHas('tours', fn ($query) => $query->active())
+                ->exists();
+
+            if ($offersTours) {
+                $fail('group.scheduling_panel.self_serve.tour_kind')->translate();
+            }
+        };
     }
 
     /**

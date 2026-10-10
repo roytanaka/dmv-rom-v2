@@ -93,6 +93,19 @@ it('forbids a Member who is not in the Group and hides the tab hint', function (
         ->assertInertia(fn (Assert $page) => $page->where('can.viewTours', false));
 });
 
+it('forbids a Member whose Membership no longer counts and hides the tab hint', function (MembershipStatus $status) {
+    $group = toursPageGroup();
+    $former = toursPageMembershipOf($group, status: $status)->member;
+
+    $this->actingAs($former)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
+        ->assertForbidden();
+
+    $this->actingAs($former)
+        ->get(route('groups.show', ['group' => $group]))
+        ->assertInertia(fn (Assert $page) => $page->where('can.viewTours', false));
+})->with([MembershipStatus::Resigned, MembershipStatus::Deceased, MembershipStatus::Inactive]);
+
 it('lets the super-tier see the page without a Membership', function () {
     $group = toursPageGroup();
     Tour::factory()->create(['group_id' => $group->id, 'name' => 'Birds']);

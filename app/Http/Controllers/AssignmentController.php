@@ -164,7 +164,10 @@ class AssignmentController extends Controller
                     && $startsAt->format('H:i') === $data['starts_time']
                     && $endsAt->format('H:i') === $data['ends_time']
                     && $this->onInterval($startsAt, $data['interval'], $anchorWeek);
-            });
+            })
+            // Each placement reads its Shift's offered Tours (#791); load them for the matched
+            // Shifts at once, not per Shift.
+            ->load('kind.tours');
     }
 
     /**

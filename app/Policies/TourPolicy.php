@@ -17,12 +17,14 @@ class TourPolicy
 {
     /**
      * Read the Group's Tours page (#792, ADR-0033 §5) — who gives each Tour and their Last vet
-     * dates. Members of the Group only, like the Meetings list; the super-tier via `Gate::before`.
+     * dates. Current Members of the Group only (a standing that counts as belonging, the same
+     * test as the qualification picker): a Resigned, Deceased or Inactive Membership does not
+     * open it. The super-tier via `Gate::before`.
      */
     public function view(Member $actor, Group $group): bool
     {
         return $group->has_vetting
-            && $actor->membershipIn($group) !== null;
+            && ($actor->membershipIn($group)?->status->countsAsBelonging() ?? false);
     }
 
     /**

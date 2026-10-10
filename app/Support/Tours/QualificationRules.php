@@ -19,7 +19,7 @@ use App\Support\OrgTime;
  * - Any other standing changes nothing.
  *
  * Rules only activate or deactivate rows, never delete them, so a returning Member keeps their
- * history. An activation sets today's Last vet date; a row already active is left as it is.
+ * history. Only an active (not retired) starter or trainee Tour is ever activated. An activation sets today's Last vet date; a row already active is left as it is.
  * The caller compares old and new standing ({@see GroupMemberController}); a Group without
  * vetting has no rules.
  */
@@ -54,13 +54,13 @@ class QualificationRules
             ->update(['active' => false]);
 
         if ($traineeTourId !== null) {
-            $this->activate($membership, [$traineeTourId]);
+            $this->activate($membership, $membership->group->tours()->active()->whereKey($traineeTourId)->pluck('id')->all());
         }
     }
 
     private function becomeFull(GroupMember $membership, ?int $traineeTourId): void
     {
-        $starterIds = $membership->group->tours()->where('starter', true)->pluck('id')->all();
+        $starterIds = $membership->group->tours()->active()->where('starter', true)->pluck('id')->all();
 
         $this->activate($membership, $starterIds);
 

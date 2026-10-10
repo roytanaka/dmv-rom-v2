@@ -111,6 +111,31 @@ it('activates the starter Tours and deactivates the trainee Tour on becoming Ful
     ]);
 });
 
+it('leaves qualifications on a retired starter Tour inactive on becoming Full', function () {
+    $group = rulesGroup();
+    rulesTour($group, 'Highlights')->update(['active' => false]);
+    $membership = rulesMembershipOf($group, status: MembershipStatus::Emeritus);
+    rulesQualify($membership, rulesTour($group, 'Highlights'), active: false, date: '2019-01-01');
+    $fresh = rulesMembershipOf($group, status: MembershipStatus::Trainee);
+
+    rulesSetStatus($membership, MembershipStatus::Full);
+    rulesSetStatus($fresh, MembershipStatus::Full);
+
+    expect(rulesState($membership))->toBe(['Highlights' => [false, '2019-01-01']])
+        ->and(rulesState($fresh))->toBe([]);
+});
+
+it('leaves a qualification on a retired trainee Tour inactive on becoming Trainee', function () {
+    $group = rulesGroup();
+    rulesTour($group, 'Highlights – New Docents')->update(['active' => false]);
+    $membership = rulesMembershipOf($group, status: MembershipStatus::Emeritus);
+    rulesQualify($membership, rulesTour($group, 'Highlights – New Docents'), active: false);
+
+    rulesSetStatus($membership, MembershipStatus::Trainee);
+
+    expect(rulesState($membership))->toBe(['Highlights – New Docents' => [false, '2024-05-01']]);
+});
+
 it('reactivates an inactive starter qualification with today as its Last vet date', function () {
     $group = rulesGroup();
     $membership = rulesMembershipOf($group, status: MembershipStatus::Emeritus);

@@ -196,6 +196,21 @@ class Shift extends Model
     }
 
     /**
+     * Clear the Tour on this Shift's Sign-ups when its kind no longer offers it (ADR-0033 §2) —
+     * after the Shift moves to another kind, or to none. A seat whose Tour the new kind still
+     * offers keeps it. Call after the kind change is saved.
+     */
+    public function clearToursNotOffered(): void
+    {
+        $this->unsetRelation('kind');
+
+        $this->signUps()
+            ->whereNotNull('tour_id')
+            ->whereNotIn('tour_id', $this->toursOffered()->pluck('id')->all())
+            ->update(['tour_id' => null]);
+    }
+
+    /**
      * The Schedule this Shift belongs to — the source of everything it inherits.
      *
      * @return BelongsTo<Schedule, $this>

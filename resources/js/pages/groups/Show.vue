@@ -117,7 +117,7 @@ const props = defineProps<{
         manageTours: boolean;
         // `manageTourRules` gates the Settings tab's Tour rules card (#793).
         manageTourRules: boolean;
-        // `viewTours` gates the Tours tab (#792) — a Member of a vetting Group, or the super-tier.
+        // `viewTours` gates the Tours tab (#792) — a current Member of a vetting Group, or the super-tier.
         viewTours: boolean;
         enterHours: boolean;
         viewReports: boolean;

@@ -392,3 +392,43 @@ it('offers no Tour change on a Tour-less Shift', function () {
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.shifts.0.signups.0.can_change_tour', false));
 });
+
+// --- Changing a Shift's kind -------------------------------------------------------
+
+it('clears the Tour on Sign-ups whose Tour the Shift\'s new kind does not offer', function () {
+    $group = placementTourGroup();
+    $egypt = placementTourTour($group, 'Ancient Egypt');
+    $dinos = placementTourTour($group, 'Dinosaurs');
+    $retired = placementTourTour($group, 'Old', ['active' => false]);
+    $schedule = placementTourSchedule($group);
+    $shift = placementTourShift($schedule, placementTourKind($group, [$egypt, $dinos]));
+    $newKind = placementTourKind($group, [$dinos, $retired]);
+    $keeps = SignUp::factory()->create(['shift_id' => $shift->id, 'tour_id' => $dinos->id]);
+    $loses = SignUp::factory()->create(['shift_id' => $shift->id, 'tour_id' => $egypt->id]);
+    $other = SignUp::factory()->create([
+        'shift_id' => placementTourShift($schedule, placementTourKind($group, [$egypt]))->id,
+        'tour_id' => $egypt->id,
+    ]);
+
+    $this->actingAs(placementTourMember($group, Role::Scheduler))
+        ->patch(route('shifts.update', $shift), ['shift_kind_id' => $newKind->id])
+        ->assertSessionHasNoErrors();
+
+    expect($keeps->fresh()->tour_id)->toBe($dinos->id)
+        ->and($loses->fresh()->tour_id)->toBeNull()
+        ->and($other->fresh()->tour_id)->toBe($egypt->id);
+});
+
+it('clears every Tour when the Shift moves to a Tour-less kind or to no kind', function (bool $toNoKind) {
+    $group = placementTourGroup();
+    $egypt = placementTourTour($group, 'Ancient Egypt');
+    $shift = placementTourShift(placementTourSchedule($group), placementTourKind($group, [$egypt]));
+    $signUp = SignUp::factory()->create(['shift_id' => $shift->id, 'tour_id' => $egypt->id]);
+    $plain = ShiftKind::factory()->create(['group_id' => $group->id]);
+
+    $this->actingAs(placementTourMember($group, Role::Scheduler))
+        ->patch(route('shifts.update', $shift), ['shift_kind_id' => $toNoKind ? null : $plain->id])
+        ->assertSessionHasNoErrors();
+
+    expect($signUp->fresh()->tour_id)->toBeNull();
+})->with([false, true]);

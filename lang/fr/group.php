@@ -274,6 +274,7 @@ return [
             'ends_at_preview' => 'Se termine à :time',
             'units_option' => '{1} :count unité|[2,*] :count unités',
             'start_before_today' => 'Choisissez aujourd’hui ou un jour ultérieur.',
+            'tour_kind' => 'Vous ne pouvez pas créer votre propre quart à un poste qui comporte des visites.',
             // L'avertissement de conflit de poste (#588, ADR-0026 §5) — un·e autre interprète est
             // déjà à ce poste à ce moment. Un avertissement, non un blocage : le membre peut passer outre.
             'station_clash' => 'Un·e autre interprète est déjà à ce poste à ce moment.',
