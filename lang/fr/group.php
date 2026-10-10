@@ -242,6 +242,16 @@ return [
         'group_tour_schedule_holds_bookings' => 'Cet horaire contient encore des visites de groupe. Déplacez-les ou supprimez-les d’abord.',
     ],
 
+    // Courriels des visites de groupe (#799, ADR-0032 §9) : les boutons d'une visite de groupe et le
+    // champ d'adresse en copie de la carte Visites de groupe.
+    'booking_mails' => [
+        'send_request' => 'Envoyer la demande',
+        'send_confirmation' => 'Envoyer la confirmation',
+        'request_sent' => 'Demande mise en file d’envoi.',
+        'confirmation_sent' => 'Confirmation mise en file d’envoi.',
+        'copy_email_label' => 'Copier chaque courriel de visite de groupe à',
+    ],
+
     'tour_rules' => [
         'heading' => 'Règles des visites',
         'trainee_label' => 'Visite des stagiaires',

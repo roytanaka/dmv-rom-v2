@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\BookingMailController;
 use App\Http\Controllers\BookingTypeController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\DocumentCategoryController;
@@ -529,6 +530,14 @@ Route::patch('bookings/{booking}', [BookingController::class, 'update'])
 Route::delete('bookings/{booking}', [BookingController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('bookings.destroy');
+// Booking mails (#799, ADR-0032 §9) — a Booker, the Chair or super-tier sends a Booking's Request
+// or Confirmation again. Authorized in the controller through the BookingPolicy's `sendMails`.
+Route::post('bookings/{booking}/request', [BookingMailController::class, 'request'])
+    ->middleware(['auth'])
+    ->name('bookings.request');
+Route::post('bookings/{booking}/confirmation', [BookingMailController::class, 'confirmation'])
+    ->middleware(['auth'])
+    ->name('bookings.confirmation');
 
 // The status rules (#793, ADR-0033 §7) — the Settings tab's Tour rules card: the trainee Tour,
 // the starter Tours and the LOA rule, edited by the Chair of a vetting Group. Authorized in

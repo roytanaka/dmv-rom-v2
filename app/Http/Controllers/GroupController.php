@@ -553,7 +553,7 @@ class GroupController extends Controller
      * included, with their rates; the group-tour shift kind and Schedule label; and the Group's
      * shift kinds to pick from.
      *
-     * @return array{types: list<array{id: int, name: string, ratePerVisitor: string, ratePerDocentHour: string, active: bool, sortOrder: int}>, shiftKindId: int|null, label: string|null, shiftKinds: list<array{id: int, name: string, active: bool}>}
+     * @return array{types: list<array{id: int, name: string, ratePerVisitor: string, ratePerDocentHour: string, active: bool, sortOrder: int}>, shiftKindId: int|null, label: string|null, copyEmail: string|null, shiftKinds: list<array{id: int, name: string, active: bool}>}
      */
     private function bookingSettings(Group $group): array
     {
@@ -569,6 +569,7 @@ class GroupController extends Controller
                 ])->values()->all(),
             'shiftKindId' => $group->group_tour_shift_kind_id,
             'label' => $group->group_tour_label,
+            'copyEmail' => $group->booking_copy_email,
             'shiftKinds' => $group->shiftKinds()->orderBy('sort_order')->get()
                 ->map(fn (ShiftKind $kind): array => [
                     'id' => $kind->id,
@@ -1432,7 +1433,7 @@ class GroupController extends Controller
      * Reads the eager-loaded `booking.tour` and `booking.bookingType`; the Group is set from the
      * Shift's Schedule so the policy never lazy-loads it.
      *
-     * @return array{id: int, tour: string, tour_id: int, details: array<string, mixed>|null, officer: array<string, mixed>|null, edit: array<string, mixed>|null, can_delete: bool}|null
+     * @return array{id: int, tour: string, tour_id: int, details: array<string, mixed>|null, officer: array<string, mixed>|null, edit: array<string, mixed>|null, can_delete: bool, can_send_mails: bool}|null
      */
     private function bookingPayload(Request $request, Shift $shift): ?array
     {
@@ -1465,6 +1466,8 @@ class GroupController extends Controller
             // otherwise, and the Edit control does not render.
             'edit' => $viewer->can('update', $booking) ? $this->bookingEditValues($shift, $booking) : null,
             'can_delete' => $viewer->can('delete', $booking),
+            // The Send Request and Send Confirmation buttons (#799, §9). UI hint only.
+            'can_send_mails' => $viewer->can('sendMails', $booking),
         ];
     }
 

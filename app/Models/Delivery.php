@@ -62,7 +62,8 @@ class Delivery extends Model
     /**
      * The Member this row is addressed to. The address itself is the snapshotted `email`
      * column, not this relation — the relation exists to read the recipient's saved locale
-     * at send time, so each copy renders in the recipient's own language.
+     * at send time, so each copy renders in the recipient's own language. Null on a copy to a
+     * Group's copy address (#799), which is no Member and names its locale in the payload.
      *
      * @return BelongsTo<Member, $this>
      */

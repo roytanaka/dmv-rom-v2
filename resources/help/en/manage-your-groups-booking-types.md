@@ -10,7 +10,8 @@ A booking type is how a client pays for a group tour, such as Tour Paid or Spot 
 2. Find the **Group tours** card.
 3. Pick the shift kind group tours use under **Group-tour shift kind**.
 4. Type the name for your group-tour Schedules under **Group-tour schedule name**, such as "Group tours".
-5. Select **Save**.
+5. Optionally, enter an address under **Copy every group-tour email to**. Every group tour email goes there too.
+6. Select **Save**.
 
 Each month's group-tour Schedule takes this name, followed by the month and year.
 

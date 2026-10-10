@@ -856,6 +856,8 @@ export interface ShiftBooking {
     edit: BookingEditValues | null;
     // Whether the viewer may delete the Booking with its Shift and Sign-ups (#796).
     can_delete: boolean;
+    // The Send Request and Send Confirmation buttons (#799): a Booker, Chair or super-tier.
+    can_send_mails: boolean;
 }
 
 // A Booking's change-form values (#796): the date and times on the org wall clock.

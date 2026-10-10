@@ -7,6 +7,7 @@ use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\UpdateBookingRequest;
 use App\Models\Booking;
 use App\Models\Group;
+use App\Support\Notices\BookingMailWriter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,15 +29,18 @@ class BookingController extends Controller
      * Add a Booking and its Shift. The first Booking in a month creates and publishes that
      * month's group-tour Schedule; later ones reuse it.
      */
-    public function store(StoreBookingRequest $request, Group $group): RedirectResponse
+    public function store(StoreBookingRequest $request, Group $group, BookingMailWriter $mails): RedirectResponse
     {
-        Booking::book(
+        $booking = Booking::book(
             $group,
             $request->startsAt(),
             $request->endsAt(),
             (int) $request->validated('docents_needed'),
             $request->bookingAttributes(),
         );
+
+        // The Request, or the Confirmation when the Booking is already full (#799, §9).
+        $mails->onCreate($booking, $request->user());
 
         return back();
     }
