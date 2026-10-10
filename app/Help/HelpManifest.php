@@ -221,6 +221,8 @@ final class HelpManifest
             'groups.hours.member.csv',
             'groups.hours.extra.csv',
             'groups.hours.meetings.csv',
+            'groups.hours.tour-summary.csv',
+            'groups.hours.tour-detail.csv',
             'hours.committee-summary.csv',
             'hours.committee-detailed.csv',
             'hours.visitor-summary.csv',
@@ -327,6 +329,8 @@ final class HelpManifest
             // Hours and reports (#526) — the officer reports and the entry that feeds them.
             new HelpArticle('hours-and-reports', HelpSection::HoursAndReports, isOverview: true, status: ArticleStatus::Published, route: 'groups.hours.report'),
             new HelpArticle('run-your-groups-hours-report', HelpSection::HoursAndReports, requires: ['statistician', 'chair'], status: ArticleStatus::Published, route: 'groups.hours.report', routes: ['groups.hours.month', 'groups.hours.member', 'groups.hours.extra', 'groups.hours.meetings']),
+            // Tour Summary and Tour Detail (#800, ADR-0032 §12), with the exhibition revenue entry.
+            new HelpArticle('run-the-tour-reports', HelpSection::HoursAndReports, requires: ['statistician', 'chair'], status: ArticleStatus::Draft, route: 'groups.hours.tour-summary', routes: ['groups.hours.tour-detail']),
             new HelpArticle('export-a-report-as-csv', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.hours.report'),
             new HelpArticle('enter-and-correct-hours', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('the-org-wide-reports', HelpSection::HoursAndReports, requires: ['super_tier'], status: ArticleStatus::Published, route: 'hours.committee-summary', routes: ['hours.committee-detailed', 'hours.visitor-summary', 'hours.ranked', 'hours.zero-hours', 'hours.zero-shift-hours', 'hours.zero-extra-hours']),

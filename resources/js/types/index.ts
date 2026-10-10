@@ -457,6 +457,15 @@ export interface MyHours {
     groups: MyHoursGroupRow[];
 }
 
+// The Group identity every Group hours report carries. `has_bookings` adds the Tour Summary and
+// Tour Detail links to the report nav (#800).
+export interface HoursReportGroup {
+    id: number;
+    name: string;
+    slug: string;
+    has_bookings: boolean;
+}
+
 // The Group fiscal-year report payload (#411, ADR-0022 §5). A Member × twelve-month matrix
 // with a year-to-date column, plus the Group's own hours next to its hours including every
 // descendant. Reports are officer-only (§4), so this payload never reaches an ordinary peer.
@@ -477,7 +486,7 @@ export interface GroupHoursReportRollup {
 }
 
 export interface GroupHoursReport {
-    group: { id: number; name: string; slug: string };
+    group: HoursReportGroup;
     /** The fiscal year in view, named for the year it ends in (ADR-0022 §8). */
     fiscalYear: number;
     /** The fiscal years the viewer may pick, newest first. */
@@ -496,12 +505,50 @@ export interface GroupHoursMonthRow extends MyHoursTotals {
 }
 
 export interface GroupHoursMonth {
-    group: { id: number; name: string; slug: string };
+    group: HoursReportGroup;
     /** The month in view — a YYYYMM bucket and its first-of-month ISO date. */
     month: MyHoursMonthColumn;
     /** The months the Group has records in plus the current one, newest first. */
     months: MyHoursMonthColumn[];
     members: GroupHoursMonthRow[];
+}
+
+// Tour Summary and Tour Detail (#800, ADR-0032 §12). Tours count docent-tours (one per Sign-up);
+// Earned is a two-decimal string (the correction wins). Officer-only, behind viewReports.
+export interface TourFigures {
+    tours: number;
+    visitors: number;
+    earned: string;
+}
+
+export interface TourReportRow extends TourFigures {
+    id: number;
+    /** The booking type's or Tour's name, as-authored. */
+    name: string;
+}
+
+export interface TourReportDetailType {
+    id: number;
+    name: string;
+    tours: TourReportRow[];
+    total: TourFigures;
+}
+
+export interface TourReport {
+    group: HoursReportGroup;
+    /** A month (`year_month` set) or a fiscal year to date. */
+    period: { kind: 'month' | 'year'; fiscal_year: number; year_month: string | null; month: string | null };
+    /** The months the Group has Bookings in plus the current one, newest first. */
+    months: MyHoursMonthColumn[];
+    fiscalYears: number[];
+    types: TourReportRow[];
+    detail: TourReportDetailType[];
+    group_tours: TourFigures;
+    scheduled: { tours: number; visitors: number };
+    exhibition_revenue: string;
+    grand_total: TourFigures;
+    /** The month's entered figure (null when none) and whether the viewer may enter it. */
+    exhibition: { can_enter: boolean; amount: string | null };
 }
 
 // Member History payload (#412, ADR-0022 §8). One Member's hours in this Group over time —
@@ -514,7 +561,7 @@ export interface GroupHoursMemberRow extends MyHoursTotals {
 }
 
 export interface GroupHoursMemberHistory {
-    group: { id: number; name: string; slug: string };
+    group: HoursReportGroup;
     /** The Members with hours in this Group, for the picker dropdown. */
     members: { id: number; name: string }[];
     /** The Member in view, or null when none is picked yet. */
@@ -542,7 +589,7 @@ export interface GroupHoursSummaryRow {
 }
 
 export interface GroupHoursSummary {
-    group: { id: number; name: string; slug: string };
+    group: HoursReportGroup;
     /** The fiscal year in view, named for the year it ends in (ADR-0022 §8). */
     fiscalYear: number;
     /** The fiscal years the viewer may pick, newest first. */

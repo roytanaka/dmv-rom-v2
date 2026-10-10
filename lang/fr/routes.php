@@ -79,6 +79,11 @@ return [
     'groups.hours.member.csv' => 'groupes/{group}/heures/membre.csv',
     'groups.hours.extra.csv' => 'groupes/{group}/heures/supplementaires.csv',
     'groups.hours.meetings.csv' => 'groupes/{group}/heures/reunions.csv',
+    // Sommaire et détail des visites (#800, ADR-0032 §12), avec leurs CSV.
+    'groups.hours.tour-summary' => 'groupes/{group}/heures/sommaire-visites',
+    'groups.hours.tour-detail' => 'groupes/{group}/heures/detail-visites',
+    'groups.hours.tour-summary.csv' => 'groupes/{group}/heures/sommaire-visites.csv',
+    'groups.hours.tour-detail.csv' => 'groupes/{group}/heures/detail-visites.csv',
 
     // Les six rapports annuels à l'échelle du DMV (#413, ADR-0022 §8). À l'échelle de
     // l'organisation, sans {group} — toujours enracinés au groupe racine DMV. Les mots sont
