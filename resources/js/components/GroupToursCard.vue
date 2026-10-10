@@ -162,9 +162,9 @@ const confirmDelete = () => {
 
                     <template v-if="nameDrafts[tour.id] !== undefined">
                         <Input v-model="nameDrafts[tour.id]" class="h-8 w-56" @keyup.enter="saveRename(tour.id)" />
-                        <Button type="button" size="sm" @click="saveRename(tour.id)">{{ trans('group.scheduling_panel.save') }}</Button>
+                        <Button type="button" size="sm" @click="saveRename(tour.id)">{{ trans('group.tours.save') }}</Button>
                         <Button type="button" size="sm" variant="ghost" @click="cancelRename(tour.id)">
-                            {{ trans('group.scheduling_panel.cancel') }}
+                            {{ trans('group.tours.cancel') }}
                         </Button>
                     </template>
                     <template v-else>
@@ -221,8 +221,8 @@ const confirmDelete = () => {
             </div>
             <InputError :message="mapForm.errors.shift_kinds" />
             <DialogFooter>
-                <Button type="button" variant="ghost" @click="mapping = null">{{ trans('group.scheduling_panel.cancel') }}</Button>
-                <Button type="button" :disabled="mapForm.processing" @click="saveMapping">{{ trans('group.scheduling_panel.save') }}</Button>
+                <Button type="button" variant="ghost" @click="mapping = null">{{ trans('group.tours.cancel') }}</Button>
+                <Button type="button" :disabled="mapForm.processing" @click="saveMapping">{{ trans('group.tours.save') }}</Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
@@ -234,7 +234,7 @@ const confirmDelete = () => {
                 <AlertDialogDescription>{{ trans('group.tours.delete_body') }}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>{{ trans('group.scheduling_panel.cancel') }}</AlertDialogCancel>
+                <AlertDialogCancel>{{ trans('group.tours.cancel') }}</AlertDialogCancel>
                 <AlertDialogAction class="bg-destructive text-destructive-foreground hover:bg-destructive/80" @click.prevent="confirmDelete">
                     {{ trans('group.tours.delete') }}
                 </AlertDialogAction>

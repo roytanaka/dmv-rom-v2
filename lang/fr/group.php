@@ -153,6 +153,8 @@ return [
         'add_label' => 'Ajouter une visite',
         'add' => 'Ajouter',
         'rename' => 'Renommer',
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
         'retire' => 'Retirer',
         'restore' => 'Réactiver',
         'retired_badge' => 'Retirée',

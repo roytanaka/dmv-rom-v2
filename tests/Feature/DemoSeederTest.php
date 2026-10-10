@@ -912,7 +912,7 @@ it('seeds the Tour rules for Docents and GDR (#793)', function () {
     $gdr = Group::where('slug', DemoSeeder::GUIDES_DU_ROM)->firstOrFail();
 
     // Docents: the trainee Tour, Museum Highlights as the one starter Tour, LOA keeps qualifications.
-    expect($docents->traineeTour()->sole()->name)->toBe('Museum Highlights – New Docents')
+    expect(Tour::findOrFail($docents->trainee_tour_id)->name)->toBe('Museum Highlights – New Docents')
         ->and($docents->tours()->where('starter', true)->pluck('name')->all())->toBe(['Museum Highlights'])
         ->and($docents->loa_removes_qualifications)->toBeFalse();
 

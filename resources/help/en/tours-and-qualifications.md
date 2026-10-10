@@ -1,16 +1,16 @@
 # Keep your Group's Tours and qualifications
 
-Keep the list of Tours your Group gives and record who may give each one. You need the Vetting or Chair role to change the list or the qualifications. Any Member of the Group can see who gives each Tour, and sign up to give one.
+Keep the list of Tours your Group gives and record who may give each one. You need the Vetting or Chair role to change the list or the qualifications. Any current Member of the Group can see who gives each Tour and sign up to give one.
 
-A Tour is one concrete tour, such as "Museum Highlights". A shift kind is the slot on the roster, such as "Gallery/Theme". One kind can hold many Tours.
+A Tour is one specific tour, such as "Museum Highlights". A shift kind is the slot on the roster, such as "Gallery/Theme". One kind can hold many Tours.
 
 ## See who gives each Tour
 
 1. Open your Group's **Tours** tab.
 
-Each active Tour has its own card. The card lists the Members who give the Tour, with their last vet date. A Tour marked **Open to all** needs no qualification, so any Member can give it.
+Each active Tour has its own card. The card lists the Members who give the Tour and their last vet dates. Any Member can give a Tour marked **Open to all**, because it needs no qualification.
 
-Only Members of the Group see the **Tours** tab.
+Only current Members of the Group see the **Tours** tab. A Member who has resigned, died or gone inactive does not.
 
 ## Add a Tour
 
@@ -24,10 +24,10 @@ The new Tour joins the end of the list. Each name is unique within your Group.
 ## Choose the shift kinds for a Tour
 
 1. Select **Shift kinds** beside the Tour.
-2. Tick each kind the Tour is given on.
+2. Tick each kind that carries the Tour.
 3. Select **Save**.
 
-A kind with no Tours works as before. Schedulers see each kind's Tours on the **Shift kinds** card.
+A kind with no Tours works as before. Schedulers see each kind's Tours on the **Shift kinds** card. Members cannot write their own self-serve shift on a kind that has active Tours.
 
 ## Open a Tour to all
 
@@ -41,7 +41,7 @@ Any Member can give a Tour that is open to all. Other Tours need a qualification
 2. Select **Retire** beside a Tour you no longer give.
 3. Select **Restore** to give it again.
 
-A retired Tour stays on its past Sign-ups and qualifications.
+Past Sign-ups and qualifications keep a retired Tour.
 
 ## Reorder or delete a Tour
 
@@ -51,7 +51,7 @@ A retired Tour stays on its past Sign-ups and qualifications.
 
 > **Note:** You cannot delete a Tour that has qualifications or Sign-ups. Retire it instead.
 
-## See who gives a Tour
+## Manage who may give a Tour
 
 A qualification says a Member may give one Tour. It also records their last vet date.
 
@@ -60,7 +60,7 @@ A qualification says a Member may give one Tour. It also records their last vet 
 
 You can also select a Tour's name on the **Tours** card of the **Settings** tab.
 
-The page lists everyone qualified for the Tour, with their last vet date. Inactive qualifications are listed apart, under **Inactive**. They count for nothing until you add them again.
+The page lists everyone qualified for the Tour, with their last vet date. Inactive qualifications are listed separately, under **Inactive**. An inactive qualification does not let the Member give the Tour until you add it again.
 
 ## See which Tours a Member gives
 
@@ -79,7 +79,7 @@ You can also open the **Members** tab, select the menu on a Member's row, and se
 
 On a Member's page, **Add** works the same way, but you choose a Tour.
 
-Adding an inactive qualification makes it active again with the new date.
+If you add a qualification that is inactive, it becomes active again with the new date.
 
 ## Change a last vet date
 
@@ -87,7 +87,7 @@ Adding an inactive qualification makes it active again with the new date.
 2. Enter the new date.
 3. Select **Save**.
 
-> **Note:** A last vet date never expires. The app shows it and does nothing else with it.
+> **Note:** A last vet date never expires. The app only shows it.
 
 ## Remove a qualification
 
@@ -98,7 +98,7 @@ The Member can no longer sign up for that Tour themselves.
 
 ## Set the Tour rules
 
-The Tour rules decide what happens to qualifications when a Member's standing changes. Only the Chair can set them.
+The Tour rules control what happens to qualifications when a Member's standing changes. Only the Chair can set them.
 
 1. Open your Group's **Settings** tab.
 2. Find the **Tour rules** card.
@@ -113,12 +113,12 @@ The trainee Tour cannot also be a starter Tour.
 
 The app updates qualifications by itself when a Secretary changes a Member's standing:
 
-- **Trainee:** every qualification goes inactive, and the trainee Tour becomes active.
-- **Full:** the starter Tours become active, and the trainee Tour goes inactive.
-- **Emeritus, Resigned or Deceased:** every qualification goes inactive.
-- **LOA:** every qualification goes inactive, but only if **LOA removes qualifications** is ticked.
+- Trainee: every qualification goes inactive, and the trainee Tour becomes active.
+- Full: the starter Tours become active, and the trainee Tour goes inactive.
+- Emeritus, Resigned or Deceased: every qualification goes inactive.
+- LOA: every qualification goes inactive, but only if **LOA removes qualifications** is ticked.
 
-Other standings change nothing. A qualification that becomes active gets today's date as its last vet date.
+Other standings change nothing. A qualification that becomes active gets today's date as its last vet date. The rules never make a qualification active on a retired Tour.
 
 > **Note:** The rules never delete a qualification. Removing a Member from the Group deletes all their qualifications.
 
@@ -157,9 +157,11 @@ A Scheduler or Chair can place any Member on a Shift. The Member needs no qualif
 
 The list shows every active Tour of the kind. A kind with one Tour fills it in for you.
 
-**Bulk sign-ups** also place a Member with no qualification. On a kind with one Tour, each Sign-up gets that Tour. On a kind with several, the Tour is left blank.
+Bulk sign-ups also place a Member who has no qualification. On a kind with one Tour, each Sign-up gets that Tour. On a kind with several, the Tour is left blank.
 
-To set or change the Tour on any Sign-up, select the pencil beside the Member's name. You can do this at any time, also after the Shift starts. Choose **No tour** to clear it.
+To set or change the Tour on any Sign-up, select the pencil beside the Member's name. You can do this at any time, even after the Shift starts. Choose **No tour** to clear it.
+
+If a Scheduler changes a Shift's kind, each Sign-up keeps its Tour only if the new kind has that Tour. Otherwise the Tour is cleared.
 
 ## What next
 

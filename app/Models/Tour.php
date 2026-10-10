@@ -102,4 +102,14 @@ class Tour extends Model
     {
         $query->where('active', true);
     }
+
+    /**
+     * Order Tours the one way the app lists them: the Group's authored order, then name.
+     *
+     * @param  Builder<Tour>  $query
+     */
+    public function scopeOrdered(Builder $query): void
+    {
+        $query->orderBy('sort_order')->orderBy('name');
+    }
 }

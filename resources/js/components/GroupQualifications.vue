@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { SharedData } from '@/types';
+import { formatDateOnly } from '@/lib/dates';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -64,11 +65,7 @@ const props = defineProps<{
 }>();
 
 const page = usePage<SharedData>();
-// A date-only value, formatted without shifting through the browser's time zone.
-const formatDate = (iso: string | null) =>
-    iso === null
-        ? trans('group.qualifications.no_date')
-        : new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+const formatDate = (iso: string | null) => (iso === null ? trans('group.qualifications.no_date') : formatDateOnly(iso, page.props.locale));
 
 const heading = computed(() =>
     props.screen.view === 'tour'

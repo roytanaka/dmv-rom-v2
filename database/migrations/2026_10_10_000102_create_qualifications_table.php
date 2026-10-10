@@ -23,6 +23,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['group_member_id', 'tour_id']);
+            // A Tour's active holders — the Tours page and the by-Tour screen.
+            $table->index(['tour_id', 'active']);
         });
     }
 

@@ -135,6 +135,15 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * The A–Z sort key the roster uses: surname, then given name, lower-cased. A space sorts
+     * ahead of any letter, so "Smith" precedes "Smithson".
+     */
+    public function surnameKey(): string
+    {
+        return mb_strtolower($this->last_name.' '.$this->first_name);
+    }
+
+    /**
      * The locale system-generated messages address this Member in (Laravel's
      * {@see HasLocalePreference}). The mailer reads it to render each recipient's copy of a
      * notification in their own language — the Sign-up cancellation email is the first

@@ -8,6 +8,7 @@ import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { SharedData } from '@/types';
+import { formatDateOnly } from '@/lib/dates';
 import { usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 
@@ -25,11 +26,7 @@ defineProps<{
 }>();
 
 const page = usePage<SharedData>();
-// A date-only value, formatted without shifting through the browser's time zone.
-const formatDate = (iso: string | null) =>
-    iso === null
-        ? trans('group.tours_page.no_date')
-        : new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+const formatDate = (iso: string | null) => (iso === null ? trans('group.tours_page.no_date') : formatDateOnly(iso, page.props.locale));
 </script>
 
 <template>

@@ -27,6 +27,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['group_id', 'name']);
+            // The Group's active Tours in order — the Tours page, the pickers and the settings cards.
+            $table->index(['group_id', 'active', 'sort_order']);
         });
     }
 

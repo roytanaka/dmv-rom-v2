@@ -272,16 +272,6 @@ class Group extends Model
     }
 
     /**
-     * The Group's trainee Tour (#793, ADR-0033 §7) — the one Tour a new Trainee gets. Optional.
-     *
-     * @return BelongsTo<Tour, $this>
-     */
-    public function traineeTour(): BelongsTo
-    {
-        return $this->belongsTo(Tour::class, 'trainee_tour_id');
-    }
-
-    /**
      * The Members who run this Group's scheduling — the recipients of the Sign-up
      * cancellation email (#358, ADR-0021 §Sign-up "Notification"). These are the Group's
      * `Scheduler`-role holders, with Chair-implication folded in (a Chair acts as Scheduler

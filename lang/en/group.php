@@ -170,6 +170,8 @@ return [
         'add_label' => 'Add a tour',
         'add' => 'Add',
         'rename' => 'Rename',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
         'retire' => 'Retire',
         'restore' => 'Restore',
         'retired_badge' => 'Retired',

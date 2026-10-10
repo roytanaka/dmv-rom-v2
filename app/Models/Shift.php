@@ -171,9 +171,10 @@ class Shift extends Model
 
     /**
      * The Tours a Sign-up on this Shift chooses from (#790, ADR-0033 §2): the active Tours its kind
-     * maps to, in the Group's order. Empty for a kind-less Shift or a kind with no active Tour,
-     * and then a Sign-up carries no Tour. One Tour is filled in; several make the Member pick
-     * ({@see Member::toursGivableOn()} narrows them to the ones the Member may give).
+     * maps to, in the Group's order ({@see Tour::scopeOrdered()}). Empty for a kind-less Shift or a
+     * kind with no active Tour, and then a Sign-up carries no Tour. One Tour is filled in; several
+     * make the Member pick ({@see Member::toursGivableOn()} narrows them to the ones the Member may
+     * give).
      *
      * Reads `kind.tours` from the loaded relation when the caller has it (the Agenda payload
      * eager-loads it), and loads it once otherwise, so it never lazy-loads under strict mode.
@@ -190,7 +191,7 @@ class Shift extends Model
 
         return $this->kind->tours
             ->where('active', true)
-            ->sortBy([['sort_order', 'asc'], ['id', 'asc']])
+            ->sortBy([['sort_order', 'asc'], ['name', 'asc']])
             ->values()
             ->toBase();
     }
