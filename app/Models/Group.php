@@ -287,6 +287,17 @@ class Group extends Model
     }
 
     /**
+     * The Group's Bookings (#795, ADR-0032 §1) — its group tours, each with one Shift on its month's
+     * group-tour Schedule.
+     *
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
      * The Members who run this Group's scheduling — the recipients of the Sign-up
      * cancellation email (#358, ADR-0021 §Sign-up "Notification"). These are the Group's
      * `Scheduler`-role holders, with Chair-implication folded in (a Chair acts as Scheduler

@@ -39,7 +39,7 @@ class DeleteTourRequest extends FormRequest
         $validator->after(function (Validator $validator): void {
             $tour = $this->route('tour');
 
-            if ($tour->qualifications()->exists() || $tour->signUps()->exists()) {
+            if ($tour->qualifications()->exists() || $tour->signUps()->exists() || $tour->bookings()->exists()) {
                 $validator->errors()->add('tour', trans('group.tours.cannot_delete'));
             }
         });

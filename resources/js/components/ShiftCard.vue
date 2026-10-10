@@ -108,6 +108,24 @@ const shiftDate = computed(() => formatShiftDate(props.shift.starts_at, page.pro
 
 const signUpName = (signUp: ShiftSignUp) => `${signUp.first_name} ${signUp.last_name}`;
 
+// A Booking's order date (#795) is a plain calendar date, parsed as local midnight so no zone
+// shift lands it on the day before.
+const formatOrderDate = (date: string) => new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium' }).format(new Date(`${date}T00:00:00`));
+
+// The order line (#795, ADR-0032 §5): the number and date the server sent to a Booker,
+// Statistician, Chair or super-tier; empty when neither was recorded.
+const orderLine = computed(() => {
+    const officer = props.shift.booking?.officer;
+    if (!officer) return '';
+
+    return [
+        officer.order_number ? trans('group.bookings.order', { number: officer.order_number }) : null,
+        officer.order_date ? trans('group.bookings.ordered_on', { date: formatOrderDate(officer.order_date) }) : null,
+    ]
+        .filter((part) => part !== null)
+        .join(', ');
+});
+
 // The viewer's own seat (#445, ADR-0023 §5). Seats carry the member id; the signed-in Member is
 // auth.user.
 const isOwnSeat = (signUp: ShiftSignUp) => signUp.id === page.props.auth.user.id;
@@ -383,10 +401,29 @@ const formId = useId();
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span class="text-rom-ink font-medium">{{ timeRange(shift.starts_at, shift.ends_at) }}</span>
                     <span v-if="shift.kind" class="text-muted-foreground text-sm">{{ shift.kind }}</span>
+                    <!-- A group tour's Tour (#795), for every reader. -->
+                    <span v-if="shift.booking" class="text-rom-ink text-sm">· {{ shift.booking.tour }}</span>
                 </div>
                 <span class="text-muted-foreground text-sm tabular-nums">
                     {{ trans('group.scheduling_panel.agenda.seats', { taken: String(shift.taken), capacity: String(shift.capacity) }) }}
                 </span>
+            </div>
+
+            <!-- A group tour's client half (#795, ADR-0032 §5) — only what the server sent this
+                 viewer: the client, visitors, type, leader and comments to the Group's Members, the
+                 order line to a Booker, Statistician or Chair. Client, leader, comments and the type
+                 name are content, shown as-authored. -->
+            <div v-if="shift.booking?.details" class="flex flex-col gap-0.5 text-sm">
+                <p class="text-rom-ink font-medium break-words">{{ shift.booking.details.client }}</p>
+                <p class="text-muted-foreground">
+                    {{ transChoice('group.bookings.visitors', shift.booking.details.visitors, { count: String(shift.booking.details.visitors) }) }}
+                    · {{ shift.booking.details.type }}
+                    <template v-if="shift.booking.details.leader">
+                        · {{ trans('group.bookings.leader', { leader: shift.booking.details.leader }) }}
+                    </template>
+                </p>
+                <p v-if="orderLine" class="text-muted-foreground">{{ orderLine }}</p>
+                <p v-if="shift.booking.details.comments" class="text-rom-ink break-words whitespace-pre-line">{{ shift.booking.details.comments }}</p>
             </div>
 
             <!-- Who is on the floor (#357) — visible to every reader who can read the

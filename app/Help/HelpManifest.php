@@ -292,6 +292,9 @@ final class HelpManifest
             new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
             new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),
             new HelpArticle('cancel-a-sign-up', HelpSection::Scheduling, route: 'groups.scheduling.show'),
+            // Group tours (#795, spec #787, ADR-0032 §1, §4, §5) — a Booker adds a Booking, and every
+            // reader finds it on the month's group-tour Schedule.
+            new HelpArticle('add-a-group-tour', HelpSection::Scheduling, requires: ['booker', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
             new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('reminders', HelpSection::Scheduling),

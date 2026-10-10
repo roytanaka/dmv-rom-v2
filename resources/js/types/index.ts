@@ -683,6 +683,8 @@ export interface ScheduleListItem {
     starts_on: string;
     ends_on: string;
     state: string;
+    // A month's group-tour Schedule (#795, ADR-0032 §4), which holds Bookings only.
+    is_group_tour: boolean;
     is_past: boolean;
     url: string;
     can: ScheduleAbilities;
@@ -802,6 +804,8 @@ export interface ShiftAgendaItem {
     // Shift), so the form pre-selects both rather than guessing from the display name.
     audience: string;
     shift_kind_id: number | null;
+    // The Booking this Shift staffs (#795, ADR-0032 §5), null on every other Shift.
+    booking: ShiftBooking | null;
     signups: ShiftSignUp[];
     signup_id: number | null;
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
@@ -824,6 +828,35 @@ export interface ShiftAgendaItem {
         record: boolean;
         manageSelfServe: boolean;
     };
+}
+
+// A Booking on the Schedule (#795, ADR-0032 §5), filtered by the server to what the viewer may
+// read. Everyone who can read the Schedule gets the Tour. `details` (the client half) goes to the
+// Group's Members, null for anyone else; `officer` (order number and date) to the Booker,
+// Statistician, Chair and super-tier, null for anyone else. Client, leader, comments and the type
+// name are content, never translated.
+export interface ShiftBooking {
+    id: number;
+    tour: string;
+    tour_id: number;
+    details: {
+        client: string;
+        visitors: number;
+        type: string;
+        booking_type_id: number;
+        leader: string | null;
+        comments: string | null;
+    } | null;
+    officer: {
+        order_number: string | null;
+        order_date: string | null;
+    } | null;
+}
+
+// The Booking form's pickers (#795): the Group's active Tours and booking types, in order.
+export interface BookingOptions {
+    tours: TourOption[];
+    types: TourOption[];
 }
 
 // A foreign open Shift (#361, ADR-0021 §Sign-up) — another Group's `open` Shift a reader
@@ -849,6 +882,9 @@ export interface ScheduleDetail {
     opens_on: string;
     state: string;
     description: string | null;
+    // A month's group-tour Schedule (#795, ADR-0032 §4): its Shifts come from Bookings, so the
+    // Shift authoring controls do not render on it.
+    is_group_tour: boolean;
     // The Schedule authoring hints, plus `emailSignups` (#513, ADR-0024 §6.4): whether the
     // viewer — a Chair or Scheduler of the Group — may email the Schedule's Sign-ups. One flag
     // per opened Schedule; the Shift cards read it to gate their Email button (never per Shift).
@@ -887,6 +923,9 @@ export interface Scheduling {
     // renders only when the list is non-empty and only on the flows that reserve Objects. Empty on
     // a Group with no Objects and on the list view.
     objects: ObjectOption[];
+    // The Booking form's pickers (#795), for a viewer who may add a group tour; null for everyone
+    // else, and the "Add group tour" control does not render.
+    booking_options: BookingOptions | null;
     // The viewer's own outstanding-shifts panel (#449, ADR-0023 §5) — "my Sign-ups on this
     // Group": upcoming Shifts, plus any past Shift inside the 28-day window still owed a number.
     // It is date-ranged, so it crosses Schedules, and rides on the tab whether a Schedule is

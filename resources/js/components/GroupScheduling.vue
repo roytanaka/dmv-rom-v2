@@ -15,6 +15,7 @@
 // PATCH carrying the new `state`. Every mutation is enforced by the SchedulePolicy
 // regardless of what renders. Names and descriptions are as-authored content
 // (ADR-0004); everything else is translated chrome.
+import BookingDialog from '@/components/BookingDialog.vue';
 import DateTimeField from '@/components/DateTimeField.vue';
 import ForeignShiftBand from '@/components/ForeignShiftBand.vue';
 import InputError from '@/components/InputError.vue';
@@ -200,6 +201,14 @@ const emailRoster = computed<Recipient[]>(() =>
         standing: candidate.standing,
     })),
 );
+
+// --- Group tours (#795, ADR-0032 §1) — a Booker adds a Booking -----------------------
+
+// The Booking form's pickers, sent only to a viewer who may add a group tour; null hides the
+// control. It shows on the list (the month's first group tour creates its Schedule) and on an
+// opened group-tour Schedule.
+const bookingOptions = computed(() => props.scheduling.booking_options);
+const bookingOpen = ref(false);
 
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
 
@@ -921,8 +930,19 @@ const runBulkAssign = (action: 'place' | 'remove') => {
             />
         </section>
 
-        <div v-if="canCreate && !scheduling.open" class="flex justify-end">
-            <Button type="button" size="sm" class="gap-1.5" @click="openCreate">
+        <div v-if="(canCreate || bookingOptions) && !scheduling.open" class="flex flex-wrap justify-end gap-2">
+            <Button
+                v-if="bookingOptions"
+                type="button"
+                :variant="canCreate ? 'outline' : 'default'"
+                size="sm"
+                class="gap-1.5"
+                @click="bookingOpen = true"
+            >
+                <PhPlus class="size-4" />
+                {{ trans('group.bookings.add') }}
+            </Button>
+            <Button v-if="canCreate" type="button" size="sm" class="gap-1.5" @click="openCreate">
                 <PhPlus class="size-4" />
                 {{ trans('group.scheduling_panel.new') }}
             </Button>
@@ -1017,7 +1037,15 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                  controls on an opened Schedule, gated by the same schedule-admin verdict as
                  Schedule editing (`can.update`). Shown even on an empty Schedule so the first
                  Shift, single or in bulk, can be added. -->
-            <div v-if="scheduling.open.can.update" class="flex flex-wrap justify-end gap-2">
+            <!-- Add group tour (#795) — on a month's group-tour Schedule, whose Shifts come only from
+                 Bookings, so the Shift authoring controls below give way to it. -->
+            <div v-if="scheduling.open.is_group_tour && bookingOptions" class="flex flex-wrap justify-end gap-2">
+                <Button type="button" size="sm" class="gap-1.5" @click="bookingOpen = true">
+                    <PhPlus class="size-4" />
+                    {{ trans('group.bookings.add') }}
+                </Button>
+            </div>
+            <div v-if="scheduling.open.can.update && !scheduling.open.is_group_tour" class="flex flex-wrap justify-end gap-2">
                 <Button type="button" variant="outline" size="sm" class="gap-1.5" @click="openBulkAssign">
                     <PhUserPlus class="size-4" />
                     {{ trans('group.scheduling_panel.bulk_assign.open') }}
@@ -1315,6 +1343,9 @@ const runBulkAssign = (action: 'place' | 'remove') => {
 
         <!-- Honest empty state — the Group runs scheduling but has no Schedules yet. -->
         <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.scheduling_panel.empty') }}</p>
+
+        <!-- Add a group tour (#795) — the Booking form, for a viewer the server sent its pickers. -->
+        <BookingDialog v-if="bookingOptions" v-model:open="bookingOpen" :group-slug="groupSlug" :options="bookingOptions" />
 
         <!-- Authoring create/edit dialog (#354) — one form, reused; opened by the
              "New schedule" control or a per-Schedule edit. -->
