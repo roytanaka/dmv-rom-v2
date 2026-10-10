@@ -822,6 +822,10 @@ export interface ShiftAgendaItem {
     can: {
         signUp: boolean;
         assign: boolean;
+        // The seat-holder's way out (#798, ADR-0032 §8): Drop on an ordinary Shift, Substitute on
+        // a Booking's, each only before the start.
+        drop: boolean;
+        substitute: boolean;
         update: boolean;
         delete: boolean;
         readReport: boolean;

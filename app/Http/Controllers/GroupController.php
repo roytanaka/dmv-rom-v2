@@ -1182,7 +1182,13 @@ class GroupController extends Controller
         return $shifts
             // A schedule admin (the ShiftPolicy's edit gate) gets the officer affordances —
             // the assign button and each seat's remove target; a plain reader gets neither.
-            ->map(fn (Shift $shift) => $this->shiftPayload($request, $shift, $viewer->can('update', $shift)))
+            ->map(fn (Shift $shift) => $this->shiftPayload(
+                $request,
+                $shift,
+                $viewer->can('update', $shift),
+                // A Booker places and removes on a Booking's Shift (#798, ADR-0032 §3).
+                canPlace: $shift->booking !== null && $viewer->can('place', $shift->booking->setRelation('group', $schedule->group)),
+            ))
             ->all();
     }
 
@@ -1249,8 +1255,13 @@ class GroupController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function shiftPayload(Request $request, Shift $shift, bool $canManage): array
+    private function shiftPayload(Request $request, Shift $shift, bool $canManage, bool $canPlace = false): array
     {
+        // Who places and removes Members here (#798): a schedule admin, or a Booker on a Booking's
+        // Shift. It reveals the assign button, each seat's id and the placement Tour list, but not
+        // Shift authoring or officer correction, which stay the schedule admin's.
+        $canPlace = $canManage || $canPlace;
+
         $viewer = $request->user();
         $taken = $shift->signUps->count();
         $ownSignUp = $shift->signUps->firstWhere('member_id', $viewer->getKey());
@@ -1289,7 +1300,7 @@ class GroupController extends Controller
                 ->all(),
             // Every active Tour of the kind (#791, ADR-0033 §6), for a schedule admin only: the
             // placement and change-Tour pickers, which need no qualification. Empty otherwise.
-            'tours_offered' => $canManage
+            'tours_offered' => $canPlace
                 ? $offered->map(fn (Tour $tour) => ['id' => $tour->id, 'name' => $tour->name])->values()->all()
                 : [],
             // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up), so the card hides
@@ -1312,7 +1323,7 @@ class GroupController extends Controller
             // Post-shift report (`$readsReport`, #652, #653). A plain reader never learns another
             // seat's id or numbers.
             'signups' => $shift->signUps
-                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $readsReport, $offered) {
+                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $canPlace, $readsReport, $offered) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
 
                     // The Objects this seat reserves (#586, ADR-0026 §3) — named under the Member
@@ -1338,7 +1349,7 @@ class GroupController extends Controller
                     // Officer removal and correction (#359, #450) — a schedule admin gets, on
                     // *every* seat, the seat's Sign-up id: the removal target and the write
                     // target for a correction.
-                    if ($canManage) {
+                    if ($canPlace) {
                         $seat['signup_id'] = $signUp->id;
                     }
 
@@ -1393,7 +1404,12 @@ class GroupController extends Controller
                 'signUp' => $ownSignUp === null
                     && $taken < $shift->capacity
                     && $viewer->can('create', [SignUp::class, $shift]),
-                'assign' => $canManage && $taken < $shift->capacity,
+                'assign' => $canPlace && $taken < $shift->capacity,
+                // The seat-holder's own way out (#798, ADR-0032 §8), mirroring SignUpPolicy
+                // `delete` and `substitute`: Drop on an ordinary Shift, Substitute on a Booking's,
+                // either only until the Shift starts.
+                'drop' => $ownSignUp !== null && $shift->booking === null && ! $shift->hasStarted(),
+                'substitute' => $ownSignUp !== null && $shift->booking !== null && ! $shift->hasStarted(),
                 // The Shift authoring affordances (#356 front end). `update` is the
                 // schedule-admin gate, already resolved as `$canManage`; `delete` folds in
                 // the zero-Sign-ups rule (ADR-0021 §2) — a seated Shift must be emptied
@@ -1564,7 +1580,9 @@ class GroupController extends Controller
      */
     private function assignmentRoster(Request $request, Group $group): array
     {
-        if (! $request->user()->can('create', [Schedule::class, $group])) {
+        // A Booker places on Booking Shifts (#798, ADR-0032 §3), so gets the roster too.
+        if (! $request->user()->can('create', [Schedule::class, $group])
+            && ! $request->user()->can('create', [Booking::class, $group])) {
             return [];
         }
 

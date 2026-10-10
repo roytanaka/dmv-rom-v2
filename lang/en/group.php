@@ -418,6 +418,17 @@ return [
             'none' => 'No tour',
             'change' => 'Change tour',
         ],
+        // Substituting on a group tour (#798, ADR-0032 §8): a seat-holder cannot drop, they
+        // hand the seat to a Member who could take it.
+        'substitute' => [
+            'action' => 'Substitute',
+            'title' => 'Choose a substitute',
+            'field_label' => 'Substitute',
+            'placeholder' => 'Choose a member',
+            'none' => 'No one else can take this tour.',
+            'submit' => 'Hand over seat',
+            'not_eligible' => 'This member cannot take this tour.',
+        ],
         // Objects maintenance (#584, ADR-0026 §3) — the handling collection a Gallery
         // Interpreter takes onto the floor. The same block shape as shift kinds.
         'objects' => [

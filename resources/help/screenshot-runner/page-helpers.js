@@ -375,6 +375,12 @@
         return clickAndWaitFor(button, () => openDialog());
     }
 
+    // A group tour's Substitute dialog (#798): the persona's own seat on an upcoming group tour.
+    function openSubstituteDialog() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^substitute$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
     // The by-Tour qualification screen (#789): follow the Tours card's "Dinosaurs" link. A Tour's
     // id is not stable across seeds, so the script cannot `nav` to it.
     function openTourQualifications() {
@@ -908,6 +914,7 @@
         openAddGroupTour,
         openGroupTourSchedule,
         openEditGroupTour,
+        openSubstituteDialog,
         openTourQualifications,
         openAddQualification,
         openMemberQualifications,

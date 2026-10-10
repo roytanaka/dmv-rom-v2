@@ -59,6 +59,16 @@ class BookingPolicy
     }
 
     /**
+     * Place and remove docents on a Booking's Shift (#798, §3, §8): a Booker or Chair, while the
+     * Group runs bookings and scheduling. A Scheduler does this through the schedule-admin gate
+     * ({@see SignUpPolicy}), not here.
+     */
+    public function place(Member $actor, Booking $booking): bool
+    {
+        return $this->create($actor, $booking->group);
+    }
+
+    /**
      * Read a Booking's client half (§5): the client, visitors, type, leader and comments. Current
      * Members of the Group only (a standing that counts as belonging); everyone else who can read
      * the Schedule sees only the time, Tour and seats.

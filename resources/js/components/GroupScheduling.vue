@@ -465,6 +465,56 @@ const removeSeat = (signUpId: number) => {
     }
 };
 
+// --- Substituting on a Booking (#798, ADR-0032 §8) ---
+
+// A seat on a Booking cannot be dropped; its holder hands it to a Member who could take it. The
+// picker's list is the server's (`sign-ups.substitutes`), fetched when the dialog opens; the PATCH
+// re-checks the holder, the start and the substitute.
+const substituting = ref<ShiftAgendaItem | null>(null);
+const substitutes = ref<{ id: number; name: string }[] | null>(null);
+const substituteForm = useForm<{ member_id: number | null }>({ member_id: null });
+
+const substituteOpen = computed({
+    get: () => substituting.value !== null,
+    set: (open: boolean) => {
+        if (!open) closeSubstitute();
+    },
+});
+
+const closeSubstitute = () => {
+    substituting.value = null;
+    substitutes.value = null;
+    substituteForm.reset();
+    substituteForm.clearErrors();
+};
+
+const openSubstitute = async (shift: ShiftAgendaItem) => {
+    if (shift.signup_id === null) return;
+
+    substituteForm.reset();
+    substituteForm.clearErrors();
+    substitutes.value = null;
+    substituting.value = shift;
+
+    const response = await fetch(route('sign-ups.substitutes', { signUp: shift.signup_id }), {
+        headers: { Accept: 'application/json' },
+    });
+
+    if (response.ok && substituting.value === shift) {
+        substitutes.value = ((await response.json()) as { members: { id: number; name: string }[] }).members;
+    }
+};
+
+const submitSubstitute = () => {
+    const signUpId = substituting.value?.signup_id;
+    if (!signUpId) return;
+
+    substituteForm.patch(route('sign-ups.substitute', { signUp: signUpId }), {
+        preserveScroll: true,
+        onSuccess: () => closeSubstitute(),
+    });
+};
+
 // --- Changing a seat's Tour (#791, ADR-0033 §6) ---
 
 // The seat whose Tour is being changed, with its Shift; null when the dialog is closed. A schedule
@@ -952,6 +1002,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 :collects-visitor-provenance="collectsVisitorProvenance"
                 @take="take"
                 @drop="drop"
+                @substitute="openSubstitute"
                 @assign="openAssign"
                 @remove="removeSeat"
                 @change-tour="openChangeTour"
@@ -1256,6 +1307,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         allow-self-serve-controls
                         @take="take"
                         @drop="drop"
+                        @substitute="openSubstitute"
                         @assign="openAssign"
                         @remove="removeSeat"
                         @change-tour="openChangeTour"
@@ -1295,6 +1347,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 :can-email-signups="scheduling.open.can.emailSignups"
                 @take="take"
                 @drop="drop"
+                @substitute="openSubstitute"
                 @assign="openAssign"
                 @remove="removeSeat"
                 @change-tour="openChangeTour"
@@ -1805,6 +1858,35 @@ const runBulkAssign = (action: 'place' | 'remove') => {
 
         <!-- Change-Tour dialog (#791, ADR-0033 §6) — opened from a seat's pencil. A schedule admin
              may leave it blank; the seat-holder must pick a Tour they may give. -->
+        <Dialog v-model:open="substituteOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ trans('group.scheduling_panel.substitute.title') }}</DialogTitle>
+                </DialogHeader>
+                <form class="flex flex-col gap-4" @submit.prevent="submitSubstitute">
+                    <div class="grid gap-2">
+                        <Label for="substitute-member">{{ trans('group.scheduling_panel.substitute.field_label') }}</Label>
+                        <NativeSelect id="substitute-member" v-model="substituteForm.member_id" required :disabled="substitutes === null">
+                            <option :value="null" disabled>{{ trans('group.scheduling_panel.substitute.placeholder') }}</option>
+                            <option v-for="member in substitutes ?? []" :key="member.id" :value="member.id">{{ member.name }}</option>
+                        </NativeSelect>
+                        <p v-if="substitutes !== null && !substitutes.length" class="text-muted-foreground text-sm">
+                            {{ trans('group.scheduling_panel.substitute.none') }}
+                        </p>
+                        <InputError :message="substituteForm.errors.member_id" />
+                    </div>
+                    <div class="flex gap-2">
+                        <Button type="submit" size="sm" :disabled="substituteForm.processing || substituteForm.member_id === null">
+                            {{ trans('group.scheduling_panel.substitute.submit') }}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="substituteForm.processing" @click="closeSubstitute">
+                            {{ trans('group.scheduling_panel.cancel') }}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
         <Dialog v-model:open="changeTourOpen">
             <DialogContent>
                 <DialogHeader>

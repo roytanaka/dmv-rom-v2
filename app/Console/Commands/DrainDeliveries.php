@@ -10,6 +10,7 @@ use App\Mail\BroadcastSenderCopy;
 use App\Mail\EmptyDeskAlert;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
+use App\Mail\SignUpSubstituted;
 use App\Mail\StandingChanged;
 use App\Models\Broadcast;
 use App\Models\Delivery;
@@ -293,6 +294,7 @@ class DrainDeliveries extends Command
     {
         return match ($payload['notice'] ?? null) {
             StandingChanged::NOTICE_TYPE => StandingChanged::fromSnapshot($payload),
+            SignUpSubstituted::NOTICE_TYPE => SignUpSubstituted::fromSnapshot($payload),
             BookingMail::REQUEST, BookingMail::CONFIRMATION => BookingMail::fromSnapshot($payload),
             default => SignUpCancelled::fromSnapshot($payload),
         };

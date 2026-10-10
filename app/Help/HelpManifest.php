@@ -297,6 +297,9 @@ final class HelpManifest
             new HelpArticle('add-a-group-tour', HelpSection::Scheduling, requires: ['booker', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
             // Changing, moving and deleting a group tour (#796, ADR-0032 §1, §3, §4).
             new HelpArticle('change-or-delete-a-group-tour', HelpSection::Scheduling, requires: ['booker', 'statistician', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            // Signing up for a group tour and handing the seat to a substitute (#798, ADR-0032 §8).
+            // Any Member of a Group that runs bookings.
+            new HelpArticle('sign-up-for-a-group-tour', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
             // Group tour emails (#799, ADR-0032 §9) — the Request and Confirmation, sent again from a
             // group tour, and the Group's copy address.
             new HelpArticle('send-group-tour-emails', HelpSection::Scheduling, requires: ['booker', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),

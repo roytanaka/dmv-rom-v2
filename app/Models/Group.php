@@ -299,6 +299,23 @@ class Group extends Model
     }
 
     /**
+     * The Members who run this Group's Bookings (ADR-0032 §3) — the `Booker`-role holders, with
+     * Chair-implication folded in. Recipients of the substitution Notice (#798, §9).
+     *
+     * @return Collection<int, Member>
+     */
+    public function bookers(): Collection
+    {
+        return $this->memberships()
+            ->with(['member', 'roles'])
+            ->get()
+            ->filter(fn (GroupMember $membership) => $membership->roles->contains('role', Role::Booker)
+                || $membership->roles->contains('role', Role::Chair))
+            ->map(fn (GroupMember $membership) => $membership->member)
+            ->values();
+    }
+
+    /**
      * The Members who run this Group's scheduling — the recipients of the Sign-up
      * cancellation email (#358, ADR-0021 §Sign-up "Notification"). These are the Group's
      * `Scheduler`-role holders, with Chair-implication folded in (a Chair acts as Scheduler
