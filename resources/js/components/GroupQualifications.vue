@@ -186,7 +186,7 @@ const sections = computed(() => [
                                 <TableHead>{{
                                     screen.view === 'tour' ? trans('group.qualifications.column_member') : trans('group.qualifications.column_tour')
                                 }}</TableHead>
-                                <TableHead>{{ trans('group.qualifications.column_last_vet_date') }}</TableHead>
+                                <TableHead class="hidden sm:table-cell">{{ trans('group.qualifications.column_last_vet_date') }}</TableHead>
                                 <TableHead class="text-right"
                                     ><span class="sr-only">{{ trans('group.qualifications.change_date') }}</span></TableHead
                                 >
@@ -199,15 +199,20 @@ const sections = computed(() => [
                                     <Badge v-if="row.tourActive === false" variant="secondary" class="ml-2">{{
                                         trans('group.qualifications.retired_tour')
                                     }}</Badge>
+                                    <!-- On a phone the date column hides; the date rides under the name. -->
+                                    <p class="text-muted-foreground text-sm sm:hidden">{{ formatDate(row.lastVetDate) }}</p>
                                 </TableCell>
-                                <TableCell>{{ formatDate(row.lastVetDate) }}</TableCell>
+                                <TableCell class="hidden sm:table-cell">{{ formatDate(row.lastVetDate) }}</TableCell>
+                                <!-- On a phone the two actions stack, so neither is pushed out of the card. -->
                                 <TableCell class="text-right whitespace-nowrap">
-                                    <Button type="button" size="sm" variant="ghost" @click="openEdit(row)">{{
-                                        trans('group.qualifications.change_date')
-                                    }}</Button>
-                                    <Button type="button" size="sm" variant="ghost" @click="removing = row">{{
-                                        trans('group.qualifications.remove')
-                                    }}</Button>
+                                    <div class="flex flex-col items-end gap-1 sm:flex-row sm:justify-end">
+                                        <Button type="button" size="sm" variant="ghost" @click="openEdit(row)">{{
+                                            trans('group.qualifications.change_date')
+                                        }}</Button>
+                                        <Button type="button" size="sm" variant="ghost" @click="removing = row">{{
+                                            trans('group.qualifications.remove')
+                                        }}</Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         </TableBody>
