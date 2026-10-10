@@ -14,6 +14,7 @@ return [
         'meetings' => 'Meetings',
         'documents' => 'Documents',
         'scheduling' => 'Scheduling',
+        'tours' => 'Tours',
         'hours' => 'Hours',
         'settings' => 'Settings',
     ],
@@ -184,6 +185,15 @@ return [
         'cannot_delete' => 'This tour has qualifications or sign-ups. Retire it instead.',
         // The read-only list of a kind's Tours on the Shift kinds card.
         'kind_tours' => 'Tours: :tours',
+    ],
+
+    // The Tours page (#792, ADR-0033 §5): who gives each active Tour, for Members of the Group.
+    'tours_page' => [
+        'empty' => 'This group has no tours yet.',
+        'open_to_all' => 'Open to all',
+        'none' => 'No one yet.',
+        'last_vet_date' => 'Last vet date',
+        'no_date' => 'No date',
     ],
 
     // The qualification screens (#789, ADR-0033 §3, §4): by Tour and by Member.

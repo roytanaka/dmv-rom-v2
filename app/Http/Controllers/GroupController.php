@@ -170,6 +170,17 @@ class GroupController extends Controller
             abort_unless($group->has_documents, 404);
         }
 
+        // The Tours page (#792, ADR-0033 §5) exists only while the Group runs vetting — a 404 for
+        // everyone, super-tier included, so the tab and the URL agree. Past that it is members-only
+        // (TourPolicy `view`): a non-member gets 403, the Meetings shape. The qualification screens
+        // render in this section too, gated in their own actions.
+        $canViewTours = $group->has_vetting && $request->user()->can('view', [Tour::class, $group]);
+
+        if ($section === 'tours' && $qualifications === null) {
+            abort_unless($group->has_vetting, 404);
+            abort_unless($canViewTours, 403);
+        }
+
         // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
         // configuration right. Anyone else gets 403 — the Meetings shape: the Group exists and
         // they may open it, but not this tab.
@@ -217,6 +228,9 @@ class GroupController extends Controller
                 // on every Group and needs no flag.
                 'capabilities' => [
                     'meetings' => $group->has_meetings,
+                    // Whether the Group runs vetting (#792, ADR-0033) — with `can.viewTours`, opens
+                    // the Tours tab.
+                    'vetting' => $group->has_vetting,
                     'documents' => $group->has_documents,
                     'scheduling' => $group->has_scheduling,
                     // Whether the Group collects a per-shift visitor count (#445, ADR-0023 §5).
@@ -293,6 +307,9 @@ class GroupController extends Controller
                 // Vetting officer or Chair of a vetting Group. UI hint only; the Tour Form Requests
                 // re-check the TourPolicy on write.
                 'manageTours' => $canManageTours,
+                // `viewTours` drives the Tours tab (#792, ADR-0033 §5) — a Member of a vetting Group,
+                // or the super-tier. UI hint only; the section re-checks it.
+                'viewTours' => $canViewTours,
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.
@@ -352,6 +369,9 @@ class GroupController extends Controller
             // A qualification screen's payload (#789, ADR-0033 §4) — by Tour or by Member, built
             // past its gates in {@see showTour()} / {@see showTourMember()}; null elsewhere.
             'qualifications' => $qualifications,
+            // The Tours page's payload (#792, ADR-0033 §5), resolved only on that page and past its
+            // gate above — not on the qualification screens that share the section.
+            'tours' => $section === 'tours' && $qualifications === null ? $this->toursPage($group) : [],
             'settings' => $section === 'settings'
                 ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours)
                 : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null],
@@ -376,6 +396,35 @@ class GroupController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * The Tours page's payload (#792, ADR-0033 §5): each active Tour in the Group's order, open to
+     * all marked, with the Members holding an active qualification for it, by surname, and their
+     * Last vet dates. Inactive qualifications and retired Tours are left out.
+     *
+     * @return list<array{id: int, name: string, openToAll: bool, members: list<array{memberId: int, name: string, lastVetDate: string|null}>}>
+     */
+    private function toursPage(Group $group): array
+    {
+        return $group->tours()->active()
+            ->with(['qualifications' => fn ($query) => $query->where('active', true)->with('membership.member')])
+            ->orderBy('sort_order')->orderBy('name')->get()
+            ->map(fn (Tour $tour): array => [
+                'id' => $tour->id,
+                'name' => $tour->name,
+                'openToAll' => $tour->open_to_all,
+                'members' => $tour->qualifications
+                    ->sortBy(fn (Qualification $qualification) => $this->surnameKey($qualification->membership->member))
+                    ->map(fn (Qualification $qualification): array => [
+                        'memberId' => $qualification->membership->member_id,
+                        'name' => $qualification->membership->member->first_name.' '.$qualification->membership->member->last_name,
+                        'lastVetDate' => $qualification->last_vet_date?->toDateString(),
+                    ])
+                    ->values()
+                    ->all(),
+            ])
+            ->all();
     }
 
     /**
