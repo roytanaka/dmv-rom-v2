@@ -21,7 +21,7 @@ If you change the tour, the sign-ups switch to the new tour.
 
 1. Find the group tour on its schedule and select **Delete**.
 2. Read the confirmation. It names everyone signed up for the group tour.
-3. Confirm. The group tour and its sign-ups are removed.
+3. Select **Delete** in the confirmation. The group tour and its sign-ups are removed.
 
 The month's group-tour schedule stays, even when it's empty. A Scheduler can delete it only once it holds no group tours.
 

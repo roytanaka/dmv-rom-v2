@@ -325,6 +325,17 @@ it('shows the order number and date to the Booker, Statistician, Chair and super
     'super-tier' => [null],
 ]);
 
+it('withholds the order fields once the Group stops running bookings', function () {
+    [$group, $tour, $type] = addBookingGroup();
+    $schedule = bookedSchedule($group, $tour, $type);
+    $chair = addBookingMember($group, Role::Chair);
+    $group->update(['has_bookings' => false]);
+
+    $this->actingAs($chair)
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule]))
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.shifts.0.booking.officer', null));
+});
+
 it('shows anyone else only the time, Tour and seats', function () {
     [$group, $tour, $type] = addBookingGroup();
     $schedule = bookedSchedule($group, $tour, $type);
@@ -457,33 +468,43 @@ it('deletes the Booking with its Shift', function () {
 
 // --- Client suggestions (§10) -----------------------------------------------
 
-it('suggests the Group\'s past clients matching what the Booker types', function () {
+it('suggests the Group\'s past clients on demand, distinct and in order', function () {
     [$group, $tour, $type] = addBookingGroup();
     [$other, $otherTour, $otherType] = addBookingGroup();
     $attributes = fn (Tour $tour, BookingType $type, string $client) => ['tour_id' => $tour->id, 'booking_type_id' => $type->id, 'client' => $client, 'visitors' => 10];
     $at = CarbonImmutable::parse('2026-11-12 15:00');
 
-    foreach (['Bayview Public School', 'Bayview Public School', 'Bloor Collegiate', 'ROM Members'] as $client) {
+    foreach (['ROM Members', 'Bayview Public School', 'Bayview Public School', 'Bloor Collegiate'] as $client) {
         Booking::book($group, $at, $at->addHour(), 1, $attributes($tour, $type, $client));
     }
     Booking::book($other, $at, $at->addHour(), 1, $attributes($otherTour, $otherType, 'Bayview Seniors'));
 
     $this->actingAs(addBookingMember($group, Role::Booker))
-        ->getJson(route('bookings.clients', ['group' => $group, 'q' => 'b']))
-        ->assertOk()
-        ->assertExactJson(['clients' => ['Bayview Public School', 'Bloor Collegiate', 'ROM Members']]);
-
-    $this->actingAs(addBookingMember($group, Role::Booker))
-        ->getJson(route('bookings.clients', ['group' => $group, 'q' => 'bay']))
-        ->assertExactJson(['clients' => ['Bayview Public School']]);
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->missing('bookingClients')
+            ->reloadOnly('bookingClients', fn (Assert $reload) => $reload
+                ->where('bookingClients', ['Bayview Public School', 'Bloor Collegiate', 'ROM Members'])));
 });
 
-it('refuses client suggestions to anyone who cannot add a Booking', function () {
-    [$group] = addBookingGroup();
+it('suggests clients to the Statistician, who may change a Booking', function () {
+    [$group, $tour, $type] = addBookingGroup();
+    bookedSchedule($group, $tour, $type);
 
-    $this->actingAs(addBookingMember($group))
-        ->getJson(route('bookings.clients', ['group' => $group, 'q' => 'b']))
-        ->assertForbidden();
+    $this->actingAs(addBookingMember($group, Role::Statistician))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->reloadOnly('bookingClients', fn (Assert $reload) => $reload->where('bookingClients', ['Bayview Public School'])));
+});
+
+it('suggests no clients to anyone who cannot add or change a Booking', function () {
+    [$group, $tour, $type] = addBookingGroup();
+    bookedSchedule($group, $tour, $type);
+
+    $this->actingAs(addBookingMember($group, Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->reloadOnly('bookingClients', fn (Assert $reload) => $reload->where('bookingClients', [])));
 });
 
 // --- A Booking Sign-up gives the Booking's Tour ------------------------------

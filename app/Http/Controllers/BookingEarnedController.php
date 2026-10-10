@@ -18,9 +18,7 @@ class BookingEarnedController extends Controller
      */
     public function update(UpdateEarnedCorrectionRequest $request, Booking $booking): RedirectResponse
     {
-        $amount = $request->validated('earned_correction');
-
-        $booking->correctEarned($amount === null ? null : (string) $amount);
+        $booking->correctEarned($request->validatedMoney('earned_correction'));
 
         return back();
     }

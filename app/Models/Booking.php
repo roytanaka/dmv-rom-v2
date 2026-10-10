@@ -75,10 +75,9 @@ class Booking extends Model
         CarbonImmutable $endsAt,
         int $docentsNeeded,
         array $attributes,
-        ?string $locale = null,
     ): self {
-        return DB::transaction(function () use ($group, $startsAt, $endsAt, $docentsNeeded, $attributes, $locale): self {
-            $schedule = GroupTourSchedule::for($group, $startsAt, $locale);
+        return DB::transaction(function () use ($group, $startsAt, $endsAt, $docentsNeeded, $attributes): self {
+            $schedule = GroupTourSchedule::for($group, $startsAt);
 
             $shift = $schedule->shifts()->create([
                 'starts_at' => $startsAt,
@@ -111,10 +110,9 @@ class Booking extends Model
         CarbonImmutable $endsAt,
         int $docentsNeeded,
         array $attributes,
-        ?string $locale = null,
     ): void {
-        DB::transaction(function () use ($startsAt, $endsAt, $docentsNeeded, $attributes, $locale): void {
-            $schedule = GroupTourSchedule::for($this->group, $startsAt, $locale);
+        DB::transaction(function () use ($startsAt, $endsAt, $docentsNeeded, $attributes): void {
+            $schedule = GroupTourSchedule::for($this->group, $startsAt);
 
             $this->shift->update([
                 'schedule_id' => $schedule->id,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ReadsMoney;
 use App\Models\Booking;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,6 +14,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateExhibitionRevenueRequest extends FormRequest
 {
+    use ReadsMoney;
+
     /**
      * Authorize against the BookingPolicy on the route-bound Group.
      */

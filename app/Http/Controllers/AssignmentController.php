@@ -39,8 +39,9 @@ class AssignmentController extends Controller
     {
         $signUp = $shift->signUps()->create([
             'member_id' => $request->integer('member_id'),
-            // The Tour the Scheduler picked (#791, ADR-0033 §6), or none.
-            'tour_id' => $request->validated('tour_id'),
+            // The Tour the Scheduler picked (#791, ADR-0033 §6), or none. A Booking's Shift always
+            // records the Booking's Tour (ADR-0032 §1), as the bulk placement does.
+            'tour_id' => $shift->booking?->tour_id ?? $request->validated('tour_id'),
         ]);
 
         // The Objects this placement reserves on the seat (#586, ADR-0026 §3) — as complete as a

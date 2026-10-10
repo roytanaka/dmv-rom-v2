@@ -30,6 +30,7 @@ use App\Models\SignUp;
 use App\Models\Tour;
 use App\Support\Audiences\AudienceContext;
 use App\Support\Audiences\AudienceResolver;
+use App\Support\Bookings\BookingPayloads;
 use App\Support\DocumentLibrary;
 use App\Support\OrgTime;
 use App\Support\RouteSegments;
@@ -363,6 +364,16 @@ class GroupController extends Controller
             'scheduling' => $section === 'scheduling'
                 ? $this->scheduling($request, $group, $schedule)
                 : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'objects' => [], 'mine' => []],
+            // Two on-demand reads for the Scheduling tab's dialogs (ADR-0005: a partial reload, not
+            // a JSON endpoint). Never sent on a visit; the dialog asks for its prop when it opens.
+            // The Booking form's client suggestions (§10), for whoever may add or change a Booking.
+            'bookingClients' => Inertia::optional(fn (): array => BookingPayloads::clients($request->user(), $group)),
+            // The Members a seat-holder may hand their Booking seat to (#798), for the Sign-up named
+            // by `?substitute_for=`. The holder alone, until the Shift starts.
+            'substitutes' => Inertia::optional(fn (): array => BookingPayloads::substitutes(
+                $request->user(),
+                SignUp::find($request->integer('substitute_for')),
+            )),
             // The Hours tab's payload, resolved only on that tab: the viewer's own records
             // for this Group and the two-month entry state (ADR-0022 §2). Never another
             // Member's hours — the roster is not a leaderboard (§4).
@@ -521,7 +532,7 @@ class GroupController extends Controller
                     ])->values()->all(),
             ] : null,
             'tourRules' => $group->has_vetting && $canManageTourRules ? $this->tourRules($group) : null,
-            'bookings' => $group->has_bookings && $canManageBookings ? $this->bookingSettings($group) : null,
+            'bookings' => $group->has_bookings && $canManageBookings ? BookingPayloads::settings($group) : null,
         ];
     }
 
@@ -544,37 +555,6 @@ class GroupController extends Controller
                     'id' => $tour->id,
                     'name' => $tour->name,
                     'active' => $tour->active,
-                ])->values()->all(),
-        ];
-    }
-
-    /**
-     * The Group tours card (#794, ADR-0032 §1, §4, §6): the booking types in order, retired ones
-     * included, with their rates; the group-tour shift kind and Schedule label; and the Group's
-     * shift kinds to pick from.
-     *
-     * @return array{types: list<array{id: int, name: string, ratePerVisitor: string, ratePerDocentHour: string, active: bool, sortOrder: int}>, shiftKindId: int|null, label: string|null, copyEmail: string|null, shiftKinds: list<array{id: int, name: string, active: bool}>}
-     */
-    private function bookingSettings(Group $group): array
-    {
-        return [
-            'types' => $group->bookingTypes()->ordered()->get()
-                ->map(fn (BookingType $type): array => [
-                    'id' => $type->id,
-                    'name' => $type->name,
-                    'ratePerVisitor' => $type->rate_per_visitor,
-                    'ratePerDocentHour' => $type->rate_per_docent_hour,
-                    'active' => $type->active,
-                    'sortOrder' => $type->sort_order,
-                ])->values()->all(),
-            'shiftKindId' => $group->group_tour_shift_kind_id,
-            'label' => $group->group_tour_label,
-            'copyEmail' => $group->booking_copy_email,
-            'shiftKinds' => $group->shiftKinds()->orderBy('sort_order')->get()
-                ->map(fn (ShiftKind $kind): array => [
-                    'id' => $kind->id,
-                    'name' => $kind->name,
-                    'active' => $kind->active,
                 ])->values()->all(),
         ];
     }
@@ -967,8 +947,8 @@ class GroupController extends Controller
                 // reader; the picker itself renders only when the list is non-empty and only on the
                 // flows that reserve Objects.
                 'objects' => $this->activeObjects($group),
-                'booking_options' => $this->bookingOptions($request, $group),
-                'booking_change_options' => $this->bookingChangeOptions($request, $group),
+                'booking_options' => BookingPayloads::options($request->user(), $group, 'create'),
+                'booking_change_options' => BookingPayloads::options($request->user(), $group, 'change'),
                 // The outstanding-shifts panel rides on the tab regardless of which Schedule is
                 // open — it crosses Schedules, so it is not the opened Schedule's concern (#449).
                 'mine' => $this->mine($request, $group),
@@ -1016,8 +996,8 @@ class GroupController extends Controller
             'objects' => [],
             // The Booking form's pickers (#795), for a Booker on the list as on an opened Schedule:
             // the month's first Booking creates its Schedule, so the add starts from the list.
-            'booking_options' => $this->bookingOptions($request, $group),
-            'booking_change_options' => $this->bookingChangeOptions($request, $group),
+            'booking_options' => BookingPayloads::options($request->user(), $group, 'create'),
+            'booking_change_options' => BookingPayloads::options($request->user(), $group, 'change'),
             // The outstanding-shifts panel rides on the list view too — a volunteer landing on
             // the bare section URL sees what they still owe without opening any Schedule (#449).
             'mine' => $this->mine($request, $group),
@@ -1315,7 +1295,7 @@ class GroupController extends Controller
             'shift_kind_id' => $shift->shift_kind_id,
             // The Booking this Shift staffs (#795, ADR-0032 §5), filtered to what the viewer may
             // read; null on every Shift but a group tour's.
-            'booking' => $this->bookingPayload($request, $shift),
+            'booking' => BookingPayloads::forShift($request->user(), $shift),
             // The seated Members, names only (contact stays gated per MemberResource). A
             // schedule admin additionally gets each seat's own Sign-up id — the remove target
             // for officer removal (#359) and the correction target for officer correction (#450).
@@ -1436,137 +1416,6 @@ class GroupController extends Controller
                 // SignUpPolicy re-checks every write on PATCH.
                 'record' => $ownSignUp !== null && $shift->signOutWindowIsOpen(),
             ],
-        ];
-    }
-
-    /**
-     * A Booking's Schedule block (#795, ADR-0032 §5), filtered by viewer: the server sends only the
-     * fields the viewer may read. Everyone who can read the Schedule gets the Tour. A current
-     * Member of the Group also gets `details` (client, visitors, type, leader, comments); a Booker,
-     * Statistician, Chair or super-tier also gets `officer` (order number and date, and Earned with
-     * #797). A withheld block is null. Null for a Shift with no Booking.
-     *
-     * Reads the eager-loaded `booking.tour` and `booking.bookingType`; the Group is set from the
-     * Shift's Schedule so the policy never lazy-loads it.
-     *
-     * @return array{id: int, tour: string, tour_id: int, details: array<string, mixed>|null, officer: array<string, mixed>|null, edit: array<string, mixed>|null, can_delete: bool, can_send_mails: bool}|null
-     */
-    private function bookingPayload(Request $request, Shift $shift): ?array
-    {
-        $booking = $shift->booking;
-
-        if ($booking === null) {
-            return null;
-        }
-
-        $viewer = $request->user();
-        $booking->setRelation('group', $shift->schedule->group);
-        $booking->setRelation('shift', $shift);
-
-        return [
-            'id' => $booking->id,
-            'tour' => $booking->tour->name,
-            'tour_id' => $booking->tour_id,
-            'details' => $viewer->can('viewDetails', $booking) ? [
-                'client' => $booking->client,
-                'visitors' => $booking->visitors,
-                'type' => $booking->bookingType->name,
-                'booking_type_id' => $booking->booking_type_id,
-                'leader' => $booking->leader,
-                'comments' => $booking->comments,
-            ] : null,
-            'officer' => $viewer->can('viewOfficerFields', $booking) ? [
-                'order_number' => $booking->order_number,
-                'order_date' => $booking->order_date?->toDateString(),
-                // Earned (#797, ADR-0032 §7): the correction while set, else worked out on read.
-                'earned' => $booking->earned(),
-                'earned_is_corrected' => $booking->isEarnedCorrected(),
-                'earned_correction' => $booking->earned_correction,
-                'can_correct_earned' => $viewer->can('correctEarned', $booking),
-            ] : null,
-            // The change form's values (#796), for a viewer who may change the Booking; null
-            // otherwise, and the Edit control does not render.
-            'edit' => $viewer->can('update', $booking) ? $this->bookingEditValues($shift, $booking) : null,
-            'can_delete' => $viewer->can('delete', $booking),
-            // The Send Request and Send Confirmation buttons (#799, §9). UI hint only.
-            'can_send_mails' => $viewer->can('sendMails', $booking),
-        ];
-    }
-
-    /**
-     * A Booking's change-form values (#796): every field, the date and times on the org wall clock
-     * and the docents needed from the Shift. Never the Earned correction (#797).
-     *
-     * @return array<string, mixed>
-     */
-    private function bookingEditValues(Shift $shift, Booking $booking): array
-    {
-        $zone = config('app.org_timezone');
-
-        return [
-            'date' => $shift->starts_at->setTimezone($zone)->toDateString(),
-            'starts_time' => $shift->starts_at->setTimezone($zone)->format('H:i'),
-            'ends_time' => $shift->ends_at->setTimezone($zone)->format('H:i'),
-            'docents_needed' => $shift->capacity,
-            'tour_id' => $booking->tour_id,
-            'booking_type_id' => $booking->booking_type_id,
-            // The type's name, so the form can offer the Booking's own type once retired.
-            'booking_type' => $booking->bookingType->name,
-            'client' => $booking->client,
-            'visitors' => $booking->visitors,
-            'leader' => $booking->leader,
-            'order_number' => $booking->order_number,
-            'order_date' => $booking->order_date?->toDateString(),
-            'comments' => $booking->comments,
-        ];
-    }
-
-    /**
-     * The change form's pickers (#796), for a viewer who may change the Group's Bookings (a Booker,
-     * Statistician, Chair or super-tier): the same active Tours and types as the add form. The
-     * form adds a Booking's own retired Tour or type itself. Null for everyone else.
-     *
-     * @return array{tours: list<array{id: int, name: string}>, types: list<array{id: int, name: string}>}|null
-     */
-    private function bookingChangeOptions(Request $request, Group $group): ?array
-    {
-        if (! $request->user()->can('change', [Booking::class, $group])) {
-            return null;
-        }
-
-        return $this->bookingPickers($group);
-    }
-
-    /**
-     * The Booking form's pickers (#795, ADR-0032 §1), for a viewer who may add a Booking: the
-     * Group's active Tours and active booking types, each in the Group's order. Null for everyone
-     * else, and the "Add group tour" control does not render.
-     *
-     * @return array{tours: list<array{id: int, name: string}>, types: list<array{id: int, name: string}>}|null
-     */
-    private function bookingOptions(Request $request, Group $group): ?array
-    {
-        if (! $request->user()->can('create', [Booking::class, $group])) {
-            return null;
-        }
-
-        return $this->bookingPickers($group);
-    }
-
-    /**
-     * The Group's active Tours and active booking types, each in the Group's order.
-     *
-     * @return array{tours: list<array{id: int, name: string}>, types: list<array{id: int, name: string}>}
-     */
-    private function bookingPickers(Group $group): array
-    {
-        return [
-            'tours' => $group->tours()->active()->ordered()->get()
-                ->map(fn (Tour $tour): array => ['id' => $tour->id, 'name' => $tour->name])
-                ->values()->all(),
-            'types' => $group->bookingTypes()->where('active', true)->ordered()->get()
-                ->map(fn (BookingType $type): array => ['id' => $type->id, 'name' => $type->name])
-                ->values()->all(),
         ];
     }
 

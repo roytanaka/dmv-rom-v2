@@ -21,7 +21,7 @@ Si vous changez la visite, les inscriptions passent à la nouvelle visite.
 
 1. Trouvez la visite de groupe dans son horaire et sélectionnez **Supprimer**.
 2. Lisez la confirmation. Elle nomme chaque personne inscrite à la visite de groupe.
-3. Confirmez. La visite de groupe et ses inscriptions sont supprimées.
+3. Sélectionnez **Supprimer** dans la confirmation. La visite de groupe et ses inscriptions sont supprimées.
 
 L’horaire des visites de groupe du mois reste, même vide. Un planificateur peut le supprimer seulement quand il ne contient plus de visite de groupe.
 

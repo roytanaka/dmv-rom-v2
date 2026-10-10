@@ -4,9 +4,10 @@
 // Schedule, which the server creates on the month's first Booking. The client half is the
 // Booking's own fields. On screen it is always a "group tour", never a "booking".
 //
-// The client field suggests the Group's past client names as the Booker types, read from the
-// `bookings.clients` JSON endpoint into a native <datalist>. Every write is re-checked by
-// StoreBookingRequest regardless of what renders.
+// The client field suggests the Group's past client names (§10) through a native <datalist>, which
+// filters them as the Booker types. The names are the page's optional `bookingClients` prop, loaded
+// by a partial reload when the dialog opens. Every write is re-checked by StoreBookingRequest
+// regardless of what renders.
 //
 // Given a `booking`, the same form changes it (#796): filled from the Booking's values and sent as
 // a PATCH to `bookings.update`, re-checked by UpdateBookingRequest. A retired Tour or type the
@@ -20,13 +21,14 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import { type BookingOptions, type ShiftBooking } from '@/types';
-import { useForm } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref, useId, watch } from 'vue';
+import { computed, useId, watch } from 'vue';
 
 const props = defineProps<{
     groupSlug: string;
     options: BookingOptions;
+    clients: string[] | null;
     booking?: ShiftBooking | null;
 }>();
 
@@ -103,7 +105,7 @@ watch(open, (isOpen) => {
             form.order_date = edit.order_date ?? '';
             form.comments = edit.comments ?? '';
         }
-        clients.value = [];
+        router.reload({ only: ['bookingClients'] });
     }
 });
 
@@ -128,37 +130,7 @@ const submit = () => {
 
 // --- Client suggestions (§10) ---------------------------------------------------------------
 
-const clients = ref<string[]>([]);
 const clientListId = useId();
-let lookup: ReturnType<typeof setTimeout> | undefined;
-let latest = 0;
-
-// Ask for the Group's past client names a moment after the Booker stops typing. Only the newest
-// answer lands, so a slow earlier reply never overwrites the list for what is typed now.
-watch(
-    () => form.client,
-    (value) => {
-        clearTimeout(lookup);
-        const needle = value.trim();
-        if (needle === '') {
-            clients.value = [];
-            return;
-        }
-
-        lookup = setTimeout(async () => {
-            const request = ++latest;
-            const response = await fetch(`${route('bookings.clients', { group: props.groupSlug })}?${new URLSearchParams({ q: needle })}`, {
-                headers: { Accept: 'application/json' },
-            });
-
-            if (!response.ok || request !== latest) {
-                return;
-            }
-
-            clients.value = ((await response.json()) as { clients: string[] }).clients;
-        }, 200);
-    },
-);
 </script>
 
 <template>
@@ -172,7 +144,7 @@ watch(
                     <Label for="booking-client">{{ trans('group.bookings.field.client') }}</Label>
                     <Input id="booking-client" v-model="form.client" :list="clientListId" autocomplete="off" required />
                     <datalist :id="clientListId">
-                        <option v-for="client in clients" :key="client" :value="client" />
+                        <option v-for="client in clients ?? []" :key="client" :value="client" />
                     </datalist>
                     <InputError :message="form.errors.client" />
                 </div>

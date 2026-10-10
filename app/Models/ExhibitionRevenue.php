@@ -53,6 +53,14 @@ class ExhibitionRevenue extends Model
     }
 
     /**
+     * A Group's figure for a month as entered, or null when none is.
+     */
+    public static function amountFor(Group $group, string $yearMonth): ?string
+    {
+        return self::query()->where('group_id', $group->id)->where('year_month', $yearMonth)->value('amount');
+    }
+
+    /**
      * The Group this figure belongs to.
      *
      * @return BelongsTo<Group, $this>

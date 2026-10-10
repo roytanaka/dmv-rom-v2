@@ -140,6 +140,10 @@ const props = defineProps<{
     // The Documents tab's payload (#712, ADR-0030), resolved only on that tab.
     library: GroupLibrary;
     scheduling: Scheduling;
+    // Optional props a Scheduling dialog loads by partial reload when it opens (ADR-0005): the
+    // Booking form's client suggestions and a seat-holder's substitutes. Absent on a visit.
+    bookingClients?: string[];
+    substitutes?: { id: number; name: string }[];
     hours: GroupHoursData;
     // A qualification screen's payload (#789) — by Tour or by Member — or null on every other page.
     qualifications: QualificationScreen | null;
@@ -469,6 +473,8 @@ const pickBanner = (key: string | null) => {
                 <GroupScheduling
                     v-else-if="section === 'scheduling'"
                     :scheduling="scheduling"
+                    :booking-clients="bookingClients ?? null"
+                    :substitutes="substitutes ?? null"
                     :can-create="can.createSchedule"
                     :collects-visitor-count="group.capabilities.collectsVisitorCount"
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
