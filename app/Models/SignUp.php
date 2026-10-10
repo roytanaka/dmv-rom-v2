@@ -195,4 +195,14 @@ class SignUp extends Model
         // named explicitly rather than derived from the class name.
         return $this->belongsToMany(HandlingObject::class, 'object_sign_up', 'sign_up_id', 'object_id');
     }
+
+    /**
+     * The Tour this Sign-up records (ADR-0033 §2), or null on a kind with no Tours.
+     *
+     * @return BelongsTo<Tour, $this>
+     */
+    public function tour(): BelongsTo
+    {
+        return $this->belongsTo(Tour::class);
+    }
 }

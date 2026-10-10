@@ -258,6 +258,17 @@ class Group extends Model
     }
 
     /**
+     * The Group's Tour list (#788, ADR-0033 §1) — the concrete tours its Members give, mapped
+     * onto its shift kinds. Kept only while the Group runs vetting.
+     *
+     * @return HasMany<Tour, $this>
+     */
+    public function tours(): HasMany
+    {
+        return $this->hasMany(Tour::class);
+    }
+
+    /**
      * The Members who run this Group's scheduling — the recipients of the Sign-up
      * cancellation email (#358, ADR-0021 §Sign-up "Notification"). These are the Group's
      * `Scheduler`-role holders, with Chair-implication folded in (a Chair acts as Scheduler

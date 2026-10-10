@@ -85,4 +85,14 @@ class GroupMember extends Model
     {
         return $this->hasMany(GroupMemberRole::class);
     }
+
+    /**
+     * The Tours this Membership holds (ADR-0033 §3). Deleted with the Membership.
+     *
+     * @return HasMany<Qualification, $this>
+     */
+    public function qualifications(): HasMany
+    {
+        return $this->hasMany(Qualification::class);
+    }
 }

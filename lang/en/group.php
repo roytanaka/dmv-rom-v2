@@ -160,6 +160,31 @@ return [
 
     // The Settings tab (#604, ADR-0027) when none of its cards applies to the viewer.
     'settings_empty' => 'This group has no settings you can change.',
+    // The Settings tab's Tours card (#788, ADR-0033 §1, §4) — the Group's Tour list and which
+    // shift kinds each Tour is given on, kept by a Vetting officer or the Chair.
+    'tours' => [
+        'heading' => 'Tours',
+        'description' => 'List the tours this group gives. Choose the shift kinds each tour is given on. A tour open to all needs no qualification. Retire a tour to keep it off new sign-ups.',
+        'empty' => 'This group has no tours yet.',
+        'add_label' => 'Add a tour',
+        'add' => 'Add',
+        'rename' => 'Rename',
+        'retire' => 'Retire',
+        'restore' => 'Restore',
+        'retired_badge' => 'Retired',
+        'open_to_all' => 'Open to all',
+        'move_up' => 'Move up',
+        'move_down' => 'Move down',
+        'shift_kinds' => 'Shift kinds',
+        'shift_kinds_title' => 'Shift kinds for :tour',
+        'no_kinds' => 'This group has no shift kinds yet.',
+        'delete' => 'Delete',
+        'delete_title' => 'Delete :tour?',
+        'delete_body' => 'You cannot undo this.',
+        'cannot_delete' => 'This tour has qualifications or sign-ups. Retire it instead.',
+        // The read-only list of a kind's Tours on the Shift kinds card.
+        'kind_tours' => 'Tours: :tours',
+    ],
 
     // Section panels not yet built in this slice.
     'coming_soon' => 'This section is coming soon.',

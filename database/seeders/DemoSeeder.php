@@ -33,6 +33,7 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Models\Tour;
 use App\Personas\Persona;
 use App\Personas\PersonaCatalogue;
 use App\Support\DocumentStorage;
@@ -168,6 +169,32 @@ class DemoSeeder extends Seeder
         ['day' => 24, 'start' => [10, 0], 'minutes' => 75, 'capacity' => 4],
     ];
 
+    /**
+     * A sample of the Docents' Tour list (#788, ADR-0033 §1): name => [open to all, kinds it is
+     * given on]. Museum Highlights and the old app's other hard-coded open tours need no
+     * qualification; the trainee Tour is given on the Highlights slot; every gallery theme maps
+     * onto Gallery/Theme (the "pick your tour" slot) and the booked Group Tour.
+     */
+    private const DOCENT_TOURS = [
+        'Museum Highlights' => [true, [self::HIGHLIGHTS_TOUR, self::GROUP_TOUR]],
+        'Museum Highlights – New Docents' => [false, [self::HIGHLIGHTS_TOUR]],
+        'Custom (Group)' => [true, [self::GROUP_TOUR]],
+        'Family' => [true, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'ROMCAP' => [true, [self::GROUP_TOUR]],
+        'Dinosaurs' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Ancient Egypt' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'First Peoples Art and Culture' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Chinese Architecture' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Gems and Minerals' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Greece and Rome' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Life in Crisis: Biodiversity' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Korea' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Japan' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Textiles and Costume' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Byzantium' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Bat Cave' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+    ];
+
     public const VISITOR_GUIDES = 'visitor-guides';
 
     /** The Visitor Guides' two shift types, named as legacy names them. Desk is the watched one. */
@@ -194,6 +221,22 @@ class DemoSeeder extends Seeder
     private const DESK_SUMMER_MONTHS = [7, 8];
 
     public const GUIDES_DU_ROM = 'guides-du-rom';
+
+    /**
+     * A sample of GDR's Tour list (#788, ADR-0033 §1), in the shape of {@see DOCENT_TOURS}.
+     * Le choix du guide and Les trésors are open to all; every theme maps onto the guide's-choice
+     * slot and the booked group visit.
+     */
+    private const GDR_TOURS = [
+        'Le choix du guide' => [true, [self::GUIDES_CHOICE_TOUR]],
+        'Les trésors' => [true, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'Les dinosaures' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'L’Égypte ancienne' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'Les Premiers Peuples' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'La Chine' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'Minéraux et pierres précieuses' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'La Grèce et Rome' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+    ];
 
     /** The Guides du ROM daily tour and the monthly group tour, named as legacy names them. */
     private const GUIDES_CHOICE_TOUR = 'Le choix du guide';
@@ -1129,6 +1172,7 @@ class DemoSeeder extends Seeder
         $lastMonth = $month->subMonth();
 
         $kinds = $this->shiftKinds($docents);
+        $this->tours($docents, self::DOCENT_TOURS, $kinds);
 
         $previous = $this->monthSchedule($docents, $lastMonth, 'Last month\'s docent tour roster, worked and signed out.');
         $current = $this->monthSchedule($docents, $month, 'The current-month docent tour roster — sign up for a tour below.');
@@ -1371,6 +1415,7 @@ class DemoSeeder extends Seeder
                 ['active' => true, 'sort_order' => $order],
             );
         }
+        $this->tours($group, self::GDR_TOURS, $kinds);
 
         $previous = $this->monthSchedule($group, $lastMonth, 'Le calendrier des visites du mois dernier, données et signées.');
         $current = $this->monthSchedule($group, $month, 'Les visites du mois. Inscrivez-vous à une visite ci-dessous.');
@@ -2311,6 +2356,28 @@ class DemoSeeder extends Seeder
     }
 
     /**
+     * Seed a Group's Tour list and its kind mapping (#788, ADR-0033 §1) from a spec of
+     * name => [open to all, mapped kind names], ordered as listed. Keyed on (Group, name), and
+     * the mapping only ever adds, so a reseed heals rather than duplicates.
+     *
+     * @param  array<string, array{0: bool, 1: list<string>}>  $spec
+     * @param  array<string, ShiftKind>  $kinds
+     */
+    private function tours(Group $group, array $spec, array $kinds): void
+    {
+        $order = 0;
+        foreach ($spec as $name => [$openToAll, $kindNames]) {
+            $tour = Tour::firstOrCreate(
+                ['group_id' => $group->id, 'name' => $name],
+                ['active' => true, 'open_to_all' => $openToAll, 'sort_order' => $order++],
+            );
+            $tour->shiftKinds()->syncWithoutDetaching(
+                collect($kindNames)->map(fn (string $kind): int => $kinds[$kind]->id)->all(),
+            );
+        }
+    }
+
+    /**
      * Hours go live (PRD #406, ADR-0022). Seeded last — after every Group, Member,
      * membership and Sign-up exists — so a record can hang off a real roster.
      *
@@ -3039,6 +3106,8 @@ class DemoSeeder extends Seeder
                         'collects_visitor_count' => true,
                         'collects_extra_interactions' => true,
                         'visitor_figures_await_booking' => true,
+                        // Tours and qualifications (ADR-0033): Docents keep a Tour list.
+                        'has_vetting' => true,
                         // Reminders on with the standard 3 lead days (ADR-0024 §7) — one of the
                         // five Groups that run them today. The lead days stay at the column
                         // default, so only the switch is set here.
@@ -3052,6 +3121,8 @@ class DemoSeeder extends Seeder
                         'collects_visitor_provenance' => true,
                         'visitor_figures_await_booking' => true,
                         'reminders_enabled' => true,
+                        // Tours and qualifications (ADR-0033): GDR keeps a Tour list.
+                        'has_vetting' => true,
                     ]),
                     $this->program('Les Amis Francophiles', [], GroupLogo::LesAmisFrancophiles),
                     $this->program('DMV Hands-on Tours', [

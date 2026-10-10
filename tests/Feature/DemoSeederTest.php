@@ -30,6 +30,7 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Models\Tour;
 use App\Personas\PersonaCatalogue;
 use App\Support\CommitteeHoursStatistics;
 use App\Support\OrgTime;
@@ -38,6 +39,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -281,6 +283,8 @@ it('is idempotent — re-seeding leaves row counts unchanged', function () {
         'memberships' => GroupMember::count(),
         'roles' => GroupMemberRole::count(),
         'stewardships' => GroupStewardship::count(),
+        'tours' => Tour::count(),
+        'tour_kind_links' => DB::table('shift_kind_tour')->count(),
     ];
     $before = $counts();
 
@@ -825,6 +829,27 @@ it('turns scheduling on for the demo programs but off for the booking-only Group
         // the capability deferred out of the first pass (ADR-0021).
         ->and(Group::where('slug', 'rombus')->firstOrFail()->has_scheduling)->toBeFalse()
         ->and(Group::where('slug', 'outreach')->firstOrFail()->has_scheduling)->toBeFalse();
+});
+
+it('turns vetting on and seeds a Tour list for Docents and GDR only (#788)', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $gdr = Group::where('slug', DemoSeeder::GUIDES_DU_ROM)->firstOrFail();
+
+    expect($docents->has_vetting)->toBeTrue()
+        ->and($gdr->has_vetting)->toBeTrue()
+        ->and(Group::where('slug', 'reception')->firstOrFail()->has_vetting)->toBeFalse();
+
+    // Museum Highlights is open to all for Docents, Le choix du guide for GDR.
+    expect($docents->tours()->where('name', 'Museum Highlights')->sole()->open_to_all)->toBeTrue()
+        ->and($docents->tours()->where('name', 'Museum Highlights – New Docents')->sole()->open_to_all)->toBeFalse()
+        ->and($gdr->tours()->where('name', 'Le choix du guide')->sole()->open_to_all)->toBeTrue();
+
+    // Gallery/Theme, the "pick your tour" slot, maps to many Tours.
+    $gallery = $docents->shiftKinds()->where('name', 'Gallery/Theme')->sole();
+    expect($gallery->tours()->count())->toBeGreaterThan(5);
+
+    // Only Groups with vetting carry Tours.
+    expect(Tour::whereNotIn('group_id', [$docents->id, $gdr->id])->exists())->toBeFalse();
 });
 
 it('turns Reminders on with 3 lead days for the five Reminder Groups, off elsewhere', function () {

@@ -4,6 +4,7 @@
 // roster lines) stay inline on the section where they are read (§2). The tab renders only to a
 // viewer holding a configuration right; each card renders only behind its own `can` hint, and
 // a scheduling card only while the Group runs scheduling. The server re-checks every save.
+import GroupToursCard, { type SettingsTour } from '@/components/GroupToursCard.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,12 +32,17 @@ const props = defineProps<{
     canManageSelfServe: boolean;
     // The Group's shift kinds (#567) — the full list in picker order, retired kinds included.
     // Resolved only with `canManageShiftKinds`.
-    shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[] | null;
+    // Each kind also names its mapped Tours, read-only (#788).
+    shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number; tours: string[] }[] | null;
     canManageShiftKinds: boolean;
     // The Group's Objects (#584) — the full handling collection in picker order, retired Objects
     // included. Resolved only with `canManageObjects`.
     objects: { id: number; name: string; active: boolean; sortOrder: number }[] | null;
     canManageObjects: boolean;
+    // The Group's Tour list and the kinds to map onto (#788, ADR-0033 §1). Resolved only with
+    // `canManageTours`, on a Group that runs vetting.
+    tours: { tours: SettingsTour[]; shiftKinds: { id: number; name: string; active: boolean }[] } | null;
+    canManageTours: boolean;
     groupSlug: string;
 }>();
 
@@ -45,7 +51,10 @@ const showEmptyDesk = computed(() => props.canManageEmptyDesk && props.runsSched
 const showSelfServe = computed(() => props.canManageSelfServe && props.runsScheduling && props.selfServe !== null);
 const showShiftKinds = computed(() => props.canManageShiftKinds && props.runsScheduling && props.shiftKinds !== null);
 const showObjects = computed(() => props.canManageObjects && props.runsScheduling && props.objects !== null);
-const showAnyCard = computed(() => showReminders.value || showEmptyDesk.value || showSelfServe.value || showShiftKinds.value || showObjects.value);
+const showTours = computed(() => props.canManageTours && props.tours !== null);
+const showAnyCard = computed(
+    () => showReminders.value || showEmptyDesk.value || showSelfServe.value || showShiftKinds.value || showObjects.value || showTours.value,
+);
 
 // --- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and lead
 // days, gated by `canManageReminders`. One PATCH to the dedicated endpoint; the server
@@ -374,6 +383,10 @@ const moveObject = (index: number, delta: number) => {
                             <template v-else>
                                 <span class="text-sm" :class="{ 'text-muted-foreground line-through': !kind.active }">{{ kind.name }}</span>
                                 <Badge v-if="!kind.active" variant="secondary">{{ trans('group.scheduling_panel.shift_kinds.retired_badge') }}</Badge>
+                                <!-- The Tours this kind maps to (#788), read-only; a Vetting officer maps them. -->
+                                <span v-if="kind.tours.length > 0" class="text-muted-foreground basis-full pl-8 text-xs">
+                                    {{ trans('group.tours.kind_tours', { tours: kind.tours.join(', ') }) }}
+                                </span>
                                 <Button type="button" size="sm" variant="ghost" @click="startRename(kind.id, kind.name)">
                                     {{ trans('group.scheduling_panel.shift_kinds.rename') }}
                                 </Button>
@@ -490,6 +503,10 @@ const moveObject = (index: number, delta: number) => {
                     </div>
                 </CardContent>
             </Card>
+
+            <!-- Tours (#788, ADR-0033 §1, §4) — the Group's Tour list and kind mapping, for a Vetting
+                 officer or Chair of a vetting Group. -->
+            <GroupToursCard v-if="showTours && tours" :tours="tours.tours" :shift-kinds="tours.shiftKinds" :group-slug="groupSlug" />
         </template>
 
         <!-- The tab appears with authority, not with data (ADR-0027 §1): a viewer whose rights

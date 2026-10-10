@@ -34,6 +34,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShiftKindController;
 use App\Http\Controllers\SignUpController;
 use App\Http\Controllers\SuperTierController;
+use App\Http\Controllers\TourController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -453,6 +454,26 @@ Route::patch('groups/{group}/shift-kinds/order', [ShiftKindController::class, 'r
 Route::patch('shift-kinds/{shiftKind}', [ShiftKindController::class, 'update'])
     ->middleware(['auth'])
     ->name('shift-kinds.update');
+
+// Tour maintenance (#788, ADR-0033 §1, §4). The Settings tab's Tours card — add, rename, retire,
+// restore, reorder, open to all, kind mapping and delete — edited by a Vetting officer or Chair of
+// a vetting Group. Add and reorder nest under the Group (bound by slug); the rest bind the Tour by
+// id. Each is authorized in its Form Request through the TourPolicy's `manage` gate.
+Route::post('groups/{group}/tours', [TourController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('groups.tours.store');
+Route::patch('groups/{group}/tours/order', [TourController::class, 'reorder'])
+    ->middleware(['auth'])
+    ->name('groups.tours.reorder');
+Route::patch('tours/{tour}', [TourController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('tours.update');
+Route::patch('tours/{tour}/shift-kinds', [TourController::class, 'updateShiftKinds'])
+    ->middleware(['auth'])
+    ->name('tours.shift-kinds.update');
+Route::delete('tours/{tour}', [TourController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('tours.destroy');
 
 // Objects maintenance (#584, ADR-0026 §3). The Scheduling section's Objects block — add, rename,
 // retire, reinstate and reorder a Group's handling collection — edited by a Scheduler or Chair,

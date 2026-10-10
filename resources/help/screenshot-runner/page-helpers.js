@@ -330,6 +330,11 @@
         return showCardTitled(/^shift kinds/i);
     }
 
+    // The Tours card on the Group Settings tab (#788, ADR-0033 §1): the Tour list and kind mapping.
+    function showTours() {
+        return showCardTitled(/^tours/i);
+    }
+
     // The self-serve settings card on the Group Settings tab (#590, ADR-0026 §1). Shows only
     // to a schedule admin: the on/off switch and the minutes-per-unit field.
     function showSelfServeSettings() {
@@ -792,6 +797,7 @@
         showShiftReminders,
         showEmptyDeskAlert,
         showShiftKinds,
+        showTours,
         showSelfServeSettings,
         showObjects,
         showOffSiteStation,

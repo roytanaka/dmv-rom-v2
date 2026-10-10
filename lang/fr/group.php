@@ -143,6 +143,30 @@ return [
 
     // L'onglet Paramètres (#604, ADR-0027) quand aucune de ses cartes ne s'applique.
     'settings_empty' => 'Ce groupe n’a aucun paramètre que vous pouvez modifier.',
+    // La carte Visites de l’onglet Paramètres (#788, ADR-0033 §1, §4) — la liste des visites du
+    // groupe et les types de quart où chaque visite se donne.
+    'tours' => [
+        'heading' => 'Visites',
+        'description' => 'Listez les visites que donne ce groupe. Choisissez les types de quart où chaque visite se donne. Une visite ouverte à tous ne demande aucune qualification. Retirez une visite pour l’exclure des nouvelles inscriptions.',
+        'empty' => 'Ce groupe n’a pas encore de visites.',
+        'add_label' => 'Ajouter une visite',
+        'add' => 'Ajouter',
+        'rename' => 'Renommer',
+        'retire' => 'Retirer',
+        'restore' => 'Réactiver',
+        'retired_badge' => 'Retirée',
+        'open_to_all' => 'Ouverte à tous',
+        'move_up' => 'Monter',
+        'move_down' => 'Descendre',
+        'shift_kinds' => 'Types de quart',
+        'shift_kinds_title' => 'Types de quart pour :tour',
+        'no_kinds' => 'Ce groupe n’a pas encore de types de quart.',
+        'delete' => 'Supprimer',
+        'delete_title' => 'Supprimer :tour?',
+        'delete_body' => 'Cette action est définitive.',
+        'cannot_delete' => 'Cette visite a des qualifications ou des inscriptions. Retirez-la plutôt.',
+        'kind_tours' => 'Visites : :tours',
+    ],
     'coming_soon' => 'Cette section arrive bientôt.',
 
     // Onglet Horaire (#353, ADR-0021 §1) — la surface de lecture des horaires.

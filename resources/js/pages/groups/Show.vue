@@ -16,6 +16,7 @@ import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
 import GroupScheduling from '@/components/GroupScheduling.vue';
 import GroupSettings from '@/components/GroupSettings.vue';
+import type { SettingsTour } from '@/components/GroupToursCard.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -107,6 +108,8 @@ const props = defineProps<{
         manageSelfServe: boolean;
         manageShiftKinds: boolean;
         manageObjects: boolean;
+        // `manageTours` gates the Settings tab's Tours card (#788).
+        manageTours: boolean;
         enterHours: boolean;
         viewReports: boolean;
         // `manageDocuments` gates the Documents tab's upload control and uploader column (#712).
@@ -134,8 +137,10 @@ const props = defineProps<{
         reminders: { enabled: boolean; leadDays: number } | null;
         emptyDesk: { enabled: boolean; daysAhead: number; shiftKinds: { id: number; name: string; watched: boolean }[] } | null;
         selfServe: { enabled: boolean; unitMinutes: number } | null;
-        shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number }[] | null;
+        shiftKinds: { id: number; name: string; active: boolean; offSite: boolean; sortOrder: number; tours: string[] }[] | null;
         objects: { id: number; name: string; active: boolean; sortOrder: number }[] | null;
+        // The Tours card (#788): the Tour list and the kinds to map onto.
+        tours: { tours: SettingsTour[]; shiftKinds: { id: number; name: string; active: boolean }[] } | null;
     };
     overview: {
         description: string | null;
@@ -478,6 +483,8 @@ const pickBanner = (key: string | null) => {
                     :can-manage-shift-kinds="can.manageShiftKinds"
                     :objects="settings.objects"
                     :can-manage-objects="can.manageObjects"
+                    :tours="settings.tours"
+                    :can-manage-tours="can.manageTours"
                     :group-slug="group.slug"
                 />
 
