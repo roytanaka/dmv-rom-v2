@@ -61,6 +61,16 @@ class BookingPolicy
     }
 
     /**
+     * Send a Booking's Request or Confirmation again (#799, §9): the Booker or Chair, while the
+     * Group runs bookings.
+     */
+    public function sendMails(Member $actor, Booking $booking): bool
+    {
+        return $booking->group->has_bookings
+            && $actor->canActAs(Role::Booker, $booking->group);
+    }
+
+    /**
      * Read the Group's past client names for the form's suggestions (§10): whoever may add a
      * Booking.
      */

@@ -401,6 +401,32 @@ it('queues one substitution Notice each to the old and new Member and the Booker
         ->and($payload['booking']['tour'])->toBe('Ancient Egypt');
 });
 
+it('copies the substitution Notice once to the Group copy address when set, and sends it', function () {
+    Mail::fake();
+    [$group, $tour, , $holder, $seat] = bookingWithHolder();
+    $group->update(['booking_copy_email' => 'groupsales@example.test']);
+    $substitute = bookingSignUpMember($group, qualifiedFor: $tour);
+
+    $this->actingAs($holder)->patch(route('sign-ups.substitute', ['signUp' => $seat->id]), ['member_id' => $substitute->id]);
+
+    $copy = Delivery::where('email', 'groupsales@example.test')->sole();
+    expect($copy->member_id)->toBeNull()
+        ->and($copy->payload['notice'])->toBe(SignUpSubstituted::NOTICE_TYPE);
+
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    Mail::assertSent(SignUpSubstituted::class, fn (SignUpSubstituted $mail) => $mail->hasTo('groupsales@example.test'));
+});
+
+it('writes no copy when the Group has no copy address', function () {
+    [$group, $tour, , $holder, $seat] = bookingWithHolder();
+    $substitute = bookingSignUpMember($group, qualifiedFor: $tour);
+
+    $this->actingAs($holder)->patch(route('sign-ups.substitute', ['signUp' => $seat->id]), ['member_id' => $substitute->id]);
+
+    expect(Delivery::whereNull('member_id')->count())->toBe(0);
+});
+
 it('tells a holder who is also a Booker once', function () {
     [$group, $tour, $type] = bookingSignUpGroup();
     $booking = bookingSignUpBooking($group, $tour, $type);

@@ -5,6 +5,7 @@
 // Members — and the same take / drop / assign / remove affordances, because they are this
 // one component. It owns no policy: the server-sent `can` hints and `signup_id` decide what
 // renders, and the parent handles each action (every mutation is re-checked server-side).
+import BookingMailButtons from '@/components/BookingMailButtons.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -427,6 +428,9 @@ const formId = useId();
                 <p v-if="orderLine" class="text-muted-foreground">{{ orderLine }}</p>
                 <p v-if="shift.booking.details.comments" class="text-rom-ink break-words whitespace-pre-line">{{ shift.booking.details.comments }}</p>
             </div>
+
+            <!-- Send a group tour's Request or Confirmation again (#799, ADR-0032 §9). -->
+            <BookingMailButtons v-if="shift.booking?.can_send_mails" :booking-id="shift.booking.id" />
 
             <!-- Who is on the floor (#357) — visible to every reader who can read the
                  Schedule, non-members included. Each seat is a chip; a schedule admin gets a

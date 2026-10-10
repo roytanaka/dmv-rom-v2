@@ -298,6 +298,9 @@ final class HelpManifest
             // Signing up for a group tour and handing the seat to a substitute (#798, ADR-0032 §8).
             // Any Member of a Group that runs bookings.
             new HelpArticle('sign-up-for-a-group-tour', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            // Group tour emails (#799, ADR-0032 §9) — the Request and Confirmation, sent again from a
+            // group tour, and the Group's copy address.
+            new HelpArticle('send-group-tour-emails', HelpSection::Scheduling, requires: ['booker', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
             new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('reminders', HelpSection::Scheduling),

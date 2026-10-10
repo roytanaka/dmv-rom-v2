@@ -13,7 +13,8 @@ use App\Models\Shift;
  * The substitution Notice writer (#798, ADR-0032 §8, §9). When a seat-holder hands their seat on
  * a Booking to a substitute, the old Member, the new Member and the Group's Bookers (Chair
  * implied) are told. It writes one Notice {@see Delivery} per recipient, once each, skipping any
- * Member with the no-email flag (ADR-0024 §9); the every-minute Drain sends them.
+ * Member with the no-email flag (ADR-0024 §9), plus one copy to the Group's copy address when set
+ * ({@see GroupCopyWriter}); the every-minute Drain sends them.
  *
  * The row carries a payload snapshot, as the cancellation Notice does, so the mail renders the
  * same even if the Booking changes or goes before the Drain runs. Shape mirrors
@@ -21,6 +22,8 @@ use App\Models\Shift;
  */
 class SignUpSubstitutionNoticeWriter
 {
+    public function __construct(private GroupCopyWriter $copies) {}
+
     /**
      * Write the substitution Notice Deliveries for one handed-over seat. The Shift must carry its
      * `kind`, `booking.tour` and `schedule.group`.
@@ -47,6 +50,8 @@ class SignUpSubstitutionNoticeWriter
                 'next_attempt_at' => now(),
             ]);
         }
+
+        $this->copies->write($shift->schedule->group, $snapshot);
     }
 
     /**

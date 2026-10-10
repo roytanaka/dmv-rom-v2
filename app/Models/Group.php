@@ -87,6 +87,7 @@ class Group extends Model
         'loa_removes_qualifications',
         'group_tour_shift_kind_id',
         'group_tour_label',
+        'booking_copy_email',
     ];
 
     /**
