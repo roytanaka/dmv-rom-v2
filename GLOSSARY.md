@@ -17,7 +17,7 @@ A Member's standing in DMV _as a whole_ — Active, Sustaining, Honourary, Provi
 _Avoid_: conflating with a **Membership**'s within-Group status; they are different facts set by different officers.
 
 **Officer**:
-A Member who holds at least one authority-bearing **role** (Chair, Secretary, Scheduler, Statistician, Vetting, Librarian, Treasurer) in a given **Group**. Always **per-Group** — a Member can be an officer of one Group and an ordinary member of another; there is no global officer status. See [ADR-0011](docs/adr/0011-authorization-model.md).
+A Member who holds at least one authority-bearing **role** (Chair, Secretary, Scheduler, Booker, Statistician, Vetting, Librarian, Treasurer) in a given **Group**. Always **per-Group** — a Member can be an officer of one Group and an ordinary member of another; there is no global officer status. See [ADR-0011](docs/adr/0011-authorization-model.md).
 _Avoid_: using "officer" as an org-wide rank or as a synonym for the all-DMV grant (that is the **super-tier** — see **Admin**).
 
 **DMV Executive**:
@@ -110,7 +110,7 @@ A dated thing a **Member** signs up to staff — a tour, a desk slot, an event r
 _Avoid_: reading a Shift as one person's seat — it is a **slot** that holds up to `capacity` **Sign-ups**. Per-seat facts (one volunteer's hours, one volunteer's visitor count) belong on the Sign-up. And note what a Shift does **not** carry: no location (kind is the only descriptive axis), no state of its own (it inherits the Schedule's), no qualification flag (a requirement hangs off the **shift kind**), and no repeat rule — recurring Shifts are **bulk-written**, never spawned from a stored pattern.
 
 **Shift kind**:
-An entry in a **Group**'s small list of the kinds of shift it runs — "Desk", "Shadow", "Level 2 greeter", "Egypt - GI # 1". Per Group, nullable on a **Shift** (Reception's Shifts carry none). Model `ShiftKind`, table `shift_kinds`. This is [ADR-0015](docs/adr/0015-scheduling-model.md)'s **Catalog**, renamed. A Group whose kinds are places names them that way; Gallery Interpreters' kinds are **stations** (a gallery and a cart number). A kind may be flagged **off-site**, which makes its Sign-ups' **Objects** subject to an **Object hold**. A **qualification** requirement hangs off the kind, never off the dated Shift — decided in shape only; nothing is built.
+An entry in a **Group**'s small list of the kinds of shift it runs — "Desk", "Shadow", "Level 2 greeter", "Egypt - GI # 1". Per Group, nullable on a **Shift** (Reception's Shifts carry none). Model `ShiftKind`, table `shift_kinds`. This is [ADR-0015](docs/adr/0015-scheduling-model.md)'s **Catalog**, renamed. A Group whose kinds are places names them that way; Gallery Interpreters' kinds are **stations** (a gallery and a cart number). A kind may be flagged **off-site**, which makes its Sign-ups' **Objects** subject to an **Object hold**. In a Group with **Tours**, a kind maps to one or more Tours: Docents' "Museum Highlights" maps to one, "Gallery/Theme" to dozens. A **qualification** is held on a Tour, never on the kind or the dated Shift ([ADR-0033](docs/adr/0033-tours-and-tour-qualifications.md)).
 _Avoid_: "Catalog" (already taken twice in this repo: the role catalog, the persona catalogue; and the retired content catalog), and legacy's `Activity` / `Role` / `Type` / `Location` (see Legacy vocabulary). "Station" is fine in Gallery Interpreters prose; the entity is still the shift kind.
 
 **Self-serve Shift**:
@@ -128,6 +128,28 @@ _Avoid_: "artefact" (legacy's `giArtefact` is a 452-row content catalog of which
 **Object hold**:
 The window during which an **Object** counts as in use for the double-booking check. Normally the **Shift**'s own start and end. When the Shift's **shift kind** is flagged **off-site**, the window widens to the start of the day before the Shift through the end of the day after, because the Object leaves the building. Automatic; nothing is written or maintained.
 _Avoid_: an "event" entity or a manual hold record — legacy's `giEvent` window (`ObjectStart` / `ObjectEnd`) is what the off-site flag replaces, and an event in v2 is Scheduler-authored Shifts whose kind is an off-site event station.
+
+**Tour**:
+One concrete tour a **Group** gives: "Museum Highlights", "Auschwitz", "Le Canada au musée". Docents and Guides du ROM each keep their own list, with a name, an active flag, and an **open to all** flag. A **shift kind** maps to one or more Tours. When a **Shift**'s kind maps to several, the Member picks the Tour at sign-up and the **Sign-up** records it. A **Booking** names one Tour. See [ADR-0033](docs/adr/0033-tours-and-tour-qualifications.md).
+_Avoid_: reading a shift kind as a Tour. "Gallery/Theme" is a kind: a slot in the daily roster that any of 48 Tours can fill. And "tour" in loose speech often means the dated Shift ("I have a tour at 11"); say Shift for that.
+
+**Qualification**:
+That a **Member** may give one **Tour**, with the **Last vet date** on which they were last checked on it. A qualification is active or inactive; an inactive one is kept but counts for nothing. Kept by the Group's **Vetting** role. A Member needs an active qualification to take a Shift for that Tour themselves, unless the Tour is **open to all**. A **Scheduler** or **Booker** may still place anyone.
+_Avoid_: reading it as a credential with an expiry. Nothing expires; the Last vet date is a record, not a deadline.
+
+**Last vet date**:
+The date a **Member** was last checked giving one **Tour**, on their **qualification**. Shown, never enforced.
+
+**Booking**:
+An outside client engaging a **Group** for one dated tour, which the Group then staffs. A school books a tour, a tour company books a Mandarin Museum Highlights. A Booking records the client, the expected number of visitors, the **booking type**, the group leader, the ROM order number and date, comments, and **Earned**. It names one **Tour**. Its staffing is exactly one **Shift**: the tour's time and the number of docents needed as the capacity. Docents and Guides du ROM have it today. Docents and GDR call a Booking a **group tour**, and the daily public tours **scheduled tours**. See [ADR-0032](docs/adr/0032-docents-gdr-bookings.md).
+_Avoid_: "Group Tour" for the entity in code or docs. It reads as a tour of or by a **Group**, which is exactly the confusion that raised this term. Use it only as the Docents' and GDR's own label on screen. And do not read a Booking as a kind of Shift: the Shift is its staffing, the Booking is the client half.
+
+**Booking type**:
+The billing class of a **Booking**: Tour Paid, Tour Free, Tour Internal, Spot Paid, Spot Free. Each Group keeps its own list, and each type carries a rate per visitor and a rate per docent-hour. A "Spot" is docents stationed in a gallery for an event rather than leading a walking tour, so it is paid by the docent-hour.
+_Avoid_: confusing it with a **shift kind**. The shift kind says which tour is given; the booking type says how the client pays for it.
+
+**Earned**:
+The money a **Booking** brings in. The app works it out from the **booking type**'s rates, the visitors, and the docent-hours. The **Statistician** may correct it, and a correction stands until the Statistician changes it again.
 
 **Sign-up**:
 The record that a **Member** has taken (or been assigned) a **Shift** — one Member, one Shift. Created by the Member themselves or by the Group's **Scheduler**; one entity, two actors. Carries **no state**: cancelling is deleting it, allowed for as long as the Member could have taken it (until the Shift starts — no deadline). A Member may hold Sign-ups on overlapping Shifts, but never two on the same Shift. Per-seat facts live here: the **visitor count**, and in a Group with a handling collection, the **Objects** the Member reserved.
@@ -315,8 +337,8 @@ In legacy scheduling, a _kind of position within an event_ — "Level 2 greeter"
 _Avoid_: reading legacy `RoleID` as one of our **roles**. Ours (Chair, Secretary, Scheduler, …) confer authority; legacy's describe work. Two unrelated concepts sharing a column name.
 
 **Booking** (legacy `*groupTours`, `rombusTrip`, `walkerSchedules status='group'`):
-An outside organization engaging a **Group** for a dated engagement — a school books a tour, a community group books a presentation — which the Group then staffs. **Not** a **Sign-up**, a **Schedule**, or a **Shift**: the separable half is a _customer record with a date on it_ (client name and address, contact details, venue type, honorarium, billing class, order number, guest manifest). Five Groups have it — Outreach, ROMBus, Walker, **and Docents and GDR**, who also run ordinary shifts — so it is a **capability orthogonal to scheduling**, not a Group shape. Deferred out of the scheduling first pass ([ADR-0021](docs/adr/0021-scheduling-first-pass.md)); the _staffing_ half of a booking is expressible today as a Schedule with the Shifts it needs.
-_Avoid_: treating a booking as a kind of Shift, and treating legacy as a design to port — **there is no organization table at all**; the client is re-entered every time and auto-filled by a `LIKE` search of prior bookings.
+Legacy's group tours, ROMBus trips and Walker group dates. Docents and GDR's group tours are our **Booking** (see above), ported faithfully. Outreach, ROMBus and Walker each run their own variant and are not covered by it. Legacy's "Group Tour" flag on a docent is a permission, not a kind of tour. In legacy, Earned is silently recalculated by an ordinary edit and overwrites the Statistician's correction; ours keeps the correction.
+_Avoid_: treating a booking as a kind of Shift. And there is **no client table**: the client is re-typed every time and auto-filled from prior bookings.
 
 **Event** — three senses:
 
