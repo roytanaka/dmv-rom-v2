@@ -15,3 +15,5 @@ act openTourQualifications 02    # the by-Tour screen for Dinosaurs: qualified a
 act openMemberQualifications 03  # the by-Member screen: the Tours one Member gives
 act openAddQualification 04      # the Add dialog: the Tour picker and today's Last vet date
 nav /groups/docents/tours 05     # the Tours tab (#792): each active Tour, who gives it, open-to-all marked
+# Signing up for, placing on and changing a Tour (#790, #791) is shot from the Scheduling tab in a
+# later pass; the draft article carries no images yet.

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DeleteSignUpRequest;
 use App\Http\Requests\RecordSignUpVisitorsRequest;
 use App\Http\Requests\StoreSignUpRequest;
+use App\Http\Requests\UpdateSignUpTourRequest;
 use App\Models\Shift;
 use App\Models\SignUp;
 use App\Support\Notices\SignUpCancellationNoticeWriter;
@@ -99,5 +100,16 @@ class SignUpController extends Controller
         $signUp->record($request->validated(), $request->user());
 
         return back()->with(SignUp::JUST_SAVED_FLASH, [...$request->session()->get(SignUp::SHOWN_SAVED_KEY, []), $signUp->id]);
+    }
+
+    /**
+     * Change the Tour on a Sign-up (#791, ADR-0033 §6): the seat-holder until the Shift starts,
+     * or a schedule admin any time. The Form Request has resolved who may and which Tour.
+     */
+    public function updateTour(UpdateSignUpTourRequest $request, SignUp $signUp): RedirectResponse
+    {
+        $signUp->update(['tour_id' => $request->validated('tour_id')]);
+
+        return back();
     }
 }

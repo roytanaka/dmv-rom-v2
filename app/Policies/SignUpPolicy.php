@@ -177,6 +177,23 @@ class SignUpPolicy
     }
 
     /**
+     * Who may change the Tour on a seat (#791, ADR-0033 §6), the same owner/admin split as
+     * {@see delete}: a schedule admin of the owning Group on any seat, any time; the seat-holder
+     * on their own seat until the Shift starts. Which Tour each may pick is the Form Request's
+     * to check (any of the kind's active Tours or blank for the admin; one they may give for the
+     * seat-holder).
+     */
+    public function changeTour(Member $actor, SignUp $signUp): bool
+    {
+        if ($this->administersSchedulingFor($actor, $signUp->shift->schedule->group)) {
+            return true;
+        }
+
+        return $signUp->member_id === $actor->getKey()
+            && ! $signUp->shift->hasStarted();
+    }
+
+    /**
      * Who may record or correct the after-the-shift numbers on a seat (#445, #450, PRD #443,
      * ADR-0023 §5). Two actors, one verdict:
      *

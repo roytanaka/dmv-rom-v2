@@ -37,7 +37,11 @@ class AssignmentController extends Controller
      */
     public function store(StoreAssignmentRequest $request, Shift $shift): RedirectResponse
     {
-        $signUp = $shift->signUps()->create(['member_id' => $request->integer('member_id')]);
+        $signUp = $shift->signUps()->create([
+            'member_id' => $request->integer('member_id'),
+            // The Tour the Scheduler picked (#791, ADR-0033 §6), or none.
+            'tour_id' => $request->validated('tour_id'),
+        ]);
 
         // The Objects this placement reserves on the seat (#586, ADR-0026 §3) — as complete as a
         // self-serve shift. Absent on a Group with no Objects; the Form Request has refused a
@@ -82,7 +86,15 @@ class AssignmentController extends Controller
                 continue;
             }
 
-            $shift->signUps()->create(['member_id' => $memberId]);
+            // The Tour (#791, ADR-0033 §6): a one-Tour kind's Tour is filled in, as a take fills
+            // it; a multi-Tour kind is left blank for the Scheduler to set per seat. No
+            // qualification check, because a Scheduler may place anyone.
+            $offered = $shift->toursOffered();
+
+            $shift->signUps()->create([
+                'member_id' => $memberId,
+                'tour_id' => $offered->count() === 1 ? $offered->first()->id : null,
+            ]);
             $created++;
         }
 

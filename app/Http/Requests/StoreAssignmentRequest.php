@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ChoosesTour;
 use App\Http\Requests\Concerns\ReservesObjects;
 use App\Models\Member;
 use App\Models\SignUp;
@@ -24,6 +25,7 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class StoreAssignmentRequest extends FormRequest
 {
+    use ChoosesTour;
     use ReservesObjects;
 
     /**
@@ -65,7 +67,18 @@ class StoreAssignmentRequest extends FormRequest
         return [
             'member_id' => ['required', 'integer', 'exists:members,id'],
             ...$this->objectRules($this->route('shift')->schedule->group),
+            // The Tour the placed Member gives (#791, ADR-0033 §6): any of the kind's active Tours
+            // or blank, with no qualification check, because a Scheduler may place anyone.
+            ...$this->officerTourRules($this->route('shift')),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->tourMessages();
     }
 
     /**

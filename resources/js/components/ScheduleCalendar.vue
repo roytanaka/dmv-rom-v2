@@ -10,7 +10,7 @@ import ShiftCard from '@/components/ShiftCard.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { bandsByGroup, buildMonthGrid, monthIndexOf, monthsInRange, type DayGroup, type MonthCell } from '@/scheduling/agenda';
-import { type ForeignShiftItem, type SharedData, type ShiftAgendaItem } from '@/types';
+import { type ForeignShiftItem, type SharedData, type ShiftAgendaItem, type ShiftSignUp } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
@@ -41,6 +41,7 @@ const emit = defineEmits<{
     drop: [shift: ShiftAgendaItem];
     assign: [shift: ShiftAgendaItem];
     remove: [signUpId: number];
+    changeTour: [shift: ShiftAgendaItem, signUp: ShiftSignUp];
     edit: [shift: ShiftAgendaItem];
     delete: [shift: ShiftAgendaItem];
     // The self-serve owner's controls (#585) — threaded through to the parent, exactly as the
@@ -214,6 +215,7 @@ const formatDay = (date: string) =>
                         @drop="emit('drop', $event)"
                         @assign="emit('assign', $event)"
                         @remove="emit('remove', $event)"
+                        @change-tour="(changed, signUp) => emit('changeTour', changed, signUp)"
                         @edit="emit('edit', $event)"
                         @delete="emit('delete', $event)"
                         @edit-self-serve="emit('editSelfServe', $event)"
@@ -228,6 +230,7 @@ const formatDay = (date: string) =>
                         :expanded="true"
                         @take="emit('take', $event)"
                         @drop="emit('drop', $event)"
+                        @change-tour="(changed, signUp) => emit('changeTour', changed, signUp)"
                     />
                 </div>
             </DialogContent>

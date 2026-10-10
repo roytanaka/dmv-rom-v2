@@ -584,6 +584,13 @@ Route::patch('sign-ups/{signUp}', [SignUpController::class, 'record'])
     ->middleware(['auth', 'localizeFromReferer'])
     ->name('sign-ups.record');
 
+// Changing a Sign-up's Tour (#791, ADR-0033 §6). The seat-holder until the Shift starts, under
+// the self sign-up check, or a schedule admin any time, to any of the kind's active Tours or
+// none. Authorized in its Form Request via SignUpPolicy::changeTour.
+Route::patch('sign-ups/{signUp}/tour', [SignUpController::class, 'updateTour'])
+    ->middleware(['auth', 'localizeFromReferer'])
+    ->name('sign-ups.tour.update');
+
 // Officer assignment write seam (#359, PRD #352, ADR-0021 §Sign-up). A Scheduler placing a
 // named Member on a Shift directly — Reception's whole operating model. A distinct actor
 // from the self-service Sign-up above (a Scheduler seating someone else), so a separate

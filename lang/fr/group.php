@@ -294,6 +294,9 @@ return [
             'required' => 'Choisissez la visite que vous donnerez.',
             'not_givable' => 'Vous ne pouvez pas donner cette visite à ce quart.',
             'none_here' => 'Ce quart n’a pas de visites.',
+            // Placement par un·e responsable et changement de visite (#791, ADR-0033 §6).
+            'none' => 'Aucune visite',
+            'change' => 'Changer de visite',
         ],
         // Maintenance des objets (#584, ADR-0026 §3) — la collection à manipuler qu’un·e
         // interprète de galerie apporte sur le plancher. Même forme que les types de quart.

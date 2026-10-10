@@ -1,6 +1,6 @@
 # Tenir à jour les visites et les qualifications de votre groupe
 
-Tenez à jour la liste des visites que donne votre groupe et notez qui peut donner chacune. Pour cela, vous devez avoir le rôle de vérification ou de président·e. Tout membre du groupe peut voir qui donne chaque visite.
+Tenez à jour la liste des visites que donne votre groupe et notez qui peut donner chacune. Pour modifier la liste ou les qualifications, vous devez avoir le rôle de vérification ou de président·e. Tout membre du groupe peut voir qui donne chaque visite et s'inscrire pour en donner une.
 
 Une visite est une visite concrète, comme « Museum Highlights ». Un type de quart est la case de l'horaire, comme « Gallery/Theme ». Un type peut contenir plusieurs visites.
 
@@ -110,6 +110,30 @@ La liste ne montre que les visites que vous pouvez donner. Ce sont les visites p
 La visite s'affiche à côté de votre nom sur le quart, dans **Mes inscriptions** et dans le calendrier.
 
 > **Note :** Vous ne voyez pas de bouton **S'inscrire** là où vous ne pouvez donner aucune des visites du type.
+
+## Changer de visite
+
+Vous pouvez changer la visite de votre propre inscription jusqu'au début du quart.
+
+1. Sélectionnez le crayon à côté de votre nom sur le quart.
+2. Choisissez une autre visite sous **Visite**.
+3. Sélectionnez **Enregistrer**.
+
+La liste ne montre que les visites que vous pouvez donner. Une fois le quart commencé, demandez à un·e responsable horaire de la changer.
+
+## Affecter un membre à une visite
+
+Un·e responsable horaire ou la·le président·e peut affecter n'importe quel membre à un quart. Le membre n'a besoin d'aucune qualification.
+
+1. Sélectionnez **Affecter un membre** sur le quart.
+2. Choisissez une visite sous **Visite**, ou laissez **Aucune visite**.
+3. Sélectionnez le membre.
+
+La liste montre toutes les visites actives du type. Un type qui n'a qu'une visite la choisit pour vous.
+
+Les **Inscriptions en lot** affectent aussi un membre sans qualification. Sur un type qui n'a qu'une visite, chaque inscription reçoit cette visite. Sur un type qui en a plusieurs, la visite reste vide.
+
+Pour choisir ou changer la visite d'une inscription, sélectionnez le crayon à côté du nom du membre. Vous pouvez le faire en tout temps, même après le début du quart. Choisissez **Aucune visite** pour l'effacer.
 
 ## Et ensuite
 

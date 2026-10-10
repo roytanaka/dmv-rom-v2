@@ -1,6 +1,6 @@
 # Keep your Group's Tours and qualifications
 
-Keep the list of Tours your Group gives and record who may give each one. You need the Vetting or Chair role for this. Any Member of the Group can see who gives each Tour.
+Keep the list of Tours your Group gives and record who may give each one. You need the Vetting or Chair role to change the list or the qualifications. Any Member of the Group can see who gives each Tour, and sign up to give one.
 
 A Tour is one concrete tour, such as "Museum Highlights". A shift kind is the slot on the roster, such as "Gallery/Theme". One kind can hold many Tours.
 
@@ -110,6 +110,30 @@ The list shows only the Tours you may give. These are the Tours you hold an acti
 The Tour shows beside your name on the Shift, in **My sign-ups** and on the Calendar.
 
 > **Note:** You see no **Sign up** button where you may give none of the kind's Tours.
+
+## Change your Tour
+
+You can change the Tour on your own Sign-up until the Shift starts.
+
+1. Select the pencil beside your name on the Shift.
+2. Choose another Tour under **Tour**.
+3. Select **Save**.
+
+The list shows only the Tours you may give. After the Shift starts, ask a Scheduler to change it.
+
+## Place a Member on a Tour
+
+A Scheduler or Chair can place any Member on a Shift. The Member needs no qualification.
+
+1. Select **Place a member** on the Shift.
+2. Choose a Tour under **Tour**, or leave it as **No tour**.
+3. Select the Member.
+
+The list shows every active Tour of the kind. A kind with one Tour fills it in for you.
+
+**Bulk sign-ups** also place a Member with no qualification. On a kind with one Tour, each Sign-up gets that Tour. On a kind with several, the Tour is left blank.
+
+To set or change the Tour on any Sign-up, select the pencil beside the Member's name. You can do this at any time, also after the Shift starts. Choose **No tour** to clear it.
 
 ## What next
 

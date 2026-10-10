@@ -1297,6 +1297,8 @@ class GroupController extends Controller
         // Co-volunteers see each other's numbers so a double count is visible to the people who
         // made it. A reader with no seat and no admin role gets no seat numbers at all. A Shift on
         // a later date has no report yet, for anyone (#772): nobody records before its window.
+        $offered = $shift->toursOffered();
+
         $readsReport = $shift->schedule->group->collects_visitor_count
             && ! $shift->isAfterToday()
             && ($canManage || $ownSignUp !== null);
@@ -1312,7 +1314,7 @@ class GroupController extends Controller
             // mapping one active Tour (no question asked), `pick` on several (the take dialog asks),
             // null on a kind with none. `tours` lists the ones this viewer may give, in the
             // Group's order — the picker's options. UI hints; StoreSignUpRequest re-checks.
-            'tour_choice' => match ($shift->toursOffered()->count()) {
+            'tour_choice' => match ($offered->count()) {
                 0 => null,
                 1 => 'fill',
                 default => 'pick',
@@ -1320,6 +1322,11 @@ class GroupController extends Controller
             'tours' => $viewer->toursGivableOn($shift)
                 ->map(fn (Tour $tour) => ['id' => $tour->id, 'name' => $tour->name])
                 ->all(),
+            // Every active Tour of the kind (#791, ADR-0033 §6), for a schedule admin only: the
+            // placement and change-Tour pickers, which need no qualification. Empty otherwise.
+            'tours_offered' => $canManage
+                ? $offered->map(fn (Tour $tour) => ['id' => $tour->id, 'name' => $tour->name])->values()->all()
+                : [],
             // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up), so the card hides
             // the Member's take and drop once it has — self-service closes at the start. The
             // SignUpPolicy enforces the same bound on every write regardless.
@@ -1337,7 +1344,7 @@ class GroupController extends Controller
             // Post-shift report (`$readsReport`, #652, #653). A plain reader never learns another
             // seat's id or numbers.
             'signups' => $shift->signUps
-                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $readsReport) {
+                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $readsReport, $offered) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
 
                     // The Objects this seat reserves (#586, ADR-0026 §3) — named under the Member
@@ -1351,6 +1358,13 @@ class GroupController extends Controller
                     // The Tour this seat gives (#790, ADR-0033 §2) — named on the seat for every
                     // reader, as-authored even when retired; null on a seat that records none.
                     $seat['tour'] = $signUp->tour?->name;
+                    $seat['tour_id'] = $signUp->tour_id;
+                    // Whether the viewer may change this seat's Tour (#791), mirroring
+                    // SignUpPolicy::changeTour (which re-checks every PATCH): a schedule admin on
+                    // every seat, the seat-holder on their own until the start. Never on a Shift
+                    // whose kind offers no Tours.
+                    $seat['can_change_tour'] = $offered->isNotEmpty()
+                        && ($canManage || ($signUp->member_id === $viewer->getKey() && ! $shift->hasStarted()));
 
                     // Officer removal and correction (#359, #450) — a schedule admin gets, on
                     // *every* seat, the seat's Sign-up id: the removal target and the write

@@ -314,6 +314,9 @@ return [
             'required' => 'Choose the tour you will give.',
             'not_givable' => 'You cannot give this tour on this shift.',
             'none_here' => 'This shift has no tours.',
+            // Officer placement and changing a seat's Tour (#791, ADR-0033 §6).
+            'none' => 'No tour',
+            'change' => 'Change tour',
         ],
         // Objects maintenance (#584, ADR-0026 §3) — the handling collection a Gallery
         // Interpreter takes onto the floor. The same block shape as shift kinds.

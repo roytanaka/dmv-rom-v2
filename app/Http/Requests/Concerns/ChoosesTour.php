@@ -46,6 +46,27 @@ trait ChoosesTour
     }
 
     /**
+     * The `tour_id` field rules for a Scheduler's write (#791, ADR-0033 §6): placing a Member or
+     * changing a seat's Tour. No qualification check, since a Scheduler may place anyone. On a
+     * Tour kind the field may be blank or any of the kind's active Tours; elsewhere it is
+     * prohibited.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    protected function officerTourRules(Shift $shift): array
+    {
+        $offered = $shift->toursOffered();
+
+        if ($offered->isEmpty()) {
+            return ['tour_id' => ['prohibited']];
+        }
+
+        return [
+            'tour_id' => ['nullable', 'integer', Rule::in($offered->pluck('id')->all())],
+        ];
+    }
+
+    /**
      * Plain messages for the `tour_id` rules: a missing Tour asks for one, a Tour the Member may
      * not give says so, and a Tour on a Tour-less Shift is refused.
      *
