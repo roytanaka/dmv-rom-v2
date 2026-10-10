@@ -851,8 +851,30 @@ export interface ShiftBooking {
         order_number: string | null;
         order_date: string | null;
     } | null;
+    // The change form's values (#796), for a Booker, Statistician, Chair or super-tier; null for
+    // anyone else, and the Edit control does not render.
+    edit: BookingEditValues | null;
+    // Whether the viewer may delete the Booking with its Shift and Sign-ups (#796).
+    can_delete: boolean;
     // The Send Request and Send Confirmation buttons (#799): a Booker, Chair or super-tier.
     can_send_mails: boolean;
+}
+
+// A Booking's change-form values (#796): the date and times on the org wall clock.
+export interface BookingEditValues {
+    date: string;
+    starts_time: string;
+    ends_time: string;
+    docents_needed: number;
+    tour_id: number;
+    booking_type_id: number;
+    booking_type: string;
+    client: string;
+    visitors: number;
+    leader: string | null;
+    order_number: string | null;
+    order_date: string | null;
+    comments: string | null;
 }
 
 // The Booking form's pickers (#795): the Group's active Tours and booking types, in order.
@@ -928,6 +950,9 @@ export interface Scheduling {
     // The Booking form's pickers (#795), for a viewer who may add a group tour; null for everyone
     // else, and the "Add group tour" control does not render.
     booking_options: BookingOptions | null;
+    // The change form's pickers (#796), for a viewer who may change the Group's group tours (a
+    // Booker, Statistician, Chair or super-tier); null for everyone else.
+    booking_change_options: BookingOptions | null;
     // The viewer's own outstanding-shifts panel (#449, ADR-0023 §5) — "my Sign-ups on this
     // Group": upcoming Shifts, plus any past Shift inside the 28-day window still owed a number.
     // It is date-ranged, so it crosses Schedules, and rides on the tab whether a Schedule is

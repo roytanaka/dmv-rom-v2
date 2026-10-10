@@ -232,6 +232,14 @@ return [
         'group_tour_schedule_locked' => 'Les quarts d’un horaire de visites de groupe viennent des visites de groupe. Ajoutez plutôt une visite de groupe.',
         'booking_shift_locked' => 'Ce quart appartient à une visite de groupe. Modifiez plutôt la visite de groupe.',
         'group_tour_schedule_published' => 'Un horaire de visites de groupe reste publié.',
+        // Changing and deleting (#796).
+        'edit' => 'Modifier',
+        'delete' => 'Supprimer',
+        'edit_title' => 'Modifier la visite de groupe',
+        'update' => 'Enregistrer',
+        'confirm_delete' => 'Supprimer cette visite de groupe ?',
+        'confirm_delete_signups' => 'Supprimer cette visite de groupe ? Les inscriptions de :names seront aussi supprimées.',
+        'group_tour_schedule_holds_bookings' => 'Cet horaire contient encore des visites de groupe. Déplacez-les ou supprimez-les d’abord.',
     ],
 
     // Courriels des visites de groupe (#799, ADR-0032 §9) : les boutons d'une visite de groupe et le

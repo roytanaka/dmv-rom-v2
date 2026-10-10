@@ -522,6 +522,14 @@ Route::get('booking-clients/{group}', [BookingController::class, 'clients'])
     ->middleware(['auth'])
     ->name('bookings.clients');
 
+// Changing and deleting a Booking (#796, ADR-0032 §1, §3, §4) — a Booker, Chair or Statistician.
+// Authorized in UpdateBookingRequest / DeleteBookingRequest through the BookingPolicy.
+Route::patch('bookings/{booking}', [BookingController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('bookings.update');
+Route::delete('bookings/{booking}', [BookingController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('bookings.destroy');
 // Booking mails (#799, ADR-0032 §9) — a Booker, the Chair or super-tier sends a Booking's Request
 // or Confirmation again. Authorized in the controller through the BookingPolicy's `sendMails`.
 Route::post('bookings/{booking}/request', [BookingMailController::class, 'request'])

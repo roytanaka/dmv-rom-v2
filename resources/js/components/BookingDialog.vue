@@ -7,6 +7,10 @@
 // The client field suggests the Group's past client names as the Booker types, read from the
 // `bookings.clients` JSON endpoint into a native <datalist>. Every write is re-checked by
 // StoreBookingRequest regardless of what renders.
+//
+// Given a `booking`, the same form changes it (#796): filled from the Booking's values and sent as
+// a PATCH to `bookings.update`, re-checked by UpdateBookingRequest. A retired Tour or type the
+// Booking still names stays on offer, so an old Booking stays editable.
 import InputError from '@/components/InputError.vue';
 import TimeField from '@/components/TimeField.vue';
 import { Button } from '@/components/ui/button';
@@ -15,15 +19,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
-import { type BookingOptions } from '@/types';
+import { type BookingOptions, type ShiftBooking } from '@/types';
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { ref, useId, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 
 const props = defineProps<{
     groupSlug: string;
     options: BookingOptions;
+    booking?: ShiftBooking | null;
 }>();
+
+const editing = computed(() => props.booking?.edit ?? null);
+
+// The pickers, plus the Booking's own Tour and type when they are retired and so not offered.
+const tourOptions = computed(() => {
+    const edit = editing.value;
+    if (!edit || !props.booking || props.options.tours.some((tour) => tour.id === edit.tour_id)) return props.options.tours;
+    return [...props.options.tours, { id: edit.tour_id, name: props.booking.tour }];
+});
+const typeOptions = computed(() => {
+    const edit = editing.value;
+    if (!edit || props.options.types.some((type) => type.id === edit.booking_type_id)) return props.options.types;
+    return [...props.options.types, { id: edit.booking_type_id, name: edit.booking_type }];
+});
 
 const open = defineModel<boolean>('open', { default: false });
 
@@ -69,6 +88,21 @@ watch(open, (isOpen) => {
     if (isOpen) {
         form.reset();
         form.clearErrors();
+        const edit = editing.value;
+        if (edit) {
+            form.date = edit.date;
+            form.starts_time = edit.starts_time;
+            form.ends_time = edit.ends_time;
+            form.docents_needed = edit.docents_needed;
+            form.tour_id = edit.tour_id;
+            form.booking_type_id = edit.booking_type_id;
+            form.client = edit.client;
+            form.visitors = edit.visitors;
+            form.leader = edit.leader ?? '';
+            form.order_number = edit.order_number ?? '';
+            form.order_date = edit.order_date ?? '';
+            form.comments = edit.comments ?? '';
+        }
         clients.value = [];
     }
 });
@@ -78,6 +112,14 @@ const close = () => {
 };
 
 const submit = () => {
+    if (props.booking && editing.value) {
+        form.patch(route('bookings.update', { booking: props.booking.id }), {
+            preserveScroll: true,
+            onSuccess: () => close(),
+        });
+        return;
+    }
+
     form.post(route('bookings.store', { group: props.groupSlug }), {
         preserveScroll: true,
         onSuccess: () => close(),
@@ -123,7 +165,7 @@ watch(
     <Dialog v-model:open="open">
         <DialogContent class="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-                <DialogTitle>{{ trans('group.bookings.add_title') }}</DialogTitle>
+                <DialogTitle>{{ editing ? trans('group.bookings.edit_title') : trans('group.bookings.add_title') }}</DialogTitle>
             </DialogHeader>
             <form class="flex flex-col gap-4" @submit.prevent="submit">
                 <div class="grid gap-2">
@@ -138,7 +180,7 @@ watch(
                     <Label for="booking-tour">{{ trans('group.bookings.field.tour') }}</Label>
                     <NativeSelect id="booking-tour" v-model="form.tour_id" required>
                         <option :value="null" disabled>{{ trans('group.bookings.choose') }}</option>
-                        <option v-for="tour in options.tours" :key="tour.id" :value="tour.id">{{ tour.name }}</option>
+                        <option v-for="tour in tourOptions" :key="tour.id" :value="tour.id">{{ tour.name }}</option>
                     </NativeSelect>
                     <InputError :message="form.errors.tour_id" />
                 </div>
@@ -146,7 +188,7 @@ watch(
                     <Label for="booking-type">{{ trans('group.bookings.field.type') }}</Label>
                     <NativeSelect id="booking-type" v-model="form.booking_type_id" required>
                         <option :value="null" disabled>{{ trans('group.bookings.choose') }}</option>
-                        <option v-for="type in options.types" :key="type.id" :value="type.id">{{ type.name }}</option>
+                        <option v-for="type in typeOptions" :key="type.id" :value="type.id">{{ type.name }}</option>
                     </NativeSelect>
                     <InputError :message="form.errors.booking_type_id" />
                 </div>
@@ -203,7 +245,9 @@ watch(
                 </div>
 
                 <div class="flex gap-2">
-                    <Button type="submit" size="sm" :disabled="form.processing">{{ trans('group.bookings.save') }}</Button>
+                    <Button type="submit" size="sm" :disabled="form.processing">{{
+                        editing ? trans('group.bookings.update') : trans('group.bookings.save')
+                    }}</Button>
                     <Button type="button" variant="ghost" size="sm" :disabled="form.processing" @click="close">
                         {{ trans('group.bookings.cancel') }}
                     </Button>

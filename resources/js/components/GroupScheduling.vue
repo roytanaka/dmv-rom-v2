@@ -210,6 +210,28 @@ const emailRoster = computed<Recipient[]>(() =>
 const bookingOptions = computed(() => props.scheduling.booking_options);
 const bookingOpen = ref(false);
 
+// Changing and deleting a group tour (#796) — a Booker, Statistician, Chair or super-tier. The
+// change form is the add form filled from the Booking; its pickers come from
+// `booking_change_options`, which a Statistician gets too.
+const bookingChangeOptions = computed(() => props.scheduling.booking_change_options);
+const bookingEditing = ref<ShiftAgendaItem | null>(null);
+const bookingEditOpen = ref(false);
+
+const openBookingEdit = (shift: ShiftAgendaItem) => {
+    bookingEditing.value = shift;
+    bookingEditOpen.value = true;
+};
+
+// Deleting removes the Shift's Sign-ups too, so the confirmation names the Members it removes.
+const destroyBooking = (shift: ShiftAgendaItem) => {
+    const names = shift.signups.map((signUp) => `${signUp.first_name} ${signUp.last_name}`).join(', ');
+    const message = names ? trans('group.bookings.confirm_delete_signups', { names }) : trans('group.bookings.confirm_delete');
+
+    if (shift.booking && window.confirm(message)) {
+        router.delete(route('bookings.destroy', { booking: shift.booking.id }), { preserveScroll: true });
+    }
+};
+
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
 
 // The open editor: 'create', or the id of the Schedule being edited, or null when
@@ -544,6 +566,11 @@ const openShiftCreate = () => {
 };
 
 const openShiftEdit = (shift: ShiftAgendaItem) => {
+    // A group tour's Shift is changed through its Booking (#796).
+    if (shift.booking?.edit) {
+        openBookingEdit(shift);
+        return;
+    }
     shiftForm.starts_at = toDateTimeLocal(shift.starts_at);
     shiftForm.ends_at = toDateTimeLocal(shift.ends_at);
     shiftForm.capacity = shift.capacity;
@@ -571,6 +598,10 @@ const submitShift = () => {
 // Delete confirms before firing, matching the Schedule delete's shape. The button only
 // renders where `can.delete` holds — a schedule admin, and the Shift at zero Sign-ups.
 const destroyShift = (shift: ShiftAgendaItem) => {
+    if (shift.booking?.can_delete) {
+        destroyBooking(shift);
+        return;
+    }
     if (window.confirm(trans('group.scheduling_panel.confirm_delete_shift'))) {
         router.delete(route('shifts.destroy', { shift: shift.id }), { preserveScroll: true });
     }
@@ -1346,6 +1377,14 @@ const runBulkAssign = (action: 'place' | 'remove') => {
 
         <!-- Add a group tour (#795) — the Booking form, for a viewer the server sent its pickers. -->
         <BookingDialog v-if="bookingOptions" v-model:open="bookingOpen" :group-slug="groupSlug" :options="bookingOptions" />
+        <!-- Change a group tour (#796) — the same form, filled from the Booking. -->
+        <BookingDialog
+            v-if="bookingChangeOptions"
+            v-model:open="bookingEditOpen"
+            :group-slug="groupSlug"
+            :options="bookingChangeOptions"
+            :booking="bookingEditing?.booking ?? null"
+        />
 
         <!-- Authoring create/edit dialog (#354) — one form, reused; opened by the
              "New schedule" control or a per-Schedule edit. -->

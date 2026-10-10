@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeleteBookingRequest;
 use App\Http\Requests\StoreBookingRequest;
+use App\Http\Requests\UpdateBookingRequest;
 use App\Models\Booking;
 use App\Models\Group;
 use App\Support\Notices\BookingMailWriter;
@@ -39,6 +41,33 @@ class BookingController extends Controller
 
         // The Request, or the Confirmation when the Booking is already full (#799, §9).
         $mails->onCreate($booking, $request->user());
+
+        return back();
+    }
+
+    /**
+     * Change a Booking and its Shift (#796). A date in another month moves the Shift to that
+     * month's group-tour Schedule ({@see Booking::change()}).
+     */
+    public function update(UpdateBookingRequest $request, Booking $booking): RedirectResponse
+    {
+        $booking->change(
+            $request->startsAt(),
+            $request->endsAt(),
+            (int) $request->validated('docents_needed'),
+            $request->bookingAttributes(),
+        );
+
+        return back();
+    }
+
+    /**
+     * Delete a Booking (#796): deleting its Shift cascades to the Booking and the Shift's
+     * Sign-ups. The month's group-tour Schedule stays, even empty.
+     */
+    public function destroy(DeleteBookingRequest $request, Booking $booking): RedirectResponse
+    {
+        $booking->shift->delete();
 
         return back();
     }

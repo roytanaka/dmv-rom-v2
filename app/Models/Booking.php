@@ -98,6 +98,41 @@ class Booking extends Model
     }
 
     /**
+     * Change a Booking and its Shift, in one transaction (#796, ADR-0032 §1, §4). A date in
+     * another month moves the Shift, its Sign-ups with it, to that month's group-tour Schedule,
+     * created and published if the month has none. The Schedule it leaves stays, even empty: it
+     * follows the ordinary Schedule delete rules. A new Tour is written onto the Shift's Sign-ups,
+     * since a Booking's Shift offers its Tour alone. The caller has checked the times sit in one
+     * day and the docents needed cover the Sign-ups.
+     *
+     * @param  array<string, mixed>  $attributes  the Booking's own fields (tour, type, client, ...)
+     */
+    public function change(
+        CarbonImmutable $startsAt,
+        CarbonImmutable $endsAt,
+        int $docentsNeeded,
+        array $attributes,
+        ?string $locale = null,
+    ): void {
+        DB::transaction(function () use ($startsAt, $endsAt, $docentsNeeded, $attributes, $locale): void {
+            $schedule = GroupTourSchedule::for($this->group, $startsAt, $locale);
+
+            $this->shift->update([
+                'schedule_id' => $schedule->id,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'capacity' => $docentsNeeded,
+            ]);
+
+            $this->update($attributes);
+
+            if ($this->wasChanged('tour_id')) {
+                $this->shift->signUps()->update(['tour_id' => $this->tour_id]);
+            }
+        });
+    }
+
+    /**
      * The Group that runs this Booking.
      *
      * @return BelongsTo<Group, $this>
