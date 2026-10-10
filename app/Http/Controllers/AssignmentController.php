@@ -167,7 +167,7 @@ class AssignmentController extends Controller
             })
             // Each placement reads its Shift's offered Tours (#791); load them for the matched
             // Shifts at once, not per Shift.
-            ->load('kind.tours');
+            ->load(['kind.tours', 'booking.tour']);
     }
 
     /**

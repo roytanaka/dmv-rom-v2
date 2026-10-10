@@ -352,6 +352,22 @@
         return clickAndWaitFor(button, () => openDialog());
     }
 
+    // The Scheduling tab's "Add group tour" button (#795): the Booking form.
+    function openAddGroupTour() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^add group tour$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The month's group-tour Schedule (#795): follow the first "Group tours – <month>" link on the
+    // Scheduling list. A Schedule's id is not stable across seeds, so the script cannot `nav` to it.
+    function openGroupTourSchedule() {
+        const link = Array.from(document.querySelectorAll('a[href*="/scheduling/"]')).find((element) =>
+            /^group tours/i.test(element.textContent.trim()),
+        );
+        if (!link) return false;
+        return followLink(link);
+    }
+
     // The by-Tour qualification screen (#789): follow the Tours card's "Dinosaurs" link. A Tour's
     // id is not stable across seeds, so the script cannot `nav` to it.
     function openTourQualifications() {
@@ -839,6 +855,8 @@
         showTourRules,
         showGroupTours,
         openAddBookingType,
+        openAddGroupTour,
+        openGroupTourSchedule,
         openTourQualifications,
         openAddQualification,
         openMemberQualifications,

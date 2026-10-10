@@ -167,7 +167,7 @@ return [
         'delete' => 'Supprimer',
         'delete_title' => 'Supprimer :tour?',
         'delete_body' => 'Cette action est définitive.',
-        'cannot_delete' => 'Cette visite a des qualifications ou des inscriptions. Retirez-la plutôt.',
+        'cannot_delete' => 'Cette visite a des qualifications, des inscriptions ou des visites de groupe. Retirez-la plutôt.',
         'kind_tours' => 'Visites : :tours',
     ],
 
@@ -199,6 +199,39 @@ return [
         'shift_kind_label' => 'Type de quart des visites de groupe',
         'none' => 'Aucun',
         'label_label' => 'Nom de l’horaire des visites de groupe',
+    ],
+
+    // Bookings (#795, ADR-0032 §1, §4, §5) — on screen always "Visites de groupe", never "Réservations".
+    'bookings' => [
+        'default_label' => 'Visites de groupe',
+        'add' => 'Ajouter une visite de groupe',
+        'add_title' => 'Ajouter une visite de groupe',
+        'save' => 'Ajouter',
+        'cancel' => 'Annuler',
+        'badge' => 'Visite de groupe',
+        'field' => [
+            'date' => 'Date',
+            'starts_time' => 'Début',
+            'ends_time' => 'Fin',
+            'docents_needed' => 'Guides requis',
+            'tour' => 'Visite',
+            'type' => 'Type de réservation',
+            'client' => 'Client',
+            'visitors' => 'Visiteurs attendus',
+            'leader' => 'Responsable du groupe',
+            'order_number' => 'Numéro de commande',
+            'order_date' => 'Date de commande',
+            'comments' => 'Commentaires',
+        ],
+        'choose' => 'Choisir…',
+        'visitors' => '{1} :count visiteur|[2,*] :count visiteurs',
+        'leader' => 'Responsable : :leader',
+        'order' => 'Commande :number',
+        'ordered_on' => 'commandée le :date',
+        'no_shift_kind' => 'Choisissez d’abord le type de quart des visites de groupe dans les paramètres du groupe.',
+        'group_tour_schedule_locked' => 'Les quarts d’un horaire de visites de groupe viennent des visites de groupe. Ajoutez plutôt une visite de groupe.',
+        'booking_shift_locked' => 'Ce quart appartient à une visite de groupe. Modifiez plutôt la visite de groupe.',
+        'group_tour_schedule_published' => 'Un horaire de visites de groupe reste publié.',
     ],
 
     'tour_rules' => [

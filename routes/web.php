@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingTypeController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\DocumentCategoryController;
@@ -507,6 +508,18 @@ Route::patch('booking-types/{bookingType}', [BookingTypeController::class, 'upda
 Route::delete('booking-types/{bookingType}', [BookingTypeController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('booking-types.destroy');
+
+// Bookings (#795, ADR-0032 §1, §3, §10) — a Booker or Chair adds a group tour, and the Booking
+// form's client field reads the Group's past client names as JSON. Both bind the Group by slug; the
+// add is authorized in StoreBookingRequest through the BookingPolicy's `create` gate, the
+// suggestions in the controller through `suggestClients`. The read sits outside `groups/`, where
+// the localized `groups/{group}/{section}` page route would catch it.
+Route::post('groups/{group}/bookings', [BookingController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('bookings.store');
+Route::get('booking-clients/{group}', [BookingController::class, 'clients'])
+    ->middleware(['auth'])
+    ->name('bookings.clients');
 
 // The status rules (#793, ADR-0033 §7) — the Settings tab's Tour rules card: the trainee Tour,
 // the starter Tours and the LOA rule, edited by the Chair of a vetting Group. Authorized in

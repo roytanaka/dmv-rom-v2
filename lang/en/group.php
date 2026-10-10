@@ -184,7 +184,7 @@ return [
         'delete' => 'Delete',
         'delete_title' => 'Delete :tour?',
         'delete_body' => 'You cannot undo this.',
-        'cannot_delete' => 'This tour has qualifications or sign-ups. Retire it instead.',
+        'cannot_delete' => 'This tour has qualifications, sign-ups or group tours. Retire it instead.',
         // The read-only list of a kind's Tours on the Shift kinds card.
         'kind_tours' => 'Tours: :tours',
     ],
@@ -217,6 +217,40 @@ return [
         'shift_kind_label' => 'Group-tour shift kind',
         'none' => 'None',
         'label_label' => 'Group-tour schedule name',
+    ],
+
+    // Bookings (#795, ADR-0032 §1, §4, §5) — on screen always "Group tours", never "Bookings".
+    'bookings' => [
+        // The fallback group-tour Schedule label when the Group has set none.
+        'default_label' => 'Group tours',
+        'add' => 'Add group tour',
+        'add_title' => 'Add a group tour',
+        'save' => 'Add',
+        'cancel' => 'Cancel',
+        'badge' => 'Group tour',
+        'field' => [
+            'date' => 'Date',
+            'starts_time' => 'Start',
+            'ends_time' => 'End',
+            'docents_needed' => 'Docents needed',
+            'tour' => 'Tour',
+            'type' => 'Booking type',
+            'client' => 'Client',
+            'visitors' => 'Expected visitors',
+            'leader' => 'Group leader',
+            'order_number' => 'Order number',
+            'order_date' => 'Order date',
+            'comments' => 'Comments',
+        ],
+        'choose' => 'Choose…',
+        'visitors' => '{1} :count visitor|[2,*] :count visitors',
+        'leader' => 'Leader: :leader',
+        'order' => 'Order :number',
+        'ordered_on' => 'ordered :date',
+        'no_shift_kind' => 'Set the group-tour shift kind in Group Settings first.',
+        'group_tour_schedule_locked' => 'Shifts on a group-tour schedule come from group tours. Add a group tour instead.',
+        'booking_shift_locked' => 'This shift belongs to a group tour. Change the group tour instead.',
+        'group_tour_schedule_published' => 'A group-tour schedule stays published.',
     ],
 
     'tour_rules' => [
