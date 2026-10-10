@@ -187,6 +187,7 @@ return [
         'empty' => 'Ce groupe n’a pas encore de visites.',
         'open_to_all' => 'Ouverte à tous',
         'none' => 'Personne pour l’instant.',
+        'open_to_all_none' => 'Tout membre peut donner cette visite.',
         'last_vet_date' => 'Dernière vérification',
         'no_date' => 'Aucune date',
     ],
