@@ -1,6 +1,6 @@
-# Tenir à jour les visites de votre groupe
+# Tenir à jour les visites et les qualifications de votre groupe
 
-Tenez à jour la liste des visites que donne votre groupe et choisissez les types de quart de chaque visite. Vous devez avoir le rôle de vérification ou de président·e.
+Tenez à jour la liste des visites que donne votre groupe et notez qui peut donner chacune. Vous devez avoir le rôle de vérification ou de président·e.
 
 Une visite est une visite concrète, comme « Museum Highlights ». Un type de quart est la case de l'horaire, comme « Gallery/Theme ». Un type peut contenir plusieurs visites.
 
@@ -42,6 +42,46 @@ Une visite retirée reste sur ses inscriptions et qualifications passées.
 3. Sélectionnez **Supprimer** de nouveau pour confirmer.
 
 > **Note :** Vous ne pouvez pas supprimer une visite qui a des qualifications ou des inscriptions. Retirez-la plutôt.
+
+## Voir qui donne une visite
+
+Une qualification indique qu'un membre peut donner une visite. Elle note aussi la date de sa dernière vérification.
+
+1. Sélectionnez le nom d'une visite sur la carte **Visites**.
+
+La page liste toutes les personnes qualifiées pour la visite, avec la date de leur dernière vérification. Les qualifications inactives sont listées à part, sous **Inactives**. Elles ne comptent pas tant que vous ne les ajoutez pas de nouveau.
+
+## Voir les visites que donne un membre
+
+1. Sélectionnez le nom d'un membre sur la page d'une visite.
+
+Vous pouvez aussi ouvrir l'onglet **Membres**, sélectionner le menu sur la ligne d'un membre, puis sélectionner **Visites**.
+
+## Ajouter une qualification
+
+1. Sur la page d'une visite, sélectionnez **Ajouter**.
+2. Choisissez le membre. La liste ne montre que les membres actuels de votre groupe.
+3. Vérifiez la **Dernière vérification**. La date du jour est déjà saisie.
+4. Sélectionnez **Ajouter**.
+
+Sur la page d'un membre, **Ajouter** fonctionne de la même façon, mais vous choisissez une visite.
+
+Ajouter une qualification inactive la rend de nouveau active, avec la nouvelle date.
+
+## Changer la date de la dernière vérification
+
+1. Sélectionnez **Changer la date** à côté de la qualification.
+2. Saisissez la nouvelle date.
+3. Sélectionnez **Enregistrer**.
+
+> **Note :** La date de la dernière vérification n'expire jamais. L'application l'affiche, sans plus.
+
+## Retirer une qualification
+
+1. Sélectionnez **Retirer** à côté de la qualification.
+2. Sélectionnez **Retirer** de nouveau pour confirmer.
+
+Le membre ne peut plus s'inscrire lui-même à cette visite.
 
 ## Et ensuite
 

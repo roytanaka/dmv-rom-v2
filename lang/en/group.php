@@ -186,6 +186,38 @@ return [
         'kind_tours' => 'Tours: :tours',
     ],
 
+    // The qualification screens (#789, ADR-0033 §3, §4): by Tour and by Member.
+    'qualifications' => [
+        'back' => 'Back to tours',
+        'tour_heading' => 'Who gives :tour',
+        'member_heading' => 'Tours :name gives',
+        'active_heading' => 'Qualified',
+        'inactive_heading' => 'Inactive',
+        'none_active' => 'No one yet.',
+        'none_active_member' => 'No tours yet.',
+        'column_member' => 'Member',
+        'column_tour' => 'Tour',
+        'column_last_vet_date' => 'Last vet date',
+        'no_date' => 'No date',
+        'add' => 'Add',
+        'add_member_title' => 'Add a member to :tour',
+        'add_tour_title' => 'Add a tour for :name',
+        'member_label' => 'Member',
+        'tour_label' => 'Tour',
+        'last_vet_date_label' => 'Last vet date',
+        'change_date' => 'Change date',
+        'change_date_title' => 'Change the last vet date',
+        'remove' => 'Remove',
+        'remove_title' => 'Remove this qualification?',
+        'remove_body' => 'The member can no longer sign up for this tour.',
+        'retired_tour' => 'Retired',
+        'not_current' => 'Not a current member',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+        // The roster row's link to the by-Member screen.
+        'roster_link' => 'Tours',
+    ],
+
     // Section panels not yet built in this slice.
     'coming_soon' => 'This section is coming soon.',
 

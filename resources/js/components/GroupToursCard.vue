@@ -5,6 +5,7 @@
 // re-checks the TourPolicy; the page reloads with the fresh list, so no local list state is kept.
 // Tour names are content, shown as authored (ADR-0004).
 import InputError from '@/components/InputError.vue';
+import TextLink from '@/components/TextLink.vue';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -167,8 +168,13 @@ const confirmDelete = () => {
                         </Button>
                     </template>
                     <template v-else>
-                        <!-- The by-Tour screen (#789) will make this name a link. -->
-                        <span class="text-sm" :class="{ 'text-muted-foreground line-through': !tour.active }">{{ tour.name }}</span>
+                        <!-- Each name opens its by-Tour qualification screen (#789). -->
+                        <TextLink
+                            :href="route('groups.tours.show', { group: groupSlug, tour: tour.id })"
+                            class="text-sm"
+                            :class="{ 'text-muted-foreground line-through': !tour.active }"
+                            >{{ tour.name }}</TextLink
+                        >
                         <Badge v-if="!tour.active" variant="secondary">{{ trans('group.tours.retired_badge') }}</Badge>
                         <Button type="button" size="sm" variant="ghost" @click="startRename(tour)">{{ trans('group.tours.rename') }}</Button>
                         <Button type="button" size="sm" variant="ghost" @click="openMapping(tour)">

@@ -29,6 +29,7 @@ use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\News;
+use App\Models\Qualification;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
@@ -1173,6 +1174,7 @@ class DemoSeeder extends Seeder
 
         $kinds = $this->shiftKinds($docents);
         $this->tours($docents, self::DOCENT_TOURS, $kinds);
+        $this->qualifications($docents, 'Museum Highlights – New Docents');
 
         $previous = $this->monthSchedule($docents, $lastMonth, 'Last month\'s docent tour roster, worked and signed out.');
         $current = $this->monthSchedule($docents, $month, 'The current-month docent tour roster — sign up for a tour below.');
@@ -1416,6 +1418,7 @@ class DemoSeeder extends Seeder
             );
         }
         $this->tours($group, self::GDR_TOURS, $kinds);
+        $this->qualifications($group);
 
         $previous = $this->monthSchedule($group, $lastMonth, 'Le calendrier des visites du mois dernier, données et signées.');
         $current = $this->monthSchedule($group, $month, 'Les visites du mois. Inscrivez-vous à une visite ci-dessous.');
@@ -2374,6 +2377,54 @@ class DemoSeeder extends Seeder
             $tour->shiftKinds()->syncWithoutDetaching(
                 collect($kindNames)->map(fn (string $kind): int => $kinds[$kind]->id)->all(),
             );
+        }
+    }
+
+    /**
+     * Seed qualifications (#789, ADR-0033 §3) on a Group's Tours: most current Members give
+     * several of the Tours that need one, with Last vet dates spread over the past six years, and
+     * a few hold an inactive one as history. Every fifth Member holds none. A Trainee holds only
+     * the trainee Tour, when the Group has one. Deterministic by roster order and keyed on
+     * (Membership, Tour), so a reseed adds nothing.
+     */
+    private function qualifications(Group $group, ?string $traineeTour = null): void
+    {
+        $tours = $group->tours()->where('open_to_all', false)->orderBy('sort_order')->get();
+        $trainee = $traineeTour === null ? null : $tours->firstWhere('name', $traineeTour);
+        $vetted = $tours->reject(fn (Tour $tour): bool => $tour->is($trainee))->values();
+        $today = OrgTime::today();
+
+        $memberships = $group->memberships()->orderBy('id')->get()
+            ->filter(fn (GroupMember $membership): bool => $membership->status->countsAsBelonging())
+            ->values();
+
+        foreach ($memberships as $index => $membership) {
+            if ($index % 5 === 4 || $vetted->isEmpty()) {
+                continue;
+            }
+
+            if ($membership->status === MembershipStatus::Trainee && $trainee !== null) {
+                Qualification::firstOrCreate(
+                    ['group_member_id' => $membership->id, 'tour_id' => $trainee->id],
+                    ['active' => true, 'last_vet_date' => $today->subDays(10 + $index % 30)->toDateString()],
+                );
+
+                continue;
+            }
+
+            // Three to five Tours, starting at a different place in the list for each Member.
+            $count = 3 + $index % 3;
+            for ($k = 0; $k < $count; $k++) {
+                $tour = $vetted[($index * 2 + $k) % $vetted->count()];
+                Qualification::firstOrCreate(
+                    ['group_member_id' => $membership->id, 'tour_id' => $tour->id],
+                    [
+                        // Every seventh Member's last Tour is kept as inactive history.
+                        'active' => ! ($index % 7 === 0 && $k === $count - 1),
+                        'last_vet_date' => $today->subDays(($index * 53 + $k * 137) % 2190 + 7)->toDateString(),
+                    ],
+                );
+            }
         }
     }
 

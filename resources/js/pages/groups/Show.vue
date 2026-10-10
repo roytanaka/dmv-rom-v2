@@ -13,6 +13,7 @@
 import GroupDocuments from '@/components/GroupDocuments.vue';
 import GroupHours from '@/components/GroupHours.vue';
 import GroupMeetings from '@/components/GroupMeetings.vue';
+import GroupQualifications, { type QualificationScreen } from '@/components/GroupQualifications.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
 import GroupScheduling from '@/components/GroupScheduling.vue';
 import GroupSettings from '@/components/GroupSettings.vue';
@@ -129,6 +130,8 @@ const props = defineProps<{
     library: GroupLibrary;
     scheduling: Scheduling;
     hours: GroupHoursData;
+    // A qualification screen's payload (#789) — by Tour or by Member — or null on every other page.
+    qualifications: QualificationScreen | null;
     // The Settings tab's payload (ADR-0027), resolved only on that tab. Each card's values ride
     // only with that card's right: the Reminders card (#486) reads `reminders`, the Empty-desk
     // alert card (#487) `emptyDesk`, the Self-serve shifts card (#582) `selfServe`, the Shift kinds
@@ -432,6 +435,7 @@ const pickBanner = (key: string | null) => {
                     :group-slug="group.slug"
                     :group-name="group.name"
                     :email-reason="email.reason"
+                    :can-manage-tours="can.manageTours"
                 />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
@@ -487,6 +491,10 @@ const pickBanner = (key: string | null) => {
                     :can-manage-tours="can.manageTours"
                     :group-slug="group.slug"
                 />
+
+                <!-- The qualification screens (#789, ADR-0033 §4) — by Tour and by Member, for a Vetting
+                     officer, the Chair or super-tier. -->
+                <GroupQualifications v-else-if="section === 'tours' && qualifications" :screen="qualifications" :group-slug="group.slug" />
 
                 <!-- The capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>

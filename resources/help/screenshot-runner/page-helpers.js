@@ -335,6 +335,27 @@
         return showCardTitled(/^tours/i);
     }
 
+    // The by-Tour qualification screen (#789): follow the Tours card's "Dinosaurs" link. A Tour's
+    // id is not stable across seeds, so the script cannot `nav` to it.
+    function openTourQualifications() {
+        const link = Array.from(document.querySelectorAll('a[href*="/tours/"]')).find((element) => element.textContent.trim() === 'Dinosaurs');
+        if (!link) return false;
+        return followLink(link);
+    }
+
+    // The by-Tour screen's Add dialog: the Member picker and today's Last vet date.
+    function openAddQualification() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^add$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The by-Member qualification screen (#789): follow the first Member's name on a Tour's page.
+    function openMemberQualifications() {
+        const link = document.querySelector('a[href*="/tours/members/"]');
+        if (!link) return false;
+        return followLink(link);
+    }
+
     // The self-serve settings card on the Group Settings tab (#590, ADR-0026 §1). Shows only
     // to a schedule admin: the on/off switch and the minutes-per-unit field.
     function showSelfServeSettings() {
@@ -798,6 +819,9 @@
         showEmptyDeskAlert,
         showShiftKinds,
         showTours,
+        openTourQualifications,
+        openAddQualification,
+        openMemberQualifications,
         showSelfServeSettings,
         showObjects,
         showOffSiteStation,

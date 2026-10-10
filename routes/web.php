@@ -28,6 +28,7 @@ use App\Http\Controllers\MoveDocumentController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
+use App\Http\Controllers\QualificationController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SelfServeShiftController;
 use App\Http\Controllers\ShiftController;
@@ -169,6 +170,15 @@ Route::group([
     // A Folder of another Group 404s; the read is the DocumentFolderPolicy's `view`.
     Route::get(LaravelLocalization::transRoute('routes.groups.documents.folder'), [GroupController::class, 'showDocumentFolder'])
         ->middleware('auth')->name('groups.documents.folder');
+
+    // A Group's qualification screens (#789, ADR-0033 §4): by Tour and by Member, each under its
+    // owning Group (bound by slug). The by-Member route is declared first so `members` never
+    // binds as a Tour id. A Tour or Membership of another Group 404s; the read is the
+    // TourPolicy's `manage` (a Vetting officer, the Chair or super-tier).
+    Route::get(LaravelLocalization::transRoute('routes.groups.tours.member'), [GroupController::class, 'showTourMember'])
+        ->middleware('auth')->name('groups.tours.member');
+    Route::get(LaravelLocalization::transRoute('routes.groups.tours.show'), [GroupController::class, 'showTour'])
+        ->middleware('auth')->name('groups.tours.show');
 
     // A Group's fiscal-year hours report (#411, PRD #406, ADR-0022 §5). A Member × twelve-month
     // matrix with the Group's own hours and its subtree hours side by side. A separate
@@ -474,6 +484,20 @@ Route::patch('tours/{tour}/shift-kinds', [TourController::class, 'updateShiftKin
 Route::delete('tours/{tour}', [TourController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('tours.destroy');
+
+// Qualification maintenance (#789, ADR-0033 §3, §4) — the by-Tour and by-Member screens' add,
+// change-date and remove. Add nests under the Group (bound by slug) and reactivates an inactive
+// row; the rest bind the Qualification by id. Each is authorized in its Form Request through the
+// TourPolicy's `manage` gate.
+Route::post('groups/{group}/qualifications', [QualificationController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('groups.qualifications.store');
+Route::patch('qualifications/{qualification}', [QualificationController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('qualifications.update');
+Route::delete('qualifications/{qualification}', [QualificationController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('qualifications.destroy');
 
 // Objects maintenance (#584, ADR-0026 §3). The Scheduling section's Objects block — add, rename,
 // retire, reinstate and reorder a Group's handling collection — edited by a Scheduler or Chair,

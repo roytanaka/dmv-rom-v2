@@ -21,6 +21,7 @@ use App\Models\HoursRecord;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
+use App\Models\Qualification;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
@@ -89,11 +90,39 @@ class GroupController extends Controller
     }
 
     /**
-     * Render the committee shell on the given section, optionally opened on a specific
-     * Schedule or Document library Folder. Shared by {@see show()}, {@see showSchedule()} and
-     * {@see showDocumentFolder()}.
+     * The by-Tour qualification screen (`groups.tours.show`, #789, ADR-0033 §4) — who may give one
+     * Tour. Rendered in the `tours` section. A Group without vetting, or a Tour of another Group,
+     * 404s; anyone but a Vetting officer, the Chair or super-tier gets 403.
      */
-    private function render(Request $request, Group $group, string $section, ?Schedule $schedule, ?DocumentFolder $folder = null): Response
+    public function showTour(Request $request, Group $group, Tour $tour): Response
+    {
+        abort_unless($group->has_vetting && $tour->group_id === $group->id, 404);
+        abort_unless($request->user()->can('manage', [Tour::class, $group]), 403);
+
+        return $this->render($request, $group, 'tours', null, null, $this->tourQualifications($group, $tour));
+    }
+
+    /**
+     * The by-Member qualification screen (`groups.tours.member`, #789, ADR-0033 §4) — which Tours
+     * one Member gives. The same gates as {@see showTour()}; a Membership of another Group 404s.
+     */
+    public function showTourMember(Request $request, Group $group, GroupMember $membership): Response
+    {
+        abort_unless($group->has_vetting && $membership->group_id === $group->id, 404);
+        abort_unless($request->user()->can('manage', [Tour::class, $group]), 403);
+
+        return $this->render($request, $group, 'tours', null, null, $this->memberQualifications($group, $membership));
+    }
+
+    /**
+     * Render the committee shell on the given section, optionally opened on a specific
+     * Schedule or Document library Folder, or carrying a qualification screen's payload. Shared by
+     * {@see show()}, {@see showSchedule()}, {@see showDocumentFolder()}, {@see showTour()} and
+     * {@see showTourMember()}.
+     *
+     * @param  array<string, mixed>|null  $qualifications
+     */
+    private function render(Request $request, Group $group, string $section, ?Schedule $schedule, ?DocumentFolder $folder = null, ?array $qualifications = null): Response
     {
         // Container page-gate (#293, PRD #289): a Kind::Container Group is a structural
         // section peer, not a destination — no page exists. Unconditional 404 for every
@@ -320,6 +349,9 @@ class GroupController extends Controller
                 : DocumentLibrary::empty(),
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
+            // A qualification screen's payload (#789, ADR-0033 §4) — by Tour or by Member, built
+            // past its gates in {@see showTour()} / {@see showTourMember()}; null elsewhere.
+            'qualifications' => $qualifications,
             'settings' => $section === 'settings'
                 ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours)
                 : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null],
@@ -344,6 +376,101 @@ class GroupController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * The by-Tour screen's payload (#789): the Members holding the Tour, active and inactive
+     * apart, each sorted by surname, and the picker's candidates — current Members of the Group
+     * (a standing that counts as belonging) not already holding the Tour actively. An inactive
+     * holder stays a candidate: adding them reactivates the row.
+     *
+     * @return array<string, mixed>
+     */
+    private function tourQualifications(Group $group, Tour $tour): array
+    {
+        $qualifications = $tour->qualifications()->with('membership.member')->get()
+            ->sortBy(fn (Qualification $qualification) => $this->surnameKey($qualification->membership->member));
+
+        $row = fn (Qualification $qualification): array => [
+            'id' => $qualification->id,
+            'membershipId' => $qualification->group_member_id,
+            'memberId' => $qualification->membership->member_id,
+            'name' => $qualification->membership->member->first_name.' '.$qualification->membership->member->last_name,
+            'standing' => $qualification->membership->status->value,
+            'lastVetDate' => $qualification->last_vet_date?->toDateString(),
+        ];
+
+        $heldActively = $qualifications->where('active', true)->pluck('group_member_id')->all();
+
+        return [
+            'view' => 'tour',
+            'today' => OrgTime::today()->toDateString(),
+            'tour' => ['id' => $tour->id, 'name' => $tour->name, 'active' => $tour->active],
+            'active' => $qualifications->where('active', true)->map($row)->values()->all(),
+            'inactive' => $qualifications->where('active', false)->map($row)->values()->all(),
+            'candidates' => $group->memberships()->with('member')->get()
+                ->filter(fn (GroupMember $membership): bool => $membership->status->countsAsBelonging()
+                    && ! in_array($membership->id, $heldActively, true))
+                ->sortBy(fn (GroupMember $membership) => $this->surnameKey($membership->member))
+                ->map(fn (GroupMember $membership): array => [
+                    'membershipId' => $membership->id,
+                    'name' => $membership->member->last_name.', '.$membership->member->first_name,
+                ])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * The by-Member screen's payload (#789): the Tours the Membership holds, active and inactive
+     * apart, in the Group's Tour order, and the picker's candidates — the Group's active Tours not
+     * already held actively. A Member who is no longer current gets no candidates.
+     *
+     * @return array<string, mixed>
+     */
+    private function memberQualifications(Group $group, GroupMember $membership): array
+    {
+        $membership->loadMissing('member');
+        $qualifications = $membership->qualifications()->with('tour')->get()
+            ->sortBy(fn (Qualification $qualification) => [$qualification->tour->sort_order, $qualification->tour->name]);
+
+        $row = fn (Qualification $qualification): array => [
+            'id' => $qualification->id,
+            'tourId' => $qualification->tour_id,
+            'name' => $qualification->tour->name,
+            'tourActive' => $qualification->tour->active,
+            'lastVetDate' => $qualification->last_vet_date?->toDateString(),
+        ];
+
+        $current = $membership->status->countsAsBelonging();
+        $heldActively = $qualifications->where('active', true)->pluck('tour_id')->all();
+
+        return [
+            'view' => 'member',
+            'today' => OrgTime::today()->toDateString(),
+            'member' => [
+                'membershipId' => $membership->id,
+                'memberId' => $membership->member_id,
+                'name' => $membership->member->first_name.' '.$membership->member->last_name,
+                'standing' => $membership->status->value,
+                'current' => $current,
+            ],
+            'active' => $qualifications->where('active', true)->map($row)->values()->all(),
+            'inactive' => $qualifications->where('active', false)->map($row)->values()->all(),
+            'candidates' => $current
+                ? $group->tours()->active()->whereNotIn('id', $heldActively)->orderBy('sort_order')->orderBy('name')->get()
+                    ->map(fn (Tour $tour): array => ['tourId' => $tour->id, 'name' => $tour->name])
+                    ->all()
+                : [],
+        ];
+    }
+
+    /**
+     * The A–Z sort key the roster uses: surname, then given name.
+     */
+    private function surnameKey(Member $member): string
+    {
+        return mb_strtolower($member->last_name.' '.$member->first_name);
     }
 
     /**

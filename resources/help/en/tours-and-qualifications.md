@@ -1,6 +1,6 @@
-# Keep your Group's Tours
+# Keep your Group's Tours and qualifications
 
-Keep the list of Tours your Group gives, and choose the shift kinds each Tour fills. You need the Vetting or Chair role.
+Keep the list of Tours your Group gives and record who may give each one. You need the Vetting or Chair role.
 
 A Tour is one concrete tour, such as "Museum Highlights". A shift kind is the slot on the roster, such as "Gallery/Theme". One kind can hold many Tours.
 
@@ -42,6 +42,46 @@ A retired Tour stays on its past Sign-ups and qualifications.
 3. Select **Delete** again to confirm.
 
 > **Note:** You cannot delete a Tour that has qualifications or Sign-ups. Retire it instead.
+
+## See who gives a Tour
+
+A qualification says a Member may give one Tour. It also records their last vet date.
+
+1. Select a Tour's name on the **Tours** card.
+
+The page lists everyone qualified for the Tour, with their last vet date. Inactive qualifications are listed apart, under **Inactive**. They count for nothing until you add them again.
+
+## See which Tours a Member gives
+
+1. Select a Member's name on a Tour's page.
+
+You can also open the **Members** tab, select the menu on a Member's row, and select **Tours**.
+
+## Add a qualification
+
+1. On a Tour's page, select **Add**.
+2. Choose the Member. The list shows current Members of your Group only.
+3. Check the **Last vet date**. Today's date is filled in.
+4. Select **Add**.
+
+On a Member's page, **Add** works the same way, but you choose a Tour.
+
+Adding an inactive qualification makes it active again with the new date.
+
+## Change a last vet date
+
+1. Select **Change date** beside the qualification.
+2. Enter the new date.
+3. Select **Save**.
+
+> **Note:** A last vet date never expires. The app shows it and does nothing else with it.
+
+## Remove a qualification
+
+1. Select **Remove** beside the qualification.
+2. Select **Remove** again to confirm.
+
+The Member can no longer sign up for that Tour themselves.
 
 ## What next
 

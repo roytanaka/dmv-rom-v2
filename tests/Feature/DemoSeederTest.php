@@ -26,6 +26,7 @@ use App\Models\HoursRecord;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
+use App\Models\Qualification;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
@@ -285,6 +286,7 @@ it('is idempotent — re-seeding leaves row counts unchanged', function () {
         'stewardships' => GroupStewardship::count(),
         'tours' => Tour::count(),
         'tour_kind_links' => DB::table('shift_kind_tour')->count(),
+        'qualifications' => Qualification::count(),
     ];
     $before = $counts();
 
@@ -829,6 +831,31 @@ it('turns scheduling on for the demo programs but off for the booking-only Group
         // the capability deferred out of the first pass (ADR-0021).
         ->and(Group::where('slug', 'rombus')->firstOrFail()->has_scheduling)->toBeFalse()
         ->and(Group::where('slug', 'outreach')->firstOrFail()->has_scheduling)->toBeFalse();
+});
+
+it('qualifies most current Docents and GDR guides on several Tours with spread Last vet dates (#789)', function () {
+    foreach ([DemoSeeder::PROGRAM, DemoSeeder::GUIDES_DU_ROM] as $slug) {
+        $group = Group::where('slug', $slug)->firstOrFail();
+        $current = $group->memberships()->get()->filter(fn (GroupMember $membership) => $membership->status->countsAsBelonging());
+        $qualifications = Qualification::whereIn('group_member_id', $current->pluck('id'))->with('tour')->get();
+        $holders = $qualifications->where('active', true)->groupBy('group_member_id');
+
+        // Most current Members hold at least one active qualification, and most of those several.
+        expect($holders->count())->toBeGreaterThan(intdiv($current->count(), 2))
+            ->and($holders->filter(fn ($rows) => $rows->count() >= 3)->count())->toBeGreaterThan(intdiv($holders->count(), 2));
+
+        // Every qualification is on this Group's own Tours, none on an open-to-all Tour.
+        expect($qualifications->every(fn (Qualification $q) => $q->tour->group_id === $group->id && ! $q->tour->open_to_all))->toBeTrue();
+
+        // The dates spread across more than a year, and some rows are kept inactive.
+        $dates = $qualifications->pluck('last_vet_date')->filter();
+        expect($dates->min()->diffInDays($dates->max()))->toBeGreaterThan(365)
+            ->and($qualifications->where('active', false)->isNotEmpty())->toBeTrue();
+    }
+
+    // No Membership outside Docents and GDR holds a qualification.
+    $vettingGroups = Group::whereIn('slug', [DemoSeeder::PROGRAM, DemoSeeder::GUIDES_DU_ROM])->pluck('id');
+    expect(Qualification::whereHas('membership', fn ($query) => $query->whereNotIn('group_id', $vettingGroups))->exists())->toBeFalse();
 });
 
 it('turns vetting on and seeds a Tour list for Docents and GDR only (#788)', function () {
