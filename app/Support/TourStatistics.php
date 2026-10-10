@@ -29,6 +29,68 @@ use Illuminate\Support\Collection;
 class TourStatistics
 {
     /**
+     * The period a report reads, from its query: the fiscal year to date for `?fy=YYYY` (a year
+     * still to come reads as the current one), else the month `?month=YYYYMM`, else the current
+     * month. `month` is the bucket's first day on the org clock, for the page to spell.
+     *
+     * @return array{kind: 'month'|'year', fiscal_year: int, year_month: string|null, month: string|null}
+     */
+    public static function period(string $fy, string $month): array
+    {
+        if (preg_match('/^\d{4}$/', $fy) === 1) {
+            return ['kind' => 'year', 'fiscal_year' => min((int) $fy, OrgTime::currentFiscalYear()), 'year_month' => null, 'month' => null];
+        }
+
+        $yearMonth = preg_match('/^\d{4}(0[1-9]|1[0-2])$/', $month) === 1 ? $month : OrgTime::now()->format('Ym');
+
+        return ['kind' => 'month', 'fiscal_year' => OrgTime::fiscalYearOf($yearMonth), 'year_month' => $yearMonth, 'month' => OrgTime::monthStart($yearMonth)];
+    }
+
+    /**
+     * The `YYYYMM` buckets a period covers, ascending: its month, or its fiscal year's months up
+     * to the current one.
+     *
+     * @param  array{kind: 'month'|'year', fiscal_year: int, year_month: string|null, month: string|null}  $period
+     * @return list<string>
+     */
+    public static function monthsOf(array $period): array
+    {
+        if ($period['kind'] === 'month') {
+            return [$period['year_month']];
+        }
+
+        $current = OrgTime::now()->format('Ym');
+
+        return array_values(array_filter(OrgTime::fiscalYearMonths($period['fiscal_year']), fn (string $ym): bool => $ym <= $current));
+    }
+
+    /**
+     * What the period picker offers: every month the Group has a Booking in, plus the current
+     * one, newest first; and the fiscal years those months fall in.
+     *
+     * @return array{months: list<array{year_month: string, month: string}>, fiscalYears: list<int>}
+     */
+    public static function picker(Group $group): array
+    {
+        $zone = config('app.org_timezone');
+
+        $months = Booking::query()
+            ->where('group_id', $group->id)
+            ->with('shift')
+            ->get()
+            ->map(fn (Booking $booking): string => $booking->shift->ends_at->setTimezone($zone)->format('Ym'))
+            ->push(OrgTime::now()->format('Ym'))
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        return [
+            'months' => $months->map(fn (string $ym): array => ['year_month' => $ym, 'month' => OrgTime::monthStart($ym)])->all(),
+            'fiscalYears' => $months->map(fn (string $ym): int => OrgTime::fiscalYearOf($ym))->unique()->values()->all(),
+        ];
+    }
+
+    /**
      * @param  list<string>  $months  ascending, contiguous `YYYYMM` buckets
      * @return array<string, mixed>
      */

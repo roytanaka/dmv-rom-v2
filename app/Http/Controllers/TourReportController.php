@@ -8,9 +8,7 @@ use App\Models\ExhibitionRevenue;
 use App\Models\Group;
 use App\Models\HoursRecord;
 use App\Support\CsvExport;
-use App\Support\OrgTime;
 use App\Support\TourStatistics;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -77,9 +75,7 @@ class TourReportController extends Controller
      */
     public function updateExhibitionRevenue(UpdateExhibitionRevenueRequest $request, Group $group): RedirectResponse
     {
-        $amount = $request->validated('amount');
-
-        ExhibitionRevenue::enter($group, $request->validated('year_month'), $amount === null ? null : (string) $amount);
+        ExhibitionRevenue::enter($group, $request->validated('year_month'), $request->validatedMoney('amount'));
 
         return back();
     }
@@ -94,36 +90,16 @@ class TourReportController extends Controller
         abort_unless($group->has_bookings, 404);
         abort_unless($request->user()->can('viewReports', [HoursRecord::class, $group]), 403);
 
-        $current = OrgTime::now()->format('Ym');
-        $fy = $request->string('fy')->toString();
-        $month = $request->string('month')->toString();
-
-        if (preg_match('/^\d{4}$/', $fy) === 1) {
-            // The fiscal year to date: its months up to the current one. A year still to come
-            // reads as the current one.
-            $fiscalYear = min((int) $fy, OrgTime::currentFiscalYear());
-            $months = array_values(array_filter(OrgTime::fiscalYearMonths($fiscalYear), fn (string $ym): bool => $ym <= $current));
-            $period = ['kind' => 'year', 'fiscal_year' => $fiscalYear, 'year_month' => null, 'month' => null];
-        } else {
-            $yearMonth = preg_match('/^\d{4}(0[1-9]|1[0-2])$/', $month) === 1 ? $month : $current;
-            $months = [$yearMonth];
-            $period = ['kind' => 'month', 'fiscal_year' => OrgTime::fiscalYearOf($yearMonth), 'year_month' => $yearMonth, 'month' => $this->monthStart($yearMonth)];
-        }
-
-        $pickable = $this->pickableMonths($group, $current);
-        $entered = $period['kind'] === 'month'
-            ? ExhibitionRevenue::query()->where('group_id', $group->id)->where('year_month', $period['year_month'])->value('amount')
-            : null;
+        $period = TourStatistics::period($request->string('fy')->toString(), $request->string('month')->toString());
 
         return [
             'group' => ['id' => $group->id, 'name' => $group->name, 'slug' => $group->slug, 'has_bookings' => true],
             'period' => $period,
-            'months' => array_map(fn (string $ym): array => ['year_month' => $ym, 'month' => $this->monthStart($ym)], $pickable),
-            'fiscalYears' => collect($pickable)->map(fn (string $ym): int => OrgTime::fiscalYearOf($ym))->unique()->values()->all(),
-            ...TourStatistics::for($group, $months),
+            ...TourStatistics::picker($group),
+            ...TourStatistics::for($group, TourStatistics::monthsOf($period)),
             'exhibition' => [
                 'can_enter' => $request->user()->can('enterExhibitionRevenue', [Booking::class, $group]),
-                'amount' => $entered,
+                'amount' => $period['kind'] === 'month' ? ExhibitionRevenue::amountFor($group, $period['year_month']) : null,
             ],
         ];
     }
@@ -148,28 +124,6 @@ class TourReportController extends Controller
     }
 
     /**
-     * The `YYYYMM` months the picker offers: every month the Group has a Booking in, plus the
-     * current one, newest first.
-     *
-     * @return list<string>
-     */
-    private function pickableMonths(Group $group, string $current): array
-    {
-        $zone = config('app.org_timezone');
-
-        return Booking::query()
-            ->where('group_id', $group->id)
-            ->with('shift')
-            ->get()
-            ->map(fn (Booking $booking): string => $booking->shift->ends_at->setTimezone($zone)->format('Ym'))
-            ->push($current)
-            ->unique()
-            ->sortDesc()
-            ->values()
-            ->all();
-    }
-
-    /**
      * A stable ASCII filename: the Group slug, the report, and the month or fiscal year.
      *
      * @param  array<string, mixed>  $period
@@ -179,13 +133,5 @@ class TourReportController extends Controller
         $suffix = $period['kind'] === 'month' ? $period['year_month'] : "fiscal-{$period['fiscal_year']}";
 
         return "{$group->slug}-{$report}-{$suffix}.csv";
-    }
-
-    /**
-     * The first day of a `YYYYMM` bucket as an ISO date on the org clock.
-     */
-    private function monthStart(string $yearMonth): string
-    {
-        return CarbonImmutable::createFromFormat('YmdHis', $yearMonth.'01000000', config('app.org_timezone'))->toDateString();
     }
 }
