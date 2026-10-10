@@ -82,6 +82,8 @@ class Group extends Model
         'empty_desk_days_ahead',
         'self_serve_shifts',
         'self_serve_unit_minutes',
+        'trainee_tour_id',
+        'loa_removes_qualifications',
     ];
 
     /**
@@ -117,6 +119,7 @@ class Group extends Model
             'empty_desk_days_ahead' => 'integer',
             'self_serve_shifts' => 'boolean',
             'self_serve_unit_minutes' => 'integer',
+            'loa_removes_qualifications' => 'boolean',
         ];
     }
 
@@ -255,6 +258,17 @@ class Group extends Model
     public function objects(): HasMany
     {
         return $this->hasMany(HandlingObject::class);
+    }
+
+    /**
+     * The Group's Tour list (#788, ADR-0033 §1) — the concrete tours its Members give, mapped
+     * onto its shift kinds. Kept only while the Group runs vetting.
+     *
+     * @return HasMany<Tour, $this>
+     */
+    public function tours(): HasMany
+    {
+        return $this->hasMany(Tour::class);
     }
 
     /**

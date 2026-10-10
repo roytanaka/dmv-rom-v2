@@ -25,11 +25,13 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Models\Tour;
 use App\Support\Audiences\AudienceContext;
 use App\Support\Audiences\AudienceResolver;
 use App\Support\DocumentLibrary;
 use App\Support\OrgTime;
 use App\Support\RouteSegments;
+use App\Support\Tours\TourPayloads;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -88,11 +90,39 @@ class GroupController extends Controller
     }
 
     /**
-     * Render the committee shell on the given section, optionally opened on a specific
-     * Schedule or Document library Folder. Shared by {@see show()}, {@see showSchedule()} and
-     * {@see showDocumentFolder()}.
+     * The by-Tour qualification screen (`groups.tours.show`, #789, ADR-0033 §4) — who may give one
+     * Tour. Rendered in the `tours` section. A Group without vetting, or a Tour of another Group,
+     * 404s; anyone but a Vetting officer, the Chair or super-tier gets 403.
      */
-    private function render(Request $request, Group $group, string $section, ?Schedule $schedule, ?DocumentFolder $folder = null): Response
+    public function showTour(Request $request, Group $group, Tour $tour): Response
+    {
+        abort_unless($group->has_vetting && $tour->group_id === $group->id, 404);
+        abort_unless($request->user()->can('manage', [Tour::class, $group]), 403);
+
+        return $this->render($request, $group, 'tours', null, null, TourPayloads::byTour($group, $tour));
+    }
+
+    /**
+     * The by-Member qualification screen (`groups.tours.member`, #789, ADR-0033 §4) — which Tours
+     * one Member gives. The same gates as {@see showTour()}; a Membership of another Group 404s.
+     */
+    public function showTourMember(Request $request, Group $group, GroupMember $membership): Response
+    {
+        abort_unless($group->has_vetting && $membership->group_id === $group->id, 404);
+        abort_unless($request->user()->can('manage', [Tour::class, $group]), 403);
+
+        return $this->render($request, $group, 'tours', null, null, TourPayloads::byMember($group, $membership));
+    }
+
+    /**
+     * Render the committee shell on the given section, optionally opened on a specific
+     * Schedule or Document library Folder, or carrying a qualification screen's payload. Shared by
+     * {@see show()}, {@see showSchedule()}, {@see showDocumentFolder()}, {@see showTour()} and
+     * {@see showTourMember()}.
+     *
+     * @param  array<string, mixed>|null  $qualifications
+     */
+    private function render(Request $request, Group $group, string $section, ?Schedule $schedule, ?DocumentFolder $folder = null, ?array $qualifications = null): Response
     {
         // Container page-gate (#293, PRD #289): a Kind::Container Group is a structural
         // section peer, not a destination — no page exists. Unconditional 404 for every
@@ -140,6 +170,17 @@ class GroupController extends Controller
             abort_unless($group->has_documents, 404);
         }
 
+        // The Tours page (#792, ADR-0033 §5) exists only while the Group runs vetting — a 404 for
+        // everyone, super-tier included, so the tab and the URL agree. Past that it is members-only
+        // (TourPolicy `view`): a non-member gets 403, the Meetings shape. The qualification screens
+        // render in this section too, gated in their own actions.
+        $canViewTours = $group->has_vetting && $request->user()->can('view', [Tour::class, $group]);
+
+        if ($section === 'tours' && $qualifications === null) {
+            abort_unless($group->has_vetting, 404);
+            abort_unless($canViewTours, 403);
+        }
+
         // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
         // configuration right. Anyone else gets 403 — the Meetings shape: the Group exists and
         // they may open it, but not this tab.
@@ -165,6 +206,8 @@ class GroupController extends Controller
         $canManageSelfServe = $request->user()->can('updateSelfServe', [Schedule::class, $group]);
         $canManageShiftKinds = $request->user()->can('manageShiftKinds', [Schedule::class, $group]);
         $canManageObjects = $request->user()->can('manageObjects', [Schedule::class, $group]);
+        $canManageTours = $request->user()->can('manage', [Tour::class, $group]);
+        $canManageTourRules = $request->user()->can('manageRules', [Tour::class, $group]);
 
         return Inertia::render('groups/Show', [
             'group' => [
@@ -186,6 +229,9 @@ class GroupController extends Controller
                 // on every Group and needs no flag.
                 'capabilities' => [
                     'meetings' => $group->has_meetings,
+                    // Whether the Group runs vetting (#792, ADR-0033) — with `can.viewTours`, opens
+                    // the Tours tab.
+                    'vetting' => $group->has_vetting,
                     'documents' => $group->has_documents,
                     'scheduling' => $group->has_scheduling,
                     // Whether the Group collects a per-shift visitor count (#445, ADR-0023 §5).
@@ -258,6 +304,16 @@ class GroupController extends Controller
                 // same Scheduler/Chair gate. UI hint only; the Object Form Requests re-check the
                 // gate on write.
                 'manageObjects' => $canManageObjects,
+                // `manageTours` drives the Settings tab's Tours card (#788, ADR-0033 §1, §4) — a
+                // Vetting officer or Chair of a vetting Group. UI hint only; the Tour Form Requests
+                // re-check the TourPolicy on write.
+                'manageTours' => $canManageTours,
+                // `manageTourRules` drives the Settings tab's Tour rules card (#793, ADR-0033 §7) —
+                // the Chair of a vetting Group. UI hint only; UpdateTourRulesRequest re-checks.
+                'manageTourRules' => $canManageTourRules,
+                // `viewTours` drives the Tours tab (#792, ADR-0033 §5) — a Member of a vetting Group,
+                // or the super-tier. UI hint only; the section re-checks it.
+                'viewTours' => $canViewTours,
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.
@@ -314,9 +370,15 @@ class GroupController extends Controller
                 : DocumentLibrary::empty(),
             // The Settings tab's payload, resolved only on that tab and past its gate above. Each
             // card's values ride only with that card's right.
+            // A qualification screen's payload (#789, ADR-0033 §4) — by Tour or by Member, built
+            // past its gates in {@see showTour()} / {@see showTourMember()}; null elsewhere.
+            'qualifications' => $qualifications,
+            // The Tours page's payload (#792, ADR-0033 §5), resolved only on that page and past its
+            // gate above — not on the qualification screens that share the section.
+            'tours' => $section === 'tours' && $qualifications === null ? TourPayloads::toursPage($group) : [],
             'settings' => $section === 'settings'
-                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects)
-                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null],
+                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours, $canManageTourRules)
+                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null, 'tourRules' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -346,8 +408,9 @@ class GroupController extends Controller
      */
     private function canManageSettings(Request $request, Group $group): bool
     {
-        return collect(['updateReminders', 'updateEmptyDeskAlert', 'updateSelfServe', 'manageShiftKinds', 'manageObjects'])
-            ->contains(fn (string $ability): bool => $request->user()->can($ability, [Schedule::class, $group]));
+        return $request->user()->can('manage', [Tour::class, $group])
+            || collect(['updateReminders', 'updateEmptyDeskAlert', 'updateSelfServe', 'manageShiftKinds', 'manageObjects'])
+                ->contains(fn (string $ability): bool => $request->user()->can($ability, [Schedule::class, $group]));
     }
 
     /**
@@ -359,7 +422,11 @@ class GroupController extends Controller
      * switch and unit length. The Shift kinds card (#567, #587, ADR-0021 §3) and the Objects card
      * (#584, ADR-0026 §3) read their full lists in picker order, retired rows included, so the card
      * can rename, retire, reinstate and reorder them. The Scheduling tab's pickers read only the
-     * active rows, from its own payload.
+     * active rows, from its own payload. Each Shift kinds row also names the Tours the kind maps
+     * to, read-only (#788). The Tours card (#788, ADR-0033 §1) is the one vetting card: the full
+     * Tour list with each Tour's mapped kind ids, and the Group's kinds to map onto. The Tour
+     * rules card (#793, ADR-0033 §7) reads the trainee Tour, the starter Tours and the LOA rule,
+     * with the Group's Tours to pick from.
      *
      * @return array{
      *     reminders: array{enabled: bool, leadDays: int}|null,
@@ -367,6 +434,8 @@ class GroupController extends Controller
      *     selfServe: array{enabled: bool, unitMinutes: int}|null,
      *     shiftKinds: list<array{id: int, name: string, active: bool, offSite: bool, sortOrder: int}>|null,
      *     objects: list<array{id: int, name: string, active: bool, sortOrder: int}>|null,
+     *     tours: array{tours: list<array<string, mixed>>, shiftKinds: list<array{id: int, name: string, active: bool}>}|null,
+     *     tourRules: array{traineeTourId: int|null, starterTourIds: list<int>, loaRemovesQualifications: bool, tours: list<array{id: int, name: string, active: bool}>}|null,
      * }
      */
     private function settings(
@@ -376,11 +445,13 @@ class GroupController extends Controller
         bool $canManageSelfServe,
         bool $canManageShiftKinds,
         bool $canManageObjects,
+        bool $canManageTours,
+        bool $canManageTourRules,
     ): array {
-        // The Empty-desk and Shift kinds cards both read the Group's kinds in picker order, so
-        // they share one query.
-        $shiftKinds = $group->has_scheduling && ($canManageEmptyDesk || $canManageShiftKinds)
-            ? $group->shiftKinds()->orderBy('sort_order')->get()
+        // The Empty-desk, Shift kinds and Tours cards all read the Group's kinds in picker order,
+        // so they share one query.
+        $shiftKinds = $group->has_scheduling && ($canManageEmptyDesk || $canManageShiftKinds || $canManageTours)
+            ? $group->shiftKinds()->with(['tours' => fn ($query) => $query->ordered()])->orderBy('sort_order')->get()
             : collect();
 
         return [
@@ -410,6 +481,7 @@ class GroupController extends Controller
                         'active' => $kind->active,
                         'offSite' => $kind->off_site,
                         'sortOrder' => $kind->sort_order,
+                        'tours' => $kind->tours->pluck('name')->all(),
                     ])->all()
                 : null,
             'objects' => $group->has_scheduling && $canManageObjects
@@ -421,6 +493,47 @@ class GroupController extends Controller
                         'sortOrder' => $object->sort_order,
                     ])->all()
                 : null,
+            'tours' => $group->has_vetting && $canManageTours ? [
+                'tours' => $group->tours()->with('shiftKinds')->ordered()->get()
+                    ->map(fn (Tour $tour): array => [
+                        'id' => $tour->id,
+                        'name' => $tour->name,
+                        'active' => $tour->active,
+                        'openToAll' => $tour->open_to_all,
+                        'sortOrder' => $tour->sort_order,
+                        'shiftKindIds' => $tour->shiftKinds->pluck('id')->all(),
+                    ])->all(),
+                'shiftKinds' => $shiftKinds
+                    ->map(fn (ShiftKind $kind): array => [
+                        'id' => $kind->id,
+                        'name' => $kind->name,
+                        'active' => $kind->active,
+                    ])->values()->all(),
+            ] : null,
+            'tourRules' => $group->has_vetting && $canManageTourRules ? $this->tourRules($group) : null,
+        ];
+    }
+
+    /**
+     * The Tour rules card (#793, ADR-0033 §7): the trainee Tour, the starter Tours and the LOA
+     * rule, with the Group's Tours to pick from.
+     *
+     * @return array{traineeTourId: int|null, starterTourIds: list<int>, loaRemovesQualifications: bool, tours: list<array{id: int, name: string, active: bool}>}
+     */
+    private function tourRules(Group $group): array
+    {
+        $tours = $group->tours()->ordered()->get();
+
+        return [
+            'traineeTourId' => $group->trainee_tour_id,
+            'starterTourIds' => $tours->where('starter', true)->pluck('id')->values()->all(),
+            'loaRemovesQualifications' => $group->loa_removes_qualifications,
+            'tours' => $tours
+                ->map(fn (Tour $tour): array => [
+                    'id' => $tour->id,
+                    'name' => $tour->name,
+                    'active' => $tour->active,
+                ])->values()->all(),
         ];
     }
 
@@ -468,7 +581,7 @@ class GroupController extends Controller
                 ->map(fn (GroupMemberRole $role) => [
                     'role' => $role->role->value,
                     'member_id' => $membership->member->id,
-                    'name' => $membership->member->first_name.' '.$membership->member->last_name,
+                    'name' => $membership->member->fullName(),
                 ]))
             ->sortBy(fn (array $entry) => $order[$entry['role']] ?? PHP_INT_MAX)
             ->values()
@@ -492,7 +605,7 @@ class GroupController extends Controller
             ->map(fn (GroupMember $membership) => [
                 'role' => 'executive',
                 'member_id' => $membership->member->id,
-                'name' => $membership->member->first_name.' '.$membership->member->last_name,
+                'name' => $membership->member->fullName(),
             ])
             ->values()
             ->all();
@@ -539,7 +652,7 @@ class GroupController extends Controller
             ->whereNotIn('status', $hidden)
             // A–Z by surname, breaking ties on given name (a space sorts ahead of
             // any letter, so "Smith" precedes "Smithson").
-            ->sortBy(fn (GroupMember $membership) => mb_strtolower($membership->member->last_name.' '.$membership->member->first_name))
+            ->sortBy(fn (GroupMember $membership) => $membership->member->surnameKey())
             ->map(fn (GroupMember $membership) => [
                 ...(new MemberResource($membership->member))->resolve($request),
                 // The member's role badge(s) and standing within *this* Group — the
@@ -578,7 +691,7 @@ class GroupController extends Controller
     {
         return $group->memberships
             ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
-            ->sortBy(fn (GroupMember $membership) => mb_strtolower($membership->member->last_name.' '.$membership->member->first_name))
+            ->sortBy(fn (GroupMember $membership) => $membership->member->surnameKey())
             ->map(fn (GroupMember $membership) => [
                 'id' => $membership->member->id,
                 'first_name' => $membership->member->first_name,
@@ -907,8 +1020,9 @@ class GroupController extends Controller
                 // them, so a first save shows its summary here instead of dropping out.
                 ->orWhereIn('id', $justSaved))
             ->with([
-                'shift.kind',
+                'shift.kind.tours',
                 'shift.schedule.group',
+                'shift.signUps.tour',
                 'shift.signUps.member.memberships.group',
                 'shift.signUps.member.memberships.roles',
                 'shift.signUps.objects',
@@ -1003,7 +1117,7 @@ class GroupController extends Controller
         $viewer = $request->user();
 
         $shifts = $schedule->shifts()
-            ->with(['kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
+            ->with(['kind.tours', 'signUps.tour', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get()
             // The per-Shift SignUpPolicy check reads `$shift->schedule` (and its Group); set
@@ -1047,7 +1161,7 @@ class GroupController extends Controller
             ->whereHas('schedule', fn (Builder $query) => $query
                 ->where('group_id', '!=', $schedule->group_id)
                 ->where('state', ScheduleState::Published))
-            ->with(['schedule.group', 'kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
+            ->with(['schedule.group', 'kind.tours', 'signUps.tour', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get();
 
@@ -1091,6 +1205,9 @@ class GroupController extends Controller
         // Co-volunteers see each other's numbers so a double count is visible to the people who
         // made it. A reader with no seat and no admin role gets no seat numbers at all. A Shift on
         // a later date has no report yet, for anyone (#772): nobody records before its window.
+        $offered = $shift->toursOffered();
+        $givable = $viewer->toursGivableOn($shift);
+
         $readsReport = $shift->schedule->group->collects_visitor_count
             && ! $shift->isAfterToday()
             && ($canManage || $ownSignUp !== null);
@@ -1102,6 +1219,24 @@ class GroupController extends Controller
             'capacity' => $shift->capacity,
             'taken' => $taken,
             'kind' => $shift->kind?->name,
+            // How a take on this Shift settles its Tour (#790, #803, ADR-0033 §2): `fill` when the
+            // viewer may give at most one of the kind's active Tours (no question asked; the server
+            // fills it in), `pick` when they may give several (the take dialog asks), null on a
+            // kind with none. `tours` lists the ones this viewer may give, in the Group's order —
+            // the picker's options. UI hints; StoreSignUpRequest re-checks.
+            'tour_choice' => match (true) {
+                $offered->isEmpty() => null,
+                $givable->count() <= 1 => 'fill',
+                default => 'pick',
+            },
+            'tours' => $givable
+                ->map(fn (Tour $tour) => ['id' => $tour->id, 'name' => $tour->name])
+                ->all(),
+            // Every active Tour of the kind (#791, ADR-0033 §6), for a schedule admin only: the
+            // placement and change-Tour pickers, which need no qualification. Empty otherwise.
+            'tours_offered' => $canManage
+                ? $offered->map(fn (Tour $tour) => ['id' => $tour->id, 'name' => $tour->name])->values()->all()
+                : [],
             // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up), so the card hides
             // the Member's take and drop once it has — self-service closes at the start. The
             // SignUpPolicy enforces the same bound on every write regardless.
@@ -1119,7 +1254,7 @@ class GroupController extends Controller
             // Post-shift report (`$readsReport`, #652, #653). A plain reader never learns another
             // seat's id or numbers.
             'signups' => $shift->signUps
-                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $readsReport) {
+                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $readsReport, $offered) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
 
                     // The Objects this seat reserves (#586, ADR-0026 §3) — named under the Member
@@ -1129,6 +1264,17 @@ class GroupController extends Controller
                     $seat['objects'] = $signUp->objects
                         ->map(fn (HandlingObject $object) => ['id' => $object->id, 'name' => $object->name])
                         ->all();
+
+                    // The Tour this seat gives (#790, ADR-0033 §2) — named on the seat for every
+                    // reader, as-authored even when retired; null on a seat that records none.
+                    $seat['tour'] = $signUp->tour?->name;
+                    $seat['tour_id'] = $signUp->tour_id;
+                    // Whether the viewer may change this seat's Tour (#791), mirroring
+                    // SignUpPolicy::changeTour (which re-checks every PATCH): a schedule admin on
+                    // every seat, the seat-holder on their own until the start. Never on a Shift
+                    // whose kind offers no Tours.
+                    $seat['can_change_tour'] = $offered->isNotEmpty()
+                        && ($canManage || ($signUp->member_id === $viewer->getKey() && ! $shift->hasStarted()));
 
                     // Officer removal and correction (#359, #450) — a schedule admin gets, on
                     // *every* seat, the seat's Sign-up id: the removal target and the write

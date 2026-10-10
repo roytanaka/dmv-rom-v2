@@ -11,7 +11,7 @@
 import ShiftCard from '@/components/ShiftCard.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { type ForeignBand } from '@/scheduling/agenda';
-import { type ForeignShiftItem } from '@/types';
+import { type ForeignShiftItem, type ShiftSignUp } from '@/types';
 import { PhCaretDown } from '@phosphor-icons/vue';
 import { transChoice } from 'laravel-vue-i18n';
 import { ref, watch } from 'vue';
@@ -21,6 +21,7 @@ const props = defineProps<{ band: ForeignBand<ForeignShiftItem>; expanded: boole
 const emit = defineEmits<{
     take: [shift: ForeignShiftItem];
     drop: [shift: ForeignShiftItem];
+    changeTour: [shift: ForeignShiftItem, signUp: ShiftSignUp];
 }>();
 
 // The master open/close-all sets every band's default state; a band stays individually
@@ -42,7 +43,14 @@ watch(
         </CollapsibleTrigger>
         <CollapsibleContent>
             <div class="flex flex-col gap-2 px-3 pb-3">
-                <ShiftCard v-for="shift in band.shifts" :key="shift.id" :shift="shift" @take="emit('take', shift)" @drop="emit('drop', shift)" />
+                <ShiftCard
+                    v-for="shift in band.shifts"
+                    :key="shift.id"
+                    :shift="shift"
+                    @take="emit('take', shift)"
+                    @drop="emit('drop', shift)"
+                    @change-tour="(_, signUp) => emit('changeTour', shift, signUp)"
+                />
             </div>
         </CollapsibleContent>
     </Collapsible>

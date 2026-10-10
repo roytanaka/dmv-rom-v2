@@ -707,6 +707,14 @@ export interface ShiftSignUp {
     // The Objects this seat reserves (#586, ADR-0026 §3) — listed under the Member on the card,
     // visible to every reader. Absent on a Group with no Objects.
     objects?: ObjectOption[];
+    // The Tour this seat gives (#790, ADR-0033 §2), named on the card for every reader. Null on a
+    // seat that records none.
+    tour: string | null;
+    // The seat's Tour id (#791), the change-Tour picker's current value, and whether the viewer
+    // may change it: a schedule admin on every seat, the seat-holder on their own until the start.
+    // UI hints; SignUpPolicy::changeTour re-checks.
+    tour_id: number | null;
+    can_change_tour: boolean;
     // Officer removal (#359) — the seat's own Sign-up id, the remove target. Present only
     // for a schedule admin (a plain reader never learns another seat's id).
     signup_id?: number;
@@ -731,6 +739,13 @@ export interface ShiftSignUp {
     // The seat's comment (#655). Sent only to its author and a schedule admin; absent for a
     // co-volunteer and a plain reader. Null when the author left none.
     comment?: string | null;
+}
+
+// A Tour a Member may give on a Shift (#790, ADR-0033 §6) — an option in the take dialog's
+// Tour picker. The name is officer-authored content, never translated.
+export interface TourOption {
+    id: number;
+    name: string;
 }
 
 // A placeable Member in the officer-assignment picker (#359, ADR-0017 §6) — the Group's
@@ -769,6 +784,15 @@ export interface ShiftAgendaItem {
     capacity: number;
     taken: number;
     kind: string | null;
+    // How a take settles its Tour (#790, #803, ADR-0033 §2): `fill` when the viewer may give at
+    // most one of the kind's Tours (the server fills it in), `pick` when they may give several (the
+    // take dialog asks), null on a kind with none.
+    // `tours` are the ones the viewer may give, in the Group's order — the picker's options.
+    tour_choice: 'fill' | 'pick' | null;
+    tours: TourOption[];
+    // Every active Tour of the kind (#791, ADR-0033 §6), for a schedule admin only: the placement
+    // and change-Tour pickers, which need no qualification. Empty for anyone else.
+    tours_offered: TourOption[];
     // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up). Once set, the card hides
     // the Member's take and drop — self-service closes at the start; the Post-shift report stays. The
     // SignUpPolicy enforces the same bound on every write, so this is a hint, not the rule.

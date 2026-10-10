@@ -275,6 +275,12 @@ final class HelpManifest
             // Group Settings tab (#608, ADR-0027) — the officers-only tab that holds a Group's settings.
             // Today every configuration right is a schedule admin's, so the badge reads Scheduler or Chair.
             new HelpArticle('group-settings', HelpSection::Groups, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
+            // Tours and qualifications (#788, spec #786, ADR-0033) — the Vetting officer's Tour list
+            // and kind mapping on the Settings tab, and the by-Tour and by-Member qualification
+            // screens (#789), the Tours tab every Member of the Group reads (#792), signing up for a
+            // Tour (#790), and placing on and changing a Tour (#791). Mixed audience, so no `requires`
+            // badge: every Member reads the Tours tab and sign-up sections.
+            new HelpArticle('tours-and-qualifications', HelpSection::Groups, status: ArticleStatus::Draft, route: 'groups.show', routes: ['groups.tours.show', 'groups.tours.member']),
             // Document library (#719, spec #290, ADR-0030) — reading a Group's library, then the
             // Librarian's work on it. Both map the Folder page; the tab itself rides on groups.show.
             new HelpArticle('find-a-document-in-a-groups-library', HelpSection::Groups, status: ArticleStatus::Published, route: 'groups.documents.folder'),

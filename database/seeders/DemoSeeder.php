@@ -29,10 +29,12 @@ use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\News;
+use App\Models\Qualification;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Models\Tour;
 use App\Personas\Persona;
 use App\Personas\PersonaCatalogue;
 use App\Support\DocumentStorage;
@@ -168,6 +170,32 @@ class DemoSeeder extends Seeder
         ['day' => 24, 'start' => [10, 0], 'minutes' => 75, 'capacity' => 4],
     ];
 
+    /**
+     * A sample of the Docents' Tour list (#788, ADR-0033 §1): name => [open to all, kinds it is
+     * given on]. Museum Highlights and the old app's other hard-coded open tours need no
+     * qualification; the trainee Tour is given on the Highlights slot; every gallery theme maps
+     * onto Gallery/Theme (the "pick your tour" slot) and the booked Group Tour.
+     */
+    private const DOCENT_TOURS = [
+        'Museum Highlights' => [true, [self::HIGHLIGHTS_TOUR, self::GROUP_TOUR]],
+        'Museum Highlights – New Docents' => [false, [self::HIGHLIGHTS_TOUR]],
+        'Custom (Group)' => [true, [self::GROUP_TOUR]],
+        'Family' => [true, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'ROMCAP' => [true, [self::GROUP_TOUR]],
+        'Dinosaurs' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Ancient Egypt' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'First Peoples Art and Culture' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Chinese Architecture' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Gems and Minerals' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Greece and Rome' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Life in Crisis: Biodiversity' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Korea' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Japan' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Textiles and Costume' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Byzantium' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+        'Bat Cave' => [false, [self::GALLERY_TOUR, self::GROUP_TOUR]],
+    ];
+
     public const VISITOR_GUIDES = 'visitor-guides';
 
     /** The Visitor Guides' two shift types, named as legacy names them. Desk is the watched one. */
@@ -194,6 +222,22 @@ class DemoSeeder extends Seeder
     private const DESK_SUMMER_MONTHS = [7, 8];
 
     public const GUIDES_DU_ROM = 'guides-du-rom';
+
+    /**
+     * A sample of GDR's Tour list (#788, ADR-0033 §1), in the shape of {@see DOCENT_TOURS}.
+     * Le choix du guide and Les trésors are open to all; every theme maps onto the guide's-choice
+     * slot and the booked group visit.
+     */
+    private const GDR_TOURS = [
+        'Le choix du guide' => [true, [self::GUIDES_CHOICE_TOUR]],
+        'Les trésors' => [true, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'Les dinosaures' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'L’Égypte ancienne' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'Les Premiers Peuples' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'La Chine' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'Minéraux et pierres précieuses' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+        'La Grèce et Rome' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+    ];
 
     /** The Guides du ROM daily tour and the monthly group tour, named as legacy names them. */
     private const GUIDES_CHOICE_TOUR = 'Le choix du guide';
@@ -1129,6 +1173,9 @@ class DemoSeeder extends Seeder
         $lastMonth = $month->subMonth();
 
         $kinds = $this->shiftKinds($docents);
+        $this->tours($docents, self::DOCENT_TOURS, $kinds);
+        $this->tourRules($docents, 'Museum Highlights – New Docents', ['Museum Highlights'], false);
+        $this->qualifications($docents, 'Museum Highlights – New Docents');
 
         $previous = $this->monthSchedule($docents, $lastMonth, 'Last month\'s docent tour roster, worked and signed out.');
         $current = $this->monthSchedule($docents, $month, 'The current-month docent tour roster — sign up for a tour below.');
@@ -1371,6 +1418,9 @@ class DemoSeeder extends Seeder
                 ['active' => true, 'sort_order' => $order],
             );
         }
+        $this->tours($group, self::GDR_TOURS, $kinds);
+        $this->tourRules($group, null, ['Le choix du guide', 'Les trésors'], true);
+        $this->qualifications($group);
 
         $previous = $this->monthSchedule($group, $lastMonth, 'Le calendrier des visites du mois dernier, données et signées.');
         $current = $this->monthSchedule($group, $month, 'Les visites du mois. Inscrivez-vous à une visite ci-dessous.');
@@ -1921,7 +1971,7 @@ class DemoSeeder extends Seeder
         $unrecordedFrom = $now->subDays(self::UNRECORDED_DAYS);
 
         $shifts = Shift::whereIn('schedule_id', array_map(fn (Schedule $schedule) => $schedule->id, $schedules))
-            ->with('kind')
+            ->with(['kind.tours', 'schedule.group'])
             ->orderBy('starts_at')
             ->orderBy('id')
             ->get();
@@ -2004,9 +2054,15 @@ class DemoSeeder extends Seeder
             $origins = $group->collects_visitor_provenance ? $this->splitProvenance($count, $seed + 2) : $origins;
         }
 
+        // The Tour the seat gives (#790, ADR-0033 §2): one the Member may give on the Shift's kind,
+        // drawn deterministically; null on a kind with no Tours.
+        $givable = $member->toursGivableOn($shift);
+        $tourId = $givable->isEmpty() ? null : $givable[($shift->id + $seat) % $givable->count()]->id;
+
         return [
             'shift_id' => $shift->id,
             'member_id' => $member->id,
+            'tour_id' => $tourId,
             'visitor_count' => $count,
             'extra_interaction_count' => $extra,
             'visitors_france_europe' => $origins[0],
@@ -2173,6 +2229,8 @@ class DemoSeeder extends Seeder
         $row = [
             'shift_id' => $shift->id,
             'member_id' => $member->id,
+            // These Groups have no Tours (#790).
+            'tour_id' => null,
             'visitor_count' => null,
             'extra_interaction_count' => null,
             'visitors_france_europe' => null,
@@ -2237,6 +2295,7 @@ class DemoSeeder extends Seeder
                 $chunk,
                 ['shift_id', 'member_id'],
                 [
+                    'tour_id',
                     'visitor_count',
                     'extra_interaction_count',
                     'visitors_france_europe',
@@ -2308,6 +2367,92 @@ class DemoSeeder extends Seeder
         }
 
         return $kinds;
+    }
+
+    /**
+     * Seed a Group's Tour list and its kind mapping (#788, ADR-0033 §1) from a spec of
+     * name => [open to all, mapped kind names], ordered as listed. Keyed on (Group, name), and
+     * the mapping only ever adds, so a reseed heals rather than duplicates.
+     *
+     * @param  array<string, array{0: bool, 1: list<string>}>  $spec
+     * @param  array<string, ShiftKind>  $kinds
+     */
+    private function tours(Group $group, array $spec, array $kinds): void
+    {
+        $order = 0;
+        foreach ($spec as $name => [$openToAll, $kindNames]) {
+            $tour = Tour::firstOrCreate(
+                ['group_id' => $group->id, 'name' => $name],
+                ['active' => true, 'open_to_all' => $openToAll, 'sort_order' => $order++],
+            );
+            $tour->shiftKinds()->syncWithoutDetaching(
+                collect($kindNames)->map(fn (string $kind): int => $kinds[$kind]->id)->all(),
+            );
+        }
+    }
+
+    /**
+     * Seed a Group's status-rule settings (#793, ADR-0033 §7): the trainee Tour, the starter
+     * Tours and the LOA rule, naming Tours already seeded by {@see tours()}. Plain overwrites, so
+     * a reseed lands on the same state.
+     *
+     * @param  list<string>  $starterTours
+     */
+    private function tourRules(Group $group, ?string $traineeTour, array $starterTours, bool $loaRemovesQualifications): void
+    {
+        $group->update([
+            'trainee_tour_id' => $traineeTour === null ? null : $group->tours()->where('name', $traineeTour)->value('id'),
+            'loa_removes_qualifications' => $loaRemovesQualifications,
+        ]);
+        $group->tours()->whereIn('name', $starterTours)->update(['starter' => true]);
+    }
+
+    /**
+     * Seed qualifications (#789, ADR-0033 §3) on a Group's Tours: most current Members give
+     * several of the Tours that need one, with Last vet dates spread over the past six years, and
+     * a few hold an inactive one as history. Every fifth Member holds none. A Trainee holds only
+     * the trainee Tour, when the Group has one. Deterministic by roster order and keyed on
+     * (Membership, Tour), so a reseed adds nothing.
+     */
+    private function qualifications(Group $group, ?string $traineeTour = null): void
+    {
+        $tours = $group->tours()->where('open_to_all', false)->orderBy('sort_order')->get();
+        $trainee = $traineeTour === null ? null : $tours->firstWhere('name', $traineeTour);
+        $vetted = $tours->reject(fn (Tour $tour): bool => $tour->is($trainee))->values();
+        $today = OrgTime::today();
+
+        $memberships = $group->memberships()->orderBy('id')->get()
+            ->filter(fn (GroupMember $membership): bool => $membership->status->countsAsBelonging())
+            ->values();
+
+        foreach ($memberships as $index => $membership) {
+            if ($index % 5 === 4 || $vetted->isEmpty()) {
+                continue;
+            }
+
+            if ($membership->status === MembershipStatus::Trainee && $trainee !== null) {
+                Qualification::firstOrCreate(
+                    ['group_member_id' => $membership->id, 'tour_id' => $trainee->id],
+                    ['active' => true, 'last_vet_date' => $today->subDays(10 + $index % 30)->toDateString()],
+                );
+
+                continue;
+            }
+
+            // Three to five Tours, starting at a different place in the list for each Member.
+            $count = 3 + $index % 3;
+            for ($k = 0; $k < $count; $k++) {
+                $tour = $vetted[($index * 2 + $k) % $vetted->count()];
+                Qualification::firstOrCreate(
+                    ['group_member_id' => $membership->id, 'tour_id' => $tour->id],
+                    [
+                        // Every seventh Member's last Tour is kept as inactive history.
+                        'active' => ! ($index % 7 === 0 && $k === $count - 1),
+                        'last_vet_date' => $today->subDays(($index * 53 + $k * 137) % 2190 + 7)->toDateString(),
+                    ],
+                );
+            }
+        }
     }
 
     /**
@@ -3039,6 +3184,8 @@ class DemoSeeder extends Seeder
                         'collects_visitor_count' => true,
                         'collects_extra_interactions' => true,
                         'visitor_figures_await_booking' => true,
+                        // Tours and qualifications (ADR-0033): Docents keep a Tour list.
+                        'has_vetting' => true,
                         // Reminders on with the standard 3 lead days (ADR-0024 §7) — one of the
                         // five Groups that run them today. The lead days stay at the column
                         // default, so only the switch is set here.
@@ -3052,6 +3199,8 @@ class DemoSeeder extends Seeder
                         'collects_visitor_provenance' => true,
                         'visitor_figures_await_booking' => true,
                         'reminders_enabled' => true,
+                        // Tours and qualifications (ADR-0033): GDR keeps a Tour list.
+                        'has_vetting' => true,
                     ]),
                     $this->program('Les Amis Francophiles', [], GroupLogo::LesAmisFrancophiles),
                     $this->program('DMV Hands-on Tours', [
