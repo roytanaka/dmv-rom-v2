@@ -277,7 +277,8 @@ final class HelpManifest
             new HelpArticle('group-settings', HelpSection::Groups, requires: ['scheduler', 'chair'], status: ArticleStatus::Published, route: 'groups.show'),
             // Tours and qualifications (#788, spec #786, ADR-0033) — the Vetting officer's Tour list
             // and kind mapping on the Settings tab, and the by-Tour and by-Member qualification
-            // screens (#789). Later tickets of the spec extend this article.
+            // screens (#789), and the Tours tab every Member of the Group reads (#792). Later tickets
+            // of the spec extend this article.
             new HelpArticle('tours-and-qualifications', HelpSection::Groups, requires: ['vetting', 'chair'], status: ArticleStatus::Draft, route: 'groups.show', routes: ['groups.tours.show', 'groups.tours.member']),
             // Document library (#719, spec #290, ADR-0030) — reading a Group's library, then the
             // Librarian's work on it. Both map the Folder page; the tab itself rides on groups.show.

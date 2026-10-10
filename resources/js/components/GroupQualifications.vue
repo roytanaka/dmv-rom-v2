@@ -157,7 +157,7 @@ const sections = computed(() => [
 <template>
     <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-2">
-            <TextLink :href="route('groups.show', { group: groupSlug, section: 'settings' })" class="text-sm">
+            <TextLink :href="route('groups.show', { group: groupSlug, section: 'tours' })" class="text-sm">
                 {{ trans('group.qualifications.back') }}
             </TextLink>
             <div class="flex flex-wrap items-center justify-between gap-2">

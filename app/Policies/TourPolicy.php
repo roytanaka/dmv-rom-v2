@@ -16,6 +16,16 @@ use App\Models\Member;
 class TourPolicy
 {
     /**
+     * Read the Group's Tours page (#792, ADR-0033 §5) — who gives each Tour and their Last vet
+     * dates. Members of the Group only, like the Meetings list; the super-tier via `Gate::before`.
+     */
+    public function view(Member $actor, Group $group): bool
+    {
+        return $group->has_vetting
+            && $actor->membershipIn($group) !== null;
+    }
+
+    /**
      * Add, rename, retire, restore, reorder, delete and map the Group's Tours.
      */
     public function manage(Member $actor, Group $group): bool

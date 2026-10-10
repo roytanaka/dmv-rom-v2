@@ -1,8 +1,16 @@
 # Keep your Group's Tours and qualifications
 
-Keep the list of Tours your Group gives and record who may give each one. You need the Vetting or Chair role.
+Keep the list of Tours your Group gives and record who may give each one. You need the Vetting or Chair role for this. Any Member of the Group can see who gives each Tour.
 
 A Tour is one concrete tour, such as "Museum Highlights". A shift kind is the slot on the roster, such as "Gallery/Theme". One kind can hold many Tours.
+
+## See who gives each Tour
+
+1. Open your Group's **Tours** tab.
+
+Each active Tour has its own card. The card lists the Members who give the Tour, with their last vet date. A Tour marked **Open to all** needs no qualification, so any Member can give it.
+
+Only Members of the Group see the **Tours** tab.
 
 ## Add a Tour
 
@@ -47,13 +55,18 @@ A retired Tour stays on its past Sign-ups and qualifications.
 
 A qualification says a Member may give one Tour. It also records their last vet date.
 
-1. Select a Tour's name on the **Tours** card.
+1. Open your Group's **Tours** tab.
+2. Select a Tour's name.
+
+You can also select a Tour's name on the **Tours** card of the **Settings** tab.
 
 The page lists everyone qualified for the Tour, with their last vet date. Inactive qualifications are listed apart, under **Inactive**. They count for nothing until you add them again.
 
 ## See which Tours a Member gives
 
 1. Select a Member's name on a Tour's page.
+
+To go back to the list, select **Back to tours**.
 
 You can also open the **Members** tab, select the menu on a Member's row, and select **Tours**.
 
