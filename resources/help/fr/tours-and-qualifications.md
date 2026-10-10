@@ -1,8 +1,16 @@
 # Tenir à jour les visites et les qualifications de votre groupe
 
-Tenez à jour la liste des visites que donne votre groupe et notez qui peut donner chacune. Vous devez avoir le rôle de vérification ou de président·e.
+Tenez à jour la liste des visites que donne votre groupe et notez qui peut donner chacune. Pour cela, vous devez avoir le rôle de vérification ou de président·e. Tout membre du groupe peut voir qui donne chaque visite.
 
 Une visite est une visite concrète, comme « Museum Highlights ». Un type de quart est la case de l'horaire, comme « Gallery/Theme ». Un type peut contenir plusieurs visites.
+
+## Voir qui donne chaque visite
+
+1. Ouvrez l'onglet **Visites** de votre groupe.
+
+Chaque visite active a sa propre carte. La carte liste les membres qui donnent la visite, avec la date de leur dernière vérification. Une visite marquée **Ouverte à tous** ne demande aucune qualification : tout membre peut la donner.
+
+Seuls les membres du groupe voient l'onglet **Visites**.
 
 ## Ajouter une visite
 
@@ -47,13 +55,18 @@ Une visite retirée reste sur ses inscriptions et qualifications passées.
 
 Une qualification indique qu'un membre peut donner une visite. Elle note aussi la date de sa dernière vérification.
 
-1. Sélectionnez le nom d'une visite sur la carte **Visites**.
+1. Ouvrez l'onglet **Visites** de votre groupe.
+2. Sélectionnez le nom d'une visite.
+
+Vous pouvez aussi sélectionner le nom d'une visite sur la carte **Visites** de l'onglet **Paramètres**.
 
 La page liste toutes les personnes qualifiées pour la visite, avec la date de leur dernière vérification. Les qualifications inactives sont listées à part, sous **Inactives**. Elles ne comptent pas tant que vous ne les ajoutez pas de nouveau.
 
 ## Voir les visites que donne un membre
 
 1. Sélectionnez le nom d'un membre sur la page d'une visite.
+
+Pour revenir à la liste, sélectionnez **Retour aux visites**.
 
 Vous pouvez aussi ouvrir l'onglet **Membres**, sélectionner le menu sur la ligne d'un membre, puis sélectionner **Visites**.
 

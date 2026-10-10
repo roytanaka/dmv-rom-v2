@@ -12,6 +12,7 @@ return [
         'meetings' => 'Réunions',
         'documents' => 'Documents',
         'scheduling' => 'Horaire',
+        'tours' => 'Visites',
         'hours' => 'Heures',
         'settings' => 'Paramètres',
     ],
@@ -166,6 +167,15 @@ return [
         'delete_body' => 'Cette action est définitive.',
         'cannot_delete' => 'Cette visite a des qualifications ou des inscriptions. Retirez-la plutôt.',
         'kind_tours' => 'Visites : :tours',
+    ],
+
+    // La page Visites (#792, ADR-0033 §5) : qui donne chaque visite active, pour les membres du groupe.
+    'tours_page' => [
+        'empty' => 'Ce groupe n’a pas encore de visites.',
+        'open_to_all' => 'Ouverte à tous',
+        'none' => 'Personne pour l’instant.',
+        'last_vet_date' => 'Dernière vérification',
+        'no_date' => 'Aucune date',
     ],
 
     // Les écrans des qualifications (#789, ADR-0033 §3, §4) : par visite et par membre.
