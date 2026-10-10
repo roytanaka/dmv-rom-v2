@@ -829,8 +829,51 @@
         return clickAndSettle(menuItems().find((element) => /^move$/i.test(element.textContent.trim())));
     }
 
+    // ── Verify-run helpers (#807) ───────────────────────────────────────────
+    // General-purpose helpers for an agent checking a branch with `/verify`
+    // (.claude/skills/verify/SKILL.md), not tied to one help article.
+
+    // Open a dialog through its button's DOM click(), the way the article helpers do.
+    // Matches the first button whose trimmed text equals `text`, ignoring case.
+    function clickButton(text) {
+        const wanted = text.trim().toLowerCase();
+        const button = Array.from(document.querySelectorAll('button')).find((element) => element.textContent.trim().toLowerCase() === wanted);
+        return clickAndSettle(button);
+    }
+
+    // The current page's Inertia props. Inertia v2 renders them into a
+    // <script data-page> JSON tag; older builds put them on #app's data-page attribute.
+    function props() {
+        const script = document.querySelector('script[data-page]');
+        const raw = script ? script.textContent : document.getElementById('app')?.dataset.page;
+        return raw ? JSON.parse(raw).props : null;
+    }
+
+    // A JSON request carrying the XSRF token, for refusal probes only (a 403 or a 422
+    // the UI never lets you send). Drive real writes through the UI. Returns the status
+    // and the parsed body (text when the body is not JSON).
+    async function request(method, url, body) {
+        const response = await fetch(url, {
+            method,
+            credentials: 'same-origin',
+            headers: csrfHeaders(),
+            body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        const text = await response.text();
+        let parsed = text;
+        try {
+            parsed = JSON.parse(text);
+        } catch {
+            // Not JSON; keep the text.
+        }
+        return { status: response.status, body: parsed };
+    }
+
     window.__help = {
         login,
+        clickButton,
+        props,
+        request,
         openHelpMenu,
         openLanguageSwitcher,
         openNewsComposer,
