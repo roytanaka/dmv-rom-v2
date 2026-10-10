@@ -35,6 +35,7 @@ class Tour extends Model
         'name',
         'active',
         'open_to_all',
+        'starter',
         'sort_order',
     ];
 
@@ -48,6 +49,7 @@ class Tour extends Model
         return [
             'active' => 'boolean',
             'open_to_all' => 'boolean',
+            'starter' => 'boolean',
         ];
     }
 

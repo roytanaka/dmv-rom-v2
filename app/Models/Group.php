@@ -82,6 +82,8 @@ class Group extends Model
         'empty_desk_days_ahead',
         'self_serve_shifts',
         'self_serve_unit_minutes',
+        'trainee_tour_id',
+        'loa_removes_qualifications',
     ];
 
     /**
@@ -117,6 +119,7 @@ class Group extends Model
             'empty_desk_days_ahead' => 'integer',
             'self_serve_shifts' => 'boolean',
             'self_serve_unit_minutes' => 'integer',
+            'loa_removes_qualifications' => 'boolean',
         ];
     }
 
@@ -266,6 +269,16 @@ class Group extends Model
     public function tours(): HasMany
     {
         return $this->hasMany(Tour::class);
+    }
+
+    /**
+     * The Group's trainee Tour (#793, ADR-0033 §7) — the one Tour a new Trainee gets. Optional.
+     *
+     * @return BelongsTo<Tour, $this>
+     */
+    public function traineeTour(): BelongsTo
+    {
+        return $this->belongsTo(Tour::class, 'trainee_tour_id');
     }
 
     /**

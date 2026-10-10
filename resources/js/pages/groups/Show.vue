@@ -17,6 +17,7 @@ import GroupQualifications, { type QualificationScreen } from '@/components/Grou
 import GroupRoster from '@/components/GroupRoster.vue';
 import GroupScheduling from '@/components/GroupScheduling.vue';
 import GroupSettings from '@/components/GroupSettings.vue';
+import type { SettingsTourRules } from '@/components/GroupTourRulesCard.vue';
 import GroupTours, { type ToursPageTour } from '@/components/GroupTours.vue';
 import type { SettingsTour } from '@/components/GroupToursCard.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
@@ -114,6 +115,8 @@ const props = defineProps<{
         manageObjects: boolean;
         // `manageTours` gates the Settings tab's Tours card (#788).
         manageTours: boolean;
+        // `manageTourRules` gates the Settings tab's Tour rules card (#793).
+        manageTourRules: boolean;
         // `viewTours` gates the Tours tab (#792) — a Member of a vetting Group, or the super-tier.
         viewTours: boolean;
         enterHours: boolean;
@@ -151,6 +154,8 @@ const props = defineProps<{
         objects: { id: number; name: string; active: boolean; sortOrder: number }[] | null;
         // The Tours card (#788): the Tour list and the kinds to map onto.
         tours: { tours: SettingsTour[]; shiftKinds: { id: number; name: string; active: boolean }[] } | null;
+        // The Tour rules card (#793): the trainee Tour, the starter Tours and the LOA rule.
+        tourRules: SettingsTourRules | null;
     };
     overview: {
         description: string | null;
@@ -497,6 +502,8 @@ const pickBanner = (key: string | null) => {
                     :can-manage-objects="can.manageObjects"
                     :tours="settings.tours"
                     :can-manage-tours="can.manageTours"
+                    :tour-rules="settings.tourRules"
+                    :can-manage-tour-rules="can.manageTourRules"
                     :group-slug="group.slug"
                 />
 

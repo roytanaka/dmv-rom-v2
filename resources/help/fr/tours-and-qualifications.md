@@ -96,6 +96,32 @@ Ajouter une qualification inactive la rend de nouveau active, avec la nouvelle d
 
 Le membre ne peut plus s'inscrire lui-même à cette visite.
 
+## Définir les règles des visites
+
+Les règles des visites décident ce qui arrive aux qualifications quand le statut d'un membre change. Seul le président ou la présidente peut les définir.
+
+1. Ouvrez l'onglet **Paramètres** de votre groupe.
+2. Trouvez la carte **Règles des visites**.
+3. Choisissez la **Visite des stagiaires**, ou **Aucune**.
+4. Cochez chaque **Visite de départ**.
+5. Cochez **Le congé retire les qualifications** si votre groupe le souhaite.
+6. Sélectionnez **Enregistrer**.
+
+La visite des stagiaires ne peut pas aussi être une visite de départ.
+
+## Quand le statut d'un membre change
+
+L'application met à jour les qualifications d'elle-même quand un ou une secrétaire change le statut d'un membre :
+
+- **Stagiaire :** toutes les qualifications deviennent inactives, et la visite des stagiaires devient active.
+- **Régulier·ère :** les visites de départ deviennent actives, et la visite des stagiaires devient inactive.
+- **Émérite, Démissionnaire ou Décédé·e :** toutes les qualifications deviennent inactives.
+- **En congé :** toutes les qualifications deviennent inactives, mais seulement si **Le congé retire les qualifications** est coché.
+
+Les autres statuts ne changent rien. Une qualification qui devient active prend la date du jour comme date de la dernière vérification.
+
+> **Note :** Les règles ne suppriment jamais une qualification. Retirer un membre du groupe supprime toutes ses qualifications.
+
 ## S'inscrire pour une visite
 
 Un membre donne une visite quand il s'inscrit à un quart dont le type contient des visites.

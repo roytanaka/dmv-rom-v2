@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateGroupMemberRequest;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
+use App\Support\Tours\QualificationRules;
 use Illuminate\Http\RedirectResponse;
 
 /**
@@ -28,9 +29,11 @@ class GroupMemberController extends Controller
     /**
      * Add a member to a Group. The owning Group comes from the route; the Member,
      * standing, and any roles come from the Form Request whitelist. Standing defaults
-     * to Full when the request omits it. Roles assigned on add are written alongside.
+     * to Full when the request omits it. Roles assigned on add are written alongside. The
+     * status rules (#793) treat the first standing as a change: a new Trainee gets the
+     * trainee Tour, a new Full Member the starter Tours.
      */
-    public function store(StoreGroupMemberRequest $request, Group $group): RedirectResponse
+    public function store(StoreGroupMemberRequest $request, Group $group, QualificationRules $rules): RedirectResponse
     {
         $data = $request->validated();
 
@@ -41,6 +44,9 @@ class GroupMemberController extends Controller
 
         $this->syncRoles($membership, $data['roles'] ?? []);
 
+        $membership->setRelation('group', $group);
+        $rules->apply($membership, null);
+
         return back();
     }
 
@@ -49,14 +55,18 @@ class GroupMemberController extends Controller
      * this edit with `status` set to Resigned. Roles are synced wholesale only when
      * the request carries them, so a standing-only edit never silently drops them.
      */
-    public function update(UpdateGroupMemberRequest $request, GroupMember $membership): RedirectResponse
+    public function update(UpdateGroupMemberRequest $request, GroupMember $membership, QualificationRules $rules): RedirectResponse
     {
         $data = $request->validated();
         $hasRoles = array_key_exists('roles', $data);
         $roles = $data['roles'] ?? [];
         unset($data['roles']);
 
+        $from = $membership->status;
         $membership->update($data);
+
+        // The status rules (#793, ADR-0033 §7) run only on an actual change of standing.
+        $rules->apply($membership, $from);
 
         if ($hasRoles) {
             $this->syncRoles($membership, $roles);
@@ -67,7 +77,8 @@ class GroupMemberController extends Controller
 
     /**
      * Hard-remove a membership — the added-in-error case. The Form Request has
-     * already confirmed there are no dependent records; the row is deleted outright.
+     * already confirmed there are no dependent records; the row is deleted outright. Its
+     * qualifications (#793) go with it by the foreign key's cascade and never block the delete.
      */
     public function destroy(DeleteGroupMemberRequest $request, GroupMember $membership): RedirectResponse
     {
