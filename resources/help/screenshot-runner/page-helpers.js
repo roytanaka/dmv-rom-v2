@@ -376,9 +376,10 @@
     }
 
     // A group tour's Substitute dialog (#798): the persona's own seat on an upcoming group tour.
+    // The picker's Members arrive by a partial reload, so wait for the picker to enable.
     function openSubstituteDialog() {
         const button = Array.from(document.querySelectorAll('button')).find((element) => /^substitute$/i.test(element.textContent.trim()));
-        return clickAndWaitFor(button, () => openDialog());
+        return clickAndWaitFor(button, () => openDialog()?.querySelector('#substitute-member:not([disabled])'));
     }
 
     // The Correct Earned dialog (#797): the first group tour's pencil beside its Earned line.

@@ -7,14 +7,11 @@ use App\Http\Requests\RecordSignUpVisitorsRequest;
 use App\Http\Requests\StoreSignUpRequest;
 use App\Http\Requests\SubstituteSignUpRequest;
 use App\Http\Requests\UpdateSignUpTourRequest;
-use App\Models\Member;
 use App\Models\Shift;
 use App\Models\SignUp;
 use App\Support\Notices\SignUpCancellationNoticeWriter;
 use App\Support\Notices\SignUpSubstitutionNoticeWriter;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 /**
  * Sign-up write seam (#357, PRD #352, ADR-0021 §Sign-up) — a Member taking a Shift and
@@ -116,21 +113,6 @@ class SignUpController extends Controller
         $signUp->update(['tour_id' => $request->validated('tour_id')]);
 
         return back();
-    }
-
-    /**
-     * The Members the holder may hand their Booking seat to (#798, ADR-0032 §8), for the
-     * Substitute picker: id and full name. The holder alone, until the Shift starts.
-     */
-    public function substitutes(Request $request, SignUp $signUp): JsonResponse
-    {
-        abort_unless($request->user()->can('substitute', $signUp), 403);
-
-        return response()->json([
-            'members' => $signUp->eligibleSubstitutes()
-                ->map(fn (Member $member): array => ['id' => $member->id, 'name' => $member->fullName()])
-                ->all(),
-        ]);
     }
 
     /**

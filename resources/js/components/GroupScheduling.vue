@@ -66,6 +66,9 @@ import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
     scheduling: Scheduling;
+    // Loaded on demand by the dialogs below through a partial reload; null until then.
+    bookingClients: string[] | null;
+    substitutes: { id: number; name: string }[] | null;
     canCreate: boolean;
     collectsVisitorCount: boolean;
     collectsExtraInteractions: boolean;
@@ -468,10 +471,11 @@ const removeSeat = (signUpId: number) => {
 // --- Substituting on a Booking (#798, ADR-0032 §8) ---
 
 // A seat on a Booking cannot be dropped; its holder hands it to a Member who could take it. The
-// picker's list is the server's (`sign-ups.substitutes`), fetched when the dialog opens; the PATCH
-// re-checks the holder, the start and the substitute.
+// picker's list is the page's optional `substitutes` prop, loaded by a partial reload for this seat
+// when the dialog opens; the PATCH re-checks the holder, the start and the substitute.
 const substituting = ref<ShiftAgendaItem | null>(null);
-const substitutes = ref<{ id: number; name: string }[] | null>(null);
+const substitutesLoading = ref(false);
+const substitutes = computed(() => (substitutesLoading.value ? null : props.substitutes));
 const substituteForm = useForm<{ member_id: number | null }>({ member_id: null });
 
 const substituteOpen = computed({
@@ -483,26 +487,27 @@ const substituteOpen = computed({
 
 const closeSubstitute = () => {
     substituting.value = null;
-    substitutes.value = null;
     substituteForm.reset();
     substituteForm.clearErrors();
 };
 
-const openSubstitute = async (shift: ShiftAgendaItem) => {
+const openSubstitute = (shift: ShiftAgendaItem) => {
     if (shift.signup_id === null) return;
 
     substituteForm.reset();
     substituteForm.clearErrors();
-    substitutes.value = null;
     substituting.value = shift;
+    substitutesLoading.value = true;
 
-    const response = await fetch(route('sign-ups.substitutes', { signUp: shift.signup_id }), {
-        headers: { Accept: 'application/json' },
+    // `preserveUrl` keeps the seat's id out of the address bar.
+    router.reload({
+        only: ['substitutes'],
+        data: { substitute_for: shift.signup_id },
+        preserveUrl: true,
+        onFinish: () => {
+            substitutesLoading.value = false;
+        },
     });
-
-    if (response.ok && substituting.value === shift) {
-        substitutes.value = ((await response.json()) as { members: { id: number; name: string }[] }).members;
-    }
 };
 
 const submitSubstitute = () => {
@@ -1429,13 +1434,14 @@ const runBulkAssign = (action: 'place' | 'remove') => {
         <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.scheduling_panel.empty') }}</p>
 
         <!-- Add a group tour (#795) — the Booking form, for a viewer the server sent its pickers. -->
-        <BookingDialog v-if="bookingOptions" v-model:open="bookingOpen" :group-slug="groupSlug" :options="bookingOptions" />
+        <BookingDialog v-if="bookingOptions" v-model:open="bookingOpen" :group-slug="groupSlug" :options="bookingOptions" :clients="bookingClients" />
         <!-- Change a group tour (#796) — the same form, filled from the Booking. -->
         <BookingDialog
             v-if="bookingChangeOptions"
             v-model:open="bookingEditOpen"
             :group-slug="groupSlug"
             :options="bookingChangeOptions"
+            :clients="bookingClients"
             :booking="bookingEditing?.booking ?? null"
         />
 
@@ -1856,8 +1862,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
             </DialogContent>
         </Dialog>
 
-        <!-- Change-Tour dialog (#791, ADR-0033 §6) — opened from a seat's pencil. A schedule admin
-             may leave it blank; the seat-holder must pick a Tour they may give. -->
+        <!-- Substitute dialog (#798, ADR-0032 §8) — the holder of a Booking seat hands it on. -->
         <Dialog v-model:open="substituteOpen">
             <DialogContent>
                 <DialogHeader>

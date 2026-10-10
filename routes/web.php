@@ -525,17 +525,12 @@ Route::delete('booking-types/{bookingType}', [BookingTypeController::class, 'des
     ->middleware(['auth'])
     ->name('booking-types.destroy');
 
-// Bookings (#795, ADR-0032 §1, §3, §10) — a Booker or Chair adds a group tour, and the Booking
-// form's client field reads the Group's past client names as JSON. Both bind the Group by slug; the
-// add is authorized in StoreBookingRequest through the BookingPolicy's `create` gate, the
-// suggestions in the controller through `suggestClients`. The read sits outside `groups/`, where
-// the localized `groups/{group}/{section}` page route would catch it.
+// Bookings (#795, ADR-0032 §1, §3) — a Booker or Chair adds a group tour. Binds the Group by slug;
+// authorized in StoreBookingRequest through the BookingPolicy's `create` gate. The form's client
+// suggestions are an optional prop on the Group page (`bookingClients`), not a route.
 Route::post('groups/{group}/bookings', [BookingController::class, 'store'])
     ->middleware(['auth'])
     ->name('bookings.store');
-Route::get('booking-clients/{group}', [BookingController::class, 'clients'])
-    ->middleware(['auth'])
-    ->name('bookings.clients');
 // The Statistician's correction to a Booking's Earned (#797, ADR-0032 §7): set, or cleared with
 // null. Authorized in UpdateEarnedCorrectionRequest through the BookingPolicy's `correctEarned`.
 Route::patch('bookings/{booking}/earned', [BookingEarnedController::class, 'update'])
@@ -679,11 +674,9 @@ Route::patch('sign-ups/{signUp}/tour', [SignUpController::class, 'updateTour'])
     ->name('sign-ups.tour.update');
 
 // Substituting on a Booking (#798, ADR-0032 §8). A Booking seat cannot be dropped; its holder
-// hands it to a Member who could take it themselves. The JSON read feeds the picker; the PATCH
-// moves the seat. Both are the holder's alone, until the Shift starts (SignUpPolicy::substitute).
-Route::get('sign-ups/{signUp}/substitutes', [SignUpController::class, 'substitutes'])
-    ->middleware(['auth'])
-    ->name('sign-ups.substitutes');
+// hands it to a Member who could take it themselves. The picker's list is an optional prop on the
+// Group page (`substitutes`); the PATCH moves the seat. Both are the holder's alone, until the
+// Shift starts (SignUpPolicy::substitute).
 Route::patch('sign-ups/{signUp}/substitute', [SignUpController::class, 'substitute'])
     ->middleware(['auth', 'localizeFromReferer'])
     ->name('sign-ups.substitute');

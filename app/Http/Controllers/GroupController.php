@@ -364,6 +364,16 @@ class GroupController extends Controller
             'scheduling' => $section === 'scheduling'
                 ? $this->scheduling($request, $group, $schedule)
                 : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'objects' => [], 'mine' => []],
+            // Two on-demand reads for the Scheduling tab's dialogs (ADR-0005: a partial reload, not
+            // a JSON endpoint). Never sent on a visit; the dialog asks for its prop when it opens.
+            // The Booking form's client suggestions (§10), for whoever may add or change a Booking.
+            'bookingClients' => Inertia::optional(fn (): array => BookingPayloads::clients($request->user(), $group)),
+            // The Members a seat-holder may hand their Booking seat to (#798), for the Sign-up named
+            // by `?substitute_for=`. The holder alone, until the Shift starts.
+            'substitutes' => Inertia::optional(fn (): array => BookingPayloads::substitutes(
+                $request->user(),
+                SignUp::find($request->integer('substitute_for')),
+            )),
             // The Hours tab's payload, resolved only on that tab: the viewer's own records
             // for this Group and the two-month entry state (ADR-0022 §2). Never another
             // Member's hours — the roster is not a leaderboard (§4).

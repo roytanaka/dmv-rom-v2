@@ -375,14 +375,19 @@ it('lists the holder the Members who may take the seat, and nobody else', functi
     $seated = bookingSignUpMember($group, qualifiedFor: $tour);
     SignUp::factory()->create(['shift_id' => $booking->shift_id, 'member_id' => $seated->id]);
 
+    $url = route('groups.show', ['group' => $group, 'section' => 'scheduling', 'substitute_for' => $seat->id]);
+
     $this->actingAs($holder)
-        ->getJson(route('sign-ups.substitutes', ['signUp' => $seat->id]))
-        ->assertOk()
-        ->assertExactJson(['members' => [['id' => $qualified->id, 'name' => 'Zoe Able']]]);
+        ->get($url)
+        ->assertInertia(fn (Assert $page) => $page
+            ->missing('substitutes')
+            ->reloadOnly('substitutes', fn (Assert $reload) => $reload
+                ->where('substitutes', [['id' => $qualified->id, 'name' => 'Zoe Able']])));
 
     $this->actingAs($qualified)
-        ->getJson(route('sign-ups.substitutes', ['signUp' => $seat->id]))
-        ->assertForbidden();
+        ->get($url)
+        ->assertInertia(fn (Assert $page) => $page
+            ->reloadOnly('substitutes', fn (Assert $reload) => $reload->where('substitutes', [])));
 });
 
 // --- Substitution notice ------------------------------------------------------
