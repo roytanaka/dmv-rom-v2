@@ -52,6 +52,7 @@ return [
             'vetting' => 'Vetting',
             'librarian' => 'Librarian',
             'news_editor' => 'News Editor',
+            'booker' => 'Booker',
             'super_tier' => 'Super-tier',
             'support_operator' => 'Support operator',
             'records' => 'Records',

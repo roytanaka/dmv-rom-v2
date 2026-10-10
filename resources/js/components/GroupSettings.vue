@@ -4,6 +4,7 @@
 // roster lines) stay inline on the section where they are read (§2). The tab renders only to a
 // viewer holding a configuration right; each card renders only behind its own `can` hint, and
 // a scheduling card only while the Group runs scheduling. The server re-checks every save.
+import GroupBookingTypesCard, { type SettingsBookings } from '@/components/GroupBookingTypesCard.vue';
 import GroupTourRulesCard, { type SettingsTourRules } from '@/components/GroupTourRulesCard.vue';
 import GroupToursCard, { type SettingsTour } from '@/components/GroupToursCard.vue';
 import InputError from '@/components/InputError.vue';
@@ -48,6 +49,10 @@ const props = defineProps<{
     // Group that runs vetting.
     tourRules: SettingsTourRules | null;
     canManageTourRules: boolean;
+    // The Group's booking types and group-tour settings (#794, ADR-0032 §6). Resolved only with
+    // `canManageBookings`, on a Group that runs bookings.
+    bookings: SettingsBookings | null;
+    canManageBookings: boolean;
     groupSlug: string;
 }>();
 
@@ -58,6 +63,7 @@ const showShiftKinds = computed(() => props.canManageShiftKinds && props.runsSch
 const showObjects = computed(() => props.canManageObjects && props.runsScheduling && props.objects !== null);
 const showTours = computed(() => props.canManageTours && props.tours !== null);
 const showTourRules = computed(() => props.canManageTourRules && props.tourRules !== null);
+const showBookings = computed(() => props.canManageBookings && props.bookings !== null);
 const showAnyCard = computed(
     () =>
         showReminders.value ||
@@ -66,7 +72,8 @@ const showAnyCard = computed(
         showShiftKinds.value ||
         showObjects.value ||
         showTours.value ||
-        showTourRules.value,
+        showTourRules.value ||
+        showBookings.value,
 );
 
 // --- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and lead
@@ -524,6 +531,10 @@ const moveObject = (index: number, delta: number) => {
             <!-- Tour rules (#793, ADR-0033 §7) — the trainee Tour, the starter Tours and the LOA rule,
                  for the Chair of a vetting Group. -->
             <GroupTourRulesCard v-if="showTourRules && tourRules" :rules="tourRules" :group-slug="groupSlug" />
+
+            <!-- Group tours (#794, ADR-0032 §6) — the booking types and group-tour settings, for a
+                 Booker or Chair of a Group that runs bookings. -->
+            <GroupBookingTypesCard v-if="showBookings && bookings" :bookings="bookings" :group-slug="groupSlug" />
         </template>
 
         <!-- The tab appears with authority, not with data (ADR-0027 §1): a viewer whose rights

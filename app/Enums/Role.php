@@ -31,6 +31,8 @@ enum Role: string
     case Vetting = 'vetting';
     case Librarian = 'librarian';
     case NewsEditor = 'news_editor';
+    // ADR-0032 §3: adds, changes and deletes Bookings and keeps the booking types.
+    case Booker = 'booker';
 
     /**
      * The Group capability flag this role requires to be on, or null for a core
@@ -44,6 +46,7 @@ enum Role: string
             self::Vetting => 'has_vetting',
             self::Librarian => 'has_documents',
             self::NewsEditor => 'has_announcements',
+            self::Booker => 'has_bookings',
         };
     }
 }

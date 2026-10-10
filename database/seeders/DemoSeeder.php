@@ -17,6 +17,7 @@ use App\Enums\ScheduleState;
 use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
+use App\Models\BookingType;
 use App\Models\Document;
 use App\Models\DocumentFolder;
 use App\Models\Group;
@@ -237,6 +238,28 @@ class DemoSeeder extends Seeder
         'La Chine' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
         'Minéraux et pierres précieuses' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
         'La Grèce et Rome' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
+    ];
+
+    /**
+     * The Docents' booking types (#794, ADR-0032 §6): name => [rate per visitor, rate per
+     * docent-hour], in list order. A Tour Paid client pays per visitor; a Spot Paid one pays per
+     * docent-hour stationed in a gallery.
+     */
+    private const DOCENT_BOOKING_TYPES = [
+        'Tour Paid' => [5, 0],
+        'Tour Free' => [0, 0],
+        'Tour Internal' => [0, 0],
+        'Spot Paid' => [0, 25],
+        'Spot Free' => [0, 0],
+    ];
+
+    /** GDR's booking types, the Docents' five named in French ({@see DOCENT_BOOKING_TYPES}). */
+    private const GDR_BOOKING_TYPES = [
+        'Visite payante' => [5, 0],
+        'Visite gratuite' => [0, 0],
+        'Visite interne' => [0, 0],
+        'Poste payant' => [0, 25],
+        'Poste gratuit' => [0, 0],
     ];
 
     /** The Guides du ROM daily tour and the monthly group tour, named as legacy names them. */
@@ -1176,6 +1199,7 @@ class DemoSeeder extends Seeder
         $this->tours($docents, self::DOCENT_TOURS, $kinds);
         $this->tourRules($docents, 'Museum Highlights – New Docents', ['Museum Highlights'], false);
         $this->qualifications($docents, 'Museum Highlights – New Docents');
+        $this->bookingTypes($docents, self::DOCENT_BOOKING_TYPES, $kinds[self::GROUP_TOUR], 'Group tours');
 
         $previous = $this->monthSchedule($docents, $lastMonth, 'Last month\'s docent tour roster, worked and signed out.');
         $current = $this->monthSchedule($docents, $month, 'The current-month docent tour roster — sign up for a tour below.');
@@ -1421,6 +1445,7 @@ class DemoSeeder extends Seeder
         $this->tours($group, self::GDR_TOURS, $kinds);
         $this->tourRules($group, null, ['Le choix du guide', 'Les trésors'], true);
         $this->qualifications($group);
+        $this->bookingTypes($group, self::GDR_BOOKING_TYPES, $kinds[self::GDR_GROUP_TOUR], 'Visites de groupe');
 
         $previous = $this->monthSchedule($group, $lastMonth, 'Le calendrier des visites du mois dernier, données et signées.');
         $current = $this->monthSchedule($group, $month, 'Les visites du mois. Inscrivez-vous à une visite ci-dessous.');
@@ -2408,6 +2433,27 @@ class DemoSeeder extends Seeder
     }
 
     /**
+     * Seed a Group's booking types and group-tour settings (#794, ADR-0032 §1, §4, §6): the types
+     * in list order with their rates, the shift kind a Booking's Shift takes, and the label the
+     * month's group-tour Schedule is named from. Types key on (Group, name), so a reseed heals
+     * rather than duplicates.
+     *
+     * @param  array<string, array{0: int, 1: int}>  $spec
+     */
+    private function bookingTypes(Group $group, array $spec, ShiftKind $kind, string $label): void
+    {
+        $order = 0;
+        foreach ($spec as $name => [$perVisitor, $perDocentHour]) {
+            BookingType::updateOrCreate(
+                ['group_id' => $group->id, 'name' => $name],
+                ['rate_per_visitor' => $perVisitor, 'rate_per_docent_hour' => $perDocentHour, 'active' => true, 'sort_order' => $order++],
+            );
+        }
+
+        $group->update(['group_tour_shift_kind_id' => $kind->id, 'group_tour_label' => $label]);
+    }
+
+    /**
      * Seed qualifications (#789, ADR-0033 §3) on a Group's Tours: most current Members give
      * several of the Tours that need one, with Last vet dates spread over the past six years, and
      * a few hold an inactive one as history. Every fifth Member holds none. A Trainee holds only
@@ -3186,6 +3232,8 @@ class DemoSeeder extends Seeder
                         'visitor_figures_await_booking' => true,
                         // Tours and qualifications (ADR-0033): Docents keep a Tour list.
                         'has_vetting' => true,
+                        // Group tours (ADR-0032 §2): Docents take client Bookings.
+                        'has_bookings' => true,
                         // Reminders on with the standard 3 lead days (ADR-0024 §7) — one of the
                         // five Groups that run them today. The lead days stay at the column
                         // default, so only the switch is set here.
@@ -3201,6 +3249,8 @@ class DemoSeeder extends Seeder
                         'reminders_enabled' => true,
                         // Tours and qualifications (ADR-0033): GDR keeps a Tour list.
                         'has_vetting' => true,
+                        // Group tours (ADR-0032 §2): GDR takes client Bookings.
+                        'has_bookings' => true,
                     ]),
                     $this->program('Les Amis Francophiles', [], GroupLogo::LesAmisFrancophiles),
                     $this->program('DMV Hands-on Tours', [

@@ -340,6 +340,18 @@
         return showCardTitled(/^tour rules/i);
     }
 
+    // The Group tours card on the Group Settings tab (#794, ADR-0032 §6): the group-tour settings
+    // and the booking types.
+    function showGroupTours() {
+        return showCardTitled(/^group tours/i);
+    }
+
+    // The Group tours card's Add dialog: a booking type's name and both rates.
+    function openAddBookingType() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^add booking type$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
     // The by-Tour qualification screen (#789): follow the Tours card's "Dinosaurs" link. A Tour's
     // id is not stable across seeds, so the script cannot `nav` to it.
     function openTourQualifications() {
@@ -825,6 +837,8 @@
         showShiftKinds,
         showTours,
         showTourRules,
+        showGroupTours,
+        openAddBookingType,
         openTourQualifications,
         openAddQualification,
         openMemberQualifications,

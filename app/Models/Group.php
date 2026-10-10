@@ -71,6 +71,7 @@ class Group extends Model
         'has_scheduling',
         'has_vetting',
         'has_announcements',
+        'has_bookings',
         'collects_visitor_count',
         'collects_extra_interactions',
         'collects_visitor_provenance',
@@ -84,6 +85,8 @@ class Group extends Model
         'self_serve_unit_minutes',
         'trainee_tour_id',
         'loa_removes_qualifications',
+        'group_tour_shift_kind_id',
+        'group_tour_label',
     ];
 
     /**
@@ -108,6 +111,7 @@ class Group extends Model
             'has_scheduling' => 'boolean',
             'has_vetting' => 'boolean',
             'has_announcements' => 'boolean',
+            'has_bookings' => 'boolean',
             'collects_visitor_count' => 'boolean',
             'collects_extra_interactions' => 'boolean',
             'collects_visitor_provenance' => 'boolean',
@@ -269,6 +273,17 @@ class Group extends Model
     public function tours(): HasMany
     {
         return $this->hasMany(Tour::class);
+    }
+
+    /**
+     * The Group's booking types (#794, ADR-0032 §6) — the billing classes of its Bookings, each
+     * with a rate per visitor and a rate per docent-hour. Kept only while the Group runs bookings.
+     *
+     * @return HasMany<BookingType, $this>
+     */
+    public function bookingTypes(): HasMany
+    {
+        return $this->hasMany(BookingType::class);
     }
 
     /**

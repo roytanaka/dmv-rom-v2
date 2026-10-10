@@ -172,6 +172,35 @@ return [
     ],
 
     // La carte des règles des visites (#793, ADR-0033 §7) : ce que deviennent les qualifications quand le statut change.
+    // La carte Visites de groupe (#794, ADR-0032 §6) : les types de réservation et les réglages.
+    'booking_types' => [
+        'heading' => 'Visites de groupe',
+        'types_heading' => 'Types de réservation',
+        'empty' => 'Ce groupe n’a encore aucun type de réservation.',
+        'name' => 'Nom',
+        'rate_per_visitor' => 'Tarif par visiteur ($)',
+        'rate_per_docent_hour' => 'Tarif par heure de guide ($)',
+        'rates' => ':visitor par visiteur, :hour par heure de guide',
+        'add' => 'Ajouter un type de réservation',
+        'add_title' => 'Ajouter un type de réservation',
+        'edit' => 'Modifier',
+        'edit_title' => 'Modifier :type',
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
+        'retire' => 'Retirer',
+        'restore' => 'Rétablir',
+        'retired_badge' => 'Retiré',
+        'move_up' => 'Monter',
+        'move_down' => 'Descendre',
+        'delete' => 'Supprimer',
+        'delete_title' => 'Supprimer :type ?',
+        'delete_body' => 'Cette action est irréversible.',
+        'cannot_delete' => 'Des visites de groupe utilisent ce type de réservation. Retirez-le plutôt.',
+        'shift_kind_label' => 'Type de quart des visites de groupe',
+        'none' => 'Aucun',
+        'label_label' => 'Nom de l’horaire des visites de groupe',
+    ],
+
     'tour_rules' => [
         'heading' => 'Règles des visites',
         'trainee_label' => 'Visite des stagiaires',
@@ -622,6 +651,7 @@ return [
         'vetting' => 'Vérification',
         'librarian' => 'Bibliothécaire',
         'news_editor' => 'Responsable des nouvelles',
+        'booker' => 'Responsable des réservations',
         'executive' => 'Direction générale',
     ],
 ];
