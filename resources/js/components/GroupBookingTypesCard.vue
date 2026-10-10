@@ -40,6 +40,7 @@ export type SettingsBookings = {
     types: SettingsBookingType[];
     shiftKindId: number | null;
     label: string | null;
+    copyEmail: string | null;
     shiftKinds: { id: number; name: string; active: boolean }[];
 };
 
@@ -48,10 +49,12 @@ const props = defineProps<{
     groupSlug: string;
 }>();
 
-// The group-tour settings: the kind a Booking's Shift takes and the Schedule label, saved together.
-const settingsForm = useForm<{ group_tour_shift_kind_id: number | null; group_tour_label: string }>({
+// The group-tour settings: the kind a Booking's Shift takes, the Schedule label and the copy
+// address every Booking mail is copied to (#799), saved together. A blank address clears it.
+const settingsForm = useForm<{ group_tour_shift_kind_id: number | null; group_tour_label: string; booking_copy_email: string }>({
     group_tour_shift_kind_id: props.bookings.shiftKindId,
     group_tour_label: props.bookings.label ?? '',
+    booking_copy_email: props.bookings.copyEmail ?? '',
 });
 
 const saveSettings = () => settingsForm.patch(route('groups.group-tours.update', { group: props.groupSlug }), { preserveScroll: true });
@@ -144,6 +147,11 @@ const money = (value: string) => `$${value}`;
                     <Label for="group-tour-label">{{ trans('group.booking_types.label_label') }}</Label>
                     <Input id="group-tour-label" v-model="settingsForm.group_tour_label" class="sm:w-80" />
                     <InputError :message="settingsForm.errors.group_tour_label" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <Label for="group-tour-copy-email">{{ trans('group.booking_mails.copy_email_label') }}</Label>
+                    <Input id="group-tour-copy-email" v-model="settingsForm.booking_copy_email" type="email" class="sm:w-80" />
+                    <InputError :message="settingsForm.errors.booking_copy_email" />
                 </div>
                 <div class="flex justify-end">
                     <Button type="button" size="sm" :disabled="settingsForm.processing" @click="saveSettings">

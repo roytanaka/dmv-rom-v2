@@ -10,7 +10,8 @@ Un type de réservation indique comment un client paie une visite de groupe, com
 2. Trouvez la carte **Visites de groupe**.
 3. Choisissez le type de quart des visites de groupe sous **Type de quart des visites de groupe**.
 4. Saisissez le nom de vos horaires de visites de groupe sous **Nom de l’horaire des visites de groupe**, comme « Visites de groupe ».
-5. Sélectionnez **Enregistrer**.
+5. Au besoin, saisissez une adresse sous **Copier chaque courriel de visite de groupe à**. Chaque courriel de visite de groupe y est aussi envoyé.
+6. Sélectionnez **Enregistrer**.
 
 L'horaire des visites de groupe de chaque mois prend ce nom, suivi du mois et de l'année.
 

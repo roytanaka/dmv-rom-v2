@@ -295,6 +295,9 @@ final class HelpManifest
             // Group tours (#795, spec #787, ADR-0032 §1, §4, §5) — a Booker adds a Booking, and every
             // reader finds it on the month's group-tour Schedule.
             new HelpArticle('add-a-group-tour', HelpSection::Scheduling, requires: ['booker', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            // Group tour emails (#799, ADR-0032 §9) — the Request and Confirmation, sent again from a
+            // group tour, and the Group's copy address.
+            new HelpArticle('send-group-tour-emails', HelpSection::Scheduling, requires: ['booker', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
             new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('reminders', HelpSection::Scheduling),

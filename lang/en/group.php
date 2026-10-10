@@ -253,6 +253,16 @@ return [
         'group_tour_schedule_published' => 'A group-tour schedule stays published.',
     ],
 
+    // Booking mails (#799, ADR-0032 §9): the buttons on a group tour and the copy-address field on
+    // the Group tours card.
+    'booking_mails' => [
+        'send_request' => 'Send request',
+        'send_confirmation' => 'Send confirmation',
+        'request_sent' => 'Request queued.',
+        'confirmation_sent' => 'Confirmation queued.',
+        'copy_email_label' => 'Copy every group-tour email to',
+    ],
+
     'tour_rules' => [
         'heading' => 'Tour rules',
         'trainee_label' => 'Trainee tour',
