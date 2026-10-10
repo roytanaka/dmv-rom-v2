@@ -10,7 +10,8 @@ use Illuminate\Validation\Rule;
 /**
  * Editing a Group's group-tour settings (#794, ADR-0032 §1, §4): the shift kind a Booking's Shift
  * takes (optional, one of the Group's own kinds) and the label its month's group-tour Schedule is
- * named from ("Group tours", "Visites de groupe"), always submitted together. The label is
+ * named from ("Group tours", "Visites de groupe"), always submitted together, and the optional copy
+ * address every Booking mail is copied to (#799, §9). The label is
  * content, never translated (ADR-0004). Authorized through the BookingTypePolicy's `manage` gate.
  */
 class UpdateGroupTourSettingsRequest extends FormRequest
@@ -36,6 +37,8 @@ class UpdateGroupTourSettingsRequest extends FormRequest
                 Rule::exists('shift_kinds', 'id')->where('group_id', $this->route('group')->getKey()),
             ],
             'group_tour_label' => ['required', 'string', 'max:255'],
+            // The optional copy address every Booking mail is copied to (#799, ADR-0032 §9).
+            'booking_copy_email' => ['nullable', 'email', 'max:255'],
         ];
     }
 }

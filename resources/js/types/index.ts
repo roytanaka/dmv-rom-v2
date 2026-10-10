@@ -851,6 +851,8 @@ export interface ShiftBooking {
         order_number: string | null;
         order_date: string | null;
     } | null;
+    // The Send Request and Send Confirmation buttons (#799): a Booker, Chair or super-tier.
+    can_send_mails: boolean;
 }
 
 // The Booking form's pickers (#795): the Group's active Tours and booking types, in order.
