@@ -84,7 +84,7 @@ If you add a qualification that is inactive, it becomes active again with the ne
 ## Change a last vet date
 
 1. Select **Change date** beside the qualification.
-2. Enter the new date.
+2. Enter the new date. It cannot be after today.
 3. Select **Save**.
 
 > **Note:** A last vet date never expires. The app only shows it.

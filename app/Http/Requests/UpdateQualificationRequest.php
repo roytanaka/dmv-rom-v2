@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Tour;
+use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -27,7 +28,19 @@ class UpdateQualificationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'last_vet_date' => ['required', 'date_format:Y-m-d'],
+            'last_vet_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.OrgTime::today()->toDateString()],
+        ];
+    }
+
+    /**
+     * A vetting cannot happen in the future (#804).
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'last_vet_date.before_or_equal' => trans('group.qualifications.future_date'),
         ];
     }
 }

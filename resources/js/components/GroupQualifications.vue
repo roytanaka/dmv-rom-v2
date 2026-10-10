@@ -248,7 +248,7 @@ const sections = computed(() => [
                 </div>
                 <div class="grid gap-2">
                     <Label for="qualification-date">{{ trans('group.qualifications.last_vet_date_label') }}</Label>
-                    <Input id="qualification-date" v-model="addForm.last_vet_date" type="date" required />
+                    <Input id="qualification-date" v-model="addForm.last_vet_date" type="date" :max="screen.today" required />
                     <InputError :message="addForm.errors.last_vet_date" />
                 </div>
                 <DialogFooter>
@@ -267,7 +267,7 @@ const sections = computed(() => [
             <form class="flex flex-col gap-4" @submit.prevent="saveEdit">
                 <div class="grid gap-2">
                     <Label for="qualification-edit-date">{{ trans('group.qualifications.last_vet_date_label') }}</Label>
-                    <Input id="qualification-edit-date" v-model="dateForm.last_vet_date" type="date" required />
+                    <Input id="qualification-edit-date" v-model="dateForm.last_vet_date" type="date" :max="screen.today" required />
                     <InputError :message="dateForm.errors.last_vet_date" />
                 </div>
                 <DialogFooter>

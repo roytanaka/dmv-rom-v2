@@ -275,6 +275,48 @@ it('lets a Vetting officer change a Last vet date', function () {
     expect($qualification->active)->toBeTrue();
 });
 
+it('refuses a Last vet date after today on the org clock when adding a qualification', function () {
+    // 02:00 UTC on the 11th is still the evening of the 10th at the museum.
+    $this->travelTo('2026-10-11 02:00:00');
+    $group = qualGroup();
+    $tour = Tour::factory()->create(['group_id' => $group->id]);
+    $vetting = qualMemberOf($group, Role::Vetting);
+    $docent = qualMembershipOf($group);
+
+    $store = fn (string $date) => $this->actingAs($vetting)
+        ->post(route('groups.qualifications.store', ['group' => $group]), [
+            'group_member_id' => $docent->id, 'tour_id' => $tour->id, 'last_vet_date' => $date,
+        ]);
+
+    $store('2026-10-11')->assertSessionHasErrors(['last_vet_date' => __('group.qualifications.future_date')]);
+    expect(Qualification::query()->count())->toBe(0);
+
+    $store('2026-10-10')->assertSessionHasNoErrors();
+    expect(Qualification::query()->sole()->last_vet_date->toDateString())->toBe('2026-10-10');
+
+    $store('2024-01-05')->assertSessionHasNoErrors();
+    expect(Qualification::query()->sole()->last_vet_date->toDateString())->toBe('2024-01-05');
+});
+
+it('refuses a Last vet date after today on the org clock when changing the date', function () {
+    $this->travelTo('2026-10-11 02:00:00');
+    $group = qualGroup();
+    $tour = Tour::factory()->create(['group_id' => $group->id]);
+    $vetting = qualMemberOf($group, Role::Vetting);
+    $qualification = Qualification::factory()->create([
+        'group_member_id' => qualMembershipOf($group)->id, 'tour_id' => $tour->id, 'last_vet_date' => '2022-02-02',
+    ]);
+
+    $update = fn (string $date) => $this->actingAs($vetting)
+        ->patch(route('qualifications.update', ['qualification' => $qualification]), ['last_vet_date' => $date]);
+
+    $update('2026-10-11')->assertSessionHasErrors(['last_vet_date' => __('group.qualifications.future_date')]);
+    expect($qualification->refresh()->last_vet_date->toDateString())->toBe('2022-02-02');
+
+    $update('2026-10-10')->assertSessionHasNoErrors();
+    expect($qualification->refresh()->last_vet_date->toDateString())->toBe('2026-10-10');
+});
+
 it('lets a Vetting officer remove a qualification', function () {
     $group = qualGroup();
     $tour = Tour::factory()->create(['group_id' => $group->id]);

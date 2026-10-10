@@ -84,7 +84,7 @@ Si vous ajoutez une qualification inactive, elle redevient active avec la nouvel
 ## Changer la date de la dernière vérification
 
 1. Sélectionnez **Changer la date** à côté de la qualification.
-2. Saisissez la nouvelle date.
+2. Saisissez la nouvelle date. Elle ne peut pas être après aujourd'hui.
 3. Sélectionnez **Enregistrer**.
 
 > **Note :** La date de la dernière vérification n'expire jamais. L'application ne fait que l'afficher.

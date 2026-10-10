@@ -238,6 +238,7 @@ return [
         'save' => 'Save',
         'cancel' => 'Cancel',
         // The roster row's link to the by-Member screen.
+        'future_date' => "The last vet date can't be in the future.",
         'roster_link' => 'Tours',
     ],
 

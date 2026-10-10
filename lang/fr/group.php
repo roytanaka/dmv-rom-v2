@@ -219,6 +219,7 @@ return [
         'not_current' => 'N’est plus membre actif',
         'save' => 'Enregistrer',
         'cancel' => 'Annuler',
+        'future_date' => 'La date de la dernière vérification ne peut pas être dans le futur.',
         'roster_link' => 'Visites',
     ],
     'coming_soon' => 'Cette section arrive bientôt.',
