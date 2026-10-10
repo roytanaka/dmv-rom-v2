@@ -71,13 +71,19 @@ class SignUpPolicy
 
         $membership = $actor->membershipIn($schedule->group);
 
-        if ($shift->audience === ShiftAudience::Group) {
-            return $membership !== null && $membership->status->canSignUp();
+        $clearsAudience = $shift->audience === ShiftAudience::Group
+            ? $membership !== null && $membership->status->canSignUp()
+            // `open`: a Member of the owning Group still answers to their per-Group floor
+            // there; a Member of another Group has none and passes on the read check above.
+            : $membership === null || $membership->status->canSignUp();
+
+        if (! $clearsAudience) {
+            return false;
         }
 
-        // `open`: a Member of the owning Group still answers to their per-Group floor
-        // there; a Member of another Group has none and passes on the read check above.
-        return $membership === null || $membership->status->canSignUp();
+        // A Tour-carrying kind (#790, ADR-0033 §6): the Member must be able to give at least one
+        // of its Tours. Which one they give is the Form Request's to check.
+        return $shift->toursOffered()->isEmpty() || $actor->toursGivableOn($shift)->isNotEmpty();
     }
 
     /**

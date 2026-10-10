@@ -83,6 +83,21 @@ Ajouter une qualification inactive la rend de nouveau active, avec la nouvelle d
 
 Le membre ne peut plus s'inscrire lui-même à cette visite.
 
+## S'inscrire pour une visite
+
+Un membre donne une visite quand il s'inscrit à un quart dont le type contient des visites.
+
+1. Ouvrez l'horaire dans l'onglet **Horaire** de votre groupe.
+2. Sélectionnez **S'inscrire** sur le quart.
+3. Si le type contient plusieurs visites, choisissez-en une sous **Visite**.
+4. Sélectionnez **S'inscrire**.
+
+La liste ne montre que les visites que vous pouvez donner. Ce sont les visites pour lesquelles vous avez une qualification active, et les visites ouvertes à tous. Un type qui n'a qu'une visite la choisit pour vous.
+
+La visite s'affiche à côté de votre nom sur le quart, dans **Mes inscriptions** et dans le calendrier.
+
+> **Note :** Vous ne voyez pas de bouton **S'inscrire** là où vous ne pouvez donner aucune des visites du type.
+
 ## Et ensuite
 
 Lisez [Gérer les types de quart de votre groupe](manage-your-groups-shift-kinds) pour ajouter les types que remplissent vos visites.

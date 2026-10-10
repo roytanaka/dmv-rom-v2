@@ -401,6 +401,8 @@ const formId = useId();
                     class="max-w-full flex-wrap gap-1 font-normal whitespace-normal"
                 >
                     {{ signUpName(signUp) }}
+                    <!-- The Tour this seat gives (#790, ADR-0033 §2), as-authored. -->
+                    <span v-if="signUp.tour" class="text-muted-foreground">· {{ signUp.tour }}</span>
                     <!-- The Objects on this seat (#586, ADR-0026 §3) — what the Member is taking
                          onto the floor, named under them so a colleague sees what is already out
                          before they pick. A retired Object still shows its name here. -->

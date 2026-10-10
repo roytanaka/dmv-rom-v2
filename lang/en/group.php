@@ -297,6 +297,14 @@ return [
             'move_up' => 'Move up',
             'move_down' => 'Move down',
         ],
+        // The Tour a Member gives on a sign-up (#790, ADR-0033 §2) — the take dialog's picker.
+        'tour' => [
+            'field_label' => 'Tour',
+            'placeholder' => 'Choose a tour',
+            'required' => 'Choose the tour you will give.',
+            'not_givable' => 'You cannot give this tour on this shift.',
+            'none_here' => 'This shift has no tours.',
+        ],
         // Objects maintenance (#584, ADR-0026 §3) — the handling collection a Gallery
         // Interpreter takes onto the floor. The same block shape as shift kinds.
         'objects' => [

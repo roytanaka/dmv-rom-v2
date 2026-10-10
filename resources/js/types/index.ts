@@ -707,6 +707,9 @@ export interface ShiftSignUp {
     // The Objects this seat reserves (#586, ADR-0026 §3) — listed under the Member on the card,
     // visible to every reader. Absent on a Group with no Objects.
     objects?: ObjectOption[];
+    // The Tour this seat gives (#790, ADR-0033 §2), named on the card for every reader. Null on a
+    // seat that records none.
+    tour: string | null;
     // Officer removal (#359) — the seat's own Sign-up id, the remove target. Present only
     // for a schedule admin (a plain reader never learns another seat's id).
     signup_id?: number;
@@ -731,6 +734,13 @@ export interface ShiftSignUp {
     // The seat's comment (#655). Sent only to its author and a schedule admin; absent for a
     // co-volunteer and a plain reader. Null when the author left none.
     comment?: string | null;
+}
+
+// A Tour a Member may give on a Shift (#790, ADR-0033 §6) — an option in the take dialog's
+// Tour picker. The name is officer-authored content, never translated.
+export interface TourOption {
+    id: number;
+    name: string;
 }
 
 // A placeable Member in the officer-assignment picker (#359, ADR-0017 §6) — the Group's
@@ -769,6 +779,11 @@ export interface ShiftAgendaItem {
     capacity: number;
     taken: number;
     kind: string | null;
+    // How a take settles its Tour (#790, ADR-0033 §2): `fill` on a kind mapping one Tour (the
+    // server fills it in), `pick` on several (the take dialog asks), null on a kind with none.
+    // `tours` are the ones the viewer may give, in the Group's order — the picker's options.
+    tour_choice: 'fill' | 'pick' | null;
+    tours: TourOption[];
     // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up). Once set, the card hides
     // the Member's take and drop — self-service closes at the start; the Post-shift report stays. The
     // SignUpPolicy enforces the same bound on every write, so this is a hint, not the rule.

@@ -83,6 +83,21 @@ Adding an inactive qualification makes it active again with the new date.
 
 The Member can no longer sign up for that Tour themselves.
 
+## Sign up for a Tour
+
+A Member gives a Tour when they sign up for a Shift whose kind holds Tours.
+
+1. Open the Schedule on your Group's **Scheduling** tab.
+2. Select **Sign up** on the Shift.
+3. If the kind holds several Tours, choose one under **Tour**.
+4. Select **Sign up**.
+
+The list shows only the Tours you may give. These are the Tours you hold an active qualification for, and the Tours open to all. A kind with one Tour fills it in for you.
+
+The Tour shows beside your name on the Shift, in **My sign-ups** and on the Calendar.
+
+> **Note:** You see no **Sign up** button where you may give none of the kind's Tours.
+
 ## What next
 
 Read [Manage your Group's shift kinds](manage-your-groups-shift-kinds) to add the kinds your Tours fill.

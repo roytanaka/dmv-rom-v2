@@ -879,6 +879,34 @@ it('turns vetting on and seeds a Tour list for Docents and GDR only (#788)', fun
     expect(Tour::whereNotIn('group_id', [$docents->id, $gdr->id])->exists())->toBeFalse();
 });
 
+it('lets a seeded Docent sign up for a free Gallery/Theme slot with a Tour, and gives every seeded tour seat a Tour (#790)', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)->firstOrFail();
+
+    $free = docentsCurrentMonth()->shifts()
+        ->whereRelation('kind', 'name', 'Gallery/Theme')
+        ->where('starts_at', '>', now())
+        ->whereDoesntHave('signUps')
+        ->orderBy('starts_at')
+        ->firstOrFail();
+
+    $tour = $member->toursGivableOn($free)->first();
+    expect($tour)->not->toBeNull();
+
+    $this->actingAs($member)
+        ->post(route('sign-ups.store', $free), ['tour_id' => $tour->id])
+        ->assertSessionHasNoErrors();
+
+    expect(SignUp::where('shift_id', $free->id)->where('member_id', $member->id)->value('tour_id'))->toBe($tour->id);
+
+    // Every seeded Docents seat on a Tour-mapped kind records a Tour.
+    expect(SignUp::query()
+        ->whereNull('tour_id')
+        ->whereHas('shift.schedule', fn ($query) => $query->where('group_id', $docents->id))
+        ->whereHas('shift.kind.tours')
+        ->exists())->toBeFalse();
+});
+
 it('turns Reminders on with 3 lead days for the five Reminder Groups, off elsewhere', function () {
     // The five Groups that run Reminders today (ADR-0024 §7), each at the standard 3 lead days.
     foreach (['docents', 'guides-du-rom', 'visitor-wayfinders', 'visitor-guides', 'reception'] as $slug) {

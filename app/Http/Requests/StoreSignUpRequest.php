@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ChoosesTour;
 use App\Http\Requests\Concerns\ReservesObjects;
 use App\Models\SignUp;
 use Illuminate\Contracts\Validation\Validator;
@@ -23,6 +24,7 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class StoreSignUpRequest extends FormRequest
 {
+    use ChoosesTour;
     use ReservesObjects;
 
     /**
@@ -41,18 +43,36 @@ class StoreSignUpRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->route('shift')->loadMissing('schedule.group');
+
+        // A one-Tour kind fills in its Tour (#790, ADR-0033 §2).
+        $this->fillOnlyTour($this->route('shift'));
     }
 
     /**
-     * The only body a take carries is its Objects (#586, ADR-0026 §3) — the handling collection
-     * the taker is reserving on the seat. Required with at least one when the Group has active
-     * Objects, absent otherwise; each an active Object of the Group.
+     * A take carries its Objects (#586, ADR-0026 §3) — the handling collection the taker is
+     * reserving on the seat, required with at least one when the Group has active Objects — and
+     * its Tour (#790), required on a kind that maps to Tours.
      *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
-        return $this->objectRules($this->route('shift')->schedule->group);
+        $shift = $this->route('shift');
+
+        return [
+            ...$this->objectRules($shift->schedule->group),
+            // The Tour the taker gives (#790, ADR-0033 §6): required on a Tour kind and one they
+            // may give; prohibited elsewhere.
+            ...$this->tourRules($shift, $this->user()),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->tourMessages();
     }
 
     /**

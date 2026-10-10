@@ -271,10 +271,12 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
 // Take a free seat: the server re-checks both floors, the `audience`, capacity, and the
 // one-seat rule (StoreSignUpRequest → SignUpPolicy). `can.signUp` gates the button, so it
 // only shows where a Sign-up would take. On a Group with Objects the taker first picks the
-// Objects they carry (#586, ADR-0026 §3), so the take opens a dialog; on a Group with none the
-// POST carries no body and seats them in one click.
+// Objects they carry (#586, ADR-0026 §3), and on a kind mapping several Tours they pick the Tour
+// they give (#790, ADR-0033 §2), so the take opens a dialog; otherwise the POST carries no body
+// and seats them in one click (a one-Tour kind's Tour is filled in by the server).
 const takingShift = ref<ShiftAgendaItem | null>(null);
-const takeForm = useForm<{ objects: number[] }>({ objects: [] });
+const takeForm = useForm<{ objects: number[]; tour_id: number | null }>({ objects: [], tour_id: null });
+const takePicksTour = computed(() => takingShift.value?.tour_choice === 'pick');
 
 const takeDialogOpen = computed({
     get: () => takingShift.value !== null,
@@ -290,7 +292,7 @@ const closeTake = () => {
 };
 
 const take = (shift: ShiftAgendaItem) => {
-    if (!hasObjects.value) {
+    if (!hasObjects.value && shift.tour_choice !== 'pick') {
         router.post(route('sign-ups.store', { shift: shift.id }), {}, { preserveScroll: true });
 
         return;
@@ -298,6 +300,8 @@ const take = (shift: ShiftAgendaItem) => {
 
     takeForm.reset();
     takeForm.clearErrors();
+    // A lone Tour the Member may give is pre-selected; several leave the choice to them.
+    takeForm.tour_id = shift.tour_choice === 'pick' && shift.tours.length === 1 ? shift.tours[0].id : null;
     takingShift.value = shift;
 };
 
@@ -1662,9 +1666,9 @@ const runBulkAssign = (action: 'place' | 'remove') => {
             </DialogContent>
         </Dialog>
 
-        <!-- Take-with-Objects dialog (#586, ADR-0026 §3) — on a Group with active Objects, taking a
-             Shift first asks which Objects the taker carries. A Group with no Objects never opens
-             this: `take` posts in one click instead. The server refuses a double-booked or missing
+        <!-- Take dialog (#586, ADR-0026 §3; #790, ADR-0033 §2) — on a Group with active Objects,
+             taking a Shift first asks which Objects the taker carries; on a kind mapping several
+             Tours, which Tour they give. Otherwise `take` posts in one click instead. The server refuses a double-booked or missing
              Object, and the error binds here. -->
         <Dialog v-model:open="takeDialogOpen">
             <DialogContent>
@@ -1672,7 +1676,17 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <DialogTitle>{{ trans('group.scheduling_panel.agenda.sign_up.take') }}</DialogTitle>
                 </DialogHeader>
                 <form class="flex flex-col gap-4" @submit.prevent="submitTake">
-                    <div class="grid gap-2">
+                    <!-- The Tour the Member gives (#790, ADR-0033 §2) — on a kind mapping several
+                         Tours, listing only the ones they may give. -->
+                    <div v-if="takePicksTour" class="grid gap-2">
+                        <Label for="take-tour">{{ trans('group.scheduling_panel.tour.field_label') }}</Label>
+                        <NativeSelect id="take-tour" v-model="takeForm.tour_id" required>
+                            <option :value="null" disabled>{{ trans('group.scheduling_panel.tour.placeholder') }}</option>
+                            <option v-for="tour in takingShift?.tours ?? []" :key="tour.id" :value="tour.id">{{ tour.name }}</option>
+                        </NativeSelect>
+                        <InputError :message="takeForm.errors.tour_id" />
+                    </div>
+                    <div v-if="hasObjects" class="grid gap-2">
                         <Label>{{ trans('group.scheduling_panel.objects.field_label') }}</Label>
                         <ObjectPicker
                             v-model="takeForm.objects"

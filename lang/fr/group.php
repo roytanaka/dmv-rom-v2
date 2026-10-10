@@ -277,6 +277,14 @@ return [
             'move_up' => 'Monter',
             'move_down' => 'Descendre',
         ],
+        // La visite qu’un·e membre donne à l’inscription (#790, ADR-0033 §2).
+        'tour' => [
+            'field_label' => 'Visite',
+            'placeholder' => 'Choisissez une visite',
+            'required' => 'Choisissez la visite que vous donnerez.',
+            'not_givable' => 'Vous ne pouvez pas donner cette visite à ce quart.',
+            'none_here' => 'Ce quart n’a pas de visites.',
+        ],
         // Maintenance des objets (#584, ADR-0026 §3) — la collection à manipuler qu’un·e
         // interprète de galerie apporte sur le plancher. Même forme que les types de quart.
         'objects' => [

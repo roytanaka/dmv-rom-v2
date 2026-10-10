@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class Member extends Authenticatable implements HasLocalePreference
@@ -208,6 +209,38 @@ class Member extends Authenticatable implements HasLocalePreference
         $this->loadMissing('memberships.roles');
 
         return $this->memberships->firstWhere('group_id', $group->getKey());
+    }
+
+    /**
+     * The Tours this Member may give on a Shift (#790, ADR-0033 §6) — the one "may give" rule
+     * every Tour-carrying write reads: of the Shift's offered Tours ({@see Shift::toursOffered()}),
+     * those open to all, and those the Member holds an **active** qualification for in the
+     * Shift's Group. A Member of another Group holds none there, so open-to-all Tours are all
+     * they may give. Empty when the Shift offers no Tours.
+     *
+     * The Membership's qualifications are loaded once and kept on it, so asking per Shift on a
+     * whole Agenda costs one query.
+     *
+     * @return Collection<int, Tour>
+     */
+    public function toursGivableOn(Shift $shift): Collection
+    {
+        $offered = $shift->toursOffered();
+
+        if ($offered->isEmpty()) {
+            return $offered;
+        }
+
+        $membership = $this->membershipIn($shift->schedule->group);
+        $membership?->loadMissing('qualifications');
+
+        $held = $membership === null
+            ? collect()
+            : $membership->qualifications->where('active', true)->pluck('tour_id');
+
+        return $offered
+            ->filter(fn (Tour $tour) => $tour->open_to_all || $held->contains($tour->id))
+            ->values();
     }
 
     /**

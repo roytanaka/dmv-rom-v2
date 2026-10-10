@@ -1969,7 +1969,7 @@ class DemoSeeder extends Seeder
         $unrecordedFrom = $now->subDays(self::UNRECORDED_DAYS);
 
         $shifts = Shift::whereIn('schedule_id', array_map(fn (Schedule $schedule) => $schedule->id, $schedules))
-            ->with('kind')
+            ->with(['kind.tours', 'schedule.group'])
             ->orderBy('starts_at')
             ->orderBy('id')
             ->get();
@@ -2052,9 +2052,15 @@ class DemoSeeder extends Seeder
             $origins = $group->collects_visitor_provenance ? $this->splitProvenance($count, $seed + 2) : $origins;
         }
 
+        // The Tour the seat gives (#790, ADR-0033 §2): one the Member may give on the Shift's kind,
+        // drawn deterministically; null on a kind with no Tours.
+        $givable = $member->toursGivableOn($shift);
+        $tourId = $givable->isEmpty() ? null : $givable[($shift->id + $seat) % $givable->count()]->id;
+
         return [
             'shift_id' => $shift->id,
             'member_id' => $member->id,
+            'tour_id' => $tourId,
             'visitor_count' => $count,
             'extra_interaction_count' => $extra,
             'visitors_france_europe' => $origins[0],
@@ -2221,6 +2227,8 @@ class DemoSeeder extends Seeder
         $row = [
             'shift_id' => $shift->id,
             'member_id' => $member->id,
+            // These Groups have no Tours (#790).
+            'tour_id' => null,
             'visitor_count' => null,
             'extra_interaction_count' => null,
             'visitors_france_europe' => null,
@@ -2285,6 +2293,7 @@ class DemoSeeder extends Seeder
                 $chunk,
                 ['shift_id', 'member_id'],
                 [
+                    'tour_id',
                     'visitor_count',
                     'extra_interaction_count',
                     'visitors_france_europe',

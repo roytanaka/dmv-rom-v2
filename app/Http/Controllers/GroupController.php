@@ -1063,8 +1063,9 @@ class GroupController extends Controller
                 // them, so a first save shows its summary here instead of dropping out.
                 ->orWhereIn('id', $justSaved))
             ->with([
-                'shift.kind',
+                'shift.kind.tours',
                 'shift.schedule.group',
+                'shift.signUps.tour',
                 'shift.signUps.member.memberships.group',
                 'shift.signUps.member.memberships.roles',
                 'shift.signUps.objects',
@@ -1159,7 +1160,7 @@ class GroupController extends Controller
         $viewer = $request->user();
 
         $shifts = $schedule->shifts()
-            ->with(['kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
+            ->with(['kind.tours', 'signUps.tour', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get()
             // The per-Shift SignUpPolicy check reads `$shift->schedule` (and its Group); set
@@ -1203,7 +1204,7 @@ class GroupController extends Controller
             ->whereHas('schedule', fn (Builder $query) => $query
                 ->where('group_id', '!=', $schedule->group_id)
                 ->where('state', ScheduleState::Published))
-            ->with(['schedule.group', 'kind', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
+            ->with(['schedule.group', 'kind.tours', 'signUps.tour', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get();
 
@@ -1258,6 +1259,18 @@ class GroupController extends Controller
             'capacity' => $shift->capacity,
             'taken' => $taken,
             'kind' => $shift->kind?->name,
+            // How a take on this Shift settles its Tour (#790, ADR-0033 §2): `fill` on a kind
+            // mapping one active Tour (no question asked), `pick` on several (the take dialog asks),
+            // null on a kind with none. `tours` lists the ones this viewer may give, in the
+            // Group's order — the picker's options. UI hints; StoreSignUpRequest re-checks.
+            'tour_choice' => match ($shift->toursOffered()->count()) {
+                0 => null,
+                1 => 'fill',
+                default => 'pick',
+            },
+            'tours' => $viewer->toursGivableOn($shift)
+                ->map(fn (Tour $tour) => ['id' => $tour->id, 'name' => $tour->name])
+                ->all(),
             // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up), so the card hides
             // the Member's take and drop once it has — self-service closes at the start. The
             // SignUpPolicy enforces the same bound on every write regardless.
@@ -1285,6 +1298,10 @@ class GroupController extends Controller
                     $seat['objects'] = $signUp->objects
                         ->map(fn (HandlingObject $object) => ['id' => $object->id, 'name' => $object->name])
                         ->all();
+
+                    // The Tour this seat gives (#790, ADR-0033 §2) — named on the seat for every
+                    // reader, as-authored even when retired; null on a seat that records none.
+                    $seat['tour'] = $signUp->tour?->name;
 
                     // Officer removal and correction (#359, #450) — a schedule admin gets, on
                     // *every* seat, the seat's Sign-up id: the removal target and the write

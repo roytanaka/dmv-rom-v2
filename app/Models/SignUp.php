@@ -69,6 +69,7 @@ class SignUp extends Model
     protected $fillable = [
         'shift_id',
         'member_id',
+        'tour_id',
         'visitor_count',
         'extra_interaction_count',
         'visitors_france_europe',
