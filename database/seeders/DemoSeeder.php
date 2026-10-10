@@ -21,6 +21,7 @@ use App\Models\Booking;
 use App\Models\BookingType;
 use App\Models\Document;
 use App\Models\DocumentFolder;
+use App\Models\ExhibitionRevenue;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupStewardship;
@@ -159,8 +160,9 @@ class DemoSeeder extends Seeder
     /**
      * A month's Docents group tours (#795, ADR-0032 §1), as day-offsets from the first (all ≤ 24,
      * inside even February). Shaped on a year of legacy bookings: school groups at 10:00 with
-     * three or four Docents, paid evening tours with two, and a free late-morning member tour with
-     * one. Each is a Booking with its client, Tour, booking type and expected visitors; the order
+     * three or four Docents, paid evening tours with two, a free late-morning member tour with
+     * one, and a Spot Paid afternoon, two Docents stationed in a gallery and paid by the
+     * docent-hour. Each is a Booking with its client, Tour, booking type and expected visitors; the order
      * number and date are drawn per month in {@see bookings()}.
      *
      * @var list<array{day: int, start: array{int, int}, minutes: int, docents: int, client: string, tour: string, type: string, visitors: int, leader: ?string, comments: ?string}>
@@ -171,7 +173,17 @@ class DemoSeeder extends Seeder
         ['day' => 14, 'start' => [11, 30], 'minutes' => 45, 'docents' => 1, 'client' => 'ROM Members', 'tour' => 'Custom (Group)', 'type' => 'Tour Internal', 'visitors' => 15, 'leader' => null, 'comments' => 'Member preview. Meet at the Weston Entrance.'],
         ['day' => 19, 'start' => [18, 0], 'minutes' => 60, 'docents' => 2, 'client' => 'University of Toronto Alumni', 'tour' => 'Ancient Egypt', 'type' => 'Tour Paid', 'visitors' => 25, 'leader' => 'Dr. Amara Lewis', 'comments' => null],
         ['day' => 24, 'start' => [10, 0], 'minutes' => 75, 'docents' => 4, 'client' => 'Toronto District School Board', 'tour' => 'Family', 'type' => 'Tour Free', 'visitors' => 90, 'leader' => 'Mr. Singh', 'comments' => 'Grade 2. Lunch room booked for 11:30.'],
+        ['day' => 11, 'start' => [13, 0], 'minutes' => 120, 'docents' => 2, 'client' => 'Ontario Science Centre Teachers', 'tour' => 'Dinosaurs', 'type' => 'Spot Paid', 'visitors' => 40, 'leader' => null, 'comments' => 'Two Docents stationed in the Dinosaur gallery.'],
     ];
+
+    /**
+     * The Statistician's correction to one of last month's Docents group tours (#797, ADR-0032 §7):
+     * the school's Tour Paid tour, worked out at 64 visitors × $5, billed at a negotiated $300.
+     */
+    private const DOCENT_EARNED_CORRECTION = ['client' => 'Bayview Public School', 'amount' => '300.00'];
+
+    /** The Docents' exhibition revenue for last month (#800, ADR-0032 §12), entered on Tour Summary. */
+    private const DOCENT_EXHIBITION_REVENUE = '1250.00';
 
     /**
      * A sample of the Docents' Tour list (#788, ADR-0033 §1): name => [open to all, kinds it is
@@ -1215,10 +1227,13 @@ class DemoSeeder extends Seeder
 
         $this->seatTours($docents, $previous, $current);
 
+        $lastGroupTours = $this->bookings($docents, $lastMonth, self::DOCENT_BOOKINGS, 'en');
         $this->seatBookings($docents, [
-            $this->bookings($docents, $lastMonth, self::DOCENT_BOOKINGS, 'en'),
+            $lastGroupTours,
             $this->bookings($docents, $month, self::DOCENT_BOOKINGS, 'en'),
         ], [10, 25]);
+        $this->bookingFigures($docents, $lastGroupTours, $lastMonth);
+        $this->ensureBooker($docents);
 
         $this->draftNextMonth($docents, $month);
 
@@ -1485,6 +1500,7 @@ class DemoSeeder extends Seeder
             $groupTours[] = $this->bookings($group, $start, [['day' => $saturday->day - 1, ...self::GDR_BOOKING]], 'fr');
         }
         $this->seatBookings($group, $groupTours, [15, 25]);
+        $this->ensureBooker($group);
     }
 
     /**
@@ -2007,6 +2023,44 @@ class DemoSeeder extends Seeder
         }
 
         return $schedule;
+    }
+
+    /**
+     * Last month's office figures on the Docents group tours (#797, #800): the Statistician's
+     * correction to one Booking's Earned ({@see DOCENT_EARNED_CORRECTION}) and the month's
+     * exhibition revenue ({@see DOCENT_EXHIBITION_REVENUE}), so Tour Summary shows both. Both
+     * writes set a value, so a reseed heals rather than duplicates.
+     */
+    private function bookingFigures(Group $docents, Schedule $lastGroupTours, CarbonImmutable $lastMonth): void
+    {
+        Booking::whereRelation('shift', 'schedule_id', $lastGroupTours->id)
+            ->where('client', self::DOCENT_EARNED_CORRECTION['client'])
+            ->first()
+            ?->correctEarned(self::DOCENT_EARNED_CORRECTION['amount']);
+
+        ExhibitionRevenue::enter($docents, $lastMonth->format('Ym'), self::DOCENT_EXHIBITION_REVENUE);
+    }
+
+    /**
+     * Give the Group one Booker (#794, ADR-0032 §3) unless it has one: the first Full-standing
+     * Member of the generated pool who holds no role there, so a walkthrough can show a Booker who
+     * is not also the Chair. Never a curated Persona: officers come from the pool
+     * ({@see ensureLeadership()}).
+     */
+    private function ensureBooker(Group $group): void
+    {
+        $personas = array_map(fn (Persona $persona) => $persona->email, PersonaCatalogue::all());
+
+        $membership = GroupMember::where('group_id', $group->id)
+            ->where('status', MembershipStatus::Full)
+            ->whereDoesntHave('roles')
+            ->whereHas('member', fn ($query) => $query->whereNotIn('email', $personas))
+            ->orderBy('id')
+            ->first();
+
+        if ($membership !== null) {
+            $this->ensureRole($group, $membership->member, Role::Booker);
+        }
     }
 
     /**

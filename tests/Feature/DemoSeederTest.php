@@ -19,6 +19,7 @@ use App\Models\BookingType;
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
+use App\Models\ExhibitionRevenue;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -517,7 +518,60 @@ it('keeps the Bookings idempotent across a reseed', function () {
 
     $this->seed(DemoSeeder::class);
 
-    expect(Booking::count())->toBe($before)->toBe(12);
+    expect(Booking::count())->toBe($before)->toBe(14);
+});
+
+it('seeds a Spot Paid group tour on Docents, paid by the docent-hour', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $spots = Booking::where('group_id', $docents->id)
+        ->whereRelation('bookingType', 'name', 'Spot Paid')
+        ->with(['shift.signUps', 'bookingType'])
+        ->get();
+
+    expect($spots)->toHaveCount(2)
+        ->and($spots->every(fn (Booking $b) => (float) $b->bookingType->rate_per_docent_hour > 0))->toBeTrue()
+        ->and($spots->contains(fn (Booking $b) => (float) $b->earned() > 0))->toBeTrue();
+});
+
+it('seeds one corrected Earned on last month\'s Docents group tours', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $corrected = Booking::where('group_id', $docents->id)->whereNotNull('earned_correction')->with(['shift.signUps', 'bookingType'])->sole();
+
+    expect($corrected->client)->toBe('Bayview Public School')
+        ->and($corrected->earned())->toBe('300.00')
+        ->and($corrected->workedOutEarned())->toBe('320.00')
+        ->and($corrected->shift->ends_at->isPast())->toBeTrue();
+});
+
+it('seeds last month\'s exhibition revenue for Docents', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $lastMonth = OrgTime::now()->startOfMonth()->subMonth()->format('Ym');
+
+    expect(ExhibitionRevenue::amountFor($docents, $lastMonth))->toBe('1250.00')
+        ->and(ExhibitionRevenue::count())->toBe(1);
+});
+
+it('gives Docents and GDR each a Booker from the pool who holds no other role there', function (string $slug) {
+    $group = Group::where('slug', $slug)->firstOrFail();
+    $personas = array_map(fn ($persona) => $persona->email, PersonaCatalogue::all());
+    $bookers = GroupMember::where('group_id', $group->id)
+        ->whereRelation('roles', 'role', Role::Booker)
+        ->with(['member', 'roles'])
+        ->get();
+
+    expect($bookers)->toHaveCount(1)
+        ->and($bookers->first()->roles->pluck('role')->all())->toBe([Role::Booker])
+        ->and($bookers->first()->status)->toBe(MembershipStatus::Full)
+        ->and($personas)->not->toContain($bookers->first()->member->email);
+})->with(['Docents' => [DemoSeeder::PROGRAM], 'GDR' => [DemoSeeder::GUIDES_DU_ROM]]);
+
+it('keeps the Booker, the correction and the exhibition revenue idempotent across a reseed', function () {
+    $bookers = fn () => GroupMemberRole::where('role', Role::Booker)->count();
+    $before = [$bookers(), Booking::whereNotNull('earned_correction')->count(), ExhibitionRevenue::count()];
+
+    $this->seed(DemoSeeder::class);
+
+    expect([$bookers(), Booking::whereNotNull('earned_correction')->count(), ExhibitionRevenue::count()])->toBe($before)->toBe([2, 1, 1]);
 });
 
 it('fills the Docents month the way a real one fills: worked tours full, upcoming ones part-taken', function () {
