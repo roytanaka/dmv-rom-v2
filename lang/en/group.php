@@ -205,6 +205,7 @@ return [
         'empty' => 'This group has no tours yet.',
         'open_to_all' => 'Open to all',
         'none' => 'No one yet.',
+        'open_to_all_none' => 'Any member may give this tour.',
         'last_vet_date' => 'Last vet date',
         'no_date' => 'No date',
     ],

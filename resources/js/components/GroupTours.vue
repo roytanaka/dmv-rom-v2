@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // The Tours page (#792, ADR-0033 §5) — the old Who's Who tour lists. Members of the Group see each
 // active Tour and the Members who give it, with their Last vet dates. Open-to-all Tours are marked:
-// they need no qualification. For a Vetting officer, the Chair or super-tier (`canManage`), each Tour
+// they need no qualification, so an empty one says any Member may give it (#802). For a Vetting officer, the Chair or super-tier (`canManage`), each Tour
 // name links to its by-Tour screen (#789). Tour and Member names are content, shown as authored
 // (ADR-0004). One card per Tour, a stacked list inside, so it reads at phone width.
 import TextLink from '@/components/TextLink.vue';
@@ -42,7 +42,9 @@ const formatDate = (iso: string | null) => (iso === null ? trans('group.tours_pa
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <p v-if="tour.members.length === 0" class="text-muted-foreground text-sm">{{ trans('group.tours_page.none') }}</p>
+                <p v-if="tour.members.length === 0" class="text-muted-foreground text-sm">
+                    {{ trans(tour.openToAll ? 'group.tours_page.open_to_all_none' : 'group.tours_page.none') }}
+                </p>
                 <ul v-else class="divide-border divide-y text-sm">
                     <li v-for="member in tour.members" :key="member.memberId" class="flex flex-wrap items-baseline justify-between gap-x-4 py-2">
                         <span class="font-medium">{{ member.name }}</span>
