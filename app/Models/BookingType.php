@@ -72,6 +72,16 @@ class BookingType extends Model
     }
 
     /**
+     * Limit the query to active types — the ones still offered.
+     *
+     * @param  Builder<BookingType>  $query
+     */
+    public function scopeActive(Builder $query): void
+    {
+        $query->where('active', true);
+    }
+
+    /**
      * Order types the one way the app lists them: the Group's authored order, then name.
      *
      * @param  Builder<BookingType>  $query
