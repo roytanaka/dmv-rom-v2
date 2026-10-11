@@ -110,7 +110,14 @@ const moveType = (index: number, delta: number) => {
 };
 
 // Delete, behind a confirm. The server refuses while any Booking uses the type.
+// The dialog's open state is separate from the target: AlertDialogAction closes the dialog before
+// its click handler runs, so `deleting` must outlive the close.
 const deleting = ref<SettingsBookingType | null>(null);
+const deleteOpen = ref(false);
+const askDelete = (type: SettingsBookingType) => {
+    deleting.value = type;
+    deleteOpen.value = true;
+};
 const rowError = ref<string | undefined>(undefined);
 
 const confirmDelete = () => {
@@ -121,7 +128,7 @@ const confirmDelete = () => {
     router.delete(route('booking-types.destroy', { bookingType: deleting.value.id }), {
         preserveScroll: true,
         onError: (errors) => (rowError.value = errors.booking_type),
-        onFinish: () => (deleting.value = null),
+        onFinish: () => (deleteOpen.value = false),
     });
 };
 
@@ -204,7 +211,7 @@ const money = (value: string) => `$${value}`;
                             <Button v-else type="button" size="sm" variant="ghost" @click="setActive(type.id, true)">
                                 {{ trans('group.booking_types.restore') }}
                             </Button>
-                            <Button type="button" size="sm" variant="ghost" @click="deleting = type">{{
+                            <Button type="button" size="sm" variant="ghost" @click="askDelete(type)">{{
                                 trans('group.booking_types.delete')
                             }}</Button>
                         </div>
@@ -249,7 +256,7 @@ const money = (value: string) => `$${value}`;
         </DialogContent>
     </Dialog>
 
-    <AlertDialog :open="deleting !== null" @update:open="(open: boolean) => !open && (deleting = null)">
+    <AlertDialog v-model:open="deleteOpen">
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>{{ trans('group.booking_types.delete_title', { type: deleting?.name ?? '' }) }}</AlertDialogTitle>

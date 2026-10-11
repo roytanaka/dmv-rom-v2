@@ -236,8 +236,11 @@ const openBookingEdit = (shift: ShiftAgendaItem) => {
 };
 
 // Deleting removes the Shift's Sign-ups too, so the confirmation dialog names the Members it
-// removes. `bookingDeleting` is the group tour awaiting confirmation; null closes the dialog.
+// removes. `bookingDeleting` is the group tour awaiting confirmation. The dialog's open state is
+// separate: AlertDialogAction closes the dialog before its click handler runs, so the target must
+// outlive the close.
 const bookingDeleting = ref<ShiftAgendaItem | null>(null);
+const bookingDeleteOpen = ref(false);
 const bookingDeleteBody = computed(() => {
     const names = (bookingDeleting.value?.signups ?? []).map((signUp) => `${signUp.first_name} ${signUp.last_name}`).join(', ');
     return names ? trans('group.bookings.delete_signups_body', { names }) : trans('group.bookings.delete_body');
@@ -245,6 +248,7 @@ const bookingDeleteBody = computed(() => {
 
 const destroyBooking = (shift: ShiftAgendaItem) => {
     bookingDeleting.value = shift;
+    bookingDeleteOpen.value = true;
 };
 
 const confirmDestroyBooking = () => {
@@ -253,8 +257,8 @@ const confirmDestroyBooking = () => {
 
     router.delete(route('bookings.destroy', { booking: booking.id }), {
         preserveScroll: true,
-        onSuccess: () => {
-            bookingDeleting.value = null;
+        onFinish: () => {
+            bookingDeleteOpen.value = false;
         },
     });
 };
@@ -1469,7 +1473,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
             :booking="bookingEditing?.booking ?? null"
         />
         <!-- Delete a group tour (#796) — confirms, naming the Members whose sign-ups go with it. -->
-        <AlertDialog :open="bookingDeleting !== null" @update:open="(open: boolean) => !open && (bookingDeleting = null)">
+        <AlertDialog v-model:open="bookingDeleteOpen">
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>{{ trans('group.bookings.confirm_delete') }}</AlertDialogTitle>
