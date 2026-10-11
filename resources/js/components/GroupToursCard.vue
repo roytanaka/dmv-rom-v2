@@ -109,7 +109,14 @@ const saveMapping = () => {
 };
 
 // Delete, behind a confirm. The server refuses while a qualification or Sign-up points at the Tour.
+// The dialog's open state is separate from the target: AlertDialogAction closes the dialog before
+// its click handler runs, so `deleting` must outlive the close.
 const deleting = ref<SettingsTour | null>(null);
+const deleteOpen = ref(false);
+const askDelete = (tour: SettingsTour) => {
+    deleting.value = tour;
+    deleteOpen.value = true;
+};
 
 const confirmDelete = () => {
     if (!deleting.value) {
@@ -119,7 +126,7 @@ const confirmDelete = () => {
     router.delete(route('tours.destroy', { tour: deleting.value.id }), {
         preserveScroll: true,
         onError: (errors) => (rowError.value = errors.tour),
-        onFinish: () => (deleting.value = null),
+        onFinish: () => (deleteOpen.value = false),
     });
 };
 </script>
@@ -186,7 +193,7 @@ const confirmDelete = () => {
                         <Button v-else type="button" size="sm" variant="ghost" @click="patchTour(tour.id, { active: true })">
                             {{ trans('group.tours.restore') }}
                         </Button>
-                        <Button type="button" size="sm" variant="ghost" @click="deleting = tour">{{ trans('group.tours.delete') }}</Button>
+                        <Button type="button" size="sm" variant="ghost" @click="askDelete(tour)">{{ trans('group.tours.delete') }}</Button>
                         <label class="text-muted-foreground ml-auto flex items-center gap-1.5 text-sm">
                             <Checkbox :checked="tour.openToAll" @update:checked="(on: boolean) => patchTour(tour.id, { open_to_all: on })" />
                             {{ trans('group.tours.open_to_all') }}
@@ -227,7 +234,7 @@ const confirmDelete = () => {
         </DialogContent>
     </Dialog>
 
-    <AlertDialog :open="deleting !== null" @update:open="(open: boolean) => !open && (deleting = null)">
+    <AlertDialog v-model:open="deleteOpen">
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>{{ trans('group.tours.delete_title', { tour: deleting?.name ?? '' }) }}</AlertDialogTitle>
