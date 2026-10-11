@@ -195,6 +195,26 @@ _Avoid_: Laravel's `jobs` table, or the word "job", for it. A Delivery is our ow
 The every-minute scheduled task that sends pending **Deliveries**. **The only code path that talks SMTP.** Runs under an overlap lock; stops the pass on a connection-level error (which is also how the host's daily cap presents) and retries next minute without giving up; writes "scheduler last ran" and "last connection error" for the super-tier Mail status page; checks in with the Sentry cron monitor. A second task, the **daily pass** at 06:00, only writes Delivery rows for Reminders and the empty-desk alert.
 _Avoid_: "worker" or "queue worker" ([ADR-0002](docs/adr/0002-stay-on-stormweb-shared-hosting.md): none exist; this is a cron pass), and sending mail from anywhere else.
 
+**Invitation**:
+An occasion a **Host** asks named **Members** to attend, together with its guest list. Members only, never outside people. An Invitation belongs to its Host, not to a **Group**: Invitations is an org-wide feature, not a Group capability.
+_Avoid_: "event", "e-Vite", "RSVP" as a noun for the occasion. And "Invitations Group": legacy's Invitations committee is not carried over.
+
+**Host**:
+The **Member** who creates an **Invitation** and runs it. Any Member whose **Category** gives Full access may host. A Host invites from the Groups they belong to; an **org-wide sender** may also invite All Members or any Group. The super-tier may manage every Invitation.
+_Avoid_: "organiser", "creator", and the legacy "executive host" or "super-host".
+
+**Guest**:
+A **Member** on an **Invitation**'s guest list. Each Guest carries one **Reply**. A Host who replies for a Member adds them as a Guest.
+_Avoid_: "invitee", "attendee". And reading a Guest as someone who came: like a **Sign-up**, a Guest says nothing about **attendance**.
+
+**Reply**:
+A **Guest**'s answer to an **Invitation**: No reply, Accepted, or Declined. An Accepted Reply also names the **Options** the Guest chose.
+_Avoid_: "RSVP" as a noun, "response", "confirmation", "cancellation" (legacy's word for a first-time decline).
+
+**Option**:
+A named extra within an **Invitation** that a Guest chooses separately when accepting, such as a lunch or a tour after the main occasion. Name only: no time or capacity of its own. An Invitation may have any number.
+_Avoid_: "sub-event", "event 1 / event 2", "add-on".
+
 **Visitor count**:
 The number of visitors one **Member** served on one **Shift**, recorded after the shift on their **Sign-up** as a nullable integer (`visitor_count`). Null means _not recorded_; zero means _recorded as zero_. The Member enters it at sign-out; a Group **Officer** may set or correct it at any time, with no deadline. Nine of the ten scheduling Groups collect it, and whether a Group collects it is a **Group** setting rather than a **shift kind** one. It never feeds **hours** ([#404](https://github.com/roytanaka/dmv-rom-v2/issues/404)).
 _Avoid_: reading it as a headcount of distinct people. Several volunteers on one Shift each record their own number, so a Group total counts _interactions_, not visitors. And do not confuse it with a **Booking**'s expected audience, which is a forecast typed before the event.
@@ -301,6 +321,7 @@ _Avoid_: epic, spec, brief, initiative — all refer to the same artifact in oth
 - **Login** to the app grants the **Member** their session and their authorization scope
 - An **Officer** sends a **Broadcast** to an **Audience**; any **Member** sends a **Direct message** to one Member; both become one sent record and one **Delivery** per recipient
 - The daily pass writes a **Reminder** Delivery per (Shift, Member) inside the lead window; a **Notice** fires from the action that changes something; the **Drain** sends every Delivery; the **No-email flag** stops a row being written at all
+- A **Host** creates an **Invitation**; each **Guest** on it carries one **Reply**; an Accepted Reply names zero or more of the Invitation's **Options**
 - A **Help section** holds **Help articles**; every article carries an **Article status** and a **Required role** and maps to one app page; the **Help ledger** is the full list, and every logged-in **Member** can read every published article
 
 ## Example dialogue
@@ -340,13 +361,14 @@ _Avoid_: reading legacy `RoleID` as one of our **roles**. Ours (Chair, Secretary
 Legacy's group tours, ROMBus trips and Walker group dates. Docents and GDR's group tours are our **Booking** (see above), ported faithfully. Outreach, ROMBus and Walker each run their own variant and are not covered by it. Legacy's "Group Tour" flag on a docent is a permission, not a kind of tour. In legacy, Earned is silently recalculated by an ordinary edit and overwrites the Statistician's correction; ours keeps the correction.
 _Avoid_: treating a booking as a kind of Shift. And there is **no client table**: the client is re-typed every time and auto-filled from prior bookings.
 
-**Event** — three senses:
+**Event** — four senses:
 
 - _legacy_ `specialEvents` — the **date-range schedule container** for Visitor Wayfinders. **We call this a `Schedule`** ([ADR-0021](docs/adr/0021-scheduling-first-pass.md)) — the same entity a monthly Group uses, with a different range and name.
 - _plain English_ — a real-world happening at the ROM (an open house, an exhibit opening). Not a system concept — and deliberately unmodelled, so two Groups both staffing Doors Open produce two Schedules of the same name with nothing joining them.
 - _our_ **Group** definition — "event cohort" appears as one of the things that is a Group.
+- _legacy_ Invitations ("e-Vite") — an occasion with a guest list and replies. **We call this an `Invitation`**; its "event 1" and "event 2" are **Options**.
 
-_Avoid_: bare "event". Say **Schedule**, _the occasion_, or **Group**.
+_Avoid_: bare "event". Say **Schedule**, **Invitation**, _the occasion_, or **Group**.
 
 **Program** — three senses:
 
