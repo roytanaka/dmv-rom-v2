@@ -94,6 +94,17 @@ class Tour extends Model
     }
 
     /**
+     * The Bookings that give this Tour (#795, ADR-0032 §1). A Tour a Booking names is retired, not
+     * deleted.
+     *
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
      * Limit the query to active Tours — the ones still offered.
      *
      * @param  Builder<Tour>  $query

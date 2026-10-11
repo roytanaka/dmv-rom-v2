@@ -1,26 +1,36 @@
 <script setup lang="ts">
 // The nav that links the officer hours surfaces to one another (#412, PRD #406, ADR-0022 §8):
 // the fiscal-year matrix (#411) and the four surfaces after it — the month picker, Member
-// History, and the two Member × twelve-month summaries. Each is its own addressable route, so
+// History, and the two Member × twelve-month summaries. On a Group running bookings it also
+// links Tour Summary and Tour Detail (#800, ADR-0032 §12). Each is its own addressable route, so
 // this bar is just links; the server gates every destination identically (viewReports, §4).
 //
 // `print:hidden` because the nav is chrome, not report content — a printed report carries the
 // matrix, not the way one navigated to it. All labels are translated (ADR-0004).
 import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
+import { computed } from 'vue';
 
-defineProps<{
+const props = defineProps<{
     groupSlug: string;
-    active: 'report' | 'month' | 'member' | 'extra' | 'meetings';
+    hasBookings?: boolean;
+    active: 'report' | 'month' | 'member' | 'extra' | 'meetings' | 'tour_summary' | 'tour_detail';
 }>();
 
-const links = [
+const hoursLinks = [
     { key: 'report', route: 'groups.hours.report' },
     { key: 'month', route: 'groups.hours.month' },
     { key: 'member', route: 'groups.hours.member' },
     { key: 'extra', route: 'groups.hours.extra' },
     { key: 'meetings', route: 'groups.hours.meetings' },
 ] as const;
+
+const tourLinks = [
+    { key: 'tour_summary', route: 'groups.hours.tour-summary' },
+    { key: 'tour_detail', route: 'groups.hours.tour-detail' },
+] as const;
+
+const links = computed(() => (props.hasBookings ? [...hoursLinks, ...tourLinks] : hoursLinks));
 </script>
 
 <template>

@@ -221,6 +221,8 @@ final class HelpManifest
             'groups.hours.member.csv',
             'groups.hours.extra.csv',
             'groups.hours.meetings.csv',
+            'groups.hours.tour-summary.csv',
+            'groups.hours.tour-detail.csv',
             'hours.committee-summary.csv',
             'hours.committee-detailed.csv',
             'hours.visitor-summary.csv',
@@ -281,6 +283,9 @@ final class HelpManifest
             // Tour (#790), and placing on and changing a Tour (#791). Mixed audience, so no `requires`
             // badge: every Member reads the Tours tab and sign-up sections.
             new HelpArticle('tours-and-qualifications', HelpSection::Groups, status: ArticleStatus::Draft, route: 'groups.show', routes: ['groups.tours.show', 'groups.tours.member']),
+            // Booking types (#794, spec #787, ADR-0032 §6) — the Booker's Group tours card on the
+            // Settings tab: the booking types and the group-tour settings.
+            new HelpArticle('manage-your-groups-booking-types', HelpSection::Groups, requires: ['booker', 'chair'], status: ArticleStatus::Draft, route: 'groups.show'),
             // Document library (#719, spec #290, ADR-0030) — reading a Group's library, then the
             // Librarian's work on it. Both map the Folder page; the tab itself rides on groups.show.
             new HelpArticle('find-a-document-in-a-groups-library', HelpSection::Groups, status: ArticleStatus::Published, route: 'groups.documents.folder'),
@@ -289,6 +294,19 @@ final class HelpManifest
             new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
             new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),
             new HelpArticle('cancel-a-sign-up', HelpSection::Scheduling, route: 'groups.scheduling.show'),
+            // Group tours (#795, spec #787, ADR-0032 §1, §4, §5) — a Booker adds a Booking, and every
+            // reader finds it on the month's group-tour Schedule.
+            new HelpArticle('add-a-group-tour', HelpSection::Scheduling, requires: ['booker', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            // Changing, moving and deleting a group tour (#796, ADR-0032 §1, §3, §4).
+            new HelpArticle('change-or-delete-a-group-tour', HelpSection::Scheduling, requires: ['booker', 'statistician', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            // Signing up for a group tour and handing the seat to a substitute (#798, ADR-0032 §8).
+            // Any Member of a Group that runs bookings.
+            new HelpArticle('sign-up-for-a-group-tour', HelpSection::Scheduling, status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            // Group tour emails (#799, ADR-0032 §9) — the Request and Confirmation, sent again from a
+            // group tour, and the Group's copy address.
+            new HelpArticle('send-group-tour-emails', HelpSection::Scheduling, requires: ['booker', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
+            // Earned and the Statistician's correction (#797, ADR-0032 §7).
+            new HelpArticle('correct-earned-on-a-group-tour', HelpSection::Scheduling, requires: ['statistician', 'chair'], status: ArticleStatus::Draft, route: 'groups.scheduling.show'),
             new HelpArticle('record-your-visitor-count', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('shifts-you-owe-a-number-for', HelpSection::Scheduling, status: ArticleStatus::Published, route: 'groups.scheduling.show'),
             new HelpArticle('reminders', HelpSection::Scheduling),
@@ -311,6 +329,8 @@ final class HelpManifest
             // Hours and reports (#526) — the officer reports and the entry that feeds them.
             new HelpArticle('hours-and-reports', HelpSection::HoursAndReports, isOverview: true, status: ArticleStatus::Published, route: 'groups.hours.report'),
             new HelpArticle('run-your-groups-hours-report', HelpSection::HoursAndReports, requires: ['statistician', 'chair'], status: ArticleStatus::Published, route: 'groups.hours.report', routes: ['groups.hours.month', 'groups.hours.member', 'groups.hours.extra', 'groups.hours.meetings']),
+            // Tour Summary and Tour Detail (#800, ADR-0032 §12), with the exhibition revenue entry.
+            new HelpArticle('run-the-tour-reports', HelpSection::HoursAndReports, requires: ['statistician', 'chair'], status: ArticleStatus::Draft, route: 'groups.hours.tour-summary', routes: ['groups.hours.tour-detail']),
             new HelpArticle('export-a-report-as-csv', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.hours.report'),
             new HelpArticle('enter-and-correct-hours', HelpSection::HoursAndReports, status: ArticleStatus::Published, route: 'groups.show'),
             new HelpArticle('the-org-wide-reports', HelpSection::HoursAndReports, requires: ['super_tier'], status: ArticleStatus::Published, route: 'hours.committee-summary', routes: ['hours.committee-detailed', 'hours.visitor-summary', 'hours.ranked', 'hours.zero-hours', 'hours.zero-shift-hours', 'hours.zero-extra-hours']),

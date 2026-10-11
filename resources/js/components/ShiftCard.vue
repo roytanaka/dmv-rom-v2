@@ -5,6 +5,8 @@
 // Members — and the same take / drop / assign / remove affordances, because they are this
 // one component. It owns no policy: the server-sent `can` hints and `signup_id` decide what
 // renders, and the parent handles each action (every mutation is re-checked server-side).
+import BookingEarned from '@/components/BookingEarned.vue';
+import BookingMailButtons from '@/components/BookingMailButtons.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -78,6 +80,8 @@ const props = withDefaults(
 const emit = defineEmits<{
     take: [shift: ShiftAgendaItem];
     drop: [shift: ShiftAgendaItem];
+    // Hand the viewer's seat on a Booking to a substitute (#798); the parent opens the picker.
+    substitute: [shift: ShiftAgendaItem];
     assign: [shift: ShiftAgendaItem];
     remove: [signUpId: number];
     // Change a seat's Tour (#791, ADR-0033 §6) — the seat-holder's own, or any seat for a
@@ -107,6 +111,24 @@ const timeRange = (starts: string, ends: string) =>
 const shiftDate = computed(() => formatShiftDate(props.shift.starts_at, page.props.locale, timeZone));
 
 const signUpName = (signUp: ShiftSignUp) => `${signUp.first_name} ${signUp.last_name}`;
+
+// A Booking's order date (#795) is a plain calendar date, parsed as local midnight so no zone
+// shift lands it on the day before.
+const formatOrderDate = (date: string) => new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium' }).format(new Date(`${date}T00:00:00`));
+
+// The order line (#795, ADR-0032 §5): the number and date the server sent to a Booker,
+// Statistician, Chair or super-tier; empty when neither was recorded.
+const orderLine = computed(() => {
+    const officer = props.shift.booking?.officer;
+    if (!officer) return '';
+
+    return [
+        officer.order_number ? trans('group.bookings.order', { number: officer.order_number }) : null,
+        officer.order_date ? trans('group.bookings.ordered_on', { date: formatOrderDate(officer.order_date) }) : null,
+    ]
+        .filter((part) => part !== null)
+        .join(', ');
+});
 
 // The viewer's own seat (#445, ADR-0023 §5). Seats carry the member id; the signed-in Member is
 // auth.user.
@@ -383,11 +405,37 @@ const formId = useId();
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span class="text-rom-ink font-medium">{{ timeRange(shift.starts_at, shift.ends_at) }}</span>
                     <span v-if="shift.kind" class="text-muted-foreground text-sm">{{ shift.kind }}</span>
+                    <!-- A group tour's Tour (#795), for every reader. -->
+                    <span v-if="shift.booking" class="text-rom-ink text-sm">· {{ shift.booking.tour }}</span>
                 </div>
                 <span class="text-muted-foreground text-sm tabular-nums">
                     {{ trans('group.scheduling_panel.agenda.seats', { taken: String(shift.taken), capacity: String(shift.capacity) }) }}
                 </span>
             </div>
+
+            <!-- A group tour's client half (#795, ADR-0032 §5) — only what the server sent this
+                 viewer: the client, visitors, type, leader and comments to the Group's Members, the
+                 order line to a Booker, Statistician or Chair. Client, leader, comments and the type
+                 name are content, shown as-authored. -->
+            <div v-if="shift.booking?.details" class="flex flex-col gap-0.5 text-sm">
+                <p class="text-rom-ink font-medium break-words">{{ shift.booking.details.client }}</p>
+                <p class="text-muted-foreground">
+                    {{ transChoice('group.bookings.visitors', shift.booking.details.visitors, { count: String(shift.booking.details.visitors) }) }}
+                    · {{ shift.booking.details.type }}
+                    <template v-if="shift.booking.details.leader">
+                        · {{ trans('group.bookings.leader', { leader: shift.booking.details.leader }) }}
+                    </template>
+                </p>
+                <p v-if="orderLine" class="text-muted-foreground">{{ orderLine }}</p>
+                <p v-if="shift.booking.details.comments" class="text-rom-ink break-words whitespace-pre-line">{{ shift.booking.details.comments }}</p>
+            </div>
+            <!-- Earned (#797, ADR-0032 §7): sent to a Booker, Statistician, Chair or super-tier only. -->
+            <div v-if="shift.booking?.officer" class="text-sm">
+                <BookingEarned :booking-id="shift.booking.id" :officer="shift.booking.officer" />
+            </div>
+
+            <!-- Send a group tour's Request or Confirmation again (#799, ADR-0032 §9). -->
+            <BookingMailButtons v-if="shift.booking?.can_send_mails" :booking-id="shift.booking.id" />
 
             <!-- Who is on the floor (#357) — visible to every reader who can read the
                  Schedule, non-members included. Each seat is a chip; a schedule admin gets a
@@ -444,9 +492,17 @@ const formId = useId();
                  them — the officer path onto a Shift with a free seat. -->
             <div class="flex flex-wrap items-center gap-2">
                 <template v-if="!shift.has_started">
-                    <Button v-if="shift.signup_id !== null" type="button" variant="outline" size="sm" @click="emit('drop', shift)">
-                        {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
-                    </Button>
+                    <!-- A seat on a Booking has no Drop: its holder hands it to a substitute
+                         instead (#798, ADR-0032 §8). `can.drop` / `can.substitute` are the server's
+                         word; the write seams re-check. -->
+                    <template v-if="shift.signup_id !== null">
+                        <Button v-if="shift.can.drop" type="button" variant="outline" size="sm" @click="emit('drop', shift)">
+                            {{ trans('group.scheduling_panel.agenda.sign_up.drop') }}
+                        </Button>
+                        <Button v-else-if="shift.can.substitute" type="button" variant="outline" size="sm" @click="emit('substitute', shift)">
+                            {{ trans('group.scheduling_panel.substitute.action') }}
+                        </Button>
+                    </template>
                     <Button v-else-if="shift.can.signUp" type="button" size="sm" @click="emit('take', shift)">
                         {{ trans('group.scheduling_panel.agenda.sign_up.take') }}
                     </Button>
@@ -468,6 +524,17 @@ const formId = useId();
                 <Button v-if="shift.can.delete" type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('delete', shift)">
                     <PhTrash class="size-4" />
                     {{ trans('group.scheduling_panel.delete') }}
+                </Button>
+                <!-- A group tour's Edit / Delete (#796) — a Booker, Statistician, Chair or super-tier
+                     changes the Booking, never the Shift. They ride the same `edit` / `delete` emits;
+                     the parent routes a Booking Shift to the Booking form. -->
+                <Button v-if="shift.booking?.edit" type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('edit', shift)">
+                    <PhPencilSimple class="size-4" />
+                    {{ trans('group.bookings.edit') }}
+                </Button>
+                <Button v-if="shift.booking?.can_delete" type="button" variant="ghost" size="sm" class="gap-1.5" @click="emit('delete', shift)">
+                    <PhTrash class="size-4" />
+                    {{ trans('group.bookings.delete') }}
                 </Button>
                 <!-- The self-serve owner's Edit / Delete (#585, ADR-0026 §1) — shown to the Member
                      who wrote the Shift, until it starts (`can.manageSelfServe`). They route through

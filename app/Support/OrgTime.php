@@ -93,6 +93,15 @@ class OrgTime
     }
 
     /**
+     * The first day of a `YYYYMM` bucket as an ISO date on the org clock, for a page to spell the
+     * month.
+     */
+    public static function monthStart(string $yearMonth): string
+    {
+        return CarbonImmutable::createFromFormat('YmdHis', $yearMonth.'01000000', config('app.org_timezone'))->toDateString();
+    }
+
+    /**
      * A fiscal year expanded into its twelve `YYYYMM` buckets in reporting order — April
      * first through the following March (ADR-0022 §8). The one place a fiscal year becomes
      * its month columns, shared by My Hours and the fiscal-year reports so the twelve buckets

@@ -76,6 +76,12 @@ class UpdateScheduleRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            // A month's group-tour Schedule stays published (#795, ADR-0032 §4), so a Booking is
+            // never hidden behind a draft.
+            if ($this->input('state') === ScheduleState::Draft->value && $this->route('schedule')->isGroupTour()) {
+                $validator->errors()->add('state', trans('group.bookings.group_tour_schedule_published'));
+            }
+
             if ($validator->errors()->isNotEmpty()) {
                 return;
             }

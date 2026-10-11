@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 
 /**
@@ -176,13 +177,24 @@ class Shift extends Model
      * make the Member pick ({@see Member::toursGivableOn()} narrows them to the ones the Member may
      * give).
      *
-     * Reads `kind.tours` from the loaded relation when the caller has it (the Agenda payload
-     * eager-loads it), and loads it once otherwise, so it never lazy-loads under strict mode.
+     * A Booking's Shift offers the Booking's Tour alone (#795, ADR-0032 §1), whatever its kind maps
+     * to and even once that Tour is retired: the client booked that Tour. Every Tour-carrying write
+     * (take, place, change Tour) and the Agenda's Tour fields read through here, so they follow.
+     *
+     * Reads `booking.tour` and `kind.tours` from the loaded relations when the caller has them (the
+     * Agenda payload eager-loads both), and loads them once otherwise, so it never lazy-loads under
+     * strict mode.
      *
      * @return Collection<int, Tour>
      */
     public function toursOffered(): Collection
     {
+        $this->loadMissing('booking.tour');
+
+        if ($this->booking !== null) {
+            return collect([$this->booking->tour]);
+        }
+
         if ($this->shift_kind_id === null) {
             return collect();
         }
@@ -194,6 +206,17 @@ class Shift extends Model
             ->sortBy([['sort_order', 'asc'], ['name', 'asc']])
             ->values()
             ->toBase();
+    }
+
+    /**
+     * Whether this Shift is a Booking's (#795, ADR-0032 §1). Its times and capacity are the
+     * Booking's, changed through the Booking, never through Shift authoring.
+     */
+    public function isBooking(): bool
+    {
+        $this->loadMissing('booking');
+
+        return $this->booking !== null;
     }
 
     /**
@@ -229,6 +252,16 @@ class Shift extends Model
     public function kind(): BelongsTo
     {
         return $this->belongsTo(ShiftKind::class, 'shift_kind_id');
+    }
+
+    /**
+     * The Booking this Shift staffs (#795, ADR-0032 §1) — null for every Shift but a group tour's.
+     *
+     * @return HasOne<Booking, $this>
+     */
+    public function booking(): HasOne
+    {
+        return $this->hasOne(Booking::class);
     }
 
     /**

@@ -2,6 +2,10 @@
 
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\BookingEarnedController;
+use App\Http\Controllers\BookingMailController;
+use App\Http\Controllers\BookingTypeController;
 use App\Http\Controllers\BroadcastController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
@@ -37,6 +41,7 @@ use App\Http\Controllers\ShiftKindController;
 use App\Http\Controllers\SignUpController;
 use App\Http\Controllers\SuperTierController;
 use App\Http\Controllers\TourController;
+use App\Http\Controllers\TourReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -219,6 +224,19 @@ Route::group([
         ->middleware('auth')->name('groups.hours.extra.csv');
     Route::get(LaravelLocalization::transRoute('routes.groups.hours.meetings.csv'), [HoursController::class, 'meetingSummaryCsv'])
         ->middleware('auth')->name('groups.hours.meetings.csv');
+
+    // Tour Summary and Tour Detail (#800, ADR-0032 §12) — a Group's group tours by booking type
+    // (and Tour), with the scheduled tours and exhibition revenue in a grand total, for a month or
+    // the fiscal year to date. Behind the same viewReports gate as the hours reports, enforced in
+    // the controller; a Group that runs no bookings 404s. Each with its CSV sibling.
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.tour-summary'), [TourReportController::class, 'summary'])
+        ->middleware('auth')->name('groups.hours.tour-summary');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.tour-detail'), [TourReportController::class, 'detail'])
+        ->middleware('auth')->name('groups.hours.tour-detail');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.tour-summary.csv'), [TourReportController::class, 'summaryCsv'])
+        ->middleware('auth')->name('groups.hours.tour-summary.csv');
+    Route::get(LaravelLocalization::transRoute('routes.groups.hours.tour-detail.csv'), [TourReportController::class, 'detailCsv'])
+        ->middleware('auth')->name('groups.hours.tour-detail.csv');
 
     // The six DMV-wide fiscal-year reports (#413, PRD #406, ADR-0022 §8) — the single output the
     // whole Hours feature exists to produce, the fiscal-year statistics the ROM asks the DMV for.
@@ -486,6 +504,62 @@ Route::delete('tours/{tour}', [TourController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('tours.destroy');
 
+// Booking types and group-tour settings (#794, ADR-0032 §6). The Settings tab's Group tours card —
+// add, rename, re-rate, retire, restore, reorder and delete types, and set the group-tour shift kind
+// and Schedule label — edited by a Booker or Chair of a Group running bookings. Add, reorder and the
+// settings nest under the Group (bound by slug); the rest bind the type by id. Each is authorized in
+// its Form Request through the BookingTypePolicy's `manage` gate.
+Route::post('groups/{group}/booking-types', [BookingTypeController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('groups.booking-types.store');
+Route::patch('groups/{group}/booking-types/order', [BookingTypeController::class, 'reorder'])
+    ->middleware(['auth'])
+    ->name('groups.booking-types.reorder');
+Route::patch('groups/{group}/group-tours', [BookingTypeController::class, 'updateSettings'])
+    ->middleware(['auth'])
+    ->name('groups.group-tours.update');
+Route::patch('booking-types/{bookingType}', [BookingTypeController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('booking-types.update');
+Route::delete('booking-types/{bookingType}', [BookingTypeController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('booking-types.destroy');
+
+// Bookings (#795, ADR-0032 §1, §3) — a Booker or Chair adds a group tour. Binds the Group by slug;
+// authorized in StoreBookingRequest through the BookingPolicy's `create` gate. The form's client
+// suggestions are an optional prop on the Group page (`bookingClients`), not a route.
+Route::post('groups/{group}/bookings', [BookingController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('bookings.store');
+// The Statistician's correction to a Booking's Earned (#797, ADR-0032 §7): set, or cleared with
+// null. Authorized in UpdateEarnedCorrectionRequest through the BookingPolicy's `correctEarned`.
+Route::patch('bookings/{booking}/earned', [BookingEarnedController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('bookings.earned.update');
+
+// A Group's exhibition revenue for a month (#800, ADR-0032 §12), entered from the Tour Summary.
+// Authorized in UpdateExhibitionRevenueRequest through the BookingPolicy's `enterExhibitionRevenue`.
+Route::put('groups/{group}/exhibition-revenue', [TourReportController::class, 'updateExhibitionRevenue'])
+    ->middleware(['auth'])
+    ->name('groups.exhibition-revenue.update');
+
+// Changing and deleting a Booking (#796, ADR-0032 §1, §3, §4) — a Booker, Chair or Statistician.
+// Authorized in UpdateBookingRequest / DeleteBookingRequest through the BookingPolicy.
+Route::patch('bookings/{booking}', [BookingController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('bookings.update');
+Route::delete('bookings/{booking}', [BookingController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('bookings.destroy');
+// Booking mails (#799, ADR-0032 §9) — a Booker, the Chair or super-tier sends a Booking's Request
+// or Confirmation again. Authorized in the controller through the BookingPolicy's `sendMails`.
+Route::post('bookings/{booking}/request', [BookingMailController::class, 'request'])
+    ->middleware(['auth'])
+    ->name('bookings.request');
+Route::post('bookings/{booking}/confirmation', [BookingMailController::class, 'confirmation'])
+    ->middleware(['auth'])
+    ->name('bookings.confirmation');
+
 // The status rules (#793, ADR-0033 §7) — the Settings tab's Tour rules card: the trainee Tour,
 // the starter Tours and the LOA rule, edited by the Chair of a vetting Group. Authorized in
 // UpdateTourRulesRequest through the TourPolicy's `manageRules` gate.
@@ -598,6 +672,14 @@ Route::patch('sign-ups/{signUp}', [SignUpController::class, 'record'])
 Route::patch('sign-ups/{signUp}/tour', [SignUpController::class, 'updateTour'])
     ->middleware(['auth', 'localizeFromReferer'])
     ->name('sign-ups.tour.update');
+
+// Substituting on a Booking (#798, ADR-0032 §8). A Booking seat cannot be dropped; its holder
+// hands it to a Member who could take it themselves. The picker's list is an optional prop on the
+// Group page (`substitutes`); the PATCH moves the seat. Both are the holder's alone, until the
+// Shift starts (SignUpPolicy::substitute).
+Route::patch('sign-ups/{signUp}/substitute', [SignUpController::class, 'substitute'])
+    ->middleware(['auth', 'localizeFromReferer'])
+    ->name('sign-ups.substitute');
 
 // Officer assignment write seam (#359, PRD #352, ADR-0021 §Sign-up). A Scheduler placing a
 // named Member on a Shift directly — Reception's whole operating model. A distinct actor

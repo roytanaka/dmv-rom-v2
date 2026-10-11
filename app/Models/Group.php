@@ -71,6 +71,7 @@ class Group extends Model
         'has_scheduling',
         'has_vetting',
         'has_announcements',
+        'has_bookings',
         'collects_visitor_count',
         'collects_extra_interactions',
         'collects_visitor_provenance',
@@ -84,6 +85,9 @@ class Group extends Model
         'self_serve_unit_minutes',
         'trainee_tour_id',
         'loa_removes_qualifications',
+        'group_tour_shift_kind_id',
+        'group_tour_label',
+        'booking_copy_email',
     ];
 
     /**
@@ -108,6 +112,7 @@ class Group extends Model
             'has_scheduling' => 'boolean',
             'has_vetting' => 'boolean',
             'has_announcements' => 'boolean',
+            'has_bookings' => 'boolean',
             'collects_visitor_count' => 'boolean',
             'collects_extra_interactions' => 'boolean',
             'collects_visitor_provenance' => 'boolean',
@@ -269,6 +274,45 @@ class Group extends Model
     public function tours(): HasMany
     {
         return $this->hasMany(Tour::class);
+    }
+
+    /**
+     * The Group's booking types (#794, ADR-0032 §6) — the billing classes of its Bookings, each
+     * with a rate per visitor and a rate per docent-hour. Kept only while the Group runs bookings.
+     *
+     * @return HasMany<BookingType, $this>
+     */
+    public function bookingTypes(): HasMany
+    {
+        return $this->hasMany(BookingType::class);
+    }
+
+    /**
+     * The Group's Bookings (#795, ADR-0032 §1) — its group tours, each with one Shift on its month's
+     * group-tour Schedule.
+     *
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * The Members who run this Group's Bookings (ADR-0032 §3) — the `Booker`-role holders, with
+     * Chair-implication folded in. Recipients of the substitution Notice (#798, §9).
+     *
+     * @return Collection<int, Member>
+     */
+    public function bookers(): Collection
+    {
+        return $this->memberships()
+            ->with(['member', 'roles'])
+            ->get()
+            ->filter(fn (GroupMember $membership) => $membership->roles->contains('role', Role::Booker)
+                || $membership->roles->contains('role', Role::Chair))
+            ->map(fn (GroupMember $membership) => $membership->member)
+            ->values();
     }
 
     /**
