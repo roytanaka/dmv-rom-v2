@@ -113,6 +113,8 @@ return [
             'member' => 'Member history',
             'extra' => 'Extra hours',
             'meetings' => 'Meeting hours',
+            'tour_summary' => 'Tour summary',
+            'tour_detail' => 'Tour detail',
         ],
         // The month picker — one month's entries across the group, by Member.
         'month' => [
@@ -254,6 +256,39 @@ return [
             'hours' => ['title' => 'Members with Zero Hours'],
             'shift' => ['title' => 'Members with Zero Shift Hours'],
             'extra' => ['title' => 'Members with Zero Extra Hours'],
+        ],
+    ],
+    // Tour Summary and Tour Detail (#800, ADR-0032 §12): a Group's group tours by booking type
+    // (and Tour), then the scheduled tours and exhibition revenue in a grand total.
+    'tours' => [
+        'summary' => [
+            'title' => 'Tour summary',
+            'lead' => 'Group tours by type, with scheduled tours and exhibition revenue in the grand total.',
+        ],
+        'detail' => [
+            'title' => 'Tour detail',
+            'lead' => 'Group tours by type and tour, with scheduled tours and exhibition revenue in the grand total.',
+        ],
+        'pick_month' => 'Month',
+        'fiscal_to_date' => 'Fiscal :year to date',
+        'column' => [
+            'type' => 'Type',
+            'tour' => 'Tour',
+            'tours' => 'Tours',
+            'visitors' => 'Visitors',
+            'earned' => 'Earned',
+        ],
+        'row' => [
+            'type_total' => 'Total',
+            'group_tours' => 'Group tours',
+            'scheduled' => 'Scheduled tours',
+            'exhibition' => 'Exhibition revenue',
+            'grand_total' => 'Grand total',
+        ],
+        'empty' => 'No group tours in this period.',
+        'exhibition' => [
+            'field' => 'Exhibition revenue for :month',
+            'save' => 'Save',
         ],
     ],
 ];

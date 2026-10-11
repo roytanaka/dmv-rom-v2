@@ -28,4 +28,27 @@ return [
         'footer' => 'If you can take one of these, please sign up so the desk is covered.',
         'view_schedules' => 'View the schedule',
     ],
+    // The Booking Request and Confirmation (#799, ADR-0032 §9). The Tour, client, leader and
+    // comments are Booking content and render as written, never through this lookup; :group is
+    // as-authored. `date_format` is the PHP date format for the tour's day in each language.
+    'booking' => [
+        'date_format' => 'l, j F Y',
+        'client' => 'Client',
+        'visitors' => 'Expected visitors',
+        'leader' => 'Group leader',
+    ],
+    'booking_request' => [
+        'subject' => 'Group tour request: :tour, :date',
+        'heading' => 'A group tour needs docents',
+        'intro' => ':group has a group tour that still needs docents. If you can give it, please sign up.',
+        'seats_needed' => '{0} No more docents needed.|{1} :count docent still needed.|[2,*] :count docents still needed.',
+        'view_schedule' => 'Sign up on the schedule',
+    ],
+    'booking_confirmation' => [
+        'subject' => 'Group tour confirmed: :tour, :date',
+        'heading' => 'Group tour confirmed',
+        'intro' => 'This :group group tour is confirmed.',
+        'docents' => 'Docents on this tour',
+        'view_schedule' => 'View the schedule',
+    ],
 ];

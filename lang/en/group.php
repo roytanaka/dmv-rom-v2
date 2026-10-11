@@ -184,12 +184,106 @@ return [
         'delete' => 'Delete',
         'delete_title' => 'Delete :tour?',
         'delete_body' => 'You cannot undo this.',
-        'cannot_delete' => 'This tour has qualifications or sign-ups. Retire it instead.',
+        'cannot_delete' => 'This tour has qualifications, sign-ups or group tours. Retire it instead.',
         // The read-only list of a kind's Tours on the Shift kinds card.
         'kind_tours' => 'Tours: :tours',
     ],
 
     // The Tour rules card (#793, ADR-0033 §7): what happens to qualifications when a standing changes.
+    // The Group tours card (#794, ADR-0032 §6): the booking types and the group-tour settings.
+    'booking_types' => [
+        'heading' => 'Group tours',
+        'types_heading' => 'Booking types',
+        'empty' => 'This group has no booking types yet.',
+        'name' => 'Name',
+        'rate_per_visitor' => 'Rate per visitor ($)',
+        'rate_per_docent_hour' => 'Rate per docent-hour ($)',
+        'rates' => ':visitor per visitor, :hour per docent-hour',
+        'add' => 'Add booking type',
+        'add_title' => 'Add a booking type',
+        'edit' => 'Edit',
+        'edit_title' => 'Edit :type',
+        'save' => 'Save',
+        'cancel' => 'Cancel',
+        'retire' => 'Retire',
+        'restore' => 'Restore',
+        'retired_badge' => 'Retired',
+        'move_up' => 'Move up',
+        'move_down' => 'Move down',
+        'delete' => 'Delete',
+        'delete_title' => 'Delete :type?',
+        'delete_body' => 'You cannot undo this.',
+        'cannot_delete' => 'Group tours use this booking type. Retire it instead.',
+        'shift_kind_label' => 'Group-tour shift kind',
+        'none' => 'None',
+        'label_label' => 'Group-tour schedule name',
+    ],
+
+    // Bookings (#795, ADR-0032 §1, §4, §5) — on screen always "Group tours", never "Bookings".
+    'bookings' => [
+        // The fallback group-tour Schedule label when the Group has set none.
+        'default_label' => 'Group tours',
+        'add' => 'Add group tour',
+        'add_title' => 'Add a group tour',
+        'save' => 'Add',
+        'cancel' => 'Cancel',
+        'badge' => 'Group tour',
+        'field' => [
+            'date' => 'Date',
+            'starts_time' => 'Start',
+            'ends_time' => 'End',
+            'docents_needed' => 'Docents needed',
+            'tour' => 'Tour',
+            'type' => 'Booking type',
+            'client' => 'Client',
+            'visitors' => 'Expected visitors',
+            'leader' => 'Group leader',
+            'order_number' => 'Order number',
+            'order_date' => 'Order date',
+            'comments' => 'Comments',
+        ],
+        'choose' => 'Choose…',
+        'visitors' => '{1} :count visitor|[2,*] :count visitors',
+        'leader' => 'Leader: :leader',
+        'order' => 'Order :number',
+        'ordered_on' => 'ordered :date',
+        'no_shift_kind' => 'Set the group-tour shift kind in Group Settings first.',
+        'group_tour_schedule_locked' => 'Shifts on a group-tour schedule come from group tours. Add a group tour instead.',
+        'booking_shift_locked' => 'This shift belongs to a group tour. Change the group tour instead.',
+        'group_tour_schedule_published' => 'A group-tour schedule stays published.',
+        // Changing and deleting (#796).
+        'edit' => 'Edit',
+        'delete' => 'Delete',
+        'edit_title' => 'Edit group tour',
+        'update' => 'Save',
+        'confirm_delete' => 'Delete this group tour?',
+        'delete_body' => 'You cannot undo this.',
+        'delete_signups_body' => 'The sign-ups of :names will be removed too. You cannot undo this.',
+        'group_tour_schedule_holds_bookings' => 'This schedule still holds group tours. Move or delete them first.',
+        // Earned and the Statistician's correction (#797, ADR-0032 §7).
+        'earned' => [
+            'line' => 'Earned: :amount',
+            'worked_out' => 'worked out',
+            'corrected' => 'corrected',
+            'correct' => 'Correct Earned',
+            'title' => 'Correct Earned',
+            'field' => 'Earned',
+            'save' => 'Save',
+            'clear' => 'Clear correction',
+            'cancel' => 'Cancel',
+        ],
+    ],
+
+    // Booking mails (#799, ADR-0032 §9): the buttons on a group tour and the copy-address field on
+    // the Group tours card.
+    'booking_mails' => [
+        'send_request' => 'Send request',
+        'send_confirmation' => 'Send confirmation',
+        'request_sent' => 'Request queued.',
+        'confirmation_sent' => 'Confirmation queued.',
+        'copy_email_label' => 'Copy every group-tour email to',
+    ],
+
     'tour_rules' => [
         'heading' => 'Tour rules',
         'trainee_label' => 'Trainee tour',
@@ -336,6 +430,17 @@ return [
             // Officer placement and changing a seat's Tour (#791, ADR-0033 §6).
             'none' => 'No tour',
             'change' => 'Change tour',
+        ],
+        // Substituting on a group tour (#798, ADR-0032 §8): a seat-holder cannot drop, they
+        // hand the seat to a Member who could take it.
+        'substitute' => [
+            'action' => 'Substitute',
+            'title' => 'Choose a substitute',
+            'field_label' => 'Substitute',
+            'placeholder' => 'Choose a member',
+            'none' => 'No one else can take this tour.',
+            'submit' => 'Hand over seat',
+            'not_eligible' => 'This member cannot take this tour.',
         ],
         // Objects maintenance (#584, ADR-0026 §3) — the handling collection a Gallery
         // Interpreter takes onto the floor. The same block shape as shift kinds.
@@ -632,6 +737,7 @@ return [
         'vetting' => 'Vetting',
         'librarian' => 'Librarian',
         'news_editor' => 'News Editor',
+        'booker' => 'Booker',
         // Synthetic label for the root DMV Group's executive leadership (President /
         // VPs), which carry no per-Group role row — see GroupController::leadership.
         'executive' => 'Executive',

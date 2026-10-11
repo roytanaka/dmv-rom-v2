@@ -11,6 +11,15 @@ return [
         'footer' => 'The seat is now open again. No action is required unless you want to fill it.',
         'view_schedule' => 'View the schedule',
     ],
+    // The substitution Notice (#798, ADR-0032 §9) — a seat on a group tour handed to another
+    // Member. To the old and new Member and the Group's Bookers. Names, the Tour and the client
+    // are content (ADR-0004).
+    'substitution_email' => [
+        'subject' => 'A group tour has a substitute',
+        'heading' => 'A group tour has a substitute',
+        'intro' => ':new is taking the place of :old on a :group group tour:',
+        'view_schedule' => 'View the schedule',
+    ],
     // The Reminder email (#486, PRD #352, ADR-0024 §7) — the one bilingual chrome that covers
     // every Group. The Member name, Group name, Schedule name, and ShiftKind label are
     // as-authored content, passed in and rendered as-is (ADR-0004); the date rides the subject.

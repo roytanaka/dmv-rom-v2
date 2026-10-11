@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DeleteSignUpRequest;
 use App\Http\Requests\RecordSignUpVisitorsRequest;
 use App\Http\Requests\StoreSignUpRequest;
+use App\Http\Requests\SubstituteSignUpRequest;
 use App\Http\Requests\UpdateSignUpTourRequest;
 use App\Models\Shift;
 use App\Models\SignUp;
 use App\Support\Notices\SignUpCancellationNoticeWriter;
+use App\Support\Notices\SignUpSubstitutionNoticeWriter;
 use Illuminate\Http\RedirectResponse;
 
 /**
@@ -109,6 +111,24 @@ class SignUpController extends Controller
     public function updateTour(UpdateSignUpTourRequest $request, SignUp $signUp): RedirectResponse
     {
         $signUp->update(['tour_id' => $request->validated('tour_id')]);
+
+        return back();
+    }
+
+    /**
+     * Hand a seat on a Booking to a substitute (#798, ADR-0032 §8, §9). A Booking seat cannot be
+     * dropped; the holder names a Member who takes it instead. The seat moves in one write, keeping
+     * its Tour and Objects. The old and new Member and the Group's Bookers are told through the
+     * Delivery queue ({@see SignUpSubstitutionNoticeWriter}); no cancellation Notice fires.
+     */
+    public function substitute(SubstituteSignUpRequest $request, SignUp $signUp, SignUpSubstitutionNoticeWriter $notices): RedirectResponse
+    {
+        $signUp->loadMissing('member', 'shift.kind', 'shift.booking.tour', 'shift.schedule.group');
+        $previous = $signUp->member;
+
+        $signUp->update(['member_id' => $request->integer('member_id')]);
+
+        $notices->write($signUp->shift, $previous, $signUp->member()->sole());
 
         return back();
     }

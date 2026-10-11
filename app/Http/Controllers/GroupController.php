@@ -11,6 +11,8 @@ use App\Enums\ScheduleState;
 use App\Enums\ShiftAudience;
 use App\Http\Requests\UpdateGroupRequest;
 use App\Http\Resources\MemberResource;
+use App\Models\Booking;
+use App\Models\BookingType;
 use App\Models\Document;
 use App\Models\DocumentFolder;
 use App\Models\Group;
@@ -28,6 +30,7 @@ use App\Models\SignUp;
 use App\Models\Tour;
 use App\Support\Audiences\AudienceContext;
 use App\Support\Audiences\AudienceResolver;
+use App\Support\Bookings\BookingPayloads;
 use App\Support\DocumentLibrary;
 use App\Support\OrgTime;
 use App\Support\RouteSegments;
@@ -208,6 +211,7 @@ class GroupController extends Controller
         $canManageObjects = $request->user()->can('manageObjects', [Schedule::class, $group]);
         $canManageTours = $request->user()->can('manage', [Tour::class, $group]);
         $canManageTourRules = $request->user()->can('manageRules', [Tour::class, $group]);
+        $canManageBookings = $request->user()->can('manage', [BookingType::class, $group]);
 
         return Inertia::render('groups/Show', [
             'group' => [
@@ -311,6 +315,10 @@ class GroupController extends Controller
                 // `manageTourRules` drives the Settings tab's Tour rules card (#793, ADR-0033 §7) —
                 // the Chair of a vetting Group. UI hint only; UpdateTourRulesRequest re-checks.
                 'manageTourRules' => $canManageTourRules,
+                // `manageBookings` drives the Settings tab's Group tours card (#794, ADR-0032 §6) —
+                // a Booker or Chair of a Group running bookings. UI hint only; the booking-type
+                // Form Requests re-check the BookingTypePolicy on write.
+                'manageBookings' => $canManageBookings,
                 // `viewTours` drives the Tours tab (#792, ADR-0033 §5) — a Member of a vetting Group,
                 // or the super-tier. UI hint only; the section re-checks it.
                 'viewTours' => $canViewTours,
@@ -356,6 +364,16 @@ class GroupController extends Controller
             'scheduling' => $section === 'scheduling'
                 ? $this->scheduling($request, $group, $schedule)
                 : ['schedules' => [], 'open' => null, 'roster' => [], 'shift_kinds' => [], 'objects' => [], 'mine' => []],
+            // Two on-demand reads for the Scheduling tab's dialogs (ADR-0005: a partial reload, not
+            // a JSON endpoint). Never sent on a visit; the dialog asks for its prop when it opens.
+            // The Booking form's client suggestions (§10), for whoever may add or change a Booking.
+            'bookingClients' => Inertia::optional(fn (): array => BookingPayloads::clients($request->user(), $group)),
+            // The Members a seat-holder may hand their Booking seat to (#798), for the Sign-up named
+            // by `?substitute_for=`. The holder alone, until the Shift starts.
+            'substitutes' => Inertia::optional(fn (): array => BookingPayloads::substitutes(
+                $request->user(),
+                SignUp::find($request->integer('substitute_for')),
+            )),
             // The Hours tab's payload, resolved only on that tab: the viewer's own records
             // for this Group and the two-month entry state (ADR-0022 §2). Never another
             // Member's hours — the roster is not a leaderboard (§4).
@@ -377,8 +395,8 @@ class GroupController extends Controller
             // gate above — not on the qualification screens that share the section.
             'tours' => $section === 'tours' && $qualifications === null ? TourPayloads::toursPage($group) : [],
             'settings' => $section === 'settings'
-                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours, $canManageTourRules)
-                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null, 'tourRules' => null],
+                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours, $canManageTourRules, $canManageBookings)
+                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null, 'tourRules' => null, 'bookings' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
@@ -409,6 +427,7 @@ class GroupController extends Controller
     private function canManageSettings(Request $request, Group $group): bool
     {
         return $request->user()->can('manage', [Tour::class, $group])
+            || $request->user()->can('manage', [BookingType::class, $group])
             || collect(['updateReminders', 'updateEmptyDeskAlert', 'updateSelfServe', 'manageShiftKinds', 'manageObjects'])
                 ->contains(fn (string $ability): bool => $request->user()->can($ability, [Schedule::class, $group]));
     }
@@ -436,6 +455,7 @@ class GroupController extends Controller
      *     objects: list<array{id: int, name: string, active: bool, sortOrder: int}>|null,
      *     tours: array{tours: list<array<string, mixed>>, shiftKinds: list<array{id: int, name: string, active: bool}>}|null,
      *     tourRules: array{traineeTourId: int|null, starterTourIds: list<int>, loaRemovesQualifications: bool, tours: list<array{id: int, name: string, active: bool}>}|null,
+     *     bookings: array<string, mixed>|null,
      * }
      */
     private function settings(
@@ -447,6 +467,7 @@ class GroupController extends Controller
         bool $canManageObjects,
         bool $canManageTours,
         bool $canManageTourRules,
+        bool $canManageBookings,
     ): array {
         // The Empty-desk, Shift kinds and Tours cards all read the Group's kinds in picker order,
         // so they share one query.
@@ -511,6 +532,7 @@ class GroupController extends Controller
                     ])->values()->all(),
             ] : null,
             'tourRules' => $group->has_vetting && $canManageTourRules ? $this->tourRules($group) : null,
+            'bookings' => $group->has_bookings && $canManageBookings ? BookingPayloads::settings($group) : null,
         ];
     }
 
@@ -925,6 +947,8 @@ class GroupController extends Controller
                 // reader; the picker itself renders only when the list is non-empty and only on the
                 // flows that reserve Objects.
                 'objects' => $this->activeObjects($group),
+                'booking_options' => BookingPayloads::options($request->user(), $group, 'create'),
+                'booking_change_options' => BookingPayloads::options($request->user(), $group, 'change'),
                 // The outstanding-shifts panel rides on the tab regardless of which Schedule is
                 // open — it crosses Schedules, so it is not the opened Schedule's concern (#449).
                 'mine' => $this->mine($request, $group),
@@ -954,6 +978,8 @@ class GroupController extends Controller
                     'starts_on' => $candidate->starts_on->toDateString(),
                     'ends_on' => $candidate->ends_on->toDateString(),
                     'state' => $candidate->state->value,
+                    // A month's group-tour Schedule (#795, ADR-0032 §4), which holds Bookings only.
+                    'is_group_tour' => $candidate->isGroupTour(),
                     // Which block this Schedule heads under, resolved server-side
                     // against one clock so the two blocks never overlap or gap.
                     'is_past' => ! $candidate->isCurrent($today),
@@ -968,6 +994,10 @@ class GroupController extends Controller
             'roster' => [],
             'shift_kinds' => [],
             'objects' => [],
+            // The Booking form's pickers (#795), for a Booker on the list as on an opened Schedule:
+            // the month's first Booking creates its Schedule, so the add starts from the list.
+            'booking_options' => BookingPayloads::options($request->user(), $group, 'create'),
+            'booking_change_options' => BookingPayloads::options($request->user(), $group, 'change'),
             // The outstanding-shifts panel rides on the list view too — a volunteer landing on
             // the bare section URL sees what they still owe without opening any Schedule (#449).
             'mine' => $this->mine($request, $group),
@@ -1021,6 +1051,8 @@ class GroupController extends Controller
                 ->orWhereIn('id', $justSaved))
             ->with([
                 'shift.kind.tours',
+                'shift.booking.tour',
+                'shift.booking.bookingType',
                 'shift.schedule.group',
                 'shift.signUps.tour',
                 'shift.signUps.member.memberships.group',
@@ -1063,6 +1095,9 @@ class GroupController extends Controller
                 : $schedule->starts_on->toDateString(),
             'state' => $schedule->state->value,
             'description' => $schedule->description,
+            // A month's group-tour Schedule (#795, ADR-0032 §4): its Shifts come from Bookings, so
+            // the Shift authoring controls do not render on it.
+            'is_group_tour' => $schedule->isGroupTour(),
             'can' => [
                 ...$this->scheduleAuthoring($request, $schedule),
                 // Whether this viewer may email the Schedule's Sign-ups (#513, ADR-0024 §6.4) —
@@ -1117,7 +1152,7 @@ class GroupController extends Controller
         $viewer = $request->user();
 
         $shifts = $schedule->shifts()
-            ->with(['kind.tours', 'signUps.tour', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
+            ->with(['kind.tours', 'booking.tour', 'booking.bookingType', 'signUps.tour', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get()
             // The per-Shift SignUpPolicy check reads `$shift->schedule` (and its Group); set
@@ -1127,7 +1162,13 @@ class GroupController extends Controller
         return $shifts
             // A schedule admin (the ShiftPolicy's edit gate) gets the officer affordances —
             // the assign button and each seat's remove target; a plain reader gets neither.
-            ->map(fn (Shift $shift) => $this->shiftPayload($request, $shift, $viewer->can('update', $shift)))
+            ->map(fn (Shift $shift) => $this->shiftPayload(
+                $request,
+                $shift,
+                $viewer->can('update', $shift),
+                // A Booker places and removes on a Booking's Shift (#798, ADR-0032 §3).
+                canPlace: $shift->booking !== null && $viewer->can('place', $shift->booking->setRelation('group', $schedule->group)),
+            ))
             ->all();
     }
 
@@ -1161,7 +1202,7 @@ class GroupController extends Controller
             ->whereHas('schedule', fn (Builder $query) => $query
                 ->where('group_id', '!=', $schedule->group_id)
                 ->where('state', ScheduleState::Published))
-            ->with(['schedule.group', 'kind.tours', 'signUps.tour', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
+            ->with(['schedule.group', 'kind.tours', 'booking.tour', 'booking.bookingType', 'signUps.tour', 'signUps.member.memberships.group', 'signUps.member.memberships.roles', 'signUps.objects', 'signUps.lastEditedBy'])
             ->orderBy('starts_at')
             ->get();
 
@@ -1194,8 +1235,13 @@ class GroupController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function shiftPayload(Request $request, Shift $shift, bool $canManage): array
+    private function shiftPayload(Request $request, Shift $shift, bool $canManage, bool $canPlace = false): array
     {
+        // Who places and removes Members here (#798): a schedule admin, or a Booker on a Booking's
+        // Shift. It reveals the assign button, each seat's id and the placement Tour list, but not
+        // Shift authoring or officer correction, which stay the schedule admin's.
+        $canPlace = $canManage || $canPlace;
+
         $viewer = $request->user();
         $taken = $shift->signUps->count();
         $ownSignUp = $shift->signUps->firstWhere('member_id', $viewer->getKey());
@@ -1234,7 +1280,7 @@ class GroupController extends Controller
                 ->all(),
             // Every active Tour of the kind (#791, ADR-0033 §6), for a schedule admin only: the
             // placement and change-Tour pickers, which need no qualification. Empty otherwise.
-            'tours_offered' => $canManage
+            'tours_offered' => $canPlace
                 ? $offered->map(fn (Tour $tour) => ['id' => $tour->id, 'name' => $tour->name])->values()->all()
                 : [],
             // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up), so the card hides
@@ -1247,6 +1293,9 @@ class GroupController extends Controller
             // display name. UI hints only — the Form Requests re-validate every write.
             'audience' => $shift->audience->value,
             'shift_kind_id' => $shift->shift_kind_id,
+            // The Booking this Shift staffs (#795, ADR-0032 §5), filtered to what the viewer may
+            // read; null on every Shift but a group tour's.
+            'booking' => BookingPayloads::forShift($request->user(), $shift),
             // The seated Members, names only (contact stays gated per MemberResource). A
             // schedule admin additionally gets each seat's own Sign-up id — the remove target
             // for officer removal (#359) and the correction target for officer correction (#450).
@@ -1254,7 +1303,7 @@ class GroupController extends Controller
             // Post-shift report (`$readsReport`, #652, #653). A plain reader never learns another
             // seat's id or numbers.
             'signups' => $shift->signUps
-                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $readsReport, $offered) {
+                ->map(function (SignUp $signUp) use ($request, $viewer, $shift, $canManage, $canPlace, $readsReport, $offered) {
                     $seat = (new MemberResource($signUp->member))->resolve($request);
 
                     // The Objects this seat reserves (#586, ADR-0026 §3) — named under the Member
@@ -1274,12 +1323,13 @@ class GroupController extends Controller
                     // every seat, the seat-holder on their own until the start. Never on a Shift
                     // whose kind offers no Tours.
                     $seat['can_change_tour'] = $offered->isNotEmpty()
+                        && $shift->booking === null
                         && ($canManage || ($signUp->member_id === $viewer->getKey() && ! $shift->hasStarted()));
 
                     // Officer removal and correction (#359, #450) — a schedule admin gets, on
                     // *every* seat, the seat's Sign-up id: the removal target and the write
                     // target for a correction.
-                    if ($canManage) {
+                    if ($canPlace) {
                         $seat['signup_id'] = $signUp->id;
                     }
 
@@ -1334,14 +1384,20 @@ class GroupController extends Controller
                 'signUp' => $ownSignUp === null
                     && $taken < $shift->capacity
                     && $viewer->can('create', [SignUp::class, $shift]),
-                'assign' => $canManage && $taken < $shift->capacity,
+                'assign' => $canPlace && $taken < $shift->capacity,
+                // The seat-holder's own way out (#798, ADR-0032 §8), mirroring SignUpPolicy
+                // `delete` and `substitute`: Drop on an ordinary Shift, Substitute on a Booking's,
+                // either only until the Shift starts.
+                'drop' => $ownSignUp !== null && $shift->booking === null && ! $shift->hasStarted(),
+                'substitute' => $ownSignUp !== null && $shift->booking !== null && ! $shift->hasStarted(),
                 // The Shift authoring affordances (#356 front end). `update` is the
                 // schedule-admin gate, already resolved as `$canManage`; `delete` folds in
                 // the zero-Sign-ups rule (ADR-0021 §2) — a seated Shift must be emptied
                 // before it can be cancelled — read from the seats already counted above.
                 // Always false for a foreign Shift, which carries no authoring affordances.
-                'update' => $canManage,
-                'delete' => $canManage && $taken === 0,
+                // A Booking's Shift is changed through its Booking (#795), never here.
+                'update' => $canManage && $shift->booking === null,
+                'delete' => $canManage && $shift->booking === null && $taken === 0,
                 // Whether the viewer may change or delete this Shift as its self-serve owner
                 // (#585, ADR-0026 §1) — the derived-ownership verdict: a self-serve Group, a
                 // capacity-1 Shift whose only seat is theirs, not yet started. Drives the Edit
@@ -1379,7 +1435,9 @@ class GroupController extends Controller
      */
     private function assignmentRoster(Request $request, Group $group): array
     {
-        if (! $request->user()->can('create', [Schedule::class, $group])) {
+        // A Booker places on Booking Shifts (#798, ADR-0032 §3), so gets the roster too.
+        if (! $request->user()->can('create', [Schedule::class, $group])
+            && ! $request->user()->can('create', [Booking::class, $group])) {
             return [];
         }
 
@@ -1459,7 +1517,9 @@ class GroupController extends Controller
             'update' => $user->can('update', $schedule),
             'publish' => $user->can('publish', $schedule),
             'unpublish' => $user->can('unpublish', $schedule),
-            'delete' => $user->can('delete', $schedule),
+            // A group-tour Schedule holding Bookings is never deleted (#796); DeleteScheduleRequest
+            // refuses it to super-tier too.
+            'delete' => $user->can('delete', $schedule) && ! $schedule->holdsBookings(),
         ];
     }
 }

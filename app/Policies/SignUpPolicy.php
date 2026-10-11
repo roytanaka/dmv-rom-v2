@@ -104,7 +104,9 @@ class SignUpPolicy
      */
     public function assign(Member $actor, Shift $shift, Member $member): bool
     {
-        if (! $this->administersSchedulingFor($actor, $shift->schedule->group)) {
+        // A Booker places on a Booking's Shift too (#798, ADR-0032 §3, §8), qualified or not.
+        if (! $this->administersSchedulingFor($actor, $shift->schedule->group)
+            && ! $this->placesOnBooking($actor, $shift)) {
             return false;
         }
 
@@ -168,11 +170,27 @@ class SignUpPolicy
      */
     public function delete(Member $actor, SignUp $signUp): bool
     {
-        if ($this->administersSchedulingFor($actor, $signUp->shift->schedule->group)) {
+        if ($this->administersSchedulingFor($actor, $signUp->shift->schedule->group)
+            || $this->placesOnBooking($actor, $signUp->shift)) {
             return true;
         }
 
+        // A seat on a Booking cannot be dropped (#798, ADR-0032 §8): a client tour must not lose
+        // its docent unnoticed. The holder hands it to a substitute instead ({@see substitute}).
         return $signUp->member_id === $actor->getKey()
+            && ! $signUp->shift->isBooking()
+            && ! $signUp->shift->hasStarted();
+    }
+
+    /**
+     * Who may hand a seat on a Booking's Shift to a substitute (#798, ADR-0032 §8): the Member who
+     * holds it, until the Shift starts. This replaces the drop a Booking seat does not have. Who
+     * may take the seat is the Form Request's to check (the same test as a self sign-up).
+     */
+    public function substitute(Member $actor, SignUp $signUp): bool
+    {
+        return $signUp->member_id === $actor->getKey()
+            && $signUp->shift->isBooking()
             && ! $signUp->shift->hasStarted();
     }
 
@@ -249,5 +267,21 @@ class SignUpPolicy
     {
         return $group->has_scheduling
             && $actor->canActAs(Role::Scheduler, $group);
+    }
+
+    /**
+     * Whether the actor places and removes docents on this Shift as its Booking's Booker (#798,
+     * ADR-0032 §3): the Shift staffs a Booking and the actor may place on it ({@see BookingPolicy::place()}).
+     * The Booking's Group is set from the Shift's Schedule so the policy never lazy-loads it.
+     */
+    private function placesOnBooking(Member $actor, Shift $shift): bool
+    {
+        if (! $shift->isBooking()) {
+            return false;
+        }
+
+        $shift->booking->setRelation('group', $shift->schedule->group);
+
+        return $actor->can('place', $shift->booking);
     }
 }

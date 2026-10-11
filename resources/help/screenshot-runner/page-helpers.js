@@ -340,6 +340,61 @@
         return showCardTitled(/^tour rules/i);
     }
 
+    // The Group tours card on the Group Settings tab (#794, ADR-0032 §6): the group-tour settings
+    // and the booking types.
+    function showGroupTours() {
+        return showCardTitled(/^group tours/i);
+    }
+
+    // The Group tours card's Add dialog: a booking type's name and both rates.
+    function openAddBookingType() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^add booking type$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The Scheduling tab's "Add group tour" button (#795): the Booking form.
+    function openAddGroupTour() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^add group tour$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The month's group-tour Schedule (#795): follow the first "Group tours – <month>" link on the
+    // Scheduling list. A Schedule's id is not stable across seeds, so the script cannot `nav` to it.
+    function openGroupTourSchedule() {
+        const link = Array.from(document.querySelectorAll('a[href*="/scheduling/"]')).find((element) =>
+            /^group tours/i.test(element.textContent.trim()),
+        );
+        if (!link) return false;
+        return followLink(link);
+    }
+
+    // The Edit group tour dialog (#796): on an opened group-tour Schedule, every Shift is a group
+    // tour's, so the first "Edit" button is a group tour's.
+    function openEditGroupTour() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^edit$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The Delete group tour confirmation (#796): the first group tour's Delete opens an alert
+    // dialog naming everyone signed up. Shot open, never confirmed.
+    function openDeleteGroupTour() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^delete$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => document.querySelector('[role="alertdialog"]'));
+    }
+
+    // A group tour's Substitute dialog (#798): the persona's own seat on an upcoming group tour.
+    // The picker's Members arrive by a partial reload, so wait for the picker to enable.
+    function openSubstituteDialog() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^substitute$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog()?.querySelector('#substitute-member:not([disabled])'));
+    }
+
+    // The Correct Earned dialog (#797): the first group tour's pencil beside its Earned line.
+    function openCorrectEarned() {
+        const button = document.querySelector('button[aria-label="Correct Earned"]');
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
     // The by-Tour qualification screen (#789): follow the Tours card's "Dinosaurs" link. A Tour's
     // id is not stable across seeds, so the script cannot `nav` to it.
     function openTourQualifications() {
@@ -868,6 +923,14 @@
         showShiftKinds,
         showTours,
         showTourRules,
+        showGroupTours,
+        openAddBookingType,
+        openAddGroupTour,
+        openGroupTourSchedule,
+        openEditGroupTour,
+        openDeleteGroupTour,
+        openSubstituteDialog,
+        openCorrectEarned,
         openTourQualifications,
         openAddQualification,
         openMemberQualifications,
