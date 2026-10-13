@@ -49,6 +49,9 @@ const props = defineProps<{
     // The Email control's empty state for this Group (#513) — passed straight to the toolbar's
     // Email menu so a plain member of the root sees a greyed button with the reason.
     emailReason: EmailReason | null;
+    // A Vetting officer, the Chair or super-tier (#789): each row links to the by-Member
+    // qualification screen.
+    canManageTours: boolean;
 }>();
 
 // The Group's roster as the composer's hand-pick pool (#490, ADR-0024 §6.2): the same
@@ -116,7 +119,9 @@ const displayName = (member: RosterMember) => `${member.last_name}, ${member.fir
 const hasContact = (member: RosterMember) => member.email !== undefined || member.phone !== undefined;
 
 // Empty-state colspan tracks the optional officer Actions column.
-const columnCount = computed(() => (props.canManage ? 6 : 5));
+// The Actions column carries the roster CRUD (#192) and the Tours link (#789).
+const hasActions = computed(() => props.canManage || props.canManageTours);
+const columnCount = computed(() => (hasActions.value ? 6 : 5));
 
 // --- Officer CRUD (#192) ----------------------------------------------------
 
@@ -257,7 +262,7 @@ const hardRemove = (member: RosterMember) => {
                             <TableHead class="hidden md:table-cell">{{ trans('group.roster.column.roles') }}</TableHead>
                             <TableHead class="hidden lg:table-cell">{{ trans('group.roster.column.contact') }}</TableHead>
                             <TableHead class="hidden md:table-cell">{{ trans('group.roster.column.standing') }}</TableHead>
-                            <TableHead v-if="canManage" class="w-12 text-right"
+                            <TableHead v-if="hasActions" class="w-12 text-right"
                                 ><span class="sr-only">{{ trans('group.roster.column.actions') }}</span></TableHead
                             >
                         </TableRow>
@@ -321,7 +326,7 @@ const hardRemove = (member: RosterMember) => {
                                 <span v-else>{{ trans('group.roster.no_contact') }}</span>
                             </TableCell>
                             <TableCell class="hidden md:table-cell"><GroupStandingBadge :standing="member.group_standing" /></TableCell>
-                            <TableCell v-if="canManage" class="text-right">
+                            <TableCell v-if="hasActions" class="text-right">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
                                         <Button type="button" variant="ghost" size="icon" class="size-8">
@@ -330,8 +335,17 @@ const hardRemove = (member: RosterMember) => {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem @select="openManage(member)">{{ trans('group.roster.manage') }}</DropdownMenuItem>
-                                        <DropdownMenuItem @select="resign(member)">{{ trans('group.roster.resign') }}</DropdownMenuItem>
+                                        <template v-if="canManage">
+                                            <DropdownMenuItem @select="openManage(member)">{{ trans('group.roster.manage') }}</DropdownMenuItem>
+                                            <DropdownMenuItem @select="resign(member)">{{ trans('group.roster.resign') }}</DropdownMenuItem>
+                                        </template>
+                                        <DropdownMenuItem
+                                            v-if="canManageTours"
+                                            @select="
+                                                router.visit(route('groups.tours.member', { group: groupSlug, membership: member.membership_id }))
+                                            "
+                                            >{{ trans('group.qualifications.roster_link') }}</DropdownMenuItem
+                                        >
                                         <template v-if="member.can_hard_remove">
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem class="text-destructive" @select="hardRemove(member)">{{

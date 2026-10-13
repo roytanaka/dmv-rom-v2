@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Collection;
 
 /**
  * A Sign-up (#357, PRD #352, ADR-0021 §Sign-up) — one Member on one Shift. Created either
@@ -69,6 +70,7 @@ class SignUp extends Model
     protected $fillable = [
         'shift_id',
         'member_id',
+        'tour_id',
         'visitor_count',
         'extra_interaction_count',
         'visitors_france_europe',
@@ -194,5 +196,42 @@ class SignUp extends Model
         // The class is prefixed but the pivot columns follow the glossary term, so the keys are
         // named explicitly rather than derived from the class name.
         return $this->belongsToMany(HandlingObject::class, 'object_sign_up', 'sign_up_id', 'object_id');
+    }
+
+    /**
+     * The Members this seat may be handed to on a Booking (#798, ADR-0032 §8): Members of the
+     * Group who are not already on the Shift and pass the same test as a self sign-up
+     * ({@see SignUpPolicy::create()}: both floors and the Booking Tour's qualification or open to
+     * all). The policy is called directly, not through the Gate, so a super-tier Member is held
+     * to the same test. Sorted by last then first name.
+     *
+     * @return Collection<int, Member>
+     */
+    public function eligibleSubstitutes(): Collection
+    {
+        $this->loadMissing('shift.schedule.group');
+        $shift = $this->shift;
+        $seated = $shift->signUps()->pluck('member_id');
+        $policy = app(SignUpPolicy::class);
+
+        return $shift->schedule->group->memberships()
+            ->with(['member.memberships.roles', 'member.memberships.qualifications'])
+            ->get()
+            ->map(fn (GroupMember $membership) => $membership->member)
+            ->reject(fn (Member $member) => $seated->contains($member->id))
+            ->filter(fn (Member $member) => $policy->create($member, $shift))
+            ->sortBy([['last_name', 'asc'], ['first_name', 'asc']])
+            ->values()
+            ->toBase();
+    }
+
+    /**
+     * The Tour this Sign-up records (ADR-0033 §2), or null on a kind with no Tours.
+     *
+     * @return BelongsTo<Tour, $this>
+     */
+    public function tour(): BelongsTo
+    {
+        return $this->belongsTo(Tour::class);
     }
 }

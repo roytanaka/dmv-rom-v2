@@ -63,6 +63,10 @@ return [
     'groups.scheduling.show' => 'groups/{group}/scheduling/{schedule}',
     // A Folder of a Group's Document library (#714, ADR-0030 §3).
     'groups.documents.folder' => 'groups/{group}/documents/folders/{folder}',
+    // A Group's qualification screens (#789, ADR-0033 §4): by Tour (who gives this Tour) and by
+    // Member (which Tours this Member gives). {tour} and {membership} are ids.
+    'groups.tours.show' => 'groups/{group}/tours/{tour}',
+    'groups.tours.member' => 'groups/{group}/tours/members/{membership}',
 
     // A Group's fiscal-year hours report (#411, ADR-0022 §5). A separate addressable route
     // rather than a mode of the Hours tab, so it is linkable and the CSV export can be its
@@ -87,6 +91,11 @@ return [
     'groups.hours.member.csv' => 'groups/{group}/hours/member.csv',
     'groups.hours.extra.csv' => 'groups/{group}/hours/extra.csv',
     'groups.hours.meetings.csv' => 'groups/{group}/hours/meetings.csv',
+    // Tour Summary and Tour Detail (#800, ADR-0032 §12), with their CSV siblings.
+    'groups.hours.tour-summary' => 'groups/{group}/hours/tour-summary',
+    'groups.hours.tour-detail' => 'groups/{group}/hours/tour-detail',
+    'groups.hours.tour-summary.csv' => 'groups/{group}/hours/tour-summary.csv',
+    'groups.hours.tour-detail.csv' => 'groups/{group}/hours/tour-detail.csv',
 
     // The six DMV-wide fiscal-year reports (#413, ADR-0022 §8). Org-wide, not scoped to a
     // {group} — always rooted at the DMV root Group. Flat dotted keys (like groups.hours.*);

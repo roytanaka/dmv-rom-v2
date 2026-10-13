@@ -12,6 +12,7 @@ return [
         'meetings' => 'Réunions',
         'documents' => 'Documents',
         'scheduling' => 'Horaire',
+        'tours' => 'Visites',
         'hours' => 'Heures',
         'settings' => 'Paramètres',
     ],
@@ -143,6 +144,178 @@ return [
 
     // L'onglet Paramètres (#604, ADR-0027) quand aucune de ses cartes ne s'applique.
     'settings_empty' => 'Ce groupe n’a aucun paramètre que vous pouvez modifier.',
+    // La carte Visites de l’onglet Paramètres (#788, ADR-0033 §1, §4) — la liste des visites du
+    // groupe et les types de quart où chaque visite se donne.
+    'tours' => [
+        'heading' => 'Visites',
+        'description' => 'Listez les visites que donne ce groupe. Choisissez les types de quart où chaque visite se donne. Une visite ouverte à tous ne demande aucune qualification. Retirez une visite pour l’exclure des nouvelles inscriptions.',
+        'empty' => 'Ce groupe n’a pas encore de visites.',
+        'add_label' => 'Ajouter une visite',
+        'add' => 'Ajouter',
+        'rename' => 'Renommer',
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
+        'retire' => 'Retirer',
+        'restore' => 'Réactiver',
+        'retired_badge' => 'Retirée',
+        'open_to_all' => 'Ouverte à tous',
+        'move_up' => 'Monter',
+        'move_down' => 'Descendre',
+        'shift_kinds' => 'Types de quart',
+        'shift_kinds_title' => 'Types de quart pour :tour',
+        'no_kinds' => 'Ce groupe n’a pas encore de types de quart.',
+        'delete' => 'Supprimer',
+        'delete_title' => 'Supprimer :tour?',
+        'delete_body' => 'Cette action est définitive.',
+        'cannot_delete' => 'Cette visite a des qualifications, des inscriptions ou des visites de groupe. Retirez-la plutôt.',
+        'kind_tours' => 'Visites : :tours',
+    ],
+
+    // La carte des règles des visites (#793, ADR-0033 §7) : ce que deviennent les qualifications quand le statut change.
+    // La carte Visites de groupe (#794, ADR-0032 §6) : les types de réservation et les réglages.
+    'booking_types' => [
+        'heading' => 'Visites de groupe',
+        'types_heading' => 'Types de réservation',
+        'empty' => 'Ce groupe n’a encore aucun type de réservation.',
+        'name' => 'Nom',
+        'rate_per_visitor' => 'Tarif par visiteur ($)',
+        'rate_per_docent_hour' => 'Tarif par heure de guide ($)',
+        'rates' => ':visitor par visiteur, :hour par heure de guide',
+        'add' => 'Ajouter un type de réservation',
+        'add_title' => 'Ajouter un type de réservation',
+        'edit' => 'Modifier',
+        'edit_title' => 'Modifier :type',
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
+        'retire' => 'Retirer',
+        'restore' => 'Rétablir',
+        'retired_badge' => 'Retiré',
+        'move_up' => 'Monter',
+        'move_down' => 'Descendre',
+        'delete' => 'Supprimer',
+        'delete_title' => 'Supprimer :type ?',
+        'delete_body' => 'Cette action est irréversible.',
+        'cannot_delete' => 'Des visites de groupe utilisent ce type de réservation. Retirez-le plutôt.',
+        'shift_kind_label' => 'Type de quart des visites de groupe',
+        'none' => 'Aucun',
+        'label_label' => 'Nom de l’horaire des visites de groupe',
+    ],
+
+    // Bookings (#795, ADR-0032 §1, §4, §5) — on screen always "Visites de groupe", never "Réservations".
+    'bookings' => [
+        'default_label' => 'Visites de groupe',
+        'add' => 'Ajouter une visite de groupe',
+        'add_title' => 'Ajouter une visite de groupe',
+        'save' => 'Ajouter',
+        'cancel' => 'Annuler',
+        'badge' => 'Visite de groupe',
+        'field' => [
+            'date' => 'Date',
+            'starts_time' => 'Début',
+            'ends_time' => 'Fin',
+            'docents_needed' => 'Guides requis',
+            'tour' => 'Visite',
+            'type' => 'Type de réservation',
+            'client' => 'Client',
+            'visitors' => 'Visiteurs attendus',
+            'leader' => 'Responsable du groupe',
+            'order_number' => 'Numéro de commande',
+            'order_date' => 'Date de commande',
+            'comments' => 'Commentaires',
+        ],
+        'choose' => 'Choisir…',
+        'visitors' => '{1} :count visiteur|[2,*] :count visiteurs',
+        'leader' => 'Responsable : :leader',
+        'order' => 'Commande :number',
+        'ordered_on' => 'commandée le :date',
+        'no_shift_kind' => 'Choisissez d’abord le type de quart des visites de groupe dans les paramètres du groupe.',
+        'group_tour_schedule_locked' => 'Les quarts d’un horaire de visites de groupe viennent des visites de groupe. Ajoutez plutôt une visite de groupe.',
+        'booking_shift_locked' => 'Ce quart appartient à une visite de groupe. Modifiez plutôt la visite de groupe.',
+        'group_tour_schedule_published' => 'Un horaire de visites de groupe reste publié.',
+        // Changing and deleting (#796).
+        'edit' => 'Modifier',
+        'delete' => 'Supprimer',
+        'edit_title' => 'Modifier la visite de groupe',
+        'update' => 'Enregistrer',
+        'confirm_delete' => 'Supprimer cette visite de groupe ?',
+        'delete_body' => 'Cette action est irréversible.',
+        'delete_signups_body' => 'Les inscriptions de :names seront aussi supprimées. Cette action est irréversible.',
+        'group_tour_schedule_holds_bookings' => 'Cet horaire contient encore des visites de groupe. Déplacez-les ou supprimez-les d’abord.',
+        // Montant gagné et la correction du ou de la statisticien·ne (#797, ADR-0032 §7).
+        'earned' => [
+            'line' => 'Montant gagné : :amount',
+            'worked_out' => 'calculé',
+            'corrected' => 'corrigé',
+            'correct' => 'Corriger le montant gagné',
+            'title' => 'Corriger le montant gagné',
+            'field' => 'Montant gagné',
+            'save' => 'Enregistrer',
+            'clear' => 'Effacer la correction',
+            'cancel' => 'Annuler',
+        ],
+    ],
+
+    // Courriels des visites de groupe (#799, ADR-0032 §9) : les boutons d'une visite de groupe et le
+    // champ d'adresse en copie de la carte Visites de groupe.
+    'booking_mails' => [
+        'send_request' => 'Envoyer la demande',
+        'send_confirmation' => 'Envoyer la confirmation',
+        'request_sent' => 'Demande mise en file d’envoi.',
+        'confirmation_sent' => 'Confirmation mise en file d’envoi.',
+        'copy_email_label' => 'Copier chaque courriel de visite de groupe à',
+    ],
+
+    'tour_rules' => [
+        'heading' => 'Règles des visites',
+        'trainee_label' => 'Visite des stagiaires',
+        'none' => 'Aucune',
+        'starter_label' => 'Visites de départ',
+        'no_tours' => 'Ce groupe n’a pas encore de visites.',
+        'loa_label' => 'Le congé retire les qualifications',
+        'trainee_is_starter' => 'La visite des stagiaires ne peut pas aussi être une visite de départ.',
+    ],
+
+    // La page Visites (#792, ADR-0033 §5) : qui donne chaque visite active, pour les membres du groupe.
+    'tours_page' => [
+        'empty' => 'Ce groupe n’a pas encore de visites.',
+        'open_to_all' => 'Ouverte à tous',
+        'none' => 'Personne pour l’instant.',
+        'open_to_all_none' => 'Tout membre peut donner cette visite.',
+        'last_vet_date' => 'Dernière vérification',
+        'no_date' => 'Aucune date',
+    ],
+
+    // Les écrans des qualifications (#789, ADR-0033 §3, §4) : par visite et par membre.
+    'qualifications' => [
+        'back' => 'Retour aux visites',
+        'tour_heading' => 'Qui donne :tour',
+        'member_heading' => 'Visites que donne :name',
+        'active_heading' => 'Qualifiés',
+        'inactive_heading' => 'Inactives',
+        'none_active' => 'Personne pour l’instant.',
+        'none_active_member' => 'Aucune visite pour l’instant.',
+        'column_member' => 'Membre',
+        'column_tour' => 'Visite',
+        'column_last_vet_date' => 'Dernière vérification',
+        'no_date' => 'Aucune date',
+        'add' => 'Ajouter',
+        'add_member_title' => 'Ajouter un membre à :tour',
+        'add_tour_title' => 'Ajouter une visite pour :name',
+        'member_label' => 'Membre',
+        'tour_label' => 'Visite',
+        'last_vet_date_label' => 'Dernière vérification',
+        'change_date' => 'Changer la date',
+        'change_date_title' => 'Changer la date de la dernière vérification',
+        'remove' => 'Retirer',
+        'remove_title' => 'Retirer cette qualification?',
+        'remove_body' => 'Le membre ne pourra plus s’inscrire à cette visite.',
+        'retired_tour' => 'Retirée',
+        'not_current' => 'N’est plus membre actif',
+        'save' => 'Enregistrer',
+        'cancel' => 'Annuler',
+        'future_date' => 'La date de la dernière vérification ne peut pas être dans le futur.',
+        'roster_link' => 'Visites',
+    ],
     'coming_soon' => 'Cette section arrive bientôt.',
 
     // Onglet Horaire (#353, ADR-0021 §1) — la surface de lecture des horaires.
@@ -198,6 +371,7 @@ return [
             'ends_at_preview' => 'Se termine à :time',
             'units_option' => '{1} :count unité|[2,*] :count unités',
             'start_before_today' => 'Choisissez aujourd’hui ou un jour ultérieur.',
+            'tour_kind' => 'Vous ne pouvez pas créer votre propre quart à un poste qui comporte des visites.',
             // L'avertissement de conflit de poste (#588, ADR-0026 §5) — un·e autre interprète est
             // déjà à ce poste à ce moment. Un avertissement, non un blocage : le membre peut passer outre.
             'station_clash' => 'Un·e autre interprète est déjà à ce poste à ce moment.',
@@ -221,6 +395,30 @@ return [
             'off_site' => 'Hors site',
             'move_up' => 'Monter',
             'move_down' => 'Descendre',
+        ],
+        // La visite qu’un·e membre donne à l’inscription (#790, ADR-0033 §2).
+        'tour' => [
+            'field_label' => 'Visite',
+            'placeholder' => 'Choisissez une visite',
+            'required' => 'Choisissez la visite que vous donnerez.',
+            'not_givable' => 'Vous ne pouvez pas donner cette visite à ce quart.',
+            // Un·e responsable de l'horaire choisit une visite que le type n'offre pas (#806).
+            'not_offered' => 'Cette visite n’est pas donnée à ce quart.',
+            'none_here' => 'Ce quart n’a pas de visites.',
+            // Placement par un·e responsable et changement de visite (#791, ADR-0033 §6).
+            'none' => 'Aucune visite',
+            'change' => 'Changer de visite',
+        ],
+        // Remplacement sur une visite de groupe (#798, ADR-0032 §8) : on ne peut pas se désinscrire,
+        // on cède sa place à un membre qui pourrait la prendre.
+        'substitute' => [
+            'action' => 'Se faire remplacer',
+            'title' => 'Choisir un·e remplaçant·e',
+            'field_label' => 'Remplaçant·e',
+            'placeholder' => 'Choisissez un membre',
+            'none' => 'Personne d’autre ne peut donner cette visite.',
+            'submit' => 'Céder la place',
+            'not_eligible' => 'Ce membre ne peut pas donner cette visite.',
         ],
         // Maintenance des objets (#584, ADR-0026 §3) — la collection à manipuler qu’un·e
         // interprète de galerie apporte sur le plancher. Même forme que les types de quart.
@@ -528,6 +726,7 @@ return [
         'vetting' => 'Vérification',
         'librarian' => 'Bibliothécaire',
         'news_editor' => 'Responsable des nouvelles',
+        'booker' => 'Responsable des réservations',
         'executive' => 'Direction générale',
     ],
 ];

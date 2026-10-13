@@ -14,6 +14,7 @@ use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Models\Tour;
 use App\Support\OrgTime;
 use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -226,6 +227,32 @@ it('rejects a kind that is not an active kind of the Group', function () {
     expect(Shift::count())->toBe(0);
 });
 
+it('refuses a station whose kind maps to active Tours, on store and update', function () {
+    $group = selfServeGroup(['has_vetting' => true]);
+    $schedule = juneSchedule($group);
+    $member = giMemberOf($group);
+    $plain = stationOf($group);
+    $tourKind = stationOf($group);
+    $tourKind->tours()->attach(Tour::factory()->create(['group_id' => $group->id]));
+    $retiredOnly = stationOf($group);
+    $retiredOnly->tours()->attach(Tour::factory()->inactive()->create(['group_id' => $group->id]));
+
+    $this->actingAs($member)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($tourKind))
+        ->assertSessionHasErrors(['shift_kind_id' => __('group.scheduling_panel.self_serve.tour_kind')]);
+    expect(Shift::count())->toBe(0);
+
+    $this->actingAs($member)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($retiredOnly))
+        ->assertSessionHasNoErrors();
+
+    $shift = ownedShift($schedule, $plain, $member);
+    $this->actingAs($member)
+        ->patch(route('self-serve-shifts.update', ['shift' => $shift->id]), selfServeBody($tourKind))
+        ->assertSessionHasErrors('shift_kind_id');
+    expect($shift->fresh()->shift_kind_id)->toBe($plain->id);
+});
+
 // --- store: the authorization floors ------------------------------------------
 
 it('refuses a store on a draft schedule', function () {
@@ -319,6 +346,25 @@ it('lets the owner change kind, start and units and re-derives the end', functio
     $shift->refresh();
     expect($shift->shift_kind_id)->toBe($other->id)
         ->and($shift->ends_at->equalTo($shift->starts_at->copy()->addMinutes(90)))->toBeTrue();
+});
+
+it('clears the seat\'s Tour when the owner moves the Shift to a station without it', function () {
+    $group = selfServeGroup(['has_vetting' => true]);
+    $schedule = juneSchedule($group);
+    $mapped = stationOf($group);
+    $plain = stationOf($group);
+    $owner = giMemberOf($group);
+    $shift = ownedShift($schedule, $mapped, $owner);
+    // The station gained a Tour after the Shift was written, and a Scheduler set it on the seat.
+    $tour = Tour::factory()->create(['group_id' => $group->id]);
+    $mapped->tours()->attach($tour);
+    $shift->signUps()->update(['tour_id' => $tour->id]);
+
+    $this->actingAs($owner)
+        ->patch(route('self-serve-shifts.update', ['shift' => $shift->id]), selfServeBody($plain))
+        ->assertSessionHasNoErrors();
+
+    expect(SignUp::sole()->tour_id)->toBeNull();
 });
 
 it('refuses an update once the Shift has started', function () {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ChoosesTour;
 use App\Http\Requests\Concerns\ReservesObjects;
 use App\Models\Shift;
 use App\Rules\OnMinuteGrid;
@@ -26,6 +27,7 @@ use Illuminate\Validation\Rule;
  */
 class StoreSelfServeShiftRequest extends FormRequest
 {
+    use ChoosesTour;
     use ReservesObjects;
 
     /**
@@ -72,6 +74,7 @@ class StoreSelfServeShiftRequest extends FormRequest
                 Rule::exists('shift_kinds', 'id')
                     ->where('group_id', $schedule->group_id)
                     ->where('active', true),
+                $this->notATourKind(),
             ],
             'starts_at' => ['required', 'date', new OnMinuteGrid(15), $this->notBeforeToday(), $this->withinRange()],
             'units' => ['required', 'integer', 'min:1', 'max:'.Shift::SELF_SERVE_MAX_UNITS],
