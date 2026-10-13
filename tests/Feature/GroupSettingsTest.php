@@ -172,8 +172,8 @@ it('carries the full shift-kind list, retired kinds too, on the Settings section
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageShiftKinds', true)
             ->where('settings.shiftKinds', [
-                ['id' => $active->id, 'name' => 'Desk', 'active' => true, 'offSite' => false, 'sortOrder' => 0],
-                ['id' => $retired->id, 'name' => 'Old tour', 'active' => false, 'offSite' => true, 'sortOrder' => 1],
+                ['id' => $active->id, 'name' => 'Desk', 'active' => true, 'offSite' => false, 'sortOrder' => 0, 'tours' => []],
+                ['id' => $retired->id, 'name' => 'Old tour', 'active' => false, 'offSite' => true, 'sortOrder' => 1, 'tours' => []],
             ]));
 });
 

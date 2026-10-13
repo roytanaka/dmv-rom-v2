@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -72,6 +73,16 @@ class ShiftKind extends Model
     public function shifts(): HasMany
     {
         return $this->hasMany(Shift::class);
+    }
+
+    /**
+     * The Tours given on this kind (#788, ADR-0033 §1). A kind with none behaves as a plain slot.
+     *
+     * @return BelongsToMany<Tour, $this>
+     */
+    public function tours(): BelongsToMany
+    {
+        return $this->belongsToMany(Tour::class)->withTimestamps();
     }
 
     /**

@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 /**
  * A Shift (#355, PRD #352, ADR-0021 §2) — a slot on a Schedule. A Shift is a *slot, not
@@ -169,6 +171,70 @@ class Shift extends Model
     }
 
     /**
+     * The Tours a Sign-up on this Shift chooses from (#790, ADR-0033 §2): the active Tours its kind
+     * maps to, in the Group's order ({@see Tour::scopeOrdered()}). Empty for a kind-less Shift or a
+     * kind with no active Tour, and then a Sign-up carries no Tour. One Tour is filled in; several
+     * make the Member pick ({@see Member::toursGivableOn()} narrows them to the ones the Member may
+     * give).
+     *
+     * A Booking's Shift offers the Booking's Tour alone (#795, ADR-0032 §1), whatever its kind maps
+     * to and even once that Tour is retired: the client booked that Tour. Every Tour-carrying write
+     * (take, place, change Tour) and the Agenda's Tour fields read through here, so they follow.
+     *
+     * Reads `booking.tour` and `kind.tours` from the loaded relations when the caller has them (the
+     * Agenda payload eager-loads both), and loads them once otherwise, so it never lazy-loads under
+     * strict mode.
+     *
+     * @return Collection<int, Tour>
+     */
+    public function toursOffered(): Collection
+    {
+        $this->loadMissing('booking.tour');
+
+        if ($this->booking !== null) {
+            return collect([$this->booking->tour]);
+        }
+
+        if ($this->shift_kind_id === null) {
+            return collect();
+        }
+
+        $this->loadMissing('kind.tours');
+
+        return $this->kind->tours
+            ->where('active', true)
+            ->sortBy([['sort_order', 'asc'], ['name', 'asc']])
+            ->values()
+            ->toBase();
+    }
+
+    /**
+     * Whether this Shift is a Booking's (#795, ADR-0032 §1). Its times and capacity are the
+     * Booking's, changed through the Booking, never through Shift authoring.
+     */
+    public function isBooking(): bool
+    {
+        $this->loadMissing('booking');
+
+        return $this->booking !== null;
+    }
+
+    /**
+     * Clear the Tour on this Shift's Sign-ups when its kind no longer offers it (ADR-0033 §2) —
+     * after the Shift moves to another kind, or to none. A seat whose Tour the new kind still
+     * offers keeps it. Call after the kind change is saved.
+     */
+    public function clearToursNotOffered(): void
+    {
+        $this->unsetRelation('kind');
+
+        $this->signUps()
+            ->whereNotNull('tour_id')
+            ->whereNotIn('tour_id', $this->toursOffered()->pluck('id')->all())
+            ->update(['tour_id' => null]);
+    }
+
+    /**
      * The Schedule this Shift belongs to — the source of everything it inherits.
      *
      * @return BelongsTo<Schedule, $this>
@@ -186,6 +252,16 @@ class Shift extends Model
     public function kind(): BelongsTo
     {
         return $this->belongsTo(ShiftKind::class, 'shift_kind_id');
+    }
+
+    /**
+     * The Booking this Shift staffs (#795, ADR-0032 §1) — null for every Shift but a group tour's.
+     *
+     * @return HasOne<Booking, $this>
+     */
+    public function booking(): HasOne
+    {
+        return $this->hasOne(Booking::class);
     }
 
     /**

@@ -4,11 +4,13 @@ namespace App\Console\Commands;
 
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Mail\BookingMail;
 use App\Mail\BroadcastMail;
 use App\Mail\BroadcastSenderCopy;
 use App\Mail\EmptyDeskAlert;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
+use App\Mail\SignUpSubstituted;
 use App\Mail\StandingChanged;
 use App\Models\Broadcast;
 use App\Models\Delivery;
@@ -191,11 +193,14 @@ class DrainDeliveries extends Command
     /**
      * Send one row in its recipient's saved language and mark it sent. The address is the
      * snapshot on the row, not the Member's current one; the Member is read only for locale. A
+     * row with no Member — a Group copy address (#799) — names its locale in the payload. A
      * row-level rejection is caught and classified rather than allowed to abort the slice.
      */
     private function send(Delivery $delivery): void
     {
-        $locale = $delivery->member->preferredLocale() ?? config('app.locale');
+        $locale = $delivery->member?->preferredLocale()
+            ?? $delivery->payload['locale'] ?? null
+            ?? config('app.locale');
 
         try {
             Mail::to($delivery->email)
@@ -289,6 +294,8 @@ class DrainDeliveries extends Command
     {
         return match ($payload['notice'] ?? null) {
             StandingChanged::NOTICE_TYPE => StandingChanged::fromSnapshot($payload),
+            SignUpSubstituted::NOTICE_TYPE => SignUpSubstituted::fromSnapshot($payload),
+            BookingMail::REQUEST, BookingMail::CONFIRMATION => BookingMail::fromSnapshot($payload),
             default => SignUpCancelled::fromSnapshot($payload),
         };
     }

@@ -47,7 +47,7 @@ const csvHref = computed(() => route('groups.hours.month.csv', { group: props.gr
                 <p class="text-muted-foreground text-sm">{{ trans('hours.detail.month.lead') }}</p>
             </header>
 
-            <HoursReportNav :group-slug="group.slug" active="month" />
+            <HoursReportNav :group-slug="group.slug" :has-bookings="group.has_bookings" active="month" />
 
             <HoursReportActions :csv-href="csvHref" />
 
