@@ -132,8 +132,14 @@ const saveEdit = () => {
     });
 };
 
-// Remove, behind a confirm.
+// Remove, behind a confirm. The dialog's open state is separate from the target:
+// AlertDialogAction closes the dialog before its click handler runs, so `removing` must outlive the close.
 const removing = ref<QualificationRow | null>(null);
+const removeOpen = ref(false);
+const askRemove = (row: QualificationRow) => {
+    removing.value = row;
+    removeOpen.value = true;
+};
 
 const confirmRemove = () => {
     if (!removing.value) {
@@ -141,7 +147,7 @@ const confirmRemove = () => {
     }
     router.delete(route('qualifications.destroy', { qualification: removing.value.id }), {
         preserveScroll: true,
-        onFinish: () => (removing.value = null),
+        onFinish: () => (removeOpen.value = false),
     });
 };
 
@@ -209,7 +215,7 @@ const sections = computed(() => [
                                         <Button type="button" size="sm" variant="ghost" @click="openEdit(row)">{{
                                             trans('group.qualifications.change_date')
                                         }}</Button>
-                                        <Button type="button" size="sm" variant="ghost" @click="removing = row">{{
+                                        <Button type="button" size="sm" variant="ghost" @click="askRemove(row)">{{
                                             trans('group.qualifications.remove')
                                         }}</Button>
                                     </div>
@@ -283,7 +289,7 @@ const sections = computed(() => [
         </DialogContent>
     </Dialog>
 
-    <AlertDialog :open="removing !== null" @update:open="(open: boolean) => !open && (removing = null)">
+    <AlertDialog v-model:open="removeOpen">
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>{{ trans('group.qualifications.remove_title') }}</AlertDialogTitle>
