@@ -105,6 +105,8 @@ return [
             'member' => 'Historique du membre',
             'extra' => 'Heures supplémentaires',
             'meetings' => 'Heures de réunion',
+            'tour_summary' => 'Sommaire des visites',
+            'tour_detail' => 'Détail des visites',
         ],
         // Le sélecteur de mois — les entrées d'un mois pour tout le groupe, par membre.
         'month' => [
@@ -247,6 +249,39 @@ return [
             'hours' => ['title' => 'Membres avec zéro heure'],
             'shift' => ['title' => 'Membres avec zéro heure de quart'],
             'extra' => ['title' => 'Membres avec zéro heure supplémentaire'],
+        ],
+    ],
+    // Sommaire et détail des visites (#800, ADR-0032 §12) : les visites de groupe par type (et
+    // par visite), puis les visites régulières et les revenus d'exposition au total général.
+    'tours' => [
+        'summary' => [
+            'title' => 'Sommaire des visites',
+            'lead' => 'Les visites de groupe par type, avec les visites régulières et les revenus d\'exposition au total général.',
+        ],
+        'detail' => [
+            'title' => 'Détail des visites',
+            'lead' => 'Les visites de groupe par type et par visite, avec les visites régulières et les revenus d\'exposition au total général.',
+        ],
+        'pick_month' => 'Mois',
+        'fiscal_to_date' => 'Exercice :year à ce jour',
+        'column' => [
+            'type' => 'Type',
+            'tour' => 'Visite',
+            'tours' => 'Visites',
+            'visitors' => 'Visiteurs',
+            'earned' => 'Montant gagné',
+        ],
+        'row' => [
+            'type_total' => 'Total',
+            'group_tours' => 'Visites de groupe',
+            'scheduled' => 'Visites régulières',
+            'exhibition' => 'Revenus d\'exposition',
+            'grand_total' => 'Total général',
+        ],
+        'empty' => 'Aucune visite de groupe pour cette période.',
+        'exhibition' => [
+            'field' => 'Revenus d\'exposition de :month',
+            'save' => 'Enregistrer',
         ],
     ],
 ];

@@ -289,7 +289,7 @@ export interface LibraryDocument {
     folderId: number | null;
     /** Its Document category in that Folder, or null for Other (#724). */
     categoryId: number | null;
-    /** A link's web address, sent to managers only (for editing); readers open `href`. */
+    /** A link's web address, for a manager's edit form and the viewer's link card (#781); null for a file. Opening goes through `href`. */
     url: string | null;
     title: string | null;
     /** Content, shown as written (#713). */
@@ -297,6 +297,8 @@ export interface LibraryDocument {
     filename: string | null;
     /** Lower-case extension of the original filename, or null. */
     extension: string | null;
+    /** The stored file's MIME type, for its file-type icon (#777); null for a link. */
+    mimeType: string | null;
     sizeBytes: number | null;
     /** A UTC instant. */
     updatedAt: string;
@@ -304,8 +306,10 @@ export interface LibraryDocument {
     uploader: string | null;
     /** When the uploader put it up, a UTC instant; sent to managers only (story 51). */
     uploadedAt: string | null;
-    /** The gated download URL, localized. */
+    /** The gated download URL, localized. An image loads inline from it (#779). */
     href: string;
+    /** The same route as an attachment, for the image viewer's Download button (#779); null for a link. */
+    downloadHref: string | null;
 }
 
 // A Folder of the Document library (#714, ADR-0030 §3). `name` is content, shown as written.
@@ -453,6 +457,15 @@ export interface MyHours {
     groups: MyHoursGroupRow[];
 }
 
+// The Group identity every Group hours report carries. `has_bookings` adds the Tour Summary and
+// Tour Detail links to the report nav (#800).
+export interface HoursReportGroup {
+    id: number;
+    name: string;
+    slug: string;
+    has_bookings: boolean;
+}
+
 // The Group fiscal-year report payload (#411, ADR-0022 §5). A Member × twelve-month matrix
 // with a year-to-date column, plus the Group's own hours next to its hours including every
 // descendant. Reports are officer-only (§4), so this payload never reaches an ordinary peer.
@@ -473,7 +486,7 @@ export interface GroupHoursReportRollup {
 }
 
 export interface GroupHoursReport {
-    group: { id: number; name: string; slug: string };
+    group: HoursReportGroup;
     /** The fiscal year in view, named for the year it ends in (ADR-0022 §8). */
     fiscalYear: number;
     /** The fiscal years the viewer may pick, newest first. */
@@ -492,12 +505,50 @@ export interface GroupHoursMonthRow extends MyHoursTotals {
 }
 
 export interface GroupHoursMonth {
-    group: { id: number; name: string; slug: string };
+    group: HoursReportGroup;
     /** The month in view — a YYYYMM bucket and its first-of-month ISO date. */
     month: MyHoursMonthColumn;
     /** The months the Group has records in plus the current one, newest first. */
     months: MyHoursMonthColumn[];
     members: GroupHoursMonthRow[];
+}
+
+// Tour Summary and Tour Detail (#800, ADR-0032 §12). Tours count docent-tours (one per Sign-up);
+// Earned is a two-decimal string (the correction wins). Officer-only, behind viewReports.
+export interface TourFigures {
+    tours: number;
+    visitors: number;
+    earned: string;
+}
+
+export interface TourReportRow extends TourFigures {
+    id: number;
+    /** The booking type's or Tour's name, as-authored. */
+    name: string;
+}
+
+export interface TourReportDetailType {
+    id: number;
+    name: string;
+    tours: TourReportRow[];
+    total: TourFigures;
+}
+
+export interface TourReport {
+    group: HoursReportGroup;
+    /** A month (`year_month` set) or a fiscal year to date. */
+    period: { kind: 'month' | 'year'; fiscal_year: number; year_month: string | null; month: string | null };
+    /** The months the Group has Bookings in plus the current one, newest first. */
+    months: MyHoursMonthColumn[];
+    fiscalYears: number[];
+    types: TourReportRow[];
+    detail: TourReportDetailType[];
+    group_tours: TourFigures;
+    scheduled: { tours: number; visitors: number };
+    exhibition_revenue: string;
+    grand_total: TourFigures;
+    /** The month's entered figure (null when none) and whether the viewer may enter it. */
+    exhibition: { can_enter: boolean; amount: string | null };
 }
 
 // Member History payload (#412, ADR-0022 §8). One Member's hours in this Group over time —
@@ -510,7 +561,7 @@ export interface GroupHoursMemberRow extends MyHoursTotals {
 }
 
 export interface GroupHoursMemberHistory {
-    group: { id: number; name: string; slug: string };
+    group: HoursReportGroup;
     /** The Members with hours in this Group, for the picker dropdown. */
     members: { id: number; name: string }[];
     /** The Member in view, or null when none is picked yet. */
@@ -538,7 +589,7 @@ export interface GroupHoursSummaryRow {
 }
 
 export interface GroupHoursSummary {
-    group: { id: number; name: string; slug: string };
+    group: HoursReportGroup;
     /** The fiscal year in view, named for the year it ends in (ADR-0022 §8). */
     fiscalYear: number;
     /** The fiscal years the viewer may pick, newest first. */
@@ -679,6 +730,8 @@ export interface ScheduleListItem {
     starts_on: string;
     ends_on: string;
     state: string;
+    // A month's group-tour Schedule (#795, ADR-0032 §4), which holds Bookings only.
+    is_group_tour: boolean;
     is_past: boolean;
     url: string;
     can: ScheduleAbilities;
@@ -703,6 +756,14 @@ export interface ShiftSignUp {
     // The Objects this seat reserves (#586, ADR-0026 §3) — listed under the Member on the card,
     // visible to every reader. Absent on a Group with no Objects.
     objects?: ObjectOption[];
+    // The Tour this seat gives (#790, ADR-0033 §2), named on the card for every reader. Null on a
+    // seat that records none.
+    tour: string | null;
+    // The seat's Tour id (#791), the change-Tour picker's current value, and whether the viewer
+    // may change it: a schedule admin on every seat, the seat-holder on their own until the start.
+    // UI hints; SignUpPolicy::changeTour re-checks.
+    tour_id: number | null;
+    can_change_tour: boolean;
     // Officer removal (#359) — the seat's own Sign-up id, the remove target. Present only
     // for a schedule admin (a plain reader never learns another seat's id).
     signup_id?: number;
@@ -727,6 +788,13 @@ export interface ShiftSignUp {
     // The seat's comment (#655). Sent only to its author and a schedule admin; absent for a
     // co-volunteer and a plain reader. Null when the author left none.
     comment?: string | null;
+}
+
+// A Tour a Member may give on a Shift (#790, ADR-0033 §6) — an option in the take dialog's
+// Tour picker. The name is officer-authored content, never translated.
+export interface TourOption {
+    id: number;
+    name: string;
 }
 
 // A placeable Member in the officer-assignment picker (#359, ADR-0017 §6) — the Group's
@@ -765,6 +833,15 @@ export interface ShiftAgendaItem {
     capacity: number;
     taken: number;
     kind: string | null;
+    // How a take settles its Tour (#790, #803, ADR-0033 §2): `fill` when the viewer may give at
+    // most one of the kind's Tours (the server fills it in), `pick` when they may give several (the
+    // take dialog asks), null on a kind with none.
+    // `tours` are the ones the viewer may give, in the Group's order — the picker's options.
+    tour_choice: 'fill' | 'pick' | null;
+    tours: TourOption[];
+    // Every active Tour of the kind (#791, ADR-0033 §6), for a schedule admin only: the placement
+    // and change-Tour pickers, which need no qualification. Empty for anyone else.
+    tours_offered: TourOption[];
     // Whether the Shift's start has passed (#554, ADR-0021 §Sign-up). Once set, the card hides
     // the Member's take and drop — self-service closes at the start; the Post-shift report stays. The
     // SignUpPolicy enforces the same bound on every write, so this is a hint, not the rule.
@@ -774,6 +851,8 @@ export interface ShiftAgendaItem {
     // Shift), so the form pre-selects both rather than guessing from the display name.
     audience: string;
     shift_kind_id: number | null;
+    // The Booking this Shift staffs (#795, ADR-0032 §5), null on every other Shift.
+    booking: ShiftBooking | null;
     signups: ShiftSignUp[];
     signup_id: number | null;
     // `signUp` is the self-service verdict; `assign` is the officer verdict — the
@@ -790,12 +869,75 @@ export interface ShiftAgendaItem {
     can: {
         signUp: boolean;
         assign: boolean;
+        // The seat-holder's way out (#798, ADR-0032 §8): Drop on an ordinary Shift, Substitute on
+        // a Booking's, each only before the start.
+        drop: boolean;
+        substitute: boolean;
         update: boolean;
         delete: boolean;
         readReport: boolean;
         record: boolean;
         manageSelfServe: boolean;
     };
+}
+
+// A Booking on the Schedule (#795, ADR-0032 §5), filtered by the server to what the viewer may
+// read. Everyone who can read the Schedule gets the Tour. `details` (the client half) goes to the
+// Group's Members, null for anyone else; `officer` (order number and date) to the Booker,
+// Statistician, Chair and super-tier, null for anyone else. Client, leader, comments and the type
+// name are content, never translated.
+export interface ShiftBooking {
+    id: number;
+    tour: string;
+    tour_id: number;
+    details: {
+        client: string;
+        visitors: number;
+        type: string;
+        booking_type_id: number;
+        leader: string | null;
+        comments: string | null;
+    } | null;
+    officer: {
+        order_number: string | null;
+        order_date: string | null;
+        // Earned (#797, ADR-0032 §7): the correction while set, else worked out on read. Decimal
+        // strings with two places. `can_correct_earned` is the Statistician / Chair / super-tier.
+        earned: string;
+        earned_is_corrected: boolean;
+        earned_correction: string | null;
+        can_correct_earned: boolean;
+    } | null;
+    // The change form's values (#796), for a Booker, Statistician, Chair or super-tier; null for
+    // anyone else, and the Edit control does not render.
+    edit: BookingEditValues | null;
+    // Whether the viewer may delete the Booking with its Shift and Sign-ups (#796).
+    can_delete: boolean;
+    // The Send Request and Send Confirmation buttons (#799): a Booker, Chair or super-tier.
+    can_send_mails: boolean;
+}
+
+// A Booking's change-form values (#796): the date and times on the org wall clock.
+export interface BookingEditValues {
+    date: string;
+    starts_time: string;
+    ends_time: string;
+    docents_needed: number;
+    tour_id: number;
+    booking_type_id: number;
+    booking_type: string;
+    client: string;
+    visitors: number;
+    leader: string | null;
+    order_number: string | null;
+    order_date: string | null;
+    comments: string | null;
+}
+
+// The Booking form's pickers (#795): the Group's active Tours and booking types, in order.
+export interface BookingOptions {
+    tours: TourOption[];
+    types: TourOption[];
 }
 
 // A foreign open Shift (#361, ADR-0021 §Sign-up) — another Group's `open` Shift a reader
@@ -821,6 +963,9 @@ export interface ScheduleDetail {
     opens_on: string;
     state: string;
     description: string | null;
+    // A month's group-tour Schedule (#795, ADR-0032 §4): its Shifts come from Bookings, so the
+    // Shift authoring controls do not render on it.
+    is_group_tour: boolean;
     // The Schedule authoring hints, plus `emailSignups` (#513, ADR-0024 §6.4): whether the
     // viewer — a Chair or Scheduler of the Group — may email the Schedule's Sign-ups. One flag
     // per opened Schedule; the Shift cards read it to gate their Email button (never per Shift).
@@ -859,6 +1004,12 @@ export interface Scheduling {
     // renders only when the list is non-empty and only on the flows that reserve Objects. Empty on
     // a Group with no Objects and on the list view.
     objects: ObjectOption[];
+    // The Booking form's pickers (#795), for a viewer who may add a group tour; null for everyone
+    // else, and the "Add group tour" control does not render.
+    booking_options: BookingOptions | null;
+    // The change form's pickers (#796), for a viewer who may change the Group's group tours (a
+    // Booker, Statistician, Chair or super-tier); null for everyone else.
+    booking_change_options: BookingOptions | null;
     // The viewer's own outstanding-shifts panel (#449, ADR-0023 §5) — "my Sign-ups on this
     // Group": upcoming Shifts, plus any past Shift inside the 28-day window still owed a number.
     // It is date-ranged, so it crosses Schedules, and rides on the tab whether a Schedule is

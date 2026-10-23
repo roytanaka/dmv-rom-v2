@@ -35,6 +35,7 @@ return [
     'feedback.comments' => 'retroaction/{feedbackItem}/commentaires',
     'feedback.comment' => 'retroaction/{feedbackItem}/commentaires/{feedbackComment}',
     'feedback.screenshot' => 'retroaction/captures/{feedbackScreenshot}',
+    'feedback.comment-image' => 'retroaction/images-commentaires/{feedbackCommentImage}',
 
     // Zone C — officer/admin
     'officer.members' => 'officier/membres',
@@ -55,6 +56,10 @@ return [
     // Un dossier de la bibliothèque de documents d'un groupe (#714, ADR-0030 §3). « folders » →
     // « dossiers » ; {group} et {folder} restent verbatim.
     'groups.documents.folder' => 'groupes/{group}/documents/dossiers/{folder}',
+    // Les écrans des qualifications d'un groupe (#789, ADR-0033 §4) : par visite et par membre.
+    // « tours » → « visites », « members » → « membres » ; {tour} et {membership} restent verbatim.
+    'groups.tours.show' => 'groupes/{group}/visites/{tour}',
+    'groups.tours.member' => 'groupes/{group}/visites/membres/{membership}',
 
     // Rapport annuel des heures d'un groupe (#411, ADR-0022 §5). « hours/report » →
     // « heures/rapport » ; {group} reste verbatim.
@@ -76,6 +81,11 @@ return [
     'groups.hours.member.csv' => 'groupes/{group}/heures/membre.csv',
     'groups.hours.extra.csv' => 'groupes/{group}/heures/supplementaires.csv',
     'groups.hours.meetings.csv' => 'groupes/{group}/heures/reunions.csv',
+    // Sommaire et détail des visites (#800, ADR-0032 §12), avec leurs CSV.
+    'groups.hours.tour-summary' => 'groupes/{group}/heures/sommaire-visites',
+    'groups.hours.tour-detail' => 'groupes/{group}/heures/detail-visites',
+    'groups.hours.tour-summary.csv' => 'groupes/{group}/heures/sommaire-visites.csv',
+    'groups.hours.tour-detail.csv' => 'groupes/{group}/heures/detail-visites.csv',
 
     // Les six rapports annuels à l'échelle du DMV (#413, ADR-0022 §8). À l'échelle de
     // l'organisation, sans {group} — toujours enracinés au groupe racine DMV. Les mots sont

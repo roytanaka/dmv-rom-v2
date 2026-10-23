@@ -10,6 +10,8 @@ Find the past shifts that still need a visitor count from you.
 
     ![The My sign-ups panel: a recent shift whose Post-shift report still needs your count](01.png)
 
+A shift on a date after today has no **Post-shift report** section yet.
+
 ## Record the count
 
 1. Go to the shift's **Post-shift report** section. Your form is already open there.

@@ -84,6 +84,10 @@ class SelfServeShiftController extends Controller
                 'shift_kind_id' => $data['shift_kind_id'],
             ]);
 
+            if ($shift->wasChanged('shift_kind_id')) {
+                $shift->clearToursNotOffered();
+            }
+
             // The Objects are replaced whole (#586, ADR-0026 §3): the owner's Sign-up carries
             // exactly what the edit submitted. `sync` on the author's own seat leaves the Shift
             // fields alone.

@@ -330,6 +330,92 @@
         return showCardTitled(/^shift kinds/i);
     }
 
+    // The Tours card on the Group Settings tab (#788, ADR-0033 §1): the Tour list and kind mapping.
+    function showTours() {
+        return showCardTitled(/^tours/i);
+    }
+
+    // The Tour rules card (#793): the trainee Tour, the starter Tours and the LOA rule.
+    function showTourRules() {
+        return showCardTitled(/^tour rules/i);
+    }
+
+    // The Group tours card on the Group Settings tab (#794, ADR-0032 §6): the group-tour settings
+    // and the booking types.
+    function showGroupTours() {
+        return showCardTitled(/^group tours/i);
+    }
+
+    // The Group tours card's Add dialog: a booking type's name and both rates.
+    function openAddBookingType() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^add booking type$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The Scheduling tab's "Add group tour" button (#795): the Booking form.
+    function openAddGroupTour() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^add group tour$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The month's group-tour Schedule (#795): follow the first "Group tours – <month>" link on the
+    // Scheduling list. A Schedule's id is not stable across seeds, so the script cannot `nav` to it.
+    function openGroupTourSchedule() {
+        const link = Array.from(document.querySelectorAll('a[href*="/scheduling/"]')).find((element) =>
+            /^group tours/i.test(element.textContent.trim()),
+        );
+        if (!link) return false;
+        return followLink(link);
+    }
+
+    // The Edit group tour dialog (#796): on an opened group-tour Schedule, every Shift is a group
+    // tour's, so the first "Edit" button is a group tour's.
+    function openEditGroupTour() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^edit$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The Delete group tour confirmation (#796): the first group tour's Delete opens an alert
+    // dialog naming everyone signed up. Shot open, never confirmed.
+    function openDeleteGroupTour() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^delete$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => document.querySelector('[role="alertdialog"]'));
+    }
+
+    // A group tour's Substitute dialog (#798): the persona's own seat on an upcoming group tour.
+    // The picker's Members arrive by a partial reload, so wait for the picker to enable.
+    function openSubstituteDialog() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^substitute$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog()?.querySelector('#substitute-member:not([disabled])'));
+    }
+
+    // The Correct Earned dialog (#797): the first group tour's pencil beside its Earned line.
+    function openCorrectEarned() {
+        const button = document.querySelector('button[aria-label="Correct Earned"]');
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The by-Tour qualification screen (#789): follow the Tours card's "Dinosaurs" link. A Tour's
+    // id is not stable across seeds, so the script cannot `nav` to it.
+    function openTourQualifications() {
+        const link = Array.from(document.querySelectorAll('a[href*="/tours/"]')).find((element) => element.textContent.trim() === 'Dinosaurs');
+        if (!link) return false;
+        return followLink(link);
+    }
+
+    // The by-Tour screen's Add dialog: the Member picker and today's Last vet date.
+    function openAddQualification() {
+        const button = Array.from(document.querySelectorAll('button')).find((element) => /^add$/i.test(element.textContent.trim()));
+        return clickAndWaitFor(button, () => openDialog());
+    }
+
+    // The by-Member qualification screen (#789): follow the first Member's name on a Tour's page.
+    function openMemberQualifications() {
+        const link = document.querySelector('a[href*="/tours/members/"]');
+        if (!link) return false;
+        return followLink(link);
+    }
+
     // The self-serve settings card on the Group Settings tab (#590, ADR-0026 §1). Shows only
     // to a schedule admin: the on/off switch and the minutes-per-unit field.
     function showSelfServeSettings() {
@@ -725,7 +811,11 @@
     }
 
     function openCategoriesDialog() {
-        return clickAndSettle(buttonLabelled(/^categories$/i));
+        return clickAndSettle(buttonLabelled(/^manage categories$/i));
+    }
+
+    function openAddDocumentDialog() {
+        return clickAndSettle(buttonLabelled(/^add document$/i));
     }
 
     // The Categories dialog's delete button for its first Document category, which asks first.
@@ -766,8 +856,51 @@
         return clickAndSettle(menuItems().find((element) => /^move$/i.test(element.textContent.trim())));
     }
 
+    // ── Verify-run helpers (#807) ───────────────────────────────────────────
+    // General-purpose helpers for an agent checking a branch with `/verify`
+    // (.claude/skills/verify/SKILL.md), not tied to one help article.
+
+    // Open a dialog through its button's DOM click(), the way the article helpers do.
+    // Matches the first button whose trimmed text equals `text`, ignoring case.
+    function clickButton(text) {
+        const wanted = text.trim().toLowerCase();
+        const button = Array.from(document.querySelectorAll('button')).find((element) => element.textContent.trim().toLowerCase() === wanted);
+        return clickAndSettle(button);
+    }
+
+    // The current page's Inertia props. Inertia v2 renders them into a
+    // <script data-page> JSON tag; older builds put them on #app's data-page attribute.
+    function props() {
+        const script = document.querySelector('script[data-page]');
+        const raw = script ? script.textContent : document.getElementById('app')?.dataset.page;
+        return raw ? JSON.parse(raw).props : null;
+    }
+
+    // A JSON request carrying the XSRF token, for refusal probes only (a 403 or a 422
+    // the UI never lets you send). Drive real writes through the UI. Returns the status
+    // and the parsed body (text when the body is not JSON).
+    async function request(method, url, body) {
+        const response = await fetch(url, {
+            method,
+            credentials: 'same-origin',
+            headers: csrfHeaders(),
+            body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        const text = await response.text();
+        let parsed = text;
+        try {
+            parsed = JSON.parse(text);
+        } catch {
+            // Not JSON; keep the text.
+        }
+        return { status: response.status, body: parsed };
+    }
+
     window.__help = {
         login,
+        clickButton,
+        props,
+        request,
         openHelpMenu,
         openLanguageSwitcher,
         openNewsComposer,
@@ -788,6 +921,19 @@
         showShiftReminders,
         showEmptyDeskAlert,
         showShiftKinds,
+        showTours,
+        showTourRules,
+        showGroupTours,
+        openAddBookingType,
+        openAddGroupTour,
+        openGroupTourSchedule,
+        openEditGroupTour,
+        openDeleteGroupTour,
+        openSubstituteDialog,
+        openCorrectEarned,
+        openTourQualifications,
+        openAddQualification,
+        openMemberQualifications,
         showSelfServeSettings,
         showObjects,
         showOffSiteStation,
@@ -829,6 +975,7 @@
         filterByEgyptAndNubia,
         openNewFolderDialog,
         openCategoriesDialog,
+        openAddDocumentDialog,
         openDeleteCategoryDialog,
         openFolderMenu,
         openFolderEditDialog,

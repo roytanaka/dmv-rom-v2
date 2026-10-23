@@ -14,9 +14,12 @@ use App\Enums\ScheduleState;
 use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
+use App\Models\Booking;
+use App\Models\BookingType;
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\DocumentFolder;
+use App\Models\ExhibitionRevenue;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
@@ -26,10 +29,12 @@ use App\Models\HoursRecord;
 use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
+use App\Models\Qualification;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
+use App\Models\Tour;
 use App\Personas\PersonaCatalogue;
 use App\Support\CommitteeHoursStatistics;
 use App\Support\OrgTime;
@@ -38,6 +43,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -281,6 +287,9 @@ it('is idempotent — re-seeding leaves row counts unchanged', function () {
         'memberships' => GroupMember::count(),
         'roles' => GroupMemberRole::count(),
         'stewardships' => GroupStewardship::count(),
+        'tours' => Tour::count(),
+        'tour_kind_links' => DB::table('shift_kind_tour')->count(),
+        'qualifications' => Qualification::count(),
     ];
     $before = $counts();
 
@@ -442,7 +451,9 @@ it('seeds the real Docents roster: five one-hour, one-Docent tours from 11:00 ev
             ->and($shift->audience)->toBe(ShiftAudience::Group);
     });
 
-    $daily = $schedule->shifts->filter(fn (Shift $s) => $s->kind->name !== 'Group Tour');
+    // The month Schedule holds the daily roster only; group tours are Bookings on their own
+    // Schedule (#795).
+    $daily = $schedule->shifts;
 
     // Each day of the month carries the same five tours: 11:00 to 15:00 on the hour,
     // one hour long, one seat, the label alternating Highlights and Gallery by hour.
@@ -467,13 +478,100 @@ it('seeds the real Docents roster: five one-hour, one-Docent tours from 11:00 ev
     });
 });
 
-it('adds a few Group Tours, the only Docents Shifts with more than one seat', function () {
-    $groupTours = docentsCurrentMonth()->shifts()->whereRelation('kind', 'name', 'Group Tour')->get();
+it('adds a few group tours as Bookings on their own published Schedule, the only Docents Shifts with more than one seat', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $month = CarbonImmutable::instance(now())->startOfMonth();
+    $schedule = Schedule::where('group_id', $docents->id)->where('group_tour_month', $month->toDateString())->sole();
+    $bookings = Booking::whereRelation('shift', 'schedule_id', $schedule->id)->with(['shift.kind', 'tour', 'bookingType'])->get();
 
-    expect($groupTours->count())->toBeGreaterThanOrEqual(3)
-        ->and($groupTours->contains(fn (Shift $s) => $s->capacity > 1))->toBeTrue()
-        ->and(docentsCurrentMonth()->shifts()->where('capacity', '>', 1)
-            ->whereRelation('kind', 'name', '!=', 'Group Tour')->exists())->toBeFalse();
+    expect($schedule->name)->toBe('Group tours – '.$month->format('F Y'))
+        ->and($schedule->state)->toBe(ScheduleState::Published)
+        ->and($bookings->count())->toBeGreaterThanOrEqual(3)
+        ->and($bookings->every(fn (Booking $b) => $b->group_id === $docents->id
+            && $b->shift->kind->name === 'Group Tour'
+            && $b->client !== ''
+            && $b->visitors > 0
+            && $b->bookingType->group_id === $docents->id
+            && $b->tour->group_id === $docents->id))->toBeTrue()
+        ->and($bookings->contains(fn (Booking $b) => $b->shift->capacity > 1))->toBeTrue()
+        ->and(docentsCurrentMonth()->shifts()->where('capacity', '>', 1)->exists())->toBeFalse()
+        ->and(docentsCurrentMonth()->shifts()->whereRelation('kind', 'name', 'Group Tour')->exists())->toBeFalse();
+});
+
+it('seeds GDR its monthly group tour as a Booking on a French-named Schedule', function () {
+    $gdr = Group::where('slug', DemoSeeder::GUIDES_DU_ROM)->firstOrFail();
+    $month = CarbonImmutable::instance(now())->startOfMonth();
+    $schedule = Schedule::where('group_id', $gdr->id)->where('group_tour_month', $month->toDateString())->sole();
+    $booking = Booking::whereRelation('shift', 'schedule_id', $schedule->id)->with(['shift', 'tour', 'bookingType'])->sole();
+    $start = $booking->shift->starts_at->copy()->setTimezone(config('app.org_timezone'));
+
+    expect($schedule->name)->toBe('Visites de groupe – '.$month->locale('fr')->translatedFormat('F Y'))
+        ->and($booking->bookingType->name)->toBe('Visite gratuite')
+        ->and($booking->tour->name)->toBe('Les trésors')
+        ->and($start->isSaturday())->toBeTrue()
+        ->and($start->format('H:i'))->toBe('11:30')
+        ->and($booking->shift->capacity)->toBe(1);
+});
+
+it('keeps the Bookings idempotent across a reseed', function () {
+    $before = Booking::count();
+
+    $this->seed(DemoSeeder::class);
+
+    expect(Booking::count())->toBe($before)->toBe(14);
+});
+
+it('seeds a Spot Paid group tour on Docents, paid by the docent-hour', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $spots = Booking::where('group_id', $docents->id)
+        ->whereRelation('bookingType', 'name', 'Spot Paid')
+        ->with(['shift.signUps', 'bookingType'])
+        ->get();
+
+    expect($spots)->toHaveCount(2)
+        ->and($spots->every(fn (Booking $b) => (float) $b->bookingType->rate_per_docent_hour > 0))->toBeTrue()
+        ->and($spots->contains(fn (Booking $b) => (float) $b->earned() > 0))->toBeTrue();
+});
+
+it('seeds one corrected Earned on last month\'s Docents group tours', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $corrected = Booking::where('group_id', $docents->id)->whereNotNull('earned_correction')->with(['shift.signUps', 'bookingType'])->sole();
+
+    expect($corrected->client)->toBe('Bayview Public School')
+        ->and($corrected->earned())->toBe('300.00')
+        ->and($corrected->workedOutEarned())->toBe('320.00')
+        ->and($corrected->shift->ends_at->isPast())->toBeTrue();
+});
+
+it('seeds last month\'s exhibition revenue for Docents', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $lastMonth = OrgTime::now()->startOfMonth()->subMonth()->format('Ym');
+
+    expect(ExhibitionRevenue::amountFor($docents, $lastMonth))->toBe('1250.00')
+        ->and(ExhibitionRevenue::count())->toBe(1);
+});
+
+it('gives Docents and GDR each a Booker from the pool who holds no other role there', function (string $slug) {
+    $group = Group::where('slug', $slug)->firstOrFail();
+    $personas = array_map(fn ($persona) => $persona->email, PersonaCatalogue::all());
+    $bookers = GroupMember::where('group_id', $group->id)
+        ->whereRelation('roles', 'role', Role::Booker)
+        ->with(['member', 'roles'])
+        ->get();
+
+    expect($bookers)->toHaveCount(1)
+        ->and($bookers->first()->roles->pluck('role')->all())->toBe([Role::Booker])
+        ->and($bookers->first()->status)->toBe(MembershipStatus::Full)
+        ->and($personas)->not->toContain($bookers->first()->member->email);
+})->with(['Docents' => [DemoSeeder::PROGRAM], 'GDR' => [DemoSeeder::GUIDES_DU_ROM]]);
+
+it('keeps the Booker, the correction and the exhibition revenue idempotent across a reseed', function () {
+    $bookers = fn () => GroupMemberRole::where('role', Role::Booker)->count();
+    $before = [$bookers(), Booking::whereNotNull('earned_correction')->count(), ExhibitionRevenue::count()];
+
+    $this->seed(DemoSeeder::class);
+
+    expect([$bookers(), Booking::whereNotNull('earned_correction')->count(), ExhibitionRevenue::count()])->toBe($before)->toBe([2, 1, 1]);
 });
 
 it('fills the Docents month the way a real one fills: worked tours full, upcoming ones part-taken', function () {
@@ -611,7 +709,7 @@ function guidesDuRomCurrentMonth(): Schedule
         ->firstOrFail();
 }
 
-it('seeds the Guides du ROM roster: one 14:00 tour a day, every day but Monday, plus a monthly group tour', function () {
+it('seeds the Guides du ROM roster: one 14:00 tour a day, every day but Monday', function () {
     $schedule = guidesDuRomCurrentMonth()->load('shifts.kind');
     $orgTimezone = config('app.org_timezone');
     $month = CarbonImmutable::instance(now())->startOfMonth();
@@ -635,13 +733,8 @@ it('seeds the Guides du ROM roster: one 14:00 tour a day, every day but Monday, 
         $s->capacity,
     ])->toBe(['14:00', 60, 1]));
 
-    // One free group tour a month, on a Saturday at 11:30, one guide.
-    $groupTours = $schedule->shifts->where('kind.name', 'Visite de groupe');
-    expect($groupTours)->toHaveCount(1);
-    $groupTour = $groupTours->first()->starts_at->copy()->setTimezone($orgTimezone);
-    expect($groupTour->isSaturday())->toBeTrue()
-        ->and($groupTour->format('H:i'))->toBe('11:30')
-        ->and($groupTours->first()->capacity)->toBe(1);
+    // The monthly group tour is a Booking on its own Schedule (#795), not on this one.
+    expect($schedule->shifts->where('kind.name', 'Visite de groupe'))->toHaveCount(0);
 });
 
 it('fills the Guides du ROM month: worked tours full, most upcoming tours already taken', function () {
@@ -825,6 +918,94 @@ it('turns scheduling on for the demo programs but off for the booking-only Group
         // the capability deferred out of the first pass (ADR-0021).
         ->and(Group::where('slug', 'rombus')->firstOrFail()->has_scheduling)->toBeFalse()
         ->and(Group::where('slug', 'outreach')->firstOrFail()->has_scheduling)->toBeFalse();
+});
+
+it('qualifies most current Docents and GDR guides on several Tours with spread Last vet dates (#789)', function () {
+    foreach ([DemoSeeder::PROGRAM, DemoSeeder::GUIDES_DU_ROM] as $slug) {
+        $group = Group::where('slug', $slug)->firstOrFail();
+        $current = $group->memberships()->get()->filter(fn (GroupMember $membership) => $membership->status->countsAsBelonging());
+        $qualifications = Qualification::whereIn('group_member_id', $current->pluck('id'))->with('tour')->get();
+        $holders = $qualifications->where('active', true)->groupBy('group_member_id');
+
+        // Most current Members hold at least one active qualification, and most of those several.
+        expect($holders->count())->toBeGreaterThan(intdiv($current->count(), 2))
+            ->and($holders->filter(fn ($rows) => $rows->count() >= 3)->count())->toBeGreaterThan(intdiv($holders->count(), 2));
+
+        // Every qualification is on this Group's own Tours, none on an open-to-all Tour.
+        expect($qualifications->every(fn (Qualification $q) => $q->tour->group_id === $group->id && ! $q->tour->open_to_all))->toBeTrue();
+
+        // The dates spread across more than a year, and some rows are kept inactive.
+        $dates = $qualifications->pluck('last_vet_date')->filter();
+        expect($dates->min()->diffInDays($dates->max()))->toBeGreaterThan(365)
+            ->and($qualifications->where('active', false)->isNotEmpty())->toBeTrue();
+    }
+
+    // No Membership outside Docents and GDR holds a qualification.
+    $vettingGroups = Group::whereIn('slug', [DemoSeeder::PROGRAM, DemoSeeder::GUIDES_DU_ROM])->pluck('id');
+    expect(Qualification::whereHas('membership', fn ($query) => $query->whereNotIn('group_id', $vettingGroups))->exists())->toBeFalse();
+});
+
+it('turns vetting on and seeds a Tour list for Docents and GDR only (#788)', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $gdr = Group::where('slug', DemoSeeder::GUIDES_DU_ROM)->firstOrFail();
+
+    expect($docents->has_vetting)->toBeTrue()
+        ->and($gdr->has_vetting)->toBeTrue()
+        ->and(Group::where('slug', 'reception')->firstOrFail()->has_vetting)->toBeFalse();
+
+    // Museum Highlights is open to all for Docents, Le choix du guide for GDR.
+    expect($docents->tours()->where('name', 'Museum Highlights')->sole()->open_to_all)->toBeTrue()
+        ->and($docents->tours()->where('name', 'Museum Highlights – New Docents')->sole()->open_to_all)->toBeFalse()
+        ->and($gdr->tours()->where('name', 'Le choix du guide')->sole()->open_to_all)->toBeTrue();
+
+    // Gallery/Theme, the "pick your tour" slot, maps to many Tours.
+    $gallery = $docents->shiftKinds()->where('name', 'Gallery/Theme')->sole();
+    expect($gallery->tours()->count())->toBeGreaterThan(5);
+
+    // Only Groups with vetting carry Tours.
+    expect(Tour::whereNotIn('group_id', [$docents->id, $gdr->id])->exists())->toBeFalse();
+});
+
+it('lets a seeded Docent sign up for a free Gallery/Theme slot with a Tour, and gives every seeded tour seat a Tour (#790)', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)->firstOrFail();
+
+    $free = docentsCurrentMonth()->shifts()
+        ->whereRelation('kind', 'name', 'Gallery/Theme')
+        ->where('starts_at', '>', now())
+        ->whereDoesntHave('signUps')
+        ->orderBy('starts_at')
+        ->firstOrFail();
+
+    $tour = $member->toursGivableOn($free)->first();
+    expect($tour)->not->toBeNull();
+
+    $this->actingAs($member)
+        ->post(route('sign-ups.store', $free), ['tour_id' => $tour->id])
+        ->assertSessionHasNoErrors();
+
+    expect(SignUp::where('shift_id', $free->id)->where('member_id', $member->id)->value('tour_id'))->toBe($tour->id);
+
+    // Every seeded Docents seat on a Tour-mapped kind records a Tour.
+    expect(SignUp::query()
+        ->whereNull('tour_id')
+        ->whereHas('shift.schedule', fn ($query) => $query->where('group_id', $docents->id))
+        ->whereHas('shift.kind.tours')
+        ->exists())->toBeFalse();
+});
+
+it('seeds the Tour rules for Docents and GDR (#793)', function () {
+    $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
+    $gdr = Group::where('slug', DemoSeeder::GUIDES_DU_ROM)->firstOrFail();
+
+    // Docents: the trainee Tour, Museum Highlights as the one starter Tour, LOA keeps qualifications.
+    expect(Tour::findOrFail($docents->trainee_tour_id)->name)->toBe('Museum Highlights – New Docents')
+        ->and($docents->tours()->where('starter', true)->pluck('name')->all())->toBe(['Museum Highlights'])
+        ->and($docents->loa_removes_qualifications)->toBeFalse();
+
+    // GDR: two starter Tours, and LOA removes qualifications.
+    expect($gdr->tours()->where('starter', true)->count())->toBe(2)
+        ->and($gdr->loa_removes_qualifications)->toBeTrue();
 });
 
 it('turns Reminders on with 3 lead days for the five Reminder Groups, off elsewhere', function () {
@@ -1448,4 +1629,54 @@ it('is idempotent across the Document library rows — re-seeding heals rather t
     $this->seed(DemoSeeder::class);
 
     expect($counts())->toBe($before);
+});
+
+/*
+ * Bookings (#794, ADR-0032 §2, §6): Docents and GDR run bookings, each with its five booking
+ * types (GDR's in French), its group-tour shift kind and its group-tour Schedule label.
+ */
+it('turns bookings on for Docents and GDR only', function () {
+    expect(Group::where('has_bookings', true)->pluck('slug')->sort()->values()->all())
+        ->toBe(['docents', 'guides-du-rom']);
+});
+
+it('seeds the Docents and GDR booking types with their rates, in order', function (string $slug, array $expected) {
+    $group = Group::where('slug', $slug)->firstOrFail();
+
+    expect($group->bookingTypes()->ordered()->get()
+        ->map(fn ($type) => [$type->name, $type->rate_per_visitor, $type->rate_per_docent_hour, $type->active])
+        ->all())->toBe($expected);
+})->with([
+    'Docents' => ['docents', [
+        ['Tour Paid', '5.00', '0.00', true],
+        ['Tour Free', '0.00', '0.00', true],
+        ['Tour Internal', '0.00', '0.00', true],
+        ['Spot Paid', '0.00', '25.00', true],
+        ['Spot Free', '0.00', '0.00', true],
+    ]],
+    'GDR' => ['guides-du-rom', [
+        ['Visite payante', '5.00', '0.00', true],
+        ['Visite gratuite', '0.00', '0.00', true],
+        ['Visite interne', '0.00', '0.00', true],
+        ['Poste payant', '0.00', '25.00', true],
+        ['Poste gratuit', '0.00', '0.00', true],
+    ]],
+]);
+
+it('seeds the group-tour shift kind and Schedule label for Docents and GDR', function (string $slug, string $kind, string $label) {
+    $group = Group::where('slug', $slug)->firstOrFail();
+
+    expect(ShiftKind::find($group->group_tour_shift_kind_id)?->name)->toBe($kind)
+        ->and($group->group_tour_label)->toBe($label);
+})->with([
+    'Docents' => ['docents', 'Group Tour', 'Group tours'],
+    'GDR' => ['guides-du-rom', 'Visite de groupe', 'Visites de groupe'],
+]);
+
+it('keeps the booking types idempotent across a reseed', function () {
+    $before = BookingType::count();
+
+    $this->seed(DemoSeeder::class);
+
+    expect(BookingType::count())->toBe($before)->toBe(10);
 });

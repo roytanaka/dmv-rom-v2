@@ -26,8 +26,9 @@ return [
         'name' => 'Name',
         'message' => 'Message',
         'date' => 'Date',
-        'comments' => 'Comments',
+        'comments_and_attachments' => 'Comments and attachments',
         'comments_count' => ':count comment|:count comments',
+        'attachments_count' => ':count attachment|:count attachments',
     ],
 
     // The Feedback page filters (#679, §13).
@@ -78,8 +79,6 @@ return [
         'list' => 'Screenshots to send',
         'remove' => 'Remove :name',
         'pasted' => 'Pasted image',
-        'size_kb' => ':size KB',
-        'size_mb' => ':size MB',
         'error_type' => ':name was not added. Use a PNG, JPEG, WebP, or GIF image.',
         'error_size' => ':name was not added. It is larger than 5 MB.',
         'error_limit' => ':name was not added. You can add up to :max screenshots.',
@@ -92,6 +91,12 @@ return [
         'name' => 'Your name',
         'body' => 'Comment',
         'add' => 'Add comment',
+        // A comment carries text, images (#778), or both.
+        'error_empty' => 'Add a comment, an image, or both.',
+        'images' => 'Images',
+        'images_list' => 'Images to add',
+        'error_limit' => ':name was not added. You can add up to :max images.',
+        'error_count' => 'You can add up to :max images.',
         'delete' => 'Delete',
         'delete_label' => 'Delete the comment by :name',
         'delete_title' => 'Delete this comment?',

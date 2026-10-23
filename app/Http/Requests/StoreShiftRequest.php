@@ -9,6 +9,7 @@ use App\Support\OrgTime;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Adding a Shift to a Schedule (#356, PRD #352, ADR-0021 §2). The mutation is authorized
@@ -96,5 +97,18 @@ class StoreShiftRequest extends FormRequest
                 $fail('group.scheduling_panel.shift_outside_range')->translate();
             }
         };
+    }
+
+    /**
+     * Refuse a hand-made Shift on a month's group-tour Schedule (#795, ADR-0032 §4): its Shifts
+     * come only from Bookings. A validation rule, not the policy, so it binds super-tier too.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($this->route('schedule')->isGroupTour()) {
+                $validator->errors()->add('schedule', trans('group.bookings.group_tour_schedule_locked'));
+            }
+        });
     }
 }

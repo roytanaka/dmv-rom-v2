@@ -48,6 +48,10 @@ class ShiftController extends Controller
     {
         $shift->update($request->validated());
 
+        if ($shift->wasChanged('shift_kind_id')) {
+            $shift->clearToursNotOffered();
+        }
+
         return back();
     }
 
@@ -145,6 +149,8 @@ class ShiftController extends Controller
 
         $matches = $schedule->shifts()
             ->whereBetween('starts_at', [$from, $to])
+            // A Booking's Shift goes with its Booking (#795), never in a bulk run.
+            ->whereDoesntHave('booking')
             ->orderBy('starts_at')
             ->get()
             ->filter(function (Shift $shift) use ($days, $times, $capacity, $kindId, $zone): bool {

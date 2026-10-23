@@ -283,12 +283,14 @@ it('lists a link Document beside files, with its kind and no type or size', func
             ->where('library.sections.0.documents.0.kind', 'link')
             ->where('library.sections.0.documents.0.extension', null)
             ->where('library.sections.0.documents.0.sizeBytes', null)
-            ->where('library.sections.0.documents.0.url', null)
+            // The viewer's link card shows the address (#781); Open still goes through `href`.
+            ->where('library.sections.0.documents.0.url', 'https://example.org/handbook')
             ->where('library.sections.0.documents.0.href', "/documents/{$link->id}/download")
+            ->where('library.sections.0.documents.0.downloadHref', null)
             ->where('library.sections.0.documents.1.kind', 'file'));
 });
 
-it('sends the link\'s address to a manager for editing', function () {
+it('sends the link\'s address to a manager too, for editing', function () {
     $group = linkLibraryGroup();
     linkDocumentOf($group, ['url' => 'https://example.org/handbook']);
 

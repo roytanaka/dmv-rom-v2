@@ -5,6 +5,7 @@ use App\Models\FeedbackScreenshot;
 use App\Models\Member;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\RouteCollection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -154,13 +155,15 @@ it('shows the screenshots on the item page', function () {
             ->where('screenshots.0.id', $first->id)
             ->where('screenshots.0.filename', 'calendar.png')
             ->where('screenshots.0.sizeBytes', 421888)
+            ->where('screenshots.0.mimeType', 'image/png')
             ->where('screenshots.0.href', "/feedback/screenshots/{$first->id}")
+            ->where('screenshots.0.downloadHref', "/feedback/screenshots/{$first->id}?download=1")
             ->where('screenshots.1.id', $second->id));
 });
 
 // --- Download -----------------------------------------------------------------
 
-it('lets any logged-in Member download a screenshot with its original name', function () {
+it('serves a screenshot inline for the viewer', function () {
     $screenshot = FeedbackScreenshot::factory()->create([
         'original_filename' => 'calendar saturday.png',
         'mime_type' => 'image/png',
@@ -170,10 +173,53 @@ it('lets any logged-in Member download a screenshot with its original name', fun
     $response = $this->actingAs(Member::factory()->create())
         ->get("/feedback/screenshots/{$screenshot->id}")
         ->assertOk()
+        ->assertHeader('Content-Type', 'image/png')
+        ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+    expect($response->headers->get('Content-Disposition'))->toStartWith('inline;')
+        ->toContain('calendar saturday.png')
+        ->and($response->streamedContent())->toBe('png-bytes');
+});
+
+it('lets any logged-in Member download a screenshot with its original name', function () {
+    $screenshot = FeedbackScreenshot::factory()->create([
+        'original_filename' => 'calendar saturday.png',
+        'mime_type' => 'image/png',
+    ]);
+    Storage::disk('local')->put($screenshot->storage_path, 'png-bytes');
+
+    $response = $this->actingAs(Member::factory()->create())
+        ->get("/feedback/screenshots/{$screenshot->id}?download=1")
+        ->assertOk()
         ->assertDownload('calendar saturday.png')
-        ->assertHeader('Content-Type', 'image/png');
+        ->assertHeader('Content-Type', 'image/png')
+        ->assertHeader('X-Content-Type-Options', 'nosniff');
 
     expect($response->streamedContent())->toBe('png-bytes');
+});
+
+it('never serves a type other than PNG, JPEG, WebP, or GIF inline', function () {
+    $screenshot = FeedbackScreenshot::factory()->create([
+        'original_filename' => 'drawing.svg',
+        'mime_type' => 'image/svg+xml',
+    ]);
+    Storage::disk('local')->put($screenshot->storage_path, '<svg/>');
+
+    $this->actingAs(Member::factory()->create())
+        ->get("/feedback/screenshots/{$screenshot->id}")
+        ->assertOk()
+        ->assertDownload('drawing.svg')
+        ->assertHeader('X-Content-Type-Options', 'nosniff');
+});
+
+it('refuses both the inline and the download request when the policy denies', function () {
+    $screenshot = FeedbackScreenshot::factory()->create();
+    Storage::disk('local')->put($screenshot->storage_path, 'png-bytes');
+    Gate::before(fn (Member $actor, string $ability) => $ability === 'download' ? false : null);
+    $this->actingAs(Member::factory()->create());
+
+    $this->get("/feedback/screenshots/{$screenshot->id}")->assertForbidden();
+    $this->get("/feedback/screenshots/{$screenshot->id}?download=1")->assertForbidden();
 });
 
 it('serves the French item page and download at /fr/retroaction', function () {
@@ -184,9 +230,10 @@ it('serves the French item page and download at /fr/retroaction', function () {
     $this->withLocaleRoutes('fr', function () use ($screenshot) {
         $this->get("/fr/retroaction/{$screenshot->feedback_item_id}")
             ->assertInertia(fn (Assert $page) => $page
-                ->where('screenshots.0.href', "/fr/retroaction/captures/{$screenshot->id}"));
+                ->where('screenshots.0.href', "/fr/retroaction/captures/{$screenshot->id}")
+                ->where('screenshots.0.downloadHref', "/fr/retroaction/captures/{$screenshot->id}?download=1"));
 
-        $this->get("/fr/retroaction/captures/{$screenshot->id}")
+        $this->get("/fr/retroaction/captures/{$screenshot->id}?download=1")
             ->assertOk()
             ->assertDownload('capture.png');
     });

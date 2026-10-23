@@ -15,6 +15,7 @@
 // PATCH carrying the new `state`. Every mutation is enforced by the SchedulePolicy
 // regardless of what renders. Names and descriptions are as-authored content
 // (ADR-0004); everything else is translated chrome.
+import BookingDialog from '@/components/BookingDialog.vue';
 import DateTimeField from '@/components/DateTimeField.vue';
 import ForeignShiftBand from '@/components/ForeignShiftBand.vue';
 import InputError from '@/components/InputError.vue';
@@ -23,6 +24,16 @@ import ScheduleCalendar from '@/components/ScheduleCalendar.vue';
 import ShiftCard from '@/components/ShiftCard.vue';
 import TextLink from '@/components/TextLink.vue';
 import TimeField from '@/components/TimeField.vue';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +47,15 @@ import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { buildAgenda, splitAtDay } from '@/scheduling/agenda';
 import { type RecordCallbacks, type RecordPayload } from '@/scheduling/recordDraft';
 import { deriveEndsAt } from '@/scheduling/selfServeShift';
-import { type ScheduleDetail, type ScheduleListItem, type Scheduling, type SharedData, type ShiftAgendaItem, type VisitorProvenance } from '@/types';
+import {
+    type ScheduleDetail,
+    type ScheduleListItem,
+    type Scheduling,
+    type SharedData,
+    type ShiftAgendaItem,
+    type ShiftSignUp,
+    type VisitorProvenance,
+} from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import {
     PhArrowLeft,
@@ -57,6 +76,9 @@ import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
     scheduling: Scheduling;
+    // Loaded on demand by the dialogs below through a partial reload; null until then.
+    bookingClients: string[] | null;
+    substitutes: { id: number; name: string }[] | null;
     canCreate: boolean;
     collectsVisitorCount: boolean;
     collectsExtraInteractions: boolean;
@@ -193,6 +215,54 @@ const emailRoster = computed<Recipient[]>(() =>
     })),
 );
 
+// --- Group tours (#795, ADR-0032 §1) — a Booker adds a Booking -----------------------
+
+// The Booking form's pickers, sent only to a viewer who may add a group tour; null hides the
+// control. It shows on the list (the month's first group tour creates its Schedule) and on an
+// opened group-tour Schedule.
+const bookingOptions = computed(() => props.scheduling.booking_options);
+const bookingOpen = ref(false);
+
+// Changing and deleting a group tour (#796) — a Booker, Statistician, Chair or super-tier. The
+// change form is the add form filled from the Booking; its pickers come from
+// `booking_change_options`, which a Statistician gets too.
+const bookingChangeOptions = computed(() => props.scheduling.booking_change_options);
+const bookingEditing = ref<ShiftAgendaItem | null>(null);
+const bookingEditOpen = ref(false);
+
+const openBookingEdit = (shift: ShiftAgendaItem) => {
+    bookingEditing.value = shift;
+    bookingEditOpen.value = true;
+};
+
+// Deleting removes the Shift's Sign-ups too, so the confirmation dialog names the Members it
+// removes. `bookingDeleting` is the group tour awaiting confirmation. The dialog's open state is
+// separate: AlertDialogAction closes the dialog before its click handler runs, so the target must
+// outlive the close.
+const bookingDeleting = ref<ShiftAgendaItem | null>(null);
+const bookingDeleteOpen = ref(false);
+const bookingDeleteBody = computed(() => {
+    const names = (bookingDeleting.value?.signups ?? []).map((signUp) => `${signUp.first_name} ${signUp.last_name}`).join(', ');
+    return names ? trans('group.bookings.delete_signups_body', { names }) : trans('group.bookings.delete_body');
+});
+
+const destroyBooking = (shift: ShiftAgendaItem) => {
+    bookingDeleting.value = shift;
+    bookingDeleteOpen.value = true;
+};
+
+const confirmDestroyBooking = () => {
+    const booking = bookingDeleting.value?.booking;
+    if (!booking) return;
+
+    router.delete(route('bookings.destroy', { booking: booking.id }), {
+        preserveScroll: true,
+        onFinish: () => {
+            bookingDeleteOpen.value = false;
+        },
+    });
+};
+
 // --- Authoring (#354) — gated by the server's per-Schedule `can` hints --------
 
 // The open editor: 'create', or the id of the Schedule being edited, or null when
@@ -271,10 +341,12 @@ const destroy = (schedule: ScheduleDetail | ScheduleListItem) => {
 // Take a free seat: the server re-checks both floors, the `audience`, capacity, and the
 // one-seat rule (StoreSignUpRequest → SignUpPolicy). `can.signUp` gates the button, so it
 // only shows where a Sign-up would take. On a Group with Objects the taker first picks the
-// Objects they carry (#586, ADR-0026 §3), so the take opens a dialog; on a Group with none the
-// POST carries no body and seats them in one click.
+// Objects they carry (#586, ADR-0026 §3), and where they may give several of the kind's Tours
+// they pick the Tour they give (#790, ADR-0033 §2), so the take opens a dialog; otherwise the
+// POST carries no body and seats them in one click (the server fills in their one Tour, #803).
 const takingShift = ref<ShiftAgendaItem | null>(null);
-const takeForm = useForm<{ objects: number[] }>({ objects: [] });
+const takeForm = useForm<{ objects: number[]; tour_id: number | null }>({ objects: [], tour_id: null });
+const takePicksTour = computed(() => takingShift.value?.tour_choice === 'pick');
 
 const takeDialogOpen = computed({
     get: () => takingShift.value !== null,
@@ -290,7 +362,7 @@ const closeTake = () => {
 };
 
 const take = (shift: ShiftAgendaItem) => {
-    if (!hasObjects.value) {
+    if (!hasObjects.value && shift.tour_choice !== 'pick') {
         router.post(route('sign-ups.store', { shift: shift.id }), {}, { preserveScroll: true });
 
         return;
@@ -365,7 +437,9 @@ const assignFilter = ref('');
 // The placement's Objects (#586, ADR-0026 §3) — the Scheduler picks them before naming who sits,
 // so an assignment is as complete as a self-serve shift. A useForm so the server's object clash
 // and required errors bind and show in the dialog; `member_id` is set as the Scheduler clicks.
-const assignForm = useForm<{ member_id: number | null; objects: number[] }>({ member_id: null, objects: [] });
+// The Tour (#791, ADR-0033 §6) is any of the kind's active Tours or blank, with no qualification
+// check: a Scheduler may place anyone.
+const assignForm = useForm<{ member_id: number | null; objects: number[]; tour_id: number | null }>({ member_id: null, objects: [], tour_id: null });
 
 const assignOpen = computed({
     get: () => assigningShift.value !== null,
@@ -395,6 +469,8 @@ const openAssign = (shift: ShiftAgendaItem) => {
     assignFilter.value = '';
     assignForm.reset();
     assignForm.clearErrors();
+    // A one-Tour kind pre-selects its Tour, as a take fills it; several start blank.
+    assignForm.tour_id = shift.tours_offered.length === 1 ? shift.tours_offered[0].id : null;
     assigningShift.value = shift;
 };
 
@@ -418,6 +494,101 @@ const removeSeat = (signUpId: number) => {
     if (window.confirm(trans('group.scheduling_panel.agenda.assign.confirm_remove'))) {
         router.delete(route('sign-ups.destroy', { signUp: signUpId }), { preserveScroll: true });
     }
+};
+
+// --- Substituting on a Booking (#798, ADR-0032 §8) ---
+
+// A seat on a Booking cannot be dropped; its holder hands it to a Member who could take it. The
+// picker's list is the page's optional `substitutes` prop, loaded by a partial reload for this seat
+// when the dialog opens; the PATCH re-checks the holder, the start and the substitute.
+const substituting = ref<ShiftAgendaItem | null>(null);
+const substitutesLoading = ref(false);
+const substitutes = computed(() => (substitutesLoading.value ? null : props.substitutes));
+const substituteForm = useForm<{ member_id: number | null }>({ member_id: null });
+
+const substituteOpen = computed({
+    get: () => substituting.value !== null,
+    set: (open: boolean) => {
+        if (!open) closeSubstitute();
+    },
+});
+
+const closeSubstitute = () => {
+    substituting.value = null;
+    substituteForm.reset();
+    substituteForm.clearErrors();
+};
+
+const openSubstitute = (shift: ShiftAgendaItem) => {
+    if (shift.signup_id === null) return;
+
+    substituteForm.reset();
+    substituteForm.clearErrors();
+    substituting.value = shift;
+    substitutesLoading.value = true;
+
+    // `preserveUrl` keeps the seat's id out of the address bar.
+    router.reload({
+        only: ['substitutes'],
+        data: { substitute_for: shift.signup_id },
+        preserveUrl: true,
+        onFinish: () => {
+            substitutesLoading.value = false;
+        },
+    });
+};
+
+const submitSubstitute = () => {
+    const signUpId = substituting.value?.signup_id;
+    if (!signUpId) return;
+
+    substituteForm.patch(route('sign-ups.substitute', { signUp: signUpId }), {
+        preserveScroll: true,
+        onSuccess: () => closeSubstitute(),
+    });
+};
+
+// --- Changing a seat's Tour (#791, ADR-0033 §6) ---
+
+// The seat whose Tour is being changed, with its Shift; null when the dialog is closed. A schedule
+// admin picks from every active Tour of the kind or none (`tours_offered`, sent only to them); the
+// seat-holder picks from the Tours they may give (`tours`). The server re-checks both on PATCH.
+const changingTour = ref<{ shift: ShiftAgendaItem; signUp: ShiftSignUp } | null>(null);
+const changeTourForm = useForm<{ tour_id: number | null }>({ tour_id: null });
+const changeTourAsOfficer = computed(() => (changingTour.value?.shift.tours_offered.length ?? 0) > 0);
+const changeTourOptions = computed(() =>
+    changingTour.value === null ? [] : changeTourAsOfficer.value ? changingTour.value.shift.tours_offered : changingTour.value.shift.tours,
+);
+
+const changeTourOpen = computed({
+    get: () => changingTour.value !== null,
+    set: (open: boolean) => {
+        if (!open) closeChangeTour();
+    },
+});
+
+const closeChangeTour = () => {
+    changingTour.value = null;
+    changeTourForm.reset();
+    changeTourForm.clearErrors();
+};
+
+const openChangeTour = (shift: ShiftAgendaItem, signUp: ShiftSignUp) => {
+    changeTourForm.clearErrors();
+    changeTourForm.tour_id = signUp.tour_id;
+    changingTour.value = { shift, signUp };
+};
+
+// The seat's Sign-up id: a schedule admin has it on every seat; the seat-holder's is the Shift's own.
+const submitChangeTour = () => {
+    const target = changingTour.value;
+    const signUpId = target?.signUp.signup_id ?? target?.shift.signup_id;
+    if (!signUpId) return;
+
+    changeTourForm.patch(route('sign-ups.tour.update', { signUp: signUpId }), {
+        preserveScroll: true,
+        onSuccess: () => closeChangeTour(),
+    });
 };
 
 // --- Shift authoring (#356 front end, PRD #352, ADR-0021 §2) — add / edit / delete ---
@@ -478,6 +649,11 @@ const openShiftCreate = () => {
 };
 
 const openShiftEdit = (shift: ShiftAgendaItem) => {
+    // A group tour's Shift is changed through its Booking (#796).
+    if (shift.booking?.edit) {
+        openBookingEdit(shift);
+        return;
+    }
     shiftForm.starts_at = toDateTimeLocal(shift.starts_at);
     shiftForm.ends_at = toDateTimeLocal(shift.ends_at);
     shiftForm.capacity = shift.capacity;
@@ -505,6 +681,10 @@ const submitShift = () => {
 // Delete confirms before firing, matching the Schedule delete's shape. The button only
 // renders where `can.delete` holds — a schedule admin, and the Shift at zero Sign-ups.
 const destroyShift = (shift: ShiftAgendaItem) => {
+    if (shift.booking?.can_delete) {
+        destroyBooking(shift);
+        return;
+    }
     if (window.confirm(trans('group.scheduling_panel.confirm_delete_shift'))) {
         router.delete(route('shifts.destroy', { shift: shift.id }), { preserveScroll: true });
     }
@@ -855,16 +1035,29 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 :collects-visitor-provenance="collectsVisitorProvenance"
                 @take="take"
                 @drop="drop"
+                @substitute="openSubstitute"
                 @assign="openAssign"
                 @remove="removeSeat"
+                @change-tour="openChangeTour"
                 @edit="openShiftEdit"
                 @delete="destroyShift"
                 @record="record"
             />
         </section>
 
-        <div v-if="canCreate && !scheduling.open" class="flex justify-end">
-            <Button type="button" size="sm" class="gap-1.5" @click="openCreate">
+        <div v-if="(canCreate || bookingOptions) && !scheduling.open" class="flex flex-wrap justify-end gap-2">
+            <Button
+                v-if="bookingOptions"
+                type="button"
+                :variant="canCreate ? 'outline' : 'default'"
+                size="sm"
+                class="gap-1.5"
+                @click="bookingOpen = true"
+            >
+                <PhPlus class="size-4" />
+                {{ trans('group.bookings.add') }}
+            </Button>
+            <Button v-if="canCreate" type="button" size="sm" class="gap-1.5" @click="openCreate">
                 <PhPlus class="size-4" />
                 {{ trans('group.scheduling_panel.new') }}
             </Button>
@@ -959,7 +1152,15 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                  controls on an opened Schedule, gated by the same schedule-admin verdict as
                  Schedule editing (`can.update`). Shown even on an empty Schedule so the first
                  Shift, single or in bulk, can be added. -->
-            <div v-if="scheduling.open.can.update" class="flex flex-wrap justify-end gap-2">
+            <!-- Add group tour (#795) — on a month's group-tour Schedule, whose Shifts come only from
+                 Bookings, so the Shift authoring controls below give way to it. -->
+            <div v-if="scheduling.open.is_group_tour && bookingOptions" class="flex flex-wrap justify-end gap-2">
+                <Button type="button" size="sm" class="gap-1.5" @click="bookingOpen = true">
+                    <PhPlus class="size-4" />
+                    {{ trans('group.bookings.add') }}
+                </Button>
+            </div>
+            <div v-if="scheduling.open.can.update && !scheduling.open.is_group_tour" class="flex flex-wrap justify-end gap-2">
                 <Button type="button" variant="outline" size="sm" class="gap-1.5" @click="openBulkAssign">
                     <PhUserPlus class="size-4" />
                     {{ trans('group.scheduling_panel.bulk_assign.open') }}
@@ -1139,8 +1340,10 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         allow-self-serve-controls
                         @take="take"
                         @drop="drop"
+                        @substitute="openSubstitute"
                         @assign="openAssign"
                         @remove="removeSeat"
+                        @change-tour="openChangeTour"
                         @edit="openShiftEdit"
                         @delete="destroyShift"
                         @edit-self-serve="openSelfServeEdit"
@@ -1157,6 +1360,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         :expanded="foreignExpanded"
                         @take="take"
                         @drop="drop"
+                        @change-tour="openChangeTour"
                     />
                 </div>
             </section>
@@ -1176,8 +1380,10 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 :can-email-signups="scheduling.open.can.emailSignups"
                 @take="take"
                 @drop="drop"
+                @substitute="openSubstitute"
                 @assign="openAssign"
                 @remove="removeSeat"
+                @change-tour="openChangeTour"
                 @edit="openShiftEdit"
                 @delete="destroyShift"
                 @edit-self-serve="openSelfServeEdit"
@@ -1254,6 +1460,36 @@ const runBulkAssign = (action: 'place' | 'remove') => {
 
         <!-- Honest empty state — the Group runs scheduling but has no Schedules yet. -->
         <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.scheduling_panel.empty') }}</p>
+
+        <!-- Add a group tour (#795) — the Booking form, for a viewer the server sent its pickers. -->
+        <BookingDialog v-if="bookingOptions" v-model:open="bookingOpen" :group-slug="groupSlug" :options="bookingOptions" :clients="bookingClients" />
+        <!-- Change a group tour (#796) — the same form, filled from the Booking. -->
+        <BookingDialog
+            v-if="bookingChangeOptions"
+            v-model:open="bookingEditOpen"
+            :group-slug="groupSlug"
+            :options="bookingChangeOptions"
+            :clients="bookingClients"
+            :booking="bookingEditing?.booking ?? null"
+        />
+        <!-- Delete a group tour (#796) — confirms, naming the Members whose sign-ups go with it. -->
+        <AlertDialog v-model:open="bookingDeleteOpen">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{{ trans('group.bookings.confirm_delete') }}</AlertDialogTitle>
+                    <AlertDialogDescription>{{ bookingDeleteBody }}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>{{ trans('group.bookings.cancel') }}</AlertDialogCancel>
+                    <AlertDialogAction
+                        class="bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                        @click.prevent="confirmDestroyBooking"
+                    >
+                        {{ trans('group.bookings.delete') }}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
         <!-- Authoring create/edit dialog (#354) — one form, reused; opened by the
              "New schedule" control or a per-Schedule edit. -->
@@ -1640,6 +1876,16 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                         />
                         <InputError :message="assignForm.errors.objects" />
                     </div>
+                    <!-- The Tour the placed Member gives (#791, ADR-0033 §6) — any of the kind's
+                         active Tours or none, no qualification needed. -->
+                    <div v-if="assigningShift?.tours_offered.length" class="grid gap-2">
+                        <Label for="assign-tour">{{ trans('group.scheduling_panel.tour.field_label') }}</Label>
+                        <NativeSelect id="assign-tour" v-model="assignForm.tour_id">
+                            <option :value="null">{{ trans('group.scheduling_panel.tour.none') }}</option>
+                            <option v-for="tour in assigningShift.tours_offered" :key="tour.id" :value="tour.id">{{ tour.name }}</option>
+                        </NativeSelect>
+                        <InputError :message="assignForm.errors.tour_id" />
+                    </div>
                     <Input v-model="assignFilter" :placeholder="trans('group.scheduling_panel.agenda.assign.search')" />
                     <div class="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
                         <Button
@@ -1662,9 +1908,69 @@ const runBulkAssign = (action: 'place' | 'remove') => {
             </DialogContent>
         </Dialog>
 
-        <!-- Take-with-Objects dialog (#586, ADR-0026 §3) — on a Group with active Objects, taking a
-             Shift first asks which Objects the taker carries. A Group with no Objects never opens
-             this: `take` posts in one click instead. The server refuses a double-booked or missing
+        <!-- Substitute dialog (#798, ADR-0032 §8) — the holder of a Booking seat hands it on. -->
+        <Dialog v-model:open="substituteOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ trans('group.scheduling_panel.substitute.title') }}</DialogTitle>
+                </DialogHeader>
+                <form class="flex flex-col gap-4" @submit.prevent="submitSubstitute">
+                    <div class="grid gap-2">
+                        <Label for="substitute-member">{{ trans('group.scheduling_panel.substitute.field_label') }}</Label>
+                        <NativeSelect id="substitute-member" v-model="substituteForm.member_id" required :disabled="substitutes === null">
+                            <option :value="null" disabled>{{ trans('group.scheduling_panel.substitute.placeholder') }}</option>
+                            <option v-for="member in substitutes ?? []" :key="member.id" :value="member.id">{{ member.name }}</option>
+                        </NativeSelect>
+                        <p v-if="substitutes !== null && !substitutes.length" class="text-muted-foreground text-sm">
+                            {{ trans('group.scheduling_panel.substitute.none') }}
+                        </p>
+                        <InputError :message="substituteForm.errors.member_id" />
+                    </div>
+                    <div class="flex gap-2">
+                        <Button type="submit" size="sm" :disabled="substituteForm.processing || substituteForm.member_id === null">
+                            {{ trans('group.scheduling_panel.substitute.submit') }}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="substituteForm.processing" @click="closeSubstitute">
+                            {{ trans('group.scheduling_panel.cancel') }}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog v-model:open="changeTourOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ trans('group.scheduling_panel.tour.change') }}</DialogTitle>
+                </DialogHeader>
+                <form class="flex flex-col gap-4" @submit.prevent="submitChangeTour">
+                    <div class="grid gap-2">
+                        <Label for="change-tour">{{ trans('group.scheduling_panel.tour.field_label') }}</Label>
+                        <NativeSelect id="change-tour" v-model="changeTourForm.tour_id" :required="!changeTourAsOfficer">
+                            <option :value="null" :disabled="!changeTourAsOfficer">
+                                {{
+                                    changeTourAsOfficer ? trans('group.scheduling_panel.tour.none') : trans('group.scheduling_panel.tour.placeholder')
+                                }}
+                            </option>
+                            <option v-for="tour in changeTourOptions" :key="tour.id" :value="tour.id">{{ tour.name }}</option>
+                        </NativeSelect>
+                        <InputError :message="changeTourForm.errors.tour_id" />
+                    </div>
+                    <div class="flex gap-2">
+                        <Button type="submit" size="sm" :disabled="changeTourForm.processing">
+                            {{ trans('group.scheduling_panel.save') }}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" :disabled="changeTourForm.processing" @click="closeChangeTour">
+                            {{ trans('group.scheduling_panel.cancel') }}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Take dialog (#586, ADR-0026 §3; #790, ADR-0033 §2) — on a Group with active Objects,
+             taking a Shift first asks which Objects the taker carries; on a kind mapping several
+             Tours, which Tour they give. Otherwise `take` posts in one click instead. The server refuses a double-booked or missing
              Object, and the error binds here. -->
         <Dialog v-model:open="takeDialogOpen">
             <DialogContent>
@@ -1672,7 +1978,17 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                     <DialogTitle>{{ trans('group.scheduling_panel.agenda.sign_up.take') }}</DialogTitle>
                 </DialogHeader>
                 <form class="flex flex-col gap-4" @submit.prevent="submitTake">
-                    <div class="grid gap-2">
+                    <!-- The Tour the Member gives (#790, ADR-0033 §2) — on a kind mapping several
+                         Tours, listing only the ones they may give. -->
+                    <div v-if="takePicksTour" class="grid gap-2">
+                        <Label for="take-tour">{{ trans('group.scheduling_panel.tour.field_label') }}</Label>
+                        <NativeSelect id="take-tour" v-model="takeForm.tour_id" required>
+                            <option :value="null" disabled>{{ trans('group.scheduling_panel.tour.placeholder') }}</option>
+                            <option v-for="tour in takingShift?.tours ?? []" :key="tour.id" :value="tour.id">{{ tour.name }}</option>
+                        </NativeSelect>
+                        <InputError :message="takeForm.errors.tour_id" />
+                    </div>
+                    <div v-if="hasObjects" class="grid gap-2">
                         <Label>{{ trans('group.scheduling_panel.objects.field_label') }}</Label>
                         <ObjectPicker
                             v-model="takeForm.objects"

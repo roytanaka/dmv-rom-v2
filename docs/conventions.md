@@ -91,7 +91,7 @@ created_at, updated_at
 
 **Document categories** (`document_categories`) are headings, not Folder levels. Each Folder, and the library root (`folder_id` null), keeps its own list, names unique within it. A Folder or Document points at one Document category of its parent Folder (or the root) through `category_id`; the Form Requests refuse another Folder's (`WritesDocumentLibrary::categoryOf()`). Create, upload, link and move take an optional `category_id` checked against the target Folder's list; a move without one clears it, since the old one belongs to the old Folder. Deleting a Document category moves its items to Other (null); deleting an empty Folder deletes its list. A Document category never changes who reads anything (ADR-0030 §4).
 
-**Link Documents** carry a `url` and no file. Opening one passes the same policy check and access log as a file download, then redirects.
+**Link Documents** carry a `url` and no file. The `url` is sent to every reader, so the viewer's link card can show it. Opening one passes the same policy check and access log as a file download, then redirects.
 
 **Limits:** at most 1.5 GB per file. Allowed types: pdf, doc, docx, xls, xlsx, ppt, pptx, jpg, png, webp, gif, txt, csv, mp4, mp3, zip. The extension must be allowed and the sniffed content type must fit it (`App\Rules\DocumentFile`). One request carries one file; no chunking. The PHP and web-server limits that must allow 1.5 GB are in `docs/architecture.md` § Deployment.
 
@@ -106,7 +106,7 @@ created_at, updated_at
 1. User hits `GET /documents/{document}/download` (`/fr/documents/{document}/telecharger`). A logged-out visitor sees login, then gets the file.
 2. Controller authorizes via `DocumentPolicy@download`, on every request.
 3. Controller writes a `document_downloads` row (Document, Member, time). Rows are never edited.
-4. Controller streams `storage_path` with `original_filename`. Laravel sets `Content-Disposition` with the friendly filename: `inline` for a PDF, so it opens in the browser, and `attachment` for every other type. Never serve another type inline: an HTML or SVG file could run script on this origin.
+4. Controller streams `storage_path` with `original_filename`. Laravel sets `Content-Disposition` with the friendly filename: `inline` for a PDF and for a PNG, JPEG, WebP or GIF, so it opens in the browser or the image viewer, unless the request asks for `?download=1`; `attachment` for SVG and every other type. Never serve another type inline: an HTML or SVG file could run script on this origin. Every image response sends `X-Content-Type-Options: nosniff`.
 
 **Sanitization rules for original_filename** (`App\Support\SafeFilename`):
 

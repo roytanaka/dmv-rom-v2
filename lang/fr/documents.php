@@ -16,6 +16,8 @@ return [
     ],
 
     'download' => 'Télécharger :name',
+    // Le nom d’un document image l’ouvre dans la visionneuse (#779).
+    'view' => 'Afficher :name',
 
     // Documents-liens (#716) : un titre et une adresse Web au lieu d’un fichier.
     'link' => [
@@ -32,6 +34,8 @@ return [
     ],
 
     'upload' => [
+        'add' => 'Ajouter un document',
+        'title' => 'Ajouter des documents',
         'button' => 'Téléverser des fichiers',
         'drop' => 'Déposez des fichiers ici ou',
         'choose' => 'Choisir des fichiers',
@@ -40,6 +44,13 @@ return [
         'failed' => 'Non ajouté',
         'error_type' => ':name n’a pas été ajouté. Ce type de fichier n’est pas permis.',
         'error_size' => ':name n’a pas été ajouté. Il dépasse 1,5 Go.',
+        // Fermer la fenêtre Ajouter un document pendant un téléversement (#755).
+        'confirm_close' => [
+            'title' => 'Fermer et annuler les téléversements?',
+            'body' => 'Les fichiers en cours de téléversement ou en attente ne seront pas ajoutés. Les fichiers déjà téléversés restent.',
+            'keep' => 'Continuer le téléversement',
+            'cancel' => 'Annuler les téléversements',
+        ],
     ],
 
     // Modifier, remplacer et supprimer un document (#713).

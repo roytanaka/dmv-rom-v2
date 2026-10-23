@@ -2,7 +2,7 @@
 // paste adds, and why a file is refused before sending.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { addScreenshots, MAX_SCREENSHOT_BYTES, sizeLabel } from './screenshots.ts';
+import { addScreenshots, fileErrorMessages, MAX_SCREENSHOT_BYTES } from './screenshots.ts';
 
 const image = (name: string, type = 'image/png', size = 1000): File => new File([new Uint8Array(size)], name, { type });
 
@@ -63,14 +63,30 @@ test('refuses every image past the third', () => {
     ]);
 });
 
+test('refuses an image past the third with the limit key it is given', () => {
+    const result = addScreenshots(
+        [image('1.png'), image('2.png'), image('3.png')],
+        [image('4.png')],
+        'Pasted image',
+        'feedback.comments.error_limit',
+    );
+
+    assert.deepEqual(result.errors, [{ key: 'feedback.comments.error_limit', name: '4.png' }]);
+});
+
 test('names a file with no name by the fallback', () => {
     const result = addScreenshots([], [image('', 'text/plain')], 'Pasted image');
 
     assert.deepEqual(result.errors, [{ key: 'feedback.screenshots.error_type', name: 'Pasted image' }]);
 });
 
-test('labels a size in KB below 1 MB and in MB from 1 MB', () => {
-    assert.deepEqual(sizeLabel(200), { key: 'feedback.screenshots.size_kb', size: '1' });
-    assert.deepEqual(sizeLabel(421_888), { key: 'feedback.screenshots.size_kb', size: '412' });
-    assert.deepEqual(sizeLabel(1_258_291), { key: 'feedback.screenshots.size_mb', size: '1.2' });
+test('picks the server errors for one file field: the count and each file', () => {
+    const errors = {
+        body: 'Add a comment, an image, or both.',
+        images: 'You can add up to 3 screenshots.',
+        'images.3': 'notes.pdf was not added.',
+        imagesExtra: 'not this one',
+    };
+
+    assert.deepEqual(fileErrorMessages(errors, 'images'), ['You can add up to 3 screenshots.', 'notes.pdf was not added.']);
 });

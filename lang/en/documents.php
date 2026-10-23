@@ -15,6 +15,8 @@ return [
     ],
 
     'download' => 'Download :name',
+    // An image Document's name opens it in the image viewer (#779).
+    'view' => 'View :name',
 
     // Link Documents (#716): a title and a web address in place of a file.
     'link' => [
@@ -31,6 +33,8 @@ return [
     ],
 
     'upload' => [
+        'add' => 'Add document',
+        'title' => 'Add documents',
         'button' => 'Upload files',
         'drop' => 'Drop files here or',
         'choose' => 'Choose files',
@@ -39,6 +43,13 @@ return [
         'failed' => 'Not added',
         'error_type' => ':name was not added. This type of file is not allowed.',
         'error_size' => ':name was not added. It is larger than 1.5 GB.',
+        // Close the Add document dialog while files still upload or wait (#755).
+        'confirm_close' => [
+            'title' => 'Close and cancel uploads?',
+            'body' => 'Files still uploading or waiting will not be added. Files already uploaded stay.',
+            'keep' => 'Keep uploading',
+            'cancel' => 'Cancel uploads',
+        ],
     ],
 
     // Edit, replace and delete one Document (#713).

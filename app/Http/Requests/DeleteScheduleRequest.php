@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * Deleting a Schedule (#354, PRD #352, ADR-0021 §1). Authorization lives here,
@@ -29,5 +30,19 @@ class DeleteScheduleRequest extends FormRequest
     public function rules(): array
     {
         return [];
+    }
+
+    /**
+     * Refuse a group-tour Schedule that still holds Bookings (#796, ADR-0032 §4): deleting it
+     * would cascade to them. A validation rule, not the policy, so it binds super-tier too. Once
+     * its Bookings are moved or deleted, the ordinary rules above apply.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($this->route('schedule')->holdsBookings()) {
+                $validator->errors()->add('schedule', trans('group.bookings.group_tour_schedule_holds_bookings'));
+            }
+        });
     }
 }

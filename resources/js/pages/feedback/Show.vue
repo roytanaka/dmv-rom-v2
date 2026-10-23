@@ -5,10 +5,16 @@
 // content, shown as sent.
 //
 // The comment form uses the Tester's remembered name (§5, `@/feedback/testerName`).
-// Label, control, and error only — no helper text.
+// Label, control, and error only — no helper text. A comment carries text, images (#778),
+// or both; its images use the send dialog's image control, paste and drop included.
+//
+// A click on a screenshot or a comment image opens the image viewer (#776) on one list of
+// every image on the page, in page order: the screenshots, then each comment's images.
 //
 // The Support-operator (`can.manage`, #679, §7) also sets the status, deletes the item, and
 // deletes a comment. Each delete asks first. The server checks again on every request.
+import FeedbackImagePicker from '@/components/FeedbackImagePicker.vue';
+import ImageViewer from '@/components/ImageViewer.vue';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -19,9 +25,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatFeedbackDate, screenshotSize, STATUS_TONES, type FeedbackOption } from '@/feedback/display';
+import { formatFileSize } from '@/documents/fileSize';
+import { formatFeedbackDate, STATUS_TONES, type FeedbackOption } from '@/feedback/display';
+import { fileErrorMessages } from '@/feedback/screenshots';
 import { rememberedName, rememberName } from '@/feedback/testerName';
 import AppLayout from '@/layouts/AppLayout.vue';
+import type { ViewerEntry } from '@/viewer/entries';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { PhTrash } from '@phosphor-icons/vue';
@@ -50,25 +59,30 @@ interface FeedbackItemDetail {
     appVersion: string | null;
 }
 
-// Each screenshot loads through its download route, which checks the policy.
-interface FeedbackScreenshotRow {
+// Each screenshot and comment image loads through its route, which checks the policy:
+// `href` inline for the thumbnail and the viewer (#776), `downloadHref` as an attachment.
+interface FeedbackImageRow {
     id: number;
     filename: string;
     sizeBytes: number;
+    mimeType: string;
     href: string;
+    downloadHref: string;
 }
 
 interface FeedbackCommentRow {
     id: number;
     testerName: string;
-    body: string;
+    // Null for a comment that carries only images.
+    body: string | null;
     createdAt: string;
+    images: FeedbackImageRow[];
     deleteHref: string;
 }
 
 const props = defineProps<{
     item: FeedbackItemDetail;
-    screenshots: FeedbackScreenshotRow[];
+    screenshots: FeedbackImageRow[];
     comments: FeedbackCommentRow[];
     listHref: string;
     commentHref: string;
@@ -93,17 +107,52 @@ const viewport = computed(() =>
     props.item.viewportWidth === null || props.item.viewportHeight === null ? null : `${props.item.viewportWidth} × ${props.item.viewportHeight}`,
 );
 
+const toEntry = (image: FeedbackImageRow, kind: string): ViewerEntry => ({
+    kind: 'file',
+    key: `${kind}-${image.id}`,
+    filename: image.filename,
+    mimeType: image.mimeType,
+    typeLabel: null,
+    sizeBytes: null,
+    src: image.href,
+    downloadHref: image.downloadHref,
+});
+
+// Every image on the page, in page order: the screenshots, then each comment's images.
+const viewerEntries = computed<ViewerEntry[]>(() => [
+    ...props.screenshots.map((screenshot) => toEntry(screenshot, 'screenshot')),
+    ...props.comments.flatMap((comment) => comment.images.map((image) => toEntry(image, 'comment-image'))),
+]);
+const viewerOpen = ref(false);
+const viewerStart = ref(0);
+
+function openViewer(key: string): void {
+    viewerStart.value = Math.max(
+        0,
+        viewerEntries.value.findIndex((entry) => entry.key === key),
+    );
+    viewerOpen.value = true;
+}
+
 const form = useForm({
     tester_name: rememberedName(),
     body: '',
+    images: [] as File[],
 });
+const picker = ref<InstanceType<typeof FeedbackImagePicker> | null>(null);
 
+// The server's image errors: `images` for the count, `images.N` per file.
+const serverImageErrors = computed(() => fileErrorMessages(form.errors as Record<string, string>, 'images'));
+
+// The body and images are cleared by hand: after a success, useForm's defaults may be the
+// sent values, so reset() could bring them back.
 function submit(): void {
     form.post(props.commentHref, {
         preserveScroll: true,
         onSuccess: () => {
             rememberName(form.tester_name);
-            form.reset('body');
+            form.body = '';
+            form.images = [];
         },
     });
 }
@@ -172,15 +221,18 @@ function deleteComment(): void {
                 <h2 id="feedback-item-screenshots" class="text-rom-ink text-base font-semibold">{{ trans('feedback.screenshots.title') }}</h2>
                 <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <li v-for="screenshot in screenshots" :key="screenshot.id">
-                        <!-- A plain link, not TextLink: TextLink makes an Inertia visit, and this is a file download. -->
-                        <a :href="screenshot.href" class="group flex flex-col gap-1">
+                        <button
+                            type="button"
+                            class="group flex w-full cursor-pointer flex-col gap-1 text-left"
+                            @click="openViewer(`screenshot-${screenshot.id}`)"
+                        >
                             <img :src="screenshot.href" :alt="screenshot.filename" class="bg-muted aspect-video w-full border object-contain" />
                             <span
                                 class="text-rom-slate decoration-rom-slate/40 group-hover:text-rom-slate-700 text-sm break-all underline underline-offset-4"
                                 >{{ screenshot.filename }}</span
                             >
-                            <span class="text-muted-foreground text-sm">{{ screenshotSize(screenshot.sizeBytes) }}</span>
-                        </a>
+                            <span class="text-muted-foreground text-sm">{{ formatFileSize(screenshot.sizeBytes, page.props.locale) }}</span>
+                        </button>
                     </li>
                 </ul>
             </section>
@@ -263,12 +315,25 @@ function deleteComment(): void {
                                 {{ trans('feedback.comments.delete') }}
                             </Button>
                         </div>
-                        <p class="text-rom-ink text-base break-words whitespace-pre-line">{{ comment.body }}</p>
+                        <p v-if="comment.body" class="text-rom-ink text-base break-words whitespace-pre-line">{{ comment.body }}</p>
+                        <ul v-if="comment.images.length" class="mt-1 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                            <li v-for="image in comment.images" :key="image.id">
+                                <button type="button" class="block w-full cursor-pointer" @click="openViewer(`comment-image-${image.id}`)">
+                                    <img :src="image.href" :alt="image.filename" class="bg-muted aspect-video w-full border object-contain" />
+                                </button>
+                            </li>
+                        </ul>
                     </li>
                 </ol>
                 <p v-else class="text-muted-foreground text-sm">{{ trans('feedback.comments.empty') }}</p>
 
-                <form class="flex flex-col gap-4" @submit.prevent="submit">
+                <form
+                    class="flex flex-col gap-4"
+                    @submit.prevent="submit"
+                    @paste="picker?.onPaste($event)"
+                    @dragover="picker?.onFormDragOver($event)"
+                    @drop="picker?.onFormDrop($event)"
+                >
                     <div class="grid gap-2">
                         <Label for="comment-name">{{ trans('feedback.comments.name') }}</Label>
                         <Input
@@ -286,19 +351,29 @@ function deleteComment(): void {
                         <Textarea
                             id="comment-body"
                             v-model="form.body"
-                            required
                             maxlength="5000"
                             :rows="4"
                             :aria-invalid="form.errors.body ? true : undefined"
                         />
                         <InputError :message="form.errors.body" />
                     </div>
+                    <FeedbackImagePicker
+                        ref="picker"
+                        v-model="form.images"
+                        input-id="comment-images"
+                        :label="trans('feedback.comments.images')"
+                        :list-label="trans('feedback.comments.images_list')"
+                        limit-error-key="feedback.comments.error_limit"
+                        :server-errors="serverImageErrors"
+                    />
                     <div>
                         <Button type="submit" size="sm" :disabled="form.processing">{{ trans('feedback.comments.add') }}</Button>
                     </div>
                 </form>
             </section>
         </div>
+
+        <ImageViewer v-model:open="viewerOpen" :entries="viewerEntries" :start-index="viewerStart" />
 
         <template v-if="can.manage">
             <Dialog v-model:open="deleteItemOpen">
