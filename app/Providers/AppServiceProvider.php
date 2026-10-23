@@ -78,5 +78,10 @@ class AppServiceProvider extends ServiceProvider
         // controller authorizes it, and the page's Officer Tools rail item (ADR-0027 §4)
         // gates on it too.
         Gate::define('view-help-ledger', fn (Member $member) => false);
+
+        // The Document download log (#754, ADR-0030) is super-tier only, like the two status
+        // pages above: a Group's Librarian or Chair never reads members' download history. Only
+        // the Gate::before short-circuit grants it. The controller and the rail item gate on it.
+        Gate::define('view-document-downloads', fn (Member $member) => false);
     }
 }

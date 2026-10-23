@@ -556,7 +556,7 @@ it('gives a news-editor Officer Tools with Communications only', function () {
             ->count('rail.officer.items', 1));
 });
 
-it('gives a super-tier officer all seven Officer Tools items, the status pages last', function () {
+it('gives a super-tier officer all eight Officer Tools items, the status pages last', function () {
     $this->actingAs(Member::factory()->superTier()->create())
         ->get('/dashboard')
         ->assertOk()
@@ -566,9 +566,10 @@ it('gives a super-tier officer all seven Officer Tools items, the status pages l
             ->where('rail.officer.items.2.key', 'reports')
             ->where('rail.officer.items.3.key', 'flash-messages')
             ->where('rail.officer.items.4.key', 'settings')
-            ->where('rail.officer.items.5', ['key' => 'mail-status', 'labelKey' => 'nav.officer.mail_status', 'href' => '/mail-status'])
-            ->where('rail.officer.items.6', ['key' => 'help-status', 'labelKey' => 'nav.officer.help_status', 'href' => '/help-status'])
-            ->count('rail.officer.items', 7));
+            ->where('rail.officer.items.5', ['key' => 'document-downloads', 'labelKey' => 'nav.officer.document_downloads', 'href' => '/officer/document-downloads'])
+            ->where('rail.officer.items.6', ['key' => 'mail-status', 'labelKey' => 'nav.officer.mail_status', 'href' => '/mail-status'])
+            ->where('rail.officer.items.7', ['key' => 'help-status', 'labelKey' => 'nav.officer.help_status', 'href' => '/help-status'])
+            ->count('rail.officer.items', 8));
 });
 
 it('emits Officer Tools hrefs as French twins under /fr/', function () {
@@ -581,9 +582,10 @@ it('emits Officer Tools hrefs as French twins under /fr/', function () {
                 ->where('locale', 'fr')
                 ->where('rail.officer.items.0.href', '/fr/officier/membres')
                 ->where('rail.officer.items.2.href', '/fr/officier/rapports')
+                ->where('rail.officer.items.5.href', '/fr/officier/telechargements-documents')
                 // The status pages are non-localized operations screens (ADR-0027 §4).
-                ->where('rail.officer.items.5.href', '/mail-status')
-                ->where('rail.officer.items.6.href', '/help-status'));
+                ->where('rail.officer.items.6.href', '/mail-status')
+                ->where('rail.officer.items.7.href', '/help-status'));
     });
 });
 

@@ -326,6 +326,9 @@ class HandleInertiaRequests extends Middleware
      * Super-tier passes the abilities too via the Gate::before short-circuit, so it sees
      * all five.
      *
+     * The Document download log follows (#754, ADR-0030): a localized page behind its own
+     * super-tier-only gate.
+     *
      * Mail status and Help status close the cluster (ADR-0027 §4). They are org-wide
      * operations pages behind the super-tier-only gates their routes already authorize,
      * and their hrefs are the non-localized routes: the pages have no French twin.
@@ -343,6 +346,7 @@ class HandleInertiaRequests extends Middleware
             ['key' => 'reports', 'route' => 'officer.reports', 'labelKey' => 'nav.officer.reports'],
             ['key' => 'flash-messages', 'route' => 'officer.flash-messages', 'labelKey' => 'nav.officer.flash_messages'],
             ['key' => 'settings', 'route' => 'officer.settings', 'labelKey' => 'nav.officer.dmv_settings'],
+            ['key' => 'document-downloads', 'route' => 'officer.document-downloads', 'labelKey' => 'nav.officer.document_downloads', 'gate' => 'view-document-downloads'],
             ['key' => 'mail-status', 'href' => route('mail-status', absolute: false), 'labelKey' => 'nav.officer.mail_status', 'gate' => 'view-mail-status'],
             ['key' => 'help-status', 'href' => route('help-status', absolute: false), 'labelKey' => 'nav.officer.help_status', 'gate' => 'view-help-ledger'],
         ];

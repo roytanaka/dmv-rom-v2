@@ -48,6 +48,14 @@ class DocumentDownload extends Model
     }
 
     /**
+     * @return BelongsTo<Group, $this>
+     */
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(Group::class);
+    }
+
+    /**
      * @return BelongsTo<Member, $this>
      */
     public function member(): BelongsTo
