@@ -8,6 +8,8 @@ Find out which Members opened a file, and when. You need the super-tier grant.
 
 The log lists every download and link opened, newest first. Each page shows fifty rows.
 
+![The Download log: the filters at the top, then one row for each download, with the file name, Member, Group and time](01.png)
+
 ## Narrow the list
 
 1. Select a **Group** to see only that Group's Documents.
@@ -16,6 +18,8 @@ The log lists every download and link opened, newest first. Each page shows fift
 4. Type part of a name in **File name**, then select **Search**.
 
 The filters work together. Select **Clear filters** to see every row again.
+
+![The log filtered to the Docents Group: only Docents rows, and Clear filters next to Search](02.png)
 
 ## Read a row
 

@@ -8,6 +8,8 @@ Découvrez quels membres ont ouvert un fichier, et quand. Vous avez besoin du gr
 
 Le journal liste chaque téléchargement et chaque lien ouvert, du plus récent au plus ancien. Chaque page montre cinquante lignes.
 
+![Le journal des téléchargements : les filtres en haut, puis une ligne par téléchargement, avec le nom du fichier, le membre, le groupe et l'heure](01.png)
+
 ## Réduire la liste
 
 1. Sélectionnez un **Groupe** pour voir seulement les documents de ce groupe.
@@ -16,6 +18,8 @@ Le journal liste chaque téléchargement et chaque lien ouvert, du plus récent 
 4. Tapez une partie d'un nom dans **Nom du fichier**, puis sélectionnez **Rechercher**.
 
 Les filtres fonctionnent ensemble. Sélectionnez **Effacer les filtres** pour revoir toutes les lignes.
+
+![Le journal filtré sur le groupe Docents : seulement les lignes de Docents, et Effacer les filtres à côté de Rechercher](02.png)
 
 ## Lire une ligne
 
