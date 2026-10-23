@@ -951,6 +951,7 @@ class HoursController extends Controller
             'id' => $group->id,
             'name' => $group->name,
             'slug' => $group->slug,
+            'has_bookings' => $group->has_bookings,
         ];
     }
 

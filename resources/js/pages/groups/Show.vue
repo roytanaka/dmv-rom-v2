@@ -17,6 +17,7 @@ import GroupQualifications, { type QualificationScreen } from '@/components/Grou
 import GroupRoster from '@/components/GroupRoster.vue';
 import GroupScheduling from '@/components/GroupScheduling.vue';
 import GroupSettings from '@/components/GroupSettings.vue';
+import type { SettingsBookings } from '@/components/GroupBookingTypesCard.vue';
 import type { SettingsTourRules } from '@/components/GroupTourRulesCard.vue';
 import GroupTours, { type ToursPageTour } from '@/components/GroupTours.vue';
 import type { SettingsTour } from '@/components/GroupToursCard.vue';
@@ -117,6 +118,8 @@ const props = defineProps<{
         manageTours: boolean;
         // `manageTourRules` gates the Settings tab's Tour rules card (#793).
         manageTourRules: boolean;
+        // `manageBookings` gates the Settings tab's Group tours card (#794).
+        manageBookings: boolean;
         // `viewTours` gates the Tours tab (#792) — a current Member of a vetting Group, or the super-tier.
         viewTours: boolean;
         enterHours: boolean;
@@ -137,6 +140,10 @@ const props = defineProps<{
     // The Documents tab's payload (#712, ADR-0030), resolved only on that tab.
     library: GroupLibrary;
     scheduling: Scheduling;
+    // Optional props a Scheduling dialog loads by partial reload when it opens (ADR-0005): the
+    // Booking form's client suggestions and a seat-holder's substitutes. Absent on a visit.
+    bookingClients?: string[];
+    substitutes?: { id: number; name: string }[];
     hours: GroupHoursData;
     // A qualification screen's payload (#789) — by Tour or by Member — or null on every other page.
     qualifications: QualificationScreen | null;
@@ -156,6 +163,7 @@ const props = defineProps<{
         tours: { tours: SettingsTour[]; shiftKinds: { id: number; name: string; active: boolean }[] } | null;
         // The Tour rules card (#793): the trainee Tour, the starter Tours and the LOA rule.
         tourRules: SettingsTourRules | null;
+        bookings: SettingsBookings | null;
     };
     overview: {
         description: string | null;
@@ -465,6 +473,8 @@ const pickBanner = (key: string | null) => {
                 <GroupScheduling
                     v-else-if="section === 'scheduling'"
                     :scheduling="scheduling"
+                    :booking-clients="bookingClients ?? null"
+                    :substitutes="substitutes ?? null"
                     :can-create="can.createSchedule"
                     :collects-visitor-count="group.capabilities.collectsVisitorCount"
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
@@ -504,6 +514,8 @@ const pickBanner = (key: string | null) => {
                     :can-manage-tours="can.manageTours"
                     :tour-rules="settings.tourRules"
                     :can-manage-tour-rules="can.manageTourRules"
+                    :bookings="settings.bookings"
+                    :can-manage-bookings="can.manageBookings"
                     :group-slug="group.slug"
                 />
 

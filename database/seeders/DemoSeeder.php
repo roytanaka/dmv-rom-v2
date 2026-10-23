@@ -17,8 +17,11 @@ use App\Enums\ScheduleState;
 use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
+use App\Models\Booking;
+use App\Models\BookingType;
 use App\Models\Document;
 use App\Models\DocumentFolder;
+use App\Models\ExhibitionRevenue;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\GroupStewardship;
@@ -41,6 +44,7 @@ use App\Support\DocumentStorage;
 use App\Support\OrgTime;
 use App\Support\ProfilePhotoStorage;
 use App\Support\SafeFilename;
+use App\Support\Scheduling\GroupTourSchedule;
 use Carbon\CarbonImmutable;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -154,21 +158,32 @@ class DemoSeeder extends Seeder
     ];
 
     /**
-     * A month's Group Tours, as day-offsets from the first (all ≤ 24, inside even February).
-     * Shaped on a year of legacy bookings: a free late-morning tour with one Docent, paid
-     * evening tours with two, and school groups at 10:00 with three or four. None starts on
-     * a daily tour's hour, so the (Schedule, start) key stays unique. The booking itself
-     * (client name, group size) is deferred (ADR-0021), so each is only its staffing.
+     * A month's Docents group tours (#795, ADR-0032 §1), as day-offsets from the first (all ≤ 24,
+     * inside even February). Shaped on a year of legacy bookings: school groups at 10:00 with
+     * three or four Docents, paid evening tours with two, a free late-morning member tour with
+     * one, and a Spot Paid afternoon, two Docents stationed in a gallery and paid by the
+     * docent-hour. Each is a Booking with its client, Tour, booking type and expected visitors; the order
+     * number and date are drawn per month in {@see bookings()}.
      *
-     * @var list<array{day: int, start: array{int, int}, minutes: int, capacity: int}>
+     * @var list<array{day: int, start: array{int, int}, minutes: int, docents: int, client: string, tour: string, type: string, visitors: int, leader: ?string, comments: ?string}>
      */
-    private const GROUP_TOURS = [
-        ['day' => 3, 'start' => [10, 0], 'minutes' => 60, 'capacity' => 3],
-        ['day' => 8, 'start' => [18, 0], 'minutes' => 60, 'capacity' => 2],
-        ['day' => 14, 'start' => [11, 30], 'minutes' => 45, 'capacity' => 1],
-        ['day' => 19, 'start' => [18, 0], 'minutes' => 60, 'capacity' => 2],
-        ['day' => 24, 'start' => [10, 0], 'minutes' => 75, 'capacity' => 4],
+    private const DOCENT_BOOKINGS = [
+        ['day' => 3, 'start' => [10, 0], 'minutes' => 60, 'docents' => 3, 'client' => 'Bayview Public School', 'tour' => 'Dinosaurs', 'type' => 'Tour Paid', 'visitors' => 64, 'leader' => 'Ms. Okafor', 'comments' => 'Grade 4, three classes.'],
+        ['day' => 8, 'start' => [18, 0], 'minutes' => 60, 'docents' => 2, 'client' => 'Collette Tours', 'tour' => 'Museum Highlights', 'type' => 'Tour Paid', 'visitors' => 30, 'leader' => 'Hiro Tanabe', 'comments' => null],
+        ['day' => 14, 'start' => [11, 30], 'minutes' => 45, 'docents' => 1, 'client' => 'ROM Members', 'tour' => 'Custom (Group)', 'type' => 'Tour Internal', 'visitors' => 15, 'leader' => null, 'comments' => 'Member preview. Meet at the Weston Entrance.'],
+        ['day' => 19, 'start' => [18, 0], 'minutes' => 60, 'docents' => 2, 'client' => 'University of Toronto Alumni', 'tour' => 'Ancient Egypt', 'type' => 'Tour Paid', 'visitors' => 25, 'leader' => 'Dr. Amara Lewis', 'comments' => null],
+        ['day' => 24, 'start' => [10, 0], 'minutes' => 75, 'docents' => 4, 'client' => 'Toronto District School Board', 'tour' => 'Family', 'type' => 'Tour Free', 'visitors' => 90, 'leader' => 'Mr. Singh', 'comments' => 'Grade 2. Lunch room booked for 11:30.'],
+        ['day' => 11, 'start' => [13, 0], 'minutes' => 120, 'docents' => 2, 'client' => 'Ontario Science Centre Teachers', 'tour' => 'Dinosaurs', 'type' => 'Spot Paid', 'visitors' => 40, 'leader' => null, 'comments' => 'Two Docents stationed in the Dinosaur gallery.'],
     ];
+
+    /**
+     * The Statistician's correction to one of last month's Docents group tours (#797, ADR-0032 §7):
+     * the school's Tour Paid tour, worked out at 64 visitors × $5, billed at a negotiated $300.
+     */
+    private const DOCENT_EARNED_CORRECTION = ['client' => 'Bayview Public School', 'amount' => '300.00'];
+
+    /** The Docents' exhibition revenue for last month (#800, ADR-0032 §12), entered on Tour Summary. */
+    private const DOCENT_EXHIBITION_REVENUE = '1250.00';
 
     /**
      * A sample of the Docents' Tour list (#788, ADR-0033 §1): name => [open to all, kinds it is
@@ -239,6 +254,28 @@ class DemoSeeder extends Seeder
         'La Grèce et Rome' => [false, [self::GUIDES_CHOICE_TOUR, self::GDR_GROUP_TOUR]],
     ];
 
+    /**
+     * The Docents' booking types (#794, ADR-0032 §6): name => [rate per visitor, rate per
+     * docent-hour], in list order. A Tour Paid client pays per visitor; a Spot Paid one pays per
+     * docent-hour stationed in a gallery.
+     */
+    private const DOCENT_BOOKING_TYPES = [
+        'Tour Paid' => [5, 0],
+        'Tour Free' => [0, 0],
+        'Tour Internal' => [0, 0],
+        'Spot Paid' => [0, 25],
+        'Spot Free' => [0, 0],
+    ];
+
+    /** GDR's booking types, the Docents' five named in French ({@see DOCENT_BOOKING_TYPES}). */
+    private const GDR_BOOKING_TYPES = [
+        'Visite payante' => [5, 0],
+        'Visite gratuite' => [0, 0],
+        'Visite interne' => [0, 0],
+        'Poste payant' => [0, 25],
+        'Poste gratuit' => [0, 0],
+    ];
+
     /** The Guides du ROM daily tour and the monthly group tour, named as legacy names them. */
     private const GUIDES_CHOICE_TOUR = 'Le choix du guide';
 
@@ -249,6 +286,9 @@ class DemoSeeder extends Seeder
      * on a Saturday late in the month (the fourth Saturday here).
      */
     private const GDR_GROUP_TOUR_SATURDAY = 4;
+
+    /** GDR's monthly group tour as a Booking (#795), in the shape of {@see DOCENT_BOOKINGS}. */
+    private const GDR_BOOKING = ['start' => [11, 30], 'minutes' => 45, 'docents' => 1, 'client' => 'École Sainte-Marguerite-Bourgeoys', 'tour' => 'Les trésors', 'type' => 'Visite gratuite', 'visitors' => 22, 'leader' => 'Mme Tremblay', 'comments' => 'Classe de 3e année.'];
 
     /**
      * The Reception roster, read off the legacy weekly template: three-hour shifts, one volunteer
@@ -1159,8 +1199,9 @@ class DemoSeeder extends Seeder
      *
      * Each month is the roster Docents actually run, read off the legacy weekly template:
      * five one-hour tours every day from 11:00 to 15:00, one Docent each, the label
-     * alternating by hour ({@see TOUR_HOURS}). A few Group Tours sit on top
-     * ({@see GROUP_TOURS}), the only Shifts with more than one seat.
+     * alternating by hour ({@see TOUR_HOURS}). A few group tours sit beside them, each a Booking
+     * on its month's group-tour Schedule ({@see DOCENT_BOOKINGS}), the only Shifts with more than
+     * one seat.
      *
      * Faker-free and idempotent: Schedules and kinds key on (Group, name), Shifts on
      * (Schedule, start), and Sign-ups on the (Shift, Member) pair.
@@ -1176,6 +1217,7 @@ class DemoSeeder extends Seeder
         $this->tours($docents, self::DOCENT_TOURS, $kinds);
         $this->tourRules($docents, 'Museum Highlights – New Docents', ['Museum Highlights'], false);
         $this->qualifications($docents, 'Museum Highlights – New Docents');
+        $this->bookingTypes($docents, self::DOCENT_BOOKING_TYPES, $kinds[self::GROUP_TOUR], 'Group tours');
 
         $previous = $this->monthSchedule($docents, $lastMonth, 'Last month\'s docent tour roster, worked and signed out.');
         $current = $this->monthSchedule($docents, $month, 'The current-month docent tour roster — sign up for a tour below.');
@@ -1184,6 +1226,14 @@ class DemoSeeder extends Seeder
         $this->tourShifts($current, $month, $kinds);
 
         $this->seatTours($docents, $previous, $current);
+
+        $lastGroupTours = $this->bookings($docents, $lastMonth, self::DOCENT_BOOKINGS, 'en');
+        $this->seatBookings($docents, [
+            $lastGroupTours,
+            $this->bookings($docents, $month, self::DOCENT_BOOKINGS, 'en'),
+        ], [10, 25]);
+        $this->bookingFigures($docents, $lastGroupTours, $lastMonth);
+        $this->ensureBooker($docents);
 
         $this->draftNextMonth($docents, $month);
 
@@ -1397,7 +1447,8 @@ class DemoSeeder extends Seeder
     /**
      * The Guides du ROM tour roster, on the same two published months as Docents. Legacy runs one
      * French tour a day at 14:00, one guide, every day but Monday, labelled "Le choix du guide".
-     * One free group tour a month sits on top, on a Saturday at 11:30 ({@see GDR_GROUP_TOUR_SATURDAY}).
+     * One free group tour a month sits beside them, a Booking on a Saturday at 11:30
+     * ({@see GDR_GROUP_TOUR_SATURDAY}, {@see GDR_BOOKING}).
      *
      * Ended tours are full. About nine upcoming tours in ten are already taken, as in the legacy
      * months open for sign-up. Counts are small, often zero, and split into five origins.
@@ -1421,6 +1472,7 @@ class DemoSeeder extends Seeder
         $this->tours($group, self::GDR_TOURS, $kinds);
         $this->tourRules($group, null, ['Le choix du guide', 'Les trésors'], true);
         $this->qualifications($group);
+        $this->bookingTypes($group, self::GDR_BOOKING_TYPES, $kinds[self::GDR_GROUP_TOUR], 'Visites de groupe');
 
         $previous = $this->monthSchedule($group, $lastMonth, 'Le calendrier des visites du mois dernier, données et signées.');
         $current = $this->monthSchedule($group, $month, 'Les visites du mois. Inscrivez-vous à une visite ci-dessous.');
@@ -1432,9 +1484,6 @@ class DemoSeeder extends Seeder
                     $specs[] = ['day' => $day, 'start' => [14, 0], 'minutes' => 60, 'capacity' => 1, 'kind' => self::GUIDES_CHOICE_TOUR];
                 }
             }
-            $saturday = $start->nthOfMonth(self::GDR_GROUP_TOUR_SATURDAY, CarbonImmutable::SATURDAY);
-            $specs[] = ['day' => $saturday->day - 1, 'start' => [11, 30], 'minutes' => 45, 'capacity' => 1, 'kind' => self::GDR_GROUP_TOUR];
-
             $this->writeShifts($schedule, $start, $specs, $kinds);
         }
 
@@ -1442,8 +1491,16 @@ class DemoSeeder extends Seeder
             $group,
             [$previous, $current],
             fn (Shift $shift) => $shift->ends_at->isPast() || $this->spread($shift->starts_at->timestamp, 0, 99) < 90 ? 1 : 0,
-            fn (Shift $shift) => $shift->kind?->name === self::GDR_GROUP_TOUR ? [15, 25] : [0, 6],
+            fn (Shift $shift) => [0, 6],
         );
+
+        $groupTours = [];
+        foreach ([$lastMonth, $month] as $start) {
+            $saturday = $start->nthOfMonth(self::GDR_GROUP_TOUR_SATURDAY, CarbonImmutable::SATURDAY);
+            $groupTours[] = $this->bookings($group, $start, [['day' => $saturday->day - 1, ...self::GDR_BOOKING]], 'fr');
+        }
+        $this->seatBookings($group, $groupTours, [15, 25]);
+        $this->ensureBooker($group);
     }
 
     /**
@@ -1819,8 +1876,8 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Write a month of tours onto the Schedule: the daily roster on every day of the month,
-     * then the month's Group Tours.
+     * Write a month of daily tours onto the Schedule, the roster on every day of the month. The
+     * month's group tours are Bookings on their own Schedule ({@see bookings()}).
      *
      * @param  array<string, ShiftKind>  $kinds
      */
@@ -1832,10 +1889,6 @@ class DemoSeeder extends Seeder
                 $specs[] = ['day' => $day, 'start' => [$hour, 0], 'minutes' => 60, 'capacity' => 1, 'kind' => $kind];
             }
         }
-        foreach (self::GROUP_TOURS as $tour) {
-            $specs[] = [...$tour, 'kind' => self::GROUP_TOUR];
-        }
-
         $this->writeShifts($schedule, $month, $specs, $kinds);
     }
 
@@ -1909,12 +1962,10 @@ class DemoSeeder extends Seeder
     /**
      * Seat the Docents roster on its tours the way a real month fills. Every ended tour
      * was worked, so it is full. An upcoming tour is taken or not by a deterministic draw
-     * weighted the way Docents sign up ({@see tourFillChance()}). An upcoming Group Tour is
-     * left one seat short, so a walkthrough always has a multi-seat Shift with room.
+     * weighted the way Docents sign up ({@see tourFillChance()}).
      *
      * Counts sit near the legacy averages: about 16 on a Museum Highlights tour (never
-     * empty), about 12 on a Gallery/Theme tour (sometimes a recorded zero), and a share of
-     * a group on a Group Tour.
+     * empty), and about 12 on a Gallery/Theme tour (sometimes a recorded zero).
      */
     private function seatTours(Group $group, Schedule $previous, Schedule $current): void
     {
@@ -1923,14 +1974,111 @@ class DemoSeeder extends Seeder
             [$previous, $current],
             fn (Shift $shift) => match (true) {
                 $shift->ends_at->isPast() => $shift->capacity,
-                $shift->capacity > 1 => $shift->capacity - 1,
                 default => $this->spread($shift->starts_at->timestamp, 0, 99) < $this->tourFillChance($shift) ? 1 : 0,
             },
             fn (Shift $shift) => match ($shift->kind?->name) {
                 self::HIGHLIGHTS_TOUR => [5, 28],
-                self::GALLERY_TOUR => [0, 24],
-                default => [10, 25],
+                default => [0, 24],
             },
+        );
+    }
+
+    /**
+     * Add a month's group tours as Bookings (#795, ADR-0032 §1, §4), each with its one Shift on
+     * the month's group-tour Schedule, created up front so its month is spelled in `$locale` (GDR's
+     * in French); each Booking then finds it. The order number and date are drawn per Booking.
+     * Keyed on (Group, client, start) so a reseed heals rather than duplicates. Returns the
+     * month's group-tour Schedule.
+     *
+     * @param  list<array{day: int, start: array{int, int}, minutes: int, docents: int, client: string, tour: string, type: string, visitors: int, leader: ?string, comments: ?string}>  $specs
+     */
+    private function bookings(Group $group, CarbonImmutable $month, array $specs, string $locale): Schedule
+    {
+        $schedule = GroupTourSchedule::for($group, CarbonImmutable::parse($month->toDateString(), config('app.org_timezone')), $locale);
+        $tours = $group->tours()->pluck('id', 'name');
+        $types = $group->bookingTypes()->pluck('id', 'name');
+
+        foreach ($specs as $spec) {
+            $start = CarbonImmutable::parse(OrgTime::toUtc($month->addDays($spec['day'])->setTime(...$spec['start'])->toDateTimeString()));
+
+            $exists = $group->bookings()
+                ->where('client', $spec['client'])
+                ->whereRelation('shift', 'starts_at', $start)
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            Booking::book($group, $start, $start->addMinutes($spec['minutes']), $spec['docents'], [
+                'tour_id' => $tours[$spec['tour']],
+                'booking_type_id' => $types[$spec['type']],
+                'client' => $spec['client'],
+                'visitors' => $spec['visitors'],
+                'leader' => $spec['leader'],
+                'order_number' => (string) (400000 + $this->spread($start->timestamp, 0, 99999)),
+                'order_date' => $month->subDays(20 - $spec['day'] % 7)->toDateString(),
+                'comments' => $spec['comments'],
+            ]);
+        }
+
+        return $schedule;
+    }
+
+    /**
+     * Last month's office figures on the Docents group tours (#797, #800): the Statistician's
+     * correction to one Booking's Earned ({@see DOCENT_EARNED_CORRECTION}) and the month's
+     * exhibition revenue ({@see DOCENT_EXHIBITION_REVENUE}), so Tour Summary shows both. Both
+     * writes set a value, so a reseed heals rather than duplicates.
+     */
+    private function bookingFigures(Group $docents, Schedule $lastGroupTours, CarbonImmutable $lastMonth): void
+    {
+        Booking::whereRelation('shift', 'schedule_id', $lastGroupTours->id)
+            ->where('client', self::DOCENT_EARNED_CORRECTION['client'])
+            ->first()
+            ?->correctEarned(self::DOCENT_EARNED_CORRECTION['amount']);
+
+        ExhibitionRevenue::enter($docents, $lastMonth->format('Ym'), self::DOCENT_EXHIBITION_REVENUE);
+    }
+
+    /**
+     * Give the Group one Booker (#794, ADR-0032 §3) unless it has one: the first Full-standing
+     * Member of the generated pool who holds no role there, so a walkthrough can show a Booker who
+     * is not also the Chair. Never a curated Persona: officers come from the pool
+     * ({@see ensureLeadership()}).
+     */
+    private function ensureBooker(Group $group): void
+    {
+        $personas = array_map(fn (Persona $persona) => $persona->email, PersonaCatalogue::all());
+
+        $membership = GroupMember::where('group_id', $group->id)
+            ->where('status', MembershipStatus::Full)
+            ->whereDoesntHave('roles')
+            ->whereHas('member', fn ($query) => $query->whereNotIn('email', $personas))
+            ->orderBy('id')
+            ->first();
+
+        if ($membership !== null) {
+            $this->ensureRole($group, $membership->member, Role::Booker);
+        }
+    }
+
+    /**
+     * Seat a Group's roster on its group tours (#795): every ended one full, every upcoming one a
+     * seat short so a walkthrough always has a multi-seat Shift with room. The Member Persona keeps
+     * to the daily Shifts ({@see seatRoster()}), so her My sign-ups panel reads as before.
+     *
+     * @param  list<Schedule>  $schedules  the group-tour Schedules, oldest first
+     * @param  array{int, int}  $countRange
+     */
+    private function seatBookings(Group $group, array $schedules, array $countRange): void
+    {
+        $this->seatRoster(
+            $group,
+            $schedules,
+            fn (Shift $shift) => $shift->ends_at->isPast() ? $shift->capacity : $shift->capacity - 1,
+            fn (Shift $shift) => $countRange,
+            placePersona: false,
         );
     }
 
@@ -1955,8 +2103,9 @@ class DemoSeeder extends Seeder
      * @param  list<Schedule>  $schedules  oldest first; the last is the current month
      * @param  callable(Shift): int  $seatsFor
      * @param  (callable(Shift): array{int, int})|null  $countRange  null for a Group that collects no count
+     * @param  bool  $placePersona  false to leave the Member Persona off these Schedules (group tours)
      */
-    private function seatRoster(Group $group, array $schedules, callable $seatsFor, ?callable $countRange = null): void
+    private function seatRoster(Group $group, array $schedules, callable $seatsFor, ?callable $countRange = null, bool $placePersona = true): void
     {
         $current = end($schedules);
         $roster = $this->livingRoster($group);
@@ -1971,13 +2120,13 @@ class DemoSeeder extends Seeder
         $unrecordedFrom = $now->subDays(self::UNRECORDED_DAYS);
 
         $shifts = Shift::whereIn('schedule_id', array_map(fn (Schedule $schedule) => $schedule->id, $schedules))
-            ->with(['kind.tours', 'schedule.group'])
+            ->with(['kind.tours', 'booking.tour', 'schedule.group'])
             ->orderBy('starts_at')
             ->orderBy('id')
             ->get();
 
         $personaShifts = [];
-        if ($persona !== null) {
+        if ($persona !== null && $placePersona) {
             $lastEnded = $shifts->filter(fn (Shift $shift) => $shift->ends_at->lessThan($now))->last();
             $lastTour = $shifts->where('schedule_id', $current->id)->last();
 
@@ -2056,8 +2205,13 @@ class DemoSeeder extends Seeder
 
         // The Tour the seat gives (#790, ADR-0033 §2): one the Member may give on the Shift's kind,
         // drawn deterministically; null on a kind with no Tours.
+        // A group tour's seat gives the Booking's Tour, as a Booker's placement records it (#795).
         $givable = $member->toursGivableOn($shift);
-        $tourId = $givable->isEmpty() ? null : $givable[($shift->id + $seat) % $givable->count()]->id;
+        $tourId = match (true) {
+            $shift->booking !== null => $shift->booking->tour_id,
+            $givable->isEmpty() => null,
+            default => $givable[($shift->id + $seat) % $givable->count()]->id,
+        };
 
         return [
             'shift_id' => $shift->id,
@@ -2405,6 +2559,27 @@ class DemoSeeder extends Seeder
             'loa_removes_qualifications' => $loaRemovesQualifications,
         ]);
         $group->tours()->whereIn('name', $starterTours)->update(['starter' => true]);
+    }
+
+    /**
+     * Seed a Group's booking types and group-tour settings (#794, ADR-0032 §1, §4, §6): the types
+     * in list order with their rates, the shift kind a Booking's Shift takes, and the label the
+     * month's group-tour Schedule is named from. Types key on (Group, name), so a reseed heals
+     * rather than duplicates.
+     *
+     * @param  array<string, array{0: int, 1: int}>  $spec
+     */
+    private function bookingTypes(Group $group, array $spec, ShiftKind $kind, string $label): void
+    {
+        $order = 0;
+        foreach ($spec as $name => [$perVisitor, $perDocentHour]) {
+            BookingType::updateOrCreate(
+                ['group_id' => $group->id, 'name' => $name],
+                ['rate_per_visitor' => $perVisitor, 'rate_per_docent_hour' => $perDocentHour, 'active' => true, 'sort_order' => $order++],
+            );
+        }
+
+        $group->update(['group_tour_shift_kind_id' => $kind->id, 'group_tour_label' => $label]);
     }
 
     /**
@@ -3186,6 +3361,8 @@ class DemoSeeder extends Seeder
                         'visitor_figures_await_booking' => true,
                         // Tours and qualifications (ADR-0033): Docents keep a Tour list.
                         'has_vetting' => true,
+                        // Group tours (ADR-0032 §2): Docents take client Bookings.
+                        'has_bookings' => true,
                         // Reminders on with the standard 3 lead days (ADR-0024 §7) — one of the
                         // five Groups that run them today. The lead days stay at the column
                         // default, so only the switch is set here.
@@ -3201,6 +3378,8 @@ class DemoSeeder extends Seeder
                         'reminders_enabled' => true,
                         // Tours and qualifications (ADR-0033): GDR keeps a Tour list.
                         'has_vetting' => true,
+                        // Group tours (ADR-0032 §2): GDR takes client Bookings.
+                        'has_bookings' => true,
                     ]),
                     $this->program('Les Amis Francophiles', [], GroupLogo::LesAmisFrancophiles),
                     $this->program('DMV Hands-on Tours', [

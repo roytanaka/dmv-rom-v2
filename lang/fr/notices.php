@@ -29,4 +29,27 @@ return [
         'footer' => 'Si vous pouvez en prendre un, veuillez vous inscrire afin que le poste soit couvert.',
         'view_schedules' => 'Voir l’horaire',
     ],
+    // La demande et la confirmation de visite de groupe (#799, ADR-0032 §9). La visite, le client,
+    // le responsable et les commentaires sont du contenu et s'affichent tels qu'écrits ; :group
+    // aussi. `date_format` est le format de date PHP du jour de la visite dans chaque langue.
+    'booking' => [
+        'date_format' => 'l j F Y',
+        'client' => 'Client',
+        'visitors' => 'Visiteurs attendus',
+        'leader' => 'Responsable du groupe',
+    ],
+    'booking_request' => [
+        'subject' => 'Demande de visite de groupe : :tour, :date',
+        'heading' => 'Une visite de groupe cherche des guides',
+        'intro' => ':group a une visite de groupe qui manque encore de guides. Si vous pouvez la donner, inscrivez-vous.',
+        'seats_needed' => '{0} Plus aucun guide requis.|{1} Il manque encore :count guide.|[2,*] Il manque encore :count guides.',
+        'view_schedule' => 'S’inscrire à l’horaire',
+    ],
+    'booking_confirmation' => [
+        'subject' => 'Visite de groupe confirmée : :tour, :date',
+        'heading' => 'Visite de groupe confirmée',
+        'intro' => 'Cette visite de groupe de :group est confirmée.',
+        'docents' => 'Guides de cette visite',
+        'view_schedule' => 'Voir l’horaire',
+    ],
 ];

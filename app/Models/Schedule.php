@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ScheduleState;
 use App\Policies\SchedulePolicy;
 use App\Support\OrgTime;
+use App\Support\Scheduling\GroupTourSchedule;
 use Carbon\CarbonImmutable;
 use Database\Factories\ScheduleFactory;
 use DateTimeInterface;
@@ -44,6 +45,7 @@ class Schedule extends Model
         'ends_on',
         'state',
         'description',
+        'group_tour_month',
     ];
 
     /**
@@ -103,6 +105,26 @@ class Schedule extends Model
     public function scopePublished(Builder $query): void
     {
         $query->where('state', ScheduleState::Published);
+    }
+
+    /**
+     * Whether this is a month's group-tour Schedule (#795, ADR-0032 §4) — the published Schedule
+     * that holds the month's Bookings, made by {@see GroupTourSchedule}. Its Shifts come only from
+     * Bookings; a Scheduler adds none by hand, and it stays published.
+     */
+    public function isGroupTour(): bool
+    {
+        return $this->group_tour_month !== null;
+    }
+
+    /**
+     * Whether this Schedule still holds a Booking's Shift (#796, ADR-0032 §4). Deleting it would
+     * cascade to the Bookings, so a group-tour Schedule is deletable only once empty. Only a
+     * group-tour Schedule can hold one, so any other answers without a query.
+     */
+    public function holdsBookings(): bool
+    {
+        return $this->isGroupTour() && $this->shifts()->whereHas('booking')->exists();
     }
 
     /**
