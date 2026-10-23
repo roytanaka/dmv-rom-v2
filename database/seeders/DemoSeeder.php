@@ -3740,11 +3740,12 @@ class DemoSeeder extends Seeder
         return match ($kind) {
             Kind::StandingCommittee => ['has_meetings' => true, 'has_documents' => true] + $off,
             Kind::Program => [
+                'has_meetings' => true,
                 'has_documents' => true,
                 'has_scheduling' => true,
             ] + $off,
             Kind::WorkingGroup => ['has_meetings' => true, 'has_documents' => true] + $off,
-            Kind::Project => ['has_documents' => true] + $off,
+            Kind::Project => ['has_meetings' => true, 'has_documents' => true] + $off,
             Kind::Cohort => ['has_documents' => true, 'has_scheduling' => true] + $off,
             // A container is pure scaffolding — every capability stays off.
             Kind::Container => $off,

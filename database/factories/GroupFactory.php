@@ -81,13 +81,14 @@ class GroupFactory extends Factory
 
     /**
      * A program — the member-facing operating unit that runs scheduling, content,
-     * and stats.
+     * and stats, and meets.
      */
     public function program(): static
     {
         return $this->state(fn () => [
             'kind' => Kind::Program,
             'scope' => Scope::Program,
+            'has_meetings' => true,
             'has_documents' => true,
             'has_scheduling' => true,
         ]);
@@ -157,13 +158,14 @@ class GroupFactory extends Factory
     }
 
     /**
-     * A project — a time-boxed sub-team.
+     * A project — a time-boxed sub-team that meets and holds documents.
      */
     public function project(): static
     {
         return $this->state(fn () => [
             'kind' => Kind::Project,
             'scope' => Scope::Subteam,
+            'has_meetings' => true,
             'has_documents' => true,
         ])->timeBoxed();
     }
