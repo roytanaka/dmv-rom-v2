@@ -26,14 +26,17 @@ export function searchTours<T extends SearchableTour>(tours: T[], query: string)
     });
 }
 
+/** One piece of a name, and whether the query matched it. */
+export type MatchPart = { text: string; match: boolean };
+
 /** A name cut into the parts the query matched and the parts it did not, original case kept. */
-export function splitMatch(text: string, query: string): { text: string; match: boolean }[] {
+export function splitMatch(text: string, query: string): MatchPart[] {
     const needle = query.trim().toLowerCase();
     if (needle === '') {
         return [{ text, match: false }];
     }
 
-    const parts: { text: string; match: boolean }[] = [];
+    const parts: MatchPart[] = [];
     const haystack = text.toLowerCase();
     let from = 0;
     for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, from)) {

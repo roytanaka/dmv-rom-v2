@@ -10,6 +10,7 @@
 // open row links to its by-Tour screen (#789), and a row with Members carries an Email button
 // (Feedback item 84) that opens the composer as a hand-pick seeded with them (ADR-0024 §6). Both
 // deviate from the legacy Who's Who, which listed everything open and emailed from a menu.
+import MatchHighlight from '@/components/MatchHighlight.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import ComposerSheet from '@/emailing/ComposerSheet.vue';
 import type { Recipient } from '@/emailing/composer';
 import { formatDateOnly } from '@/lib/dates';
-import { searchTours, splitMatch } from '@/tours/toursSearch';
+import { searchTours } from '@/tours/toursSearch';
 import type { SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { PhCaretDown, PhEnvelopeSimple, PhMagnifyingGlass } from '@phosphor-icons/vue';
@@ -35,6 +36,9 @@ export type ToursPageTour = {
 const props = defineProps<{
     tours: ToursPageTour[];
     canManage: boolean;
+    // Whether the viewer may email from this Group (`email.reason` is null, ADR-0024 §6): a
+    // super-tier non-member manages Tours but gets no Email button, as the server would refuse.
+    canEmail: boolean;
     groupSlug: string;
     groupName: string;
     // The Group's hand-pick pool (#551), the composer's roster for a row's Email button.
@@ -119,18 +123,13 @@ function email(tour: ToursPageTour): void {
                                     aria-hidden="true"
                                 />
                                 <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                    <span class="text-base font-semibold">
-                                        <template v-for="(part, index) in splitMatch(tour.name, search)" :key="index">
-                                            <mark v-if="part.match" class="bg-warning-bg text-inherit">{{ part.text }}</mark>
-                                            <template v-else>{{ part.text }}</template>
-                                        </template>
-                                    </span>
+                                    <span class="text-base font-semibold"><MatchHighlight :text="tour.name" :query="search" /></span>
                                     <Badge v-if="tour.openToAll" variant="secondary">{{ trans('group.tours_page.open_to_all') }}</Badge>
                                     <span class="text-muted-foreground text-sm">{{ countLabel(tour) }}</span>
                                 </span>
                             </CollapsibleTrigger>
                             <Button
-                                v-if="canManage && tour.members.length > 0"
+                                v-if="canManage && canEmail && tour.members.length > 0"
                                 type="button"
                                 variant="outline"
                                 size="sm"
@@ -153,12 +152,7 @@ function email(tour: ToursPageTour): void {
                                         :key="member.memberId"
                                         class="flex flex-wrap items-baseline justify-between gap-x-4 py-2"
                                     >
-                                        <span class="font-medium">
-                                            <template v-for="(part, index) in splitMatch(member.name, search)" :key="index">
-                                                <mark v-if="part.match" class="bg-warning-bg text-inherit">{{ part.text }}</mark>
-                                                <template v-else>{{ part.text }}</template>
-                                            </template>
-                                        </span>
+                                        <span class="font-medium"><MatchHighlight :text="member.name" :query="search" /></span>
                                         <span class="text-muted-foreground">
                                             <span class="sr-only">{{ trans('group.tours_page.last_vet_date') }}: </span
                                             >{{ formatDate(member.lastVetDate) }}
@@ -176,7 +170,7 @@ function email(tour: ToursPageTour): void {
         </template>
 
         <ComposerSheet
-            v-if="canManage"
+            v-if="canManage && canEmail"
             v-model:open="sheetOpen"
             context="group"
             :context-subject="groupSlug"

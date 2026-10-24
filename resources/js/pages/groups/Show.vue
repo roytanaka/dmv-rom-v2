@@ -532,6 +532,7 @@ const pickBanner = (key: string | null) => {
                     v-else-if="section === 'tours'"
                     :tours="tours"
                     :can-manage="can.manageTours"
+                    :can-email="email.reason === null"
                     :group-slug="group.slug"
                     :group-name="group.name"
                     :email-roster="email.roster"

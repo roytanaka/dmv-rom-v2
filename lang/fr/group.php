@@ -290,7 +290,7 @@ return [
         'any_member' => 'Tout membre',
         'no_one' => 'Personne pour l’instant',
         'email' => 'Courriel',
-        'email_label' => 'Envoyer un courriel aux membres de :tour',
+        'email_label' => 'Courriel aux membres de :tour',
         'edit' => 'Modifier les qualifications',
     ],
 
