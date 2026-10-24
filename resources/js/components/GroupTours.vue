@@ -21,7 +21,7 @@ import { formatDateOnly } from '@/lib/dates';
 import { searchTours, splitMatch } from '@/tours/toursSearch';
 import type { SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
-import { PhCaretDown, PhEnvelopeSimple } from '@phosphor-icons/vue';
+import { PhCaretDown, PhEnvelopeSimple, PhMagnifyingGlass } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -84,7 +84,16 @@ function email(tour: ToursPageTour): void {
 
         <template v-else>
             <div class="flex flex-col gap-2">
-                <Input v-model="search" type="search" class="sm:max-w-sm" :aria-label="trans('group.tours_page.search_label')" />
+                <div class="relative sm:max-w-sm">
+                    <PhMagnifyingGlass class="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden="true" />
+                    <Input
+                        v-model="search"
+                        type="search"
+                        class="pl-9"
+                        :placeholder="trans('group.tours_page.search_label')"
+                        :aria-label="trans('group.tours_page.search_label')"
+                    />
+                </div>
                 <p class="text-muted-foreground text-sm" aria-live="polite">
                     {{
                         shown.length === 0
@@ -103,20 +112,22 @@ function email(tour: ToursPageTour): void {
                     >
                         <div class="flex items-center gap-2 pr-2">
                             <CollapsibleTrigger
-                                class="hover:bg-muted/50 focus-visible:ring-ring flex min-h-11 flex-1 flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-left focus-visible:ring-2 focus-visible:outline-none"
+                                class="hover:bg-muted/50 focus-visible:ring-ring flex min-h-11 flex-1 items-start gap-2 px-3 py-2 text-left focus-visible:ring-2 focus-visible:outline-none"
                             >
                                 <PhCaretDown
-                                    class="size-4 shrink-0 -rotate-90 transition-transform group-data-[state=open]/tour:rotate-0"
+                                    class="mt-1 size-4 shrink-0 -rotate-90 transition-transform group-data-[state=open]/tour:rotate-0"
                                     aria-hidden="true"
                                 />
-                                <span class="text-base font-semibold">
-                                    <template v-for="(part, index) in splitMatch(tour.name, search)" :key="index">
-                                        <mark v-if="part.match" class="bg-warning-bg text-inherit">{{ part.text }}</mark>
-                                        <template v-else>{{ part.text }}</template>
-                                    </template>
+                                <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <span class="text-base font-semibold">
+                                        <template v-for="(part, index) in splitMatch(tour.name, search)" :key="index">
+                                            <mark v-if="part.match" class="bg-warning-bg text-inherit">{{ part.text }}</mark>
+                                            <template v-else>{{ part.text }}</template>
+                                        </template>
+                                    </span>
+                                    <Badge v-if="tour.openToAll" variant="secondary">{{ trans('group.tours_page.open_to_all') }}</Badge>
+                                    <span class="text-muted-foreground text-sm">{{ countLabel(tour) }}</span>
                                 </span>
-                                <Badge v-if="tour.openToAll" variant="secondary">{{ trans('group.tours_page.open_to_all') }}</Badge>
-                                <span class="text-muted-foreground text-sm">{{ countLabel(tour) }}</span>
                             </CollapsibleTrigger>
                             <Button
                                 v-if="canManage && tour.members.length > 0"
