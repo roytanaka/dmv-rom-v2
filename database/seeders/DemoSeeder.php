@@ -1575,7 +1575,7 @@ class DemoSeeder extends Seeder
                 $start,
                 $start->lessThan($month)
                     ? 'Last month\'s Gallery Interpreters roster, worked and signed out.'
-                    : 'The Gallery Interpreters roster. Write your own shift below.',
+                    : 'The Gallery Interpreters roster. Sign up for a shift below.',
             );
 
             $this->writeShifts($schedule, $start, $this->galleryInterpreterSpecs($start), $kinds);

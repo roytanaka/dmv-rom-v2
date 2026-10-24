@@ -20,7 +20,7 @@ Vous ne pouvez pas vous désister d’une visite de groupe. Un client compte sur
 1. Trouvez la visite de groupe qui porte votre nom.
 2. Sélectionnez **Se faire remplacer**.
 3. Choisissez un membre dans la liste. La liste montre seulement les membres qui peuvent donner cette visite et qui n’y sont pas encore.
-4. Sélectionnez **Céder la place**.
+4. Sélectionnez **Me faire remplacer**.
 
 Votre place passe à ce membre. Vous, votre remplaçant·e et les responsables des réservations de votre groupe recevez chacun·e un courriel.
 

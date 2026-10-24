@@ -351,10 +351,10 @@ return [
             'description' => 'Permettre aux membres de créer leurs propres quarts sur les horaires publiés de ce groupe. Chaque quart les inscrit du même coup.',
             'enabled_label' => 'Permettre aux membres de créer leurs propres quarts',
             'unit_minutes_label' => 'Minutes par unité',
-            // Créer mon quart (#585, ADR-0026 §1, §2) — la boîte de dialogue créer / modifier /
+            // M’inscrire à un quart (#585, ADR-0026 §1, §2) — la boîte de dialogue créer / modifier /
             // supprimer côté membre et sa validation, sur un horaire publié d'un groupe en libre-service.
-            'write' => 'Créer mon quart',
-            'create_title' => 'Créer mon quart',
+            'write' => 'M’inscrire à un quart',
+            'create_title' => 'M’inscrire à un quart',
             'edit_title' => 'Modifier mon quart',
             'confirm_delete' => 'Supprimer ce quart ? Cela vous en retire. Cette action est irréversible.',
             'edit' => 'Modifier',
@@ -371,6 +371,7 @@ return [
             'ends_at_preview' => 'Se termine à :time',
             'units_option' => '{1} :count unité|[2,*] :count unités',
             'start_before_today' => 'Choisissez aujourd’hui ou un jour ultérieur.',
+            'kind_required' => 'Choisissez un poste.',
             'tour_kind' => 'Vous ne pouvez pas créer votre propre quart à un poste qui comporte des visites.',
             // L'avertissement de conflit de poste (#588, ADR-0026 §5) — un·e autre interprète est
             // déjà à ce poste à ce moment. Un avertissement, non un blocage : le membre peut passer outre.
@@ -417,7 +418,7 @@ return [
             'field_label' => 'Remplaçant·e',
             'placeholder' => 'Choisissez un membre',
             'none' => 'Personne d’autre ne peut donner cette visite.',
-            'submit' => 'Céder la place',
+            'submit' => 'Me faire remplacer',
             'not_eligible' => 'Ce membre ne peut pas donner cette visite.',
         ],
         // Maintenance des objets (#584, ADR-0026 §3) — la collection à manipuler qu’un·e

@@ -7,7 +7,7 @@ Créez un quart pour vous-même quand votre groupe permet aux membres de gérer 
 1. Ouvrez votre groupe depuis la barre latérale.
 2. Sélectionnez l'onglet **Horaire**.
 3. Ouvrez un horaire publié.
-4. Sélectionnez **Créer mon quart**.
+4. Sélectionnez **M’inscrire à un quart**.
 
     > **Note :** Le bouton s'affiche seulement si votre groupe est en libre-service. Demandez à un·e Responsable horaire si vous ne le voyez pas.
 
@@ -17,7 +17,7 @@ Créez un quart pour vous-même quand votre groupe permet aux membres de gérer 
 8. Ajoutez un ou plusieurs **Objets** si votre groupe en remet.
 9. Sélectionnez **Enregistrer**.
 
-    ![La fenêtre Créer mon quart : Poste, Heure de début, Unités, Objets, Enregistrer et Annuler](01.png)
+    ![La fenêtre M’inscrire à un quart : Poste, Heure de début, Unités, Objets, Enregistrer et Annuler](01.png)
 
 Votre quart rejoint l'horaire avec votre nom.
 

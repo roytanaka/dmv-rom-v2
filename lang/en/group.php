@@ -373,10 +373,10 @@ return [
             'description' => 'Let members write their own shifts on this group\'s published schedules. Each shift signs them up in the same step.',
             'enabled_label' => 'Let members write their own shifts',
             'unit_minutes_label' => 'Minutes per unit',
-            // Write my shift (#585, ADR-0026 §1, §2) — the member-facing create / edit / delete
+            // Sign up for a shift (#585, ADR-0026 §1, §2) — the member-facing create / edit / delete
             // dialog and its validation, on a published schedule of a self-serve group.
-            'write' => 'Write my shift',
-            'create_title' => 'Write my shift',
+            'write' => 'Sign up for a shift',
+            'create_title' => 'Sign up for a shift',
             'edit_title' => 'Edit my shift',
             'confirm_delete' => 'Delete this shift? This removes you from it. You cannot undo this.',
             'edit' => 'Edit',
@@ -393,6 +393,7 @@ return [
             'ends_at_preview' => 'Ends at :time',
             'units_option' => '{1} :count unit|[2,*] :count units',
             'start_before_today' => 'Choose today or a later day.',
+            'kind_required' => 'Choose a station.',
             // A station whose kind maps to Tours (ADR-0033 §2) — those Shifts are the Scheduler's.
             'tour_kind' => 'You cannot write your own shift on a station that has tours.',
             // The station clash warning (#588, ADR-0026 §5) — another interpreter is already on this
@@ -439,7 +440,7 @@ return [
             'field_label' => 'Substitute',
             'placeholder' => 'Choose a member',
             'none' => 'No one else can take this tour.',
-            'submit' => 'Hand over seat',
+            'submit' => 'Replace me',
             'not_eligible' => 'This member cannot take this tour.',
         ],
         // Objects maintenance (#584, ADR-0026 §3) — the handling collection a Gallery
