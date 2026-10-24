@@ -157,3 +157,46 @@ it('marks each meeting as upcoming or past for the client to head the two blocks
             ->where('meetings.1.is_upcoming', false)
             ->etc());
 });
+
+// The Meetings tab hint (Feedback item 79): the tab answers to the same gate as the
+// route, so a viewer the route would refuse sees no tab.
+it('opens the Meetings tab hint to a Group member', function () {
+    $group = Group::factory()->workingGroup()->create();
+
+    $this->actingAs(memberOf($group))
+        ->get(route('groups.show', ['group' => $group]))
+        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', true));
+});
+
+it('withholds the Meetings tab hint from a non-member', function () {
+    $group = Group::factory()->workingGroup()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', ['group' => $group]))
+        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', false));
+});
+
+it('withholds the Meetings tab hint from a member of the parent Group only', function () {
+    $parent = Group::factory()->workingGroup()->create();
+    $subgroup = Group::factory()->workingGroup()->create(['parent_id' => $parent->id]);
+
+    $this->actingAs(memberOf($parent))
+        ->get(route('groups.show', ['group' => $subgroup]))
+        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', false));
+});
+
+it('opens the Meetings tab hint to the super-tier without membership', function () {
+    $group = Group::factory()->workingGroup()->create();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', ['group' => $group]))
+        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', true));
+});
+
+it('withholds the Meetings tab hint on a Group that does not run meetings', function () {
+    $group = Group::factory()->create(['has_meetings' => false]);
+
+    $this->actingAs(memberOf($group))
+        ->get(route('groups.show', ['group' => $group]))
+        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', false));
+});
