@@ -7,7 +7,7 @@ Write a shift for yourself when your Group lets its Members schedule their own. 
 1. Open your Group from the Left Side Bar.
 2. Select the **Scheduling** tab.
 3. Open a published Schedule.
-4. Select **Write my shift**.
+4. Select **Sign up for a shift**.
 
     > **Note:** The button shows only when your Group is self-serve. Ask a Scheduler if you do not see it.
 
@@ -17,7 +17,7 @@ Write a shift for yourself when your Group lets its Members schedule their own. 
 8. Add one or more **Objects** if your Group hands them out.
 9. Select **Save**.
 
-    ![The Write my shift dialog: Station, Start time, Units, Objects, Save, and Cancel](01.png)
+    ![The Sign up for a shift dialog: Station, Start time, Units, Objects, Save, and Cancel](01.png)
 
 Your shift joins the Schedule with your name on it.
 

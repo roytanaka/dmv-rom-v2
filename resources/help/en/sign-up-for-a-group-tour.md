@@ -20,7 +20,7 @@ You cannot drop a seat on a group tour. A client is counting on it, so you hand 
 1. Find the group tour with your name on it.
 2. Select **Substitute**.
 3. Pick a member from the list. The list shows only members who can give this tour and are not on it yet.
-4. Select **Hand over seat**.
+4. Select **Replace me**.
 
 Your seat goes to that member. You, your substitute and your Group's Bookers each get an email.
 

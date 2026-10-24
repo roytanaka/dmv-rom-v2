@@ -450,10 +450,10 @@
         return settle();
     }
 
-    // Open the "Write my shift" dialog a self-serve Group's Member sees on an opened Schedule
+    // Open the "Sign up for a shift" dialog a self-serve Group's Member sees on an opened Schedule
     // (#590, ADR-0026 §1). A plain click handler opens it, so a DOM click is enough.
-    function openWriteMyShiftDialog() {
-        return clickAndSettle(pageButtonLabelled(/^write my shift$/i));
+    function openSelfServeShiftDialog() {
+        return clickAndSettle(pageButtonLabelled(/^sign up for a shift$/i));
     }
 
     // A Shift the signed-in Member wrote for themselves — the Agenda card that carries Edit and
@@ -938,7 +938,7 @@
         showObjects,
         showOffSiteStation,
         chooseOffSiteKind,
-        openWriteMyShiftDialog,
+        openSelfServeShiftDialog,
         showMyWrittenShift,
         showUpcomingPlaceAMember,
         showUpcomingFullShift,

@@ -253,6 +253,23 @@ it('refuses a station whose kind maps to active Tours, on store and update', fun
     expect($shift->fresh()->shift_kind_id)->toBe($plain->id);
 });
 
+it('asks for a station when none is chosen, on store and update', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $member = giMemberOf($group);
+    $message = __('group.scheduling_panel.self_serve.kind_required');
+
+    $this->actingAs($member)
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($station, ['shift_kind_id' => null]))
+        ->assertSessionHasErrors(['shift_kind_id' => $message]);
+
+    $shift = ownedShift($schedule, $station, $member);
+    $this->actingAs($member)
+        ->patch(route('self-serve-shifts.update', ['shift' => $shift->id]), selfServeBody($station, ['shift_kind_id' => null]))
+        ->assertSessionHasErrors(['shift_kind_id' => $message]);
+});
+
 // --- store: the authorization floors ------------------------------------------
 
 it('refuses a store on a draft schedule', function () {
@@ -749,7 +766,7 @@ it('never warns when a Scheduler places a Member on the station', function () {
 
 // --- Inertia hints: the button and the owner’s controls -----------------------
 
-it('offers Write my shift to a self-serve GI member', function () {
+it('offers Sign up for a shift to a self-serve GI member', function () {
     $group = selfServeGroup();
     $schedule = juneSchedule($group);
     $member = giMemberOf($group);
@@ -759,7 +776,7 @@ it('offers Write my shift to a self-serve GI member', function () {
         ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.can.createSelfServe', true));
 });
 
-it('offers no Write my shift button on a Group that is not self-serve', function () {
+it('offers no Sign up for a shift button on a Group that is not self-serve', function () {
     $group = selfServeGroup(['self_serve_shifts' => false]);
     $schedule = juneSchedule($group);
     $member = giMemberOf($group);

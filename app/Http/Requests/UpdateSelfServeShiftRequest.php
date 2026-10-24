@@ -78,6 +78,16 @@ class UpdateSelfServeShiftRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'shift_kind_id.required' => trans('group.scheduling_panel.self_serve.kind_required'),
+        ];
+    }
+
+    /**
      * The two overlap checks (ADR-0026 §3, §5): the Object double-booking block and the station
      * clash warning, both on this Shift's *new* derived interval and kind. The actor's own seat is
      * excluded from the Object block, and the Shift itself from the station warning — keeping the

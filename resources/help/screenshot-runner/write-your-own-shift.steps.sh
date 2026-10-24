@@ -2,7 +2,7 @@
 #
 # Persona: Oliver Bennett — a plain Member of Gallery Interpreters (he chairs Docents,
 # but holds no role in GI). GI is the self-serve Group, so its Scheduling tab shows the
-# Write my shift button and his own shifts carry Edit and Delete. Shoot on the GI demo
+# Sign up for a shift button and his own shifts carry Edit and Delete. Shoot on the GI demo
 # month, reseeded first (#589), so the chrome is the GI roster, not a generic Group.
 # Run: resources/help/screenshot-runner/run.sh write-your-own-shift
 #
@@ -14,7 +14,7 @@ persona oliver.bennett@dmv.test
 start /groups/gallery-interpreters/scheduling
 
 act openCurrentMonthSchedule        # open the GI month (no shot)
-act openWriteMyShiftDialog 01       # the Write my shift dialog: Station, Start time, Units, Objects
+act openSelfServeShiftDialog 01       # the Sign up for a shift dialog: Station, Start time, Units, Objects
 nav /groups/gallery-interpreters/scheduling   # reload to close the dialog
 act openCurrentMonthSchedule        # reopen the month
 act showMyWrittenShift 02           # a shift the Member wrote: its Edit and Delete controls

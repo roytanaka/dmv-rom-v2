@@ -9,4 +9,4 @@ persona amara.abara@dmv.test
 start /groups/docents/scheduling
 
 act openGroupTourSchedule 01 # the month's group-tour Schedule: group tours with Sign up on open seats
-act openSubstituteDialog 02  # the Substitute dialog: the member picker and Hand over seat
+act openSubstituteDialog 02  # the Substitute dialog: the member picker and Replace me

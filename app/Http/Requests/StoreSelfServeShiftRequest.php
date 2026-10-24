@@ -86,6 +86,16 @@ class StoreSelfServeShiftRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'shift_kind_id.required' => trans('group.scheduling_panel.self_serve.kind_required'),
+        ];
+    }
+
+    /**
      * The two overlap checks (ADR-0026 §3, §5): the Object double-booking block, and the station
      * clash warning. The candidate is the Shift this store will write — its derived interval and
      * chosen kind — so both match what will be stored. No Sign-up or Shift is excluded: a store
