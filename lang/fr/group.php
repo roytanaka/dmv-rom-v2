@@ -283,6 +283,15 @@ return [
         'open_to_all_none' => 'Tout membre peut donner cette visite.',
         'last_vet_date' => 'Dernière vérification',
         'no_date' => 'Aucune date',
+        'search_label' => 'Rechercher des visites ou des membres',
+        'shown' => '{1} :shown sur :total visite|[2,*] :shown sur :total visites',
+        'no_match' => 'Aucune visite ne correspond.',
+        'member_count' => '{1} :count membre|[2,*] :count membres',
+        'any_member' => 'Tout membre',
+        'no_one' => 'Personne pour l’instant',
+        'email' => 'Courriel',
+        'email_label' => 'Envoyer un courriel aux membres de :tour',
+        'edit' => 'Modifier les qualifications',
     ],
 
     // Les écrans des qualifications (#789, ADR-0033 §3, §4) : par visite et par membre.

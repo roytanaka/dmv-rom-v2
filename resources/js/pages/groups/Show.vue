@@ -528,7 +528,14 @@ const pickBanner = (key: string | null) => {
 
                 <!-- Tours (#792, ADR-0033 §5) — who gives each active Tour, for Members of a vetting
                      Group. Tour names link to the by-Tour screens behind `can.manageTours`. -->
-                <GroupTours v-else-if="section === 'tours'" :tours="tours" :can-manage="can.manageTours" :group-slug="group.slug" />
+                <GroupTours
+                    v-else-if="section === 'tours'"
+                    :tours="tours"
+                    :can-manage="can.manageTours"
+                    :group-slug="group.slug"
+                    :group-name="group.name"
+                    :email-roster="email.roster"
+                />
 
                 <!-- The capability stubs fill in later slices. -->
                 <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.coming_soon') }}</p>

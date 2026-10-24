@@ -42,6 +42,10 @@ const props = defineProps<{
     // their profile rather than picked from a roster. When set, the Who step shows them and nothing
     // else, and Next goes straight to Message. Absent for a Broadcast.
     fixed?: Recipient | null;
+    // A seeded hand-pick (Feedback item 84): roster ids ticked when the sheet opens with no
+    // Audience — a Tour row's Email button seeds its qualified Members. It stays a hand-pick
+    // (ADR-0024 §6): the ids post as additions and the server checks them against the roster.
+    seed?: number[];
 }>();
 
 const emit = defineEmits<{ (e: 'update:open', value: boolean): void }>();
@@ -96,9 +100,10 @@ watch(
         }
 
         if (props.audience === null) {
+            const seed = (props.seed ?? []).filter((id) => directory.value.has(id));
             baseIds.value = [];
-            ticked.value = new Set();
-            panelOpen.value = true;
+            ticked.value = new Set(seed);
+            panelOpen.value = seed.length === 0;
             return;
         }
 
