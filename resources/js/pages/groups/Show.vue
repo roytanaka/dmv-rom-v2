@@ -105,6 +105,8 @@ const props = defineProps<{
     // `manageSettings` gates the Settings tab (ADR-0027 §1).
     can: {
         update: boolean;
+        // `viewMeetings` gates the Meetings tab (Feedback item 79) — a Member of the Group, or the super-tier.
+        viewMeetings: boolean;
         createMeeting: boolean;
         manageRoster: boolean;
         createSchedule: boolean;
@@ -181,9 +183,10 @@ const formatDate = (iso: string) => new Intl.DateTimeFormat(page.props.locale, {
 const ended = computed(() => !props.group.archived && props.group.end_date !== null && new Date(props.group.end_date) < new Date());
 
 // The in-body section tabs. Overview · Roster are always present; Meetings, Documents
-// (#712) and Scheduling each render when the Group runs that capability. Hours
-// is always-on (ADR-0022 §3): its tab renders on every Group and sub-Group, now a real
-// tab carrying the extra-hours entry surface (#408). Settings comes last, only for a viewer
+// (#712) and Scheduling each render when the Group runs that capability; Meetings also
+// needs a viewer the section admits (`can.viewMeetings`). Hours is always-on (ADR-0022
+// §3): its tab renders on every Group and sub-Group, now a real tab carrying the
+// extra-hours entry surface (#408). Settings comes last, only for a viewer
 // holding a configuration right, on every visit, empty or not (ADR-0027 §1). Hrefs are
 // English-canonical; SectionTabs localises them to the active locale (ADR-0008).
 const tabs = computed<NavNode[]>(() => {
@@ -192,7 +195,7 @@ const tabs = computed<NavNode[]>(() => {
         { href: href(), labelKey: 'group.tab.overview' },
         { href: href('roster'), labelKey: 'group.tab.members' },
     ];
-    if (props.group.capabilities.meetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
+    if (props.group.capabilities.meetings && props.can.viewMeetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents' });
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
     if (props.group.capabilities.vetting && props.can.viewTours) list.push({ href: href('tours'), labelKey: 'group.tab.tours' });

@@ -282,6 +282,9 @@ class GroupController extends Controller
             // `createSchedule` drives the Scheduling tab's "New schedule" affordance (#354).
             'can' => [
                 'update' => $request->user()->can('update', $group),
+                // `viewMeetings` drives the Meetings tab (Feedback item 79) — the same gate as the
+                // section, so a non-member sees no tab. UI hint only; the section re-checks it.
+                'viewMeetings' => $request->user()->can('viewAny', [Meeting::class, $group]),
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $request->user()->can('create', [GroupMember::class, $group]),
                 'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
