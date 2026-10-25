@@ -6,20 +6,18 @@ use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
-use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use App\Http\Requests\ArchiveGroupRequest;
+use App\Http\Requests\PreviewStewardshipsRequest;
 use App\Http\Requests\StoreGroupRequest;
 use App\Http\Requests\UpdateGroupStructureRequest;
 use App\Http\Requests\UpdateStewardshipRequest;
 use App\Models\Group;
 use App\Models\GroupStewardship;
-use App\Models\Member;
-use Illuminate\Database\Eloquent\Builder;
+use App\Support\Groups\OrgTree;
+use App\Support\Groups\OrgTreeNode;
+use App\Support\Stewardships\StewardshipAssignment;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,9 +27,10 @@ use Inertia\Response;
  * Group structure and Stewardships. Two sections, each a route: the Groups tree and the
  * Stewardships cards; plus one Group's structure form.
  *
- * Every method authorizes `administer-groups` first. The gate denies everyone; only the
- * super-tier Gate::before short-circuit grants it. A Chair, a Records Member or any other
- * Group role buys nothing here.
+ * Every method authorizes `administer-groups` first, itself or through its form request. The
+ * gate denies everyone; only the super-tier Gate::before short-circuit grants it. A Chair, a
+ * Records Member or any other Group role buys nothing here. The tree walk lives in OrgTree,
+ * the stewardship preview and reassignment in StewardshipAssignment.
  */
 class DmvSettingsController extends Controller
 {
@@ -46,12 +45,15 @@ class DmvSettingsController extends Controller
     {
         Gate::authorize('administer-groups');
 
-        $ordered = $this->orderedGroups();
+        $tree = OrgTree::load();
 
         return Inertia::render('officer/settings/Groups', [
             ...$this->shell(),
-            'tree' => $this->tree($ordered),
-            'parentOptions' => $this->parentOptions($ordered),
+            'tree' => array_map(fn (OrgTreeNode $node) => $this->treeRow($node), $tree->nodes),
+            'parentOptions' => array_map(
+                fn (OrgTreeNode $node) => ['id' => $node->group->id, 'name' => $node->group->name, 'depth' => $node->depth],
+                $tree->parentChoices(),
+            ),
         ]);
     }
 
@@ -60,19 +62,22 @@ class DmvSettingsController extends Controller
      * holders and last change, and the active Groups a holder may be. Statistics and website
      * have no reader yet, so they are not sent.
      */
-    public function stewardships(Request $request): Response
+    public function stewardships(PreviewStewardshipsRequest $request): Response
     {
-        Gate::authorize('administer-groups');
-
         return Inertia::render('officer/settings/Stewardships', [
             ...$this->shell(),
             'stewardships' => fn () => collect(self::LIVE_STEWARDSHIPS)
                 ->mapWithKeys(fn (StewardshipFunction $function) => [$function->value => $this->stewardshipCard($function)])
                 ->all(),
-            'groups' => fn () => $this->stewardshipChoices(),
-            // The page reloads only this prop with the draft in the query string
-            // (`?member_admin=ID&org_mail[]=ID`); without a draft there is nothing to preview.
-            'preview' => fn () => $request->hasAny(['member_admin', 'org_mail']) ? $this->stewardshipPreview($request) : null,
+            // Depth counts from the root's children: the root holds nothing.
+            'groups' => fn () => array_map(
+                fn (OrgTreeNode $node) => ['id' => $node->group->id, 'name' => $node->group->name, 'depth' => max(0, $node->depth - 1)],
+                OrgTree::load()->stewardshipChoices(),
+            ),
+            // The page reloads only this prop with the draft in the query string.
+            'preview' => fn () => $request->hasDraft()
+                ? StewardshipAssignment::preview($request->draftMemberAdmin(), $request->draftOrgMail())
+                : null,
         ]);
     }
 
@@ -116,26 +121,7 @@ class DmvSettingsController extends Controller
      */
     public function updateStewardship(UpdateStewardshipRequest $request): RedirectResponse
     {
-        $function = $request->stewardship();
-        $holderIds = $request->holderIds();
-        $actor = $request->user();
-
-        DB::transaction(function () use ($function, $holderIds, $actor) {
-            GroupStewardship::query()
-                ->where('function', $function)
-                ->whereNotIn('group_id', $holderIds)
-                ->delete();
-
-            foreach ($holderIds as $groupId) {
-                $row = GroupStewardship::query()->firstOrNew(['group_id' => $groupId, 'function' => $function]);
-                if (! $row->exists) {
-                    $row->created_by = $actor->id;
-                }
-                $row->updated_by = $actor->id;
-                // A re-save of an unchanged holder is still a change of record: stamp it.
-                $row->touch();
-            }
-        });
+        StewardshipAssignment::assign($request->stewardship(), $request->holderIds(), $request->user());
 
         return back();
     }
@@ -149,8 +135,6 @@ class DmvSettingsController extends Controller
     {
         Gate::authorize('administer-groups');
         abort_unless(self::editable($group), 404);
-
-        $excluded = $group->descendants()->pluck('id')->push($group->id)->all();
 
         return Inertia::render('officer/settings/Group', [
             ...$this->shell(),
@@ -171,13 +155,11 @@ class DmvSettingsController extends Controller
                 'archived' => $group->lifecycle_state === LifecycleState::Archived,
                 'endedOn' => $this->endedOn($group),
             ],
-            // Active Groups outside this one's subtree, plus its current parent even when inactive
-            // (marked), so a Group under an archived or ended parent can still be saved in place.
-            'parents' => array_values(array_map(
-                fn (array $entry) => ['id' => $entry[0]->id, 'name' => $entry[0]->name, 'depth' => $entry[1], 'inactive' => ! $entry[0]->isActive()],
-                array_filter($this->orderedGroups(), fn (array $entry) => ! in_array($entry[0]->id, $excluded, true)
-                    && ($entry[0]->isActive() || $entry[0]->id === $group->parent_id)),
-            )),
+            // The current parent may be inactive: marked, so the select still shows it.
+            'parents' => array_map(
+                fn (OrgTreeNode $node) => ['id' => $node->group->id, 'name' => $node->group->name, 'depth' => $node->depth, 'inactive' => ! $node->group->isActive()],
+                OrgTree::load()->parentChoices($group),
+            ),
             // The Group's public page, localized (ADR-0008): shown as its address under the h1.
             'groupHref' => route('groups.show', ['group' => $group->slug], false),
             'kinds' => array_column(Kind::cases(), 'value'),
@@ -289,59 +271,6 @@ class DmvSettingsController extends Controller
     }
 
     /**
-     * One row per Group, in tree order (the rail's order). Archived and expired Groups stay
-     * under their parent, marked. The root and Containers carry no
-     * structure form here (ADR-0036 §3), so they get no href.
-     *
-     * @param  list<array{Group, int}>  $ordered
-     * @return list<array{id: int, slug: string, name: string, depth: int, kind: string, archived: bool, endedOn: string|null, editable: bool, href: string|null}>
-     */
-    private function tree(array $ordered): array
-    {
-        return array_map(fn (array $entry) => $this->treeRow(...$entry), $ordered);
-    }
-
-    /**
-     * The Create dialog's parent choices (#842): every active Group, the root included, in
-     * tree order with its depth. Archived and expired Groups take no new children.
-     *
-     * @param  list<array{Group, int}>  $ordered
-     * @return list<array{id: int, name: string, depth: int}>
-     */
-    private function parentOptions(array $ordered): array
-    {
-        return array_values(array_map(
-            fn (array $entry) => ['id' => $entry[0]->id, 'name' => $entry[0]->name, 'depth' => $entry[1]],
-            array_filter($ordered, fn (array $entry) => $entry[0]->isActive()),
-        ));
-    }
-
-    /**
-     * Every Group with its depth, in tree order: each parentless Group, then its children
-     * depth-first, siblings by `display_order` then name.
-     *
-     * @return list<array{Group, int}>
-     */
-    private function orderedGroups(): array
-    {
-        $byParent = Group::query()->get()->groupBy(fn (Group $group) => $group->parent_id ?? 0);
-
-        $ordered = [];
-        $walk = function (int $parentId, int $depth) use (&$walk, &$ordered, $byParent): void {
-            $siblings = ($byParent->get($parentId) ?? collect())
-                ->sortBy([['display_order', 'asc'], ['name', 'asc']]);
-
-            foreach ($siblings as $group) {
-                $ordered[] = [$group, $depth];
-                $walk($group->id, $depth + 1);
-            }
-        };
-        $walk(0, 0);
-
-        return $ordered;
-    }
-
-    /**
      * One stewardship's card: its holders by name, and the most recent authored write
      * (ADR-0036 §8). Seeded rows carry no author, so a never-edited stewardship has no
      * "last changed" line.
@@ -369,93 +298,14 @@ class DmvSettingsController extends Controller
     }
 
     /**
-     * Who gains and who loses each stewardship's authority if the draft were saved. Authority
-     * is membership, any status, in a holder Group: the same reading as
-     * `Member::hasMemberAdminAuthority()` and `Member::isOrgWideSender()`. A Chair of an active
-     * Group sends org-wide whatever the stewardship says, so org-wide sender leaves them out.
-     * A query string drops an empty array, so an absent `org_mail` is a draft of no holders.
-     *
-     * @return array<string, array{gain: list<array{id: int, name: string}>, lose: list<array{id: int, name: string}>}>
-     */
-    private function stewardshipPreview(Request $request): array
-    {
-        $saved = fn (StewardshipFunction $function) => GroupStewardship::query()
-            ->where('function', $function)->pluck('group_id')->all();
-
-        $draftMemberAdmin = $request->filled('member_admin')
-            ? [(int) $request->query('member_admin')]
-            : $saved(StewardshipFunction::MemberAdmin);
-        $draftOrgMail = array_map('intval', (array) $request->query('org_mail', []));
-
-        $chairs = Member::query()
-            ->whereHas('memberships', fn (Builder $membership) => $membership
-                ->whereHas('roles', fn (Builder $role) => $role->where('role', Role::Chair))
-                ->whereHas('group', fn (Builder $group) => $group->active()))
-            ->pluck('id');
-
-        return [
-            StewardshipFunction::MemberAdmin->value => $this->authorityDiff($saved(StewardshipFunction::MemberAdmin), $draftMemberAdmin, collect()),
-            StewardshipFunction::OrgMail->value => $this->authorityDiff($saved(StewardshipFunction::OrgMail), $draftOrgMail, $chairs),
-        ];
-    }
-
-    /**
-     * Members of the draft holders not in the saved ones (gain), and the reverse (lose),
-     * each sorted by surname. Members in `$unaffected` carry the authority either way.
-     *
-     * @param  list<int>  $savedIds
-     * @param  list<int>  $draftIds
-     * @param  Collection<int, int>  $unaffected
-     * @return array{gain: list<array{id: int, name: string}>, lose: list<array{id: int, name: string}>}
-     */
-    private function authorityDiff(array $savedIds, array $draftIds, Collection $unaffected): array
-    {
-        $membersOf = fn (array $groupIds) => Member::query()
-            ->whereHas('memberships', fn (Builder $membership) => $membership->whereIn('group_id', $groupIds))
-            ->get()
-            ->keyBy('id');
-
-        $before = $membersOf($savedIds);
-        $after = $membersOf($draftIds);
-
-        $rows = fn (Collection $members) => $members
-            ->reject(fn (Member $member) => $unaffected->contains($member->id))
-            ->sortBy(fn (Member $member) => $member->surnameKey())
-            ->map(fn (Member $member) => ['id' => $member->id, 'name' => $member->fullName()])
-            ->values()
-            ->all();
-
-        return [
-            'gain' => $rows($after->diffKeys($before)),
-            'lose' => $rows($before->diffKeys($after)),
-        ];
-    }
-
-    /**
-     * The Groups a stewardship may go to: active ones, in tree order, the root left out (it
-     * holds nothing; ADR-0036 §7). Depth counts from the root's children.
-     *
-     * @return list<array{id: int, name: string, depth: int}>
-     */
-    private function stewardshipChoices(): array
-    {
-        $choices = [];
-        foreach ($this->orderedGroups() as [$group, $depth]) {
-            if (! $group->isRoot() && $group->isActive()) {
-                $choices[] = ['id' => $group->id, 'name' => $group->name, 'depth' => max(0, $depth - 1)];
-            }
-        }
-
-        return $choices;
-    }
-
-    /**
-     * One tree row.
+     * One tree row. Archived and expired Groups stay under their parent, marked. The root and
+     * Containers carry no structure form here (ADR-0036 §3), so they get no href.
      *
      * @return array{id: int, slug: string, name: string, depth: int, kind: string, archived: bool, endedOn: string|null, editable: bool, href: string|null}
      */
-    private function treeRow(Group $group, int $depth): array
+    private function treeRow(OrgTreeNode $node): array
     {
+        [$group, $depth] = [$node->group, $node->depth];
         $editable = self::editable($group);
 
         return [

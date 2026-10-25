@@ -245,6 +245,14 @@ it('sends no preview without a draft', function () {
         ->assertInertia(fn (Assert $page) => $page->where('preview', null));
 });
 
+it('refuses a draft that is not Group ids', function () {
+    stewardshipsOrg();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/officer/settings/stewardships?member_admin=records&org_mail[]=x')
+        ->assertSessionHasErrors(['member_admin', 'org_mail.0']);
+});
+
 // --- Authority follows the assignment -------------------------------------------------
 
 /** Whether the Member's next request carries the Members pages (the `administer-members` gate). */
