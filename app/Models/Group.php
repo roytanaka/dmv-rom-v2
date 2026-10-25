@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Collection;
 
 /**
@@ -259,6 +260,28 @@ class Group extends Model
     public function schedules(): HasMany
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    /**
+     * The Shifts on this Group's Schedules — the records its `has_scheduling` capability keeps
+     * reachable (counted on the DMV Settings structure form, #844).
+     *
+     * @return HasManyThrough<Shift, Schedule, $this>
+     */
+    public function shifts(): HasManyThrough
+    {
+        return $this->hasManyThrough(Shift::class, Schedule::class);
+    }
+
+    /**
+     * The News posts this Group published — read and written only while its
+     * `has_announcements` capability is on.
+     *
+     * @return HasMany<News, $this>
+     */
+    public function news(): HasMany
+    {
+        return $this->hasMany(News::class, 'posting_group_id');
     }
 
     /**

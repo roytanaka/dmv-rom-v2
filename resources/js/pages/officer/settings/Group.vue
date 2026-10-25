@@ -18,10 +18,19 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
 const CAPABILITIES = ['has_meetings', 'has_documents', 'has_scheduling', 'has_vetting', 'has_announcements', 'has_bookings'] as const;
+// The records each capability keeps reachable (#844), as `dmv_settings.count.*` keys.
+const COUNT_KEYS: Record<(typeof CAPABILITIES)[number], string> = {
+    has_meetings: 'meetings',
+    has_documents: 'documents',
+    has_scheduling: 'shifts',
+    has_vetting: 'tours',
+    has_announcements: 'posts',
+    has_bookings: 'bookings',
+};
 const COLLECTIONS = [
     'collects_visitor_count',
     'collects_extra_interactions',
@@ -54,6 +63,8 @@ const props = defineProps<{
     visibilities: string[];
     logos: string[];
     lastChanged: { name: string; date: string } | null;
+    // Saved state: only the capabilities that are on carry a count.
+    counts: Partial<Record<(typeof CAPABILITIES)[number], number>>;
     groupsHref: string;
     stewardshipsHref: string;
 }>();
@@ -193,6 +204,9 @@ function save(): void {
                             <label class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
                                 <Checkbox :checked="form[flag]" @update:checked="(on: boolean) => (form[flag] = on)" />
                                 {{ trans(`dmv_settings.capability.${flag}`) }}
+                                <span v-if="counts[flag] !== undefined" class="text-muted-foreground">
+                                    {{ transChoice(`dmv_settings.count.${COUNT_KEYS[flag]}`, counts[flag]) }}
+                                </span>
                             </label>
                             <InputError :message="form.errors[flag]" />
                         </div>

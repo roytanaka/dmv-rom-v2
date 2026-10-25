@@ -178,7 +178,39 @@ class DmvSettingsController extends Controller
             'visibilities' => array_column(ListingVisibility::cases(), 'value'),
             'logos' => array_column(GroupLogo::cases(), 'value'),
             'lastChanged' => $this->lastChanged($group),
+            'counts' => $this->capabilityCounts($group),
         ]);
+    }
+
+    /**
+     * The records behind each capability, by the Group relation that holds them (#844). Turning
+     * the capability off hides them; nothing is deleted.
+     */
+    private const CAPABILITY_RECORDS = [
+        'has_meetings' => 'meetings',
+        'has_documents' => 'documents',
+        'has_scheduling' => 'shifts',
+        'has_vetting' => 'tours',
+        'has_announcements' => 'news',
+        'has_bookings' => 'bookings',
+    ];
+
+    /**
+     * How many records sit behind each capability that is on, keyed by flag, so the form shows
+     * what turning it off makes unreachable. One query: a count subselect per relation.
+     *
+     * @return array<string, int>
+     */
+    private function capabilityCounts(Group $group): array
+    {
+        $on = array_filter(self::CAPABILITY_RECORDS, fn (string $relation, string $flag) => (bool) $group->{$flag}, ARRAY_FILTER_USE_BOTH);
+        if ($on === []) {
+            return [];
+        }
+
+        $group->loadCount(array_values($on));
+
+        return array_map(fn (string $relation) => (int) $group->{"{$relation}_count"}, $on);
     }
 
     /**
