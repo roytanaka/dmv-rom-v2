@@ -380,6 +380,12 @@ Route::post('officer/settings/groups', [DmvSettingsController::class, 'store'])
     ->middleware(['auth'])
     ->name('dmv-settings.groups.store');
 
+// Edit a Group's structure (#843, ADR-0036 §5): every field but the slug. Authorized in
+// UpdateGroupStructureRequest on `administer-groups`; refuses the root, Containers and archived Groups.
+Route::patch('officer/settings/groups/{group}', [DmvSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.groups.update');
+
 // Group officer meetings CRUD (#193, PRD #186). The Group's own-data write seam:
 // adding, editing, and deleting meetings (with their agenda / minutes / report
 // links and the published/hidden toggle), each structurally authorized in its Form

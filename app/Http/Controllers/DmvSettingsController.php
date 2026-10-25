@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Http\Requests\StoreGroupRequest;
+use App\Http\Requests\UpdateGroupStructureRequest;
 use App\Models\Group;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -77,15 +79,96 @@ class DmvSettingsController extends Controller
         return redirect()->route('officer.settings.group', ['group' => $group->slug]);
     }
 
-    /** One Group's structure form. Its fields land with #843; the route exists so the tree can link. */
+    /**
+     * One Group's structure form (#843, ADR-0036 §5). The root and Containers have no form
+     * (ADR-0036 §3): their addresses answer 404 here, as the tree never links them. An
+     * archived Group still opens, read-only; its h1 carries the Archived or Ended badge.
+     */
     public function group(Group $group): Response
     {
         Gate::authorize('administer-groups');
+        abort_unless(self::editable($group), 404);
+
+        $excluded = $group->descendants()->pluck('id')->push($group->id)->all();
 
         return Inertia::render('officer/settings/Group', [
             ...$this->shell(),
-            'group' => ['id' => $group->id, 'slug' => $group->slug, 'name' => $group->name],
+            'group' => [
+                'id' => $group->id,
+                'slug' => $group->slug,
+                'name' => $group->name,
+                'parent_id' => $group->parent_id,
+                'kind' => $group->kind->value,
+                'listing_visibility' => $group->listing_visibility->value,
+                'display_order' => $group->display_order,
+                'logo_key' => $group->logo_key?->value,
+                'time_boxed' => $group->time_boxed,
+                'start_date' => $group->start_date?->toDateString(),
+                'end_date' => $group->end_date?->toDateString(),
+                ...collect(self::FLAGS)->mapWithKeys(fn (string $flag) => [$flag => (bool) $group->{$flag}])->all(),
+                'hours_multiplier' => $group->hours_multiplier,
+                'archived' => $group->lifecycle_state === LifecycleState::Archived,
+                'endedOn' => $this->endedOn($group),
+            ],
+            'parents' => array_values(array_filter(
+                $this->parentOptions($this->orderedGroups()),
+                fn (array $option) => ! in_array($option['id'], $excluded, true),
+            )),
+            'kinds' => array_column(Kind::cases(), 'value'),
+            'visibilities' => array_column(ListingVisibility::cases(), 'value'),
+            'logos' => array_column(GroupLogo::cases(), 'value'),
+            'lastChanged' => $this->lastChanged($group),
         ]);
+    }
+
+    /**
+     * Save a Group's structure (#843, ADR-0036 §5). The request has already refused the root,
+     * Containers and archived Groups, and never carries the slug. A Group just made a
+     * Container has no form any more, so the browser lands on the tree instead.
+     */
+    public function update(UpdateGroupStructureRequest $request, Group $group): RedirectResponse
+    {
+        $group->update([
+            ...$request->structure(),
+            'updated_by' => $request->user()->id,
+        ]);
+
+        return self::editable($group) ? back() : redirect()->route('officer.settings');
+    }
+
+    /** The structure form's on/off flags: six capabilities, then the visitor-figure collection. */
+    public const FLAGS = [
+        'has_meetings', 'has_documents', 'has_scheduling', 'has_vetting', 'has_announcements', 'has_bookings',
+        'collects_visitor_count', 'collects_extra_interactions', 'collects_visitor_provenance', 'visitor_figures_await_booking',
+    ];
+
+    /** Whether a Group has a structure form here: every Group but the root and Containers. */
+    public static function editable(Group $group): bool
+    {
+        return ! $group->isRoot() && $group->kind !== Kind::Container;
+    }
+
+    /**
+     * The structure form's footer: who last saved it and when. Null for seeded Groups.
+     *
+     * @return array{name: string, date: string}|null
+     */
+    private function lastChanged(Group $group): ?array
+    {
+        $editor = $group->updatedBy;
+
+        return $editor === null ? null : [
+            'name' => $editor->fullName(),
+            'date' => $group->updated_at->toDateString(),
+        ];
+    }
+
+    /** A lapsed time-boxed Group's end date (the Ended badge); null while it runs or when not boxed. */
+    private function endedOn(Group $group): ?string
+    {
+        $expired = $group->time_boxed && $group->end_date !== null && $group->end_date->startOfDay()->lt(now()->startOfDay());
+
+        return $expired ? $group->end_date->toDateString() : null;
     }
 
     /**
@@ -148,8 +231,7 @@ class DmvSettingsController extends Controller
      */
     private function treeRow(Group $group, int $depth): array
     {
-        $editable = ! $group->isRoot() && $group->kind !== Kind::Container;
-        $expired = $group->time_boxed && $group->end_date !== null && $group->end_date->startOfDay()->lt(now()->startOfDay());
+        $editable = self::editable($group);
 
         return [
             'id' => $group->id,
@@ -158,7 +240,7 @@ class DmvSettingsController extends Controller
             'depth' => $depth,
             'kind' => $group->kind->value,
             'archived' => $group->lifecycle_state === LifecycleState::Archived,
-            'endedOn' => $expired ? $group->end_date->toDateString() : null,
+            'endedOn' => $this->endedOn($group),
             'editable' => $editable,
             'href' => $editable ? route('officer.settings.group', ['group' => $group->slug], false) : null,
         ];
