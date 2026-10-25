@@ -6,10 +6,19 @@ use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
+use App\Enums\Role;
+use App\Enums\StewardshipFunction;
 use App\Http\Requests\StoreGroupRequest;
 use App\Http\Requests\UpdateGroupStructureRequest;
+use App\Http\Requests\UpdateStewardshipRequest;
 use App\Models\Group;
+use App\Models\GroupStewardship;
+use App\Models\Member;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,6 +34,12 @@ use Inertia\Response;
  */
 class DmvSettingsController extends Controller
 {
+    /**
+     * The stewardships the page shows. Statistics and website stay hidden until a feature
+     * reads them (ADR-0036 §7).
+     */
+    public const LIVE_STEWARDSHIPS = [StewardshipFunction::MemberAdmin, StewardshipFunction::OrgMail];
+
     /** The Groups section: the whole org tree, archived Groups included. */
     public function groups(): Response
     {
@@ -39,12 +54,25 @@ class DmvSettingsController extends Controller
         ]);
     }
 
-    /** The Stewardships section. Its cards land with #846; the section exists so the switch works. */
-    public function stewardships(): Response
+    /**
+     * The Stewardships section (#846, ADR-0036 §7): one card per live stewardship with its
+     * holders and last change, and the active Groups a holder may be. Statistics and website
+     * have no reader yet, so they are not sent.
+     */
+    public function stewardships(Request $request): Response
     {
         Gate::authorize('administer-groups');
 
-        return Inertia::render('officer/settings/Stewardships', $this->shell());
+        return Inertia::render('officer/settings/Stewardships', [
+            ...$this->shell(),
+            'stewardships' => fn () => collect(self::LIVE_STEWARDSHIPS)
+                ->mapWithKeys(fn (StewardshipFunction $function) => [$function->value => $this->stewardshipCard($function)])
+                ->all(),
+            'groups' => fn () => $this->stewardshipChoices(),
+            // The page reloads only this prop with the draft in the query string
+            // (`?member_admin=ID&org_mail[]=ID`); without a draft there is nothing to preview.
+            'preview' => fn () => $request->hasAny(['member_admin', 'org_mail']) ? $this->stewardshipPreview($request) : null,
+        ]);
     }
 
     /**
@@ -77,6 +105,38 @@ class DmvSettingsController extends Controller
         ]);
 
         return redirect()->route('officer.settings.group', ['group' => $group->slug]);
+    }
+
+    /**
+     * Reassign one stewardship (#846): its holder rows become exactly the chosen Groups.
+     * Authority follows on the next request, since every reader resolves holders live.
+     * A new row records its creator; every row written records the acting Member as its
+     * last writer (ADR-0036 §8).
+     */
+    public function updateStewardship(UpdateStewardshipRequest $request): RedirectResponse
+    {
+        $function = $request->stewardship();
+        $holderIds = $request->holderIds();
+        $actor = $request->user();
+
+        DB::transaction(function () use ($function, $holderIds, $actor) {
+            GroupStewardship::query()
+                ->where('function', $function)
+                ->whereNotIn('group_id', $holderIds)
+                ->delete();
+
+            foreach ($holderIds as $groupId) {
+                $row = GroupStewardship::query()->firstOrNew(['group_id' => $groupId, 'function' => $function]);
+                if (! $row->exists) {
+                    $row->created_by = $actor->id;
+                }
+                $row->updated_by = $actor->id;
+                // A re-save of an unchanged holder is still a change of record: stamp it.
+                $row->touch();
+            }
+        });
+
+        return back();
     }
 
     /**
@@ -222,6 +282,114 @@ class DmvSettingsController extends Controller
         $walk(0, 0);
 
         return $ordered;
+    }
+
+    /**
+     * One stewardship's card: its holders by name, and the most recent authored write
+     * (ADR-0036 §8). Seeded rows carry no author, so a never-edited stewardship has no
+     * "last changed" line.
+     *
+     * @return array{holders: list<array{id: int, name: string}>, updatedBy: string|null, updatedAt: string|null}
+     */
+    private function stewardshipCard(StewardshipFunction $function): array
+    {
+        $rows = GroupStewardship::query()
+            ->where('function', $function)
+            ->with(['group', 'updatedBy'])
+            ->get();
+
+        $last = $rows->whereNotNull('updated_by')->sortByDesc('updated_at')->first();
+
+        return [
+            'holders' => $rows
+                ->map(fn (GroupStewardship $row) => ['id' => $row->group->id, 'name' => $row->group->name])
+                ->sortBy('name')
+                ->values()
+                ->all(),
+            'updatedBy' => $last?->updatedBy?->fullName(),
+            'updatedAt' => $last?->updated_at?->toDateString(),
+        ];
+    }
+
+    /**
+     * Who gains and who loses each stewardship's authority if the draft were saved. Authority
+     * is membership, any status, in a holder Group: the same reading as
+     * `Member::hasMemberAdminAuthority()` and `Member::isOrgWideSender()`. A Chair of an active
+     * Group sends org-wide whatever the stewardship says, so org-wide sender leaves them out.
+     * A query string drops an empty array, so an absent `org_mail` is a draft of no holders.
+     *
+     * @return array<string, array{gain: list<array{id: int, name: string}>, lose: list<array{id: int, name: string}>}>
+     */
+    private function stewardshipPreview(Request $request): array
+    {
+        $saved = fn (StewardshipFunction $function) => GroupStewardship::query()
+            ->where('function', $function)->pluck('group_id')->all();
+
+        $draftMemberAdmin = $request->filled('member_admin')
+            ? [(int) $request->query('member_admin')]
+            : $saved(StewardshipFunction::MemberAdmin);
+        $draftOrgMail = array_map('intval', (array) $request->query('org_mail', []));
+
+        $chairs = Member::query()
+            ->whereHas('memberships', fn (Builder $membership) => $membership
+                ->whereHas('roles', fn (Builder $role) => $role->where('role', Role::Chair))
+                ->whereHas('group', fn (Builder $group) => $group->active()))
+            ->pluck('id');
+
+        return [
+            StewardshipFunction::MemberAdmin->value => $this->authorityDiff($saved(StewardshipFunction::MemberAdmin), $draftMemberAdmin, collect()),
+            StewardshipFunction::OrgMail->value => $this->authorityDiff($saved(StewardshipFunction::OrgMail), $draftOrgMail, $chairs),
+        ];
+    }
+
+    /**
+     * Members of the draft holders not in the saved ones (gain), and the reverse (lose),
+     * each sorted by surname. Members in `$unaffected` carry the authority either way.
+     *
+     * @param  list<int>  $savedIds
+     * @param  list<int>  $draftIds
+     * @param  Collection<int, int>  $unaffected
+     * @return array{gain: list<array{id: int, name: string}>, lose: list<array{id: int, name: string}>}
+     */
+    private function authorityDiff(array $savedIds, array $draftIds, Collection $unaffected): array
+    {
+        $membersOf = fn (array $groupIds) => Member::query()
+            ->whereHas('memberships', fn (Builder $membership) => $membership->whereIn('group_id', $groupIds))
+            ->get()
+            ->keyBy('id');
+
+        $before = $membersOf($savedIds);
+        $after = $membersOf($draftIds);
+
+        $rows = fn (Collection $members) => $members
+            ->reject(fn (Member $member) => $unaffected->contains($member->id))
+            ->sortBy(fn (Member $member) => $member->surnameKey())
+            ->map(fn (Member $member) => ['id' => $member->id, 'name' => $member->fullName()])
+            ->values()
+            ->all();
+
+        return [
+            'gain' => $rows($after->diffKeys($before)),
+            'lose' => $rows($before->diffKeys($after)),
+        ];
+    }
+
+    /**
+     * The Groups a stewardship may go to: active ones, in tree order, the root left out (it
+     * holds nothing; ADR-0036 §7). Depth counts from the root's children.
+     *
+     * @return list<array{id: int, name: string, depth: int}>
+     */
+    private function stewardshipChoices(): array
+    {
+        $choices = [];
+        foreach ($this->orderedGroups() as [$group, $depth]) {
+            if (! $group->isRoot() && $group->isActive()) {
+                $choices[] = ['id' => $group->id, 'name' => $group->name, 'depth' => max(0, $depth - 1)];
+            }
+        }
+
+        return $choices;
     }
 
     /**

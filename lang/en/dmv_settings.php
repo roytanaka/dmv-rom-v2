@@ -104,12 +104,28 @@ return [
     'error' => [
         'slug_taken' => 'Another Group uses this slug.',
         'slug_format' => 'Use lowercase letters, digits and hyphens.',
+        'member_admin_required' => 'Choose a Group. Member administration always has a holder.',
         'inactive_group' => 'Choose an active Group.',
         'parent_cycle' => 'A Group cannot sit under itself or one of its own Groups.',
         'end_before_start' => 'The end date must be on or after the start date.',
         'not_editable' => 'The root and Containers have no settings here.',
         'archived' => 'Unarchive this Group to change its settings.',
     ],
-    // The Stewardships cards (#846) fill in from here.
-    'stewardships_soon' => 'The Stewardships are coming.',
+    // The Stewardships section (#846, ADR-0036 §7).
+    'stewardship' => [
+        'member_admin' => [
+            'title' => 'Member administration',
+            'description' => 'Members of this Group edit every Member\'s record and open the all-DMV reports. Exactly one Group holds it.',
+        ],
+        'org_mail' => [
+            'title' => 'Org-wide sender',
+            'description' => 'Members of these Groups can email every Member, every Chair and the Board.',
+        ],
+        'held_by' => 'Held by :groups',
+        'held_by_none' => 'Held by no Group',
+        'group' => 'Group',
+        'groups' => 'Groups',
+        'gain' => 'Gain (:count): :names',
+        'lose' => 'Lose (:count): :names',
+    ],
 ];
