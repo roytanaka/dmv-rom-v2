@@ -136,6 +136,20 @@ it('takes an archived Group off My Groups and Browse Groups, and puts it back on
     $this->actingAs($actor)->get('/dashboard')->assertInertia($listed);
 });
 
+it('keeps an expired time-boxed Group off My Groups, as it does an archived one', function () {
+    $root = archiveRoot();
+    $group = Group::factory()->project()->timeBoxed()->create([
+        'parent_id' => $root->id, 'slug' => 'gala-2025', 'end_date' => now()->subDay()->toDateString(),
+    ]);
+    $member = Member::factory()->create();
+    GroupMember::factory()->create(['group_id' => $group->id, 'member_id' => $member->id]);
+
+    $this->actingAs($member->fresh())->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where(
+        'rail.myGroups',
+        fn ($myGroups) => ! collect($myGroups['items'] ?? [])->pluck('groupId')->contains('gala-2025'),
+    ));
+});
+
 it('refuses writes to an archived Group and takes them again once unarchived', function () {
     $root = archiveRoot();
     $group = Group::factory()->program()->publicListing()->create([

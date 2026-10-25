@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Enums\Kind;
-use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Help\HelpManifest;
@@ -407,8 +406,9 @@ class HandleInertiaRequests extends Middleware
             // (ADR-0036 §9) — the seeder writes no root rows and the roster endpoint refuses
             // one — so this only guards the role-bearing fixture row a root Chair can hold.
             ->reject(fn (Group $group) => $group->slug === Group::ROOT_SLUG)
-            // An archived Group leaves the rail (ADR-0036 §2, #845); unarchiving brings it back.
-            ->reject(fn (Group $group) => $group->lifecycle_state === LifecycleState::Archived)
+            // An inactive Group leaves the rail (ADR-0036 §2, PRD #836 story 41): archived, or
+            // time-boxed and past its end. Unarchiving or new dates bring it back.
+            ->reject(fn (Group $group) => ! $group->isActive())
             ->unique('id')
             ->values();
 
