@@ -5,7 +5,7 @@ namespace App\Enums;
 /**
  * A Group's listing visibility — who the Group is listed to in navigation and,
  * for the strictest tier, whether its page's existence is disclosed (ADR-0019).
- * A stored, first-class facet like Kind / Scope / Lifecycle, never derived from
+ * A stored, first-class facet like Kind / Lifecycle, never derived from
  * tree position.
  *
  * Deliberately distinct from the per-Meeting `visibility` axis — same word, a

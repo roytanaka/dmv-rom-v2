@@ -8,7 +8,6 @@ use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\Role;
-use App\Enums\Scope;
 use App\Enums\StewardshipFunction;
 use App\Support\Audiences\AudienceResolver;
 use Database\Factories\GroupFactory;
@@ -21,7 +20,7 @@ use Illuminate\Support\Collection;
 
 /**
  * The spine's organizing entity (ADR-0010): every committee, program, working
- * group, project, and cohort is a Group. Kind / Scope / Lifecycle are stored
+ * group, project, and cohort is a Group. Kind / Lifecycle are stored
  * explicitly; the six capability flags switch features on per Group.
  */
 class Group extends Model
@@ -59,7 +58,6 @@ class Group extends Model
         'banner_key',
         'logo_key',
         'kind',
-        'scope',
         'listing_visibility',
         'lifecycle_state',
         'time_boxed',
@@ -101,7 +99,6 @@ class Group extends Model
             'banner_key' => GroupBanner::class,
             'logo_key' => GroupLogo::class,
             'kind' => Kind::class,
-            'scope' => Scope::class,
             'listing_visibility' => ListingVisibility::class,
             'lifecycle_state' => LifecycleState::class,
             'time_boxed' => 'boolean',
