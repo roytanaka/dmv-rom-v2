@@ -56,7 +56,7 @@ class ArchiveGroupRequest extends FormRequest
                     'group' => $group->name,
                     'stewardship' => $held
                         ->map(fn (GroupStewardship $row) => __("dmv_settings.stewardship.{$row->function->value}.title"))
-                        ->join(', ', __('dmv_settings.archive.and')),
+                        ->join(', ', ' '.__('dmv_settings.and').' '),
                 ]));
             }
         }];

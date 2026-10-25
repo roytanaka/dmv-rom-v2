@@ -6,8 +6,10 @@ use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
+use App\Enums\Role;
 use App\Http\Controllers\DmvSettingsController;
 use App\Models\Group;
+use App\Models\GroupMemberRole;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -70,7 +72,10 @@ class UpdateGroupStructureRequest extends FormRequest
     }
 
     /**
-     * Refuse the Group itself, on a `group` error the form shows above Save.
+     * Refuse the Group itself, on a `group` error the form shows above Save. Then refuse
+     * turning a capability off while a Member of the Group holds a role that needs it
+     * (#844, ADR-0036 §5), on that flag's key, naming each such role. Nothing behind the
+     * flag is deleted: the officer reassigns the roles, then turns the flag off.
      *
      * @return array<int, Closure(Validator): void>
      */
@@ -83,8 +88,41 @@ class UpdateGroupStructureRequest extends FormRequest
                 $validator->errors()->add('group', __('dmv_settings.error.not_editable'));
             } elseif ($group->lifecycle_state === LifecycleState::Archived) {
                 $validator->errors()->add('group', __('dmv_settings.error.archived'));
+            } else {
+                $this->guardCapabilities($validator, $group);
             }
         }];
+    }
+
+    /** Add an error on each capability switched off that a role held on the Group needs. */
+    private function guardCapabilities(Validator $validator, Group $group): void
+    {
+        $turningOff = array_filter(
+            DmvSettingsController::FLAGS,
+            fn (string $flag) => $group->{$flag} && $this->has($flag) && ! $this->boolean($flag),
+        );
+        if ($turningOff === []) {
+            return;
+        }
+
+        $held = GroupMemberRole::query()
+            ->whereRelation('groupMember', 'group_id', $group->id)
+            ->distinct()
+            ->pluck('role');
+
+        foreach ($turningOff as $flag) {
+            $labels = $held
+                ->filter(fn (Role $role) => $role->requiredCapability() === $flag)
+                ->map(fn (Role $role) => __("group.role.{$role->value}"))
+                ->sort()
+                ->values();
+
+            if ($labels->isNotEmpty()) {
+                $validator->errors()->add($flag, trans_choice('dmv_settings.error.capability_in_use', $labels->count(), [
+                    'roles' => $labels->join(', ', ' '.__('dmv_settings.and').' '),
+                ]));
+            }
+        }
     }
 
     /**

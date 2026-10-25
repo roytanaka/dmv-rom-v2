@@ -98,7 +98,18 @@ return [
         'friends-of-palaeontology-fop' => 'Friends of Palaeontology (FOP)',
         'friends-of-earth-space-fes' => 'Friends of Earth & Space (FES)',
     ],
+    // The records behind a capability that is on (#844), beside its checkbox.
+    'count' => [
+        'meetings' => '{1} :count meeting|[2,*] :count meetings',
+        'documents' => '{1} :count document|[2,*] :count documents',
+        'shifts' => '{1} :count shift|[2,*] :count shifts',
+        'tours' => '{1} :count tour|[2,*] :count tours',
+        'posts' => '{1} :count post|[2,*] :count posts',
+        'bookings' => '{1} :count booking|[2,*] :count bookings',
+    ],
     'save' => 'Save',
+    // The last glue of a list of names: "Scheduler and Booker".
+    'and' => 'and',
     'last_changed' => 'Last changed by :name on :date.',
     'archived' => 'Archived',
     'error' => [
@@ -111,6 +122,7 @@ return [
         'not_editable' => 'The root and Containers have no settings here.',
         'archived' => 'Unarchive this Group to change its settings.',
         'archive_steward' => ':group holds :stewardship. Move the Stewardship first.',
+        'capability_in_use' => '{1} :roles needs this capability. Reassign the role first.|[2,*] :roles need this capability. Reassign the roles first.',
     ],
     // The Stewardships section (#846, ADR-0036 §7).
     'stewardship' => [
@@ -140,6 +152,5 @@ return [
         'confirm' => 'Archive',
         'cancel' => 'Cancel',
         'unarchive' => 'Unarchive',
-        'and' => ' and ',
     ],
 ];

@@ -98,7 +98,18 @@ return [
         'friends-of-palaeontology-fop' => 'Friends of Palaeontology (FOP)',
         'friends-of-earth-space-fes' => 'Friends of Earth & Space (FES)',
     ],
+    // Les éléments derrière une fonction activée (#844), à côté de sa case.
+    'count' => [
+        'meetings' => '{1} :count réunion|[2,*] :count réunions',
+        'documents' => '{1} :count document|[2,*] :count documents',
+        'shifts' => '{1} :count quart|[2,*] :count quarts',
+        'tours' => '{1} :count visite|[2,*] :count visites',
+        'posts' => '{1} :count annonce|[2,*] :count annonces',
+        'bookings' => '{1} :count réservation|[2,*] :count réservations',
+    ],
     'save' => 'Enregistrer',
+    // Le dernier lien d’une liste de noms : « Responsable horaire et Bibliothécaire ».
+    'and' => 'et',
     'last_changed' => 'Dernière modification par :name le :date.',
     'archived' => 'Archivé',
     'error' => [
@@ -111,6 +122,7 @@ return [
         'not_editable' => 'La racine et les conteneurs n’ont pas de paramètres ici.',
         'archived' => 'Désarchivez ce groupe pour modifier ses paramètres.',
         'archive_steward' => ':group détient :stewardship. Déplacez d’abord l’intendance.',
+        'capability_in_use' => '{1} :roles a besoin de cette fonction. Réattribuez d’abord le rôle.|[2,*] :roles ont besoin de cette fonction. Réattribuez d’abord les rôles.',
     ],
     // La section Intendances (#846, ADR-0036 §7).
     'stewardship' => [
@@ -140,6 +152,5 @@ return [
         'confirm' => 'Archiver',
         'cancel' => 'Annuler',
         'unarchive' => 'Désarchiver',
-        'and' => ' et ',
     ],
 ];
