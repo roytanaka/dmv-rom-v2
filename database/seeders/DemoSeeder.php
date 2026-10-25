@@ -14,7 +14,6 @@ use App\Enums\MeetingLinkKind;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\ScheduleState;
-use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
 use App\Models\Booking;
@@ -79,8 +78,8 @@ use Throwable;
  *   container sections (Governance & Operations, Programs, Friends), modelled
  *   as {@see Kind::Container} (PRD #289). Special Projects is a real
  *   coordinating Group, modelled as {@see Kind::StandingCommittee}.
- * - {@see Scope} and the capability flags are derived from each node's Kind to
- *   match the conventions encoded in {@see GroupFactory}.
+ * - The capability flags are derived from each node's Kind to match the
+ *   conventions encoded in {@see GroupFactory}.
  * - Archived exhibition cohorts carry {@see LifecycleState::Archived}; the
  *   active-but-stale event pool (OSIRIS REX VOLUNTEERS, never closed out) stays
  *   lifecycle-Active but its time-boxed window has lapsed, so the lifecycle
@@ -3630,7 +3629,7 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Build the full attribute set for a node. Scope, capability flags and
+     * Build the full attribute set for a node. Capability flags and
      * time-boxing are derived from the node's Kind (matching GroupFactory),
      * with lifecycle/window overrides for archived and stale nodes.
      *
@@ -3648,7 +3647,6 @@ class DemoSeeder extends Seeder
             // the page shows its empty state rather than invented copy.
             'description' => $node['description'] ?? $this->aboutUs[$slug] ?? null,
             'kind' => $kind,
-            'scope' => $this->scopeFor($kind),
             // Listing visibility (PRD #268, ADR-0019). The recruiting/scaffold nodes
             // (org root, section containers, programs, projects, cohorts, standing
             // committees) are org-listed Public by Kind; only internal working
@@ -3696,15 +3694,6 @@ class DemoSeeder extends Seeder
         }
 
         return $attributes;
-    }
-
-    private function scopeFor(Kind $kind): Scope
-    {
-        return match ($kind) {
-            Kind::StandingCommittee, Kind::Container => Scope::Organization,
-            Kind::Program, Kind::Cohort => Scope::Program,
-            Kind::WorkingGroup, Kind::Project => Scope::Subteam,
-        };
     }
 
     /**
