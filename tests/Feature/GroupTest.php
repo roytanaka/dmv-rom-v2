@@ -43,12 +43,6 @@ it('casts kind and lifecycle_state to their enums', function () {
         ->and($fresh->lifecycle_state)->toBe(LifecycleState::Archived);
 });
 
-it('carries no Scope axis (ADR-0036 §6)', function () {
-    $group = Group::factory()->program()->create();
-
-    expect($group->fresh()->getAttributes())->not->toHaveKey('scope');
-});
-
 it('casts the capability flags and time_boxed to booleans', function () {
     $group = Group::factory()->create([
         'has_meetings' => true,

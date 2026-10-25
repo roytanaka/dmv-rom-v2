@@ -136,7 +136,8 @@ class Shift extends Model
 
     /**
      * Whether the Member may change or delete this self-authored Shift (#585, ADR-0026 §1) —
-     * the derived ownership rule, since no column records who wrote a row (#334 stays open).
+     * the derived ownership rule, since `shifts` records no author: ADR-0036 §8 closed #334 by
+     * adding authorship columns only where a screen shows them, and none shows a Shift's.
      * A Member owns a Shift, and may edit or delete it, exactly while:
      *
      * - the owning Group is **self-serve** and **active** — an archived or expired Group is
