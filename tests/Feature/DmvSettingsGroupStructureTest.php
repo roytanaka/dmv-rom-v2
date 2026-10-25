@@ -346,6 +346,46 @@ it('saves an expired time-boxed Group, so new dates revive it', function () {
     expect($group->fresh()->isActive())->toBeTrue();
 });
 
+it('refuses to make a stewardship holder a Container, naming the stewardship', function () {
+    $root = structureRoot();
+    $records = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'records', 'name' => 'Records']);
+    $records->stewardships()->create(['function' => StewardshipFunction::MemberAdmin]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch('/officer/settings/groups/records', structurePayload($root, ['kind' => 'container']))
+        ->assertSessionHasErrors(['kind' => 'Records holds Member administration. Move the Stewardship first.']);
+
+    expect($records->fresh()->kind->value)->toBe('standing_committee');
+});
+
+it('refuses to end a stewardship holder before today, naming the stewardship', function () {
+    $root = structureRoot();
+    $records = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'records', 'name' => 'Records']);
+    $records->stewardships()->create(['function' => StewardshipFunction::OrgMail]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch('/officer/settings/groups/records', structurePayload($root, [
+            'start_date' => '2024-09-01', 'end_date' => now()->subDay()->toDateString(),
+        ]))
+        ->assertSessionHasErrors(['end_date' => 'Records holds Org-wide sender. Move the Stewardship first.']);
+
+    expect($records->fresh()->time_boxed)->toBeFalse();
+});
+
+it('lets a stewardship holder be time-boxed while its end date is today or later', function () {
+    $root = structureRoot();
+    $records = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'records', 'name' => 'Records']);
+    $records->stewardships()->create(['function' => StewardshipFunction::OrgMail]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch('/officer/settings/groups/records', structurePayload($root, [
+            'start_date' => '2024-09-01', 'end_date' => now()->toDateString(),
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($records->fresh()->isActive())->toBeTrue();
+});
+
 it('forbids saving to anyone below the super-tier', function (Role|string $authority) {
     $root = structureRoot();
     $group = Group::factory()->program()->create(['parent_id' => $root->id, 'slug' => 'youth-tours', 'name' => 'Youth Tours']);

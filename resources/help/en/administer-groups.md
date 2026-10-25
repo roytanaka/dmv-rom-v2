@@ -32,6 +32,8 @@ Beside each capability that is switched on, the page shows how many records the 
 
 Choosing the Container kind takes the Group's page away. Its address then answers "not found".
 
+> **Note:** A Group that holds a Stewardship cannot become a Container or end before today. The error names the Stewardship. Move it to another Group first.
+
 ## Archive a Group
 
 Archive a Group when its work is done. Members can still read everything in it. Nobody can add or change anything there. It leaves the Left Side Bar.

@@ -32,6 +32,8 @@ La barre latérale gauche prend en compte le changement à la page suivante. La 
 
 Choisir le type Conteneur retire la page du groupe. Son adresse répond alors « introuvable ».
 
+> **Note :** Un groupe qui détient une intendance ne peut pas devenir un conteneur ni se terminer avant aujourd’hui. L’erreur nomme l’intendance. Déplacez-la d’abord vers un autre groupe.
+
 ## Archiver un groupe
 
 Archivez un groupe quand son travail est terminé. Les membres peuvent toujours tout y lire. Personne ne peut plus rien y ajouter ni modifier. Il quitte la barre latérale gauche.

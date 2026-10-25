@@ -10,6 +10,8 @@ use App\Enums\Role;
 use App\Http\Controllers\DmvSettingsController;
 use App\Models\Group;
 use App\Models\GroupMemberRole;
+use App\Models\GroupStewardship;
+use Carbon\Carbon;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -90,6 +92,7 @@ class UpdateGroupStructureRequest extends FormRequest
                 $validator->errors()->add('group', __('dmv_settings.error.archived'));
             } else {
                 $this->guardCapabilities($validator, $group);
+                $this->guardStewardships($validator, $group);
             }
         }];
     }
@@ -122,6 +125,42 @@ class UpdateGroupStructureRequest extends FormRequest
                     'roles' => $labels->join(', ', ' '.__('dmv_settings.and').' '),
                 ]));
             }
+        }
+    }
+
+    /**
+     * Refuse a save that would leave a stewardship holder inactive or without a form (ADR-0036
+     * §2): kind made Container, or time-boxed with an end before today. Same guard and copy as
+     * archiving, on the field that would cause it.
+     */
+    private function guardStewardships(Validator $validator, Group $group): void
+    {
+        $errors = $validator->errors();
+        $toContainer = ! $errors->has('kind') && $this->input('kind') === Kind::Container->value;
+        $ended = ! $errors->has('end_date') && $this->boolean('time_boxed')
+            && strtotime((string) $this->input('end_date')) !== false
+            && Carbon::parse($this->input('end_date'))->startOfDay()->lt(now()->startOfDay());
+        if (! $toContainer && ! $ended) {
+            return;
+        }
+
+        $held = $group->stewardships()->get();
+        if ($held->isEmpty()) {
+            return;
+        }
+
+        $message = __('dmv_settings.error.archive_steward', [
+            'group' => $group->name,
+            'stewardship' => $held
+                ->map(fn (GroupStewardship $row) => __("dmv_settings.stewardship.{$row->function->value}.title"))
+                ->join(', ', ' '.__('dmv_settings.and').' '),
+        ]);
+
+        if ($toContainer) {
+            $errors->add('kind', $message);
+        }
+        if ($ended) {
+            $errors->add('end_date', $message);
         }
     }
 
