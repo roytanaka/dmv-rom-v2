@@ -120,6 +120,31 @@ it('forbids a Secretary of one Group from adding to another', function () {
     expect(GroupMember::where('group_id', $other->id)->exists())->toBeFalse();
 });
 
+it('refuses even the super-tier a stored membership on the root DMV Group', function () {
+    // Root-DMV membership is derived from Category and never stored (ADR-0036 §9), so no
+    // row may be added there — not by the super-tier either, whose Gate::before short-circuit
+    // the Form Request's root check sits outside of.
+    $root = Group::factory()->standingCommittee()->create(['slug' => Group::ROOT_SLUG, 'name' => 'DMV']);
+    $target = Member::factory()->create();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->post(route('group-members.store', $root), ['member_id' => $target->id])
+        ->assertForbidden();
+
+    expect(GroupMember::where('group_id', $root->id)->exists())->toBeFalse();
+});
+
+it('refuses a Chair holding a legacy root row a stored membership on the root DMV Group', function () {
+    $root = Group::factory()->standingCommittee()->create(['slug' => Group::ROOT_SLUG, 'name' => 'DMV']);
+    $target = Member::factory()->create();
+
+    $this->actingAs(crudOfficerOf($root, Role::Chair))
+        ->post(route('group-members.store', $root), ['member_id' => $target->id])
+        ->assertForbidden();
+
+    expect(GroupMember::where('member_id', $target->id)->exists())->toBeFalse();
+});
+
 it('redirects an unauthenticated add to login', function () {
     $group = Group::factory()->create();
 

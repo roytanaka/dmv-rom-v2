@@ -22,11 +22,17 @@ class StoreGroupMemberRequest extends FormRequest
 {
     /**
      * Authorize against the GroupMemberPolicy: the actor must be able to add a member
-     * to the route-bound Group (Secretary / Chair / super-tier).
+     * to the route-bound Group (Secretary / Chair / super-tier). Never on the root DMV
+     * Group: its membership is derived from Category and no row is ever stored there
+     * (ADR-0036 §9). That refusal sits here, outside the Gate verdict, because the
+     * super-tier `Gate::before` short-circuit would otherwise grant it.
      */
     public function authorize(): bool
     {
-        return $this->user()->can('create', [GroupMember::class, $this->route('group')]);
+        $group = $this->route('group');
+
+        return ! $group->isRoot()
+            && $this->user()->can('create', [GroupMember::class, $group]);
     }
 
     /**

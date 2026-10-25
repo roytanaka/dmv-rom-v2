@@ -88,7 +88,9 @@ class DocumentPolicy
     /**
      * The shared read rule, for a Document or a Folder ({@see DocumentFolderPolicy::view()})
      * of the given effective visibility: a member of the Group, or any Member when it is
-     * shared with members and the Group is not Private, while the capability is on.
+     * shared with members and the Group is not Private, while the capability is on. On the
+     * root DMV Group membership is derived from Category, never a stored row (ADR-0036 §9),
+     * so every listed Member reads the DMV library ({@see Member::isMemberOf()}).
      */
     public static function reads(Member $actor, Group $group, DocumentVisibility $visibility): bool
     {
@@ -96,7 +98,7 @@ class DocumentPolicy
             return false;
         }
 
-        if ($actor->membershipIn($group) !== null) {
+        if ($actor->isMemberOf($group)) {
             return true;
         }
 
