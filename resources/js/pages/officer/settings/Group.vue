@@ -209,13 +209,15 @@ function unarchive(): void {
                             <Checkbox :checked="form.time_boxed" @update:checked="(on: boolean) => (form.time_boxed = on)" />
                             {{ trans('dmv_settings.field.time_boxed') }}
                         </label>
-                        <div v-if="form.time_boxed" class="grid gap-4 sm:grid-cols-2">
-                            <div class="grid gap-2">
+                        <!-- Each date is a subgrid of label / input / error, so a French label that
+                             wraps never pushes its input out of line (docs/conventions.md). -->
+                        <div v-if="form.time_boxed" class="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                            <div class="row-span-3 grid grid-rows-subgrid">
                                 <Label for="group-start-date">{{ trans('dmv_settings.field.start_date') }}</Label>
                                 <Input id="group-start-date" v-model="form.start_date" type="date" required />
                                 <InputError :message="form.errors.start_date" />
                             </div>
-                            <div class="grid gap-2">
+                            <div class="row-span-3 grid grid-rows-subgrid">
                                 <Label for="group-end-date">{{ trans('dmv_settings.field.end_date') }}</Label>
                                 <Input id="group-end-date" v-model="form.end_date" type="date" required />
                                 <InputError :message="form.errors.end_date" />
