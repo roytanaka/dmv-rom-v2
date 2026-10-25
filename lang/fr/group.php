@@ -697,6 +697,7 @@ return [
         'mine' => [
             'aria_label' => 'Mes inscriptions',
             'heading' => 'Mes inscriptions',
+            'toggle' => 'Afficher ou masquer Mes inscriptions',
             'subtitle' => 'Vos quarts à venir, et tout quart récent qui attend encore un nombre de visiteur·euses.',
         ],
         // Bascule de vue (#360, ADR-0021 §7) — la ou le lecteur choisit Agenda ou

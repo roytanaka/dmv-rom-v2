@@ -709,6 +709,7 @@ return [
         'mine' => [
             'aria_label' => 'My sign-ups',
             'heading' => 'My sign-ups',
+            'toggle' => 'Show or hide My sign-ups',
             'subtitle' => 'Your upcoming shifts, and any recent shift that still needs a visitor count.',
         ],
         // View toggle (#360, ADR-0021 §7) — the reader chooses Agenda or Calendar; the

@@ -22,7 +22,7 @@ Les réunions du groupe, avec leurs ordres du jour et leurs procès-verbaux. Cet
 
 ## Horaire
 
-Les horaires et les quarts du groupe. Inscrivez-vous à un quart ici. Cet onglet apparaît seulement quand le groupe gère un horaire.
+Les horaires et les quarts du groupe. Inscrivez-vous à un quart ici. Cet onglet apparaît seulement quand le groupe gère un horaire. Sélectionnez le titre **Mes inscriptions** pour fermer ou ouvrir ce panneau.
 
 ![L'onglet Horaire : le panneau Mes inscriptions en haut, avec vos propres quarts](04.png)
 
