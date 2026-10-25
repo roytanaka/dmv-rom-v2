@@ -34,6 +34,8 @@ return [
         'cancel' => 'Annuler',
     ],
     'choose_parent' => 'Choisir un parent',
+    // Le parent actuel du formulaire de structure lorsqu’il est archivé ou terminé (gardé, non proposé).
+    'inactive_parent' => ':name (inactif)',
     'choose_kind' => 'Choisir un type',
     'field' => [
         'name' => 'Nom',

@@ -17,6 +17,8 @@ export interface ParentOption {
     id: number;
     name: string;
     depth: number;
+    // The structure form only: the Group's current parent, archived or ended, kept but not offered.
+    inactive?: boolean;
 }
 
 defineProps<{ parentOptions: ParentOption[] }>();

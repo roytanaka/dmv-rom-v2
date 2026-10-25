@@ -164,7 +164,10 @@ function unarchive(): void {
                             <Label for="group-parent">{{ trans('dmv_settings.field.parent') }}</Label>
                             <NativeSelect id="group-parent" v-model="form.parent_id" class="w-full sm:w-80" required>
                                 <option v-for="option in parents" :key="option.id" :value="option.id">
-                                    {{ '— '.repeat(option.depth) + option.name }}
+                                    {{
+                                        '— '.repeat(option.depth) +
+                                        (option.inactive ? trans('dmv_settings.inactive_parent', { name: option.name }) : option.name)
+                                    }}
                                 </option>
                             </NativeSelect>
                             <InputError :message="form.errors.parent_id" />

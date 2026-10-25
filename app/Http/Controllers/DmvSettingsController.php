@@ -171,9 +171,12 @@ class DmvSettingsController extends Controller
                 'archived' => $group->lifecycle_state === LifecycleState::Archived,
                 'endedOn' => $this->endedOn($group),
             ],
-            'parents' => array_values(array_filter(
-                $this->parentOptions($this->orderedGroups()),
-                fn (array $option) => ! in_array($option['id'], $excluded, true),
+            // Active Groups outside this one's subtree, plus its current parent even when inactive
+            // (marked), so a Group under an archived or ended parent can still be saved in place.
+            'parents' => array_values(array_map(
+                fn (array $entry) => ['id' => $entry[0]->id, 'name' => $entry[0]->name, 'depth' => $entry[1], 'inactive' => ! $entry[0]->isActive()],
+                array_filter($this->orderedGroups(), fn (array $entry) => ! in_array($entry[0]->id, $excluded, true)
+                    && ($entry[0]->isActive() || $entry[0]->id === $group->parent_id)),
             )),
             'kinds' => array_column(Kind::cases(), 'value'),
             'visibilities' => array_column(ListingVisibility::cases(), 'value'),

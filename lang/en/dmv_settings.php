@@ -34,6 +34,8 @@ return [
         'cancel' => 'Cancel',
     ],
     'choose_parent' => 'Choose a parent',
+    // The structure form's current parent when it is archived or ended (kept, not offered).
+    'inactive_parent' => ':name (inactive)',
     'choose_kind' => 'Choose a kind',
     'field' => [
         'name' => 'Name',

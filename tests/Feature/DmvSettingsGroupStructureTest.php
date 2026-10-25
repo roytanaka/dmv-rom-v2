@@ -130,9 +130,9 @@ it('offers active Groups as parents, minus the Group itself and everything under
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('parents', [
-                ['id' => $root->id, 'name' => 'DMV', 'depth' => 0],
-                ['id' => $programs->id, 'name' => 'Programs', 'depth' => 1],
-                ['id' => $romwalks->id, 'name' => 'ROMWalks', 'depth' => 2],
+                ['id' => $root->id, 'name' => 'DMV', 'depth' => 0, 'inactive' => false],
+                ['id' => $programs->id, 'name' => 'Programs', 'depth' => 1, 'inactive' => false],
+                ['id' => $romwalks->id, 'name' => 'ROMWalks', 'depth' => 2, 'inactive' => false],
             ]));
 });
 
@@ -267,6 +267,35 @@ it('refuses an archived or expired parent', function (string $state) {
 
     expect($group->fresh()->parent_id)->toBe($root->id);
 })->with(['archived', 'expired']);
+
+it('keeps an archived or expired parent the Group already has', function (string $state) {
+    $root = structureRoot();
+    $parent = $state === 'archived'
+        ? Group::factory()->program()->archived()->create(['parent_id' => $root->id])
+        : Group::factory()->program()->timeBoxed()->create(['parent_id' => $root->id, 'end_date' => now()->subDay()->toDateString()]);
+    Group::factory()->cohort()->create(['parent_id' => $parent->id, 'slug' => 'class-2026']);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch('/officer/settings/groups/class-2026', structurePayload($parent))
+        ->assertSessionHasNoErrors();
+
+    expect(Group::where('slug', 'class-2026')->sole()->name)->toBe('Youth Tours Renamed');
+})->with(['archived', 'expired']);
+
+it('offers an archived current parent, marked inactive, among the active parents', function () {
+    $root = structureRoot();
+    $parent = Group::factory()->program()->archived()->create(['parent_id' => $root->id, 'name' => 'Old Tours']);
+    Group::factory()->cohort()->create(['parent_id' => $parent->id, 'slug' => 'class-2026']);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/officer/settings/groups/class-2026')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('parents', [
+                ['id' => $root->id, 'name' => 'DMV', 'depth' => 0, 'inactive' => false],
+                ['id' => $parent->id, 'name' => 'Old Tours', 'depth' => 1, 'inactive' => true],
+            ]));
+});
 
 it('requires both dates when time-boxed, the end on or after the start', function () {
     $root = structureRoot();
