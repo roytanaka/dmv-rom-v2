@@ -350,8 +350,8 @@ it('excludes the departed Persona from the Directory and My-Groups sources', fun
     // Directory keys on DMV-wide Category — the departed Persona is not listed.
     expect(Member::inDirectory()->whereKey($departed->id)->exists())->toBeFalse();
 
-    // My-Groups keys on per-Group standing — no Full/on-leave membership qualifies,
-    // and the root-as-Full enrolment exempts departed Members, so nothing shows.
+    // My-Groups keys on per-Group standing — no Full/on-leave membership qualifies, and
+    // the rail's DMV node keys on Category (root membership is never stored), so nothing shows.
     $qualifying = $departed->memberships->filter(fn (GroupMember $m) => in_array(
         $m->status,
         [MembershipStatus::Full, MembershipStatus::Loa],
@@ -384,10 +384,15 @@ it('demotes test@example.com to an ordinary member with no authority', function 
         ->and($member->canPostNews())->toBeFalse()
         ->and($member->hasMemberAdminAuthority())->toBeFalse();
 
-    // Only the one root-DMV membership every Member gets, carrying no roles.
-    expect($member->memberships)->toHaveCount(1)
-        ->and($member->memberships->first()->group->slug)->toBe(DemoSeeder::ROOT)
-        ->and($member->memberships->first()->roles)->toBeEmpty();
+    // No stored membership at all: root-DMV membership is derived from Category, never a
+    // row (ADR-0036 §9), and the login stays out of the bulk pool.
+    expect($member->memberships)->toBeEmpty();
+});
+
+it('writes no membership row on the root Group', function () {
+    // Root-DMV membership is derived from a Member's Category (ADR-0020 §B, ADR-0036 §9);
+    // the Directory is the root's Roster and the rail derives its DMV node the same way.
+    expect(GroupMember::whereRelation('group', 'slug', DemoSeeder::ROOT)->count())->toBe(0);
 });
 
 it('allowlists exactly the catalogued Personas', function () {

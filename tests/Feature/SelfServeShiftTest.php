@@ -2,6 +2,7 @@
 
 use App\Enums\Category;
 use App\Enums\DeliveryKind;
+use App\Enums\LifecycleState;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\ShiftAudience;
@@ -848,4 +849,38 @@ it('marks a super-tier owner’s own Shift manageable only before it starts', fu
 
     expect($upcoming->isSelfServeOwnedBy($superTier))->toBeTrue()
         ->and($started->isSelfServeOwnedBy($superTier))->toBeFalse();
+});
+
+// --- Inactive Groups are read-only (#839, ADR-0036 §2) ------------------------
+
+it('refuses the owner an edit and a delete of their own Shift once the Group is archived', function () {
+    $group = selfServeGroup();
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+    $owner = giMemberOf($group);
+    $shift = ownedShift($schedule, $station, $owner);
+    $group->update(['lifecycle_state' => LifecycleState::Archived]);
+
+    $this->actingAs($owner)
+        ->patch(route('self-serve-shifts.update', ['shift' => $shift->id]), selfServeBody($station, ['units' => 2]))
+        ->assertForbidden();
+
+    $this->actingAs($owner)
+        ->delete(route('self-serve-shifts.destroy', ['shift' => $shift->id]))
+        ->assertForbidden();
+
+    expect(Shift::whereKey($shift->id)->exists())->toBeTrue()
+        ->and($shift->fresh()->ends_at->equalTo($shift->ends_at))->toBeTrue();
+});
+
+it('refuses a self-serve store once the time-boxed Group has expired', function () {
+    $group = selfServeGroup(['time_boxed' => true, 'start_date' => '2026-01-01', 'end_date' => '2026-06-14']);
+    $schedule = juneSchedule($group);
+    $station = stationOf($group);
+
+    $this->actingAs(giMemberOf($group))
+        ->post(route('self-serve-shifts.store', ['schedule' => $schedule->id]), selfServeBody($station))
+        ->assertForbidden();
+
+    expect(Shift::count())->toBe(0);
 });

@@ -318,13 +318,16 @@ it('gives no DMV node in My Groups to a Member whose Category is departed', func
         ->assertInertia(fn (Assert $page) => $page->missing('rail.myGroups'));
 });
 
-it('shows the DMV org node exactly once when the Member holds an explicit root membership', function () {
+it('shows the DMV org node exactly once when a role-bearing root row is on file', function () {
     $root = Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
 
-    // The president (and any member enrolled directly in the root) must not see a
-    // duplicate: dmvNode() contributes the leaf; the membership path is excluded.
+    // Root membership is derived from Category and the seeder stores no root rows
+    // (ADR-0036 §9); the roster endpoint refuses one. The one row that can still exist
+    // is a role-bearing fixture row — a root Chair for the org-reports gate — and that
+    // Member must not see a duplicate: dmvNode() contributes the leaf, the row is ignored.
     $member = Member::factory()->create();
-    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $root->id]);
+    $row = GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $root->id]);
+    $row->roles()->create(['role' => Role::Chair]);
 
     $this->actingAs($member)
         ->get('/dashboard')
@@ -433,16 +436,18 @@ it('delivers the three container peers without an href but with their children, 
             ->missing('rail.otherGroups.items.3.href'));
 });
 
-it('still shows the four peers to a Member holding a stored root-DMV membership row', function () {
+it('still shows the four peers to a Member holding a role-bearing root row', function () {
     seedFourPeerTree();
 
-    // Regression (Other Groups vanished for non-super Members): root-DMV membership is meant
-    // to be derived from Category, not stored (ADR-0020 §B), but seed/legacy rows exist. The
-    // own-Groups prune removes such a row's root, and the builder must not lose the peers with
-    // it — the root is dropped as a node regardless; only its children become the peers.
+    // Regression (Other Groups vanished for non-super Members): root-DMV membership is derived
+    // from Category, never stored (ADR-0020 §B, ADR-0036 §9), and the seeder writes no root
+    // rows — but a role-bearing fixture row (a root Chair for the org-reports gate) can still
+    // exist. The own-Groups prune removes such a row's root, and the builder must not lose the
+    // peers with it — the root is dropped as a node regardless; only its children become the peers.
     $root = Group::where('slug', 'dmv')->firstOrFail();
     $member = Member::factory()->create();
-    GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $root->id]);
+    $row = GroupMember::factory()->status(MembershipStatus::Full)->create(['member_id' => $member->id, 'group_id' => $root->id]);
+    $row->roles()->create(['role' => Role::Chair]);
 
     $this->actingAs($member)
         ->get('/dashboard')
