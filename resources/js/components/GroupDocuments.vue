@@ -91,41 +91,48 @@ function openViewer(documentId: number): void {
 
 <template>
     <div class="flex flex-col gap-6">
-        <div class="flex flex-col gap-4">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <DocumentFolderBreadcrumb :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
+        <!-- At lg and up the breadcrumb row stays fixed under the section bar (#831); the
+             section bar never hides there (#740). It must be a direct child of this root, so
+             it stays stuck for the whole list. Its negative margins match its padding, so
+             the layout at rest is unchanged and the solid background spans the content
+             width. Below lg it scrolls with the page. -->
+        <div
+            class="lg:bg-background flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:sticky lg:top-[calc(var(--header-height)+var(--section-bar-height))] lg:z-10 lg:-mx-6 lg:-my-3 lg:px-6 lg:py-3"
+        >
+            <DocumentFolderBreadcrumb :group-slug="groupSlug" :folder="library.folder" :ancestors="library.breadcrumb" />
 
-                <!-- The Category filter (#725), then a manager's actions (#755), beside the breadcrumb. They wrap under it on a phone. -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <DocumentCategoryFilter :categories="library.categories" :category="library.category" />
-                    <template v-if="canManage">
-                        <Button type="button" variant="outline" size="sm" @click="categoriesDialogOpen = true">
-                            <PhListBullets class="h-4 w-4" aria-hidden="true" />
-                            {{ trans('document_categories.manage') }}
-                        </Button>
-                        <Button type="button" variant="outline" size="sm" @click="uploadDialogOpen = true">
-                            <PhUploadSimple class="h-4 w-4" aria-hidden="true" />
-                            {{ trans('documents.upload.add') }}
-                        </Button>
-                        <Button type="button" variant="outline" size="sm" @click="linkDialogOpen = true">
-                            <PhLink class="h-4 w-4" aria-hidden="true" />
-                            {{ trans('documents.link.add') }}
-                        </Button>
-                        <Button v-if="canAddFolder" type="button" variant="outline" size="sm" @click="folderDialogOpen = true">
-                            <PhFolderPlus class="h-4 w-4" aria-hidden="true" />
-                            {{ trans('document_folders.new') }}
-                        </Button>
-                    </template>
-                </div>
+            <!-- The Category filter (#725), then a manager's actions (#755), beside the breadcrumb. They wrap under it on a phone. -->
+            <div class="flex flex-wrap items-center gap-2">
+                <DocumentCategoryFilter :categories="library.categories" :category="library.category" />
+                <template v-if="canManage">
+                    <Button type="button" variant="outline" size="sm" @click="categoriesDialogOpen = true">
+                        <PhListBullets class="h-4 w-4" aria-hidden="true" />
+                        {{ trans('document_categories.manage') }}
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" @click="uploadDialogOpen = true">
+                        <PhUploadSimple class="h-4 w-4" aria-hidden="true" />
+                        {{ trans('documents.upload.add') }}
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" @click="linkDialogOpen = true">
+                        <PhLink class="h-4 w-4" aria-hidden="true" />
+                        {{ trans('documents.link.add') }}
+                    </Button>
+                    <Button v-if="canAddFolder" type="button" variant="outline" size="sm" @click="folderDialogOpen = true">
+                        <PhFolderPlus class="h-4 w-4" aria-hidden="true" />
+                        {{ trans('document_folders.new') }}
+                    </Button>
+                </template>
             </div>
-            <DocumentFolderHeader
-                v-if="library.folder"
-                :folder="library.folder"
-                :category-count="library.categories.length"
-                :folder-count="library.folderCount"
-                :document-count="library.documentCount"
-            />
         </div>
+        <!-- -mt-2 keeps the old 1rem gap under the breadcrumb row inside the root's gap-6. -->
+        <DocumentFolderHeader
+            v-if="library.folder"
+            class="-mt-2"
+            :folder="library.folder"
+            :category-count="library.categories.length"
+            :folder-count="library.folderCount"
+            :document-count="library.documentCount"
+        />
 
         <p v-if="isEmpty" class="text-muted-foreground py-12 text-center text-base">{{ emptyMessage }}</p>
 
