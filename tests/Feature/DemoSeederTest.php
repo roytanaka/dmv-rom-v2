@@ -11,7 +11,6 @@ use App\Enums\MeetingLinkKind;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\ScheduleState;
-use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
 use App\Models\Booking;
@@ -162,7 +161,6 @@ it('tags the three org-level section peers as containers with zero members', fun
         $container = Group::where('slug', $slug)->firstOrFail();
 
         expect($container->kind)->toBe(Kind::Container)
-            ->and($container->scope)->toBe(Scope::Organization)
             ->and($container->description)->toBeNull()
             ->and($container->has_meetings)->toBeFalse()
             ->and($container->has_documents)->toBeFalse()

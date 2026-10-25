@@ -3,7 +3,6 @@
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
-use App\Enums\Scope;
 use App\Models\Group;
 use Illuminate\Database\QueryException;
 
@@ -32,18 +31,22 @@ it('leaves a root Group with a null parent', function () {
         ->and($root->fresh()->parent)->toBeNull();
 });
 
-it('casts kind, scope and lifecycle_state to their enums', function () {
+it('casts kind and lifecycle_state to their enums', function () {
     $group = Group::factory()->create([
         'kind' => Kind::Program,
-        'scope' => Scope::Program,
         'lifecycle_state' => LifecycleState::Archived,
     ]);
 
     $fresh = $group->fresh();
 
     expect($fresh->kind)->toBe(Kind::Program)
-        ->and($fresh->scope)->toBe(Scope::Program)
         ->and($fresh->lifecycle_state)->toBe(LifecycleState::Archived);
+});
+
+it('carries no Scope axis (ADR-0036 §6)', function () {
+    $group = Group::factory()->program()->create();
+
+    expect($group->fresh()->getAttributes())->not->toHaveKey('scope');
 });
 
 it('casts the capability flags and time_boxed to booleans', function () {
