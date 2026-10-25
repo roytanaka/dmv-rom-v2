@@ -214,7 +214,7 @@ final class HelpManifest
             // Coming Soon stubs (routes/web.php) — pages that do not exist yet.
             'calendar', 'documents', 'profile', 'renew',
             'officer.members', 'officer.communications', 'officer.reports',
-            'officer.flash-messages', 'officer.settings',
+            'officer.flash-messages',
             // CSV export twins — each rides behind a report page an article covers.
             'groups.hours.report.csv',
             'groups.hours.month.csv',

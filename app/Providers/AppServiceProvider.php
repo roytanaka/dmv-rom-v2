@@ -83,5 +83,12 @@ class AppServiceProvider extends ServiceProvider
         // pages above: a Group's Librarian or Chair never reads members' download history. Only
         // the Gate::before short-circuit grants it. The controller and the rail item gate on it.
         Gate::define('view-document-downloads', fn (Member $member) => false);
+
+        // DMV Settings (#841, ADR-0036 §1, §3) — the org's Group structure and Stewardships —
+        // is super-tier only, like the pages above. The definition denies everyone; only the
+        // Gate::before short-circuit grants it. Deliberately Group-less: an archived Group's
+        // structure form must still open (ADR-0036 §2 binds Group-scoped writes, not this).
+        // The controller and the rail item gate on it.
+        Gate::define('administer-groups', fn (Member $member) => false);
     }
 }
