@@ -64,12 +64,24 @@ The Role-switcher's escape hatch back to the original operator, from any imperso
 _Avoid_: "return to super" — the mechanism keys on the stored impersonator id, not on tier; and the operator is the **Support-operator** who began the session, who is deliberately _not_ super-tier (that split is the point — [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
 
 **Tester**:
-A person trying out the app outside production and sending **Feedback items**. A Tester is known by the name they type, not by the account they log in with: testers share seeded logins and switch **Personas**, so the account says nothing about who they are.
+A person trying out the app before **Cutover**, on staging or **Beta**, and sending **Feedback items**. On staging, a Tester is known by the name they type, not by the account they log in with: testers share seeded logins and switch **Personas**, so the account says nothing about who they are. On Beta, a Tester signs in as themselves.
 _Avoid_: using "Member" or "user" for this person — the Member on the request may be a **Persona** the Tester is impersonating.
 
 **Feedback item**:
-One thing a **Tester** sends from a non-production app: a bug, a feature request, a translation problem, a legacy feature that is missing, something confusing, or other. Every Tester can read every Feedback item and comment on it. The **Support-operator** sets its status.
+One thing a **Tester** sends from staging or **Beta**: a bug, a feature request, a translation problem, a legacy feature that is missing, something confusing, or other. On staging, every Tester can read every Feedback item and comment on it; Beta items, which can show real Member data, are read only by the **Support-operator**, who also sets each item's status.
 _Avoid_: "report" (taken by Officer reports and the post-shift report), "issue" and "ticket" (GitHub issues, where the work is tracked), "bug" for the whole set (a bug is one type).
+
+**Legacy app**:
+The old DMV-ROM app that this rebuild replaces. It is the system of record until **Cutover**, and afterwards a read-only archive ([ADR-0035](docs/adr/0035-beta-and-cutover.md)).
+_Avoid_: "v1" and "the old site" in docs; "legacy" alone when the Legacy database or Legacy code is meant.
+
+**Beta**:
+The stage before **Cutover** when **Testers** use the production install of v2 with real data that is copied from the **Legacy app** every night. Work done only in Beta is overwritten by the next copy ([ADR-0035](docs/adr/0035-beta-and-cutover.md)).
+_Avoid_: "early access", "pilot", "early adopters" for the people (they are **Testers**).
+
+**Cutover**:
+The one-time switch that makes v2 the live app at the main domain and turns the **Legacy app** into an archive ([ADR-0035](docs/adr/0035-beta-and-cutover.md)).
+_Avoid_: "launch", "go-live", "migration" (the migration is the data copy, which also runs during Beta).
 
 **Group**:
 The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.

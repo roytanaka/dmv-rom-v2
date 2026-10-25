@@ -5,6 +5,8 @@ date: 2026-05-16
 
 # Development, staging, and deploy strategy
 
+> **Amendment (2026-10-25, [ADR-0035](0035-beta-and-cutover.md)).** Staging never holds real data, which closes the "staging refresh-from-prod" open question. The production deploy workflow is no longer deferred to after v1: **Beta** is the production install at `beta.dmv-rom.ca`, and it deploys from `main` through the production path of `scripts/deploy.sh`, so the workflow must exist before Beta starts.
+
 ## Context
 
 `docs/architecture.md` § Environments and § Deployment describes a deploy posture of "SSH + git pull + `php artisan migrate`, no CI/CD platform required for v1." That framing predates a closer look at the realities of a single-developer volunteer-pace project and the toolchain weight of Vue + Inertia + Vite (see [ADR-0005](0005-inertia-instead-of-spa-plus-api.md)).
