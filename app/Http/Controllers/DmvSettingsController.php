@@ -8,6 +8,7 @@ use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
+use App\Http\Requests\ArchiveGroupRequest;
 use App\Http\Requests\StoreGroupRequest;
 use App\Http\Requests\UpdateGroupStructureRequest;
 use App\Http\Requests\UpdateStewardshipRequest;
@@ -194,6 +195,25 @@ class DmvSettingsController extends Controller
         ]);
 
         return self::editable($group) ? back() : redirect()->route('officer.settings');
+    }
+
+    /**
+     * Archive a Group (#845, ADR-0036 §2): it leaves the rail and refuses writes, its pages
+     * still open read-only. The request has refused the root, Containers and stewardship holders.
+     */
+    public function archive(ArchiveGroupRequest $request, Group $group): RedirectResponse
+    {
+        $group->update(['lifecycle_state' => LifecycleState::Archived, 'updated_by' => $request->user()->id]);
+
+        return back();
+    }
+
+    /** Unarchive a Group (#845): back on the rail, writable again. */
+    public function unarchive(ArchiveGroupRequest $request, Group $group): RedirectResponse
+    {
+        $group->update(['lifecycle_state' => LifecycleState::Active, 'updated_by' => $request->user()->id]);
+
+        return back();
     }
 
     /** The structure form's on/off flags: six capabilities, then the visitor-figure collection. */

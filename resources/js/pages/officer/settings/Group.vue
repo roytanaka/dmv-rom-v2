@@ -4,22 +4,34 @@
 // root and Containers never reach this page (the server answers 404). An archived Group's form
 // renders disabled (read-only, ADR-0036 §2) until it is unarchived (#845); an expired time-boxed
 // Group stays editable so new dates can revive it. Every error lands under its control by field name;
-// a `group` error (archived, root or Container) shows above Save.
+// a `group` error (archived, root or Container) shows above Save. The Archive section (#845) sits after
+// the form, outside its disabled fieldset, so an archived Group can still be unarchived.
 import { type ParentOption } from '@/components/CreateGroupDialog.vue';
 import DmvSettingsTabs from '@/components/DmvSettingsTabs.vue';
 import InputError from '@/components/InputError.vue';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
+import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const CAPABILITIES = ['has_meetings', 'has_documents', 'has_scheduling', 'has_vetting', 'has_announcements', 'has_bookings'] as const;
 const COLLECTIONS = [
@@ -90,6 +102,23 @@ function save(): void {
         start_date: data.time_boxed ? data.start_date || null : null,
         end_date: data.time_boxed ? data.end_date || null : null,
     })).patch(route('dmv-settings.groups.update', { group: props.group.slug }), { preserveScroll: true });
+}
+
+// Archive and unarchive (#845, ADR-0036 §2): no fields; the route says which way. The stewardship
+// guard and the root/Container refusal land on an `archive` error under the button.
+const archiveForm = useForm({});
+const confirmingArchive = ref(false);
+const archiveError = computed(() => (archiveForm.errors as Record<string, string | undefined>).archive);
+
+function archive(): void {
+    archiveForm.patch(route('dmv-settings.groups.archive', { group: props.group.slug }), {
+        preserveScroll: true,
+        onFinish: () => (confirmingArchive.value = false),
+    });
+}
+
+function unarchive(): void {
+    archiveForm.patch(route('dmv-settings.groups.unarchive', { group: props.group.slug }), { preserveScroll: true });
 }
 </script>
 
@@ -236,6 +265,38 @@ function save(): void {
             <p v-if="lastChanged" class="text-muted-foreground max-w-2xl text-sm">
                 {{ trans('dmv_settings.last_changed', { name: lastChanged.name, date: formatDateOnly(lastChanged.date, page.props.locale) }) }}
             </p>
+
+            <Separator class="max-w-2xl" />
+
+            <section class="flex max-w-2xl flex-col items-start gap-2">
+                <h2 class="text-sm font-medium">{{ trans('dmv_settings.group.archive') }}</h2>
+                <Button v-if="group.archived" type="button" variant="outline" size="sm" :disabled="archiveForm.processing" @click="unarchive">
+                    {{ trans('dmv_settings.archive.unarchive') }}
+                </Button>
+                <Button v-else type="button" variant="destructive" size="sm" :disabled="archiveForm.processing" @click="confirmingArchive = true">
+                    {{ trans('dmv_settings.archive.button') }}
+                </Button>
+                <InputError :message="archiveError" />
+            </section>
+
+            <AlertDialog v-model:open="confirmingArchive">
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{{ trans('dmv_settings.archive.confirm_title', { name: group.name }) }}</AlertDialogTitle>
+                        <AlertDialogDescription>{{ trans('dmv_settings.archive.confirm_body') }}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel :disabled="archiveForm.processing">{{ trans('dmv_settings.archive.cancel') }}</AlertDialogCancel>
+                        <AlertDialogAction
+                            class="bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                            :disabled="archiveForm.processing"
+                            @click.prevent="archive"
+                        >
+                            {{ trans('dmv_settings.archive.confirm') }}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     </AppLayout>
 </template>

@@ -110,6 +110,7 @@ return [
         'end_before_start' => 'La date de fin doit être égale ou postérieure à la date de début.',
         'not_editable' => 'La racine et les conteneurs n’ont pas de paramètres ici.',
         'archived' => 'Désarchivez ce groupe pour modifier ses paramètres.',
+        'archive_steward' => ':group détient :stewardship. Déplacez d’abord l’intendance.',
     ],
     // La section Intendances (#846, ADR-0036 §7).
     'stewardship' => [
@@ -121,11 +122,24 @@ return [
             'title' => 'Expéditeur à l’échelle du DMV',
             'description' => 'Les membres de ces groupes peuvent écrire à tous les membres, à tous les président·es et au conseil.',
         ],
+        // Pas encore affichées en cartes (ADR-0036 §7); nommées seulement par le garde d’archivage (#845).
+        'statistics' => ['title' => 'Statistiques'],
+        'website' => ['title' => 'Site Web'],
         'held_by' => 'Détenue par :groups',
         'held_by_none' => 'Détenue par aucun groupe',
         'group' => 'Groupe',
         'groups' => 'Groupes',
         'gain' => 'Gagnent (:count) : :names',
         'lose' => 'Perdent (:count) : :names',
+    ],
+    // Archiver et désarchiver un groupe (#845, ADR-0036 §2).
+    'archive' => [
+        'button' => 'Archiver ce groupe',
+        'confirm_title' => 'Archiver :name ?',
+        'confirm_body' => 'Les membres continuent de lire. Les responsables ne peuvent plus écrire. Vous pouvez désarchiver plus tard.',
+        'confirm' => 'Archiver',
+        'cancel' => 'Annuler',
+        'unarchive' => 'Désarchiver',
+        'and' => ' et ',
     ],
 ];

@@ -110,6 +110,7 @@ return [
         'end_before_start' => 'The end date must be on or after the start date.',
         'not_editable' => 'The root and Containers have no settings here.',
         'archived' => 'Unarchive this Group to change its settings.',
+        'archive_steward' => ':group holds :stewardship. Move the Stewardship first.',
     ],
     // The Stewardships section (#846, ADR-0036 §7).
     'stewardship' => [
@@ -121,11 +122,24 @@ return [
             'title' => 'Org-wide sender',
             'description' => 'Members of these Groups can email every Member, every Chair and the Board.',
         ],
+        // Not shown as cards yet (ADR-0036 §7); named only by the archive guard (#845).
+        'statistics' => ['title' => 'Statistics'],
+        'website' => ['title' => 'Website'],
         'held_by' => 'Held by :groups',
         'held_by_none' => 'Held by no Group',
         'group' => 'Group',
         'groups' => 'Groups',
         'gain' => 'Gain (:count): :names',
         'lose' => 'Lose (:count): :names',
+    ],
+    // Archive and unarchive a Group (#845, ADR-0036 §2).
+    'archive' => [
+        'button' => 'Archive this Group',
+        'confirm_title' => 'Archive :name?',
+        'confirm_body' => 'Members keep reading. Officers can no longer write. You can unarchive later.',
+        'confirm' => 'Archive',
+        'cancel' => 'Cancel',
+        'unarchive' => 'Unarchive',
+        'and' => ' and ',
     ],
 ];

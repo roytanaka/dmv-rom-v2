@@ -394,6 +394,16 @@ Route::patch('officer/settings/groups/{group}', [DmvSettingsController::class, '
     ->middleware(['auth'])
     ->name('dmv-settings.groups.update');
 
+// Archive and unarchive a Group (#845, ADR-0036 §2). Authorized in ArchiveGroupRequest on
+// `administer-groups`; refuses the root and Containers, and archiving a stewardship holder.
+// There is no delete: a Group is archived, never removed.
+Route::patch('officer/settings/groups/{group}/archive', [DmvSettingsController::class, 'archive'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.groups.archive');
+Route::patch('officer/settings/groups/{group}/unarchive', [DmvSettingsController::class, 'unarchive'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.groups.unarchive');
+
 // Group officer meetings CRUD (#193, PRD #186). The Group's own-data write seam:
 // adding, editing, and deleting meetings (with their agenda / minutes / report
 // links and the published/hidden toggle), each structurally authorized in its Form

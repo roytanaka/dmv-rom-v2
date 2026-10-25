@@ -873,6 +873,44 @@
         return clickAndWaitFor(box, () => /Gain \(\d+\)/.test(card.textContent));
     }
 
+    // ── DMV Settings › Groups (#845, ADR-0036 §2-§5) ────────────────────────
+
+    // The button whose trimmed text matches `pattern`.
+    function buttonMatching(pattern) {
+        return Array.from(document.querySelectorAll('button')).find((element) => pattern.test(element.textContent.trim()));
+    }
+
+    // The fieldset whose legend matches `pattern`, scrolled under the sticky strip.
+    function showFieldset(pattern) {
+        const legend = Array.from(document.querySelectorAll('legend')).find((element) => pattern.test(element.textContent.trim()));
+        if (!legend) return false;
+        scrollUnderStickyStrip(legend.closest('fieldset'), 16);
+        return settle();
+    }
+
+    // The tree's Create a Group dialog, opened through the button's DOM click() (Radix).
+    function openCreateGroupDialog() {
+        return clickAndSettle(buttonMatching(/^create a group$/i));
+    }
+
+    // The structure form's Capabilities fieldset, with its record counts.
+    function showCapabilities() {
+        return showFieldset(/^capabilities$/i);
+    }
+
+    // The Archive section under the form.
+    function showArchiveSection() {
+        const button = buttonMatching(/^(archive this group|unarchive)$/i);
+        if (!button) return false;
+        scrollUnderStickyStrip(button.closest('section'), 16);
+        return settle();
+    }
+
+    // The archive confirmation. Shot only: the runner never confirms it.
+    function openArchiveConfirm() {
+        return clickAndSettle(buttonMatching(/^archive this group$/i));
+    }
+
     // ── Verify-run helpers (#807) ───────────────────────────────────────────
     // General-purpose helpers for an agent checking a branch with `/verify`
     // (.claude/skills/verify/SKILL.md), not tied to one help article.
@@ -1000,5 +1038,9 @@
         openMoveDocumentDialog,
         showOrgWideSender,
         previewOrgWideSender,
+        openCreateGroupDialog,
+        showCapabilities,
+        showArchiveSection,
+        openArchiveConfirm,
     };
 })();
