@@ -27,7 +27,29 @@ return [
         'cohort' => 'Cohorte',
         'container' => 'Conteneur',
     ],
-    // Le formulaire de structure (#843) et les cartes d'intendances (#846) complètent à partir d'ici.
+    // Le formulaire de structure (#843) complète à partir d'ici.
     'structure_soon' => 'Le formulaire de structure arrive.',
-    'stewardships_soon' => 'Les intendances arrivent.',
+    'save' => 'Enregistrer',
+    'last_changed' => 'Dernière modification par :name le :date.',
+    // La section Intendances (#846, ADR-0036 §7).
+    'stewardship' => [
+        'member_admin' => [
+            'title' => 'Administration des membres',
+            'description' => 'Les membres de ce groupe modifient le dossier de chaque membre et ouvrent les rapports de tout le DMV. Un seul groupe la détient.',
+        ],
+        'org_mail' => [
+            'title' => 'Expéditeur à l’échelle du DMV',
+            'description' => 'Les membres de ces groupes peuvent écrire à tous les membres, à tous les président·es et au conseil.',
+        ],
+        'held_by' => 'Détenue par :groups',
+        'held_by_none' => 'Détenue par aucun groupe',
+        'group' => 'Groupe',
+        'groups' => 'Groupes',
+        'gain' => 'Gagnent (:count) : :names',
+        'lose' => 'Perdent (:count) : :names',
+    ],
+    'error' => [
+        'member_admin_required' => 'Choisissez un groupe. L’administration des membres a toujours un détenteur.',
+        'inactive_group' => 'Choisissez un groupe actif.',
+    ],
 ];

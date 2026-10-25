@@ -349,6 +349,14 @@ Route::put('members/{member}/no-email-flag', NoEmailFlagController::class)
     ->middleware(['auth'])
     ->name('members.no-email-flag.update');
 
+// DMV Settings › Stewardships write seam (#846, ADR-0036 §7). Replaces one stewardship's
+// holder Groups. Super-tier only via `administer-groups` in the UpdateStewardshipRequest.
+// Only the two live stewardships route; statistics and website stay hidden.
+Route::put('officer/settings/stewardships/{function}', [DmvSettingsController::class, 'updateStewardship'])
+    ->whereIn('function', ['member_admin', 'org_mail'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.stewardships.update');
+
 // News feed mutations (#155, ADR-0017 §5). The non-localized write seam: posting,
 // editing, and deleting are each structurally authorized in their Form Request,
 // which delegates to the NewsPolicy — a news-editor of the posting Group, only

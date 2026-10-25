@@ -856,6 +856,23 @@
         return clickAndSettle(menuItems().find((element) => /^move$/i.test(element.textContent.trim())));
     }
 
+    // ── DMV Settings › Stewardships (#846, ADR-0036 §7) ─────────────────────
+
+    // The Org-wide sender card: its holders, last change and tick rows.
+    function showOrgWideSender() {
+        return showCardTitled(/^org-wide sender/i);
+    }
+
+    // Tick the first Group not yet an org-wide sender, then wait for the server's preview of
+    // who gains the authority. A draft only: nothing saves until the card's Save.
+    async function previewOrgWideSender() {
+        const card = cardTitled(/^org-wide sender/i);
+        if (!card) return false;
+        scrollUnderStickyStrip(card, 16);
+        const box = card.querySelector('[role="checkbox"][data-state="unchecked"]');
+        return clickAndWaitFor(box, () => /Gain \(\d+\)/.test(card.textContent));
+    }
+
     // ── Verify-run helpers (#807) ───────────────────────────────────────────
     // General-purpose helpers for an agent checking a branch with `/verify`
     // (.claude/skills/verify/SKILL.md), not tied to one help article.
@@ -981,5 +998,7 @@
         openFolderEditDialog,
         openDocumentMenu,
         openMoveDocumentDialog,
+        showOrgWideSender,
+        previewOrgWideSender,
     };
 })();

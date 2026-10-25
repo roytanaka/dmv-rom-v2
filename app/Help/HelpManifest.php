@@ -291,6 +291,8 @@ final class HelpManifest
             new HelpArticle('find-a-document-in-a-groups-library', HelpSection::Groups, status: ArticleStatus::Published, route: 'groups.documents.folder'),
             new HelpArticle('run-your-groups-document-library', HelpSection::Groups, requires: ['librarian', 'chair'], status: ArticleStatus::Published, route: 'groups.documents.folder'),
             new HelpArticle('check-who-opened-a-document', HelpSection::Groups, requires: ['super_tier'], status: ArticleStatus::Published, route: 'officer.document-downloads'),
+            // DMV Settings › Stewardships (#846, ADR-0036 §7).
+            new HelpArticle('assign-a-stewardship', HelpSection::Groups, requires: ['super_tier'], status: ArticleStatus::Draft, route: 'officer.settings.stewardships'),
 
             new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
             new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),

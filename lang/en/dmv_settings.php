@@ -27,7 +27,29 @@ return [
         'cohort' => 'Cohort',
         'container' => 'Container',
     ],
-    // The structure form (#843) and the Stewardships cards (#846) fill in from here.
+    // The structure form (#843) fills in from here.
     'structure_soon' => 'The structure form is coming.',
-    'stewardships_soon' => 'The Stewardships are coming.',
+    'save' => 'Save',
+    'last_changed' => 'Last changed by :name on :date.',
+    // The Stewardships section (#846, ADR-0036 §7).
+    'stewardship' => [
+        'member_admin' => [
+            'title' => 'Member administration',
+            'description' => 'Members of this Group edit every Member\'s record and open the all-DMV reports. Exactly one Group holds it.',
+        ],
+        'org_mail' => [
+            'title' => 'Org-wide sender',
+            'description' => 'Members of these Groups can email every Member, every Chair and the Board.',
+        ],
+        'held_by' => 'Held by :groups',
+        'held_by_none' => 'Held by no Group',
+        'group' => 'Group',
+        'groups' => 'Groups',
+        'gain' => 'Gain (:count): :names',
+        'lose' => 'Lose (:count): :names',
+    ],
+    'error' => [
+        'member_admin_required' => 'Choose a Group. Member administration always has a holder.',
+        'inactive_group' => 'Choose an active Group.',
+    ],
 ];
