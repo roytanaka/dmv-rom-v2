@@ -93,9 +93,10 @@ function openViewer(documentId: number): void {
     <div class="flex flex-col gap-6">
         <!-- At lg and up the breadcrumb row stays fixed under the section bar (#831); the
              section bar never hides there (#740). It must be a direct child of this root, so
-             it stays stuck for the whole list. Its negative margins match its padding, so
-             the layout at rest is unchanged and the solid background spans the content
-             width. Below lg it scrolls with the page. -->
+             it stays stuck for the whole list. Its negative margins cancel its padding, so
+             the layout at rest is unchanged; -mx-6 matches the p-6 of the section wrapper in
+             groups/Show.vue, so the solid background spans the content width. Below lg it
+             scrolls with the page. -->
         <div
             class="lg:bg-background flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:sticky lg:top-[calc(var(--header-height)+var(--section-bar-height))] lg:z-10 lg:-mx-6 lg:-my-3 lg:px-6 lg:py-3"
         >
