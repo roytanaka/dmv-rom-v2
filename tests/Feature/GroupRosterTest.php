@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Category;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Models\Group;
@@ -106,6 +107,31 @@ it('lets any logged-in Member view an active Group roster', function () {
         ->get(route('groups.show', ['group' => $group, 'section' => 'roster']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->has('roster', 1));
+});
+
+it('renders the root DMV Group roster from the Directory, with no roster management', function () {
+    // Root-DMV membership is derived from Category and never stored (ADR-0020 §B, ADR-0036
+    // §9): the root's Roster is the Directory — listed Members A–Z, no in-Group roles — and
+    // its rows cannot be managed, so even the super-tier gets no add-member scaffolding.
+    $root = Group::factory()->standingCommittee()->create(['slug' => Group::ROOT_SLUG, 'name' => 'DMV']);
+    Member::factory()->create(['first_name' => 'Zoe', 'last_name' => 'Young']);
+    Member::factory()->category(Category::Loa)->create(['first_name' => 'Ada', 'last_name' => 'Adams']);
+    Member::factory()->category(Category::Resigned)->create(['first_name' => 'Re', 'last_name' => 'Signed']);
+    Member::factory()->category(Category::Provisional)->create(['first_name' => 'Pro', 'last_name' => 'Visional']);
+
+    $this->actingAs(Member::factory()->superTier()->create(['first_name' => 'Margaret', 'last_name' => 'Chen']))
+        ->get(route('groups.show', ['group' => $root, 'section' => 'roster']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageRoster', false)
+            ->where('rosterMeta.candidates', fn (Collection $candidates) => $candidates->isEmpty())
+            ->where('roster', function (Collection $roster) {
+                return $roster->pluck('last_name')->all() === ['Adams', 'Chen', 'Young']
+                    && $roster->firstWhere('last_name', 'Young')['group_roles'] === []
+                    && $roster->firstWhere('last_name', 'Young')['group_standing'] === MembershipStatus::Full->value
+                    && $roster->firstWhere('last_name', 'Adams')['group_standing'] === MembershipStatus::Loa->value
+                    && $roster->firstWhere('last_name', 'Adams')['can_hard_remove'] === false;
+            }));
 });
 
 // --- Officer affordances (#192) --------------------------------------------
