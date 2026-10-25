@@ -32,6 +32,8 @@ The Groups nav is a **partition**, not a superset plus a subset. Every Group a M
 
 ### B. Root DMV is the org node, and lives only in My Groups
 
+> **Enforced (2026-10-25, [ADR-0036 §9](0036-group-administration.md)).** The demo seeder stops writing root membership rows. Root membership is derived from `Category` and nowhere stored. Closes [#288](https://github.com/roytanaka/dmv-rom-v2/issues/288).
+
 The **root DMV Group is real** — every active Member belongs to it — but its membership is **derived from the Member's `Category`** (active standing), **not** a stored membership row, exactly as the Directory already resolves (it _is_ the root's Roster). It is the **My Groups org node**: it reaches the org-wide Directory and org-wide meetings, and it is a **leaf** — it does **not** explode into the whole org tree (it "will not provide information on any subgroups"). Because every Member belongs to it, the own-Groups prune keeps it out of Other Groups; it is a My-Groups-only node. The All-Groups "DMV" node ceases to exist — what was folded under it becomes the Governance & Operations peer (§C).
 
 ### C. Other Groups top level = four org-scope container peers, exploding one level
