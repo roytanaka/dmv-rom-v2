@@ -22,7 +22,7 @@ import { formatDateOnly } from '@/lib/dates';
 import { searchTours } from '@/tours/toursSearch';
 import type { SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
-import { PhCaretDown, PhEnvelopeSimple, PhMagnifyingGlass } from '@phosphor-icons/vue';
+import { PhCaretRight, PhEnvelopeSimple, PhMagnifyingGlass } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -83,7 +83,7 @@ function email(tour: ToursPageTour): void {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-6">
         <p v-if="tours.length === 0" class="text-muted-foreground py-12 text-center text-base">{{ trans('group.tours_page.empty') }}</p>
 
         <template v-else>
@@ -107,19 +107,19 @@ function email(tour: ToursPageTour): void {
                 </p>
             </div>
 
-            <ul class="divide-border border-border divide-y rounded-lg border">
+            <ul class="divide-border border-border bg-card divide-y border shadow-xs">
                 <li v-for="{ tour, memberMatch } in shown" :key="tour.id">
                     <Collapsible
                         :open="memberMatch !== toggled.has(tour.id)"
                         class="group/tour"
                         @update:open="(open: boolean) => setOpen(tour.id, memberMatch, open)"
                     >
-                        <div class="flex items-center gap-2 pr-2">
+                        <div class="flex items-center gap-3 pr-4">
                             <CollapsibleTrigger
-                                class="hover:bg-muted/50 focus-visible:ring-ring flex min-h-11 flex-1 items-start gap-2 px-3 py-2 text-left focus-visible:ring-2 focus-visible:outline-none"
+                                class="hover:bg-accent focus-visible:ring-ring flex min-h-11 flex-1 items-start gap-3 px-4 py-4 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none"
                             >
-                                <PhCaretDown
-                                    class="mt-1 size-4 shrink-0 -rotate-90 transition-transform group-data-[state=open]/tour:rotate-0"
+                                <PhCaretRight
+                                    class="mt-1 size-4 shrink-0 transition-transform group-data-[state=open]/tour:rotate-90"
                                     aria-hidden="true"
                                 />
                                 <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -142,7 +142,7 @@ function email(tour: ToursPageTour): void {
                             </Button>
                         </div>
                         <CollapsibleContent>
-                            <div class="flex flex-col gap-2 px-3 pb-3 pl-9">
+                            <div class="flex flex-col gap-3 px-4 pb-4 pl-11">
                                 <p v-if="tour.members.length === 0" class="text-muted-foreground text-sm">
                                     {{ trans(tour.openToAll ? 'group.tours_page.open_to_all_none' : 'group.tours_page.none') }}
                                 </p>
@@ -150,7 +150,7 @@ function email(tour: ToursPageTour): void {
                                     <li
                                         v-for="member in tour.members"
                                         :key="member.memberId"
-                                        class="flex flex-wrap items-baseline justify-between gap-x-4 py-2"
+                                        class="flex flex-wrap items-baseline justify-between gap-x-4 py-3"
                                     >
                                         <span class="font-medium"><MatchHighlight :text="member.name" :query="search" /></span>
                                         <span class="text-muted-foreground">
