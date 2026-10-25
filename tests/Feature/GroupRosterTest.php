@@ -171,3 +171,42 @@ it('offers add-member candidates and capability-valid roles to an officer only',
             ->where('rosterMeta.candidates', fn (Collection $candidates) => $candidates->isEmpty())
             ->where('rosterMeta.assignableRoles', fn (Collection $roles) => $roles->isEmpty()));
 });
+
+// --- Inactive Groups are read-only (#839, ADR-0036 §2) ------------------------
+
+it('refuses a Chair a roster change on an archived Group while the roster still reads', function () {
+    $group = Group::factory()->archived()->create();
+    $chair = rosterMember($group, 'Carol', 'Chair', MembershipStatus::Full, [Role::Chair]);
+    $existing = rosterMember($group, 'Ada', 'Adams');
+    $membership = GroupMember::where(['group_id' => $group->id, 'member_id' => $existing->id])->sole();
+    $outsider = Member::factory()->create();
+
+    $this->actingAs($chair)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'roster']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageRoster', false)
+            ->where('roster', fn (Collection $roster) => $roster->contains('id', $existing->id)));
+
+    $this->actingAs($chair)
+        ->post(route('group-members.store', $group), ['member_id' => $outsider->id])
+        ->assertForbidden();
+
+    $this->actingAs($chair)
+        ->patch(route('group-members.update', $membership), ['status' => MembershipStatus::Inactive->value])
+        ->assertForbidden();
+
+    expect(GroupMember::where('member_id', $outsider->id)->exists())->toBeFalse()
+        ->and($membership->fresh()->status)->toBe(MembershipStatus::Full);
+});
+
+it('refuses the super-tier a roster addition on an expired time-boxed Group', function () {
+    $group = Group::factory()->timeBoxed()->create(['end_date' => now()->subDay()->toDateString()]);
+    $outsider = Member::factory()->create();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->post(route('group-members.store', $group), ['member_id' => $outsider->id])
+        ->assertForbidden();
+
+    expect(GroupMember::where('member_id', $outsider->id)->exists())->toBeFalse();
+});

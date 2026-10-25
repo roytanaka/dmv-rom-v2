@@ -139,7 +139,9 @@ class Shift extends Model
      * the derived ownership rule, since no column records who wrote a row (#334 stays open).
      * A Member owns a Shift, and may edit or delete it, exactly while:
      *
-     * - the owning Group is **self-serve**;
+     * - the owning Group is **self-serve** and **active** — an archived or expired Group is
+     *   read-only for everyone (#839, ADR-0036 §2), and since this rule sits outside the Gate
+     *   the `Gate::before` refusal never reaches it, so it checks `isActive()` itself;
      * - the Shift's **capacity is 1** (a Member never authors a wider slot, so a wider one
      *   is a Scheduler's and off-limits);
      * - the Shift's **only Sign-up is the Member's** (they hold the one seat, so the Shift is
@@ -163,7 +165,10 @@ class Shift extends Model
         $this->loadMissing('signUps');
         $signUps = $this->signUps;
 
-        return $this->schedule->group->self_serve_shifts
+        $group = $this->schedule->group;
+
+        return $group->self_serve_shifts
+            && $group->isActive()
             && $this->capacity === 1
             && $signUps->count() === 1
             && $signUps->first()->member_id === $member->getKey()

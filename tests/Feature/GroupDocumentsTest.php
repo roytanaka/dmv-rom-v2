@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\LifecycleState;
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\Group;
@@ -420,4 +421,41 @@ it('sends a logged-out visitor to login, then hands over the file', function () 
     $this->get("/documents/{$document->id}/download")
         ->assertOk()
         ->assertHeader('Content-Disposition', 'inline; filename=minutes.pdf');
+});
+
+// --- Inactive Groups are read-only (#839, ADR-0036 §2) ------------------------
+
+it('refuses a Librarian an upload and a delete on an archived Group while the library still reads', function () {
+    $group = libraryGroup(['lifecycle_state' => LifecycleState::Archived]);
+    $document = storedDocument($group, ['original_filename' => 'minutes.pdf']);
+    $librarian = libraryMemberOf($group, Role::Librarian);
+
+    $this->actingAs($librarian)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'documents']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('can.manageDocuments', false));
+
+    $this->actingAs($librarian)
+        ->get("/documents/{$document->id}/download")
+        ->assertOk();
+
+    $this->actingAs($librarian)
+        ->post(route('documents.store', $group), ['file' => UploadedFile::fake()->create('Late.pdf', 10, 'application/pdf')])
+        ->assertForbidden();
+
+    $this->actingAs($librarian)
+        ->delete(route('documents.destroy', $document))
+        ->assertForbidden();
+
+    expect(Document::count())->toBe(1);
+});
+
+it('refuses the super-tier an upload on an expired time-boxed Group', function () {
+    $group = libraryGroup(['time_boxed' => true, 'start_date' => now()->subYear()->toDateString(), 'end_date' => now()->subDay()->toDateString()]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->post(route('documents.store', $group), ['file' => UploadedFile::fake()->create('Late.pdf', 10, 'application/pdf')])
+        ->assertForbidden();
+
+    expect(Document::count())->toBe(0);
 });

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Member;
+use App\Support\Authorization\GroupWrites;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -39,11 +40,23 @@ class AppServiceProvider extends ServiceProvider
         // rather than 500s for a volunteer.
         Model::shouldBeStrict(! $this->app->isProduction());
 
-        // Super-tier — the one org-wide grant (ADR-0017 §1). Runs ahead of every
-        // gate and policy: `true` grants everything, `null` falls through to the
-        // normal check (never `false`), so org-wide authority lives in exactly one
-        // place and is never re-checked inside a policy.
-        Gate::before(fn (Member $member) => $member->isAllDmv() ? true : null);
+        // Two rules run ahead of every gate and policy, in this order:
+        //
+        // 1. Inactive Groups are read-only (#839, ADR-0036 §2). A write ability whose subject
+        //    belongs to an archived or expired time-boxed Group is refused with `false` — the
+        //    one `false` this closure returns. It sits ahead of the super-tier grant on purpose:
+        //    a policy can never deny the super-tier, so the only place that binds every actor
+        //    is here. GroupWrites holds the write-ability list and the subject → Group map.
+        // 2. Super-tier — the one org-wide grant (ADR-0017 §1): `true` grants everything,
+        //    `null` falls through to the normal check, so org-wide authority lives in exactly
+        //    one place and is never re-checked inside a policy.
+        Gate::before(function (Member $member, string $ability, array $arguments) {
+            if (GroupWrites::refuses($ability, $arguments)) {
+                return false;
+            }
+
+            return $member->isAllDmv() ? true : null;
+        });
 
         // Coarse, app-wide ability for chrome/nav (ADR-0017 §9): may this member
         // reach member administration at all? Held via the Records stewardship

@@ -130,6 +130,25 @@ it('renders an archived Group directly but flags it archived', function () {
         ->assertInertia(fn (Assert $page) => $page->where('group.archived', true));
 });
 
+it('renders an archived Group to the super-tier with its archived badge and no edit hint (#839)', function () {
+    $group = Group::factory()->archived()->create(['description' => 'Once upon a time.']);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', $group))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('groups/Show')
+            ->where('group.archived', true)
+            ->where('can.update', false)
+            ->where('overview.description', 'Once upon a time.'));
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch(route('groups.update', $group), ['description' => 'Rewritten.'])
+        ->assertForbidden();
+
+    expect($group->fresh()->description)->toBe('Once upon a time.');
+});
+
 it('lists active child Groups but never an archived child', function () {
     $parent = Group::factory()->create();
     $active = Group::factory()->create(['parent_id' => $parent->id, 'name' => 'Digital Working Group']);
