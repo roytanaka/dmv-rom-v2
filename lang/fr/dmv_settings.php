@@ -27,6 +27,25 @@ return [
         'cohort' => 'Cohorte',
         'container' => 'Conteneur',
     ],
+    // Créer un groupe (#842) : la boîte de dialogue de l'arborescence.
+    'create' => [
+        'title' => 'Créer un groupe',
+        'submit' => 'Créer',
+        'cancel' => 'Annuler',
+    ],
+    'choose_parent' => 'Choisir un parent',
+    'choose_kind' => 'Choisir un type',
+    'field' => [
+        'name' => 'Nom',
+        'slug' => 'Slug',
+        'parent' => 'Parent',
+        'kind' => 'Type',
+    ],
+    'error' => [
+        'slug_taken' => 'Un autre groupe utilise ce slug.',
+        'slug_format' => 'Utilisez des lettres minuscules, des chiffres et des traits d’union.',
+        'inactive_group' => 'Choisissez un groupe actif.',
+    ],
     // Le formulaire de structure (#843) et les cartes d'intendances (#846) complètent à partir d'ici.
     'structure_soon' => 'Le formulaire de structure arrive.',
     'stewardships_soon' => 'Les intendances arrivent.',

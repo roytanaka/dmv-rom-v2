@@ -373,6 +373,13 @@ Route::patch('groups/{group}', [GroupController::class, 'update'])
     ->middleware(['auth'])
     ->name('groups.update');
 
+// DMV Settings write seams (PRD #836, ADR-0036 §4), non-localized; the localized reads are
+// `officer.settings*`. Create a Group (#842): name, slug, parent and kind; the rest starts at
+// its default. Authorized in StoreGroupRequest on the Group-less `administer-groups` ability.
+Route::post('officer/settings/groups', [DmvSettingsController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.groups.store');
+
 // Group officer meetings CRUD (#193, PRD #186). The Group's own-data write seam:
 // adding, editing, and deleting meetings (with their agenda / minutes / report
 // links and the published/hidden toggle), each structurally authorized in its Form
