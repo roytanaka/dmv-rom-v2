@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Category;
 use App\Enums\DocumentVisibility;
 use App\Enums\Role;
 use App\Models\Document;
@@ -89,6 +90,24 @@ it('refuses a non-member a Document at the library root', function () {
     $document = rootDocumentOf(documentsGroup());
 
     $this->actingAs(Member::factory()->create())
+        ->get(route('documents.download', $document))
+        ->assertForbidden();
+});
+
+it('lets a listed Member with no stored root row download a root DMV Group Document', function () {
+    // Root-DMV membership is derived from Category, never stored (ADR-0020 §B, ADR-0036 §9):
+    // an Active Member with no memberships reads the DMV library like any root member.
+    $document = rootDocumentOf(documentsGroup(['slug' => Group::ROOT_SLUG, 'name' => 'DMV']));
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('documents.download', $document))
+        ->assertOk();
+});
+
+it('refuses a root DMV Group Document to a Member whose Category grants no listing', function () {
+    $document = rootDocumentOf(documentsGroup(['slug' => Group::ROOT_SLUG, 'name' => 'DMV']));
+
+    $this->actingAs(Member::factory()->category(Category::Provisional)->create())
         ->get(route('documents.download', $document))
         ->assertForbidden();
 });
