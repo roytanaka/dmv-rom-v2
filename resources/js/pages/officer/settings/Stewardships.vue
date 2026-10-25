@@ -123,7 +123,7 @@ const cards = computed(() =>
                 <p class="text-muted-foreground mt-1 text-sm">{{ trans('dmv_settings.subtitle') }}</p>
             </div>
 
-            <DmvSettingsTabs />
+            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" />
 
             <div class="flex max-w-3xl flex-col gap-6">
                 <Card v-for="card in cards" :key="card.fn">

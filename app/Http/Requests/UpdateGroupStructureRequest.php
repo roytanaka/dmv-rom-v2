@@ -4,13 +4,12 @@ namespace App\Http\Requests;
 
 use App\Enums\GroupLogo;
 use App\Enums\Kind;
-use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\Role;
-use App\Http\Controllers\DmvSettingsController;
 use App\Models\Group;
 use App\Models\GroupMemberRole;
-use App\Models\GroupStewardship;
+use App\Support\NameList;
+use App\Support\Stewardships\StewardshipGuard;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -59,7 +58,7 @@ class UpdateGroupStructureRequest extends FormRequest
             'time_boxed' => ['required', 'boolean'],
             'start_date' => ['exclude_unless:time_boxed,true', 'required', 'date'],
             'end_date' => ['exclude_unless:time_boxed,true', 'required', 'date', 'after_or_equal:start_date'],
-            ...array_fill_keys(DmvSettingsController::FLAGS, ['required', 'boolean']),
+            ...array_fill_keys([...Group::CAPABILITY_FLAGS, ...Group::COLLECTION_FLAGS], ['required', 'boolean']),
             'hours_multiplier' => ['required', 'numeric', 'min:0', 'max:999.999', 'decimal:0,3'],
         ];
     }
@@ -87,9 +86,9 @@ class UpdateGroupStructureRequest extends FormRequest
         return [function (Validator $validator): void {
             $group = $this->group();
 
-            if (! DmvSettingsController::editable($group)) {
+            if (! $group->isStructurallyEditable()) {
                 $validator->errors()->add('group', __('dmv_settings.error.not_editable'));
-            } elseif ($group->lifecycle_state === LifecycleState::Archived) {
+            } elseif ($group->isArchived()) {
                 $validator->errors()->add('group', __('dmv_settings.error.archived'));
             } else {
                 $this->guardCapabilities($validator, $group);
@@ -102,7 +101,7 @@ class UpdateGroupStructureRequest extends FormRequest
     private function guardCapabilities(Validator $validator, Group $group): void
     {
         $turningOff = array_filter(
-            DmvSettingsController::FLAGS,
+            Group::CAPABILITY_FLAGS,
             fn (string $flag) => $group->{$flag} && $this->has($flag) && ! $this->boolean($flag),
         );
         if ($turningOff === []) {
@@ -123,7 +122,7 @@ class UpdateGroupStructureRequest extends FormRequest
 
             if ($labels->isNotEmpty()) {
                 $validator->errors()->add($flag, trans_choice('dmv_settings.error.capability_in_use', $labels->count(), [
-                    'roles' => $labels->join(', ', ' '.__('dmv_settings.and').' '),
+                    'roles' => NameList::join($labels),
                 ]));
             }
         }
@@ -145,17 +144,10 @@ class UpdateGroupStructureRequest extends FormRequest
             return;
         }
 
-        $held = $group->stewardships()->get();
-        if ($held->isEmpty()) {
+        $message = StewardshipGuard::refusal($group);
+        if ($message === null) {
             return;
         }
-
-        $message = __('dmv_settings.error.archive_steward', [
-            'group' => $group->name,
-            'stewardship' => $held
-                ->map(fn (GroupStewardship $row) => __("dmv_settings.stewardship.{$row->function->value}.title"))
-                ->join(', ', ' '.__('dmv_settings.and').' '),
-        ]);
 
         if ($toContainer) {
             $errors->add('kind', $message);

@@ -29,7 +29,7 @@ interface TreeRow {
     href: string | null;
 }
 
-const props = defineProps<{ tree: TreeRow[]; parentOptions: ParentOption[]; groupsHref: string; stewardshipsHref: string }>();
+const props = defineProps<{ tree: TreeRow[]; parentOptions: ParentOption[]; kinds: string[]; groupsHref: string; stewardshipsHref: string }>();
 
 const createOpen = ref(false);
 
@@ -62,7 +62,7 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
                 <p class="text-muted-foreground mt-1 text-sm">{{ trans('dmv_settings.subtitle') }}</p>
             </div>
 
-            <DmvSettingsTabs />
+            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" />
 
             <div class="flex flex-col gap-3">
                 <div class="flex justify-end">
@@ -111,6 +111,6 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
             </div>
         </div>
 
-        <CreateGroupDialog v-model:open="createOpen" :parent-options="parentOptions" />
+        <CreateGroupDialog v-model:open="createOpen" :parent-options="parentOptions" :kinds="kinds" />
     </AppLayout>
 </template>

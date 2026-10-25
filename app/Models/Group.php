@@ -10,6 +10,7 @@ use App\Enums\ListingVisibility;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use App\Support\Audiences\AudienceResolver;
+use Carbon\CarbonInterface;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -45,6 +46,30 @@ class Group extends Model
      * exactly as {@see ROOT_SLUG} single-sources the root.
      */
     public const EXECUTIVE_SLUG = 'executive';
+
+    /** The six capability flags: each switches a feature on for the Group (ADR-0010). */
+    public const CAPABILITY_FLAGS = [
+        'has_meetings', 'has_documents', 'has_scheduling', 'has_vetting', 'has_announcements', 'has_bookings',
+    ];
+
+    /** The visitor-figure collection flags (ADR-0036 §5). */
+    public const COLLECTION_FLAGS = [
+        'collects_visitor_count', 'collects_extra_interactions', 'collects_visitor_provenance', 'visitor_figures_await_booking',
+    ];
+
+    /**
+     * The relation holding the records behind each capability (#844): turning the capability
+     * off hides them; nothing is deleted. The DMV Settings form counts them, and labels each
+     * count by its relation name (`dmv_settings.count.<relation>`).
+     */
+    public const CAPABILITY_RECORDS = [
+        'has_meetings' => 'meetings',
+        'has_documents' => 'documents',
+        'has_scheduling' => 'shifts',
+        'has_vetting' => 'tours',
+        'has_announcements' => 'news',
+        'has_bookings' => 'bookings',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -454,6 +479,51 @@ class Group extends Model
         }
 
         return $this->end_date->startOfDay()->gte(now()->startOfDay());
+    }
+
+    /** Whether the Group has been archived (ADR-0036 §2). An expired Group is inactive, not archived. */
+    public function isArchived(): bool
+    {
+        return $this->lifecycle_state === LifecycleState::Archived;
+    }
+
+    /**
+     * A lapsed time-boxed Group's end date (the Ended badge): null while it runs, when it has
+     * no end date, or when it is not time-boxed.
+     */
+    public function endedOn(): ?CarbonInterface
+    {
+        $expired = $this->time_boxed && $this->end_date !== null
+            && $this->end_date->startOfDay()->lt(now()->startOfDay());
+
+        return $expired ? $this->end_date : null;
+    }
+
+    /**
+     * Whether DMV Settings gives the Group a structure form (ADR-0036 §3): every Group but the
+     * root and Containers.
+     */
+    public function isStructurallyEditable(): bool
+    {
+        return ! $this->isRoot() && $this->kind !== Kind::Container;
+    }
+
+    /**
+     * How many records sit behind each capability that is on, keyed by flag (#844). One query:
+     * a count subselect per relation.
+     *
+     * @return array<string, int>
+     */
+    public function capabilityRecordCounts(): array
+    {
+        $on = array_filter(self::CAPABILITY_RECORDS, fn (string $relation, string $flag) => (bool) $this->{$flag}, ARRAY_FILTER_USE_BOTH);
+        if ($on === []) {
+            return [];
+        }
+
+        $this->loadCount(array_values($on));
+
+        return array_map(fn (string $relation) => (int) $this->{"{$relation}_count"}, $on);
     }
 
     /**

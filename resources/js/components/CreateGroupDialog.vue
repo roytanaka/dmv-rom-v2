@@ -21,11 +21,9 @@ export interface ParentOption {
     inactive?: boolean;
 }
 
-defineProps<{ parentOptions: ParentOption[] }>();
+// Kinds are the server's App\Enums\Kind cases, labelled from dmv_settings.kind.*.
+defineProps<{ parentOptions: ParentOption[]; kinds: string[] }>();
 const open = defineModel<boolean>('open', { required: true });
-
-// The six Kind cases (App\Enums\Kind), labelled from dmv_settings.kind.*.
-const KINDS = ['standing_committee', 'program', 'working_group', 'project', 'cohort', 'container'] as const;
 
 const form = useForm<{ name: string; slug: string; parent_id: number | null; kind: string | null }>({
     name: '',
@@ -95,7 +93,7 @@ function submit(): void {
                     <Label for="new-group-kind">{{ trans('dmv_settings.field.kind') }}</Label>
                     <NativeSelect id="new-group-kind" v-model="form.kind" required>
                         <option :value="null" disabled>{{ trans('dmv_settings.choose_kind') }}</option>
-                        <option v-for="kind in KINDS" :key="kind" :value="kind">{{ trans(`dmv_settings.kind.${kind}`) }}</option>
+                        <option v-for="kind in kinds" :key="kind" :value="kind">{{ trans(`dmv_settings.kind.${kind}`) }}</option>
                     </NativeSelect>
                     <InputError :message="form.errors.kind" />
                 </div>

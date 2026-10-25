@@ -152,11 +152,11 @@ it('counts the records behind each capability that is on', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('counts', [
-                'has_meetings' => 2,
-                'has_documents' => 3,
-                'has_scheduling' => 4,
-                'has_announcements' => 5,
-                'has_bookings' => 1,
+                'has_meetings' => ['count' => 2, 'key' => 'dmv_settings.count.meetings'],
+                'has_documents' => ['count' => 3, 'key' => 'dmv_settings.count.documents'],
+                'has_scheduling' => ['count' => 4, 'key' => 'dmv_settings.count.shifts'],
+                'has_announcements' => ['count' => 5, 'key' => 'dmv_settings.count.news'],
+                'has_bookings' => ['count' => 1, 'key' => 'dmv_settings.count.bookings'],
             ]));
 });
 
@@ -166,5 +166,5 @@ it('counts the Tours behind vetting', function () {
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->get('/officer/settings/groups/youth-tours')
-        ->assertInertia(fn (Assert $page) => $page->where('counts.has_vetting', 2));
+        ->assertInertia(fn (Assert $page) => $page->where('counts.has_vetting', ['count' => 2, 'key' => 'dmv_settings.count.tours']));
 });

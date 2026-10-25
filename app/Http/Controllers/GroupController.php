@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\Category;
 use App\Enums\Kind;
-use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
@@ -222,7 +221,7 @@ class GroupController extends Controller
                 // The selected banner key (null falls back to the neutral default
                 // on the client); the curated set drives the officer picker.
                 'banner_key' => $group->banner_key?->value,
-                'archived' => $group->lifecycle_state === LifecycleState::Archived,
+                'archived' => $group->isArchived(),
                 'end_date' => $group->end_date?->toDateString(),
                 'parent' => $group->parent ? [
                     'name' => $group->parent->name,

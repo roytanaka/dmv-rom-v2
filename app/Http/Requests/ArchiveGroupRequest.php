@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Controllers\DmvSettingsController;
 use App\Models\Group;
-use App\Models\GroupStewardship;
+use App\Support\Stewardships\StewardshipGuard;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -44,20 +43,15 @@ class ArchiveGroupRequest extends FormRequest
         return [function (Validator $validator): void {
             $group = $this->group();
 
-            if (! DmvSettingsController::editable($group)) {
+            if (! $group->isStructurallyEditable()) {
                 $validator->errors()->add('archive', __('dmv_settings.error.not_editable'));
 
                 return;
             }
 
-            $held = $this->routeIs('dmv-settings.groups.archive') ? $group->stewardships()->get() : collect();
-            if ($held->isNotEmpty()) {
-                $validator->errors()->add('archive', __('dmv_settings.error.archive_steward', [
-                    'group' => $group->name,
-                    'stewardship' => $held
-                        ->map(fn (GroupStewardship $row) => __("dmv_settings.stewardship.{$row->function->value}.title"))
-                        ->join(', ', ' '.__('dmv_settings.and').' '),
-                ]));
+            $refusal = $this->routeIs('dmv-settings.groups.archive') ? StewardshipGuard::refusal($group) : null;
+            if ($refusal !== null) {
+                $validator->errors()->add('archive', $refusal);
             }
         }];
     }

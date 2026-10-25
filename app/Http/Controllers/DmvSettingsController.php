@@ -54,6 +54,7 @@ class DmvSettingsController extends Controller
                 fn (OrgTreeNode $node) => ['id' => $node->group->id, 'name' => $node->group->name, 'depth' => $node->depth],
                 $tree->parentChoices(),
             ),
+            'kinds' => array_column(Kind::cases(), 'value'),
         ]);
     }
 
@@ -134,7 +135,7 @@ class DmvSettingsController extends Controller
     public function group(Group $group): Response
     {
         Gate::authorize('administer-groups');
-        abort_unless(self::editable($group), 404);
+        abort_unless($group->isStructurallyEditable(), 404);
 
         return Inertia::render('officer/settings/Group', [
             ...$this->shell(),
@@ -150,10 +151,10 @@ class DmvSettingsController extends Controller
                 'time_boxed' => $group->time_boxed,
                 'start_date' => $group->start_date?->toDateString(),
                 'end_date' => $group->end_date?->toDateString(),
-                ...collect(self::FLAGS)->mapWithKeys(fn (string $flag) => [$flag => (bool) $group->{$flag}])->all(),
+                ...collect([...Group::CAPABILITY_FLAGS, ...Group::COLLECTION_FLAGS])->mapWithKeys(fn (string $flag) => [$flag => (bool) $group->{$flag}])->all(),
                 'hours_multiplier' => $group->hours_multiplier,
-                'archived' => $group->lifecycle_state === LifecycleState::Archived,
-                'endedOn' => $this->endedOn($group),
+                'archived' => $group->isArchived(),
+                'endedOn' => $group->endedOn()?->toDateString(),
             ],
             // The current parent may be inactive: marked, so the select still shows it.
             'parents' => array_map(
@@ -166,39 +167,11 @@ class DmvSettingsController extends Controller
             'visibilities' => array_column(ListingVisibility::cases(), 'value'),
             'logos' => array_column(GroupLogo::cases(), 'value'),
             'lastChanged' => $this->lastChanged($group),
-            'counts' => $this->capabilityCounts($group),
+            // Each count carries its label key, named by the relation holding the records.
+            'counts' => collect($group->capabilityRecordCounts())
+                ->map(fn (int $count, string $flag) => ['count' => $count, 'key' => 'dmv_settings.count.'.Group::CAPABILITY_RECORDS[$flag]])
+                ->all(),
         ]);
-    }
-
-    /**
-     * The records behind each capability, by the Group relation that holds them (#844). Turning
-     * the capability off hides them; nothing is deleted.
-     */
-    private const CAPABILITY_RECORDS = [
-        'has_meetings' => 'meetings',
-        'has_documents' => 'documents',
-        'has_scheduling' => 'shifts',
-        'has_vetting' => 'tours',
-        'has_announcements' => 'news',
-        'has_bookings' => 'bookings',
-    ];
-
-    /**
-     * How many records sit behind each capability that is on, keyed by flag, so the form shows
-     * what turning it off makes unreachable. One query: a count subselect per relation.
-     *
-     * @return array<string, int>
-     */
-    private function capabilityCounts(Group $group): array
-    {
-        $on = array_filter(self::CAPABILITY_RECORDS, fn (string $relation, string $flag) => (bool) $group->{$flag}, ARRAY_FILTER_USE_BOTH);
-        if ($on === []) {
-            return [];
-        }
-
-        $group->loadCount(array_values($on));
-
-        return array_map(fn (string $relation) => (int) $group->{"{$relation}_count"}, $on);
     }
 
     /**
@@ -213,7 +186,7 @@ class DmvSettingsController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
-        return self::editable($group) ? back() : redirect()->route('officer.settings');
+        return $group->isStructurallyEditable() ? back() : redirect()->route('officer.settings');
     }
 
     /**
@@ -235,18 +208,6 @@ class DmvSettingsController extends Controller
         return back();
     }
 
-    /** The structure form's on/off flags: six capabilities, then the visitor-figure collection. */
-    public const FLAGS = [
-        'has_meetings', 'has_documents', 'has_scheduling', 'has_vetting', 'has_announcements', 'has_bookings',
-        'collects_visitor_count', 'collects_extra_interactions', 'collects_visitor_provenance', 'visitor_figures_await_booking',
-    ];
-
-    /** Whether a Group has a structure form here: every Group but the root and Containers. */
-    public static function editable(Group $group): bool
-    {
-        return ! $group->isRoot() && $group->kind !== Kind::Container;
-    }
-
     /**
      * The structure form's footer: who last saved it and when. Null for seeded Groups.
      *
@@ -260,14 +221,6 @@ class DmvSettingsController extends Controller
             'name' => $editor->fullName(),
             'date' => $group->updated_at->toDateString(),
         ];
-    }
-
-    /** A lapsed time-boxed Group's end date (the Ended badge); null while it runs or when not boxed. */
-    private function endedOn(Group $group): ?string
-    {
-        $expired = $group->time_boxed && $group->end_date !== null && $group->end_date->startOfDay()->lt(now()->startOfDay());
-
-        return $expired ? $group->end_date->toDateString() : null;
     }
 
     /**
@@ -306,7 +259,7 @@ class DmvSettingsController extends Controller
     private function treeRow(OrgTreeNode $node): array
     {
         [$group, $depth] = [$node->group, $node->depth];
-        $editable = self::editable($group);
+        $editable = $group->isStructurallyEditable();
 
         return [
             'id' => $group->id,
@@ -314,8 +267,8 @@ class DmvSettingsController extends Controller
             'name' => $group->name,
             'depth' => $depth,
             'kind' => $group->kind->value,
-            'archived' => $group->lifecycle_state === LifecycleState::Archived,
-            'endedOn' => $this->endedOn($group),
+            'archived' => $group->isArchived(),
+            'endedOn' => $group->endedOn()?->toDateString(),
             'editable' => $editable,
             'href' => $editable ? route('officer.settings.group', ['group' => $group->slug], false) : null,
         ];

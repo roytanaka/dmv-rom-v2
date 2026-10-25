@@ -106,7 +106,7 @@ return [
         'documents' => '{1} :count document|[2,*] :count documents',
         'shifts' => '{1} :count shift|[2,*] :count shifts',
         'tours' => '{1} :count tour|[2,*] :count tours',
-        'posts' => '{1} :count post|[2,*] :count posts',
+        'news' => '{1} :count post|[2,*] :count posts',
         'bookings' => '{1} :count booking|[2,*] :count bookings',
     ],
     'save' => 'Save',

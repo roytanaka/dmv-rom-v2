@@ -96,6 +96,15 @@ it('offers every active Group as a parent, in tree order with its depth', functi
             ]));
 });
 
+it('sends the kinds the Create dialog offers', function () {
+    createGroupRoot();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/officer/settings')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('kinds', ['standing_committee', 'program', 'working_group', 'project', 'cohort', 'container']));
+});
+
 it('starts the new Group at every default', function () {
     $root = createGroupRoot();
 

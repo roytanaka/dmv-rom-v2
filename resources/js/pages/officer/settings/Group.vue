@@ -35,15 +35,6 @@ import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
 const CAPABILITIES = ['has_meetings', 'has_documents', 'has_scheduling', 'has_vetting', 'has_announcements', 'has_bookings'] as const;
-// The records each capability keeps reachable (#844), as `dmv_settings.count.*` keys.
-const COUNT_KEYS: Record<(typeof CAPABILITIES)[number], string> = {
-    has_meetings: 'meetings',
-    has_documents: 'documents',
-    has_scheduling: 'shifts',
-    has_vetting: 'tours',
-    has_announcements: 'posts',
-    has_bookings: 'bookings',
-};
 const COLLECTIONS = [
     'collects_visitor_count',
     'collects_extra_interactions',
@@ -76,8 +67,8 @@ const props = defineProps<{
     visibilities: string[];
     logos: string[];
     lastChanged: { name: string; date: string } | null;
-    // Saved state: only the capabilities that are on carry a count.
-    counts: Partial<Record<(typeof CAPABILITIES)[number], number>>;
+    // Saved state: only the capabilities that are on carry a count, with its label key (#844).
+    counts: Partial<Record<(typeof CAPABILITIES)[number], { count: number; key: string }>>;
     groupHref: string;
     groupsHref: string;
     stewardshipsHref: string;
@@ -151,7 +142,7 @@ function unarchive(): void {
                 <p class="text-muted-foreground mt-1 font-mono text-sm">{{ groupHref }}</p>
             </div>
 
-            <DmvSettingsTabs />
+            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" />
 
             <form class="flex max-w-2xl flex-col gap-6" @submit.prevent="save">
                 <fieldset class="flex flex-col gap-6" :disabled="group.archived">
@@ -238,8 +229,8 @@ function unarchive(): void {
                             <label class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
                                 <Checkbox :checked="form[flag]" @update:checked="(on: boolean) => (form[flag] = on)" />
                                 {{ trans(`dmv_settings.capability.${flag}`) }}
-                                <span v-if="counts[flag] !== undefined" class="text-muted-foreground">
-                                    {{ transChoice(`dmv_settings.count.${COUNT_KEYS[flag]}`, counts[flag]) }}
+                                <span v-if="counts[flag]" class="text-muted-foreground">
+                                    {{ transChoice(counts[flag].key, counts[flag].count) }}
                                 </span>
                             </label>
                             <InputError :message="form.errors[flag]" />
