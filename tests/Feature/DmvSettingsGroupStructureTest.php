@@ -160,6 +160,20 @@ it('marks an archived or ended Group for the h1 badges', function () {
         ->assertInertia(fn (Assert $page) => $page->where('group.archived', false)->where('group.endedOn', '2025-06-30'));
 });
 
+it('sends the Group\'s public address in the active locale', function () {
+    $root = structureRoot();
+    Group::factory()->program()->create(['parent_id' => $root->id, 'slug' => 'youth-tours']);
+    $actor = Member::factory()->superTier()->create();
+
+    $this->actingAs($actor)->get('/officer/settings/groups/youth-tours')
+        ->assertInertia(fn (Assert $page) => $page->where('groupHref', '/groups/youth-tours'));
+
+    $this->withLocaleRoutes('fr', function () use ($actor) {
+        $this->actingAs($actor)->get('/fr/officier/parametres/groupes/youth-tours')
+            ->assertInertia(fn (Assert $page) => $page->where('groupHref', '/fr/groupes/youth-tours'));
+    });
+});
+
 it('forbids the page to anyone below the super-tier', function (Role|string $authority) {
     Group::factory()->program()->create(['slug' => 'youth-tours']);
 

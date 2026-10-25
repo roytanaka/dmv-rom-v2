@@ -178,6 +178,8 @@ class DmvSettingsController extends Controller
                 array_filter($this->orderedGroups(), fn (array $entry) => ! in_array($entry[0]->id, $excluded, true)
                     && ($entry[0]->isActive() || $entry[0]->id === $group->parent_id)),
             )),
+            // The Group's public page, localized (ADR-0008): shown as its address under the h1.
+            'groupHref' => route('groups.show', ['group' => $group->slug], false),
             'kinds' => array_column(Kind::cases(), 'value'),
             'visibilities' => array_column(ListingVisibility::cases(), 'value'),
             'logos' => array_column(GroupLogo::cases(), 'value'),

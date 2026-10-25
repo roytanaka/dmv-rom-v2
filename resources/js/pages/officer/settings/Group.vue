@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // DMV Settings › one Group (#843, ADR-0036 §5): the structure form. One form, one PATCH, one Save;
-// field groups are plain fieldsets. The slug sits under the h1 as muted mono and never changes. The
+// field groups are plain fieldsets. The Group's public address (localized, from the server) sits under
+// the h1 as muted mono; its slug never changes. The
 // root and Containers never reach this page (the server answers 404). An archived Group's form
 // renders disabled (read-only, ADR-0036 §2) until it is unarchived (#845); an expired time-boxed
 // Group stays editable so new dates can revive it. Every error lands under its control by field name;
@@ -77,6 +78,7 @@ const props = defineProps<{
     lastChanged: { name: string; date: string } | null;
     // Saved state: only the capabilities that are on carry a count.
     counts: Partial<Record<(typeof CAPABILITIES)[number], number>>;
+    groupHref: string;
     groupsHref: string;
     stewardshipsHref: string;
 }>();
@@ -146,7 +148,7 @@ function unarchive(): void {
                         {{ trans('group.ended', { date: formatDateOnly(group.endedOn, page.props.locale) }) }}
                     </Badge>
                 </div>
-                <p class="text-muted-foreground mt-1 font-mono text-sm">/groups/{{ group.slug }}</p>
+                <p class="text-muted-foreground mt-1 font-mono text-sm">{{ groupHref }}</p>
             </div>
 
             <DmvSettingsTabs />
