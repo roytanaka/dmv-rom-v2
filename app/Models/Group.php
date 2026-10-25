@@ -86,6 +86,8 @@ class Group extends Model
         'group_tour_shift_kind_id',
         'group_tour_label',
         'booking_copy_email',
+        'created_by',
+        'updated_by',
     ];
 
     /**
@@ -143,6 +145,26 @@ class Group extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Group::class, 'parent_id');
+    }
+
+    /**
+     * The Member who created this Group in DMV Settings (ADR-0036 §8); null for seeded Groups.
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'created_by');
+    }
+
+    /**
+     * The Member who last changed this Group's structure in DMV Settings (ADR-0036 §8).
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'updated_by');
     }
 
     /**

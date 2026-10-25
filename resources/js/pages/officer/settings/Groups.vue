@@ -3,17 +3,19 @@
 // parent in display order, archived Groups included and marked. Super-tier only. No collapse: the
 // org has a few dozen Groups and the super-tier wants the whole structure at once. A row's name is
 // its one action, opening the structure form; the root and Containers have no form here. Group
-// names are content, shown as stored. The Create button lands with #842.
+// names are content, shown as stored. Create opens the CreateGroupDialog (#842).
+import CreateGroupDialog, { type ParentOption } from '@/components/CreateGroupDialog.vue';
 import DmvSettingsTabs from '@/components/DmvSettingsTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 interface TreeRow {
     id: number;
@@ -27,7 +29,9 @@ interface TreeRow {
     href: string | null;
 }
 
-const props = defineProps<{ tree: TreeRow[]; groupsHref: string; stewardshipsHref: string }>();
+const props = defineProps<{ tree: TreeRow[]; parentOptions: ParentOption[]; groupsHref: string; stewardshipsHref: string }>();
+
+const createOpen = ref(false);
 
 const page = usePage<SharedData>();
 
@@ -60,46 +64,53 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
 
             <DmvSettingsTabs />
 
-            <div class="border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>{{ trans('dmv_settings.tree.column.name') }}</TableHead>
-                            <TableHead class="hidden sm:table-cell">{{ trans('dmv_settings.tree.column.kind') }}</TableHead>
-                            <TableHead class="hidden sm:table-cell">{{ trans('dmv_settings.tree.column.status') }}</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow v-for="row in tree" :key="row.id" :aria-level="row.depth + 1">
-                            <TableCell
-                                class="pl-[calc(0.75rem+var(--indent)*0.75rem)] whitespace-normal sm:pl-[calc(0.75rem+var(--indent)*1.25rem)]"
-                                :style="indent(row)"
-                            >
-                                <div class="flex flex-wrap items-baseline gap-x-3">
-                                    <TextLink v-if="row.editable && row.href" :href="row.href">
-                                        <span :class="row.archived ? 'text-muted-foreground' : undefined">{{ row.name }}</span>
-                                    </TextLink>
-                                    <template v-else>
-                                        <span>{{ row.name }}</span>
-                                        <span class="text-muted-foreground text-sm">{{ trans('dmv_settings.tree.no_settings') }}</span>
-                                    </template>
-                                </div>
-                                <!-- On a phone the Kind and Status columns hide; their facts ride under the name. -->
-                                <p class="text-muted-foreground text-sm sm:hidden">
-                                    {{ [kindLabel(row), statusLabel(row)].filter(Boolean).join(' · ') }}
-                                </p>
-                            </TableCell>
-                            <TableCell class="hidden sm:table-cell">
-                                <Badge variant="outline">{{ kindLabel(row) }}</Badge>
-                            </TableCell>
-                            <TableCell class="hidden sm:table-cell">
-                                <Badge v-if="row.archived" variant="secondary">{{ statusLabel(row) }}</Badge>
-                                <Badge v-else-if="row.endedOn" variant="warning">{{ statusLabel(row) }}</Badge>
-                            </TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
+            <div class="flex flex-col gap-3">
+                <div class="flex justify-end">
+                    <Button size="sm" @click="createOpen = true">{{ trans('dmv_settings.tree.create') }}</Button>
+                </div>
+                <div class="border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>{{ trans('dmv_settings.tree.column.name') }}</TableHead>
+                                <TableHead class="hidden sm:table-cell">{{ trans('dmv_settings.tree.column.kind') }}</TableHead>
+                                <TableHead class="hidden sm:table-cell">{{ trans('dmv_settings.tree.column.status') }}</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow v-for="row in tree" :key="row.id" :aria-level="row.depth + 1">
+                                <TableCell
+                                    class="pl-[calc(0.75rem+var(--indent)*0.75rem)] whitespace-normal sm:pl-[calc(0.75rem+var(--indent)*1.25rem)]"
+                                    :style="indent(row)"
+                                >
+                                    <div class="flex flex-wrap items-baseline gap-x-3">
+                                        <TextLink v-if="row.editable && row.href" :href="row.href">
+                                            <span :class="row.archived ? 'text-muted-foreground' : undefined">{{ row.name }}</span>
+                                        </TextLink>
+                                        <template v-else>
+                                            <span>{{ row.name }}</span>
+                                            <span class="text-muted-foreground text-sm">{{ trans('dmv_settings.tree.no_settings') }}</span>
+                                        </template>
+                                    </div>
+                                    <!-- On a phone the Kind and Status columns hide; their facts ride under the name. -->
+                                    <p class="text-muted-foreground text-sm sm:hidden">
+                                        {{ [kindLabel(row), statusLabel(row)].filter(Boolean).join(' · ') }}
+                                    </p>
+                                </TableCell>
+                                <TableCell class="hidden sm:table-cell">
+                                    <Badge variant="outline">{{ kindLabel(row) }}</Badge>
+                                </TableCell>
+                                <TableCell class="hidden sm:table-cell">
+                                    <Badge v-if="row.archived" variant="secondary">{{ statusLabel(row) }}</Badge>
+                                    <Badge v-else-if="row.endedOn" variant="warning">{{ statusLabel(row) }}</Badge>
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </div>
+
+        <CreateGroupDialog v-model:open="createOpen" :parent-options="parentOptions" />
     </AppLayout>
 </template>

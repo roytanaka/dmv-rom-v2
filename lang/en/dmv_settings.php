@@ -27,6 +27,26 @@ return [
         'cohort' => 'Cohort',
         'container' => 'Container',
     ],
+    // Create a Group (#842): the dialog on the tree.
+    'create' => [
+        'title' => 'Create a Group',
+        'submit' => 'Create',
+        'cancel' => 'Cancel',
+    ],
+    'choose_parent' => 'Choose a parent',
+    'choose_kind' => 'Choose a kind',
+    'field' => [
+        'name' => 'Name',
+        'slug' => 'Slug',
+        'parent' => 'Parent',
+        'kind' => 'Kind',
+    ],
+    'error' => [
+        'slug_taken' => 'Another Group uses this slug.',
+        'slug_format' => 'Use lowercase letters, digits and hyphens.',
+        'member_admin_required' => 'Choose a Group. Member administration always has a holder.',
+        'inactive_group' => 'Choose an active Group.',
+    ],
     // The structure form (#843) fills in from here.
     'structure_soon' => 'The structure form is coming.',
     'save' => 'Save',
@@ -47,9 +67,5 @@ return [
         'groups' => 'Groups',
         'gain' => 'Gain (:count): :names',
         'lose' => 'Lose (:count): :names',
-    ],
-    'error' => [
-        'member_admin_required' => 'Choose a Group. Member administration always has a holder.',
-        'inactive_group' => 'Choose an active Group.',
     ],
 ];
