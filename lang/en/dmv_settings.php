@@ -30,7 +30,7 @@ return [
             'has_documents' => 'D',
             'has_scheduling' => 'S',
             'has_vetting' => 'V',
-            'has_announcements' => 'A',
+            'has_announcements' => 'N',
             'has_bookings' => 'B',
         ],
         'capability_on' => ':capability: on',
@@ -107,14 +107,30 @@ return [
         'has_documents' => 'Documents',
         'has_scheduling' => 'Scheduling',
         'has_vetting' => 'Vetting',
-        'has_announcements' => 'Announcements',
+        'has_announcements' => 'News',
         'has_bookings' => 'Bookings',
+    ],
+    // One line under each capability switch (#854).
+    'capability_help' => [
+        'has_meetings' => 'Members see the Group\'s meetings, agendas and minutes.',
+        'has_documents' => 'The Group keeps a document library.',
+        'has_scheduling' => 'The Group posts shifts and members sign up.',
+        'has_vetting' => 'The Group records which tours each member may give.',
+        'has_announcements' => 'The Group posts to the DMV-wide News feed.',
+        'has_bookings' => 'The Group takes tour bookings from outside clients.',
     ],
     'collection' => [
         'collects_visitor_count' => 'Visitor count',
         'collects_extra_interactions' => 'Extra interactions',
         'collects_visitor_provenance' => 'Visitor origins',
         'visitor_figures_await_booking' => 'Figures wait for the booking',
+    ],
+    // One line under each visitor-figure switch (#854).
+    'collection_help' => [
+        'collects_visitor_count' => 'Members enter the number of visitors they served on each shift.',
+        'collects_extra_interactions' => 'Members also enter visitors they served outside their tour.',
+        'collects_visitor_provenance' => 'Members split each shift\'s visitors by where they came from.',
+        'visitor_figures_await_booking' => 'The visitor report marks this Group\'s figures as incomplete until bookings are counted.',
     ],
     'visibility' => [
         'public' => 'Public',

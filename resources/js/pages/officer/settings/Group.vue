@@ -338,6 +338,7 @@ const countLine = (flag: Capability): string | null => {
                                 :key="flag"
                                 v-model="form[flag]"
                                 :label="trans(`dmv_settings.capability.${flag}`)"
+                                :description="trans(`dmv_settings.capability_help.${flag}`)"
                                 :note="countLine(flag)"
                                 :error="errors[flag]"
                             />
@@ -350,6 +351,7 @@ const countLine = (flag: Capability): string | null => {
                                 :key="flag"
                                 v-model="form[flag]"
                                 :label="trans(`dmv_settings.collection.${flag}`)"
+                                :description="trans(`dmv_settings.collection_help.${flag}`)"
                                 :error="errors[flag]"
                             />
                         </DmvSettingsSection>
