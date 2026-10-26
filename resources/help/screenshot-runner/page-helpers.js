@@ -880,9 +880,17 @@
         return Array.from(document.querySelectorAll('button')).find((element) => pattern.test(element.textContent.trim()));
     }
 
-    // The tree's Create a Group dialog, opened through the button's DOM click() (Radix).
-    function openCreateGroupDialog() {
-        return clickAndSettle(buttonMatching(/^create a group$/i));
+    // The tree's Create a Group dialog, opened through the button's DOM click() (Radix). Parent
+    // stays disabled until a section is chosen (#850), so choose Programs: Parent then enables on
+    // that section's subtree. The select is a native v-model, so fire `change`. Never submitted.
+    async function openCreateGroupDialog() {
+        if (!(await clickAndSettle(buttonMatching(/^create a group$/i)))) return false;
+        const select = document.getElementById('new-group-section');
+        const option = select && Array.from(select.options).find((element) => element.textContent.trim() === 'Programs');
+        if (!option) return false;
+        select.value = option.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        return settle();
     }
 
     // The structure form's Capabilities card, with its record counts.
