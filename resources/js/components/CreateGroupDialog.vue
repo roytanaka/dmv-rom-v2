@@ -85,8 +85,8 @@ function submit(): void {
                     <Label for="new-group-slug">{{ trans('dmv_settings.field.slug') }}</Label>
                     <div class="flex">
                         <span
+                            id="new-group-slug-prefix"
                             class="border-input bg-muted text-muted-foreground flex items-center border border-r-0 px-3 font-mono text-base whitespace-nowrap"
-                            aria-hidden="true"
                         >
                             {{ addressPrefix }}
                         </span>
@@ -94,6 +94,7 @@ function submit(): void {
                             id="new-group-slug"
                             v-model="form.slug"
                             class="min-w-0 flex-1 font-mono"
+                            aria-describedby="new-group-slug-prefix"
                             required
                             maxlength="255"
                             @input="slugTouched = true"

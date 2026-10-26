@@ -64,7 +64,8 @@ const savedOrgMail = computed(() => props.stewardships.org_mail.holders.map((hol
 const memberAdminForm = useForm<{ group_id: number | null }>({ group_id: savedMemberAdmin.value });
 const orgMailForm = useForm<{ group_ids: number[] }>({ group_ids: savedOrgMail.value });
 
-const sameIds = (a: number[], b: number[]): boolean => a.length === b.length && [...a].sort().every((id, index) => id === [...b].sort()[index]);
+const sorted = (ids: number[]): number[] => [...ids].sort((a, b) => a - b);
+const sameIds = (a: number[], b: number[]): boolean => a.length === b.length && sorted(a).every((id, index) => id === sorted(b)[index]);
 const dirty = computed<Record<LiveStewardship, boolean>>(() => ({
     member_admin: memberAdminForm.group_id !== savedMemberAdmin.value,
     org_mail: !sameIds(orgMailForm.group_ids, savedOrgMail.value),
@@ -118,6 +119,7 @@ const cards = computed(() =>
         changed: lastChanged(props.stewardships[fn]),
         dirty: dirty.value[fn],
         // The diff shows only once the draft differs; an unchanged draft reads "No change yet".
+        // While the first reload is in flight the panel holds its space and says nothing.
         preview: dirty.value[fn] ? (props.preview?.[fn] ?? null) : null,
         processing: fn === 'member_admin' ? memberAdminForm.processing : orgMailForm.processing,
     })),
@@ -175,8 +177,8 @@ const cards = computed(() =>
 
                         <!-- The preview panel: who gains and loses under the draft, as chips. -->
                         <div class="bg-muted p-4 text-sm" aria-live="polite">
-                            <p v-if="!card.preview" class="text-muted-foreground">{{ trans('dmv_settings.stewardship.no_change') }}</p>
-                            <div v-else class="grid gap-4 sm:grid-cols-2">
+                            <p v-if="!card.dirty" class="text-muted-foreground">{{ trans('dmv_settings.stewardship.no_change') }}</p>
+                            <div v-else-if="card.preview" class="grid gap-4 sm:grid-cols-2">
                                 <div class="flex flex-col gap-2">
                                     <p class="font-medium">
                                         {{ trans('dmv_settings.stewardship.gain', { count: String(card.preview.gain.length) }) }}

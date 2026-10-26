@@ -113,9 +113,10 @@ const badge = (row: TreeRow): { variant: 'secondary' | 'warning'; label: string 
 };
 
 // The quiet facts: the Stewardships the Group holds, and its hours multiplier when it is not 1.
+const number = computed(() => new Intl.NumberFormat(page.props.locale, { maximumFractionDigits: 3 }));
 const facts = (row: TreeRow): string[] => [
     ...row.stewardships.map((fn) => trans(`dmv_settings.tree.stewardship.${fn}`)),
-    ...(row.hoursMultiplier === 1 ? [] : [trans('dmv_settings.tree.hours', { multiplier: String(row.hoursMultiplier) })]),
+    ...(row.hoursMultiplier === 1 ? [] : [trans('dmv_settings.tree.hours', { multiplier: number.value.format(row.hoursMultiplier) })]),
 ];
 
 // Why a row has no link: the root is set by officers; a Container has no page.

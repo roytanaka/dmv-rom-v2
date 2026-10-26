@@ -10,7 +10,7 @@
 persona margaret.chen@dmv.test
 start /dashboard
 
-nav /officer/settings 01                                  # the Groups tree: kinds, statuses, No settings here rows
+nav /officer/settings 01                                  # the Groups tree: toolbar, kinds, capability slots, statuses, Set by officers / No page rows
 act openCreateGroupDialog 02                              # the Create a Group dialog: name, slug, parent, kind
 nav /officer/settings/groups/oral-history-project 03      # one Group's structure form, top: Identity and Listing
 act showCapabilities 04                                   # the Capabilities card: switch rows with record counts
