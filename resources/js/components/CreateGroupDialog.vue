@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
+import { treeIndent } from '@/lib/treeIndent';
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -108,7 +109,7 @@ function submit(): void {
                         <NativeSelect id="new-group-parent" v-model="form.parent_id" required>
                             <option :value="null" disabled>{{ trans('dmv_settings.choose_parent') }}</option>
                             <option v-for="option in parentOptions" :key="option.id" :value="option.id">
-                                {{ '— '.repeat(option.depth) + option.name }}
+                                {{ treeIndent(option.depth) + option.name }}
                             </option>
                         </NativeSelect>
                         <InputError :message="form.errors.parent_id" />

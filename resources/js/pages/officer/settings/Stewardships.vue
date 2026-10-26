@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
+import { treeIndent } from '@/lib/treeIndent';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
@@ -155,7 +156,7 @@ const cards = computed(() =>
                             <Label for="stewardship-member-admin">{{ trans('dmv_settings.stewardship.group') }}</Label>
                             <NativeSelect id="stewardship-member-admin" v-model="memberAdminForm.group_id" required>
                                 <option v-for="group in groups" :key="group.id" :value="group.id">
-                                    {{ '— '.repeat(group.depth) }}{{ group.name }}
+                                    {{ treeIndent(group.depth) }}{{ group.name }}
                                 </option>
                             </NativeSelect>
                             <InputError :message="memberAdminForm.errors.group_id" />

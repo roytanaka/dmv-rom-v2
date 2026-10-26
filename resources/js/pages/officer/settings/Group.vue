@@ -36,6 +36,7 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
+import { treeIndent } from '@/lib/treeIndent';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { PhArchive } from '@phosphor-icons/vue';
@@ -250,7 +251,7 @@ const countLine = (flag: Capability): string | null => {
                                     <NativeSelect id="group-parent" v-model="form.parent_id" required>
                                         <option v-for="option in parents" :key="option.id" :value="option.id">
                                             {{
-                                                '— '.repeat(option.depth) +
+                                                treeIndent(option.depth) +
                                                 (option.inactive ? trans('dmv_settings.inactive_parent', { name: option.name }) : option.name)
                                             }}
                                         </option>
@@ -320,7 +321,7 @@ const countLine = (flag: Capability): string | null => {
                             </div>
                         </DmvSettingsSection>
 
-                        <DmvSettingsSection id="capabilities" :title="sectionTitle(SECTIONS[3])" content-class="grid gap-3 md:grid-cols-2">
+                        <DmvSettingsSection id="capabilities" :title="sectionTitle(SECTIONS[3])" layout="grid gap-3 md:grid-cols-2">
                             <DmvSettingsFlagRow
                                 v-for="flag in CAPABILITIES"
                                 :id="`group-${flag}`"
@@ -332,7 +333,7 @@ const countLine = (flag: Capability): string | null => {
                             />
                         </DmvSettingsSection>
 
-                        <DmvSettingsSection id="visitor-figures" :title="sectionTitle(SECTIONS[4])" content-class="grid gap-3 md:grid-cols-2">
+                        <DmvSettingsSection id="visitor-figures" :title="sectionTitle(SECTIONS[4])" layout="grid gap-3 md:grid-cols-2">
                             <DmvSettingsFlagRow
                                 v-for="flag in COLLECTIONS"
                                 :id="`group-${flag}`"
@@ -366,7 +367,7 @@ const countLine = (flag: Capability): string | null => {
                         v-if="!group.archived"
                         id="archive"
                         :title="sectionTitle(SECTIONS[6])"
-                        content-class="flex flex-col items-start gap-3"
+                        layout="flex flex-col items-start gap-3"
                     >
                         <p class="text-sm">{{ trans('dmv_settings.group.archive_note') }}</p>
                         <Button
