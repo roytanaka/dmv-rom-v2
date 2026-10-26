@@ -14,8 +14,8 @@ A Stewardship gives its authority to every Member of the Groups that hold it. Tw
 3. Find the card for the Stewardship you want to change.
 4. For member administration, choose the new Group from the list.
 5. For org-wide sender, tick each Group that should hold it. Untick each Group that should not.
-6. Read the lines under your choice. **Gain** names the Members who get the authority. **Lose** names the Members who lose it.
-7. Select **Save** on that card.
+6. Read the panel under your choice. **Gain the authority** lists the Members who get it. **Lose the authority** lists the Members who lose it.
+7. Select **Save** on that card. Save stays off until you change something. **Undo change** puts the saved choice back.
 
 The change takes effect on each Member's next page.
 

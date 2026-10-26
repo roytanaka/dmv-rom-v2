@@ -9,13 +9,39 @@ return [
         'groups' => 'Groupes',
         'stewardships' => 'Intendances',
     ],
+    // L’arborescence des groupes (#841, restylée dans #848) : barre d’outils, colonnes, notes et faits.
     'tree' => [
         'column' => [
-            'name' => 'Nom',
+            'name' => 'Groupe',
             'kind' => 'Type',
+            'capabilities' => 'Fonctions',
             'status' => 'État',
         ],
-        'no_settings' => 'Aucun paramètre ici',
+        'search' => 'Trouver un groupe',
+        'show_archived' => 'Afficher les groupes archivés',
+        'expand' => 'Déplier :name',
+        'collapse' => 'Replier :name',
+        // Les paramètres de la racine ne sont pas ici ; un conteneur n’a pas de page.
+        'root_note' => 'Défini par les responsables',
+        'container_note' => 'Aucune page',
+        // Une lettre par fonction ; la légende sous le tableau les explique. Les mêmes codes
+        // qu’en anglais, pour que l’arborescence se lise pareil dans les deux langues.
+        'letter' => [
+            'has_meetings' => 'M',
+            'has_documents' => 'D',
+            'has_scheduling' => 'S',
+            'has_vetting' => 'V',
+            'has_announcements' => 'A',
+            'has_bookings' => 'B',
+        ],
+        'capability_on' => ':capability : activée',
+        'capability_off' => ':capability : désactivée',
+        // Noms courts des intendances pour la colonne État.
+        'stewardship' => [
+            'member_admin' => 'Admin. des membres',
+            'org_mail' => 'Expéditeur DMV',
+        ],
+        'hours' => 'Heures ×:multiplier',
         'archived' => 'Archivé',
         'create' => 'Créer un groupe',
     ],
@@ -39,7 +65,7 @@ return [
     'choose_kind' => 'Choisir un type',
     'field' => [
         'name' => 'Nom',
-        'slug' => 'Slug',
+        'slug' => 'Adresse',
         'parent' => 'Parent',
         'kind' => 'Type',
         'kind_container_note' => 'Un conteneur n’a pas de page. Son adresse répond 404.',
@@ -60,6 +86,19 @@ return [
         'visitor_figures' => 'Chiffres de fréquentation',
         'hours' => 'Heures',
         'archive' => 'Archivage',
+        // Le formulaire restylé (#848) : lien d’en-tête, index des sections, note d’archivage et barre d’enregistrement.
+        'open_page' => 'Ouvrir la page du groupe',
+        'sections' => 'Sections',
+        'has_problem' => 'Contient un problème',
+        'archive_note' => 'Un groupe archivé quitte la barre latérale. Les membres peuvent toujours le lire. Personne ne peut le modifier tant que vous ne le désarchivez pas.',
+        'save_changes' => 'Enregistrer les modifications',
+        'discard' => 'Annuler les modifications',
+        'problems' => '{1} :count problème à corriger avant d’enregistrer|[2,*] :count problèmes à corriger avant d’enregistrer',
+    ],
+    // La bannière du formulaire d’un groupe archivé (#848).
+    'archived_banner' => [
+        'title' => 'Ce groupe est archivé.',
+        'body' => 'Les membres peuvent toujours lire sa page, ses documents, ses réunions et ses heures. Personne ne peut le modifier. Désarchivez-le pour modifier ces paramètres.',
     ],
     'capability' => [
         'has_meetings' => 'Réunions',
@@ -109,6 +148,15 @@ return [
         'news' => '{1} :count annonce|[2,*] :count annonces',
         'bookings' => '{1} :count réservation|[2,*] :count réservations',
     ],
+    // Les mêmes éléments une fois la fonction désactivée dans le brouillon (#848) : masqués, pas supprimés.
+    'hidden' => [
+        'meetings' => '{1} :count réunion devient masquée|[2,*] :count réunions deviennent masquées',
+        'documents' => '{1} :count document devient masqué|[2,*] :count documents deviennent masqués',
+        'shifts' => '{1} :count quart devient masqué|[2,*] :count quarts deviennent masqués',
+        'tours' => '{1} :count visite devient masquée|[2,*] :count visites deviennent masquées',
+        'news' => '{1} :count annonce devient masquée|[2,*] :count annonces deviennent masquées',
+        'bookings' => '{1} :count réservation devient masquée|[2,*] :count réservations deviennent masquées',
+    ],
     'save' => 'Enregistrer',
     // Le dernier lien d’une liste de noms : « Responsable horaire et Bibliothécaire ».
     'and' => 'et',
@@ -143,8 +191,11 @@ return [
         'held_by_none' => 'Détenue par aucun groupe',
         'group' => 'Groupe',
         'groups' => 'Groupes',
-        'gain' => 'Gagnent (:count) : :names',
-        'lose' => 'Perdent (:count) : :names',
+        // Le panneau d’aperçu (#848) : qui gagne et qui perd selon le brouillon, ou aucun changement.
+        'gain' => 'Gagnent l’autorité (:count)',
+        'lose' => 'Perdent l’autorité (:count)',
+        'no_change' => 'Aucun changement pour l’instant. Cochez ou décochez un groupe pour voir qui gagne ou perd l’autorité.',
+        'undo' => 'Annuler le changement',
     ],
     // Archiver et désarchiver un groupe (#845, ADR-0036 §2).
     'archive' => [

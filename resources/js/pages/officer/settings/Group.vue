@@ -1,15 +1,20 @@
 <script setup lang="ts">
-// DMV Settings › one Group (#843, ADR-0036 §5): the structure form. One form, one PATCH, one Save;
-// field groups are plain fieldsets. The Group's public address (localized, from the server) sits under
-// the h1 as muted mono; its slug never changes. The
-// root and Containers never reach this page (the server answers 404). An archived Group's form
-// renders disabled (read-only, ADR-0036 §2) until it is unarchived (#845); an expired time-boxed
-// Group stays editable so new dates can revive it. Every error lands under its control by field name;
-// a `group` error (archived, root or Container) shows above Save. The Archive section (#845) sits after
-// the form, outside its disabled fieldset, so an archived Group can still be unarchived.
+// DMV Settings › one Group (#843, ADR-0036 §5; restyled in #848): the structure form. One form,
+// one PATCH, one Save; each field group is a Card with an id, and from `lg` a section index on
+// the left links to them and marks the ones with a validation error. A save bar sticks to the
+// bottom of the form with the last-changed line, the error count, Discard and Save changes.
+// The Group's public address (localized, from the server) sits under the h1 as muted mono with a
+// link to the page; its slug never changes. The root and Containers never reach this page (the
+// server answers 404). An archived Group's form renders disabled under an info banner
+// (read-only, ADR-0036 §2) with no save bar and no Archive section, until it is unarchived
+// (#845); an expired time-boxed Group stays editable so new dates can revive it. Every error
+// lands under its control by field name; a `group` error (archived, root or Container) shows in
+// the save bar. The ten flags and Time-boxed are Switch rows; a capability that is on shows how
+// many records sit behind it, and once switched off in the draft, how many become hidden (#844).
 import { type ParentOption } from '@/components/CreateGroupDialog.vue';
 import DmvSettingsTabs from '@/components/DmvSettingsTabs.vue';
 import InputError from '@/components/InputError.vue';
+import TextLink from '@/components/TextLink.vue';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -22,15 +27,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
-import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { PhArchive } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
@@ -41,7 +47,8 @@ const COLLECTIONS = [
     'collects_visitor_provenance',
     'visitor_figures_await_booking',
 ] as const;
-type Flag = (typeof CAPABILITIES)[number] | (typeof COLLECTIONS)[number];
+type Capability = (typeof CAPABILITIES)[number];
+type Flag = Capability | (typeof COLLECTIONS)[number];
 
 interface StructureGroup extends Record<Flag, boolean> {
     id: number;
@@ -68,7 +75,7 @@ const props = defineProps<{
     logos: string[];
     lastChanged: { name: string; date: string } | null;
     // Saved state: only the capabilities that are on carry a count, with its label key (#844).
-    counts: Partial<Record<(typeof CAPABILITIES)[number], { count: number; key: string }>>;
+    counts: Partial<Record<Capability, { count: number; key: string }>>;
     groupHref: string;
     groupsHref: string;
     stewardshipsHref: string;
@@ -97,8 +104,12 @@ const form = useForm({
     hours_multiplier: Number(props.group.hours_multiplier),
 });
 
+type Field = keyof ReturnType<typeof form.data>;
+const errors = computed(() => form.errors as Partial<Record<Field | 'group', string>>);
+
 // The form's own `group` error (archived, root or Container): not a field of the form's data.
-const groupError = computed(() => (form.errors as Record<string, string | undefined>).group);
+const groupError = computed(() => errors.value.group);
+const errorCount = computed(() => Object.keys(form.errors).length);
 
 function save(): void {
     form.transform((data) => ({
@@ -106,6 +117,11 @@ function save(): void {
         start_date: data.time_boxed ? data.start_date || null : null,
         end_date: data.time_boxed ? data.end_date || null : null,
     })).patch(route('dmv-settings.groups.update', { group: props.group.slug }), { preserveScroll: true });
+}
+
+function discard(): void {
+    form.reset();
+    form.clearErrors();
 }
 
 // Archive and unarchive (#845, ADR-0036 §2): no fields; the route says which way. The stewardship
@@ -124,6 +140,41 @@ function archive(): void {
 function unarchive(): void {
     archiveForm.patch(route('dmv-settings.groups.unarchive', { group: props.group.slug }), { preserveScroll: true });
 }
+
+// The section index: one entry per Card, with the fields whose errors it marks. Archive has no
+// field; its guard error marks it. An archived Group has no Archive section.
+interface Section {
+    id: string;
+    key: string;
+    fields: readonly Field[];
+}
+const SECTIONS: readonly Section[] = [
+    { id: 'identity', key: 'identity', fields: ['name', 'parent_id', 'kind'] },
+    { id: 'listing', key: 'listing', fields: ['listing_visibility', 'display_order', 'logo_key'] },
+    { id: 'dates', key: 'dates', fields: ['time_boxed', 'start_date', 'end_date'] },
+    { id: 'capabilities', key: 'capabilities', fields: CAPABILITIES },
+    { id: 'visitor-figures', key: 'visitor_figures', fields: COLLECTIONS },
+    { id: 'hours', key: 'hours', fields: ['hours_multiplier'] },
+    { id: 'archive', key: 'archive', fields: [] },
+];
+const sections = computed(() => (props.group.archived ? SECTIONS.filter((section) => section.id !== 'archive') : SECTIONS));
+const sectionHasError = (section: Section): boolean =>
+    section.id === 'archive' ? archiveError.value !== undefined : section.fields.some((field) => errors.value[field] !== undefined);
+
+// Under a capability: the records behind it while it is on; once switched off in the draft,
+// how many become hidden. Only a capability saved as on carries a count.
+const countLine = (flag: Capability): string | null => {
+    const saved = props.counts[flag];
+    if (!saved) return null;
+    const relation = saved.key.split('.').pop();
+
+    return transChoice(form[flag] ? saved.key : `dmv_settings.hidden.${relation}`, saved.count);
+};
+
+const flagLabel = (flag: Flag): string =>
+    (CAPABILITIES as readonly string[]).includes(flag) ? trans(`dmv_settings.capability.${flag}`) : trans(`dmv_settings.collection.${flag}`);
+
+const flagRowClass = (field: Field): string => (errors.value[field] ? 'border-destructive bg-destructive-bg' : 'border-border');
 </script>
 
 <template>
@@ -139,157 +190,266 @@ function unarchive(): void {
                         {{ trans('group.ended', { date: formatDateOnly(group.endedOn, page.props.locale) }) }}
                     </Badge>
                 </div>
-                <p class="text-muted-foreground mt-1 font-mono text-sm">{{ groupHref }}</p>
+                <p class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+                    <span class="text-muted-foreground font-mono">{{ groupHref }}</span>
+                    <TextLink :href="groupHref">{{ trans('dmv_settings.group.open_page') }}</TextLink>
+                </p>
             </div>
 
             <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" />
 
-            <form class="flex max-w-2xl flex-col gap-6" @submit.prevent="save">
-                <fieldset class="flex flex-col gap-6" :disabled="group.archived">
-                    <fieldset class="flex flex-col gap-4">
-                        <legend class="mb-4 text-sm font-medium">{{ trans('dmv_settings.group.identity') }}</legend>
-                        <div class="grid gap-2">
-                            <Label for="group-name">{{ trans('dmv_settings.field.name') }}</Label>
-                            <Input id="group-name" v-model="form.name" required maxlength="255" />
-                            <InputError :message="form.errors.name" />
-                        </div>
-                        <div class="grid gap-2">
-                            <Label for="group-parent">{{ trans('dmv_settings.field.parent') }}</Label>
-                            <NativeSelect id="group-parent" v-model="form.parent_id" class="w-full sm:w-80" required>
-                                <option v-for="option in parents" :key="option.id" :value="option.id">
-                                    {{
-                                        '— '.repeat(option.depth) +
-                                        (option.inactive ? trans('dmv_settings.inactive_parent', { name: option.name }) : option.name)
-                                    }}
-                                </option>
-                            </NativeSelect>
-                            <InputError :message="form.errors.parent_id" />
-                        </div>
-                        <div class="grid gap-2">
-                            <Label for="group-kind">{{ trans('dmv_settings.field.kind') }}</Label>
-                            <NativeSelect id="group-kind" v-model="form.kind" class="w-full sm:w-80" required>
-                                <option v-for="kind in kinds" :key="kind" :value="kind">{{ trans(`dmv_settings.kind.${kind}`) }}</option>
-                            </NativeSelect>
-                            <p v-if="form.kind === 'container'" class="text-muted-foreground text-sm">
-                                {{ trans('dmv_settings.field.kind_container_note') }}
-                            </p>
-                            <InputError :message="form.errors.kind" />
-                        </div>
-                    </fieldset>
+            <div class="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+                <!-- The section index (lg+): in-page anchors, a dot on each section with an error. -->
+                <nav
+                    :aria-label="trans('dmv_settings.group.sections')"
+                    class="hidden lg:sticky lg:top-[calc(var(--header-offset)+1.5rem)] lg:block lg:transition-[top] lg:duration-200 lg:ease-out lg:motion-reduce:transition-none"
+                >
+                    <ul class="flex flex-col gap-1">
+                        <li v-for="section in sections" :key="section.id">
+                            <a
+                                :href="`#${section.id}`"
+                                class="text-muted-foreground hover:text-rom-ink hover:bg-muted flex items-center gap-2 px-2 py-1.5 text-sm font-medium"
+                            >
+                                {{ trans(`dmv_settings.group.${section.key}`) }}
+                                <span
+                                    v-if="sectionHasError(section)"
+                                    role="img"
+                                    :aria-label="trans('dmv_settings.group.has_problem')"
+                                    class="bg-destructive size-2 shrink-0 rounded-full"
+                                />
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
 
-                    <fieldset class="flex flex-col gap-4">
-                        <legend class="mb-4 text-sm font-medium">{{ trans('dmv_settings.group.listing') }}</legend>
-                        <div class="grid gap-2">
-                            <Label for="group-visibility">{{ trans('dmv_settings.field.visibility') }}</Label>
-                            <NativeSelect id="group-visibility" v-model="form.listing_visibility" class="w-full sm:w-80" required>
-                                <option v-for="visibility in visibilities" :key="visibility" :value="visibility">
-                                    {{ trans(`dmv_settings.visibility.${visibility}`) }}
-                                </option>
-                            </NativeSelect>
-                            <InputError :message="form.errors.listing_visibility" />
+                <form class="flex max-w-3xl min-w-0 flex-col gap-6" @submit.prevent="save">
+                    <!-- Archived (#845): the banner names the state and carries the one action left. -->
+                    <div v-if="group.archived" class="bg-info-bg flex flex-col gap-4 p-4 sm:flex-row sm:items-start" role="status">
+                        <PhArchive class="text-rom-slate size-6 shrink-0" aria-hidden="true" />
+                        <div class="flex flex-1 flex-col gap-1">
+                            <p class="text-rom-ink font-semibold">{{ trans('dmv_settings.archived_banner.title') }}</p>
+                            <p class="text-sm">{{ trans('dmv_settings.archived_banner.body') }}</p>
+                            <InputError :message="archiveError" />
                         </div>
-                        <div class="grid gap-2">
-                            <Label for="group-display-order">{{ trans('dmv_settings.field.display_order') }}</Label>
-                            <Input id="group-display-order" v-model.number="form.display_order" type="number" min="0" class="w-24" required />
-                            <InputError :message="form.errors.display_order" />
-                        </div>
-                        <div class="grid gap-2">
-                            <Label for="group-logo">{{ trans('dmv_settings.field.logo') }}</Label>
-                            <NativeSelect id="group-logo" v-model="form.logo_key" class="w-full sm:w-80">
-                                <option :value="null">{{ trans('dmv_settings.logo.none') }}</option>
-                                <option v-for="logo in logos" :key="logo" :value="logo">{{ trans(`dmv_settings.logo.${logo}`) }}</option>
-                            </NativeSelect>
-                            <InputError :message="form.errors.logo_key" />
-                        </div>
-                    </fieldset>
-
-                    <fieldset class="flex flex-col gap-4">
-                        <legend class="mb-4 text-sm font-medium">{{ trans('dmv_settings.group.dates') }}</legend>
-                        <label class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
-                            <Checkbox :checked="form.time_boxed" @update:checked="(on: boolean) => (form.time_boxed = on)" />
-                            {{ trans('dmv_settings.field.time_boxed') }}
-                        </label>
-                        <!-- Each date is a subgrid of label / input / error, so a French label that
-                             wraps never pushes its input out of line (docs/conventions.md). -->
-                        <div v-if="form.time_boxed" class="grid gap-x-4 gap-y-2 sm:grid-cols-2">
-                            <div class="row-span-3 grid grid-rows-subgrid">
-                                <Label for="group-start-date">{{ trans('dmv_settings.field.start_date') }}</Label>
-                                <Input id="group-start-date" v-model="form.start_date" type="date" required />
-                                <InputError :message="form.errors.start_date" />
-                            </div>
-                            <div class="row-span-3 grid grid-rows-subgrid">
-                                <Label for="group-end-date">{{ trans('dmv_settings.field.end_date') }}</Label>
-                                <Input id="group-end-date" v-model="form.end_date" type="date" required />
-                                <InputError :message="form.errors.end_date" />
-                            </div>
-                        </div>
-                    </fieldset>
-
-                    <fieldset class="flex flex-col gap-2">
-                        <legend class="mb-4 text-sm font-medium">{{ trans('dmv_settings.group.capabilities') }}</legend>
-                        <div v-for="flag in CAPABILITIES" :key="flag" class="flex flex-col gap-1">
-                            <label class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
-                                <Checkbox :checked="form[flag]" @update:checked="(on: boolean) => (form[flag] = on)" />
-                                {{ trans(`dmv_settings.capability.${flag}`) }}
-                                <span v-if="counts[flag]" class="text-muted-foreground">
-                                    {{ transChoice(counts[flag].key, counts[flag].count) }}
-                                </span>
-                            </label>
-                            <InputError :message="form.errors[flag]" />
-                        </div>
-                    </fieldset>
-
-                    <fieldset class="flex flex-col gap-2">
-                        <legend class="mb-4 text-sm font-medium">{{ trans('dmv_settings.group.visitor_figures') }}</legend>
-                        <div v-for="flag in COLLECTIONS" :key="flag" class="flex flex-col gap-1">
-                            <label class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
-                                <Checkbox :checked="form[flag]" @update:checked="(on: boolean) => (form[flag] = on)" />
-                                {{ trans(`dmv_settings.collection.${flag}`) }}
-                            </label>
-                            <InputError :message="form.errors[flag]" />
-                        </div>
-                    </fieldset>
-
-                    <fieldset class="flex flex-col gap-4">
-                        <legend class="mb-4 text-sm font-medium">{{ trans('dmv_settings.group.hours') }}</legend>
-                        <div class="grid gap-2">
-                            <Label for="group-hours-multiplier">{{ trans('dmv_settings.field.hours_multiplier') }}</Label>
-                            <Input
-                                id="group-hours-multiplier"
-                                v-model.number="form.hours_multiplier"
-                                type="number"
-                                step="0.001"
-                                min="0"
-                                class="w-24"
-                                required
-                            />
-                            <InputError :message="form.errors.hours_multiplier" />
-                        </div>
-                    </fieldset>
-
-                    <div class="flex flex-col items-end gap-2">
-                        <InputError :message="groupError" />
-                        <Button type="submit" size="sm" :disabled="form.processing">{{ trans('dmv_settings.save') }}</Button>
+                        <Button type="button" class="shrink-0" :disabled="archiveForm.processing" @click="unarchive">
+                            {{ trans('dmv_settings.archive.unarchive') }}
+                        </Button>
                     </div>
-                </fieldset>
-            </form>
 
-            <p v-if="lastChanged" class="text-muted-foreground max-w-2xl text-sm">
-                {{ trans('dmv_settings.last_changed', { name: lastChanged.name, date: formatDateOnly(lastChanged.date, page.props.locale) }) }}
-            </p>
+                    <fieldset class="flex flex-col gap-6" :disabled="group.archived">
+                        <Card id="identity" class="scroll-mt-[calc(var(--header-offset)+1rem)]">
+                            <CardHeader class="p-4 sm:p-6">
+                                <CardTitle class="text-lg">{{ trans('dmv_settings.group.identity') }}</CardTitle>
+                            </CardHeader>
+                            <CardContent class="flex flex-col gap-4 p-4 pt-0 sm:p-6 sm:pt-0">
+                                <div class="grid gap-2">
+                                    <Label for="group-name">{{ trans('dmv_settings.field.name') }}</Label>
+                                    <Input id="group-name" v-model="form.name" required maxlength="255" />
+                                    <InputError :message="errors.name" />
+                                </div>
+                                <!-- Parent and Kind are a real pair: a subgrid keeps label, control and error
+                                     in line across the two columns however a French label wraps. -->
+                                <div class="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                                    <div class="row-span-3 grid grid-rows-subgrid gap-2">
+                                        <Label for="group-parent">{{ trans('dmv_settings.field.parent') }}</Label>
+                                        <NativeSelect id="group-parent" v-model="form.parent_id" required>
+                                            <option v-for="option in parents" :key="option.id" :value="option.id">
+                                                {{
+                                                    '— '.repeat(option.depth) +
+                                                    (option.inactive ? trans('dmv_settings.inactive_parent', { name: option.name }) : option.name)
+                                                }}
+                                            </option>
+                                        </NativeSelect>
+                                        <InputError :message="errors.parent_id" />
+                                    </div>
+                                    <div class="row-span-3 grid grid-rows-subgrid gap-2">
+                                        <Label for="group-kind">{{ trans('dmv_settings.field.kind') }}</Label>
+                                        <NativeSelect id="group-kind" v-model="form.kind" required>
+                                            <option v-for="kind in kinds" :key="kind" :value="kind">{{ trans(`dmv_settings.kind.${kind}`) }}</option>
+                                        </NativeSelect>
+                                        <div class="flex flex-col gap-1">
+                                            <p v-if="form.kind === 'container'" class="text-muted-foreground text-sm">
+                                                {{ trans('dmv_settings.field.kind_container_note') }}
+                                            </p>
+                                            <InputError :message="errors.kind" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-            <Separator class="max-w-2xl" />
+                        <Card id="listing" class="scroll-mt-[calc(var(--header-offset)+1rem)]">
+                            <CardHeader class="p-4 sm:p-6">
+                                <CardTitle class="text-lg">{{ trans('dmv_settings.group.listing') }}</CardTitle>
+                            </CardHeader>
+                            <CardContent class="flex flex-col gap-4 p-4 pt-0 sm:p-6 sm:pt-0">
+                                <div class="grid gap-2">
+                                    <Label for="group-visibility">{{ trans('dmv_settings.field.visibility') }}</Label>
+                                    <NativeSelect id="group-visibility" v-model="form.listing_visibility" required>
+                                        <option v-for="visibility in visibilities" :key="visibility" :value="visibility">
+                                            {{ trans(`dmv_settings.visibility.${visibility}`) }}
+                                        </option>
+                                    </NativeSelect>
+                                    <InputError :message="errors.listing_visibility" />
+                                </div>
+                                <div class="grid gap-2">
+                                    <Label for="group-display-order">{{ trans('dmv_settings.field.display_order') }}</Label>
+                                    <Input id="group-display-order" v-model.number="form.display_order" type="number" min="0" class="w-24" required />
+                                    <InputError :message="errors.display_order" />
+                                </div>
+                                <div class="grid gap-2">
+                                    <Label for="group-logo">{{ trans('dmv_settings.field.logo') }}</Label>
+                                    <NativeSelect id="group-logo" v-model="form.logo_key">
+                                        <option :value="null">{{ trans('dmv_settings.logo.none') }}</option>
+                                        <option v-for="logo in logos" :key="logo" :value="logo">{{ trans(`dmv_settings.logo.${logo}`) }}</option>
+                                    </NativeSelect>
+                                    <InputError :message="errors.logo_key" />
+                                </div>
+                            </CardContent>
+                        </Card>
 
-            <section class="flex max-w-2xl flex-col items-start gap-2">
-                <h2 class="text-sm font-medium">{{ trans('dmv_settings.group.archive') }}</h2>
-                <Button v-if="group.archived" type="button" variant="outline" size="sm" :disabled="archiveForm.processing" @click="unarchive">
-                    {{ trans('dmv_settings.archive.unarchive') }}
-                </Button>
-                <Button v-else type="button" variant="destructive" size="sm" :disabled="archiveForm.processing" @click="confirmingArchive = true">
-                    {{ trans('dmv_settings.archive.button') }}
-                </Button>
-                <InputError :message="archiveError" />
-            </section>
+                        <Card id="dates" class="scroll-mt-[calc(var(--header-offset)+1rem)]">
+                            <CardHeader class="p-4 sm:p-6">
+                                <CardTitle class="text-lg">{{ trans('dmv_settings.group.dates') }}</CardTitle>
+                            </CardHeader>
+                            <CardContent class="flex flex-col gap-4 p-4 pt-0 sm:p-6 sm:pt-0">
+                                <div :class="['flex flex-col gap-2 border p-3', flagRowClass('time_boxed')]">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <Label for="group-time-boxed">{{ trans('dmv_settings.field.time_boxed') }}</Label>
+                                        <Switch
+                                            id="group-time-boxed"
+                                            :checked="form.time_boxed"
+                                            @update:checked="(on: boolean) => (form.time_boxed = on)"
+                                        />
+                                    </div>
+                                    <p v-if="errors.time_boxed" role="alert" class="text-destructive text-sm">{{ errors.time_boxed }}</p>
+                                </div>
+                                <!-- Each date is a subgrid of label / input / error, so a French label that
+                                     wraps never pushes its input out of line (docs/conventions.md). -->
+                                <div v-if="form.time_boxed" class="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                                    <div class="row-span-3 grid grid-rows-subgrid gap-2">
+                                        <Label for="group-start-date">{{ trans('dmv_settings.field.start_date') }}</Label>
+                                        <Input id="group-start-date" v-model="form.start_date" type="date" required />
+                                        <InputError :message="errors.start_date" />
+                                    </div>
+                                    <div class="row-span-3 grid grid-rows-subgrid gap-2">
+                                        <Label for="group-end-date">{{ trans('dmv_settings.field.end_date') }}</Label>
+                                        <Input id="group-end-date" v-model="form.end_date" type="date" required />
+                                        <InputError :message="errors.end_date" />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card id="capabilities" class="scroll-mt-[calc(var(--header-offset)+1rem)]">
+                            <CardHeader class="p-4 sm:p-6">
+                                <CardTitle class="text-lg">{{ trans('dmv_settings.group.capabilities') }}</CardTitle>
+                            </CardHeader>
+                            <CardContent class="grid gap-3 p-4 pt-0 sm:p-6 sm:pt-0 md:grid-cols-2">
+                                <!-- One row per flag: label, the count line, the Switch; a guard error (#844)
+                                     tints the row and lands under it. -->
+                                <div v-for="flag in CAPABILITIES" :key="flag" :class="['flex flex-col gap-2 border p-3', flagRowClass(flag)]">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <div class="flex min-w-0 flex-col gap-1">
+                                            <Label :for="`group-${flag}`">{{ flagLabel(flag) }}</Label>
+                                            <p v-if="countLine(flag)" class="text-muted-foreground text-sm">{{ countLine(flag) }}</p>
+                                        </div>
+                                        <Switch :id="`group-${flag}`" :checked="form[flag]" @update:checked="(on: boolean) => (form[flag] = on)" />
+                                    </div>
+                                    <p v-if="errors[flag]" role="alert" class="text-destructive text-sm">{{ errors[flag] }}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card id="visitor-figures" class="scroll-mt-[calc(var(--header-offset)+1rem)]">
+                            <CardHeader class="p-4 sm:p-6">
+                                <CardTitle class="text-lg">{{ trans('dmv_settings.group.visitor_figures') }}</CardTitle>
+                            </CardHeader>
+                            <CardContent class="grid gap-3 p-4 pt-0 sm:p-6 sm:pt-0 md:grid-cols-2">
+                                <div v-for="flag in COLLECTIONS" :key="flag" :class="['flex flex-col gap-2 border p-3', flagRowClass(flag)]">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <Label :for="`group-${flag}`">{{ flagLabel(flag) }}</Label>
+                                        <Switch :id="`group-${flag}`" :checked="form[flag]" @update:checked="(on: boolean) => (form[flag] = on)" />
+                                    </div>
+                                    <p v-if="errors[flag]" role="alert" class="text-destructive text-sm">{{ errors[flag] }}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card id="hours" class="scroll-mt-[calc(var(--header-offset)+1rem)]">
+                            <CardHeader class="p-4 sm:p-6">
+                                <CardTitle class="text-lg">{{ trans('dmv_settings.group.hours') }}</CardTitle>
+                            </CardHeader>
+                            <CardContent class="flex flex-col gap-4 p-4 pt-0 sm:p-6 sm:pt-0">
+                                <div class="grid gap-2">
+                                    <Label for="group-hours-multiplier">{{ trans('dmv_settings.field.hours_multiplier') }}</Label>
+                                    <Input
+                                        id="group-hours-multiplier"
+                                        v-model.number="form.hours_multiplier"
+                                        type="number"
+                                        step="0.001"
+                                        min="0"
+                                        class="w-24"
+                                        required
+                                    />
+                                    <InputError :message="errors.hours_multiplier" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </fieldset>
+
+                    <!-- The Archive section (#845) sits outside the disabled fieldset; an archived
+                         Group has the banner's Unarchive instead. -->
+                    <Card v-if="!group.archived" id="archive" class="scroll-mt-[calc(var(--header-offset)+1rem)]">
+                        <CardHeader class="p-4 sm:p-6">
+                            <CardTitle class="text-lg">{{ trans('dmv_settings.group.archive') }}</CardTitle>
+                        </CardHeader>
+                        <CardContent class="flex flex-col items-start gap-3 p-4 pt-0 sm:p-6 sm:pt-0">
+                            <p class="text-sm">{{ trans('dmv_settings.group.archive_note') }}</p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="text-destructive hover:text-destructive"
+                                :disabled="archiveForm.processing"
+                                @click="confirmingArchive = true"
+                            >
+                                {{ trans('dmv_settings.archive.button') }}
+                            </Button>
+                            <InputError :message="archiveError" />
+                        </CardContent>
+                    </Card>
+
+                    <!-- The save bar: sticks to the bottom of the content while the form is in view. -->
+                    <div
+                        v-if="!group.archived"
+                        class="bg-background sticky bottom-0 z-10 flex flex-col gap-3 border-t py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                        <p v-if="lastChanged" class="text-muted-foreground text-sm">
+                            {{
+                                trans('dmv_settings.last_changed', {
+                                    name: lastChanged.name,
+                                    date: formatDateOnly(lastChanged.date, page.props.locale),
+                                })
+                            }}
+                        </p>
+                        <span v-else />
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                            <div v-if="errorCount > 0" class="flex flex-col gap-1" role="status">
+                                <p class="text-destructive text-sm font-medium">
+                                    {{ transChoice('dmv_settings.group.problems', errorCount, { count: String(errorCount) }) }}
+                                </p>
+                                <InputError :message="groupError" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 sm:flex">
+                                <Button type="button" variant="outline" :disabled="form.processing" @click="discard">
+                                    {{ trans('dmv_settings.group.discard') }}
+                                </Button>
+                                <Button type="submit" :disabled="form.processing">{{ trans('dmv_settings.group.save_changes') }}</Button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
 
             <AlertDialog v-model:open="confirmingArchive">
                 <AlertDialogContent>

@@ -5,10 +5,10 @@ namespace App\Support\Groups;
 use App\Models\Group;
 
 /**
- * The whole org tree in the rail's order, loaded in one query (ADR-0036 §3): each parentless
- * Group, then its children depth-first, siblings by `display_order` then name. Archived and
- * expired Groups stay in place. DMV Settings reads its tree, its parent choices and its
- * stewardship choices from here.
+ * The whole org tree in the rail's order, loaded in one query (ADR-0036 §3) plus one for every
+ * Group's stewardships (#848): each parentless Group, then its children depth-first, siblings by
+ * `display_order` then name. Archived and expired Groups stay in place. DMV Settings reads its
+ * tree, its parent choices and its stewardship choices from here.
  */
 final class OrgTree
 {
@@ -19,7 +19,7 @@ final class OrgTree
 
     public static function load(): self
     {
-        $byParent = Group::query()->get()->groupBy(fn (Group $group) => $group->parent_id ?? 0);
+        $byParent = Group::query()->with('stewardships')->get()->groupBy(fn (Group $group) => $group->parent_id ?? 0);
 
         $nodes = [];
         $walk = function (int $parentId, int $depth) use (&$walk, &$nodes, $byParent): void {

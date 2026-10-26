@@ -14,8 +14,8 @@ Une intendance donne son autorité à chaque membre des groupes qui la détienne
 3. Trouvez la carte de l’intendance à modifier.
 4. Pour l’administration des membres, choisissez le nouveau groupe dans la liste.
 5. Pour l’expéditeur à l’échelle du DMV, cochez chaque groupe qui doit la détenir. Décochez chaque groupe qui ne doit pas la détenir.
-6. Lisez les lignes sous votre choix. **Gagnent** nomme les membres qui obtiennent l’autorité. **Perdent** nomme les membres qui la perdent.
-7. Sélectionnez **Enregistrer** sur cette carte.
+6. Lisez le panneau sous votre choix. **Gagnent l’autorité** liste les membres qui l’obtiennent. **Perdent l’autorité** liste les membres qui la perdent.
+7. Sélectionnez **Enregistrer** sur cette carte. Enregistrer reste inactif tant que vous ne changez rien. **Annuler le changement** remet le choix enregistré.
 
 Le changement s’applique à la prochaine page de chaque membre.
 

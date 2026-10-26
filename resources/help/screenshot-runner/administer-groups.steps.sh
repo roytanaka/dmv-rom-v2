@@ -13,6 +13,6 @@ start /dashboard
 nav /officer/settings 01                                  # the Groups tree: kinds, statuses, No settings here rows
 act openCreateGroupDialog 02                              # the Create a Group dialog: name, slug, parent, kind
 nav /officer/settings/groups/oral-history-project 03      # one Group's structure form, top: Identity and Listing
-act showCapabilities 04                                   # the Capabilities fieldset with record counts
-act showArchiveSection 05                                 # the Archive section under Save and the last-changed line
+act showCapabilities 04                                   # the Capabilities card: switch rows with record counts
+act showArchiveSection 05                                 # the Archive card and the save bar with the last-changed line
 act openArchiveConfirm 06                                 # the Archive confirmation dialog
