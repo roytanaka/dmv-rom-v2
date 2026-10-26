@@ -31,7 +31,7 @@ return [
             'has_documents' => 'D',
             'has_scheduling' => 'S',
             'has_vetting' => 'V',
-            'has_announcements' => 'A',
+            'has_announcements' => 'N',
             'has_bookings' => 'B',
         ],
         'capability_on' => ':capability : activée',
@@ -108,14 +108,30 @@ return [
         'has_documents' => 'Documents',
         'has_scheduling' => 'Horaire',
         'has_vetting' => 'Vérification',
-        'has_announcements' => 'Annonces',
+        'has_announcements' => 'Nouvelles',
         'has_bookings' => 'Réservations',
+    ],
+    // Une ligne sous chaque interrupteur de fonction (#854).
+    'capability_help' => [
+        'has_meetings' => 'Les membres voient les réunions, ordres du jour et procès-verbaux du groupe.',
+        'has_documents' => 'Le groupe tient une bibliothèque de documents.',
+        'has_scheduling' => 'Le groupe publie des quarts et les membres s’y inscrivent.',
+        'has_vetting' => 'Le groupe note les visites que chaque membre peut donner.',
+        'has_announcements' => 'Le groupe publie dans le fil de nouvelles du DMV.',
+        'has_bookings' => 'Le groupe accepte les réservations de visites de clients externes.',
     ],
     'collection' => [
         'collects_visitor_count' => 'Nombre de visiteur·euses',
         'collects_extra_interactions' => 'Interactions supplémentaires',
         'collects_visitor_provenance' => 'Provenance des visiteur·euses',
         'visitor_figures_await_booking' => 'Les chiffres attendent la réservation',
+    ],
+    // Une ligne sous chaque interrupteur de chiffres de fréquentation (#854).
+    'collection_help' => [
+        'collects_visitor_count' => 'Les membres indiquent le nombre de visiteur·euses servi·es à chaque quart.',
+        'collects_extra_interactions' => 'Les membres indiquent aussi les visiteur·euses servi·es hors de leur visite.',
+        'collects_visitor_provenance' => 'Les membres répartissent les visiteur·euses de chaque quart selon leur provenance.',
+        'visitor_figures_await_booking' => 'Le rapport de fréquentation indique que les chiffres du groupe sont incomplets tant que les réservations ne sont pas comptées.',
     ],
     'visibility' => [
         'public' => 'Public',

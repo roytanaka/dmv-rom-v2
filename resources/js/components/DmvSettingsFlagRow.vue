@@ -1,12 +1,13 @@
 <script setup lang="ts">
-// A Group flag as a full-width row (#848): the label, an optional line under it (the records
-// behind a capability, #844), and a Switch on the right. A guard error tints the row and lands
+// A Group flag as a full-width row (#848): the label, an optional description of what the flag
+// does (#854), an optional line under it (the records behind a capability, #844), and a Switch on
+// the right. The Switch is described by the description. A guard error tints the row and lands
 // under it, announced as an alert. The row's padding gives the Switch its touch height.
 import InputError from '@/components/InputError.vue';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
-defineProps<{ id: string; label: string; note?: string | null; error?: string }>();
+defineProps<{ id: string; label: string; description?: string; note?: string | null; error?: string }>();
 const checked = defineModel<boolean>({ required: true });
 </script>
 
@@ -15,9 +16,15 @@ const checked = defineModel<boolean>({ required: true });
         <div class="flex items-center justify-between gap-4">
             <div class="flex min-w-0 flex-col gap-1">
                 <Label :for="id">{{ label }}</Label>
+                <p v-if="description" :id="`${id}-description`" class="text-muted-foreground text-sm">{{ description }}</p>
                 <p v-if="note" class="text-muted-foreground text-sm">{{ note }}</p>
             </div>
-            <Switch :id="id" :checked="checked" @update:checked="(on: boolean) => (checked = on)" />
+            <Switch
+                :id="id"
+                :checked="checked"
+                :aria-describedby="description ? `${id}-description` : undefined"
+                @update:checked="(on: boolean) => (checked = on)"
+            />
         </div>
         <InputError :message="error" role="alert" />
     </div>
