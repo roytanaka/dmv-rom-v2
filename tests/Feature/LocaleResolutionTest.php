@@ -49,7 +49,6 @@ class LocaleResolutionTest extends TestCase
             'officer communications' => ['en' => '/officer/communications', 'fr' => '/fr/officier/communications', 'component' => 'ComingSoon'],
             'officer reports' => ['en' => '/officer/reports', 'fr' => '/fr/officier/rapports', 'component' => 'ComingSoon'],
             'officer flash-messages' => ['en' => '/officer/flash-messages', 'fr' => '/fr/officier/messages-eclair', 'component' => 'ComingSoon'],
-            'officer settings' => ['en' => '/officer/settings', 'fr' => '/fr/officier/parametres', 'component' => 'ComingSoon'],
 
             // Dynamic group route — the {group} slug is content, resolved to a real
             // Group (#188) and rendered as-authored in both locales (ADR-0008); only

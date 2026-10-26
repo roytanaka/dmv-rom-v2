@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\AccessTier;
 use App\Enums\Category;
 use App\Enums\DocumentKind;
 use App\Enums\DocumentVisibility;
@@ -14,7 +13,6 @@ use App\Enums\MeetingLinkKind;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Enums\ScheduleState;
-use App\Enums\Scope;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
 use App\Models\Booking;
@@ -79,8 +77,8 @@ use Throwable;
  *   container sections (Governance & Operations, Programs, Friends), modelled
  *   as {@see Kind::Container} (PRD #289). Special Projects is a real
  *   coordinating Group, modelled as {@see Kind::StandingCommittee}.
- * - {@see Scope} and the capability flags are derived from each node's Kind to
- *   match the conventions encoded in {@see GroupFactory}.
+ * - The capability flags are derived from each node's Kind to match the
+ *   conventions encoded in {@see GroupFactory}.
  * - Archived exhibition cohorts carry {@see LifecycleState::Archived}; the
  *   active-but-stale event pool (OSIRIS REX VOLUNTEERS, never closed out) stays
  *   lifecycle-Active but its time-boxed window has lapsed, so the lifecycle
@@ -442,13 +440,14 @@ class DemoSeeder extends Seeder
      * The Groups whose only route into Summary Visitor Interactions is hand-typed
      * `extra_interactions` on the Hours tab (ADR-0023 §6): the ones with no per-shift visitor
      * data at all. ROM Travel runs no scheduling, Hands-on Tours and ROMBus have no visitor
-     * table, two Friends committees never staffed a desk, and the DMV root carries only its own
-     * roll-up total. Every one of them needs a row here or it drops out of the report entirely.
+     * table, and two Friends committees never staffed a desk. Every one of them needs a row
+     * here or it drops out of the report entirely. The DMV root is absent: it stores no
+     * memberships (ADR-0036 §9), so {@see hoursRecorders} finds nobody to record on it and its
+     * report figures are the subtree roll-up alone.
      *
      * @var list<string>
      */
     private const EXTRA_INTERACTION_GROUPS = [
-        self::ROOT,
         'romtravel',
         'dmv-hands-on-tours',
         'rombus',
@@ -641,17 +640,17 @@ class DemoSeeder extends Seeder
      * A populated demo roster on top of the curated handful above: ~90 generated
      * volunteers spread across every Group by the affinity model in {@see distribute}
      * so each Group page shows a believable roster whose overlaps a DMV member would
-     * recognise, plus the org-wide rule that the root DMV Group's roster is *everyone*
-     * (the top-level Group every volunteer belongs to). Like the rest of this
-     * seeder it is faker-free (a deterministic curated name pool, not fake()) so it
-     * runs under the --no-dev staging build, and idempotent (members key on email,
-     * memberships on the (Group, Member) pair), so re-seeding heals not duplicates.
+     * recognise. The root DMV Group gets no rows: its membership is derived from each
+     * Member's Category and never stored (ADR-0020 §B, ADR-0036 §9) — the Directory is
+     * its roster. Like the rest of this seeder it is faker-free (a deterministic curated
+     * name pool, not fake()) so it runs under the --no-dev staging build, and idempotent
+     * (members key on email, memberships on the (Group, Member) pair), so re-seeding
+     * heals not duplicates.
      */
     private function bulkRoster(): void
     {
         $pool = $this->memberPool();
         $this->distribute($pool);
-        $this->enrollEveryoneInRoot();
     }
 
     /**
@@ -696,8 +695,9 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * The slugs that get no roster and no leadership: the org root (its own bespoke
-     * handling — root enrolment is everyone, surfaced separately) and the
+     * The slugs that get no roster and no leadership: the org root (its membership is
+     * derived from Category and never stored — ADR-0036 §9; its roster is the Directory
+     * and its leadership the super-tier executive) and the
      * {@see Kind::Container} section peers, which are pure scaffolding nobody belongs
      * to — clicking one shows the sub-Groups it organises, not people. Derived from
      * `Kind::Container` (PRD #289), not a hand-listed slug set, so a new container is
@@ -1118,26 +1118,6 @@ class DemoSeeder extends Seeder
         }
 
         return array_merge($same, $sec, $rest);
-    }
-
-    /**
-     * Every Member belongs to the root DMV Group — its roster is the whole DMV.
-     * Heals existing memberships (e.g. the curated Chair) rather than duplicating.
-     */
-    private function enrollEveryoneInRoot(): void
-    {
-        $root = Group::where('slug', self::ROOT)->firstOrFail();
-
-        Member::query()->each(function (Member $member) use ($root) {
-            // Departed Members (Resigned / Withdrawn / Deceased) are exempt: the
-            // departed Persona must not pick up a Full root membership, so it
-            // exercises the My-Groups standing-exclusion axis, not just Directory.
-            if ($member->category->accessTier() === AccessTier::None) {
-                return;
-            }
-
-            $this->membership($root, $member, MembershipStatus::Full);
-        });
     }
 
     private function categoryFor(int $i): Category
@@ -2648,8 +2628,9 @@ class DemoSeeder extends Seeder
      * - **Meeting hours** land on Groups that hold meetings, as rows carrying a
      *   non-zero `meeting_id`, so the Member Meeting Hours summary and the detailed
      *   report's meetings column are not blank (stories 46, 51).
-     * - Rows land on the **DMV root itself** and on Groups three levels down, so the
-     *   own-versus-subtree rollup shows two different numbers (stories 41, 42, 52).
+     * - Rows land on Groups three levels down but never on the DMV root itself — it
+     *   stores no memberships (ADR-0036 §9) — so the own-versus-subtree rollup shows
+     *   two different numbers, own being zero at the root (stories 41, 42, 52).
      * - Every fifth Member records nothing anywhere, so Members with Zero Hours,
      *   Zero Shift Hours and Zero Extra Hours all have names to list (stories 54, 55).
      *
@@ -2692,7 +2673,8 @@ class DemoSeeder extends Seeder
         }
 
         // Container sections are page-less (PRD #289) and carry no roster, so they carry
-        // no hours; every other Group in the tree does, the root included.
+        // no hours; every other Group in the tree does. The root is queried but stores no
+        // memberships (ADR-0036 §9), so it yields no recorders and no rows of its own.
         $groups = Group::where('kind', '!=', Kind::Container)->orderBy('id')->get();
 
         $rosters = $this->hoursRecorders($groups);
@@ -3630,7 +3612,7 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Build the full attribute set for a node. Scope, capability flags and
+     * Build the full attribute set for a node. Capability flags and
      * time-boxing are derived from the node's Kind (matching GroupFactory),
      * with lifecycle/window overrides for archived and stale nodes.
      *
@@ -3648,7 +3630,6 @@ class DemoSeeder extends Seeder
             // the page shows its empty state rather than invented copy.
             'description' => $node['description'] ?? $this->aboutUs[$slug] ?? null,
             'kind' => $kind,
-            'scope' => $this->scopeFor($kind),
             // Listing visibility (PRD #268, ADR-0019). The recruiting/scaffold nodes
             // (org root, section containers, programs, projects, cohorts, standing
             // committees) are org-listed Public by Kind; only internal working
@@ -3696,15 +3677,6 @@ class DemoSeeder extends Seeder
         }
 
         return $attributes;
-    }
-
-    private function scopeFor(Kind $kind): Scope
-    {
-        return match ($kind) {
-            Kind::StandingCommittee, Kind::Container => Scope::Organization,
-            Kind::Program, Kind::Cohort => Scope::Program,
-            Kind::WorkingGroup, Kind::Project => Scope::Subteam,
-        };
     }
 
     /**

@@ -430,3 +430,46 @@ it('blocks lowering a Shift’s capacity below its Sign-up count but allows rais
         ->assertRedirect();
     expect($shift->fresh()->capacity)->toBe(6);
 });
+
+// --- Inactive Groups are read-only (#839, ADR-0036 §2) ------------------------
+
+it('refuses a take and a drop on an archived Group while the Schedule still opens', function () {
+    $group = Group::factory()->program()->publicListing()->archived()->create();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = shiftOn($schedule, ['capacity' => 2]);
+    $member = signUpMemberOf($group);
+    $holder = signUpMemberOf($group);
+    $signUp = SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => $holder->id]);
+
+    $this->actingAs($member)
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertOk();
+
+    $this->actingAs($member)
+        ->post(route('sign-ups.store', ['shift' => $shift->id]))
+        ->assertForbidden();
+
+    $this->actingAs($holder)
+        ->delete(route('sign-ups.destroy', ['signUp' => $signUp->id]))
+        ->assertForbidden();
+
+    expect($shift->signUps()->count())->toBe(1);
+});
+
+it('refuses the super-tier a take and a Scheduler a Shift edit on an expired time-boxed Group', function () {
+    $group = Group::factory()->program()->publicListing()->timeBoxed()->create(['end_date' => now()->subDay()->toDateString()]);
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $shift = shiftOn($schedule, ['capacity' => 3]);
+    $scheduler = signUpMemberOf($group, role: Role::Scheduler);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->post(route('sign-ups.store', ['shift' => $shift->id]))
+        ->assertForbidden();
+
+    $this->actingAs($scheduler)
+        ->patch(route('shifts.update', ['shift' => $shift->id]), ['capacity' => 6])
+        ->assertForbidden();
+
+    expect($shift->signUps()->count())->toBe(0)
+        ->and($shift->fresh()->capacity)->toBe(3);
+});

@@ -62,8 +62,9 @@ class AudienceResolver
     /**
      * The empty-state reason for the Email control in a Group-scoped context (#513) — why
      * the actor can pick no Audience here, or null when at least one is pickable. The root
-     * is the exception: every Member is enrolled in it, so its Audiences are org-wide by
-     * definition and the only way in is the org-wide-sender gate; every other Group's empty
+     * is the exception: its roster is derived from Category — every listed Member, never a
+     * stored row (ADR-0036 §9) — so its Audiences are org-wide by definition and the only
+     * way in is the org-wide-sender gate; every other Group's empty
      * state means the actor has not joined it. Only meaningful for a Group-scoped context
      * (Group, Schedule, Shift) — the Directory never empties and a Member profile always
      * offers the one Direct-message Audience — so a context with no owning Group gets null.
@@ -217,10 +218,10 @@ class AudienceResolver
 
     /**
      * The picker rule inside a Group-scoped context (§5). The root is the exception:
-     * every Member is enrolled in it, so its roster is the whole department and its
-     * Audiences are org-wide by definition — every one needs an org-wide sender, never
-     * the bare "any member of the Group" rule (#506). Super-tier is already handled by
-     * the caller.
+     * its roster is derived from Category and never stored (ADR-0036 §9) — every listed
+     * Member belongs — so its Audiences are org-wide by definition and every one needs an
+     * org-wide sender, never the bare "any member of the Group" rule (#506). Super-tier
+     * is already handled by the caller.
      */
     private function canPickGroupScoped(Member $actor, Group $group, AudienceKey $key): bool
     {

@@ -3,8 +3,8 @@
 namespace App\Enums;
 
 /**
- * A Group's Kind — what it is *for* (ADR-0010). One of three orthogonal axes
- * (Kind / Scope / Lifecycle), stored explicitly and never derived from depth or
+ * A Group's Kind — what it is *for* (ADR-0010). One of the orthogonal axes
+ * (Kind / Lifecycle), stored explicitly and never derived from depth or
  * from which capability flags are on: a Program with scheduling temporarily off
  * is still a Program.
  *

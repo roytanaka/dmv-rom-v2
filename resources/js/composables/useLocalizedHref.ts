@@ -14,7 +14,8 @@ import { usePage } from '@inertiajs/vue3';
  * Limitation: this maps segments positionally, so a content slug that happens to
  * equal a structural keyword (e.g. a group literally named "reports") would be
  * translated. The robust fix is backend route-name generation; this covers every
- * route that exists today. Absolute/external hrefs are returned untouched.
+ * route that exists today. Absolute/external hrefs, and hrefs already under the active
+ * locale (server-built with route()), are returned untouched.
  */
 export function useLocalizedHref() {
     const page = usePage<SharedData>();
@@ -27,6 +28,11 @@ export function useLocalizedHref() {
         const dict = page.props.routeSegments[page.props.locale];
         if (!dict) {
             return href; // default locale (en) — canonical at the root
+        }
+
+        const prefix = '/' + page.props.locale;
+        if (href === prefix || href.startsWith(prefix + '/')) {
+            return href; // already localized (a server-built href) — leave alone
         }
 
         const segments = href
