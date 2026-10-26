@@ -9,13 +9,38 @@ return [
         'groups' => 'Groups',
         'stewardships' => 'Stewardships',
     ],
+    // The Groups tree (#841, restyled in #848): its toolbar, columns, row notes and facts.
     'tree' => [
         'column' => [
-            'name' => 'Name',
+            'name' => 'Group',
             'kind' => 'Kind',
+            'capabilities' => 'Capabilities',
             'status' => 'Status',
         ],
-        'no_settings' => 'No settings here',
+        'search' => 'Find a Group',
+        'show_archived' => 'Show archived Groups',
+        'expand' => 'Expand :name',
+        'collapse' => 'Collapse :name',
+        // The root's settings are not here; a Container has no page of its own.
+        'root_note' => 'Set by officers',
+        'container_note' => 'No page',
+        // One letter per capability slot; the legend under the table spells them out.
+        'letter' => [
+            'has_meetings' => 'M',
+            'has_documents' => 'D',
+            'has_scheduling' => 'S',
+            'has_vetting' => 'V',
+            'has_announcements' => 'A',
+            'has_bookings' => 'B',
+        ],
+        'capability_on' => ':capability: on',
+        'capability_off' => ':capability: off',
+        // Short Stewardship names for the Status column.
+        'stewardship' => [
+            'member_admin' => 'Member admin',
+            'org_mail' => 'Org-wide sender',
+        ],
+        'hours' => 'Hours ×:multiplier',
         'archived' => 'Archived',
         'create' => 'Create a Group',
     ],
@@ -39,7 +64,7 @@ return [
     'choose_kind' => 'Choose a kind',
     'field' => [
         'name' => 'Name',
-        'slug' => 'Slug',
+        'slug' => 'Address',
         'parent' => 'Parent',
         'kind' => 'Kind',
         'kind_container_note' => 'A Container has no page. Its address answers 404.',
@@ -60,6 +85,19 @@ return [
         'visitor_figures' => 'Visitor figures',
         'hours' => 'Hours',
         'archive' => 'Archive',
+        // The restyled form (#848): header link, section index, Archive note and save bar.
+        'open_page' => 'Open the Group page',
+        'sections' => 'Sections',
+        'has_problem' => 'Has a problem',
+        'archive_note' => 'An archived Group leaves the rail. Members can still read it. No one can change it until you unarchive it.',
+        'save_changes' => 'Save changes',
+        'discard' => 'Discard',
+        'problems' => '{1} :count problem to fix before you save|[2,*] :count problems to fix before you save',
+    ],
+    // The banner on an archived Group's form (#848).
+    'archived_banner' => [
+        'title' => 'This Group is archived.',
+        'body' => 'Members can still read its page, documents, meetings and hours. No one can change it. Unarchive it to edit these settings.',
     ],
     'capability' => [
         'has_meetings' => 'Meetings',
@@ -109,6 +147,15 @@ return [
         'news' => '{1} :count post|[2,*] :count posts',
         'bookings' => '{1} :count booking|[2,*] :count bookings',
     ],
+    // The same records once the capability is switched off in the draft (#848): hidden, not deleted.
+    'hidden' => [
+        'meetings' => '{1} :count meeting becomes hidden|[2,*] :count meetings become hidden',
+        'documents' => '{1} :count document becomes hidden|[2,*] :count documents become hidden',
+        'shifts' => '{1} :count shift becomes hidden|[2,*] :count shifts become hidden',
+        'tours' => '{1} :count tour becomes hidden|[2,*] :count tours become hidden',
+        'news' => '{1} :count post becomes hidden|[2,*] :count posts become hidden',
+        'bookings' => '{1} :count booking becomes hidden|[2,*] :count bookings become hidden',
+    ],
     'save' => 'Save',
     // The last glue of a list of names: "Scheduler and Booker".
     'and' => 'and',
@@ -143,8 +190,11 @@ return [
         'held_by_none' => 'Held by no Group',
         'group' => 'Group',
         'groups' => 'Groups',
-        'gain' => 'Gain (:count): :names',
-        'lose' => 'Lose (:count): :names',
+        // The preview panel (#848): who gains and loses under the draft, or no change yet.
+        'gain' => 'Gain the authority (:count)',
+        'lose' => 'Lose the authority (:count)',
+        'no_change' => 'No change yet. Tick or clear a Group to see who gains or loses the authority.',
+        'undo' => 'Undo change',
     ],
     // Archive and unarchive a Group (#845, ADR-0036 §2).
     'archive' => [

@@ -870,7 +870,7 @@
         if (!card) return false;
         scrollUnderStickyStrip(card, 16);
         const box = card.querySelector('[role="checkbox"][data-state="unchecked"]');
-        return clickAndWaitFor(box, () => /Gain \(\d+\)/.test(card.textContent));
+        return clickAndWaitFor(box, () => /Gain the authority \(\d+\)/.test(card.textContent));
     }
 
     // ── DMV Settings › Groups (#845, ADR-0036 §2-§5) ────────────────────────
@@ -880,29 +880,21 @@
         return Array.from(document.querySelectorAll('button')).find((element) => pattern.test(element.textContent.trim()));
     }
 
-    // The fieldset whose legend matches `pattern`, scrolled under the sticky strip.
-    function showFieldset(pattern) {
-        const legend = Array.from(document.querySelectorAll('legend')).find((element) => pattern.test(element.textContent.trim()));
-        if (!legend) return false;
-        scrollUnderStickyStrip(legend.closest('fieldset'), 16);
-        return settle();
-    }
-
     // The tree's Create a Group dialog, opened through the button's DOM click() (Radix).
     function openCreateGroupDialog() {
         return clickAndSettle(buttonMatching(/^create a group$/i));
     }
 
-    // The structure form's Capabilities fieldset, with its record counts.
+    // The structure form's Capabilities card, with its record counts.
     function showCapabilities() {
-        return showFieldset(/^capabilities$/i);
+        return showCardTitled(/^capabilities/i);
     }
 
-    // The Archive section under the form.
+    // The Archive card at the end of the form, or the archived banner's Unarchive.
     function showArchiveSection() {
         const button = buttonMatching(/^(archive this group|unarchive)$/i);
         if (!button) return false;
-        scrollUnderStickyStrip(button.closest('section'), 16);
+        scrollUnderStickyStrip(button.closest('[data-slot="card"]') ?? button.closest('[role="status"]') ?? button, 16);
         return settle();
     }
 

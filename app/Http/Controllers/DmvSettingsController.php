@@ -252,9 +252,11 @@ class DmvSettingsController extends Controller
 
     /**
      * One tree row. Archived and expired Groups stay under their parent, marked. The root and
-     * Containers carry no structure form here (ADR-0036 §3), so they get no href.
+     * Containers carry no structure form here (ADR-0036 §3), so they get no href. The row also
+     * carries the facts the tree shows at a glance (#848): the six capability flags, the
+     * stewardships the Group holds (eager-loaded by OrgTree) and its hours multiplier.
      *
-     * @return array{id: int, slug: string, name: string, depth: int, kind: string, archived: bool, endedOn: string|null, editable: bool, href: string|null}
+     * @return array{id: int, slug: string, name: string, depth: int, kind: string, archived: bool, endedOn: string|null, editable: bool, href: string|null, capabilities: array<string, bool>, stewardships: list<string>, hoursMultiplier: float}
      */
     private function treeRow(OrgTreeNode $node): array
     {
@@ -271,6 +273,9 @@ class DmvSettingsController extends Controller
             'endedOn' => $group->endedOn()?->toDateString(),
             'editable' => $editable,
             'href' => $editable ? route('officer.settings.group', ['group' => $group->slug], false) : null,
+            'capabilities' => collect(Group::CAPABILITY_FLAGS)->mapWithKeys(fn (string $flag) => [$flag => (bool) $group->{$flag}])->all(),
+            'stewardships' => $group->stewardships->map(fn (GroupStewardship $row) => $row->function->value)->sort()->values()->all(),
+            'hoursMultiplier' => (float) $group->hours_multiplier,
         ];
     }
 
