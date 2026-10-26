@@ -15,16 +15,19 @@ The root row reads **Set by officers** and Container rows read **No page**. They
 
 1. Select **Create a Group**.
 2. Enter a name and an address. The address is the end of the Group's web address, and it never changes.
-3. Choose a parent and a kind.
-4. Select **Create**.
+3. Choose the section, then the parent. The parent list shows only that section and the Groups under it.
+4. Choose a kind.
+5. Select **Create**.
 
 The new Group's settings page opens. Everything else starts switched off, so set it up next.
 
 ## Change a Group's setup
 
 1. Select the Group's name in the tree.
-2. Change the fields you need: name, parent, kind, listing, logo, dates, capabilities, visitor figures and hours multiplier.
+2. Change the fields you need: name, section and parent, kind, listing, logo, dates, capabilities, visitor figures and hours multiplier.
 3. Select **Save changes** in the bar at the bottom.
+
+To move a Group, choose the section first, then the parent. A new section sets the parent to the section itself.
 
 The Left Side Bar picks up the change on the next page. The bar shows who last saved the page, and when. Select **Discard** to put the saved values back. If a field has a problem, the bar counts the problems and the section list on the left marks the section.
 

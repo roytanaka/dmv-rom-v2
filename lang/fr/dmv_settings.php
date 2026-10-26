@@ -59,6 +59,7 @@ return [
         'submit' => 'Créer',
         'cancel' => 'Annuler',
     ],
+    'choose_section' => 'Choisir une section',
     'choose_parent' => 'Choisir un parent',
     // Le parent actuel du formulaire de structure lorsqu’il est archivé ou terminé (gardé, non proposé).
     'inactive_parent' => ':name (inactif)',
@@ -66,6 +67,8 @@ return [
     'field' => [
         'name' => 'Nom',
         'slug' => 'Adresse',
+        // L’enfant de la racine dont le sous-arbre fournit le parent (#850).
+        'section' => 'Section',
         'parent' => 'Parent',
         'kind' => 'Type',
         'kind_container_note' => 'Un conteneur n’a pas de page. Son adresse répond 404.',
@@ -168,6 +171,7 @@ return [
         'member_admin_required' => 'Choisissez un groupe. L’administration des membres a toujours un détenteur.',
         'inactive_group' => 'Choisissez un groupe actif.',
         'parent_cycle' => 'Un groupe ne peut pas se placer sous lui-même ni sous l’un de ses groupes.',
+        'root_parent' => 'Choisissez une section, pas la racine.',
         'end_before_start' => 'La date de fin doit être égale ou postérieure à la date de début.',
         'not_editable' => 'La racine et les conteneurs n’ont pas de paramètres ici.',
         'archived' => 'Désarchivez ce groupe pour modifier ses paramètres.',

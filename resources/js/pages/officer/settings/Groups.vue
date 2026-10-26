@@ -9,7 +9,7 @@
 // the name; below `sm` a stretched link makes the whole row one tap. The toolbar filters on the
 // client: a name search and the "Show archived Groups" tick. Every row with children can collapse
 // its subtree; all start expanded. A search ignores collapse so a match never hides.
-import CreateGroupDialog, { type ParentOption } from '@/components/CreateGroupDialog.vue';
+import CreateGroupDialog from '@/components/CreateGroupDialog.vue';
 import DmvSettingsTabs from '@/components/DmvSettingsTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { type ParentOption } from '@/composables/useParentPicker';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';

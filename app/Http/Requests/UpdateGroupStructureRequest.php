@@ -46,9 +46,15 @@ class UpdateGroupStructureRequest extends FormRequest
             'parent_id' => ['required', 'integer', function (string $attribute, mixed $value, Closure $fail) use ($group): void {
                 if ((int) $value === $group->id || $group->descendants()->contains('id', $value)) {
                     $fail('dmv_settings.error.parent_cycle')->translate();
-                } elseif ((int) $value !== $group->parent_id && ! Group::query()->active()->whereKey($value)->exists()) {
-                    // A changed parent must be active; the current one may stay even if it is not.
-                    $fail('dmv_settings.error.inactive_group')->translate();
+                } elseif ((int) $value !== $group->parent_id) {
+                    // A changed parent must be active and never the root (#850, ADR-0036 §4); the
+                    // current one may stay even when it is inactive or the root itself.
+                    $parent = Group::query()->active()->whereKey($value)->first();
+                    if ($parent === null) {
+                        $fail('dmv_settings.error.inactive_group')->translate();
+                    } elseif ($parent->isRoot()) {
+                        $fail('dmv_settings.error.root_parent')->translate();
+                    }
                 }
             }],
             'kind' => ['required', Rule::enum(Kind::class)],

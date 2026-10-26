@@ -116,23 +116,27 @@ it('sends the Group\'s editable fields to the form', function () {
             ->where('lastChanged', null));
 });
 
-it('offers active Groups as parents, minus the Group itself and everything under it', function () {
+it('offers active Groups under a section as parents, minus the Group itself and everything under it', function () {
     $root = structureRoot();
-    $programs = Group::factory()->container()->create(['parent_id' => $root->id, 'name' => 'Programs', 'display_order' => 1]);
+    $governance = Group::factory()->container()->create(['parent_id' => $root->id, 'name' => 'Governance', 'display_order' => 1]);
+    $programs = Group::factory()->container()->create(['parent_id' => $root->id, 'name' => 'Programs', 'display_order' => 2]);
     $docents = Group::factory()->program()->create(['parent_id' => $programs->id, 'slug' => 'docents', 'name' => 'Docents']);
     $cohort = Group::factory()->cohort()->create(['parent_id' => $docents->id, 'name' => 'Class of 2026']);
     Group::factory()->workingGroup()->create(['parent_id' => $cohort->id, 'name' => 'Cohort Committee']);
     Group::factory()->program()->archived()->create(['parent_id' => $programs->id, 'name' => 'Archived Tours']);
     $romwalks = Group::factory()->program()->create(['parent_id' => $programs->id, 'name' => 'ROMWalks']);
+    $walkers = Group::factory()->cohort()->create(['parent_id' => $romwalks->id, 'name' => 'Walkers']);
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->get('/officer/settings/groups/docents')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
+            // The root is never offered; depth counts from the section (0).
             ->where('parents', [
-                ['id' => $root->id, 'name' => 'DMV', 'depth' => 0, 'inactive' => false],
-                ['id' => $programs->id, 'name' => 'Programs', 'depth' => 1, 'inactive' => false],
-                ['id' => $romwalks->id, 'name' => 'ROMWalks', 'depth' => 2, 'inactive' => false],
+                ['id' => $governance->id, 'name' => 'Governance', 'depth' => 0, 'sectionId' => $governance->id, 'inactive' => false],
+                ['id' => $programs->id, 'name' => 'Programs', 'depth' => 0, 'sectionId' => $programs->id, 'inactive' => false],
+                ['id' => $romwalks->id, 'name' => 'ROMWalks', 'depth' => 1, 'sectionId' => $programs->id, 'inactive' => false],
+                ['id' => $walkers->id, 'name' => 'Walkers', 'depth' => 2, 'sectionId' => $programs->id, 'inactive' => false],
             ]));
 });
 
@@ -298,7 +302,8 @@ it('keeps an archived or expired parent the Group already has', function (string
 
 it('offers an archived current parent, marked inactive, among the active parents', function () {
     $root = structureRoot();
-    $parent = Group::factory()->program()->archived()->create(['parent_id' => $root->id, 'name' => 'Old Tours']);
+    $programs = Group::factory()->container()->create(['parent_id' => $root->id, 'name' => 'Programs']);
+    $parent = Group::factory()->program()->archived()->create(['parent_id' => $programs->id, 'name' => 'Old Tours']);
     Group::factory()->cohort()->create(['parent_id' => $parent->id, 'slug' => 'class-2026']);
 
     $this->actingAs(Member::factory()->superTier()->create())
@@ -306,8 +311,67 @@ it('offers an archived current parent, marked inactive, among the active parents
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('parents', [
-                ['id' => $root->id, 'name' => 'DMV', 'depth' => 0, 'inactive' => false],
-                ['id' => $parent->id, 'name' => 'Old Tours', 'depth' => 1, 'inactive' => true],
+                ['id' => $programs->id, 'name' => 'Programs', 'depth' => 0, 'sectionId' => $programs->id, 'inactive' => false],
+                ['id' => $parent->id, 'name' => 'Old Tours', 'depth' => 1, 'sectionId' => $programs->id, 'inactive' => true],
+            ]));
+});
+
+it('offers the root only to a Group already directly under it, as its current parent', function () {
+    $root = structureRoot();
+    $programs = Group::factory()->container()->create(['parent_id' => $root->id, 'name' => 'Programs', 'display_order' => 1]);
+    $special = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'special-projects', 'name' => 'Special Projects', 'display_order' => 2]);
+    Group::factory()->project()->create(['parent_id' => $special->id, 'name' => 'Exhibit']);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/officer/settings/groups/special-projects')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('parents', [
+                ['id' => $root->id, 'name' => 'DMV', 'depth' => 0, 'sectionId' => $root->id, 'inactive' => false],
+                ['id' => $programs->id, 'name' => 'Programs', 'depth' => 0, 'sectionId' => $programs->id, 'inactive' => false],
+            ]));
+});
+
+it('refuses the root as a new parent, even on a crafted request', function () {
+    $root = structureRoot();
+    $programs = Group::factory()->container()->create(['parent_id' => $root->id, 'name' => 'Programs']);
+    $group = Group::factory()->program()->create(['parent_id' => $programs->id, 'slug' => 'youth-tours']);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch('/officer/settings/groups/youth-tours', structurePayload($root))
+        ->assertSessionHasErrors(['parent_id' => 'Choose a section, not the root.']);
+
+    expect($group->fresh()->parent_id)->toBe($programs->id);
+});
+
+it('keeps the root as the parent of a Group already directly under it', function () {
+    $root = structureRoot();
+    $group = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'slug' => 'special-projects', 'name' => 'Special Projects']);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch('/officer/settings/groups/special-projects', structurePayload($root))
+        ->assertSessionHasNoErrors();
+
+    expect($group->fresh()->parent_id)->toBe($root->id);
+});
+
+it('keeps a current parent under an archived section, with that section marked', function () {
+    $root = structureRoot();
+    $programs = Group::factory()->container()->create(['parent_id' => $root->id, 'name' => 'Programs', 'display_order' => 1]);
+    $old = Group::factory()->container()->archived()->create(['parent_id' => $root->id, 'name' => 'Old Section', 'display_order' => 2]);
+    $parent = Group::factory()->program()->create(['parent_id' => $old->id, 'name' => 'Old Program']);
+    $sibling = Group::factory()->program()->create(['parent_id' => $old->id, 'name' => 'Sibling']);
+    Group::factory()->cohort()->create(['parent_id' => $parent->id, 'slug' => 'class-2026']);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/officer/settings/groups/class-2026')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('parents', [
+                ['id' => $programs->id, 'name' => 'Programs', 'depth' => 0, 'sectionId' => $programs->id, 'inactive' => false],
+                ['id' => $old->id, 'name' => 'Old Section', 'depth' => 0, 'sectionId' => $old->id, 'inactive' => true],
+                ['id' => $parent->id, 'name' => 'Old Program', 'depth' => 1, 'sectionId' => $old->id, 'inactive' => false],
+                ['id' => $sibling->id, 'name' => 'Sibling', 'depth' => 1, 'sectionId' => $old->id, 'inactive' => false],
             ]));
 });
 

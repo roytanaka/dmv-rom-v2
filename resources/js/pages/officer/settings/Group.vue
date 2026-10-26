@@ -12,7 +12,6 @@
 // the save bar. The ten flags and Time-boxed are DmvSettingsFlagRow switches; a capability that
 // is on shows how many records sit behind it, and once switched off in the draft, how many
 // become hidden (#844).
-import { type ParentOption } from '@/components/CreateGroupDialog.vue';
 import DmvSettingsFlagRow from '@/components/DmvSettingsFlagRow.vue';
 import DmvSettingsSection from '@/components/DmvSettingsSection.vue';
 import DmvSettingsTabs from '@/components/DmvSettingsTabs.vue';
@@ -34,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
+import { type ParentOption, useParentPicker } from '@/composables/useParentPicker';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { treeIndent } from '@/lib/treeIndent';
@@ -106,6 +106,11 @@ const form = useForm({
     ...(Object.fromEntries([...CAPABILITIES, ...COLLECTIONS].map((flag) => [flag, props.group[flag]])) as Record<Flag, boolean>),
     hours_multiplier: Number(props.group.hours_multiplier),
 });
+
+// Section, then parent (#850): the section is read off the parent, so it opens on the current
+// pair, and Discard puts both back.
+const { sections: parentSections, section, parents } = useParentPicker(() => props.parents, form);
+const parentLabel = (option: ParentOption): string => (option.inactive ? trans('dmv_settings.inactive_parent', { name: option.name }) : option.name);
 
 type Field = keyof ReturnType<typeof form.data>;
 const errors = computed(() => form.errors as Partial<Record<Field | 'group', string>>);
@@ -243,17 +248,22 @@ const countLine = (flag: Capability): string | null => {
                                 <Input id="group-name" v-model="form.name" required maxlength="255" />
                                 <InputError :message="errors.name" />
                             </div>
-                            <!-- Parent and Kind are a real pair: a subgrid keeps label, control and error
-                                 in line across the two columns however a French label wraps. -->
+                            <!-- Section and Parent are a real pair (#850): a subgrid keeps label, control and
+                                 error in line across the columns however a French label wraps. -->
                             <div class="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                                <div class="row-span-3 grid grid-rows-subgrid gap-2">
+                                    <Label for="group-section">{{ trans('dmv_settings.field.section') }}</Label>
+                                    <NativeSelect id="group-section" v-model="section" required>
+                                        <option v-for="option in parentSections" :key="option.id" :value="option.id">
+                                            {{ parentLabel(option) }}
+                                        </option>
+                                    </NativeSelect>
+                                </div>
                                 <div class="row-span-3 grid grid-rows-subgrid gap-2">
                                     <Label for="group-parent">{{ trans('dmv_settings.field.parent') }}</Label>
                                     <NativeSelect id="group-parent" v-model="form.parent_id" required>
                                         <option v-for="option in parents" :key="option.id" :value="option.id">
-                                            {{
-                                                treeIndent(option.depth) +
-                                                (option.inactive ? trans('dmv_settings.inactive_parent', { name: option.name }) : option.name)
-                                            }}
+                                            {{ treeIndent(option.depth) + parentLabel(option) }}
                                         </option>
                                     </NativeSelect>
                                     <InputError :message="errors.parent_id" />

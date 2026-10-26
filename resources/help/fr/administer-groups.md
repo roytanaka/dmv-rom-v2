@@ -15,16 +15,19 @@ La ligne de la racine indique **Défini par les responsables** et les lignes des
 
 1. Sélectionnez **Créer un groupe**.
 2. Entrez un nom et une adresse. L’adresse est la fin de l’adresse Web du groupe, et elle ne change jamais.
-3. Choisissez un parent et un type.
-4. Sélectionnez **Créer**.
+3. Choisissez la section, puis le parent. La liste des parents montre seulement cette section et les groupes en dessous.
+4. Choisissez un type.
+5. Sélectionnez **Créer**.
 
 La page de paramètres du nouveau groupe s’ouvre. Tout le reste commence désactivé : configurez-le ensuite.
 
 ## Modifier la configuration d’un groupe
 
 1. Sélectionnez le nom du groupe dans l’arbre.
-2. Modifiez les champs voulus : nom, parent, type, liste, logo, dates, fonctions, chiffres de fréquentation et multiplicateur d’heures.
+2. Modifiez les champs voulus : nom, section et parent, type, liste, logo, dates, fonctions, chiffres de fréquentation et multiplicateur d’heures.
 3. Sélectionnez **Enregistrer les modifications** dans la barre du bas.
+
+Pour déplacer un groupe, choisissez d’abord la section, puis le parent. Une nouvelle section règle le parent sur la section elle-même.
 
 La barre latérale gauche prend en compte le changement à la page suivante. La barre du bas indique qui a enregistré la page en dernier, et quand. Sélectionnez **Annuler les modifications** pour remettre les valeurs enregistrées. Si un champ a un problème, la barre compte les problèmes et la liste des sections à gauche marque la section.
 
