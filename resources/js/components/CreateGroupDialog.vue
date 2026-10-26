@@ -3,9 +3,10 @@
 // address, parent, kind; every other setting starts at its default on the server. The address
 // field shows the fixed public path (`/groups/`, localized per ADR-0008) as a leading addon and
 // takes only the slug, which follows the name until the field is edited; it is set here only.
-// The parent is any active Group, the root included. Parent and Kind sit side by side from `sm`
-// as a subgrid pair (docs/conventions.md § Form-field alignment). On success the server
-// redirects to the new Group's structure form.
+// The parent is picked in two steps (#850): a section (a child of the root, Container or real
+// Group), then a Group in its subtree, the section first; the root itself is never a parent.
+// Section and Parent share a subgrid row from `sm`, Kind below (docs/conventions.md § Form-field
+// alignment). A Container is made by the seeder only, so Kind leaves it out. On success the server redirects to the new Group's structure form.
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -13,21 +14,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
+import { type ParentOption, useParentPicker } from '@/composables/useParentPicker';
 import { treeIndent } from '@/lib/treeIndent';
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
-export interface ParentOption {
-    id: number;
-    name: string;
-    depth: number;
-    // The structure form only: the Group's current parent, archived or ended, kept but not offered.
-    inactive?: boolean;
-}
-
 // Kinds are the server's App\Enums\Kind cases, labelled from dmv_settings.kind.*.
-defineProps<{ parentOptions: ParentOption[]; kinds: string[] }>();
+const props = defineProps<{ parentOptions: ParentOption[]; kinds: string[] }>();
 const open = defineModel<boolean>('open', { required: true });
 
 const localizeHref = useLocalizedHref();
@@ -39,6 +33,8 @@ const form = useForm<{ name: string; slug: string; parent_id: number | null; kin
     parent_id: null,
     kind: null,
 });
+
+const { sections, section, parents } = useParentPicker(() => props.parentOptions, form);
 
 // Proposed from the name while the slug field is untouched: lowercase, accents dropped,
 // every run of other characters one hyphen, none at either end.
@@ -105,10 +101,17 @@ function submit(): void {
                 </div>
                 <div class="grid gap-x-4 gap-y-2 sm:grid-cols-2">
                     <div class="row-span-3 grid grid-rows-subgrid gap-2">
+                        <Label for="new-group-section">{{ trans('dmv_settings.field.section') }}</Label>
+                        <NativeSelect id="new-group-section" v-model="section" required>
+                            <option :value="null" disabled>{{ trans('dmv_settings.choose_section') }}</option>
+                            <option v-for="option in sections" :key="option.id" :value="option.id">{{ option.name }}</option>
+                        </NativeSelect>
+                    </div>
+                    <div class="row-span-3 grid grid-rows-subgrid gap-2">
                         <Label for="new-group-parent">{{ trans('dmv_settings.field.parent') }}</Label>
-                        <NativeSelect id="new-group-parent" v-model="form.parent_id" required>
+                        <NativeSelect id="new-group-parent" v-model="form.parent_id" required :disabled="section === null">
                             <option :value="null" disabled>{{ trans('dmv_settings.choose_parent') }}</option>
-                            <option v-for="option in parentOptions" :key="option.id" :value="option.id">
+                            <option v-for="option in parents" :key="option.id" :value="option.id">
                                 {{ treeIndent(option.depth) + option.name }}
                             </option>
                         </NativeSelect>

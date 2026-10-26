@@ -37,21 +37,44 @@ final class OrgTree
     }
 
     /**
-     * Where a Group may sit: every active Group, the root included. For an existing Group,
-     * minus the Group and everything under it (no cycles), plus its current parent even when
-     * that parent is inactive, so the Group can still be saved in place.
+     * Where a Group may sit (#850): every active Group under a section, in tree order, each
+     * with its section and its depth below it. A section is an active child of the root: a
+     * Container, or a real Group such as Special Projects. The root is never offered as a new
+     * parent: a Group always sits under one of the root's children (ADR-0036 §4). For an
+     * existing Group, minus the Group and everything under it (no cycles), plus its current
+     * parent even when that parent is inactive or the root itself, so the Group can still be
+     * saved in place; a root child sees the root as a one-row section, and an inactive section
+     * holding the current parent stays, so the form still opens on the current pair.
      *
-     * @return list<OrgTreeNode>
+     * @return list<ParentChoice>
      */
     public function parentChoices(?Group $for = null): array
     {
         $excluded = $for === null ? [] : $this->subtreeIds($for);
+        $offered = fn (Group $group) => ! in_array($group->id, $excluded, true)
+            && ($group->isActive() || $group->id === $for?->parent_id);
 
-        return array_values(array_filter(
-            $this->nodes,
-            fn (OrgTreeNode $node) => ! in_array($node->group->id, $excluded, true)
-                && ($node->group->isActive() || $node->group->id === $for?->parent_id),
-        ));
+        $choices = [];
+        $section = null;
+        foreach ($this->nodes as $node) {
+            if ($node->depth === 0) {
+                if ($node->group->id === $for?->parent_id) {
+                    $choices[] = new ParentChoice($node->group, $node->group, 0);
+                }
+
+                continue;
+            }
+            $holdsParent = false;
+            if ($node->depth === 1) {
+                $holdsParent = $for?->parent_id !== null && in_array($for->parent_id, $this->subtreeIds($node->group), true);
+                $section = $offered($node->group) || $holdsParent ? $node : null;
+            }
+            if ($section !== null && ($offered($node->group) || $holdsParent)) {
+                $choices[] = new ParentChoice($node->group, $section->group, $node->depth - $section->depth);
+            }
+        }
+
+        return $choices;
     }
 
     /**

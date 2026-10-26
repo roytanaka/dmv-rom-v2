@@ -25,6 +25,12 @@ function createGroupRoot(): Group
     return Group::factory()->standingCommittee()->publicListing()->create(['slug' => 'dmv', 'name' => 'DMV', 'display_order' => 0]);
 }
 
+/** A section under the root (#850): the Programs Container, where a new Group goes. */
+function createGroupSection(): Group
+{
+    return Group::factory()->container()->create(['parent_id' => createGroupRoot()->id, 'slug' => 'programs', 'name' => 'Programs', 'display_order' => 1]);
+}
+
 /** A plain Member, a Records Member, or a Member holding $role in some Group. */
 function createGroupActor(Role|string $authority): Member
 {
@@ -45,13 +51,13 @@ function createGroupActor(Role|string $authority): Member
 }
 
 it('creates a Group and lands on its structure form', function () {
-    $root = createGroupRoot();
+    $section = createGroupSection();
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->post('/officer/settings/groups', [
             'name' => 'Youth Tours',
             'slug' => 'youth-tours',
-            'parent_id' => $root->id,
+            'parent_id' => $section->id,
             'kind' => 'program',
         ])
         ->assertSessionHasNoErrors()
@@ -59,57 +65,67 @@ it('creates a Group and lands on its structure form', function () {
 
     $group = Group::where('slug', 'youth-tours')->sole();
     expect($group->name)->toBe('Youth Tours')
-        ->and($group->parent_id)->toBe($root->id)
+        ->and($group->parent_id)->toBe($section->id)
         ->and($group->kind->value)->toBe('program');
 });
 
 it('lands on the French structure form from French', function () {
-    $root = createGroupRoot();
+    $section = createGroupSection();
     $actor = Member::factory()->superTier()->create();
 
-    $this->withLocaleRoutes('fr', function () use ($actor, $root) {
+    $this->withLocaleRoutes('fr', function () use ($actor, $section) {
         $this->actingAs($actor)
             ->post('/officer/settings/groups', [
-                'name' => 'Visites jeunesse', 'slug' => 'visites-jeunesse', 'parent_id' => $root->id, 'kind' => 'program',
+                'name' => 'Visites jeunesse', 'slug' => 'visites-jeunesse', 'parent_id' => $section->id, 'kind' => 'program',
             ])
             ->assertRedirect('/fr/officier/parametres/groupes/visites-jeunesse');
     });
 });
 
-it('offers every active Group as a parent, in tree order with its depth', function () {
+it('offers every active Group under a section as a parent, in tree order, the root left out', function () {
     $root = createGroupRoot();
     $programs = Group::factory()->container()->create(['parent_id' => $root->id, 'name' => 'Programs', 'display_order' => 2]);
     $governance = Group::factory()->container()->create(['parent_id' => $root->id, 'name' => 'Governance', 'display_order' => 1]);
     $docents = Group::factory()->program()->create(['parent_id' => $programs->id, 'name' => 'Docents']);
+    $cohort = Group::factory()->cohort()->create(['parent_id' => $docents->id, 'name' => 'Class of 2026']);
     Group::factory()->program()->archived()->create(['parent_id' => $programs->id, 'name' => 'Youth Tours']);
     Group::factory()->cohort()->timeBoxed()->create(['parent_id' => $docents->id, 'name' => 'Class of 2024', 'end_date' => now()->subDay()->toDateString()]);
+    // A real Group straight under the root (Special Projects, PRD #289) is a section like a Container.
+    $special = Group::factory()->standingCommittee()->create(['parent_id' => $root->id, 'name' => 'Special Projects', 'display_order' => 3]);
+    $exhibit = Group::factory()->project()->create(['parent_id' => $special->id, 'name' => 'Exhibit']);
+    // An archived root child is no section: neither it nor its Groups are offered.
+    $old = Group::factory()->container()->archived()->create(['parent_id' => $root->id, 'name' => 'Old Section', 'display_order' => 4]);
+    Group::factory()->program()->create(['parent_id' => $old->id, 'name' => 'Old Program']);
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->get('/officer/settings')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
+            // Depth counts from the section (0); each option names its section.
             ->where('parentOptions', [
-                ['id' => $root->id, 'name' => 'DMV', 'depth' => 0],
-                ['id' => $governance->id, 'name' => 'Governance', 'depth' => 1],
-                ['id' => $programs->id, 'name' => 'Programs', 'depth' => 1],
-                ['id' => $docents->id, 'name' => 'Docents', 'depth' => 2],
+                ['id' => $governance->id, 'name' => 'Governance', 'depth' => 0, 'sectionId' => $governance->id],
+                ['id' => $programs->id, 'name' => 'Programs', 'depth' => 0, 'sectionId' => $programs->id],
+                ['id' => $docents->id, 'name' => 'Docents', 'depth' => 1, 'sectionId' => $programs->id],
+                ['id' => $cohort->id, 'name' => 'Class of 2026', 'depth' => 2, 'sectionId' => $programs->id],
+                ['id' => $special->id, 'name' => 'Special Projects', 'depth' => 0, 'sectionId' => $special->id],
+                ['id' => $exhibit->id, 'name' => 'Exhibit', 'depth' => 1, 'sectionId' => $special->id],
             ]));
 });
 
-it('sends the kinds the Create dialog offers', function () {
+it('sends the kinds the Create dialog offers, Container left out (seeder only)', function () {
     createGroupRoot();
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->get('/officer/settings')
         ->assertInertia(fn (Assert $page) => $page
-            ->where('kinds', ['standing_committee', 'program', 'working_group', 'project', 'cohort', 'container']));
+            ->where('kinds', ['standing_committee', 'program', 'working_group', 'project', 'cohort']));
 });
 
 it('starts the new Group at every default', function () {
-    $root = createGroupRoot();
+    $section = createGroupSection();
 
     $this->actingAs(Member::factory()->superTier()->create())->post('/officer/settings/groups', [
-        'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $root->id, 'kind' => 'program',
+        'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $section->id, 'kind' => 'program',
     ])->assertSessionHasNoErrors();
 
     $group = Group::where('slug', 'youth-tours')->sole();
@@ -135,13 +151,13 @@ it('starts the new Group at every default', function () {
 });
 
 it('refuses a slug another Group uses, on the slug field', function () {
-    $root = createGroupRoot();
+    $section = createGroupSection();
     Group::factory()->create(['slug' => 'youth-tours']);
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->from('/officer/settings')
         ->post('/officer/settings/groups', [
-            'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $root->id, 'kind' => 'program',
+            'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $section->id, 'kind' => 'program',
         ])
         ->assertRedirect('/officer/settings')
         ->assertSessionHasErrors(['slug' => 'Another Group uses this slug.']);
@@ -150,11 +166,11 @@ it('refuses a slug another Group uses, on the slug field', function () {
 });
 
 it('refuses a slug that is not URL-safe', function (string $slug) {
-    $root = createGroupRoot();
+    $section = createGroupSection();
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->post('/officer/settings/groups', [
-            'name' => 'Youth Tours', 'slug' => $slug, 'parent_id' => $root->id, 'kind' => 'program',
+            'name' => 'Youth Tours', 'slug' => $slug, 'parent_id' => $section->id, 'kind' => 'program',
         ])
         ->assertSessionHasErrors(['slug' => 'Use lowercase letters, digits and hyphens.']);
 })->with(['Youth-Tours', 'youth tours', '-youth', 'youth--tours', 'jeunes-visités']);
@@ -174,6 +190,30 @@ it('refuses an archived or expired parent', function (string $state) {
     expect(Group::where('slug', 'youth-tours')->exists())->toBeFalse();
 })->with(['archived', 'expired']);
 
+it('refuses the root as a parent, even on a crafted request', function () {
+    $root = createGroupRoot();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->post('/officer/settings/groups', [
+            'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $root->id, 'kind' => 'program',
+        ])
+        ->assertSessionHasErrors(['parent_id' => 'Choose a section, not the root.']);
+
+    expect(Group::where('slug', 'youth-tours')->exists())->toBeFalse();
+});
+
+it('refuses to create a Container', function () {
+    $section = createGroupSection();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->post('/officer/settings/groups', [
+            'name' => 'New Section', 'slug' => 'new-section', 'parent_id' => $section->id, 'kind' => 'container',
+        ])
+        ->assertSessionHasErrors('kind');
+
+    expect(Group::where('slug', 'new-section')->exists())->toBeFalse();
+});
+
 it('requires every field and a known kind', function () {
     $this->actingAs(Member::factory()->superTier()->create())
         ->post('/officer/settings/groups', ['kind' => 'committee'])
@@ -181,11 +221,11 @@ it('requires every field and a known kind', function () {
 });
 
 it('forbids anyone below the super-tier', function (Role|string $authority) {
-    $root = createGroupRoot();
+    $section = createGroupSection();
 
     $this->actingAs(createGroupActor($authority))
         ->post('/officer/settings/groups', [
-            'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $root->id, 'kind' => 'program',
+            'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $section->id, 'kind' => 'program',
         ])
         ->assertForbidden();
 
@@ -193,11 +233,11 @@ it('forbids anyone below the super-tier', function (Role|string $authority) {
 })->with(['plain', 'records', Role::Chair]);
 
 it('records the acting Member as creator and last editor', function () {
-    $root = createGroupRoot();
+    $section = createGroupSection();
     $actor = Member::factory()->superTier()->create();
 
     $this->actingAs($actor)->post('/officer/settings/groups', [
-        'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $root->id, 'kind' => 'program',
+        'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $section->id, 'kind' => 'program',
     ])->assertSessionHasNoErrors();
 
     $group = Group::where('slug', 'youth-tours')->sole();

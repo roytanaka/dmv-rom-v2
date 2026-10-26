@@ -53,7 +53,7 @@ The route gates on the super-tier, as ADR-0027 §4 requires of every Officer Too
 
 ### 4. The Create form
 
-**Four fields: name, slug, parent, kind.** The slug is proposed from the name and may be edited on this form only. Everything else takes a default and is set on the structure form afterwards. Parent is a select of active Groups, root included. Kind is a select of the six kinds.
+**Four fields: name, slug, parent, kind.** The slug is proposed from the name and may be edited on this form only. Everything else takes a default and is set on the structure form afterwards. Parent is a select of active Groups, root included. Kind is a select of the six kinds. _(Amended 2026-10-26, [#850](https://github.com/roytanaka/dmv-rom-v2/issues/850): the root is never a parent. A Group always sits under one of the root's children: a Container, or a real Group such as Special Projects. The parent is picked in two selects. **Section** lists the root's active children. **Parent** lists the chosen section's subtree, the section first. The server refuses the root as a parent, so a crafted request fails too. A Container is still made by the seeder only, because it sits directly under the root. The Create form leaves Container out of Kind, and the server refuses it.)_
 
 ### 5. The structure form
 
@@ -63,7 +63,7 @@ The route gates on the super-tier, as ADR-0027 §4 requires of every Officer Too
 
 **The slug is immutable after create.** It is the key in bookmarked and emailed links, in every help article, in the French route map (ADR-0008), and two slugs are constants in code. A redirect table for renamed slugs is not worth building for a rename nobody has asked for.
 
-**Root and Container Groups are not editable past description and banner.** The root is the organisation and super-tier territory by definition. A Container is a nav peer with no page (PRD #289). The root is a valid parent in the Create form.
+**Root and Container Groups are not editable past description and banner.** The root is the organisation and super-tier territory by definition. A Container is a nav peer with no page (PRD #289). The root is a valid parent in the Create form. _(Amended 2026-10-26, [#850](https://github.com/roytanaka/dmv-rom-v2/issues/850): the root is not a parent choice in either form. The structure form uses the same Section and Parent selects as the Create form and opens on the Group's current pair. A Group already directly under the root keeps the root as its current parent and can be saved in place, but no Group moves under the root. Changing a Group's Kind to Container on this form stays as it is.)_
 
 **Parent and kind changes are allowed, with no preview.** The parent select excludes the Group itself and its descendants. No ADR constrains which kind may sit under which, and the code checks none, so the form does not either. The rail rebuilds on the next request and the change is reversible. The form notes that the Container kind makes the page a 404.
 

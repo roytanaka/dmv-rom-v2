@@ -58,6 +58,7 @@ return [
         'submit' => 'Create',
         'cancel' => 'Cancel',
     ],
+    'choose_section' => 'Choose a section',
     'choose_parent' => 'Choose a parent',
     // The structure form's current parent when it is archived or ended (kept, not offered).
     'inactive_parent' => ':name (inactive)',
@@ -65,6 +66,8 @@ return [
     'field' => [
         'name' => 'Name',
         'slug' => 'Address',
+        // The root's child whose subtree the parent comes from (#850).
+        'section' => 'Section',
         'parent' => 'Parent',
         'kind' => 'Kind',
         'kind_container_note' => 'A Container has no page. Its address answers 404.',
@@ -167,6 +170,7 @@ return [
         'member_admin_required' => 'Choose a Group. Member administration always has a holder.',
         'inactive_group' => 'Choose an active Group.',
         'parent_cycle' => 'A Group cannot sit under itself or one of its own Groups.',
+        'root_parent' => 'Choose a section, not the root.',
         'end_before_start' => 'The end date must be on or after the start date.',
         'not_editable' => 'The root and Containers have no settings here.',
         'archived' => 'Unarchive this Group to change its settings.',

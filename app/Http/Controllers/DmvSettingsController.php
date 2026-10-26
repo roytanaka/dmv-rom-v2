@@ -16,6 +16,7 @@ use App\Models\Group;
 use App\Models\GroupStewardship;
 use App\Support\Groups\OrgTree;
 use App\Support\Groups\OrgTreeNode;
+use App\Support\Groups\ParentChoice;
 use App\Support\Stewardships\StewardshipAssignment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -50,11 +51,14 @@ class DmvSettingsController extends Controller
         return Inertia::render('officer/settings/Groups', [
             ...$this->shell(),
             'tree' => array_map(fn (OrgTreeNode $node) => $this->treeRow($node), $tree->nodes),
+            // Section first, then the parent from its subtree (#850): each option names its
+            // section, with its depth below it, so the client filters the second select.
             'parentOptions' => array_map(
-                fn (OrgTreeNode $node) => ['id' => $node->group->id, 'name' => $node->group->name, 'depth' => $node->depth],
+                fn (ParentChoice $choice) => $this->parentOption($choice),
                 $tree->parentChoices(),
             ),
-            'kinds' => array_column(Kind::cases(), 'value'),
+            // A Container is made by the seeder only (#850).
+            'kinds' => array_values(array_diff(array_column(Kind::cases(), 'value'), [Kind::Container->value])),
         ]);
     }
 
@@ -158,7 +162,7 @@ class DmvSettingsController extends Controller
             ],
             // The current parent may be inactive: marked, so the select still shows it.
             'parents' => array_map(
-                fn (OrgTreeNode $node) => ['id' => $node->group->id, 'name' => $node->group->name, 'depth' => $node->depth, 'inactive' => ! $node->group->isActive()],
+                fn (ParentChoice $choice) => [...$this->parentOption($choice), 'inactive' => ! $choice->group->isActive()],
                 OrgTree::load()->parentChoices($group),
             ),
             // The Group's public page, localized (ADR-0008): shown as its address under the h1.
@@ -206,6 +210,21 @@ class DmvSettingsController extends Controller
         $group->update(['lifecycle_state' => LifecycleState::Active, 'updated_by' => $request->user()->id]);
 
         return back();
+    }
+
+    /**
+     * One row of the section-then-parent picker (#850).
+     *
+     * @return array{id: int, name: string, depth: int, sectionId: int}
+     */
+    private function parentOption(ParentChoice $choice): array
+    {
+        return [
+            'id' => $choice->group->id,
+            'name' => $choice->group->name,
+            'depth' => $choice->depth,
+            'sectionId' => $choice->section->id,
+        ];
     }
 
     /**
