@@ -28,9 +28,11 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // No roles, no stewardships, no super_tier (defaults false, and it's not
-        // mass-assignable — #153); DemoSeeder's enrollEveryoneInRoot gives it the
-        // one root-DMV membership every Member has, and it stays out of the bulk
-        // pool, so it picks up no incidental authority. email_verified_at is
+        // mass-assignable — #153), and no stored membership at all: root-DMV
+        // membership is derived from Category, never a row (ADR-0036 §9), and it
+        // stays out of the bulk pool, so it picks up no incidental authority. Its
+        // Active Category alone lists it in the Directory and the rail's DMV node.
+        // email_verified_at is
         // non-fillable, force-filled to mark the login verified, idempotently.
         $member = Member::firstOrCreate(
             ['email' => 'test@example.com'],

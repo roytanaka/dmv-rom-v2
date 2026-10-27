@@ -1,0 +1,138 @@
+<script setup lang="ts">
+// Create a Group from DMV Settings (#842, ADR-0036 §4; restyled in #848). Lean form: name,
+// address, parent, kind; every other setting starts at its default on the server. The address
+// field shows the fixed public path (`/groups/`, localized per ADR-0008) as a leading addon and
+// takes only the slug, which follows the name until the field is edited; it is set here only.
+// The parent is picked in two steps (#850): a section (a child of the root, Container or real
+// Group), then a Group in its subtree, the section first; the root itself is never a parent.
+// Section and Parent share a subgrid row from `sm`, Kind below (docs/conventions.md § Form-field
+// alignment). A Container is made by the seeder only, so Kind leaves it out. On success the server redirects to the new Group's structure form.
+import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
+import { type ParentOption, useParentPicker } from '@/composables/useParentPicker';
+import { treeIndent } from '@/lib/treeIndent';
+import { useForm } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
+import { computed, ref, watch } from 'vue';
+
+// Kinds are the server's App\Enums\Kind cases, labelled from dmv_settings.kind.*.
+const props = defineProps<{ parentOptions: ParentOption[]; kinds: string[] }>();
+const open = defineModel<boolean>('open', { required: true });
+
+const localizeHref = useLocalizedHref();
+const addressPrefix = computed(() => `${localizeHref('/groups')}/`);
+
+const form = useForm<{ name: string; slug: string; parent_id: number | null; kind: string | null }>({
+    name: '',
+    slug: '',
+    parent_id: null,
+    kind: null,
+});
+
+const { sections, section, parents } = useParentPicker(() => props.parentOptions, form);
+
+// Proposed from the name while the slug field is untouched: lowercase, accents dropped,
+// every run of other characters one hyphen, none at either end.
+const slugTouched = ref(false);
+const slugify = (name: string): string =>
+    name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+watch(
+    () => form.name,
+    (name) => {
+        if (!slugTouched.value) form.slug = slugify(name);
+    },
+);
+
+watch(open, (isOpen) => {
+    if (!isOpen) return;
+    form.reset();
+    form.clearErrors();
+    slugTouched.value = false;
+});
+
+function submit(): void {
+    form.post(route('dmv-settings.groups.store'));
+}
+</script>
+
+<template>
+    <Dialog v-model:open="open">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{{ trans('dmv_settings.create.title') }}</DialogTitle>
+            </DialogHeader>
+            <form class="flex flex-col gap-4" @submit.prevent="submit">
+                <div class="grid gap-2">
+                    <Label for="new-group-name">{{ trans('dmv_settings.field.name') }}</Label>
+                    <Input id="new-group-name" v-model="form.name" required maxlength="255" />
+                    <InputError :message="form.errors.name" />
+                </div>
+                <div class="grid gap-2">
+                    <Label for="new-group-slug">{{ trans('dmv_settings.field.slug') }}</Label>
+                    <div class="flex">
+                        <span
+                            id="new-group-slug-prefix"
+                            class="border-input bg-muted text-muted-foreground flex items-center border border-r-0 px-3 font-mono text-base whitespace-nowrap"
+                        >
+                            {{ addressPrefix }}
+                        </span>
+                        <Input
+                            id="new-group-slug"
+                            v-model="form.slug"
+                            class="min-w-0 flex-1 font-mono"
+                            aria-describedby="new-group-slug-prefix"
+                            required
+                            maxlength="255"
+                            @input="slugTouched = true"
+                        />
+                    </div>
+                    <InputError :message="form.errors.slug" />
+                </div>
+                <div class="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                    <div class="row-span-3 grid grid-rows-subgrid gap-2">
+                        <Label for="new-group-section">{{ trans('dmv_settings.field.section') }}</Label>
+                        <NativeSelect id="new-group-section" v-model="section" required>
+                            <option :value="null" disabled>{{ trans('dmv_settings.choose_section') }}</option>
+                            <option v-for="option in sections" :key="option.id" :value="option.id">{{ option.name }}</option>
+                        </NativeSelect>
+                    </div>
+                    <div class="row-span-3 grid grid-rows-subgrid gap-2">
+                        <Label for="new-group-parent">{{ trans('dmv_settings.field.parent') }}</Label>
+                        <NativeSelect id="new-group-parent" v-model="form.parent_id" required :disabled="section === null">
+                            <option :value="null" disabled>{{ trans('dmv_settings.choose_parent') }}</option>
+                            <option v-for="option in parents" :key="option.id" :value="option.id">
+                                {{ treeIndent(option.depth) + option.name }}
+                            </option>
+                        </NativeSelect>
+                        <InputError :message="form.errors.parent_id" />
+                    </div>
+                    <div class="row-span-3 grid grid-rows-subgrid gap-2">
+                        <Label for="new-group-kind">{{ trans('dmv_settings.field.kind') }}</Label>
+                        <NativeSelect id="new-group-kind" v-model="form.kind" required>
+                            <option :value="null" disabled>{{ trans('dmv_settings.choose_kind') }}</option>
+                            <option v-for="kind in kinds" :key="kind" :value="kind">{{ trans(`dmv_settings.kind.${kind}`) }}</option>
+                        </NativeSelect>
+                        <InputError :message="form.errors.kind" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" :disabled="form.processing" @click="open = false">
+                        {{ trans('dmv_settings.create.cancel') }}
+                    </Button>
+                    <Button type="submit" :disabled="form.processing">{{ trans('dmv_settings.create.submit') }}</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
+</template>

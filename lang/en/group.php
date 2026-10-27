@@ -302,6 +302,15 @@ return [
         'open_to_all_none' => 'Any member may give this tour.',
         'last_vet_date' => 'Last vet date',
         'no_date' => 'No date',
+        'search_label' => 'Search tours or members',
+        'shown' => '{1} :shown of :total tour|[2,*] :shown of :total tours',
+        'no_match' => 'No tours match.',
+        'member_count' => '{1} :count member|[2,*] :count members',
+        'any_member' => 'Any member',
+        'no_one' => 'No one yet',
+        'email' => 'Email',
+        'email_label' => 'Email members of :tour',
+        'edit' => 'Edit qualifications',
     ],
 
     // The qualification screens (#789, ADR-0033 §3, §4): by Tour and by Member.
@@ -700,6 +709,7 @@ return [
         'mine' => [
             'aria_label' => 'My sign-ups',
             'heading' => 'My sign-ups',
+            'toggle' => 'Show or hide My sign-ups',
             'subtitle' => 'Your upcoming shifts, and any recent shift that still needs a visitor count.',
         ],
         // View toggle (#360, ADR-0021 §7) — the reader chooses Agenda or Calendar; the

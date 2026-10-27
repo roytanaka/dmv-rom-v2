@@ -420,3 +420,51 @@ it('resolves the Settings section under its French path segment /fr/groupes/{gro
             ->assertForbidden();
     });
 });
+
+// --- Inactive Groups are read-only (#839, ADR-0036 §2) ------------------------
+
+it('refuses a Settings write on an archived Group while its page still opens', function () {
+    $group = Group::factory()->program()->publicListing()->archived()->create(['reminders_enabled' => true, 'reminder_lead_days' => 5]);
+    $chair = settingsMemberOf($group, role: Role::Chair);
+
+    $this->actingAs($chair)
+        ->get(route('groups.show', ['group' => $group]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('group.archived', true)->where('can.manageSettings', false));
+
+    $this->actingAs($chair)
+        ->patch(route('groups.reminders.update', ['group' => $group]), ['reminders_enabled' => false, 'reminder_lead_days' => 3])
+        ->assertForbidden();
+
+    expect($group->fresh()->reminder_lead_days)->toBe(5);
+});
+
+it('refuses a Settings write on an expired time-boxed Group while its page still opens', function () {
+    $group = Group::factory()->program()->publicListing()->timeBoxed()->create([
+        'end_date' => now()->subDay()->toDateString(),
+        'reminders_enabled' => true,
+        'reminder_lead_days' => 5,
+    ]);
+    $chair = settingsMemberOf($group, role: Role::Chair);
+
+    $this->actingAs($chair)
+        ->get(route('groups.show', ['group' => $group]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('can.manageSettings', false));
+
+    $this->actingAs($chair)
+        ->post(route('groups.shift-kinds.store', ['group' => $group]), ['name' => 'Desk'])
+        ->assertForbidden();
+
+    expect(ShiftKind::count())->toBe(0);
+});
+
+it('refuses the super-tier a Settings write on an archived Group', function () {
+    $group = Group::factory()->program()->publicListing()->archived()->create(['reminder_lead_days' => 5]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch(route('groups.reminders.update', ['group' => $group]), ['reminders_enabled' => false, 'reminder_lead_days' => 3])
+        ->assertForbidden();
+
+    expect($group->fresh()->reminder_lead_days)->toBe(5);
+});

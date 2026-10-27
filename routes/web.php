@@ -7,6 +7,7 @@ use App\Http\Controllers\BookingEarnedController;
 use App\Http\Controllers\BookingMailController;
 use App\Http\Controllers\BookingTypeController;
 use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\DmvSettingsController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentDownloadLogController;
@@ -77,7 +78,7 @@ Route::group([
         'calendar', 'documents', 'profile', 'renew',
         // Zone C — officer/admin
         'officer.members', 'officer.communications', 'officer.reports',
-        'officer.flash-messages', 'officer.settings',
+        'officer.flash-messages',
     ];
 
     foreach ($stubRoutes as $name) {
@@ -85,6 +86,19 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // DMV Settings (#841, PRD #836, ADR-0036 §3): the super-tier's page for the org's Group
+    // structure and Stewardships. Two sections, each a route (/officer/settings ↔
+    // /fr/officier/parametres carries the Groups tree; /officer/settings/stewardships ↔
+    // /fr/officier/parametres/intendances), plus one Group's structure form. All three gate on
+    // `administer-groups`, which denies everyone but the super-tier Gate::before short-circuit.
+    // Replaces the earlier ComingSoon stub for `officer.settings`.
+    Route::get(LaravelLocalization::transRoute('routes.officer.settings'), [DmvSettingsController::class, 'groups'])
+        ->middleware('auth')->name('officer.settings');
+    Route::get(LaravelLocalization::transRoute('routes.officer.settings.stewardships'), [DmvSettingsController::class, 'stewardships'])
+        ->middleware('auth')->name('officer.settings.stewardships');
+    Route::get(LaravelLocalization::transRoute('routes.officer.settings.group'), [DmvSettingsController::class, 'group'])
+        ->middleware('auth')->name('officer.settings.group');
 
     // Help centre (#517, PRD #516, ADR-0025). The reader's two surfaces: the index of
     // sections and articles, and one article rendered from its Markdown file. Both are
@@ -335,6 +349,14 @@ Route::put('members/{member}/no-email-flag', NoEmailFlagController::class)
     ->middleware(['auth'])
     ->name('members.no-email-flag.update');
 
+// DMV Settings › Stewardships write seam (#846, ADR-0036 §7). Replaces one stewardship's
+// holder Groups. Super-tier only via `administer-groups` in the UpdateStewardshipRequest.
+// Only the two live stewardships route; statistics and website stay hidden.
+Route::put('officer/settings/stewardships/{function}', [DmvSettingsController::class, 'updateStewardship'])
+    ->whereIn('function', ['member_admin', 'org_mail'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.stewardships.update');
+
 // News feed mutations (#155, ADR-0017 §5). The non-localized write seam: posting,
 // editing, and deleting are each structurally authorized in their Form Request,
 // which delegates to the NewsPolicy — a news-editor of the posting Group, only
@@ -358,6 +380,29 @@ Route::delete('news/{news}', [NewsController::class, 'destroy'])
 Route::patch('groups/{group}', [GroupController::class, 'update'])
     ->middleware(['auth'])
     ->name('groups.update');
+
+// DMV Settings write seams (PRD #836, ADR-0036 §4), non-localized; the localized reads are
+// `officer.settings*`. Create a Group (#842): name, slug, parent and kind; the rest starts at
+// its default. Authorized in StoreGroupRequest on the Group-less `administer-groups` ability.
+Route::post('officer/settings/groups', [DmvSettingsController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.groups.store');
+
+// Edit a Group's structure (#843, ADR-0036 §5): every field but the slug. Authorized in
+// UpdateGroupStructureRequest on `administer-groups`; refuses the root, Containers and archived Groups.
+Route::patch('officer/settings/groups/{group}', [DmvSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.groups.update');
+
+// Archive and unarchive a Group (#845, ADR-0036 §2). Authorized in ArchiveGroupRequest on
+// `administer-groups`; refuses the root and Containers, and archiving a stewardship holder.
+// There is no delete: a Group is archived, never removed.
+Route::patch('officer/settings/groups/{group}/archive', [DmvSettingsController::class, 'archive'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.groups.archive');
+Route::patch('officer/settings/groups/{group}/unarchive', [DmvSettingsController::class, 'unarchive'])
+    ->middleware(['auth'])
+    ->name('dmv-settings.groups.unarchive');
 
 // Group officer meetings CRUD (#193, PRD #186). The Group's own-data write seam:
 // adding, editing, and deleting meetings (with their agenda / minutes / report

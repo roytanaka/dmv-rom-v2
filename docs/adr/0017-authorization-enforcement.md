@@ -26,6 +26,8 @@ Gate::before(fn (Member $m) => $m->isAllDmv() ? true : null);
 
 `true` grants, `null` falls through (never `false`). Runs ahead of every gate and policy, so the org-wide tier is never re-checked. Accepted consequences: it bypasses the sign-up floor and any hypothetical "deny everyone" policy (both non-cases or handled outside the Gate system). _(Corollary, 2026-07-02: any capability that must **exclude** super-tier likewise cannot live in the Gate system — this short-circuit would re-grant it. The dev switcher's `support_operator` marker is the worked example; see §5.)_
 
+_(Amended 2026-10-25, [ADR-0036 §2](0036-group-administration.md): `Gate::before` now **does** return `false` in one case. For a Group-scoped write ability on an inactive Group (archived, or time-boxed past its end date) it returns `false` before the super-tier grant, so the super-tier is refused too. A policy cannot do this, because the grant above would short-circuit it. The allowlist of write abilities lives in `App\Support\Authorization\GroupWrites::WRITE_ABILITIES`; a new Group-scoped write ability must be added there, or an inactive Group will accept it.)_
+
 ### 2. Category → base tier (the floor)
 
 A new `AccessTier` enum (`Full` / `Limited` / `None`) plus **two independent predicates**, since view-access and sign-up-ability are orthogonal:

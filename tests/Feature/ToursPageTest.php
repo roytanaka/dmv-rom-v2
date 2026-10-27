@@ -159,7 +159,7 @@ it('404s when the Group runs no vetting, super-tier included', function () {
         ->assertInertia(fn (Assert $page) => $page->where('can.viewTours', false));
 });
 
-it('tells a Vetting officer to link Tour names to the by-Tour screens', function () {
+it('tells a Vetting officer to link Tour rows to the by-Tour screens', function () {
     $group = toursPageGroup();
     $vetting = toursPageMembershipOf($group, Role::Vetting)->member;
 
@@ -167,6 +167,22 @@ it('tells a Vetting officer to link Tour names to the by-Tour screens', function
         ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->where('can.manageTours', true));
+});
+
+it('puts every Tour holder in the hand-pick pool, so a row\'s Email button can seed them (Feedback item 84)', function () {
+    $group = toursPageGroup();
+    $vetting = toursPageMembershipOf($group, Role::Vetting)->member;
+    $birds = Tour::factory()->create(['group_id' => $group->id, 'name' => 'Birds']);
+    $holders = collect([MembershipStatus::Full, MembershipStatus::Trainee, MembershipStatus::Loa])
+        ->map(fn (MembershipStatus $status) => toursPageMembershipOf($group, status: $status));
+    $holders->each(fn (GroupMember $holder) => Qualification::factory()->create(['group_member_id' => $holder->id, 'tour_id' => $birds->id]));
+
+    $this->actingAs($vetting)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('tours.0.members', fn ($members) => collect($members)->pluck('memberId')->sort()->values()->all() === $holders->pluck('member_id')->sort()->values()->all())
+            ->where('email.roster', fn ($roster) => $holders->pluck('member_id')->diff(collect($roster)->pluck('id'))->isEmpty()));
 });
 
 it('serves the page under /fr/visites', function () {

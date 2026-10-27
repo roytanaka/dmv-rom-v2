@@ -7,10 +7,24 @@ Une visite est une visite précise, comme « Museum Highlights ». Un type de qu
 ## Voir qui donne chaque visite
 
 1. Ouvrez l'onglet **Visites** de votre groupe.
+2. Sélectionnez le nom d'une visite pour l'ouvrir.
 
-Chaque visite active a sa propre carte. La carte liste les membres qui donnent la visite et la date de leur dernière vérification. Tout membre peut donner une visite marquée **Ouverte à tous**, car elle ne demande aucune qualification.
+Chaque visite active a sa propre ligne. La ligne indique combien de membres donnent la visite. Quand vous ouvrez la ligne, elle liste ces membres et la date de leur dernière vérification. Sélectionnez le nom de nouveau pour fermer la ligne. Tout membre peut donner une visite marquée **Ouverte à tous**, car elle ne demande aucune qualification.
+
+Pour trouver une visite ou un membre, tapez une partie du nom dans la zone de recherche. La liste montre seulement les visites qui correspondent. Si le nom d'un membre correspond, sa visite s'ouvre et le nom est surligné.
 
 Seuls les membres actuels du groupe voient l'onglet **Visites**. Un membre démissionnaire, décédé ou inactif ne le voit pas.
+
+## Écrire aux membres qui donnent une visite
+
+Vous devez avoir le rôle de vérification ou de président·e.
+
+1. Ouvrez l'onglet **Visites** de votre groupe.
+2. Sélectionnez **Courriel** sur la ligne de la visite.
+3. Vérifiez les noms dans le champ **À**. Retirez ou ajoutez des personnes au besoin.
+4. Sélectionnez **Suivant**, puis rédigez et envoyez votre message.
+
+Une visite que personne ne donne n'a pas de bouton **Courriel**.
 
 ## Ajouter une visite
 
@@ -56,7 +70,8 @@ Les inscriptions et qualifications passées gardent une visite retirée.
 Une qualification indique qu'un membre peut donner une visite. Elle note aussi la date de sa dernière vérification.
 
 1. Ouvrez l'onglet **Visites** de votre groupe.
-2. Sélectionnez le nom d'une visite.
+2. Sélectionnez le nom d'une visite pour ouvrir sa ligne.
+3. Sélectionnez **Modifier les qualifications**.
 
 Vous pouvez aussi sélectionner le nom d'une visite sur la carte **Visites** de l'onglet **Paramètres**.
 

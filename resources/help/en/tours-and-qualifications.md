@@ -7,10 +7,24 @@ A Tour is one specific tour, such as "Museum Highlights". A shift kind is the sl
 ## See who gives each Tour
 
 1. Open your Group's **Tours** tab.
+2. Select a Tour's name to open it.
 
-Each active Tour has its own card. The card lists the Members who give the Tour and their last vet dates. Any Member can give a Tour marked **Open to all**, because it needs no qualification.
+Each active Tour has its own row. The row shows how many Members give the Tour. When you open the row, it lists those Members and their last vet dates. Select the name again to close the row. Any Member can give a Tour marked **Open to all**, because it needs no qualification.
+
+To find a Tour or a Member, type part of the name in the search box. The list shows only the Tours that match. If a Member's name matches, their Tour opens and the name is marked.
 
 Only current Members of the Group see the **Tours** tab. A Member who has resigned, died or gone inactive does not.
+
+## Email the Members who give a Tour
+
+You need the Vetting or Chair role.
+
+1. Open your Group's **Tours** tab.
+2. Select **Email** on the Tour's row.
+3. Check the names in the **To** field. Remove or add people if necessary.
+4. Select **Next**, then write and send your message.
+
+A Tour that no one gives has no **Email** button.
 
 ## Add a Tour
 
@@ -56,7 +70,8 @@ Past Sign-ups and qualifications keep a retired Tour.
 A qualification says a Member may give one Tour. It also records their last vet date.
 
 1. Open your Group's **Tours** tab.
-2. Select a Tour's name.
+2. Select a Tour's name to open its row.
+3. Select **Edit qualifications**.
 
 You can also select a Tour's name on the **Tours** card of the **Settings** tab.
 

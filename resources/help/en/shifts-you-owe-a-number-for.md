@@ -12,6 +12,8 @@ Find the past shifts that still need a visitor count from you.
 
 A shift on a date after today has no **Post-shift report** section yet.
 
+> **Tip:** Select the **My sign-ups** heading to close the panel. Select it again to open the panel.
+
 ## Record the count
 
 1. Go to the shift's **Post-shift report** section. Your form is already open there.

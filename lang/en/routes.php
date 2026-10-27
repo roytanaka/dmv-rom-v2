@@ -52,6 +52,9 @@ return [
     'officer.reports' => 'officer/reports',
     'officer.flash-messages' => 'officer/flash-messages',
     'officer.settings' => 'officer/settings',
+    // DMV Settings (#841, ADR-0036 §3): the Stewardships section and one Group's structure form.
+    'officer.settings.stewardships' => 'officer/settings/stewardships',
+    'officer.settings.group' => 'officer/settings/groups/{group}',
     // The Document download log (#754, ADR-0030): super-tier only, read-only.
     'officer.document-downloads' => 'officer/document-downloads',
 

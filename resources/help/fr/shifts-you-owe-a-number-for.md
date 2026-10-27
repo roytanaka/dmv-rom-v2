@@ -12,6 +12,8 @@ Trouvez les quarts passés qui attendent encore un nombre de visiteur·euses de 
 
 Un quart à une date après aujourd'hui n'a pas encore de section **Rapport après le quart**.
 
+> **Astuce :** Sélectionnez le titre **Mes inscriptions** pour fermer le panneau. Sélectionnez-le de nouveau pour ouvrir le panneau.
+
 ## Noter le nombre
 
 1. Allez à la section **Rapport après le quart** du quart. Votre formulaire y est déjà ouvert.

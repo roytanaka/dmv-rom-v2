@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\Category;
 use App\Enums\MeetingLinkKind;
+use App\Enums\Role;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Meeting;
@@ -57,6 +59,29 @@ it('shows the meetings list to the super-tier without membership', function () {
         ->get(route('groups.show', ['group' => $group, 'section' => 'meetings']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->has('meetings', 1));
+});
+
+it('opens the root DMV Group meetings to a listed Member with no stored root row', function () {
+    // Root-DMV membership is derived from Category, never stored (ADR-0020 §B, ADR-0036 §9):
+    // an Active Member with no memberships at all still reaches the org-wide meetings.
+    $root = Group::factory()->standingCommittee()->create(['slug' => Group::ROOT_SLUG, 'name' => 'DMV', 'has_meetings' => true]);
+    $meeting = Meeting::factory()->create(['group_id' => $root->id, 'title' => 'Annual general meeting']);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', ['group' => $root, 'section' => 'meetings']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.viewMeetings', true)
+            ->where('meetings', fn (Collection $meetings) => $meetings->contains('title', $meeting->title)));
+});
+
+it('withholds the root DMV Group meetings from a Member whose Category grants no listing', function () {
+    $root = Group::factory()->standingCommittee()->create(['slug' => Group::ROOT_SLUG, 'name' => 'DMV', 'has_meetings' => true]);
+    Meeting::factory()->create(['group_id' => $root->id]);
+
+    $this->actingAs(Member::factory()->category(Category::Provisional)->create())
+        ->get(route('groups.show', ['group' => $root, 'section' => 'meetings']))
+        ->assertForbidden();
 });
 
 it('forbids the meetings section on a Group that does not run meetings', function () {
@@ -199,4 +224,38 @@ it('withholds the Meetings tab hint on a Group that does not run meetings', func
     $this->actingAs(memberOf($group))
         ->get(route('groups.show', ['group' => $group]))
         ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', false));
+});
+
+// --- Inactive Groups are read-only (#839, ADR-0036 §2) ------------------------
+
+it('refuses a Chair a new meeting on an archived Group while the list still reads', function () {
+    $group = Group::factory()->workingGroup()->archived()->create();
+    $meeting = Meeting::factory()->create(['group_id' => $group->id]);
+    $chair = memberOf($group);
+    GroupMember::where(['group_id' => $group->id, 'member_id' => $chair->id])->sole()->roles()->create(['role' => Role::Chair]);
+
+    $this->actingAs($chair)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'meetings']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('meetings', 1)->where('can.createMeeting', false));
+
+    $this->actingAs($chair)
+        ->post(route('meetings.store', $group), ['title' => 'Too late', 'held_at' => '2026-07-01 14:00:00'])
+        ->assertForbidden();
+
+    $this->actingAs($chair)
+        ->delete(route('meetings.destroy', $meeting))
+        ->assertForbidden();
+
+    expect(Meeting::count())->toBe(1);
+});
+
+it('refuses the super-tier a new meeting on an expired time-boxed Group', function () {
+    $group = Group::factory()->workingGroup()->timeBoxed()->create(['end_date' => now()->subDay()->toDateString()]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->post(route('meetings.store', $group), ['title' => 'Too late', 'held_at' => '2026-07-01 14:00:00'])
+        ->assertForbidden();
+
+    expect(Meeting::count())->toBe(0);
 });

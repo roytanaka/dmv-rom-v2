@@ -20,17 +20,22 @@ use App\Models\Member;
  * The super-tier short-circuit lives in a single `Gate::before` (AppServiceProvider)
  * and is never re-checked here. The "no dependent records" precondition on a
  * hard-remove is a data-integrity invariant, not an authority question, so it lives
- * in the DeleteGroupMemberRequest (applying to the super-tier too), not here.
+ * in the DeleteGroupMemberRequest (applying to the super-tier too), not here. The
+ * root DMV Group's "no stored rows" invariant (ADR-0036 §9) is the same kind of
+ * thing: StoreGroupMemberRequest refuses it for everyone, super-tier included; the
+ * `create` rule below only closes the officer path.
  */
 class GroupMemberPolicy
 {
     /**
      * Who may add a member to a Group: a member who {@see Member::administers()} it
-     * (its Secretary or Chair).
+     * (its Secretary or Chair) — never on the root DMV Group, whose membership is
+     * derived from Category and never stored (ADR-0036 §9).
      */
     public function create(Member $actor, Group $group): bool
     {
-        return $actor->administers($group);
+        return ! $group->isRoot()
+            && $actor->administers($group);
     }
 
     /**

@@ -51,4 +51,26 @@ class GroupStewardship extends Model
     {
         return $this->belongsTo(Group::class);
     }
+
+    /**
+     * The Member who first assigned this stewardship to the Group (ADR-0036 §8); null
+     * for a seeded row.
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'created_by');
+    }
+
+    /**
+     * The Member who last saved this stewardship (ADR-0036 §8); null for a seeded row.
+     * The Stewardships page's "last changed" line reads it.
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'updated_by');
+    }
 }

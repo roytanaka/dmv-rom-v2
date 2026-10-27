@@ -36,6 +36,9 @@ class LocaleRouteSegmentsTest extends TestCase
                 // The Group Settings tab (#604, ADR-0027 §1) links to /groups/{slug}/settings,
                 // so its French twin rides the same word as Account settings.
                 ->where('routeSegments.fr.settings', 'parametres')
+                // DMV Settings' Stewardships section (#841, ADR-0036 §3):
+                // /officer/settings/stewardships → /fr/officier/parametres/intendances.
+                ->where('routeSegments.fr.stewardships', 'intendances')
         );
     }
 

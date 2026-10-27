@@ -38,7 +38,7 @@ Four entities, no strategies, no per-Group special cases.
 | `description` | optional                                                                  |
 | timestamps    |                                                                           |
 
-**No `YYYYMM`**, no monthly marker, no skip-dates, no `visible` flag separate from `state`, and **no `created_by`** — no model in this app carries one, and inventing an authorship convention for a single scheduling table would make it a one-off ([#334](https://github.com/roytanaka/dmv-rom-v2/issues/334) settles it app-wide).
+**No `YYYYMM`**, no monthly marker, no skip-dates, no `visible` flag separate from `state`, and **no `created_by`** — no model in this app carries one, and inventing an authorship convention for a single scheduling table would make it a one-off ([#334](https://github.com/roytanaka/dmv-rom-v2/issues/334) settles it app-wide). _Settled 2026-10-25 by [ADR-0036 §8](0036-group-administration.md): authorship is recorded as `created_by` / `updated_by` columns on a table whose screen shows it, starting with `groups` and `group_stewardships`; no audit log. Schedules stay without one._
 
 `name` and `description` are typed by an officer, so under [ADR-0004](0004-chrome-only-translation.md) they are **as-authored content**: one column, stored in the language written, **never translated**. The same rule covers a `ShiftKind`'s label.
 

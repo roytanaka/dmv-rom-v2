@@ -327,15 +327,11 @@ it('lets super-tier pick anything', function () {
 });
 
 it('offers a plain root member nothing and refuses the root Whole Group', function () {
-    // Every Member is enrolled in the root, so its roster is the whole department:
-    // its Audiences are org-wide and need the sender gate, not the bare membership
-    // rule (#506, ADR-0024 §5).
+    // Every listed Member belongs to the root by Category — never a stored row (ADR-0036
+    // §9) — so its roster is the whole department: its Audiences are org-wide and need
+    // the sender gate, not the bare membership rule (#506, ADR-0024 §5).
     $root = Group::where('slug', OrgTreeSeeder::ROOT)->firstOrFail();
     $plain = Member::factory()->create();
-    GroupMember::factory()->status(MembershipStatus::Full)->create([
-        'group_id' => $root->id,
-        'member_id' => $plain->id,
-    ]);
 
     expect(resolver()->available($plain, AudienceContext::group($root)))->toBeEmpty();
 
@@ -393,14 +389,11 @@ it('names the join reason for a non-member of a non-root Group', function () {
 });
 
 it('names the org-wide-sender reason for a plain member of the root', function () {
-    // Every Member is enrolled in the root, so its Audiences are org-wide and need the
-    // sender gate; a plain member picks nothing and the reason names that gate.
+    // Every listed Member belongs to the root by Category, never a stored row (ADR-0036 §9),
+    // so its Audiences are org-wide and need the sender gate; a plain member picks nothing
+    // and the reason names that gate.
     $root = Group::where('slug', OrgTreeSeeder::ROOT)->firstOrFail();
     $plain = Member::factory()->create();
-    GroupMember::factory()->status(MembershipStatus::Full)->create([
-        'group_id' => $root->id,
-        'member_id' => $plain->id,
-    ]);
 
     expect(resolver()->emptyReason($plain, AudienceContext::group($root)))
         ->toBe('not_org_wide_sender');

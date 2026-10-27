@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Category;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Models\Group;
@@ -130,6 +131,25 @@ it('renders an archived Group directly but flags it archived', function () {
         ->assertInertia(fn (Assert $page) => $page->where('group.archived', true));
 });
 
+it('renders an archived Group to the super-tier with its archived badge and no edit hint (#839)', function () {
+    $group = Group::factory()->archived()->create(['description' => 'Once upon a time.']);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', $group))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('groups/Show')
+            ->where('group.archived', true)
+            ->where('can.update', false)
+            ->where('overview.description', 'Once upon a time.'));
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch(route('groups.update', $group), ['description' => 'Rewritten.'])
+        ->assertForbidden();
+
+    expect($group->fresh()->description)->toBe('Once upon a time.');
+});
+
 it('lists active child Groups but never an archived child', function () {
     $parent = Group::factory()->create();
     $active = Group::factory()->create(['parent_id' => $parent->id, 'name' => 'Digital Working Group']);
@@ -169,15 +189,12 @@ it('surfaces the Group leadership by role, names and profile ids', function () {
 
 it('surfaces the executive as the root Group leadership instead of a Chair', function () {
     // The root DMV Group is the exception: no Chair. Its leadership is the super-tier
-    // executive, surfaced by authority. A root Group with a super-tier member and,
-    // to prove role rows are ignored there, an ordinary member carrying a Chair role.
-    $root = Group::factory()->standingCommittee()->create(['parent_id' => null, 'name' => 'DMV']);
+    // executive, surfaced by org authority — root membership is derived, never a stored
+    // row (ADR-0036 §9), so the President holds no membership here. To prove role rows
+    // are ignored on the root, an ordinary member carries a (legacy) Chair row.
+    $root = Group::factory()->standingCommittee()->create(['slug' => Group::ROOT_SLUG, 'name' => 'DMV']);
 
     $president = Member::factory()->superTier()->create(['first_name' => 'Margaret', 'last_name' => 'Chen']);
-    GroupMember::factory()->status(MembershipStatus::Full)->create([
-        'group_id' => $root->id,
-        'member_id' => $president->id,
-    ]);
 
     $chair = Member::factory()->create();
     $chairMembership = GroupMember::factory()->status(MembershipStatus::Full)->create([
@@ -196,6 +213,21 @@ it('surfaces the executive as the root Group leadership instead of a Chair', fun
                     && ! in_array(Role::Chair->value, $roles, true)
                     && $leadership->firstWhere('member_id', $chair->id) === null;
             }));
+});
+
+it('counts the Directory as the root Group facts-card membership', function () {
+    // The root's Roster is the Directory (ADR-0020 §B): listed Categories count, the
+    // departed and the not-yet-activated do not, and no stored row is consulted.
+    $root = Group::factory()->standingCommittee()->create(['slug' => Group::ROOT_SLUG, 'name' => 'DMV']);
+    Member::factory()->count(2)->create();
+    Member::factory()->category(Category::Loa)->create();
+    Member::factory()->category(Category::Resigned)->create();
+    Member::factory()->category(Category::Provisional)->create();
+
+    // The viewer is Active too, so four listed Members in all.
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $root))
+        ->assertInertia(fn (Assert $page) => $page->where('overview.facts.member_count', 4));
 });
 
 it('counts living members in the facts card, excluding the departed', function () {
