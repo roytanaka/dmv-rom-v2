@@ -9,13 +9,14 @@
 // Screenshots (#678, §9): up to 3 images, through the shared image control
 // (`FeedbackImagePicker`): the file picker, a drop, or a paste anywhere in the form.
 //
-// "Email me updates" (#857, §15): ticking the box shows a required email field, remembered
-// in the browser like the name. After the send, the dialog says where the updates go.
+// "Email me updates" (#857, §15, `FeedbackFollowFields`): ticking the box shows a required
+// email field, remembered in the browser like the name. After the send, the dialog says where
+// the updates go.
+import FeedbackFollowFields from '@/components/FeedbackFollowFields.vue';
 import FeedbackImagePicker from '@/components/FeedbackImagePicker.vue';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -167,23 +168,12 @@ function submit(): void {
                     :list-label="trans('feedback.screenshots.list')"
                     :server-errors="serverFileErrors"
                 />
-                <Label class="flex items-center gap-2 font-normal">
-                    <Checkbox id="feedback-follow" v-model:checked="form.follow" />
-                    {{ trans('feedback.follow.checkbox') }}
-                </Label>
-                <div v-if="form.follow" class="grid gap-2">
-                    <Label for="feedback-follower-email">{{ trans('feedback.follow.email') }}</Label>
-                    <Input
-                        id="feedback-follower-email"
-                        v-model="form.follower_email"
-                        type="email"
-                        required
-                        maxlength="254"
-                        autocomplete="email"
-                        :aria-invalid="form.errors.follower_email ? true : undefined"
-                    />
-                    <InputError :message="form.errors.follower_email" />
-                </div>
+                <FeedbackFollowFields
+                    v-model:follow="form.follow"
+                    v-model:email="form.follower_email"
+                    id-prefix="feedback"
+                    :error="form.errors.follower_email"
+                />
 
                 <DialogFooter class="items-center gap-4 sm:justify-between">
                     <TextLink :href="href" @click="open = false">{{ trans('feedback.dialog.see_all') }}</TextLink>
