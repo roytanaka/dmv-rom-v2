@@ -69,8 +69,12 @@ A person trying out the app before **Cutover**, on staging or **Beta**, and send
 _Avoid_: using "Member" or "user" for this person — the Member on the request may be a **Persona** the Tester is impersonating.
 
 **Feedback item**:
-One thing a **Tester** sends from staging or **Beta**: a bug, a feature request, a translation problem, a legacy feature that is missing, something confusing, or other. On staging, every Tester can read every Feedback item and comment on it; Beta items, which can show real Member data, are read only by the **Support-operator**, who also sets each item's status.
+One thing a **Tester** sends from staging or **Beta**: a bug, a feature request, a translation problem, a legacy feature that is missing, something confusing, or other. On staging, every Tester can read every Feedback item and comment on it. Beta items can show real Member data: a Tester reads only their own, super-tier reads all of them, and only the **Support-operator** sets status or deletes.
 _Avoid_: "report" (taken by Officer reports and the post-shift report), "issue" and "ticket" (GitHub issues, where the work is tracked), "bug" for the whole set (a bug is one type).
+
+**Follower**:
+An email address that gets an email when a **Feedback item** gets a new comment. A status change alone sends nothing. A **Tester** becomes a Follower by ticking a box when they send the item or comment on it, and stops with the link in any of those emails. On staging the Tester types the address; on **Beta** it is their account's email.
+_Avoid_: "subscriber", "watcher"; "notification" (retired); calling these emails **Notices** (a Notice goes to Members about Members, a Follower is only an address).
 
 **Legacy app**:
 The old DMV-ROM app that this rebuild replaces. It is the system of record until **Cutover**, and afterwards a read-only archive ([ADR-0035](docs/adr/0035-beta-and-cutover.md)).
