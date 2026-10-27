@@ -197,6 +197,61 @@ it('sends a guest to login from the item page and the comment route', function (
     expect(FeedbackComment::count())->toBe(0);
 });
 
+// --- Beta reads (ADR-0035 §8, amended 2026-10-27) ---------------------------
+// On Beta the app knows the Tester by their account. The predicate is off until the Beta
+// spec adds its setting, so these tests force it on.
+
+it('lets a Tester on Beta open their own item, and refuses another Tester\'s', function () {
+    $this->forceAccountIdentity();
+    $tester = Member::factory()->create(['email' => 'pat@dmv.test']);
+    $own = FeedbackItem::factory()->create(['member_email' => 'pat@dmv.test']);
+    $other = FeedbackItem::factory()->create(['member_email' => 'sam@dmv.test']);
+
+    $this->actingAs($tester);
+
+    $this->get("/feedback/{$own->id}")->assertOk();
+    $this->get("/feedback/{$other->id}")->assertForbidden();
+});
+
+it('lets a Tester on Beta comment on their own item, and refuses another Tester\'s', function () {
+    $this->forceAccountIdentity();
+    $own = FeedbackItem::factory()->create(['member_email' => 'pat@dmv.test']);
+    $other = FeedbackItem::factory()->create(['member_email' => 'sam@dmv.test']);
+
+    $this->actingAs(Member::factory()->create(['email' => 'pat@dmv.test']));
+
+    $this->post("/feedback/{$own->id}/comments", ['tester_name' => 'Pat', 'body' => 'Here is more.'])
+        ->assertSessionHasNoErrors();
+    $this->post("/feedback/{$other->id}/comments", ['tester_name' => 'Pat', 'body' => 'Sneaky.'])
+        ->assertForbidden();
+
+    expect($own->comments()->count())->toBe(1)
+        ->and($other->comments()->count())->toBe(0);
+});
+
+it('lists only a Tester\'s own items on Beta', function () {
+    $this->forceAccountIdentity();
+    $own = FeedbackItem::factory()->create(['member_email' => 'pat@dmv.test']);
+    FeedbackItem::factory()->create(['member_email' => 'sam@dmv.test']);
+
+    $this->actingAs(Member::factory()->create(['email' => 'pat@dmv.test']))
+        ->get('/feedback')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('items', 1)
+            ->where('items.0.id', $own->id));
+});
+
+it('lists every item, and opens another Tester\'s, when the app does not use account identity', function () {
+    $other = FeedbackItem::factory()->create(['member_email' => 'sam@dmv.test']);
+    FeedbackItem::factory()->create(['member_email' => 'kim@dmv.test']);
+
+    $this->actingAs(Member::factory()->create(['email' => 'pat@dmv.test']));
+
+    $this->get('/feedback')->assertInertia(fn (Assert $page) => $page->has('items', 2));
+    $this->get("/feedback/{$other->id}")->assertOk();
+});
+
 // --- Production hard-off (two-layer environment boundary) -------------------
 
 it('does not register the item and comment routes in production (route layer)', function () {

@@ -222,6 +222,24 @@ it('refuses both the inline and the download request when the policy denies', fu
     $this->get("/feedback/screenshots/{$screenshot->id}?download=1")->assertForbidden();
 });
 
+it('serves a Tester on Beta the screenshots of their own items only', function () {
+    $this->forceAccountIdentity();
+    $own = FeedbackScreenshot::factory()
+        ->for(FeedbackItem::factory()->state(['member_email' => 'pat@dmv.test']))
+        ->create();
+    $other = FeedbackScreenshot::factory()
+        ->for(FeedbackItem::factory()->state(['member_email' => 'sam@dmv.test']))
+        ->create();
+    Storage::disk('local')->put($own->storage_path, 'png-bytes');
+    Storage::disk('local')->put($other->storage_path, 'png-bytes');
+
+    $this->actingAs(Member::factory()->create(['email' => 'pat@dmv.test']));
+
+    $this->get("/feedback/screenshots/{$own->id}")->assertOk();
+    $this->get("/feedback/screenshots/{$other->id}")->assertForbidden();
+    $this->get("/feedback/screenshots/{$other->id}?download=1")->assertForbidden();
+});
+
 it('serves the French item page and download at /fr/retroaction', function () {
     $screenshot = FeedbackScreenshot::factory()->create(['original_filename' => 'capture.png']);
     Storage::disk('local')->put($screenshot->storage_path, 'png-bytes');

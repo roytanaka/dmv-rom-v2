@@ -304,6 +304,24 @@ it('refuses both the inline and the download request when the policy denies', fu
     $this->get("/feedback/comment-images/{$image->id}?download=1")->assertForbidden();
 });
 
+it('serves a Tester on Beta the comment images of their own items only', function () {
+    $this->forceAccountIdentity();
+    $own = FeedbackCommentImage::factory()
+        ->for(FeedbackComment::factory()->for(FeedbackItem::factory()->state(['member_email' => 'pat@dmv.test'])))
+        ->create();
+    $other = FeedbackCommentImage::factory()
+        ->for(FeedbackComment::factory()->for(FeedbackItem::factory()->state(['member_email' => 'sam@dmv.test'])))
+        ->create();
+    Storage::disk('local')->put($own->storage_path, 'png-bytes');
+    Storage::disk('local')->put($other->storage_path, 'png-bytes');
+
+    $this->actingAs(Member::factory()->create(['email' => 'pat@dmv.test']));
+
+    $this->get("/feedback/comment-images/{$own->id}")->assertOk();
+    $this->get("/feedback/comment-images/{$other->id}")->assertForbidden();
+    $this->get("/feedback/comment-images/{$other->id}?download=1")->assertForbidden();
+});
+
 it('serves a comment image at its French twin', function () {
     $image = FeedbackCommentImage::factory()->create(['original_filename' => 'capture.png']);
     Storage::disk('local')->put($image->storage_path, 'png-bytes');
