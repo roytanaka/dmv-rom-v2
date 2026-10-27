@@ -13,6 +13,7 @@ use App\Models\Member;
 use App\Personas\Persona;
 use App\Personas\PersonaCatalogue;
 use App\Support\AppVersion;
+use App\Support\FeedbackIdentity;
 use App\Support\RouteSegments;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
@@ -112,6 +113,9 @@ class HandleInertiaRequests extends Middleware
             // bootstrap/app.php); seeding it here lets the rail render expanded
             // or collapsed on first paint without a flash. Defaults to open.
             'sidebarOpen' => $request->cookie('sidebar:state') !== 'false',
+            // Whether the Feedback forms follow with the account's email (Beta, #861, ADR-0029
+            // §15): when true, "Email me updates" is a checkbox alone, with no email field.
+            'feedbackUsesAccountIdentity' => FeedbackIdentity::usesAccountIdentity(),
             // Flashed one-shot output that must survive a redirect into the next page's
             // props (#362 / #363, PRD #352). A bulk Shift or Sign-up run is N single writes
             // plus a report: the controller flashes `shiftsBulk` / `assignmentsBulk` — how

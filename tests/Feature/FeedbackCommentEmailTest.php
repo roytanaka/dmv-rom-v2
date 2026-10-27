@@ -261,3 +261,41 @@ it('emails a French Follower in French, with French links', function () {
         return true;
     });
 });
+
+// --- Beta: the account's email (#861) ------------------------------------------
+
+it('on Beta, sends the commenter no email about their own comment, matched on the account’s email, ticked or not', function (array $follow) {
+    $this->forceAccountIdentity();
+    $member = Member::factory()->create(['email' => 'Pat@Example.com']);
+    $item = FeedbackItem::factory()->create(['member_email' => $member->email]);
+    $item->follow('pat@example.com', 'en');
+    $item->follow('lee@example.com', 'en');
+
+    $this->actingAs($member)
+        ->post("/feedback/{$item->id}/comments", commentPayload($follow))
+        ->assertSessionHasNoErrors();
+
+    Mail::assertSentCount(1);
+    Mail::assertSent(FeedbackCommentPosted::class, fn (FeedbackCommentPosted $mail) => $mail->hasTo('lee@example.com'));
+})->with([
+    'box not ticked' => [[]],
+    'box ticked, with someone else’s address typed' => [['follow' => true, 'follower_email' => 'lee@example.com']],
+]);
+
+it('on Beta, follows from a comment with the account’s email and ignores a typed one', function () {
+    $this->forceAccountIdentity();
+    $member = Member::factory()->create(['email' => 'Pat@Example.com']);
+    $item = FeedbackItem::factory()->create(['member_email' => $member->email]);
+
+    $this->actingAs($member)
+        ->from("/feedback/{$item->id}")
+        ->post("/feedback/{$item->id}/comments", commentPayload(['follow' => true, 'follower_email' => 'not an email']))
+        ->assertSessionHasNoErrors();
+
+    expect($item->followers()->sole()->email)->toBe('pat@example.com');
+    Mail::assertSentCount(1);
+    Mail::assertSent(FeedbackFollowing::class, fn (FeedbackFollowing $mail) => $mail->hasTo('pat@example.com'));
+
+    $this->get("/feedback/{$item->id}")
+        ->assertInertia(fn (Assert $page) => $page->where('flash.feedbackFollowing', 'pat@example.com'));
+});

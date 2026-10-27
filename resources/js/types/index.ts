@@ -181,6 +181,8 @@ export interface SharedData {
     } | null;
     /** Persisted sidebar open state, seeded from the `sidebar:state` cookie. */
     sidebarOpen: boolean;
+    /** Feedback follows with the account's email (Beta, #861): the forms ask for no email. */
+    feedbackUsesAccountIdentity: boolean;
     /**
      * Flashed one-shot output that survives a redirect (#362 / #363, PRD #352). A bulk
      * Shift or Sign-up run is N single writes plus a report; the controller flashes it and

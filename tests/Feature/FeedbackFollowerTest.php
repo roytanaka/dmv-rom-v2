@@ -272,3 +272,40 @@ it('keeps one Follower and sends no second receipt for the same address in anoth
         ->email->toBe('pat@example.com')
         ->locale->toBe('en');
 });
+
+// --- Beta: the account's email (#861) ------------------------------------------
+
+it('on Beta, follows with the account’s email, trimmed and lowercased, and ignores a typed one', function (array $typed) {
+    $this->forceAccountIdentity();
+
+    $this->actingAs(Member::factory()->create(['email' => ' Pat.Tester@Example.COM ']))
+        ->from('/feedback')
+        ->post('/feedback', followPayload($typed))
+        ->assertRedirect('/feedback')
+        ->assertSessionHasNoErrors();
+
+    $item = FeedbackItem::sole();
+
+    expect($item->followers()->sole()->email)->toBe('pat.tester@example.com');
+    Mail::assertSentCount(1);
+    Mail::assertSent(FeedbackFollowing::class, fn (FeedbackFollowing $mail) => $mail->hasTo('pat.tester@example.com'));
+
+    $this->get('/feedback')
+        ->assertInertia(fn (Assert $page) => $page->where('flash.feedbackFollowing', 'pat.tester@example.com'));
+})->with([
+    'a typed address' => [['follower_email' => 'someone.else@example.com']],
+    'an invalid typed address' => [['follower_email' => 'not an email']],
+    'no address' => [['follower_email' => null]],
+]);
+
+it('tells the forms whether to ask for an email: on staging yes, on Beta no', function () {
+    $this->actingAs(Member::factory()->create());
+
+    $this->get('/feedback')
+        ->assertInertia(fn (Assert $page) => $page->where('feedbackUsesAccountIdentity', false));
+
+    $this->forceAccountIdentity();
+
+    $this->get('/feedback')
+        ->assertInertia(fn (Assert $page) => $page->where('feedbackUsesAccountIdentity', true));
+});
