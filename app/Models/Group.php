@@ -8,20 +8,21 @@ use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\Role;
-use App\Enums\Scope;
 use App\Enums\StewardshipFunction;
 use App\Support\Audiences\AudienceResolver;
+use Carbon\CarbonInterface;
 use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Collection;
 
 /**
  * The spine's organizing entity (ADR-0010): every committee, program, working
- * group, project, and cohort is a Group. Kind / Scope / Lifecycle are stored
+ * group, project, and cohort is a Group. Kind / Lifecycle are stored
  * explicitly; the six capability flags switch features on per Group.
  */
 class Group extends Model
@@ -46,6 +47,30 @@ class Group extends Model
      */
     public const EXECUTIVE_SLUG = 'executive';
 
+    /** The six capability flags: each switches a feature on for the Group (ADR-0010). */
+    public const CAPABILITY_FLAGS = [
+        'has_meetings', 'has_documents', 'has_scheduling', 'has_vetting', 'has_announcements', 'has_bookings',
+    ];
+
+    /** The visitor-figure collection flags (ADR-0036 §5). */
+    public const COLLECTION_FLAGS = [
+        'collects_visitor_count', 'collects_extra_interactions', 'collects_visitor_provenance', 'visitor_figures_await_booking',
+    ];
+
+    /**
+     * The relation holding the records behind each capability (#844): turning the capability
+     * off hides them; nothing is deleted. The DMV Settings form counts them, and labels each
+     * count by its relation name (`dmv_settings.count.<relation>`).
+     */
+    public const CAPABILITY_RECORDS = [
+        'has_meetings' => 'meetings',
+        'has_documents' => 'documents',
+        'has_scheduling' => 'shifts',
+        'has_vetting' => 'tours',
+        'has_announcements' => 'news',
+        'has_bookings' => 'bookings',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -59,7 +84,6 @@ class Group extends Model
         'banner_key',
         'logo_key',
         'kind',
-        'scope',
         'listing_visibility',
         'lifecycle_state',
         'time_boxed',
@@ -88,6 +112,8 @@ class Group extends Model
         'group_tour_shift_kind_id',
         'group_tour_label',
         'booking_copy_email',
+        'created_by',
+        'updated_by',
     ];
 
     /**
@@ -101,7 +127,6 @@ class Group extends Model
             'banner_key' => GroupBanner::class,
             'logo_key' => GroupLogo::class,
             'kind' => Kind::class,
-            'scope' => Scope::class,
             'listing_visibility' => ListingVisibility::class,
             'lifecycle_state' => LifecycleState::class,
             'time_boxed' => 'boolean',
@@ -146,6 +171,26 @@ class Group extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Group::class, 'parent_id');
+    }
+
+    /**
+     * The Member who created this Group in DMV Settings (ADR-0036 §8); null for seeded Groups.
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'created_by');
+    }
+
+    /**
+     * The Member who last changed this Group's structure in DMV Settings (ADR-0036 §8).
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'updated_by');
     }
 
     /**
@@ -240,6 +285,28 @@ class Group extends Model
     public function schedules(): HasMany
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    /**
+     * The Shifts on this Group's Schedules — the records its `has_scheduling` capability keeps
+     * reachable (counted on the DMV Settings structure form, #844).
+     *
+     * @return HasManyThrough<Shift, Schedule, $this>
+     */
+    public function shifts(): HasManyThrough
+    {
+        return $this->hasManyThrough(Shift::class, Schedule::class);
+    }
+
+    /**
+     * The News posts this Group published — read and written only while its
+     * `has_announcements` capability is on.
+     *
+     * @return HasMany<News, $this>
+     */
+    public function news(): HasMany
+    {
+        return $this->hasMany(News::class, 'posting_group_id');
     }
 
     /**
@@ -412,6 +479,51 @@ class Group extends Model
         }
 
         return $this->end_date->startOfDay()->gte(now()->startOfDay());
+    }
+
+    /** Whether the Group has been archived (ADR-0036 §2). An expired Group is inactive, not archived. */
+    public function isArchived(): bool
+    {
+        return $this->lifecycle_state === LifecycleState::Archived;
+    }
+
+    /**
+     * A lapsed time-boxed Group's end date (the Ended badge): null while it runs, when it has
+     * no end date, or when it is not time-boxed.
+     */
+    public function endedOn(): ?CarbonInterface
+    {
+        $expired = $this->time_boxed && $this->end_date !== null
+            && $this->end_date->startOfDay()->lt(now()->startOfDay());
+
+        return $expired ? $this->end_date : null;
+    }
+
+    /**
+     * Whether DMV Settings gives the Group a structure form (ADR-0036 §3): every Group but the
+     * root and Containers.
+     */
+    public function isStructurallyEditable(): bool
+    {
+        return ! $this->isRoot() && $this->kind !== Kind::Container;
+    }
+
+    /**
+     * How many records sit behind each capability that is on, keyed by flag (#844). One query:
+     * a count subselect per relation.
+     *
+     * @return array<string, int>
+     */
+    public function capabilityRecordCounts(): array
+    {
+        $on = array_filter(self::CAPABILITY_RECORDS, fn (string $relation, string $flag) => (bool) $this->{$flag}, ARRAY_FILTER_USE_BOTH);
+        if ($on === []) {
+            return [];
+        }
+
+        $this->loadCount(array_values($on));
+
+        return array_map(fn (string $relation) => (int) $this->{"{$relation}_count"}, $on);
     }
 
     /**

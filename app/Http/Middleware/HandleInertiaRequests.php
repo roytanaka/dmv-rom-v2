@@ -345,7 +345,7 @@ class HandleInertiaRequests extends Middleware
             ['key' => 'communications', 'route' => 'officer.communications', 'labelKey' => 'nav.officer.communications', 'gate' => 'post-news'],
             ['key' => 'reports', 'route' => 'officer.reports', 'labelKey' => 'nav.officer.reports'],
             ['key' => 'flash-messages', 'route' => 'officer.flash-messages', 'labelKey' => 'nav.officer.flash_messages'],
-            ['key' => 'settings', 'route' => 'officer.settings', 'labelKey' => 'nav.officer.dmv_settings'],
+            ['key' => 'settings', 'route' => 'officer.settings', 'labelKey' => 'nav.officer.dmv_settings', 'gate' => 'administer-groups'],
             ['key' => 'document-downloads', 'route' => 'officer.document-downloads', 'labelKey' => 'nav.officer.document_downloads', 'gate' => 'view-document-downloads'],
             ['key' => 'mail-status', 'href' => route('mail-status', absolute: false), 'labelKey' => 'nav.officer.mail_status', 'gate' => 'view-mail-status'],
             ['key' => 'help-status', 'href' => route('help-status', absolute: false), 'labelKey' => 'nav.officer.help_status', 'gate' => 'view-help-ledger'],
@@ -402,8 +402,13 @@ class HandleInertiaRequests extends Middleware
         $belonged = $member->memberships
             ->filter(fn (GroupMember $membership) => $membership->status->countsAsBelonging())
             ->map(fn (GroupMember $membership) => $membership->group)
-            // The org root appears as a leaf via dmvNode(); exclude it from the membership path.
+            // The org root appears as a leaf via dmvNode(). Root membership is never stored
+            // (ADR-0036 §9) — the seeder writes no root rows and the roster endpoint refuses
+            // one — so this only guards the role-bearing fixture row a root Chair can hold.
             ->reject(fn (Group $group) => $group->slug === Group::ROOT_SLUG)
+            // An inactive Group leaves the rail (ADR-0036 §2, PRD #836 story 41): archived, or
+            // time-boxed and past its end. Unarchiving or new dates bring it back.
+            ->reject(fn (Group $group) => ! $group->isActive())
             ->unique('id')
             ->values();
 
@@ -521,10 +526,10 @@ class HandleInertiaRequests extends Middleware
         // root is dropped as a node regardless (only its children become the container peers),
         // but a Member with a stored root-DMV membership row would otherwise have the root
         // pruned out from under the traversal — orphaning every peer and hiding Other Groups
-        // whole. Root-DMV membership is meant to be derived from `Category`, not stored
-        // (ADR-0020 §B; myGroups() rejects the ROOT_SLUG row and re-adds the derived node the
-        // same way), but seed/legacy rows exist, so the builder must not depend on the root
-        // surviving the own-Groups prune. The prune still shapes the browsable subtree below.
+        // whole. Root-DMV membership is derived from `Category`, never stored (ADR-0020 §B,
+        // ADR-0036 §9; myGroups() derives the DMV node the same way), so the only such row is
+        // a role-bearing fixture row (a root Chair) — the builder still must not depend on the
+        // root surviving the own-Groups prune. The prune still shapes the browsable subtree below.
         $roots = $visible->whereNull('parent_id');
         $browse = $this->pruneOwnGroups($member, $visible);
         $byParent = $browse->groupBy(fn (Group $group) => $group->parent_id);

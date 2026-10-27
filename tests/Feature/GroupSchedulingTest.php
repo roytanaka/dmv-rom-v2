@@ -696,3 +696,45 @@ it('carries the bulk-remove count into the page props via the shared flash prop'
         ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
         ->assertInertia(fn (Assert $page) => $page->where('flash.assignmentsBulk.removed', 1));
 });
+
+// --- Inactive Groups are read-only (#839, ADR-0036 §2) ------------------------
+
+it('refuses a Scheduler a new Schedule on an archived Group while the Scheduling tab still opens', function () {
+    $group = Group::factory()->program()->publicListing()->archived()->create();
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $scheduler = schedulingMemberOf($group, role: Role::Scheduler);
+
+    $this->actingAs($scheduler)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('section', 'scheduling')
+            ->where('can.createSchedule', false)
+            ->has('scheduling.schedules', 1));
+
+    $this->actingAs($scheduler)
+        ->post(route('schedules.store', $group), ['name' => 'August 2026', 'starts_on' => '2026-08-01', 'ends_on' => '2026-08-31'])
+        ->assertForbidden();
+
+    expect(Schedule::count())->toBe(1);
+});
+
+it('refuses a Scheduler a new Shift on an expired time-boxed Group while its Schedule still opens', function () {
+    $group = Group::factory()->program()->publicListing()->timeBoxed()->create(['end_date' => now()->subDay()->toDateString()]);
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    $scheduler = schedulingMemberOf($group, role: Role::Scheduler);
+
+    $this->actingAs($scheduler)
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertOk();
+
+    $this->actingAs($scheduler)
+        ->post(route('shifts.store', $schedule), [
+            'starts_at' => $schedule->starts_on->format('Y-m-d').' 10:00',
+            'ends_at' => $schedule->starts_on->format('Y-m-d').' 13:00',
+            'capacity' => 1,
+        ])
+        ->assertForbidden();
+
+    expect(Shift::count())->toBe(0);
+});

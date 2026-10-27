@@ -221,6 +221,33 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * Whether this Member belongs to the root DMV Group (ADR-0020 §B, ADR-0036 §9). Root
+     * membership is never a stored row: it is derived from the Member's DMV-wide Category —
+     * the same {@see Category::grantsDirectoryListing()} standing the Directory (the root's
+     * Roster) and the rail's DMV node resolve. The one predicate every root read gate asks.
+     */
+    public function isRootMember(): bool
+    {
+        return $this->category->grantsDirectoryListing();
+    }
+
+    /**
+     * Whether this Member belongs to a Group for a read gate: a stored membership in any
+     * other Group, or derived root membership ({@see isRootMember()}) in the root. Read
+     * gates that open to "a member of the Group" ask this rather than {@see membershipIn()}
+     * so the root — which stores no rows — opens to its derived roster. Standing-specific
+     * and role questions keep reading the stored row directly.
+     */
+    public function isMemberOf(Group $group): bool
+    {
+        if ($group->isRoot()) {
+            return $this->isRootMember();
+        }
+
+        return $this->membershipIn($group) !== null;
+    }
+
+    /**
      * The Tours this Member may give on a Shift (#790, ADR-0033 §6) — the one "may give" rule
      * every Tour-carrying write reads: of the Shift's offered Tours ({@see Shift::toursOffered()}),
      * those open to all, and those the Member holds an **active** qualification for in the

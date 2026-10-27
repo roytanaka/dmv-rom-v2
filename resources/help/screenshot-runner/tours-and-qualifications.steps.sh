@@ -16,4 +16,4 @@ act openMemberQualifications 03  # the by-Member screen: the Tours one Member gi
 act openAddQualification 04      # the Add dialog: the Tour picker and today's Last vet date
 nav /groups/docents/settings
 act showTourRules 05             # the Tour rules card: trainee Tour, starter Tours, LOA rule
-nav /groups/docents/tours 06     # the Tours tab (#792): each active Tour, who gives it, open-to-all marked
+nav /groups/docents/tours 06     # the Tours tab (#792): Tour rows, closed, with the search box and Email buttons

@@ -5,7 +5,6 @@ namespace Database\Factories;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
-use App\Enums\Scope;
 use App\Models\Group;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -33,7 +32,6 @@ class GroupFactory extends Factory
             'name' => $name,
             'description' => fake()->sentence(),
             'kind' => Kind::StandingCommittee,
-            'scope' => Scope::Organization,
             'listing_visibility' => ListingVisibility::Group,
             'lifecycle_state' => LifecycleState::Active,
             'time_boxed' => false,
@@ -59,7 +57,6 @@ class GroupFactory extends Factory
     {
         return $this->state(fn () => [
             'kind' => Kind::StandingCommittee,
-            'scope' => Scope::Organization,
             'has_meetings' => true,
             'has_documents' => true,
         ]);
@@ -75,7 +72,6 @@ class GroupFactory extends Factory
     {
         return $this->state(fn () => [
             'kind' => Kind::Container,
-            'scope' => Scope::Organization,
         ]);
     }
 
@@ -87,7 +83,6 @@ class GroupFactory extends Factory
     {
         return $this->state(fn () => [
             'kind' => Kind::Program,
-            'scope' => Scope::Program,
             'has_meetings' => true,
             'has_documents' => true,
             'has_scheduling' => true,
@@ -151,7 +146,6 @@ class GroupFactory extends Factory
     {
         return $this->state(fn () => [
             'kind' => Kind::WorkingGroup,
-            'scope' => Scope::Subteam,
             'has_meetings' => true,
             'has_documents' => true,
         ]);
@@ -164,7 +158,6 @@ class GroupFactory extends Factory
     {
         return $this->state(fn () => [
             'kind' => Kind::Project,
-            'scope' => Scope::Subteam,
             'has_meetings' => true,
             'has_documents' => true,
         ])->timeBoxed();
@@ -178,7 +171,6 @@ class GroupFactory extends Factory
     {
         return $this->state(fn () => [
             'kind' => Kind::Cohort,
-            'scope' => Scope::Program,
             'has_documents' => true,
             'has_scheduling' => true,
         ])->timeBoxed();

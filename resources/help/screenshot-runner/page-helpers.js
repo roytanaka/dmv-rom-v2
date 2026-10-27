@@ -856,6 +856,61 @@
         return clickAndSettle(menuItems().find((element) => /^move$/i.test(element.textContent.trim())));
     }
 
+    // ── DMV Settings › Stewardships (#846, ADR-0036 §7) ─────────────────────
+
+    // The Org-wide sender card: its holders, last change and tick rows.
+    function showOrgWideSender() {
+        return showCardTitled(/^org-wide sender/i);
+    }
+
+    // Tick the first Group not yet an org-wide sender, then wait for the server's preview of
+    // who gains the authority. A draft only: nothing saves until the card's Save.
+    async function previewOrgWideSender() {
+        const card = cardTitled(/^org-wide sender/i);
+        if (!card) return false;
+        scrollUnderStickyStrip(card, 16);
+        const box = card.querySelector('[role="checkbox"][data-state="unchecked"]');
+        return clickAndWaitFor(box, () => /Gain the authority \(\d+\)/.test(card.textContent));
+    }
+
+    // ── DMV Settings › Groups (#845, ADR-0036 §2-§5) ────────────────────────
+
+    // The button whose trimmed text matches `pattern`.
+    function buttonMatching(pattern) {
+        return Array.from(document.querySelectorAll('button')).find((element) => pattern.test(element.textContent.trim()));
+    }
+
+    // The tree's Create a Group dialog, opened through the button's DOM click() (Radix). Parent
+    // stays disabled until a section is chosen (#850), so choose Programs: Parent then enables on
+    // that section's subtree. The select is a native v-model, so fire `change`. Never submitted.
+    async function openCreateGroupDialog() {
+        if (!(await clickAndSettle(buttonMatching(/^create a group$/i)))) return false;
+        const select = document.getElementById('new-group-section');
+        const option = select && Array.from(select.options).find((element) => element.textContent.trim() === 'Programs');
+        if (!option) return false;
+        select.value = option.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        return settle();
+    }
+
+    // The structure form's Capabilities card, with its record counts.
+    function showCapabilities() {
+        return showCardTitled(/^capabilities/i);
+    }
+
+    // The Archive card at the end of the form, or the archived banner's Unarchive.
+    function showArchiveSection() {
+        const button = buttonMatching(/^(archive this group|unarchive)$/i);
+        if (!button) return false;
+        scrollUnderStickyStrip(button.closest('[data-slot="card"]') ?? button.closest('[role="status"]') ?? button, 16);
+        return settle();
+    }
+
+    // The archive confirmation. Shot only: the runner never confirms it.
+    function openArchiveConfirm() {
+        return clickAndSettle(buttonMatching(/^archive this group$/i));
+    }
+
     // ── Verify-run helpers (#807) ───────────────────────────────────────────
     // General-purpose helpers for an agent checking a branch with `/verify`
     // (.claude/skills/verify/SKILL.md), not tied to one help article.
@@ -981,5 +1036,11 @@
         openFolderEditDialog,
         openDocumentMenu,
         openMoveDocumentDialog,
+        showOrgWideSender,
+        previewOrgWideSender,
+        openCreateGroupDialog,
+        showCapabilities,
+        showArchiveSection,
+        openArchiveConfirm,
     };
 })();

@@ -21,12 +21,14 @@ class MeetingPolicy
     /**
      * Who may see a Group's meetings list: a member of the Group, and only while
      * the Group's meetings capability is on. The capability guard mirrors the
-     * NewsPolicy — there is nothing to list when the Group runs no meetings.
+     * NewsPolicy — there is nothing to list when the Group runs no meetings. On
+     * the root DMV Group membership is derived from Category, never a stored row
+     * (ADR-0036 §9), so every listed Member reaches the org-wide meetings.
      */
     public function viewAny(Member $actor, Group $group): bool
     {
         return $group->has_meetings
-            && $actor->membershipIn($group) !== null;
+            && $actor->isMemberOf($group);
     }
 
     /**

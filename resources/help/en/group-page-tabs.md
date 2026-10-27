@@ -22,7 +22,7 @@ The Group's meetings, with their agendas and minutes. This tab shows only when t
 
 ## Scheduling
 
-The Group's schedules and shifts. Sign up for a shift here. This tab shows only when the Group runs scheduling.
+The Group's schedules and shifts. Sign up for a shift here. This tab shows only when the Group runs scheduling. Select the **My sign-ups** heading to close or open that panel.
 
 ![The Scheduling tab: the My sign-ups panel at the top, with your own shifts](04.png)
 

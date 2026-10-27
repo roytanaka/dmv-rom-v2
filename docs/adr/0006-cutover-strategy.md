@@ -1,9 +1,11 @@
 ---
-status: accepted
+status: superseded by ADR-0035
 date: 2026-05-15
 ---
 
 # Cutover strategy (Phase 5 → 7)
+
+> **Superseded (2026-10-25, [ADR-0035](0035-beta-and-cutover.md)).** Read ADR-0035 instead. Parallel running moves from staging to a **Beta** production install that a nightly one-way import fills from the Legacy app. The first-login challenge checks the last 4 characters of the ROM membership number, because the Legacy app has no password hash. The Legacy app stays reachable at `legacy.dmv-rom.ca` behind a server password, with no end date, instead of being archived. ADR-0035 keeps the backups before the window, the maintenance page, the rollback window of about 4 hours, and "no patches to Legacy code".
 
 > Resolves the forward reference from [ADR-0001](0001-authentication-and-identity.md) for legacy credential migration. ADR-0004 is reserved for a held bilingual translation workflow ADR.
 

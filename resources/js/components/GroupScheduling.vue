@@ -37,6 +37,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,6 +62,7 @@ import {
     PhArrowLeft,
     PhBinoculars,
     PhCalendarBlank,
+    PhCaretRight,
     PhEye,
     PhEyeSlash,
     PhListBullets,
@@ -1022,28 +1024,47 @@ const runBulkAssign = (action: 'place' | 'remove') => {
              (not empty) when there is nothing to show, so it renders only when the list is
              non-empty. Each Shift is the shared ShiftCard, so a number is filed straight from
              here through the same seam as the Agenda. -->
-        <section v-if="mine.length" class="flex flex-col gap-2" :aria-label="trans('group.scheduling_panel.mine.aria_label')">
-            <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">{{ trans('group.scheduling_panel.mine.heading') }}</h3>
-            <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.mine.subtitle') }}</p>
-            <ShiftCard
-                v-for="shift in mine"
-                :key="shift.id"
-                :shift="shift"
-                show-date
-                :collects-visitor-count="collectsVisitorCount"
-                :collects-extra-interactions="collectsExtraInteractions"
-                :collects-visitor-provenance="collectsVisitorProvenance"
-                @take="take"
-                @drop="drop"
-                @substitute="openSubstitute"
-                @assign="openAssign"
-                @remove="removeSeat"
-                @change-tour="openChangeTour"
-                @edit="openShiftEdit"
-                @delete="destroyShift"
-                @record="record"
-            />
-        </section>
+        <!-- The panel collapses (#830) so a phone reaches the Schedule without scrolling past it.
+             It opens on every load, and the heading is the toggle. No inner scroll box: the
+             page keeps its one scroll. -->
+        <Collapsible
+            v-if="mine.length"
+            as="section"
+            default-open
+            class="group/mine flex flex-col gap-2"
+            :aria-label="trans('group.scheduling_panel.mine.aria_label')"
+        >
+            <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">
+                <CollapsibleTrigger
+                    class="hover:text-foreground focus-visible:ring-ring flex items-center gap-1.5 text-left uppercase transition-colors focus-visible:ring-2 focus-visible:outline-none pointer-coarse:min-h-11"
+                    :aria-label="trans('group.scheduling_panel.mine.toggle')"
+                >
+                    <PhCaretRight class="size-4 shrink-0 transition-transform group-data-[state=open]/mine:rotate-90" aria-hidden="true" />
+                    {{ trans('group.scheduling_panel.mine.heading') }}
+                </CollapsibleTrigger>
+            </h3>
+            <CollapsibleContent class="-mx-1 -mb-1 flex flex-col gap-2 px-1 pb-1">
+                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.mine.subtitle') }}</p>
+                <ShiftCard
+                    v-for="shift in mine"
+                    :key="shift.id"
+                    :shift="shift"
+                    show-date
+                    :collects-visitor-count="collectsVisitorCount"
+                    :collects-extra-interactions="collectsExtraInteractions"
+                    :collects-visitor-provenance="collectsVisitorProvenance"
+                    @take="take"
+                    @drop="drop"
+                    @substitute="openSubstitute"
+                    @assign="openAssign"
+                    @remove="removeSeat"
+                    @change-tour="openChangeTour"
+                    @edit="openShiftEdit"
+                    @delete="destroyShift"
+                    @record="record"
+                />
+            </CollapsibleContent>
+        </Collapsible>
 
         <div v-if="(canCreate || bookingOptions) && !scheduling.open" class="flex flex-wrap justify-end gap-2">
             <Button

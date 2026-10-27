@@ -43,6 +43,9 @@ return [
     'officer.reports' => 'officier/rapports',
     'officer.flash-messages' => 'officier/messages-eclair',
     'officer.settings' => 'officier/parametres',
+    // Paramètres du DMV (#841, ADR-0036 §3) : la section Intendances et le formulaire de structure d'un groupe.
+    'officer.settings.stewardships' => 'officier/parametres/intendances',
+    'officer.settings.group' => 'officier/parametres/groupes/{group}',
     // Le journal des téléchargements de documents (#754, ADR-0030) : super-tier seulement.
     'officer.document-downloads' => 'officier/telechargements-documents',
 

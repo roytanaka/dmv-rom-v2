@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Category;
 use App\Enums\Kind;
-use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
@@ -221,7 +221,7 @@ class GroupController extends Controller
                 // The selected banner key (null falls back to the neutral default
                 // on the client); the curated set drives the officer picker.
                 'banner_key' => $group->banner_key?->value,
-                'archived' => $group->lifecycle_state === LifecycleState::Archived,
+                'archived' => $group->isArchived(),
                 'end_date' => $group->end_date?->toDateString(),
                 'parent' => $group->parent ? [
                     'name' => $group->parent->name,
@@ -286,7 +286,7 @@ class GroupController extends Controller
                 // section, so a non-member sees no tab. UI hint only; the section re-checks it.
                 'viewMeetings' => $request->user()->can('viewAny', [Meeting::class, $group]),
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
-                'manageRoster' => $request->user()->can('create', [GroupMember::class, $group]),
+                'manageRoster' => $this->managesRoster($request, $group),
                 'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
                 // `manageSettings` drives the Settings tab (ADR-0027 §1) — true when any of the
                 // five configuration rights below holds. UI hint only; the section re-checks it.
@@ -411,9 +411,13 @@ class GroupController extends Controller
                     ->all(),
                 'leadership' => $this->leadership($group),
                 'facts' => [
-                    'member_count' => $group->memberships
-                        ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
-                        ->count(),
+                    // The root's roster is the Directory (ADR-0020 §B): its membership is derived
+                    // from Category, never stored, so the count is the Directory's, not the rows'.
+                    'member_count' => $group->isRoot()
+                        ? Member::query()->inDirectory()->count()
+                        : $group->memberships
+                            ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
+                            ->count(),
                     'meets' => $group->has_meetings,
                     'time_boxed' => $group->time_boxed,
                     'start_date' => $group->start_date?->toDateString(),
@@ -579,19 +583,18 @@ class GroupController extends Controller
      * per (role, member), ordered by the spine's role catalogue so Chair leads.
      * Names link through to profiles on the page; departed members are excluded.
      *
-     * The org root (a parentless Group) is the exception: it carries no Chair. Its
-     * leadership is the executive — the super-tier President and Vice-Presidents — so
-     * when a parentless Group has super-tier members we surface those instead
-     * {@see executiveLeadership}. (The model has a flat super_tier flag, not distinct
-     * President/VP titles, so all three read "Executive".) A parentless Group with no
-     * executives falls through to the ordinary role-based list.
+     * The org root is the exception: it carries no Chair. Its leadership is the
+     * executive — the super-tier President and Vice-Presidents — so on the root we
+     * surface those instead {@see executiveLeadership}. (The model has a flat super_tier
+     * flag, not distinct President/VP titles, so all three read "Executive".) A root
+     * with no executives falls through to the ordinary role-based list.
      *
      * @return list<array{role: string, member_id: int, name: string}>
      */
     private function leadership(Group $group): array
     {
-        if ($group->parent_id === null) {
-            $executive = $this->executiveLeadership($group);
+        if ($group->isRoot()) {
+            $executive = $this->executiveLeadership();
 
             if ($executive !== []) {
                 return $executive;
@@ -615,24 +618,27 @@ class GroupController extends Controller
 
     /**
      * The root DMV Group's leadership: its super-tier executives (President / VPs),
-     * surfaced by org authority since they carry no per-Group role row. Departed
-     * members are excluded and entries are ordered by surname for a stable list.
-     * The synthetic `executive` role resolves to a label via `group.role.executive`.
+     * surfaced by org authority since they carry no per-Group role row — and no
+     * membership row either: root membership is derived from Category, never stored
+     * (ADR-0036 §9), so the executives are read off the Members themselves. Departed
+     * (unlisted) members are excluded and entries are ordered by surname for a stable
+     * list. The synthetic `executive` role resolves to a label via `group.role.executive`.
      *
      * @return list<array{role: string, member_id: int, name: string}>
      */
-    private function executiveLeadership(Group $group): array
+    private function executiveLeadership(): array
     {
-        return $group->memberships
-            ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
-            ->filter(fn (GroupMember $membership) => $membership->member->super_tier)
-            ->sortBy(fn (GroupMember $membership) => $membership->member->last_name)
-            ->map(fn (GroupMember $membership) => [
+        return Member::query()
+            ->inDirectory()
+            ->where('super_tier', true)
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get()
+            ->map(fn (Member $member) => [
                 'role' => 'executive',
-                'member_id' => $membership->member->id,
-                'name' => $membership->member->fullName(),
+                'member_id' => $member->id,
+                'name' => $member->fullName(),
             ])
-            ->values()
             ->all();
     }
 
@@ -652,10 +658,17 @@ class GroupController extends Controller
      * the roster and the membership has no dependent records (the added-in-error
      * case). These extra keys are inert for an ordinary member.
      *
+     * The root DMV Group's roster is the Directory ({@see rootRoster}): its membership
+     * is derived from Category and never stored (ADR-0020 §B, ADR-0036 §9).
+     *
      * @return list<array<string, mixed>>
      */
     private function roster(Request $request, Group $group): array
     {
+        if ($group->isRoot()) {
+            return $this->rootRoster($request);
+        }
+
         // Eager-load what `viewContact` traverses — each member's memberships (with
         // their Group and roles) so the gate resolves in memory — plus the viewer's
         // roles once, mirroring MemberController::show.
@@ -665,7 +678,7 @@ class GroupController extends Controller
         ]);
         $request->user()?->loadMissing('memberships.roles');
 
-        $canManage = $request->user()->can('create', [GroupMember::class, $group]);
+        $canManage = $this->managesRoster($request, $group);
 
         // Deceased is always hidden; Resigned only when an officer asks to see past
         // members. A non-officer can never reveal Resigned, whatever the query says.
@@ -697,6 +710,53 @@ class GroupController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * The root DMV Group's Roster tab: the Directory, in the roster's row shape. Listed
+     * Members A–Z by surname ({@see Member::scopeInDirectory()}), each carrying no in-Group
+     * role and a standing read off their Category — on leave for LOA, Full otherwise — with
+     * the officer-CRUD keys inert: there is no membership row to target, and none can be
+     * added ({@see managesRoster}). Contact PII stays gated per row by the MemberResource.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function rootRoster(Request $request): array
+    {
+        $request->user()?->loadMissing('memberships.roles');
+
+        return Member::query()
+            ->inDirectory()
+            ->with(['memberships.group', 'memberships.roles'])
+            ->get()
+            ->sortBy(fn (Member $member) => $member->surnameKey())
+            ->map(fn (Member $member) => [
+                ...(new MemberResource($member))->resolve($request),
+                'group_roles' => [],
+                'group_standing' => $member->category === Category::Loa
+                    ? MembershipStatus::Loa->value
+                    : MembershipStatus::Full->value,
+                'membership_id' => null,
+                'loa_start' => null,
+                'loa_end' => null,
+                'can_hard_remove' => false,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Whether the viewer manages this Group's roster — the `can.manageRoster` hint and the
+     * officer-CRUD scaffolding's gate. Never on the root DMV Group: its membership is derived
+     * from Category and no row can be stored there (ADR-0036 §9), so there is nothing to
+     * manage — for the super-tier too, which is why the root check sits outside the Gate
+     * verdict (the super-tier short-circuit would grant it). StoreGroupMemberRequest refuses
+     * the write the same way.
+     */
+    private function managesRoster(Request $request, Group $group): bool
+    {
+        return ! $group->isRoot()
+            && $request->user()->can('create', [GroupMember::class, $group]);
     }
 
     /**
@@ -739,7 +799,7 @@ class GroupController extends Controller
      */
     private function rosterMeta(Request $request, Group $group): array
     {
-        if (! $request->user()->can('create', [GroupMember::class, $group])) {
+        if (! $this->managesRoster($request, $group)) {
             return ['candidates' => [], 'assignableRoles' => [], 'showingPast' => false];
         }
 

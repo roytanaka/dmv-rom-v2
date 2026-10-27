@@ -236,8 +236,9 @@ export interface RosterMember {
     email?: string;
     phone?: string | null;
     // Officer roster CRUD targeting (#192) — the membership id, its leave window, and
-    // whether it may be hard-removed (no dependent records). Inert for a non-officer.
-    membership_id: number;
+    // whether it may be hard-removed (no dependent records). Inert for a non-officer, and
+    // null on the root DMV Group, whose roster is the Directory with no rows to target.
+    membership_id: number | null;
     loa_start: string | null;
     loa_end: string | null;
     can_hard_remove: boolean;

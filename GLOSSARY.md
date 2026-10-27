@@ -29,6 +29,7 @@ _Avoid_: equating "DMV Executive" with all-DMV access (that is the super-tier), 
 
 - **Super-tier** — the single org-wide "see and do everything" grant, seeded with President / VP1 / VP2 (a flag on the Member; [ADR-0011](docs/adr/0011-authorization-model.md)).
 - **Member administration** — managing member records and all-DMV reports; authority comes from holding a **role in the Records Group** (a stewardship), not a flag.
+- **Group administration** — creating, configuring and archiving **Groups** and assigning **Stewardships**, from **DMV Settings**; a **super-tier** power ([ADR-0036](docs/adr/0036-group-administration.md)).
 - **Support administration** — a maintainer administering data or impersonating for support; the explicit `initiate-support-session` permission ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)), deliberately _not_ super-tier.
   _Avoid_: "admin" unqualified; admin-ness is a role or grant, never a membership standing.
 
@@ -64,15 +65,27 @@ The Role-switcher's escape hatch back to the original operator, from any imperso
 _Avoid_: "return to super" — the mechanism keys on the stored impersonator id, not on tier; and the operator is the **Support-operator** who began the session, who is deliberately _not_ super-tier (that split is the point — [ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)).
 
 **Tester**:
-A person trying out the app outside production and sending **Feedback items**. A Tester is known by the name they type, not by the account they log in with: testers share seeded logins and switch **Personas**, so the account says nothing about who they are.
+A person trying out the app before **Cutover**, on staging or **Beta**, and sending **Feedback items**. On staging, a Tester is known by the name they type, not by the account they log in with: testers share seeded logins and switch **Personas**, so the account says nothing about who they are. On Beta, a Tester signs in as themselves.
 _Avoid_: using "Member" or "user" for this person — the Member on the request may be a **Persona** the Tester is impersonating.
 
 **Feedback item**:
-One thing a **Tester** sends from a non-production app: a bug, a feature request, a translation problem, a legacy feature that is missing, something confusing, or other. Every Tester can read every Feedback item and comment on it. The **Support-operator** sets its status.
+One thing a **Tester** sends from staging or **Beta**: a bug, a feature request, a translation problem, a legacy feature that is missing, something confusing, or other. On staging, every Tester can read every Feedback item and comment on it; Beta items, which can show real Member data, are read only by the **Support-operator**, who also sets each item's status.
 _Avoid_: "report" (taken by Officer reports and the post-shift report), "issue" and "ticket" (GitHub issues, where the work is tracked), "bug" for the whole set (a bug is one type).
 
+**Legacy app**:
+The old DMV-ROM app that this rebuild replaces. It is the system of record until **Cutover**, and afterwards a read-only archive ([ADR-0035](docs/adr/0035-beta-and-cutover.md)).
+_Avoid_: "v1" and "the old site" in docs; "legacy" alone when the Legacy database or Legacy code is meant.
+
+**Beta**:
+The stage before **Cutover** when **Testers** use the production install of v2 with real data that is copied from the **Legacy app** every night. Work done only in Beta is overwritten by the next copy ([ADR-0035](docs/adr/0035-beta-and-cutover.md)).
+_Avoid_: "early access", "pilot", "early adopters" for the people (they are **Testers**).
+
+**Cutover**:
+The one-time switch that makes v2 the live app at the main domain and turns the **Legacy app** into an archive ([ADR-0035](docs/adr/0035-beta-and-cutover.md)).
+_Avoid_: "launch", "go-live", "migration" (the migration is the data copy, which also runs during Beta).
+
 **Group**:
-The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Scope / Lifecycle axes and the capability set, and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
+The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. A Group is **archived**, never deleted: an archived Group, or a time-boxed Group past its end date, is read-only ([ADR-0036](docs/adr/0036-group-administration.md)). See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Lifecycle axes and the capability set (the Scope axis was withdrawn by ADR-0036), and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
 
 **Committee**:
 A **Kind** of **Group**: a standing, org-scoped group that meets and holds documents but runs no shift scheduling (governance, operations, social). One Kind among several — not the central entity.
@@ -268,12 +281,20 @@ The **Chrome**'s left-hand navigation: My Groups, Browse Groups, and **Officer T
 _Avoid_: "the rail" in Help articles; bare "sidebar" there too, because the Account settings page has its own sidebar. And the Directory's **A–Z jump rail** (the letter bar) is a different thing.
 
 **Officer Tools**:
-The rail's bottom cluster of **org-wide** administration: Members, Communications, Reports, Flash Messages, DMV Settings, plus the super-tier status pages. Built and gated on the server per rail item ([ADR-0018 §4](docs/adr/0018-server-driven-grouping-rail.md), [ADR-0027 §4](docs/adr/0027-group-settings-tab.md)). Nothing **Group**-scoped lives here.
+The rail's bottom cluster of **org-wide** administration: Members, Communications, Reports, Flash Messages, DMV Settings, plus the super-tier status pages. Built and gated on the server per rail item ([ADR-0018 §4](docs/adr/0018-server-driven-grouping-rail.md), [ADR-0027 §4](docs/adr/0027-group-settings-tab.md)). Nothing **Group**-scoped lives here. **DMV Settings** is where the super-tier administers Groups and **Stewardships** ([ADR-0036](docs/adr/0036-group-administration.md)).
 _Avoid_: reading "officer" here as a Group's **Officer**; the two senses are unrelated. Do not put a Group's tools in the rail.
 
 **Group Settings** (the Settings tab):
 The last section tab on a **Group** page, shown only to a Member with at least one configuration right on that Group. Holds the Group's **settings**: reminders, empty-desk alert, self-serve shifts, **Shift kinds**, **Objects**. A setting is a value an **Officer** sets once and the app reads later. See [ADR-0027](docs/adr/0027-group-settings-tab.md).
 _Avoid_: putting **records** or content work here. A **Schedule**, a **Shift**, a **Sign-up**, a **Meeting**, a roster line, the About text or the banner is edited inline on the tab where it is read. "Settings" names three scopes in the app: Account settings (the user menu), Group Settings (this tab), DMV Settings (**Officer Tools**).
+
+**DMV Settings**:
+The **Officer Tools** page for the organisation's own settings, open to the **super-tier** only. Two sections: **Groups** (the org tree, create a Group, and each Group's structure: name, parent, Kind, visibility, order, logo, time-box, capabilities, hours multiplier, archived) and **Stewardships**. The slug is set once at create and never changes. See [ADR-0036](docs/adr/0036-group-administration.md).
+_Avoid_: putting a Group officer's settings here (those are **Group Settings**), or calling this "admin". The root Group and a Container are not configured here past their About text and banner.
+
+**Stewardship**:
+An org-wide job held by a **Group**, so that every Member of that Group carries the job's authority. Two are live: **member administration** (held by exactly one Group, Records today) and **org-wide sender** (held by several). Assigned on **DMV Settings**; the last holder of member administration cannot be removed, and a Group that holds a stewardship cannot be archived. See [ADR-0011](docs/adr/0011-authorization-model.md), [ADR-0036](docs/adr/0036-group-administration.md).
+_Avoid_: confusing it with a **role** (a role is per-Member within a Group; a stewardship is per-Group across the org) or with a capability (a capability is what a Group can do for itself; a stewardship is what it does for everyone).
 
 **Locale**:
 The technical identifier for a language + regional convention pair. The app supports two locales: `en` (English, default) and `fr` (Canadian French, `fr-CA`). A **Member**'s `locale` column captures their saved preference. Laravel's `app()->setLocale()` consumes it.
