@@ -44,11 +44,6 @@ class StoreFeedbackCommentRequest extends FormRequest
         ];
     }
 
-    protected function prepareForValidation(): void
-    {
-        $this->prepareFollowerEmail();
-    }
-
     /**
      * @return array<string, string>
      */

@@ -86,6 +86,33 @@ it('carries the comment text, the commenter’s name, the status, the item link 
     });
 });
 
+it('shows markdown in the comment, the name and the item as plain text, with no link or image from it', function () {
+    $item = FeedbackItem::factory()->create(['type' => 'bug', 'message' => '[Item](https://evil.example/item) breaks']);
+    $item->follow('pat@example.com', 'en');
+
+    $this->actingAs(Member::factory()->create())
+        ->post("/feedback/{$item->id}/comments", commentPayload([
+            'tester_name' => '[Sam](https://evil.example/name)',
+            'body' => "Try [this](https://evil.example/body)\n![](https://px.example/p.png)\n<https://evil.example/auto>\n# Big",
+        ]));
+
+    Mail::assertSent(FeedbackCommentPosted::class, function (FeedbackCommentPosted $mail) {
+        $html = $mail->render();
+
+        expect($html)->not->toContain('href="https://evil.example')
+            ->and($html)->not->toContain('<img')
+            ->and($html)->not->toContain('<h1>Big')
+            ->and($html)->toContain('[Item](https://evil.example/item) breaks')
+            ->and($html)->toContain('[Sam](https://evil.example/name) commented:')
+            ->and($html)->toContain('Try [this](https://evil.example/body)')
+            ->and($html)->toContain('![](https://px.example/p.png)')
+            ->and($html)->toContain('&lt;https://evil.example/auto&gt;')
+            ->and($html)->toContain('# Big');
+
+        return true;
+    });
+});
+
 it('makes a commenter who ticks the box a Follower, with a receipt and the address shown', function () {
     $item = FeedbackItem::factory()->create();
 

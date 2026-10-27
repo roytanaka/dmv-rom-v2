@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Http\Requests\Concerns\FollowsFeedbackItem;
 use App\Mail\FeedbackCommentPosted;
 use App\Mail\FeedbackFollowing;
 use App\Models\FeedbackComment;
@@ -44,14 +45,16 @@ class FeedbackFollowerMail
 
     /**
      * Email a new comment to every Follower of its item (#860), except the comment's author.
-     * The author's address is null when the request has none, and then nobody is skipped.
+     * The author's address comes normalized from the request
+     * ({@see FollowsFeedbackItem::authorEmail()}). It is null when the request has none, and
+     * then nobody is skipped.
      */
     public static function commentPosted(FeedbackComment $comment, ?string $authorEmail): void
     {
         $item = $comment->feedbackItem;
 
         $item->followers()
-            ->when($authorEmail !== null, fn ($query) => $query->where('email', '!=', FeedbackFollower::normalize($authorEmail)))
+            ->when($authorEmail !== null, fn ($query) => $query->where('email', '!=', $authorEmail))
             ->orderBy('id')
             ->each(fn (FeedbackFollower $follower) => self::send($follower, new FeedbackCommentPosted($item, $comment, $follower)));
     }

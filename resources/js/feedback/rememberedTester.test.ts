@@ -2,7 +2,7 @@
 // never a reason for a send to fail.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { rememberedName, rememberName } from './testerName.ts';
+import { rememberedName, rememberName } from './rememberedTester.ts';
 
 const memoryStorage = () => {
     const values = new Map<string, string>();

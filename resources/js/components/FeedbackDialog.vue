@@ -4,7 +4,7 @@
 // context (page URL, user agent, viewport) rides along on submit; the server fills the
 // rest. Label, control, and error only — no helper text.
 //
-// The name is remembered in the browser (§5, `@/feedback/testerName`).
+// The name is remembered in the browser (§5, `@/feedback/rememberedTester`).
 //
 // Screenshots (#678, §9): up to 3 images, through the shared image control
 // (`FeedbackImagePicker`): the file picker, a drop, or a paste anywhere in the form.
@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { buildClientContext } from '@/feedback/clientContext';
 import { fileErrorMessages } from '@/feedback/screenshots';
-import { rememberedEmail, rememberedName, rememberEmail, rememberName } from '@/feedback/testerName';
+import { rememberedEmail, rememberedName, rememberEmail, rememberName } from '@/feedback/rememberedTester';
 import type { SharedData } from '@/types';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { PhCheckCircle } from '@phosphor-icons/vue';
