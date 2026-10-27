@@ -4,7 +4,7 @@
 // only. Type and status labels are chrome; the Tester's name, message, and comments are
 // content, shown as sent.
 //
-// The comment form uses the Tester's remembered name (§5, `@/feedback/testerName`).
+// The comment form uses the Tester's remembered name (§5, `@/feedback/rememberedTester`).
 // Label, control, and error only — no helper text. A comment carries text, images (#778),
 // or both; its images use the send dialog's image control, paste and drop included.
 //
@@ -33,7 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatFileSize } from '@/documents/fileSize';
 import { formatFeedbackDate, STATUS_TONES, type FeedbackOption } from '@/feedback/display';
 import { fileErrorMessages } from '@/feedback/screenshots';
-import { rememberedEmail, rememberedName, rememberEmail, rememberName } from '@/feedback/testerName';
+import { rememberedEmail, rememberedName, rememberEmail, rememberName } from '@/feedback/rememberedTester';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { ViewerEntry } from '@/viewer/entries';
 import { type BreadcrumbItem, type SharedData } from '@/types';
