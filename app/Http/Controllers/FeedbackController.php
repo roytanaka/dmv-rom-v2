@@ -13,6 +13,7 @@ use App\Models\FeedbackScreenshot;
 use App\Models\Member;
 use App\Policies\FeedbackItemPolicy;
 use App\Support\AppVersion;
+use App\Support\FeedbackFollowerMail;
 use App\Support\FeedbackScreenshotStorage;
 use Closure;
 use Illuminate\Http\RedirectResponse;
@@ -171,15 +172,20 @@ class FeedbackController extends Controller implements HasMiddleware
      * the locale, the Member, the impersonator, the app version, and the time. Every
      * item starts as New. The screenshots (§9) are stored with it, in one transaction on
      * the feedback connection, so an item never shows half its screenshots.
+     *
+     * With "Email me updates" ticked (#857, §15) the Tester follows the item in the same
+     * transaction. The receipt goes after the commit, and the page flashes the address.
      */
     public function store(StoreFeedbackItemRequest $request, FeedbackScreenshotStorage $screenshots): RedirectResponse
     {
         $member = $request->user();
         $operatorId = $request->session()->get(ImpersonationController::OPERATOR_KEY);
 
-        DB::connection('feedback')->transaction(function () use ($request, $member, $operatorId, $screenshots) {
+        $followerEmail = $request->followerEmail();
+
+        $follower = DB::connection('feedback')->transaction(function () use ($request, $member, $operatorId, $screenshots, $followerEmail) {
             $item = FeedbackItem::create([
-                ...$request->safe()->except('screenshots'),
+                ...$request->safe()->except(['screenshots', ...StoreFeedbackItemRequest::FOLLOW_FIELDS]),
                 'route_name' => $this->routeNameFor($request->validated('page_url')),
                 'locale' => app()->getLocale(),
                 'member_name' => $member->fullName(),
@@ -189,9 +195,17 @@ class FeedbackController extends Controller implements HasMiddleware
             ]);
 
             $screenshots->store($item->screenshots(), $request->file('screenshots', []));
+
+            return $followerEmail === null ? null : $item->follow($followerEmail, app()->getLocale());
         });
 
-        return back();
+        if ($follower === null) {
+            return back();
+        }
+
+        FeedbackFollowerMail::receipt($follower);
+
+        return back()->with('feedbackFollowing', $follower->email);
     }
 
     /**

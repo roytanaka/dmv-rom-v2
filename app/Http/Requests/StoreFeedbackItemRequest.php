@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\FeedbackType;
+use App\Http\Requests\Concerns\FollowsFeedbackItem;
 use App\Rules\FeedbackScreenshotImage;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -20,9 +21,14 @@ use Illuminate\Validation\Rule;
  *
  * Screenshots (#678, §9) are optional: at most 3, each a PNG, JPEG, WebP, or GIF image of at
  * most 5 MB, with a message that names the file and the reason.
+ *
+ * "Email me updates" (#857, §15): the follow flag and the Follower's email, per
+ * {@see FollowsFeedbackItem}.
  */
 class StoreFeedbackItemRequest extends FormRequest
 {
+    use FollowsFeedbackItem;
+
     public const MAX_SCREENSHOTS = 3;
 
     public function authorize(): bool
@@ -47,7 +53,13 @@ class StoreFeedbackItemRequest extends FormRequest
             // No `file` rule: with one present, Laravel answers a file PHP refused as too
             // large with its generic "failed to upload" before this rule can name the size.
             'screenshots.*' => [new FeedbackScreenshotImage],
+            ...$this->followRules(),
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->prepareFollowerEmail();
     }
 
     /**
