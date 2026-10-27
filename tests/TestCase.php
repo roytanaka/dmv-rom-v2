@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Support\FeedbackIdentity;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
@@ -70,6 +71,16 @@ abstract class TestCase extends BaseTestCase
             '--database' => 'feedback',
             '--path' => 'database/migrations/feedback',
         ]);
+    }
+
+    /**
+     * Force the Feedback tool's "uses account identity" predicate on, the Beta path
+     * ({@see FeedbackIdentity}). The Beta spec owns the real setting; until then it is
+     * off everywhere, and this is how a test reaches the Beta rules.
+     */
+    protected function forceAccountIdentity(): void
+    {
+        config([FeedbackIdentity::CONFIG_KEY => true]);
     }
 
     /**
