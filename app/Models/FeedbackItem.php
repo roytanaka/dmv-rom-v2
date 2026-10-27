@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\FeedbackStatus;
 use App\Enums\FeedbackType;
+use App\Support\LocalizedUrl;
 use Database\Factories\FeedbackItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Str;
-use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 /**
  * A Feedback item (ADR-0029): one thing a Tester sends from a non-production app. It lives
@@ -119,17 +119,14 @@ class FeedbackItem extends Model
     }
 
     /**
-     * Follow this item with an address: insert or keep (§15). The address is normalized, so a
-     * second follow with the same address in another case or with spaces keeps the first
-     * Follower and its locale. `wasRecentlyCreated` on the result says whether this follow
-     * made a new Follower, the only case that earns a receipt.
+     * Follow this item with an address: insert or keep (§15). The address comes normalized
+     * from the request, so a second follow with the same address keeps the first Follower and
+     * its locale. `wasRecentlyCreated` on the result says whether this follow made a new
+     * Follower, the only case that earns a receipt.
      */
     public function follow(string $email, string $locale): FeedbackFollower
     {
-        return $this->followers()->firstOrCreate(
-            ['email' => FeedbackFollower::normalize($email)],
-            ['locale' => $locale],
-        );
+        return $this->followers()->firstOrCreate(['email' => $email], ['locale' => $locale]);
     }
 
     /**
@@ -150,11 +147,7 @@ class FeedbackItem extends Model
      */
     public function urlFor(string $locale): string
     {
-        return LaravelLocalization::getURLFromRouteNameTranslated(
-            $locale,
-            'routes.feedback.show',
-            ['feedbackItem' => $this->id],
-        );
+        return LocalizedUrl::to($locale, 'feedback.show', ['feedbackItem' => $this->id]);
     }
 
     /**

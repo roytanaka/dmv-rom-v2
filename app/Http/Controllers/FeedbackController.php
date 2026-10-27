@@ -8,6 +8,7 @@ use App\Http\Requests\StoreFeedbackCommentRequest;
 use App\Http\Requests\StoreFeedbackItemRequest;
 use App\Models\FeedbackComment;
 use App\Models\FeedbackCommentImage;
+use App\Models\FeedbackFollower;
 use App\Models\FeedbackItem;
 use App\Models\FeedbackScreenshot;
 use App\Models\Member;
@@ -162,23 +163,19 @@ class FeedbackController extends Controller implements HasMiddleware
      */
     public function storeComment(StoreFeedbackCommentRequest $request, FeedbackItem $feedbackItem, FeedbackScreenshotStorage $images): RedirectResponse
     {
-        $followerEmail = $request->followerEmail();
-
-        [$comment, $follower] = DB::connection('feedback')->transaction(function () use ($request, $feedbackItem, $images, $followerEmail) {
+        [$comment, $follower] = DB::connection('feedback')->transaction(function () use ($request, $feedbackItem, $images) {
             $comment = $feedbackItem->comments()->create($request->safe()->except(['images', ...StoreFeedbackCommentRequest::FOLLOW_FIELDS]));
 
             $images->store($comment->images(), $request->file('images', []));
 
-            return [$comment, $followerEmail === null ? null : $feedbackItem->follow($followerEmail, app()->getLocale())];
+            return [$comment, $request->followItem($feedbackItem)];
         });
 
-        if ($follower !== null) {
-            FeedbackFollowerMail::receipt($follower);
-        }
+        $response = $this->confirmFollow($follower);
 
         FeedbackFollowerMail::commentPosted($comment, $request->authorEmail());
 
-        return $follower === null ? back() : back()->with('feedbackFollowing', $follower->email);
+        return $response;
     }
 
     /**
@@ -196,9 +193,7 @@ class FeedbackController extends Controller implements HasMiddleware
         $member = $request->user();
         $operatorId = $request->session()->get(ImpersonationController::OPERATOR_KEY);
 
-        $followerEmail = $request->followerEmail();
-
-        $follower = DB::connection('feedback')->transaction(function () use ($request, $member, $operatorId, $screenshots, $followerEmail) {
+        $follower = DB::connection('feedback')->transaction(function () use ($request, $member, $operatorId, $screenshots) {
             $item = FeedbackItem::create([
                 ...$request->safe()->except(['screenshots', ...StoreFeedbackItemRequest::FOLLOW_FIELDS]),
                 'route_name' => $this->routeNameFor($request->validated('page_url')),
@@ -211,9 +206,18 @@ class FeedbackController extends Controller implements HasMiddleware
 
             $screenshots->store($item->screenshots(), $request->file('screenshots', []));
 
-            return $followerEmail === null ? null : $item->follow($followerEmail, app()->getLocale());
+            return $request->followItem($item);
         });
 
+        return $this->confirmFollow($follower);
+    }
+
+    /**
+     * After a store commits (§15): with a follow, the receipt if the Follower is new, and the
+     * page flashes the address. Without one, just back.
+     */
+    private function confirmFollow(?FeedbackFollower $follower): RedirectResponse
+    {
         if ($follower === null) {
             return back();
         }

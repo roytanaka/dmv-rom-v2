@@ -84,8 +84,9 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Re-register the application's routes for a non-default locale, then run the
-     * given assertions against them.
+     * Re-register the application's routes for a locale, then run the given
+     * assertions against them. The default locale reloads the unprefixed routes, so a
+     * test can go back to English after a French block.
      *
      * mcamara/laravel-localization registers only one locale's routes per app boot
      * — driven by the URL segment, or the ROUTING_LOCALE env its own
@@ -99,7 +100,8 @@ abstract class TestCase extends BaseTestCase
      */
     protected function withLocaleRoutes(string $locale, callable $callback): void
     {
-        putenv(LaravelLocalization::ENV_ROUTE_KEY.'='.$locale);
+        // The default locale's routes have no prefix (ADR-0008): an empty key gives them.
+        putenv(LaravelLocalization::ENV_ROUTE_KEY.'='.($locale === app(LaravelLocalization::class)->getDefaultLocale() ? '' : $locale));
 
         $router = $this->app['router'];
         $router->setRoutes(new RouteCollection);

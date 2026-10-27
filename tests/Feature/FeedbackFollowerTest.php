@@ -3,7 +3,6 @@
 use App\Mail\FeedbackFollowing;
 use App\Models\FeedbackItem;
 use App\Models\Member;
-use App\Support\FeedbackFollowerMail;
 use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Mail;
@@ -66,6 +65,21 @@ it('names the item by number, type and the start of its message, and links to it
         $mail->assertHasSubject("You’re following Feedback #{$item->id} Bug: The Save button on the Schedule page does nothing...");
         $mail->assertSeeInHtml("http://localhost/feedback/{$item->id}");
         $mail->assertSeeInHtml("http://localhost/feedback/followers/{$item->followers()->sole()->id}/stop?signature=", false);
+
+        return true;
+    });
+});
+
+it('shows markdown in the item as plain text in the receipt, with no link or image from it', function () {
+    $this->actingAs(Member::factory()->create())
+        ->post('/feedback', followPayload(['message' => '![](https://px.ex/p) [x](https://ev.il)']));
+
+    Mail::assertSent(FeedbackFollowing::class, function (FeedbackFollowing $mail) {
+        $html = $mail->render();
+
+        expect($html)->not->toContain('href="https://ev.il')
+            ->and($html)->not->toContain('<img')
+            ->and($html)->toContain('![](https://px.ex/p) [x](https://ev.il)');
 
         return true;
     });
@@ -236,6 +250,42 @@ it('opens a French stop link in French', function () {
     });
 });
 
+it('opens and stops both an English and a French stop link built in either locale', function (string $builtIn) {
+    $item = FeedbackItem::factory()->create();
+    $english = $item->follow('pat@example.com', 'en');
+    $french = $item->follow('lee@example.com', 'fr');
+
+    $links = [];
+    $this->withLocaleRoutes($builtIn, function () use (&$links, $english, $french) {
+        $links = ['en' => $english->stopUrl(), 'fr' => $french->stopUrl()];
+    });
+
+    expect($links['en'])->toStartWith("http://localhost/feedback/followers/{$english->id}/stop?signature=")
+        ->and($links['fr'])->toStartWith("http://localhost/fr/retroaction/abonnes/{$french->id}/arreter?signature=");
+
+    foreach ($links as $locale => $link) {
+        $this->withLocaleRoutes($locale, function () use ($link) {
+            $this->get($link)->assertOk()->assertInertia(fn (Assert $page) => $page->where('state', 'confirm'));
+            $this->post($link)->assertOk()->assertInertia(fn (Assert $page) => $page->where('state', 'stopped'));
+        });
+    }
+
+    expect($item->followers()->count())->toBe(0);
+})->with(['built on an English page' => 'en', 'built on a French page' => 'fr']);
+
+it('keeps a stop link working after the app key rotates, while the old key is a previous key', function () {
+    $item = FeedbackItem::factory()->create();
+    $link = $item->follow('pat@example.com', 'en')->stopUrl();
+    $oldKey = config('app.key');
+
+    config(['app.key' => 'base64:'.base64_encode(random_bytes(32)), 'app.previous_keys' => []]);
+    $this->get($link)->assertForbidden();
+
+    config(['app.previous_keys' => [$oldKey]]);
+    $this->get($link)->assertOk()->assertInertia(fn (Assert $page) => $page->where('state', 'confirm'));
+    $this->post($link)->assertOk()->assertInertia(fn (Assert $page) => $page->where('state', 'stopped'));
+});
+
 it('requires a valid email of at most 254 characters when the box is ticked', function (mixed $email) {
     $this->actingAs(Member::factory()->create())
         ->post('/feedback', followPayload(['follower_email' => $email]))
@@ -264,7 +314,10 @@ it('keeps one Follower and sends no second receipt for the same address in anoth
         ->assertSessionHasNoErrors();
 
     $item = FeedbackItem::sole();
-    FeedbackFollowerMail::receipt($item->follow('PAT@example.com  ', 'fr'));
+    $this->withLocaleRoutes('fr', fn () => $this->post(
+        "/fr/retroaction/{$item->id}/commentaires",
+        ['tester_name' => 'Pat Tester', 'body' => 'Also on Firefox.', 'follow' => true, 'follower_email' => 'PAT@example.com  '],
+    )->assertSessionHasNoErrors());
 
     Mail::assertSentCount(1);
     Mail::assertSent(FeedbackFollowing::class, fn (FeedbackFollowing $mail) => $mail->hasTo('pat@example.com'));
