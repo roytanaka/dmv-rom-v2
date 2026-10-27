@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\FollowsFeedbackItem;
 use App\Policies\FeedbackItemPolicy;
 use App\Rules\FeedbackScreenshotImage;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -15,9 +16,14 @@ use Illuminate\Foundation\Http\FormRequest;
  * Images (#778) follow the item's screenshot rules ({@see StoreFeedbackItemRequest}): at
  * most 3, each a PNG, JPEG, WebP, or GIF of at most 5 MB. A comment needs text, an image,
  * or both.
+ *
+ * "Email me updates" (#860, §15): the same follow flag and Follower email as a send, per
+ * {@see FollowsFeedbackItem}, so a Tester can follow an item someone else sent.
  */
 class StoreFeedbackCommentRequest extends FormRequest
 {
+    use FollowsFeedbackItem;
+
     public function authorize(): bool
     {
         return $this->user()?->can('view', $this->route('feedbackItem')) ?? false;
@@ -34,7 +40,13 @@ class StoreFeedbackCommentRequest extends FormRequest
             'images' => ['array', 'max:'.StoreFeedbackItemRequest::MAX_SCREENSHOTS],
             // No `file` rule, for the reason in StoreFeedbackItemRequest.
             'images.*' => [new FeedbackScreenshotImage],
+            ...$this->followRules(),
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->prepareFollowerEmail();
     }
 
     /**

@@ -154,16 +154,31 @@ class FeedbackController extends Controller implements HasMiddleware
      * Add a comment under a Feedback item (§8). Any logged-in Member may comment; the
      * name is the Tester's typed one, like on a send. Comments are never edited. Its
      * images (#778) are stored with it, in one transaction on the feedback connection.
+     *
+     * With "Email me updates" ticked (#860, §15) the commenter follows the item in the same
+     * transaction. After the commit: the receipt if the follow is new, then an email to every
+     * Follower except the author, and the page flashes the address. Mail failures are
+     * reported, never thrown, so the comment is saved either way.
      */
     public function storeComment(StoreFeedbackCommentRequest $request, FeedbackItem $feedbackItem, FeedbackScreenshotStorage $images): RedirectResponse
     {
-        DB::connection('feedback')->transaction(function () use ($request, $feedbackItem, $images) {
-            $comment = $feedbackItem->comments()->create($request->safe()->except('images'));
+        $followerEmail = $request->followerEmail();
+
+        [$comment, $follower] = DB::connection('feedback')->transaction(function () use ($request, $feedbackItem, $images, $followerEmail) {
+            $comment = $feedbackItem->comments()->create($request->safe()->except(['images', ...StoreFeedbackCommentRequest::FOLLOW_FIELDS]));
 
             $images->store($comment->images(), $request->file('images', []));
+
+            return [$comment, $followerEmail === null ? null : $feedbackItem->follow($followerEmail, app()->getLocale())];
         });
 
-        return back();
+        if ($follower !== null) {
+            FeedbackFollowerMail::receipt($follower);
+        }
+
+        FeedbackFollowerMail::commentPosted($comment, $request->authorEmail());
+
+        return $follower === null ? back() : back()->with('feedbackFollowing', $follower->email);
     }
 
     /**

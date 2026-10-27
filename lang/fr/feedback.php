@@ -93,6 +93,13 @@ return [
             'heading' => 'Vous suivez cette rétroaction',
             'intro' => 'Vous recevrez un courriel chaque fois que quelqu’un commente la rétroaction :item.',
         ],
+        'comment' => [
+            'subject' => 'Nouveau commentaire sur la rétroaction :item',
+            'heading' => 'Nouveau commentaire sur la rétroaction :item',
+            'intro' => ':name a commenté :',
+            'images' => 'Ce commentaire contient des images. Voyez la rétroaction pour les afficher.',
+            'status' => 'Statut : :status',
+        ],
         'stop' => [
             'title' => 'Arrêter les mises à jour',
             'body' => 'Arrêter les courriels au sujet de la rétroaction :item?',

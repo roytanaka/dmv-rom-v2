@@ -13,6 +13,9 @@ use Illuminate\Validation\Rule;
  *
  * {@see followerEmail()} is the address to follow with, or null when the Tester did not tick
  * the box. The fields are not item or comment columns, so a store excludes {@see FOLLOW_FIELDS}.
+ *
+ * {@see authorEmail()} is the address of whoever makes this request, so a new comment skips
+ * their own Follower row (#860). It is the one place that says who the author is.
  */
 trait FollowsFeedbackItem
 {
@@ -39,5 +42,15 @@ trait FollowsFeedbackItem
     public function followerEmail(): ?string
     {
         return $this->boolean('follow') ? $this->validated('follower_email') : null;
+    }
+
+    /**
+     * The author's address, for "no email about your own comment" (#860, §15): the Follower
+     * email typed on this request, or null when the box is not ticked. On Beta (#861) this is
+     * the signed-in account's email.
+     */
+    public function authorEmail(): ?string
+    {
+        return $this->followerEmail();
     }
 }

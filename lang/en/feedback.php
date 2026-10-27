@@ -100,6 +100,13 @@ return [
             'heading' => 'You’re following this item',
             'intro' => 'You will get an email each time someone comments on Feedback :item.',
         ],
+        'comment' => [
+            'subject' => 'New comment on Feedback :item',
+            'heading' => 'New comment on Feedback :item',
+            'intro' => ':name commented:',
+            'images' => 'This comment has images. View the item to see them.',
+            'status' => 'Status: :status',
+        ],
         'stop' => [
             'title' => 'Stop updates',
             'body' => 'Stop the emails about Feedback :item?',
