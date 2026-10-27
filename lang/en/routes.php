@@ -45,6 +45,8 @@ return [
     'feedback.comment' => 'feedback/{feedbackItem}/comments/{feedbackComment}',
     'feedback.screenshot' => 'feedback/screenshots/{feedbackScreenshot}',
     'feedback.comment-image' => 'feedback/comment-images/{feedbackCommentImage}',
+    // A Follower's stop-updates page (#857, §15): the signed link in every Follower email.
+    'feedback.unfollow' => 'feedback/followers/{follower}/stop',
 
     // Zone C — officer/admin
     'officer.members' => 'officer/members',

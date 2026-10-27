@@ -17,6 +17,7 @@ use App\Http\Controllers\DownloadFeedbackCommentImageController;
 use App\Http\Controllers\DownloadFeedbackScreenshotController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\FeedbackTriageController;
+use App\Http\Controllers\FeedbackUnfollowController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupEmptyDeskSettingsController;
 use App\Http\Controllers\GroupMemberController;
@@ -135,6 +136,12 @@ Route::group([
             ->middleware('auth')->name('feedback.destroy');
         Route::delete(LaravelLocalization::transRoute('routes.feedback.comment'), [FeedbackTriageController::class, 'destroyComment'])
             ->middleware('auth')->name('feedback.comments.destroy');
+        // A Follower's stop link (#857, ADR-0029 §15): signed, no expiry, no login. GET shows
+        // the one-button page, so a mail scanner that opens the link stops nothing; POST stops.
+        Route::get(LaravelLocalization::transRoute('routes.feedback.unfollow'), [FeedbackUnfollowController::class, 'show'])
+            ->middleware('signed')->name('feedback.unfollow');
+        Route::post(LaravelLocalization::transRoute('routes.feedback.unfollow'), [FeedbackUnfollowController::class, 'destroy'])
+            ->middleware('signed')->name('feedback.unfollow.destroy');
     }
 
     // One Document's download (#712, spec #290, ADR-0030 §13): auth, the DocumentPolicy, an

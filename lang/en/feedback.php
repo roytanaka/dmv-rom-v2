@@ -85,6 +85,29 @@ return [
         'error_count' => 'You can add up to :max screenshots.',
     ],
 
+    // "Email me updates" (#857, §15): the follow fields, the flash after a send, the
+    // "You're following" receipt, and the stop-updates page. :item is the item's label.
+    'follow' => [
+        'checkbox' => 'Email me updates',
+        'email' => 'Your email',
+        'following' => 'Updates go to :email.',
+        'item_label' => '#:id :type: :excerpt',
+        'reply_on_site' => 'To reply, add a comment on the site. Replies to this email are not read.',
+        'view_item' => 'View the item',
+        'stop_link' => 'Stop updates for this item',
+        'receipt' => [
+            'subject' => 'You’re following Feedback :item',
+            'heading' => 'You’re following this item',
+            'intro' => 'You will get an email each time someone comments on Feedback :item.',
+        ],
+        'stop' => [
+            'title' => 'Stop updates',
+            'body' => 'Stop the emails about Feedback :item?',
+            'button' => 'Stop updates',
+            'stopped' => 'You will get no more updates for Feedback :item.',
+            'already' => 'Updates for this item are already stopped.',
+        ],
+    ],
     'comments' => [
         'title' => 'Comments',
         'empty' => 'No comments yet.',

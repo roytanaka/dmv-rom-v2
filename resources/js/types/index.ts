@@ -190,6 +190,8 @@ export interface SharedData {
     flash: {
         shiftsBulk: BulkReport | null;
         assignmentsBulk: BulkReport | null;
+        // The address a Tester just followed a Feedback item with (#857), shown once.
+        feedbackFollowing: string | null;
     };
     ziggy: {
         location: string;

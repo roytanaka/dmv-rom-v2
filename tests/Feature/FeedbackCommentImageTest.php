@@ -360,10 +360,10 @@ it('returns 404 from the comment image action in production (controller layer)',
 it('rolls back to a required comment body, keeping an image-only comment as an empty one', function () {
     $comment = FeedbackComment::factory()->create(['body' => null]);
 
+    // Only this migration, so later feedback migrations do not shift which one rolls back.
     $this->artisan('migrate:rollback', [
         '--database' => 'feedback',
-        '--path' => 'database/migrations/feedback',
-        '--step' => 1,
+        '--path' => 'database/migrations/feedback/2026_10_08_000000_create_feedback_comment_images_table.php',
     ])->assertSuccessful();
 
     $schema = Schema::connection('feedback');

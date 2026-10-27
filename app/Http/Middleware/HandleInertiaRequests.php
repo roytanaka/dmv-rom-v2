@@ -121,6 +121,10 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'shiftsBulk' => $request->session()->get('shiftsBulk'),
                 'assignmentsBulk' => $request->session()->get('assignmentsBulk'),
+                // The address a Tester just followed a Feedback item with (#857, ADR-0029 §15),
+                // shown once as "Updates go to <address>" so they can spot a typo. Only the
+                // sender's own next page carries it.
+                'feedbackFollowing' => $request->session()->get('feedbackFollowing'),
             ],
         ]);
     }

@@ -4,6 +4,7 @@ use App\Enums\FeedbackStatus;
 use App\Enums\FeedbackType;
 use App\Http\Controllers\ImpersonationController;
 use App\Models\FeedbackComment;
+use App\Models\FeedbackFollower;
 use App\Models\FeedbackItem;
 use App\Models\FeedbackScreenshot;
 use App\Models\Member;
@@ -119,6 +120,20 @@ it('lets the Support-operator delete an item with its comments, screenshot rows,
         Storage::disk('local')->assertMissing($screenshot->storage_path);
     }
     Storage::disk('local')->assertExists($otherScreenshot->storage_path);
+});
+
+it('deletes an item’s Followers with the item, so no email goes out about it', function () {
+    $item = FeedbackItem::factory()->create();
+    $other = FeedbackItem::factory()->create();
+    $item->follow('pat@example.com', 'en');
+    $other->follow('pat@example.com', 'en');
+
+    $this->actingAs(Member::factory()->operator()->create())
+        ->delete("/feedback/{$item->id}")
+        ->assertRedirect('/feedback');
+
+    expect(FeedbackFollower::where('feedback_item_id', $item->id)->count())->toBe(0)
+        ->and($other->followers()->count())->toBe(1);
 });
 
 it('deletes an item whose screenshot file is already gone', function () {
