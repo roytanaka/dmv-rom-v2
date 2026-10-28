@@ -219,7 +219,7 @@ it('stops only the one item', function () {
 
 it('rejects a tampered stop link', function () {
     $link = followAndTakeStopLink();
-    $tampered = preg_replace('#signature=(.)#', 'signature=0', $link);
+    $tampered = preg_replace_callback('#signature=(.)#', fn ($m) => 'signature='.($m[1] === '0' ? '1' : '0'), $link);
     $otherFollower = str_replace('/followers/1/', '/followers/2/', $link);
 
     $this->get($tampered)->assertForbidden();
