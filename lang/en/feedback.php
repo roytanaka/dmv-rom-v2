@@ -115,6 +115,14 @@ return [
             'already' => 'Updates for this item are already stopped.',
         ],
     ],
+    // The email to the notify address for each new item (ADR-0029 §16). :item is the item's label.
+    'new_item' => [
+        'subject' => 'New Feedback :item',
+        'heading' => 'New Feedback :item',
+        'intro' => ':name sent this from :page:',
+        'intro_no_page' => ':name sent this:',
+        'screenshots' => 'This item has screenshots. View the item to see them.',
+    ],
     'comments' => [
         'title' => 'Comments',
         'empty' => 'No comments yet.',

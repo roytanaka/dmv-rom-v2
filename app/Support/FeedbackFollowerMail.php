@@ -5,14 +5,17 @@ namespace App\Support;
 use App\Http\Requests\Concerns\FollowsFeedbackItem;
 use App\Mail\FeedbackCommentPosted;
 use App\Mail\FeedbackFollowing;
+use App\Mail\FeedbackItemPosted;
 use App\Models\FeedbackComment;
 use App\Models\FeedbackFollower;
+use App\Models\FeedbackItem;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
- * Sends one email to one Feedback Follower (#857, spec #856, ADR-0029 §15).
+ * Sends one email to one Feedback Follower (#857, spec #856, ADR-0029 §15), or to the notify
+ * address for a new item (§16).
  *
  * - Inside the request, after the feedback transaction commits: the exception to ADR-0024 §4.
  *   Never through `deliveries`, which staging wipes on every push.
@@ -23,12 +26,24 @@ use Throwable;
  */
 class FeedbackFollowerMail
 {
-    public static function send(FeedbackFollower $follower, Mailable $mail): void
+    public static function send(string $address, Mailable $mail): void
     {
         try {
-            Mail::mailer('smtp')->to($follower->email)->send($mail);
+            Mail::mailer('smtp')->to($address)->send($mail);
         } catch (Throwable $e) {
             report($e);
+        }
+    }
+
+    /**
+     * Email a new item to the notify address (`mail.feedback_notify_address`), when one is set.
+     */
+    public static function itemPosted(FeedbackItem $item): void
+    {
+        $address = config('mail.feedback_notify_address');
+
+        if (filled($address)) {
+            self::send($address, new FeedbackItemPosted($item));
         }
     }
 
@@ -39,7 +54,7 @@ class FeedbackFollowerMail
     public static function receipt(FeedbackFollower $follower): void
     {
         if ($follower->wasRecentlyCreated) {
-            self::send($follower, new FeedbackFollowing($follower->feedbackItem, $follower));
+            self::send($follower->email, new FeedbackFollowing($follower->feedbackItem, $follower));
         }
     }
 
@@ -56,6 +71,6 @@ class FeedbackFollowerMail
         $item->followers()
             ->when($authorEmail !== null, fn ($query) => $query->where('email', '!=', $authorEmail))
             ->orderBy('id')
-            ->each(fn (FeedbackFollower $follower) => self::send($follower, new FeedbackCommentPosted($item, $comment, $follower)));
+            ->each(fn (FeedbackFollower $follower) => self::send($follower->email, new FeedbackCommentPosted($item, $comment, $follower)));
     }
 }

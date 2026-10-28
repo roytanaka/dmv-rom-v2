@@ -26,6 +26,7 @@
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="FEEDBACK_DB_DRIVER" value="sqlite"/>
         <env name="FEEDBACK_DB_DATABASE" value=":memory:"/>
+        <env name="FEEDBACK_NOTIFY_ADDRESS" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

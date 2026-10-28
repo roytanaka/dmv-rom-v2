@@ -8,6 +8,8 @@ accepted: 2026-09-26
 
 > **Amendment (2026-10-25, [ADR-0035](0035-beta-and-cutover.md) §8).** Feedback also runs on **Beta**, the production install before Cutover. Beta writes to the same feedback database as staging. A Beta item records the Tester's real name, and only a **Support-operator** reads Beta items, because their screenshots show real Member data. On staging, §4 is unchanged: every Tester reads every item.
 
+> **Amendment (2026-10-28, §16).** Each new Feedback item is emailed to one notify address.
+
 > **Amendment (2026-10-27, §15).** Testers can follow a Feedback item by email and get each new comment. This also changes the Beta read rule in [ADR-0035](0035-beta-and-cutover.md) §8.
 
 From a grilling session on 2026-09-26. Testers on staging find many defects while the app is still being built. They need one place in the app to send them and to see what others already sent. Staging runs `migrate:fresh --seed` on every push ([architecture](../architecture.md), `scripts/deploy.sh`), so anything stored in the main database is lost on the next deploy. This ADR decides where **Feedback items** live and what the first, staging-only version does. See `GLOSSARY.md` for **Tester** and **Feedback item**.
@@ -55,13 +57,20 @@ From a grilling session on 2026-09-26. Testers on staging find many defects whil
     - **Deletes.** Deleting an item deletes its Followers. A deleted comment does not recall emails already sent.
     - **Beta Support-operator.** A `members:grant-operator` command sets the `support_operator` marker. It runs once on Beta after the first import. The import keeps the marker ([ADR-0035](0035-beta-and-cutover.md) §4).
 
+16. **Notify address** _(added 2026-10-28)_. Each new Feedback item is emailed to one address, so the Support-operator sees it without opening the Feedback page.
+    - **The address** comes from `FEEDBACK_NOTIFY_ADDRESS` in the `.env`. Empty sends nothing. The repo is public, so the address is never in the code.
+    - **Sent like a Follower email** (§15): inside the request, after the commit, through the `smtp` mailer. A mail error is reported and never stops the item from saving.
+    - **The email** has the Tester's typed name, the page they sent it from, the full message, and a plain link to the item. Screenshots are not attached. It uses the app's default language.
+    - **No stop link.** Clearing the setting stops the emails.
+    - **New items only.** For comments on an item, the Support-operator follows it like any Tester (§15).
+
 ## Considered alternatives
 
 - **Store items in the main database.** Rejected: every staging push drops it.
 - **Stop reseeding staging.** Rejected: it reverses the decision that staging is disposable, which keeps demo data and migrations honest.
 - **Each submission becomes a GitHub issue.** Rejected: the repo is public, so Tester names and screenshots would be public, and hundreds of defects would mix with build tickets. The Support-operator copies useful items into GitHub by hand.
 - **A floating Feedback button on every page.** Rejected in favour of the help menu: Testers already look there, and it does not add to the app shell.
-- **"Copy for GitHub" button, "Me too" votes, and an email per new item.** Deferred. _(2026-10-27: email per new comment to Followers is added in §15. An email per new item to the Support-operator is still deferred.)_ Votes cannot be deduplicated while names are typed.
+- **"Copy for GitHub" button, "Me too" votes, and an email per new item.** Deferred. _(2026-10-27: email per new comment to Followers is added in §15. 2026-10-28: email per new item to a notify address is added in §16.)_ Votes cannot be deduplicated while names are typed.
 - **Email Followers on a status change too** (2026-10-27). Rejected: a status change and the comment that explains it would send two emails. Only the Support-operator changes status, and they add a comment.
 - **Confirm the address before the first email** (2026-10-27). Rejected: a token flow and a "check your inbox" step lose older Testers. A typo sends a stranger a few emails, each with a stop link.
 - **Queue Follower emails** in `deliveries` or in a new table in the feedback database (2026-10-27). Rejected: `deliveries` is wiped with the main database, and a second queue is more to build than the volume needs.

@@ -187,13 +187,14 @@ class FeedbackController extends Controller implements HasMiddleware
      *
      * With "Email me updates" ticked (#857, §15) the Tester follows the item in the same
      * transaction. The receipt goes after the commit, and the page flashes the address.
+     * The item also goes to the notify address, when one is set (§16).
      */
     public function store(StoreFeedbackItemRequest $request, FeedbackScreenshotStorage $screenshots): RedirectResponse
     {
         $member = $request->user();
         $operatorId = $request->session()->get(ImpersonationController::OPERATOR_KEY);
 
-        $follower = DB::connection('feedback')->transaction(function () use ($request, $member, $operatorId, $screenshots) {
+        [$item, $follower] = DB::connection('feedback')->transaction(function () use ($request, $member, $operatorId, $screenshots) {
             $item = FeedbackItem::create([
                 ...$request->safe()->except(['screenshots', ...StoreFeedbackItemRequest::FOLLOW_FIELDS]),
                 'route_name' => $this->routeNameFor($request->validated('page_url')),
@@ -206,10 +207,14 @@ class FeedbackController extends Controller implements HasMiddleware
 
             $screenshots->store($item->screenshots(), $request->file('screenshots', []));
 
-            return $request->followItem($item);
+            return [$item, $request->followItem($item)];
         });
 
-        return $this->confirmFollow($follower);
+        $response = $this->confirmFollow($follower);
+
+        FeedbackFollowerMail::itemPosted($item);
+
+        return $response;
     }
 
     /**
