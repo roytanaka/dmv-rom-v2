@@ -4,10 +4,15 @@
 // context (page URL, user agent, viewport) rides along on submit; the server fills the
 // rest. Label, control, and error only — no helper text.
 //
-// The name is remembered in the browser (§5, `@/feedback/testerName`).
+// The name is remembered in the browser (§5, `@/feedback/rememberedTester`).
 //
 // Screenshots (#678, §9): up to 3 images, through the shared image control
 // (`FeedbackImagePicker`): the file picker, a drop, or a paste anywhere in the form.
+//
+// "Email me updates" (#857, §15, `FeedbackFollowFields`): ticking the box shows a required
+// email field, remembered in the browser like the name. After the send, the dialog says where
+// the updates go.
+import FeedbackFollowFields from '@/components/FeedbackFollowFields.vue';
 import FeedbackImagePicker from '@/components/FeedbackImagePicker.vue';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -19,8 +24,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { buildClientContext } from '@/feedback/clientContext';
 import { fileErrorMessages } from '@/feedback/screenshots';
-import { rememberedName, rememberName } from '@/feedback/testerName';
-import { useForm } from '@inertiajs/vue3';
+import { rememberedEmail, rememberedName, rememberEmail, rememberName } from '@/feedback/rememberedTester';
+import type { SharedData } from '@/types';
+import { useForm, usePage } from '@inertiajs/vue3';
 import { PhCheckCircle } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -39,7 +45,11 @@ const form = useForm({
     tester_name: '',
     type: '',
     message: '',
+    follow: false,
+    follower_email: '',
 });
+
+const page = usePage<SharedData>();
 
 // The screenshots to send, kept by the image control, which clears itself on an empty list.
 const screenshots = ref<File[]>([]);
@@ -65,6 +75,8 @@ watch(open, (isOpen) => {
     form.tester_name = rememberedName();
     form.type = '';
     form.message = '';
+    form.follow = false;
+    form.follower_email = rememberedEmail();
     screenshots.value = [];
 });
 
@@ -74,6 +86,9 @@ function submit(): void {
         preserveState: true,
         onSuccess: () => {
             rememberName(form.tester_name);
+            if (form.follow) {
+                rememberEmail(form.follower_email);
+            }
             sent.value = true;
         },
     });
@@ -91,6 +106,9 @@ function submit(): void {
                 <p class="flex items-center gap-2 text-base">
                     <PhCheckCircle class="text-success size-5 shrink-0" />
                     {{ trans('feedback.dialog.sent') }}
+                </p>
+                <p v-if="page.props.flash.feedbackFollowing" class="text-base">
+                    {{ trans('feedback.follow.following', { email: page.props.flash.feedbackFollowing }) }}
                 </p>
                 <DialogFooter class="items-center gap-4 sm:justify-between">
                     <TextLink :href="href" @click="open = false">{{ trans('feedback.dialog.see_all') }}</TextLink>
@@ -149,6 +167,12 @@ function submit(): void {
                     :label="trans('feedback.screenshots.title')"
                     :list-label="trans('feedback.screenshots.list')"
                     :server-errors="serverFileErrors"
+                />
+                <FeedbackFollowFields
+                    v-model:follow="form.follow"
+                    v-model:email="form.follower_email"
+                    id-prefix="feedback"
+                    :error="form.errors.follower_email"
                 />
 
                 <DialogFooter class="items-center gap-4 sm:justify-between">

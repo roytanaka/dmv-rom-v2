@@ -50,7 +50,8 @@ class FeedbackTriageController extends Controller implements HasMiddleware
     }
 
     /**
-     * Delete an item, its comments, its screenshots, and its comments' images (#778): the
+     * Delete an item, its comments, its screenshots, its comments' images (#778), and its
+     * Followers (#857, §15), so no email goes out about a deleted item: the
      * rows and the files. The rows go in one transaction on the feedback connection. The
      * deletes are explicit, not left to the foreign keys' cascade, so SQLite in the tests
      * behaves like MariaDB. The files go after the commit, so a failed delete never leaves
@@ -67,6 +68,7 @@ class FeedbackTriageController extends Controller implements HasMiddleware
             FeedbackCommentImage::whereIn('feedback_comment_id', $feedbackItem->comments()->select('id'))->delete();
             $feedbackItem->comments()->delete();
             $feedbackItem->screenshots()->delete();
+            $feedbackItem->followers()->delete();
             $feedbackItem->delete();
         });
 

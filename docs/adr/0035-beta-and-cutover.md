@@ -39,7 +39,7 @@ The new plan puts a **Beta** stage between staging and **Cutover**. During Beta,
    - "Forgot password" works for every Member, also before their first sign-in. It is the way in for a locked Member and for a Member whose membership number is missing or wrong.
    - Every Member needs a unique email before the first Beta import, not only before Cutover ([ADR-0001](0001-authentication-and-identity.md)). The import needs a unique email to match each Member.
 
-8. **Feedback on Beta.** Beta sends Feedback items to the same feedback database as staging. A Beta item records the Tester's real name. Only a **Support-operator** reads Beta items, because their screenshots show real Member data. This amends [ADR-0029](0029-tester-feedback.md).
+8. **Feedback on Beta.** Beta sends Feedback items to the same feedback database as staging. A Beta item records the Tester's real name. Only a **Support-operator** reads Beta items, because their screenshots show real Member data. This amends [ADR-0029](0029-tester-feedback.md). _(Amended 2026-10-27, [ADR-0029 §15](0029-tester-feedback.md): a Tester reads their own Beta items and can comment on them. The app matches the item's stored email to the account's email, not a Member id. Super-tier reads every Beta item and can comment, because they can already see every Member's data. Only the Support-operator changes status or deletes.)_
 
 9. **Cutover day.**
    1. The Legacy app shows a maintenance page. This is host configuration, not a code change.

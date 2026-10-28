@@ -36,6 +36,8 @@ return [
     'feedback.comment' => 'retroaction/{feedbackItem}/commentaires/{feedbackComment}',
     'feedback.screenshot' => 'retroaction/captures/{feedbackScreenshot}',
     'feedback.comment-image' => 'retroaction/images-commentaires/{feedbackCommentImage}',
+    // La page d'arrêt des mises à jour d'un abonné (#857, §15) : le lien signé de chaque courriel.
+    'feedback.unfollow' => 'retroaction/abonnes/{follower}/arreter',
 
     // Zone C — officer/admin
     'officer.members' => 'officier/membres',

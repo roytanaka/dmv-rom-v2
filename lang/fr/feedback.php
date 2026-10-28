@@ -80,6 +80,34 @@ return [
         'error_count' => 'Vous pouvez ajouter jusqu’à :max captures d’écran.',
     ],
 
+    'follow' => [
+        'checkbox' => 'M’envoyer les mises à jour par courriel',
+        'email' => 'Votre courriel',
+        'following' => 'Les mises à jour iront à :email.',
+        'item_label' => 'nº :id :type : :excerpt',
+        'reply_on_site' => 'Pour répondre, ajoutez un commentaire sur le site. Les réponses à ce courriel ne sont pas lues.',
+        'view_item' => 'Voir la rétroaction',
+        'stop_link' => 'Arrêter les mises à jour pour cette rétroaction',
+        'receipt' => [
+            'subject' => 'Vous suivez la rétroaction :item',
+            'heading' => 'Vous suivez cette rétroaction',
+            'intro' => 'Vous recevrez un courriel chaque fois que quelqu’un commente la rétroaction :item.',
+        ],
+        'comment' => [
+            'subject' => 'Nouveau commentaire sur la rétroaction :item',
+            'heading' => 'Nouveau commentaire sur la rétroaction :item',
+            'intro' => ':name a commenté :',
+            'images' => 'Ce commentaire contient des images. Voyez la rétroaction pour les afficher.',
+            'status' => 'Statut : :status',
+        ],
+        'stop' => [
+            'title' => 'Arrêter les mises à jour',
+            'body' => 'Arrêter les courriels au sujet de la rétroaction :item?',
+            'button' => 'Arrêter les mises à jour',
+            'stopped' => 'Vous ne recevrez plus de mises à jour pour la rétroaction :item.',
+            'already' => 'Les mises à jour pour cette rétroaction sont déjà arrêtées.',
+        ],
+    ],
     'comments' => [
         'title' => 'Commentaires',
         'empty' => 'Aucun commentaire pour le moment.',

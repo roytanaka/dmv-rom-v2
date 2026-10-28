@@ -4,15 +4,20 @@
 // only. Type and status labels are chrome; the Tester's name, message, and comments are
 // content, shown as sent.
 //
-// The comment form uses the Tester's remembered name (§5, `@/feedback/testerName`).
+// The comment form uses the Tester's remembered name (§5, `@/feedback/rememberedTester`).
 // Label, control, and error only — no helper text. A comment carries text, images (#778),
 // or both; its images use the send dialog's image control, paste and drop included.
+//
+// "Email me updates" (#860, §15): the send dialog's checkbox and email field
+// (`FeedbackFollowFields`), with the same remembered email. After a comment with the box
+// ticked, the form says where the updates go. The box stays ticked after a send.
 //
 // A click on a screenshot or a comment image opens the image viewer (#776) on one list of
 // every image on the page, in page order: the screenshots, then each comment's images.
 //
 // The Support-operator (`can.manage`, #679, §7) also sets the status, deletes the item, and
 // deletes a comment. Each delete asks first. The server checks again on every request.
+import FeedbackFollowFields from '@/components/FeedbackFollowFields.vue';
 import FeedbackImagePicker from '@/components/FeedbackImagePicker.vue';
 import ImageViewer from '@/components/ImageViewer.vue';
 import InputError from '@/components/InputError.vue';
@@ -28,7 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatFileSize } from '@/documents/fileSize';
 import { formatFeedbackDate, STATUS_TONES, type FeedbackOption } from '@/feedback/display';
 import { fileErrorMessages } from '@/feedback/screenshots';
-import { rememberedName, rememberName } from '@/feedback/testerName';
+import { rememberedEmail, rememberedName, rememberEmail, rememberName } from '@/feedback/rememberedTester';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { ViewerEntry } from '@/viewer/entries';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -138,6 +143,8 @@ const form = useForm({
     tester_name: rememberedName(),
     body: '',
     images: [] as File[],
+    follow: false,
+    follower_email: rememberedEmail(),
 });
 const picker = ref<InstanceType<typeof FeedbackImagePicker> | null>(null);
 
@@ -151,6 +158,9 @@ function submit(): void {
         preserveScroll: true,
         onSuccess: () => {
             rememberName(form.tester_name);
+            if (form.follow) {
+                rememberEmail(form.follower_email);
+            }
             form.body = '';
             form.images = [];
         },
@@ -366,9 +376,18 @@ function deleteComment(): void {
                         limit-error-key="feedback.comments.error_limit"
                         :server-errors="serverImageErrors"
                     />
+                    <FeedbackFollowFields
+                        v-model:follow="form.follow"
+                        v-model:email="form.follower_email"
+                        id-prefix="comment"
+                        :error="form.errors.follower_email"
+                    />
                     <div>
                         <Button type="submit" size="sm" :disabled="form.processing">{{ trans('feedback.comments.add') }}</Button>
                     </div>
+                    <p v-if="page.props.flash.feedbackFollowing" class="text-base" role="status">
+                        {{ trans('feedback.follow.following', { email: page.props.flash.feedbackFollowing }) }}
+                    </p>
                 </form>
             </section>
         </div>

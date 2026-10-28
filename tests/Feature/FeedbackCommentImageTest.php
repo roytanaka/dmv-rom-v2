@@ -304,6 +304,24 @@ it('refuses both the inline and the download request when the policy denies', fu
     $this->get("/feedback/comment-images/{$image->id}?download=1")->assertForbidden();
 });
 
+it('serves a Tester on Beta the comment images of their own items only', function () {
+    $this->forceAccountIdentity();
+    $own = FeedbackCommentImage::factory()
+        ->for(FeedbackComment::factory()->for(FeedbackItem::factory()->state(['member_email' => 'pat@dmv.test'])))
+        ->create();
+    $other = FeedbackCommentImage::factory()
+        ->for(FeedbackComment::factory()->for(FeedbackItem::factory()->state(['member_email' => 'sam@dmv.test'])))
+        ->create();
+    Storage::disk('local')->put($own->storage_path, 'png-bytes');
+    Storage::disk('local')->put($other->storage_path, 'png-bytes');
+
+    $this->actingAs(Member::factory()->create(['email' => 'pat@dmv.test']));
+
+    $this->get("/feedback/comment-images/{$own->id}")->assertOk();
+    $this->get("/feedback/comment-images/{$other->id}")->assertForbidden();
+    $this->get("/feedback/comment-images/{$other->id}?download=1")->assertForbidden();
+});
+
 it('serves a comment image at its French twin', function () {
     $image = FeedbackCommentImage::factory()->create(['original_filename' => 'capture.png']);
     Storage::disk('local')->put($image->storage_path, 'png-bytes');
@@ -360,10 +378,10 @@ it('returns 404 from the comment image action in production (controller layer)',
 it('rolls back to a required comment body, keeping an image-only comment as an empty one', function () {
     $comment = FeedbackComment::factory()->create(['body' => null]);
 
+    // Only this migration, so later feedback migrations do not shift which one rolls back.
     $this->artisan('migrate:rollback', [
         '--database' => 'feedback',
-        '--path' => 'database/migrations/feedback',
-        '--step' => 1,
+        '--path' => 'database/migrations/feedback/2026_10_08_000000_create_feedback_comment_images_table.php',
     ])->assertSuccessful();
 
     $schema = Schema::connection('feedback');

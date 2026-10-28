@@ -8,16 +8,20 @@ use App\Http\Requests\StoreFeedbackCommentRequest;
 use App\Http\Requests\StoreFeedbackItemRequest;
 use App\Models\FeedbackComment;
 use App\Models\FeedbackCommentImage;
+use App\Models\FeedbackFollower;
 use App\Models\FeedbackItem;
 use App\Models\FeedbackScreenshot;
 use App\Models\Member;
+use App\Policies\FeedbackItemPolicy;
 use App\Support\AppVersion;
+use App\Support\FeedbackFollowerMail;
 use App\Support\FeedbackScreenshotStorage;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -27,7 +31,8 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 /**
  * Tester feedback (#676, #677, #678, ADR-0029): send a Feedback item with its screenshots,
  * list them on the Feedback page, filtered by type and status (#679), open one on its own page, and comment on it. Any
- * logged-in Member may do all of these (§4).
+ * logged-in Member may send; reading and commenting follow {@see FeedbackItemPolicy::view()}
+ * (every item on staging, their own on Beta, ADR-0035 §8).
  *
  * The environment boundary has two layers, like the Role-switcher (ADR-0009):
  *   1. the routes are registered only outside production (routes/web.php);
@@ -50,8 +55,9 @@ class FeedbackController extends Controller implements HasMiddleware
      * each with its comment count (#701), counted in the one query. The status filter also
      * takes `open` and `closed`, each a group of statuses.
      * The filters are query parameters, so a filtered list has a URL. A value that names
-     * no type or status is ignored. No policy check beyond `auth`: every logged-in Tester
-     * reads every item (ADR-0029 §4).
+     * no type or status is ignored. The list holds only the items the Member may view
+     * ({@see FeedbackItemPolicy::view()}): every item on staging, their own on Beta. The
+     * rule runs per item, so the list and the item page can never disagree.
      */
     public function index(Request $request): Response
     {
@@ -72,6 +78,8 @@ class FeedbackController extends Controller implements HasMiddleware
             ->latest()
             ->orderByDesc('id')
             ->get()
+            ->filter(fn (FeedbackItem $item) => $request->user()->can('view', $item))
+            ->values()
             ->map(fn (FeedbackItem $item) => [
                 ...$this->summary($item),
                 'excerpt' => Str::limit($item->message, 160),
@@ -92,12 +100,15 @@ class FeedbackController extends Controller implements HasMiddleware
 
     /**
      * One Feedback item's page (§13): the message, its screenshots (§9), everything
-     * captured with it, and the comments, oldest first (§8), each with its images (#778). Every logged-in Tester reads every item (§4).
+     * captured with it, and the comments, oldest first (§8), each with its images (#778).
+     * Refused unless the Member may view the item ({@see FeedbackItemPolicy::view()}).
      * Only the Support-operator sees the status picker and the delete controls (§7, #679).
      * `can.manage` reads the same direct predicate as the triage Form Requests.
      */
     public function show(Request $request, FeedbackItem $feedbackItem): Response
     {
+        Gate::authorize('view', $feedbackItem);
+
         return Inertia::render('feedback/Show', [
             'item' => [
                 ...$this->summary($feedbackItem),
@@ -144,16 +155,27 @@ class FeedbackController extends Controller implements HasMiddleware
      * Add a comment under a Feedback item (§8). Any logged-in Member may comment; the
      * name is the Tester's typed one, like on a send. Comments are never edited. Its
      * images (#778) are stored with it, in one transaction on the feedback connection.
+     *
+     * With "Email me updates" ticked (#860, §15) the commenter follows the item in the same
+     * transaction. After the commit: the receipt if the follow is new, then an email to every
+     * Follower except the author, and the page flashes the address. Mail failures are
+     * reported, never thrown, so the comment is saved either way.
      */
     public function storeComment(StoreFeedbackCommentRequest $request, FeedbackItem $feedbackItem, FeedbackScreenshotStorage $images): RedirectResponse
     {
-        DB::connection('feedback')->transaction(function () use ($request, $feedbackItem, $images) {
-            $comment = $feedbackItem->comments()->create($request->safe()->except('images'));
+        [$comment, $follower] = DB::connection('feedback')->transaction(function () use ($request, $feedbackItem, $images) {
+            $comment = $feedbackItem->comments()->create($request->safe()->except(['images', ...StoreFeedbackCommentRequest::FOLLOW_FIELDS]));
 
             $images->store($comment->images(), $request->file('images', []));
+
+            return [$comment, $request->followItem($feedbackItem)];
         });
 
-        return back();
+        $response = $this->confirmFollow($follower);
+
+        FeedbackFollowerMail::commentPosted($comment, $request->authorEmail());
+
+        return $response;
     }
 
     /**
@@ -162,15 +184,18 @@ class FeedbackController extends Controller implements HasMiddleware
      * the locale, the Member, the impersonator, the app version, and the time. Every
      * item starts as New. The screenshots (§9) are stored with it, in one transaction on
      * the feedback connection, so an item never shows half its screenshots.
+     *
+     * With "Email me updates" ticked (#857, §15) the Tester follows the item in the same
+     * transaction. The receipt goes after the commit, and the page flashes the address.
      */
     public function store(StoreFeedbackItemRequest $request, FeedbackScreenshotStorage $screenshots): RedirectResponse
     {
         $member = $request->user();
         $operatorId = $request->session()->get(ImpersonationController::OPERATOR_KEY);
 
-        DB::connection('feedback')->transaction(function () use ($request, $member, $operatorId, $screenshots) {
+        $follower = DB::connection('feedback')->transaction(function () use ($request, $member, $operatorId, $screenshots) {
             $item = FeedbackItem::create([
-                ...$request->safe()->except('screenshots'),
+                ...$request->safe()->except(['screenshots', ...StoreFeedbackItemRequest::FOLLOW_FIELDS]),
                 'route_name' => $this->routeNameFor($request->validated('page_url')),
                 'locale' => app()->getLocale(),
                 'member_name' => $member->fullName(),
@@ -180,9 +205,26 @@ class FeedbackController extends Controller implements HasMiddleware
             ]);
 
             $screenshots->store($item->screenshots(), $request->file('screenshots', []));
+
+            return $request->followItem($item);
         });
 
-        return back();
+        return $this->confirmFollow($follower);
+    }
+
+    /**
+     * After a store commits (§15): with a follow, the receipt if the Follower is new, and the
+     * page flashes the address. Without one, just back.
+     */
+    private function confirmFollow(?FeedbackFollower $follower): RedirectResponse
+    {
+        if ($follower === null) {
+            return back();
+        }
+
+        FeedbackFollowerMail::receipt($follower);
+
+        return back()->with('feedbackFollowing', $follower->email);
     }
 
     /**

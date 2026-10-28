@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Enums\FeedbackStatus;
 use App\Enums\FeedbackType;
+use App\Support\LocalizedUrl;
 use Database\Factories\FeedbackItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Str;
 
 /**
  * A Feedback item (ADR-0029): one thing a Tester sends from a non-production app. It lives
@@ -104,6 +106,48 @@ class FeedbackItem extends Model
     public function screenshots(): HasMany
     {
         return $this->hasMany(FeedbackScreenshot::class);
+    }
+
+    /**
+     * The addresses that get an email for each new comment (#857, §15). Never shown on a page.
+     *
+     * @return HasMany<FeedbackFollower, $this>
+     */
+    public function followers(): HasMany
+    {
+        return $this->hasMany(FeedbackFollower::class);
+    }
+
+    /**
+     * Follow this item with an address: insert or keep (§15). The address comes normalized
+     * from the request, so a second follow with the same address keeps the first Follower and
+     * its locale. `wasRecentlyCreated` on the result says whether this follow made a new
+     * Follower, the only case that earns a receipt.
+     */
+    public function follow(string $email, string $locale): FeedbackFollower
+    {
+        return $this->followers()->firstOrCreate(['email' => $email], ['locale' => $locale]);
+    }
+
+    /**
+     * How an email names this item, in the current locale: items have no title, so the
+     * number, the type, and the start of the message (§15). The subject and the body use it.
+     */
+    public function label(): string
+    {
+        return __('feedback.follow.item_label', [
+            'id' => $this->id,
+            'type' => __($this->type->labelKey()),
+            'excerpt' => Str::limit(Str::squish($this->message), 50),
+        ]);
+    }
+
+    /**
+     * The absolute link to this item's page in a locale (ADR-0008), for emails.
+     */
+    public function urlFor(string $locale): string
+    {
+        return LocalizedUrl::to($locale, 'feedback.show', ['feedbackItem' => $this->id]);
     }
 
     /**

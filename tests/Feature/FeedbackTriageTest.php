@@ -4,6 +4,7 @@ use App\Enums\FeedbackStatus;
 use App\Enums\FeedbackType;
 use App\Http\Controllers\ImpersonationController;
 use App\Models\FeedbackComment;
+use App\Models\FeedbackFollower;
 use App\Models\FeedbackItem;
 use App\Models\FeedbackScreenshot;
 use App\Models\Member;
@@ -119,6 +120,20 @@ it('lets the Support-operator delete an item with its comments, screenshot rows,
         Storage::disk('local')->assertMissing($screenshot->storage_path);
     }
     Storage::disk('local')->assertExists($otherScreenshot->storage_path);
+});
+
+it('deletes an item’s Followers with the item, so no email goes out about it', function () {
+    $item = FeedbackItem::factory()->create();
+    $other = FeedbackItem::factory()->create();
+    $item->follow('pat@example.com', 'en');
+    $other->follow('pat@example.com', 'en');
+
+    $this->actingAs(Member::factory()->operator()->create())
+        ->delete("/feedback/{$item->id}")
+        ->assertRedirect('/feedback');
+
+    expect(FeedbackFollower::where('feedback_item_id', $item->id)->count())->toBe(0)
+        ->and($other->followers()->count())->toBe(1);
 });
 
 it('deletes an item whose screenshot file is already gone', function () {
@@ -270,6 +285,70 @@ it('sends a guest to login from the triage routes', function () {
     $this->delete("/feedback/{$item->id}/comments/{$comment->id}")->assertRedirect('/login');
 
     expect(FeedbackItem::find($item->id))->not->toBeNull();
+});
+
+// --- Beta reads (ADR-0035 §8, amended 2026-10-27) ---------------------------
+
+it('lets super-tier on Beta read and comment on every item, with no status or delete', function () {
+    $this->forceAccountIdentity();
+    $item = FeedbackItem::factory()->create(['member_email' => 'sam@dmv.test']);
+    $comment = FeedbackComment::factory()->for($item)->create();
+    FeedbackItem::factory()->create(['member_email' => 'kim@dmv.test']);
+
+    $this->actingAs(Member::factory()->superTier()->create(['email' => 'pres@dmv.test']));
+
+    $this->get('/feedback')->assertInertia(fn (Assert $page) => $page->has('items', 2));
+    $this->get("/feedback/{$item->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('can.manage', false));
+    $this->post("/feedback/{$item->id}/comments", ['tester_name' => 'Pres', 'body' => 'Seen.'])
+        ->assertSessionHasNoErrors();
+
+    $this->patch("/feedback/{$item->id}/status", ['status' => 'fixed'])->assertForbidden();
+    $this->delete("/feedback/{$item->id}/comments/{$comment->id}")->assertForbidden();
+    $this->delete("/feedback/{$item->id}")->assertForbidden();
+
+    expect($item->fresh()->status)->toBe(FeedbackStatus::New)
+        ->and($item->comments()->count())->toBe(2);
+});
+
+it('lets the Support-operator on Beta read, comment on, change status of, and delete every item', function () {
+    $this->forceAccountIdentity();
+    $item = FeedbackItem::factory()->create(['member_email' => 'sam@dmv.test']);
+    $comment = FeedbackComment::factory()->for($item)->create();
+    FeedbackItem::factory()->create(['member_email' => 'kim@dmv.test']);
+
+    $this->actingAs(Member::factory()->operator()->create(['email' => 'op@dmv.test']));
+
+    $this->get('/feedback')->assertInertia(fn (Assert $page) => $page->has('items', 2));
+    $this->get("/feedback/{$item->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('can.manage', true));
+    $this->post("/feedback/{$item->id}/comments", ['tester_name' => 'Op', 'body' => 'Looking.'])
+        ->assertSessionHasNoErrors();
+    $this->patch("/feedback/{$item->id}/status", ['status' => 'fixed'])->assertSessionHasNoErrors();
+    expect($item->fresh()->status)->toBe(FeedbackStatus::Fixed);
+
+    $this->delete("/feedback/{$item->id}/comments/{$comment->id}")->assertRedirect();
+    expect(FeedbackComment::find($comment->id))->toBeNull();
+
+    $this->delete("/feedback/{$item->id}")->assertRedirect('/feedback');
+    expect(FeedbackItem::find($item->id))->toBeNull();
+});
+
+it('keeps status and delete from a Tester on Beta, even on their own item', function () {
+    $this->forceAccountIdentity();
+    $own = FeedbackItem::factory()->create(['member_email' => 'pat@dmv.test']);
+
+    $this->actingAs(Member::factory()->create(['email' => 'pat@dmv.test']));
+
+    $this->get("/feedback/{$own->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('can.manage', false));
+    $this->patch("/feedback/{$own->id}/status", ['status' => 'fixed'])->assertForbidden();
+    $this->delete("/feedback/{$own->id}")->assertForbidden();
+
+    expect($own->fresh()->status)->toBe(FeedbackStatus::New);
 });
 
 // --- Filters ------------------------------------------------------------------
