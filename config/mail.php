@@ -113,4 +113,7 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    // Each new Feedback item is emailed here (ADR-0029 §16). Empty sends nothing.
+    'feedback_notify_address' => env('FEEDBACK_NOTIFY_ADDRESS'),
+
 ];

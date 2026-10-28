@@ -108,6 +108,13 @@ return [
             'already' => 'Les mises à jour pour cette rétroaction sont déjà arrêtées.',
         ],
     ],
+    'new_item' => [
+        'subject' => 'Nouvelle rétroaction :item',
+        'heading' => 'Nouvelle rétroaction :item',
+        'intro' => ':name a envoyé ceci depuis :page :',
+        'intro_no_page' => ':name a envoyé ceci :',
+        'screenshots' => 'Cette rétroaction contient des captures d’écran. Voyez la rétroaction pour les afficher.',
+    ],
     'comments' => [
         'title' => 'Commentaires',
         'empty' => 'Aucun commentaire pour le moment.',
