@@ -177,7 +177,7 @@ This is application of [ADR-0013](0013-app-shell-section-nav.md) plus [ADR-0017 
 **Navigation: the list is the section; a permalink opens one.**
 
 - **Current** = `ends_on >= today`.
-- **The section URL always shows the list**, current and upcoming first, then past. One Schedule, five, or none: the same page, so the entry point never changes behaviour with the data behind it. _(Amended 2026-08-23; see the note at the top. This previously read "exactly one current published Schedule → open it directly".)_
+- **The section URL always shows the list**, current and upcoming first, then past. One Schedule, five, or none: the same page, so the entry point never changes behaviour with the data behind it. _(Amended 2026-08-23; see the note at the top. This previously read "exactly one current published Schedule → open it directly".)_ _(Amended 2026-10-29, [ADR-0037 §4](0037-group-tab-visibility.md): past Schedules leave the list. The Chair, Statistician and Scheduler reach them through a "Past schedules" link. A permalink still opens one.)_
 - **Only a permalink opens a single Schedule.** A reader picks from the list; a Scheduler links straight to one.
 - **A draft is a row in the list like any other**, visible to whoever passes the schedule-admin gate.
 - **URL `/groups/{slug}/scheduling/{id}`** — the Schedule has no slug, so the id addresses it. Needs a French segment per [ADR-0008](0008-bilingual-url-routing.md).
