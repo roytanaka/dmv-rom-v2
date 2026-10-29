@@ -110,6 +110,8 @@ const props = defineProps<{
         createMeeting: boolean;
         manageRoster: boolean;
         createSchedule: boolean;
+        // `viewPastSchedules` gates the Scheduling tab's "Past schedules" link (ADR-0037 §4).
+        viewPastSchedules: boolean;
         manageSettings: boolean;
         manageReminders: boolean;
         manageEmptyDesk: boolean;
@@ -479,6 +481,7 @@ const pickBanner = (key: string | null) => {
                     :booking-clients="bookingClients ?? null"
                     :substitutes="substitutes ?? null"
                     :can-create="can.createSchedule"
+                    :can-view-past="can.viewPastSchedules"
                     :collects-visitor-count="group.capabilities.collectsVisitorCount"
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
                     :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"

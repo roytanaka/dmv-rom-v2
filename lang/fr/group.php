@@ -330,8 +330,10 @@ return [
     // Onglet Horaire (#353, ADR-0021 §1) — la surface de lecture des horaires.
     'scheduling_panel' => [
         'empty' => 'Aucun horaire pour l’instant.',
-        'current_heading' => 'Actuels et à venir',
-        'past_heading' => 'Passés',
+        // La liste des horaires passés, réservée aux officiers (ADR-0037 §4), et le lien de retour.
+        'past_link' => 'Horaires passés',
+        'current_link' => 'Horaires actuels',
+        'past_empty' => 'Aucun horaire passé.',
         'draft_badge' => 'Brouillon',
         'date_range' => 'Du :start au :end',
         'back_to_list' => 'Tous les horaires',

@@ -58,6 +58,19 @@ class SchedulePolicy
     }
 
     /**
+     * Who may list a Group's Past Schedules (ADR-0037 §4): its Chair, Statistician or
+     * Scheduler, while the Group runs scheduling (the Chair covers both through
+     * {@see Member::canActAs()}). This gates the list only — a Past Schedule still opens
+     * by permalink for anyone {@see view()} allows. Anyone else asking for the past list
+     * gets the normal one; the caller never turns this into a 403.
+     */
+    public function viewPast(Member $actor, Group $group): bool
+    {
+        return $group->has_scheduling
+            && ($actor->canActAs(Role::Scheduler, $group) || $actor->canActAs(Role::Statistician, $group));
+    }
+
+    /**
      * Who may add a Schedule to a Group: a Scheduler or Chair of that Group, and only
      * while its scheduling capability is on. A new Schedule starts as a draft.
      */

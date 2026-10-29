@@ -727,8 +727,7 @@ export interface DmvVisitorSummary {
     canViewOrgReports: boolean;
 }
 
-// A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range;
-// `is_past` heads the two blocks (current & upcoming vs past), resolved server-side.
+// A Schedule row in the Scheduling tab's list (#353, ADR-0021 §1). A date-only range.
 export interface ScheduleListItem {
     id: number;
     name: string;
@@ -737,7 +736,6 @@ export interface ScheduleListItem {
     state: string;
     // A month's group-tour Schedule (#795, ADR-0032 §4), which holds Bookings only.
     is_group_tour: boolean;
-    is_past: boolean;
     url: string;
     can: ScheduleAbilities;
 }
@@ -995,7 +993,10 @@ export interface ScheduleAbilities {
 // The Scheduling tab's payload: the viewer's visible Schedules, and the one (if any)
 // that opens directly. Exactly one of `schedules` / `open` is populated at a time.
 export interface Scheduling {
+    // Current and upcoming Schedules, soonest first — or, on the officer-only past view
+    // (`showing_past`, ADR-0037 §4), the Past Schedules, newest end date first.
     schedules: ScheduleListItem[];
+    showing_past: boolean;
     open: ScheduleDetail | null;
     // The officer-assignment picker's roster (#359) — placeable Members for the opened
     // Schedule, present only for a schedule admin. Empty for a plain reader and on the list.
