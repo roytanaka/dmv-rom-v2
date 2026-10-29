@@ -45,6 +45,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocalizedHref } from '@/composables/useLocalizedHref';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { buildAgenda, splitAtDay } from '@/scheduling/agenda';
@@ -196,13 +197,13 @@ const hasObjects = computed(() => activeObjects.value.length > 0);
 const seatObjectIds = (shift: ShiftAgendaItem): number[] => shift.signups[0]?.objects?.map((object) => object.id) ?? [];
 
 // The link back to the list from a Schedule opened by permalink — the bare section
-// URL, which always lists. Built through the route helper so the French twin comes
-// out right, as the Roster's show-past toggle already does.
-const listHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling' }));
+// URL, which always lists. Localised so a French reader stays on `/fr/…/horaire` (ADR-0008).
+const localizeHref = useLocalizedHref();
+const listHref = computed(() => localizeHref(route('groups.show', { group: props.groupSlug, section: 'scheduling' }, false)));
 
 // The officer-only past list (ADR-0037 §4) — the same section with `?past=1`, a server
 // round-trip like the Roster's show-past toggle. The past view links back to `listHref`.
-const pastHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling', past: 1 }));
+const pastHref = computed(() => `${listHref.value}?past=1`);
 
 // The opened Schedule's Email control (#490, ADR-0024 §6.3): its menu leads with "Sign-ups
 // on <Schedule>", then the owning Group's Audiences, all resolved server-side. The hand-pick

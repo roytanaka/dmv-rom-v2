@@ -66,7 +66,7 @@ The Meetings section URL returns 404 when the Group has Meetings off, super-tier
 - It holds as-authored text, one language, like About Us. It is never translated.
 - Secretary and Chair edit it inline, with the same right as About Us (`GroupPolicy::update`).
 - Everyone who can read the Overview sees it, members included.
-- When it is empty, the card shows a fallback line: to join, contact this Group's Chair. So the link from §2 never lands on an empty card.
+- When it is empty, the card shows a fallback line: to join, contact this Group's Chair. So the link from §2 never lands on an empty card. The root DMV Group has no Chair, so its fallback points to the DMV Executive.
 - The card has a fixed anchor, so the §2 link lands on it.
 
 ### 4. Scheduling: no date cap, past Schedules off the list
