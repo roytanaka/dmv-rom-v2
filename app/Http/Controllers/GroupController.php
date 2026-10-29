@@ -160,11 +160,12 @@ class GroupController extends Controller
             abort_unless($group->has_meetings, 404);
         }
 
-        // The Scheduling section exists only while the Group runs scheduling — a 404
-        // (not 403) so a non-scheduling Group's tab and its addressable URL agree. The
-        // section itself is org-open (SchedulePolicy); per-Schedule read is gated below.
+        // The Scheduling section exists only while the Group runs scheduling — a 404 for
+        // everyone, super-tier included, so a non-scheduling Group's tab and its addressable
+        // URL agree. The section itself is org-open (SchedulePolicy); per-Schedule read is
+        // gated below.
         if ($section === 'scheduling') {
-            abort_unless($request->user()->can('viewAny', [Schedule::class, $group]), 404);
+            abort_unless($group->has_scheduling, 404);
         }
 
         // The Documents section exists only while the Group runs a Document library (#712,
@@ -191,10 +192,23 @@ class GroupController extends Controller
             default => false,
         };
 
+        // Each capability-gated flag checks the Group's capability before the policy (#872): the
+        // super-tier `Gate::before` grant skips the policy's own capability guard, so without it
+        // the super-tier would get, say, the roster's Tours item on a Group that keeps no Tours.
+        $canManageReminders = $group->has_scheduling && $request->user()->can('updateReminders', [Schedule::class, $group]);
+        $canManageEmptyDesk = $group->has_scheduling && $request->user()->can('updateEmptyDeskAlert', [Schedule::class, $group]);
+        $canManageSelfServe = $group->has_scheduling && $request->user()->can('updateSelfServe', [Schedule::class, $group]);
+        $canManageShiftKinds = $group->has_scheduling && $request->user()->can('manageShiftKinds', [Schedule::class, $group]);
+        $canManageObjects = $group->has_scheduling && $request->user()->can('manageObjects', [Schedule::class, $group]);
+        $canManageTours = $group->has_vetting && $request->user()->can('manage', [Tour::class, $group]);
+        $canManageTourRules = $group->has_vetting && $request->user()->can('manageRules', [Tour::class, $group]);
+        $canManageBookings = $group->has_bookings && $request->user()->can('manage', [BookingType::class, $group]);
+
         // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
         // configuration right. Anyone else gets 403 — the Meetings shape: the Group exists and
-        // they may open it, but not this tab.
-        $canManageSettings = $this->canManageSettings($request, $group);
+        // they may open it, but not this tab. The tab appears with authority, not with data.
+        $canManageSettings = $canManageTours || $canManageBookings || $canManageReminders
+            || $canManageEmptyDesk || $canManageSelfServe || $canManageShiftKinds || $canManageObjects;
 
         if ($section === 'settings') {
             abort_unless($canManageSettings, 403);
@@ -210,15 +224,6 @@ class GroupController extends Controller
             'memberships.member',
             'memberships.roles',
         ]);
-
-        $canManageReminders = $request->user()->can('updateReminders', [Schedule::class, $group]);
-        $canManageEmptyDesk = $request->user()->can('updateEmptyDeskAlert', [Schedule::class, $group]);
-        $canManageSelfServe = $request->user()->can('updateSelfServe', [Schedule::class, $group]);
-        $canManageShiftKinds = $request->user()->can('manageShiftKinds', [Schedule::class, $group]);
-        $canManageObjects = $request->user()->can('manageObjects', [Schedule::class, $group]);
-        $canManageTours = $request->user()->can('manage', [Tour::class, $group]);
-        $canManageTourRules = $request->user()->can('manageRules', [Tour::class, $group]);
-        $canManageBookings = $request->user()->can('manage', [BookingType::class, $group]);
 
         return Inertia::render('groups/Show', [
             'group' => [
@@ -288,15 +293,15 @@ class GroupController extends Controller
             // `createSchedule` drives the Scheduling tab's "New schedule" affordance (#354).
             'can' => [
                 'update' => $request->user()->can('update', $group),
-                'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
+                'createMeeting' => $group->has_meetings && $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $this->managesRoster($request, $group),
-                'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
+                'createSchedule' => $group->has_scheduling && $request->user()->can('create', [Schedule::class, $group]),
                 // `viewPastSchedules` drives the Scheduling tab's "Past schedules" link (ADR-0037
                 // §4) — the Group's Chair, Statistician or Scheduler, or the super-tier. UI hint
                 // only; the section re-checks it before honouring `?past=1`.
-                'viewPastSchedules' => $request->user()->can('viewPast', [Schedule::class, $group]),
+                'viewPastSchedules' => $group->has_scheduling && $request->user()->can('viewPast', [Schedule::class, $group]),
                 // `manageSettings` drives the Settings tab (ADR-0027 §1) — true when any of the
-                // five configuration rights below holds. UI hint only; the section re-checks it.
+                // configuration rights below holds. UI hint only; the section re-checks it.
                 'manageSettings' => $canManageSettings,
                 // `manageReminders` drives the Settings tab's Reminders card (#486, ADR-0024 §7)
                 // — a Scheduler or Chair of the scheduling Group. UI hint only;
@@ -338,7 +343,7 @@ class GroupController extends Controller
                 // hours-entry one — a Chair or Scheduler of a scheduling Group — so an ordinary
                 // Member and a non-scheduling Group both get no control. UI hint only;
                 // RecalculateHoursRequest re-checks on POST.
-                'recalculateHours' => $request->user()->can('recalculate', [HoursRecord::class, $group]),
+                'recalculateHours' => $group->has_scheduling && $request->user()->can('recalculate', [HoursRecord::class, $group]),
                 // `viewReports` drives the Hours tab's officer link to the Group's fiscal-year
                 // report (#411, ADR-0022 §5) — a Chair or Statistician of the Group or any
                 // ancestor, or the super-tier. UI hint only; the report route re-checks the
@@ -438,18 +443,6 @@ class GroupController extends Controller
                 ],
             ],
         ]);
-    }
-
-    /**
-     * Whether the viewer holds any Group-scoped configuration right — the Settings tab's gate
-     * (ADR-0027 §1). The tab appears with authority, not with data: a Chair sees it empty or full.
-     */
-    private function canManageSettings(Request $request, Group $group): bool
-    {
-        return $request->user()->can('manage', [Tour::class, $group])
-            || $request->user()->can('manage', [BookingType::class, $group])
-            || collect(['updateReminders', 'updateEmptyDeskAlert', 'updateSelfServe', 'manageShiftKinds', 'manageObjects'])
-                ->contains(fn (string $ability): bool => $request->user()->can($ability, [Schedule::class, $group]));
     }
 
     /**
@@ -1095,9 +1088,10 @@ class GroupController extends Controller
      * three-week-old Shift on last month's Schedule is a different page the Agenda alone strands,
      * and this is the one surface that reaches it.
      *
-     * Present only where the Group collects a count: Reception collects nothing and gets no panel.
-     * The list is the viewer's own seats and no one else's, ordered by Shift start. It is returned
-     * as a flat list; **empty means no panel** — a viewer who owes nothing and holds no upcoming
+     * Present in every Group that runs scheduling (#865). Where the Group collects no count, such
+     * as Reception, nothing is owed after a Shift, so the list is the upcoming set only. The list
+     * is the viewer's own seats and no one else's, ordered by Shift start. It is returned as a flat
+     * list; **empty means no panel** — a viewer who owes nothing and holds no upcoming
      * seat, and a reader with no Sign-ups here at all, both get an empty list and the tab renders
      * no panel. Each entry is the shared {@see shiftPayload} the ShiftCard reads, carrying `canManage:
      * false` — the volunteer files from here through the same PATCH seam as the Agenda; the Officer's
@@ -1107,12 +1101,9 @@ class GroupController extends Controller
      */
     private function mine(Request $request, Group $group): array
     {
-        if (! $group->collects_visitor_count) {
-            return [];
-        }
-
         $viewer = $request->user();
         $now = CarbonImmutable::now();
+        $collectsCount = $group->collects_visitor_count;
 
         // The seats post-shift saves just wrote (#668). Remembered for the next save, so two saves
         // in a row keep both seats; any other page load clears it.
@@ -1125,11 +1116,13 @@ class GroupController extends Controller
             ->where(fn (Builder $query) => $query
                 // Upcoming — a seat still ahead of the viewer, whatever it does or does not record.
                 ->whereHas('shift', fn (Builder $shift) => $shift->where('ends_at', '>=', $now))
-                // Or outstanding — a past Shift inside the window still owed a number.
-                ->orWhere(fn (Builder $outstanding) => $outstanding->outstandingFor($viewer))
-                // Or just saved (#668) — the seats post-shift saves wrote, for the page load after
-                // them, so a first save shows its summary here instead of dropping out.
-                ->orWhereIn('id', $justSaved))
+                // Only a Group that collects a count owes anything after the Shift (#865).
+                ->when($collectsCount, fn (Builder $query) => $query
+                    // Or outstanding — a past Shift inside the window still owed a number.
+                    ->orWhere(fn (Builder $outstanding) => $outstanding->outstandingFor($viewer))
+                    // Or just saved (#668) — the seats post-shift saves wrote, for the page load
+                    // after them, so a first save shows its summary here instead of dropping out.
+                    ->orWhereIn('id', $justSaved)))
             ->with([
                 'shift.kind.tours',
                 'shift.booking.tour',

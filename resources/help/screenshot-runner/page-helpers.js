@@ -639,6 +639,16 @@
         return clickAndSettle(buttonLabelled(/^edit$/i, (element) => card.contains(element)));
     }
 
+    // Scroll the Overview just far enough to bring the How to join card (#867) up from below the
+    // fold, so the description, the officers, and At a glance stay in the shot above it.
+    function showHowToJoinCard() {
+        const card = document.getElementById('how-to-join');
+        if (!card) return false;
+        card.scrollIntoView({ block: 'end' });
+        window.scrollBy(0, 24);
+        return settle();
+    }
+
     // The banner picker on the Group header, for a Secretary or Chair. A reka-ui Dialog whose
     // trigger opens on a DOM click, so it comes through clickAndSettle like the other dialogs.
     function openBannerPicker() {
@@ -1018,6 +1028,7 @@
         openNewMeetingDialog,
         openAboutEditForm,
         openHowToJoinEditForm,
+        showHowToJoinCard,
         openBannerPicker,
         openEmailMenu,
         openWholeGroupComposer,

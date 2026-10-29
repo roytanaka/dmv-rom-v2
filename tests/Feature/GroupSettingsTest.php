@@ -95,16 +95,27 @@ it('opens the Settings section to a super-tier Member without membership', funct
             ->where('settings.reminders.leadDays', 5));
 });
 
-it('gives a super-tier Member an empty Settings section on a Group that runs no scheduling', function () {
-    // The tab appears with authority, not with data (ADR-0027 §1). The Reminders card is a
-    // scheduling card, so it has no payload here.
+it('forbids the Settings section to a super-tier Member on a Group with no configurable capability', function () {
+    // The super-tier holds a configuration right only where the Group runs its capability
+    // (#872), so a Group with none gives it no Settings tab, the same as its Chair.
     $group = Group::factory()->publicListing()->create(['has_scheduling' => false]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
+        ->assertForbidden();
+});
+
+it('gives a super-tier Member no scheduling cards on a vetting Group that runs no scheduling', function () {
+    // The tab opens on the Tours right; the Reminders card is a scheduling card, so it has no
+    // payload here.
+    $group = Group::factory()->publicListing()->create(['has_scheduling' => false, 'has_vetting' => true]);
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('can.manageSettings', true)
+            ->where('can.manageReminders', false)
             ->where('settings.reminders', null));
 });
 
@@ -151,7 +162,7 @@ it('carries the Self-serve payload on the Settings section', function () {
 });
 
 it('gives no Empty-desk or Self-serve payload on a Group that runs no scheduling', function () {
-    $group = Group::factory()->publicListing()->create(['has_scheduling' => false]);
+    $group = Group::factory()->publicListing()->create(['has_scheduling' => false, 'has_vetting' => true]);
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
@@ -193,7 +204,7 @@ it('carries the full Object list, retired Objects too, on the Settings section',
 });
 
 it('gives no shift-kind or Object list on a Group that runs no scheduling', function () {
-    $group = Group::factory()->publicListing()->create(['has_scheduling' => false]);
+    $group = Group::factory()->publicListing()->create(['has_scheduling' => false, 'has_vetting' => true]);
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
