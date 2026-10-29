@@ -72,7 +72,7 @@ return [
         'add_already_member' => 'Un de ces membres fait déjà partie de ce groupe.',
         'add_roles_one_member' => 'Les rôles se règlent pour un seul membre à la fois.',
         'no_candidates' => 'Aucun membre ne correspond à votre recherche.',
-        'edit_title' => 'Gérer l’adhésion',
+        'edit_title' => 'Gérer l’adhésion : :name',
         'field' => [
             'standing' => 'Statut',
             'roles' => 'Rôles',

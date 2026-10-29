@@ -279,6 +279,54 @@ it('rejects a leave window that ends before it starts', function () {
         ->assertSessionHasErrors('loa_end');
 });
 
+it('requires a leave end date for On leave', function () {
+    // Legacy asks for the LOA end date ("If unknown, enter the End of this Fiscal Year"), #892.
+    $group = Group::factory()->create();
+    $membership = GroupMember::factory()->create(['group_id' => $group->id]);
+
+    $this->actingAs(crudOfficerOf($group, Role::Secretary))
+        ->patch(route('group-members.update', $membership), [
+            'status' => MembershipStatus::Loa->value,
+            'loa_start' => '2026-07-01',
+            'loa_end' => null,
+        ])
+        ->assertSessionHasErrors('loa_end');
+
+    expect($membership->fresh()->status)->toBe(MembershipStatus::Full);
+});
+
+it('stores no leave dates for a standing other than On leave', function () {
+    // The dates belong to On leave only (#892): sent with Full, they are dropped.
+    $group = Group::factory()->create();
+    $membership = GroupMember::factory()->create(['group_id' => $group->id]);
+
+    $this->actingAs(crudOfficerOf($group, Role::Secretary))
+        ->patch(route('group-members.update', $membership), [
+            'status' => MembershipStatus::Full->value,
+            'loa_start' => '2026-07-01',
+            'loa_end' => '2026-09-01',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $fresh = $membership->fresh();
+    expect($fresh->loa_start)->toBeNull()
+        ->and($fresh->loa_end)->toBeNull();
+});
+
+it('clears the leave dates when a Member on leave resigns', function () {
+    $group = Group::factory()->create();
+    $membership = GroupMember::factory()->onLoa()->create(['group_id' => $group->id]);
+
+    $this->actingAs(crudOfficerOf($group, Role::Secretary))
+        ->patch(route('group-members.update', $membership), ['status' => MembershipStatus::Resigned->value])
+        ->assertSessionHasNoErrors();
+
+    $fresh = $membership->fresh();
+    expect($fresh->status)->toBe(MembershipStatus::Resigned)
+        ->and($fresh->loa_start)->toBeNull()
+        ->and($fresh->loa_end)->toBeNull();
+});
+
 it('forbids an ordinary member from changing standing', function () {
     $group = Group::factory()->create();
     $membership = GroupMember::factory()->status(MembershipStatus::Full)->create(['group_id' => $group->id]);
