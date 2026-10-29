@@ -36,6 +36,4 @@ return [
         'resigned' => 'Resigned',
         'deceased' => 'Deceased',
     ],
-    // The DMV-wide standing on a Group roster, beside the within-Group standing (#877).
-    'dmv_standing' => 'DMV: :standing',
 ];

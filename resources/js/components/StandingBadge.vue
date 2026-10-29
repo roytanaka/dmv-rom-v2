@@ -7,9 +7,7 @@ import { Badge, type BadgeVariants } from '@/components/ui/badge';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
-// `prefixed` labels it "DMV: …" — for a Group roster, where it sits beside the
-// within-Group standing (#877).
-const props = defineProps<{ standing: string; prefixed?: boolean }>();
+const props = defineProps<{ standing: string }>();
 
 // Tone per standing. Anything unmapped falls back to the neutral chip, so a future
 // Category never renders an untoned badge.
@@ -21,10 +19,7 @@ const TONES: Record<string, BadgeVariants['variant']> = {
 };
 
 const variant = computed<BadgeVariants['variant']>(() => TONES[props.standing] ?? 'secondary');
-const label = computed(() => {
-    const standing = trans(`member.standing.${props.standing}`);
-    return props.prefixed ? trans('member.dmv_standing', { standing }) : standing;
-});
+const label = computed(() => trans(`member.standing.${props.standing}`));
 </script>
 
 <template>

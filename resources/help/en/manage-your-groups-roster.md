@@ -40,7 +40,7 @@ To remove a Member from your selection, select the **×** next to their name abo
 
 ## See a Member's DMV standing
 
-The **Standing** column shows the Member's standing in your Group. Some rows also show a badge that starts with **DMV:**, for example **DMV: On leave**. This badge shows the Member's standing in the whole DMV. It shows only when that standing is not Active.
+The **Standing** column shows the Member's standing in your Group. It also shows the Member's standing in the whole DMV, for example **On leave**. The DMV standing shows only when it is not Active. It has the same badge as on the Member's profile.
 
 The two standings are separate. A change to the DMV standing does not change the standing in your Group. To change the standing in your Group, select **Manage** on the row.
 

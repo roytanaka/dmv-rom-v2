@@ -320,7 +320,7 @@ const hardRemove = (member: RosterMember) => {
                                         trans(`group.role.${role}`)
                                     }}</Badge>
                                     <GroupStandingBadge :standing="member.group_standing" class="whitespace-normal" />
-                                    <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" prefixed class="whitespace-normal" />
+                                    <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" class="whitespace-normal" />
                                 </div>
                                 <!-- A narrow cell breaks the address after the @ first, and mid-word only if it must. -->
                                 <div v-if="hasContact(member)" class="text-muted-foreground mt-1 flex flex-col text-sm wrap-anywhere lg:hidden">
@@ -356,7 +356,7 @@ const hardRemove = (member: RosterMember) => {
                             <TableCell class="hidden md:table-cell">
                                 <div class="flex flex-wrap gap-1.5">
                                     <GroupStandingBadge :standing="member.group_standing" />
-                                    <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" prefixed />
+                                    <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" />
                                 </div>
                             </TableCell>
                             <TableCell v-if="hasActions" class="text-right">
