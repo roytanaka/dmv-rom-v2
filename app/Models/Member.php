@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Category;
 use App\Enums\DirectoryList;
+use App\Enums\Kind;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use Database\Factories\MemberFactory;
@@ -346,38 +347,85 @@ class Member extends Authenticatable implements HasLocalePreference
      * The parent-officer authority over a sub-group's structure and roster only: content
      * policies stay on {@see administers()}, so parentage never opens a sub-group's About
      * text, banner, Meetings or Documents. The root and Containers carry no ordinary
-     * officers, so the climb skips them rather than let a stray role there cascade.
+     * officers, so the climb skips them rather than let a stray role there cascade. An
+     * archived or ended ancestor confers nothing either: its officers lose sub-group
+     * authority with it, while an active Group above it keeps theirs.
      */
     public function administersAncestorOf(Group $group): bool
     {
-        // Walk up by explicit query — reading `parent` lazily would trip strict mode's
-        // lazy-load guard, and the tree is only a few Groups deep.
-        $node = $group->parent_id !== null ? Group::find($group->parent_id) : null;
-        while ($node !== null) {
-            if ($node->isStructurallyEditable() && $this->administers($node)) {
-                return true;
-            }
-            $node = $node->parent_id !== null ? Group::find($node->parent_id) : null;
+        $this->loadMissing('memberships.roles');
+
+        // Most Members hold no Secretary or Chair role anywhere: answer without the tree.
+        $officerRoles = [Role::Secretary, Role::Chair];
+        $officerSomewhere = $this->memberships->contains(
+            fn (GroupMember $membership) => $membership->roles->contains(fn (GroupMemberRole $row) => in_array($row->role, $officerRoles, true)),
+        );
+        if (! $officerSomewhere) {
+            return false;
         }
 
-        return false;
+        return $group->ancestors()->contains(
+            fn (Group $ancestor) => $ancestor->isStructurallyEditable() && $ancestor->isActive() && $this->administers($ancestor),
+        );
+    }
+
+    /**
+     * Whether this Member runs the given Group's roster and may put a sub-group under it: they
+     * {@see administers()} it, or a Group above it ({@see administersAncestorOf()}). The roster
+     * policy and the `create-sub-group` gate share it.
+     */
+    public function administersOrOversees(Group $group): bool
+    {
+        return $this->administers($group) || $this->administersAncestorOf($group);
     }
 
     /**
      * The Groups this Member administers ({@see administers()}) that head a parent officer's
-     * subtrees in DMV Settings (ADR-0036 §11): the root and Containers left out, as they carry
-     * no ordinary officers. Empty for most Members; non-empty opens DMV Settings to them.
+     * subtrees in DMV Settings (ADR-0036 §11): active ones only, the root and Containers left
+     * out, as they carry no ordinary officers. Empty for most Members.
      *
      * @return Collection<int, Group>
      */
     public function administeredGroups(): Collection
     {
-        $this->loadMissing('memberships.roles', 'memberships.group');
+        return $this->administeredGroupsQuery()->get();
+    }
 
-        return $this->memberships
-            ->map(fn (GroupMember $membership) => $membership->group)
-            ->filter(fn (Group $group) => $group->isStructurallyEditable() && $this->administers($group))
-            ->values();
+    /**
+     * Whether {@see administeredGroups()} is non-empty: what opens DMV Settings to a parent
+     * officer. One exists query, cheap enough for the rail on every request.
+     */
+    public function administersAnyGroup(): bool
+    {
+        return $this->administeredGroupsQuery()->exists();
+    }
+
+    /**
+     * Whether this Member works DMV Settings over the whole org (the super-tier, through the
+     * `administer-groups` gate), rather than as a parent officer scoped to their subtrees. The
+     * one test every DMV Settings page and form request branches on.
+     */
+    public function administersWholeOrg(): bool
+    {
+        return $this->can('administer-groups');
+    }
+
+    /**
+     * {@see administers()} as a query: active, structurally editable Groups where this Member's
+     * membership carries a Secretary or Chair role row (a Chair implies Secretary).
+     *
+     * @return Builder<Group>
+     */
+    private function administeredGroupsQuery(): Builder
+    {
+        return Group::query()
+            ->active()
+            ->where('slug', '!=', Group::ROOT_SLUG)
+            ->where('kind', '!=', Kind::Container->value)
+            ->whereHas('memberships', fn (Builder $membership) => $membership
+                ->where('member_id', $this->getKey())
+                ->whereHas('roles', fn (Builder $role) => $role->whereIn('role', [Role::Secretary, Role::Chair])))
+            ->orderBy('id');
     }
 
     /**

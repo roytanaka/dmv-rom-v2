@@ -36,7 +36,7 @@ class GroupMemberPolicy
     public function create(Member $actor, Group $group): bool
     {
         return ! $group->isRoot()
-            && $this->manages($actor, $group);
+            && $actor->administersOrOversees($group);
     }
 
     /**
@@ -46,7 +46,7 @@ class GroupMemberPolicy
      */
     public function update(Member $actor, GroupMember $membership): bool
     {
-        return $this->manages($actor, $membership->group);
+        return $actor->administersOrOversees($membership->group);
     }
 
     /**
@@ -56,16 +56,6 @@ class GroupMemberPolicy
      */
     public function delete(Member $actor, GroupMember $membership): bool
     {
-        return $this->manages($actor, $membership->group);
-    }
-
-    /**
-     * The roster authority: the Group's own Secretary or Chair, or a parent officer — one
-     * who administers a Group above it, to any depth (ADR-0036 §11). Roster only; content
-     * policies never take the ancestor clause.
-     */
-    private function manages(Member $actor, Group $group): bool
-    {
-        return $actor->administers($group) || $actor->administersAncestorOf($group);
+        return $actor->administersOrOversees($membership->group);
     }
 }

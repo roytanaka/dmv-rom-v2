@@ -29,7 +29,7 @@ class UniqueSiblingGroupName implements ValidationRule
             ->exists();
 
         if ($taken) {
-            $fail(trans('dmv_settings.error.sibling_name_taken'));
+            $fail('dmv_settings.error.sibling_name_taken')->translate();
         }
     }
 }

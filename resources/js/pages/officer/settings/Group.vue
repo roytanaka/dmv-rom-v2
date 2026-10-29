@@ -11,8 +11,8 @@
 // lands under its control by field name; a `group` error (archived, root or Container) shows in
 // the save bar. The ten flags and Time-boxed are DmvSettingsFlagRow switches; a capability that
 // is on shows how many records sit behind it, and once switched off in the draft, how many
-// become hidden (#844). A parent officer's form (`scoped`, ADR-0036 §11, #886) is the Identity card
-// with name and one parent select over their own subtrees, and the Archive card (#887); every
+// become hidden (#844). A parent officer's form (`can.administerGroups` false, ADR-0036 §11,
+// #886) is the Identity card with name and one parent select over their own subtrees, and the Archive card (#887); every
 // other card stays super-tier only.
 import DmvSettingsFlagRow from '@/components/DmvSettingsFlagRow.vue';
 import DmvSettingsSection from '@/components/DmvSettingsSection.vue';
@@ -73,8 +73,8 @@ interface StructureGroup extends Record<Flag, boolean> {
 }
 
 const props = defineProps<{
-    // A parent officer's view (#883, #886, ADR-0036 §11): name and parent only, no Stewardships tab.
-    scoped: boolean;
+    // False for a parent officer (#883, #886, ADR-0036 §11): name and parent only, no Stewardships tab.
+    can: { administerGroups: boolean };
     group: StructureGroup;
     parents: ParentOption[];
     kinds: string[];
@@ -125,13 +125,13 @@ const errorCount = computed(() => Object.keys(form.errors).length);
 
 function save(): void {
     form.transform((data) =>
-        props.scoped
-            ? { name: data.name, parent_id: data.parent_id }
-            : {
+        props.can.administerGroups
+            ? {
                   ...data,
                   start_date: data.time_boxed ? data.start_date || null : null,
                   end_date: data.time_boxed ? data.end_date || null : null,
-              },
+              }
+            : { name: data.name, parent_id: data.parent_id },
     ).patch(route('dmv-settings.groups.update', { group: props.group.slug }), { preserveScroll: true });
 }
 
@@ -173,10 +173,8 @@ const SECTIONS: readonly Section[] = [
     { id: 'hours', key: 'hours', fields: ['hours_multiplier'] },
     { id: 'archive', key: 'archive', fields: [] },
 ];
-// Read-only: an archived Group.
-const readOnly = computed(() => props.group.archived);
 const sections = computed(() =>
-    SECTIONS.filter((section) => (section.id === 'archive' ? !readOnly.value : !props.scoped || section.id === 'identity')),
+    SECTIONS.filter((section) => (section.id === 'archive' ? !props.group.archived : props.can.administerGroups || section.id === 'identity')),
 );
 const sectionTitle = (section: Section): string => trans(`dmv_settings.group.${section.key}`);
 const sectionHasError = (section: Section): boolean =>
@@ -213,7 +211,7 @@ const countLine = (flag: Capability): string | null => {
                 </p>
             </div>
 
-            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" :scoped="scoped" />
+            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" :can-administer-groups="can.administerGroups" />
 
             <div class="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start lg:gap-8">
                 <!-- The section index (lg+): in-page anchors, a dot on each section with an error. -->
@@ -253,7 +251,7 @@ const countLine = (flag: Capability): string | null => {
                         </Button>
                     </Alert>
 
-                    <fieldset class="flex flex-col gap-6" :disabled="readOnly">
+                    <fieldset class="flex flex-col gap-6" :disabled="group.archived">
                         <DmvSettingsSection id="identity" :title="sectionTitle(SECTIONS[0])">
                             <div class="grid gap-2">
                                 <Label for="group-name">{{ trans('dmv_settings.field.name') }}</Label>
@@ -261,7 +259,7 @@ const countLine = (flag: Capability): string | null => {
                                 <InputError :message="errors.name" />
                             </div>
                             <!-- A parent officer: one select over their own subtrees, each head at depth 0. -->
-                            <div v-if="scoped" class="grid gap-2">
+                            <div v-if="!can.administerGroups" class="grid gap-2">
                                 <Label for="group-parent">{{ trans('dmv_settings.field.parent') }}</Label>
                                 <NativeSelect id="group-parent" v-model="form.parent_id" required>
                                     <option v-for="option in props.parents" :key="option.id" :value="option.id">
@@ -305,7 +303,7 @@ const countLine = (flag: Capability): string | null => {
                             </div>
                         </DmvSettingsSection>
 
-                        <DmvSettingsSection v-if="!scoped" id="listing" :title="sectionTitle(SECTIONS[1])">
+                        <DmvSettingsSection v-if="can.administerGroups" id="listing" :title="sectionTitle(SECTIONS[1])">
                             <div class="grid gap-2">
                                 <Label for="group-visibility">{{ trans('dmv_settings.field.visibility') }}</Label>
                                 <NativeSelect id="group-visibility" v-model="form.listing_visibility" required>
@@ -330,7 +328,7 @@ const countLine = (flag: Capability): string | null => {
                             </div>
                         </DmvSettingsSection>
 
-                        <DmvSettingsSection v-if="!scoped" id="dates" :title="sectionTitle(SECTIONS[2])">
+                        <DmvSettingsSection v-if="can.administerGroups" id="dates" :title="sectionTitle(SECTIONS[2])">
                             <DmvSettingsFlagRow
                                 id="group-time-boxed"
                                 v-model="form.time_boxed"
@@ -353,7 +351,12 @@ const countLine = (flag: Capability): string | null => {
                             </div>
                         </DmvSettingsSection>
 
-                        <DmvSettingsSection v-if="!scoped" id="capabilities" :title="sectionTitle(SECTIONS[3])" layout="grid gap-3 md:grid-cols-2">
+                        <DmvSettingsSection
+                            v-if="can.administerGroups"
+                            id="capabilities"
+                            :title="sectionTitle(SECTIONS[3])"
+                            layout="grid gap-3 md:grid-cols-2"
+                        >
                             <DmvSettingsFlagRow
                                 v-for="flag in CAPABILITIES"
                                 :id="`group-${flag}`"
@@ -366,7 +369,12 @@ const countLine = (flag: Capability): string | null => {
                             />
                         </DmvSettingsSection>
 
-                        <DmvSettingsSection v-if="!scoped" id="visitor-figures" :title="sectionTitle(SECTIONS[4])" layout="grid gap-3 md:grid-cols-2">
+                        <DmvSettingsSection
+                            v-if="can.administerGroups"
+                            id="visitor-figures"
+                            :title="sectionTitle(SECTIONS[4])"
+                            layout="grid gap-3 md:grid-cols-2"
+                        >
                             <DmvSettingsFlagRow
                                 v-for="flag in COLLECTIONS"
                                 :id="`group-${flag}`"
@@ -378,7 +386,7 @@ const countLine = (flag: Capability): string | null => {
                             />
                         </DmvSettingsSection>
 
-                        <DmvSettingsSection v-if="!scoped" id="hours" :title="sectionTitle(SECTIONS[5])">
+                        <DmvSettingsSection v-if="can.administerGroups" id="hours" :title="sectionTitle(SECTIONS[5])">
                             <div class="grid gap-2">
                                 <Label for="group-hours-multiplier">{{ trans('dmv_settings.field.hours_multiplier') }}</Label>
                                 <Input
@@ -397,7 +405,12 @@ const countLine = (flag: Capability): string | null => {
 
                     <!-- The Archive section (#845) sits outside the disabled fieldset; an archived
                          Group has the banner's Unarchive instead. -->
-                    <DmvSettingsSection v-if="!readOnly" id="archive" :title="sectionTitle(SECTIONS[6])" layout="flex flex-col items-start gap-3">
+                    <DmvSettingsSection
+                        v-if="!group.archived"
+                        id="archive"
+                        :title="sectionTitle(SECTIONS[6])"
+                        layout="flex flex-col items-start gap-3"
+                    >
                         <p class="text-sm">{{ trans('dmv_settings.group.archive_note') }}</p>
                         <Button
                             type="button"
@@ -412,7 +425,10 @@ const countLine = (flag: Capability): string | null => {
                     </DmvSettingsSection>
 
                     <!-- The save bar: sticks to the bottom of the content while the form is in view. -->
-                    <div v-if="!readOnly" class="bg-background sticky bottom-0 z-10 flex flex-col gap-3 border-t py-3 sm:flex-row sm:items-center">
+                    <div
+                        v-if="!group.archived"
+                        class="bg-background sticky bottom-0 z-10 flex flex-col gap-3 border-t py-3 sm:flex-row sm:items-center"
+                    >
                         <p v-if="lastChanged" class="text-muted-foreground text-sm">
                             {{
                                 trans('dmv_settings.last_changed', {

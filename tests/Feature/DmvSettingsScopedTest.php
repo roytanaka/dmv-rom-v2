@@ -84,7 +84,7 @@ it('lists only the subtree below a parent officer\'s Group, archived sub-groups 
         ->get('/officer/settings')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scoped', true)
+            ->where('can.administerGroups', false)
             ->where('tree', fn ($tree) => collect($tree)->map(fn ($row) => [$row['slug'], $row['depth'], $row['head'], $row['href'] !== null, $row['archived']])->all() === [
                 ['docents', 0, true, false, false],
                 ['docents-sections', 1, false, true, false],
@@ -125,7 +125,7 @@ it('shows the super-tier the whole tree as before', function () {
     $this->actingAs(Member::factory()->superTier()->create())
         ->get('/officer/settings')
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scoped', false)
+            ->where('can.administerGroups', true)
             ->where('tree', fn ($tree) => collect($tree)->map(fn ($row) => [$row['slug'], $row['depth'], $row['head']])->all() === [
                 ['dmv', 0, false],
                 ['programs', 1, false],
@@ -151,7 +151,7 @@ it('opens a sub-group to a parent officer at any depth, archived included', func
             ->assertInertia(fn (Assert $page) => $page
                 ->component('officer/settings/Group')
                 ->where('group.slug', $slug)
-                ->where('scoped', true));
+                ->where('can.administerGroups', false));
     }
 });
 
@@ -194,5 +194,35 @@ it('keeps the super-tier structure form unscoped', function () {
     $this->actingAs(Member::factory()->superTier()->create())
         ->get('/officer/settings/groups/docents')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->where('scoped', false));
+        ->assertInertia(fn (Assert $page) => $page->where('can.administerGroups', true));
+});
+
+// --- Inactive Groups -----------------------------------------------------------------------
+
+it('gives an officer of an archived or ended Group no DMV Settings and no sub-group form', function (string $state) {
+    [, $section] = scopedRootAndSection();
+    $factory = Group::factory()->program();
+    $retired = ($state === 'archived' ? $factory->archived() : $factory->state(['time_boxed' => true, 'start_date' => '2020-01-01', 'end_date' => '2020-12-31']))
+        ->create(['parent_id' => $section->id, 'slug' => 'retired']);
+    Group::factory()->workingGroup()->create(['parent_id' => $retired->id, 'slug' => 'retired-sub']);
+    $officer = scopedOfficerOf($retired);
+
+    $this->actingAs($officer)->get('/officer/settings')->assertForbidden();
+    $this->actingAs($officer)->get('/officer/settings/groups/retired-sub')->assertForbidden();
+    $this->actingAs($officer)
+        ->get('/dashboard')
+        ->assertInertia(fn (Assert $page) => $page->where(
+            'rail',
+            fn ($rail) => collect(data_get($rail, 'officer.items', []))->doesntContain('key', 'settings'),
+        ));
+})->with(['archived', 'ended']);
+
+it('keeps an active grandparent officer\'s authority across an archived Group between', function () {
+    [, $section] = scopedRootAndSection();
+    $docents = Group::factory()->program()->create(['parent_id' => $section->id, 'slug' => 'docents']);
+    $old = Group::factory()->workingGroup()->archived()->create(['parent_id' => $docents->id, 'slug' => 'old']);
+    Group::factory()->workingGroup()->create(['parent_id' => $old->id, 'slug' => 'old-sub']);
+
+    $this->actingAs(scopedOfficerOf($docents))->get('/officer/settings/groups/old-sub')->assertOk();
+    $this->actingAs(scopedOfficerOf($old))->get('/officer/settings/groups/old-sub')->assertForbidden();
 });

@@ -10,8 +10,8 @@
 // client: a name search and the "Show archived Groups" tick. Every row with children can collapse
 // its subtree; all start expanded. A search ignores collapse so a match never hides.
 //
-// A parent officer (#883, ADR-0036 §11) gets a `scoped` page: only the subtrees below the Groups
-// they administer, each headed by their own Group (`head`, listed but not opened), and no
+// A parent officer (#883, ADR-0036 §11; `can.administerGroups` false) gets a scoped page: only
+// the subtrees below the Groups they administer, each headed by their own Group (`head`, listed but not opened), and no
 // Stewardships section. Their Create button opens the CreateSubGroupDialog instead (#884): name,
 // a parent from `subGroupParents` and an optional Chair from `subGroupChairs` (#885).
 import CreateGroupDialog from '@/components/CreateGroupDialog.vue';
@@ -53,7 +53,7 @@ interface TreeRow {
 }
 
 const props = defineProps<{
-    scoped: boolean;
+    can: { administerGroups: boolean };
     tree: TreeRow[];
     parentOptions: ParentOption[];
     kinds: string[];
@@ -76,8 +76,8 @@ const title = computed(() => trans('dmv_settings.title'));
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href: props.groupsHref }]);
 
 // A parent officer creates a sub-group, and only while some active Group can take one.
-const canCreate = computed(() => !props.scoped || props.subGroupParents.length > 0);
-const createLabel = computed(() => trans(props.scoped ? 'dmv_settings.tree.create_sub_group' : 'dmv_settings.tree.create'));
+const canCreate = computed(() => props.can.administerGroups || props.subGroupParents.length > 0);
+const createLabel = computed(() => trans(props.can.administerGroups ? 'dmv_settings.tree.create' : 'dmv_settings.tree.create_sub_group'));
 
 // A row has children when the next row sits deeper (the tree is depth-first).
 const hasChildren = computed(() => new Map(props.tree.map((row, index) => [row.id, (props.tree[index + 1]?.depth ?? 0) > row.depth])));
@@ -157,12 +157,14 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h1 class="text-rom-ink text-lg font-semibold">{{ title }}</h1>
-                    <p class="text-muted-foreground mt-1 text-sm">{{ trans(scoped ? 'dmv_settings.subtitle_scoped' : 'dmv_settings.subtitle') }}</p>
+                    <p class="text-muted-foreground mt-1 text-sm">
+                        {{ trans(can.administerGroups ? 'dmv_settings.subtitle' : 'dmv_settings.subtitle_scoped') }}
+                    </p>
                 </div>
                 <Button v-if="canCreate" class="hidden sm:inline-flex" @click="createOpen = true">{{ createLabel }}</Button>
             </div>
 
-            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" :scoped="scoped" />
+            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" :can-administer-groups="can.administerGroups" />
 
             <div class="flex flex-col gap-3">
                 <!-- The toolbar: a per-screen composition above the Table primitive. Below sm the
@@ -280,7 +282,7 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
             </div>
         </div>
 
-        <CreateSubGroupDialog v-if="scoped" v-model:open="createOpen" :parents="subGroupParents" :chairs="subGroupChairs" />
+        <CreateSubGroupDialog v-if="!can.administerGroups" v-model:open="createOpen" :parents="subGroupParents" :chairs="subGroupChairs" />
         <CreateGroupDialog v-else v-model:open="createOpen" :parent-options="parentOptions" :kinds="kinds" />
     </AppLayout>
 </template>

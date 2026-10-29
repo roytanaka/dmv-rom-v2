@@ -79,12 +79,12 @@ it('lets a parent officer and a grandparent officer unarchive an archived sub-gr
         ->get('/officer/settings')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scoped', true)
+            ->where('can.administerGroups', false)
             ->where('tree', fn ($tree) => collect($tree)->contains(fn ($row) => $row['slug'] === 'east' && $row['archived'] && $row['href'] !== null)));
     $this->actingAs($officer)
         ->get('/officer/settings/groups/east')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->where('group.archived', true)->where('scoped', true));
+        ->assertInertia(fn (Assert $page) => $page->where('group.archived', true)->where('can.administerGroups', false));
 
     $this->actingAs($officer)
         ->from('/officer/settings/groups/east')

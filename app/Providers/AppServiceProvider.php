@@ -112,13 +112,16 @@ class AppServiceProvider extends ServiceProvider
         // GroupWrites::WRITE_ABILITIES, so an archived subject never trips the inactive-Group
         // rule: a parent officer can still open and unarchive an archived sub-group.
         //
-        // Entering DMV Settings at all: the Member administers some Group (root, Containers aside).
-        Gate::define('enter-dmv-settings', fn (Member $member) => $member->administeredGroups()->isNotEmpty());
+        // Only active Groups confer this authority: an archived or ended Group's officers lose it.
+        //
+        // Entering DMV Settings at all: the Member administers some active Group (root,
+        // Containers aside). One exists query, as the rail asks on every request.
+        Gate::define('enter-dmv-settings', fn (Member $member) => $member->administersAnyGroup());
         // Creating a sub-group under $parent: their own Group or one below it, never a Container.
         Gate::define('create-sub-group', fn (Member $member, Group $parent) => $parent->isStructurallyEditable()
-            && ($member->administers($parent) || $member->administersAncestorOf($parent)));
+            && $member->administersOrOversees($parent));
         // Opening, renaming, moving, archiving or unarchiving $group: the Member administers one
-        // of its strict ancestors. Never their own Group, the root or a Container.
+        // of its active strict ancestors. Never their own Group, the root or a Container.
         Gate::define('restructure-group', fn (Member $member, Group $group) => $group->isStructurallyEditable()
             && $member->administersAncestorOf($group));
     }

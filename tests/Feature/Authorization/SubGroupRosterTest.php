@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Models\Group;
@@ -212,4 +213,61 @@ it('gives a parent officer no content rights in a sub-group they have not joined
     expect($sub->fresh()->description)->toBe('Ours.')
         ->and($sub->meetings()->exists())->toBeFalse()
         ->and($sub->documents()->exists())->toBeFalse();
+});
+
+it('gives an officer of an archived Group no roster authority over its sub-groups', function () {
+    $parent = Group::factory()->archived()->create();
+    $sub = subGroupOf($parent);
+    $membership = GroupMember::factory()->create(['group_id' => $sub->id]);
+    $chair = parentOfficerOf($parent, Role::Chair);
+
+    $this->actingAs($chair)
+        ->post(route('group-members.store', $sub), ['member_ids' => [Member::factory()->create()->id]])
+        ->assertForbidden();
+    $this->actingAs($chair)
+        ->patch(route('group-members.update', $membership), ['status' => MembershipStatus::Inactive->value])
+        ->assertForbidden();
+});
+
+it('lets a parent officer reach a Private sub-group roster and add themselves, its content still closed', function () {
+    $parent = Group::factory()->create();
+    $sub = subGroupOf($parent, [
+        'listing_visibility' => ListingVisibility::Private,
+        'has_meetings' => true,
+        'has_documents' => true,
+        'description' => 'Private about text.',
+        'how_to_join' => 'Private join steps.',
+    ]);
+    $chair = parentOfficerOf($parent, Role::Chair);
+
+    // The roster opens with the Add member controls; the About text stays out of the payload.
+    $this->actingAs($chair)
+        ->get(route('groups.show', ['group' => $sub, 'section' => 'roster']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageRoster', true)
+            ->where('can.update', false)
+            ->where('overview.description', null)
+            ->where('overview.how_to_join', null)
+            ->where('rosterMeta.candidates', fn (Collection $candidates) => $candidates->contains('id', $chair->id)));
+
+    // Every other section stays hidden, as for any non-member.
+    foreach (['overview', 'meetings', 'documents'] as $section) {
+        $this->actingAs($chair)
+            ->get(route('groups.show', ['group' => $sub, 'section' => $section]))
+            ->assertNotFound();
+    }
+
+    $this->actingAs($chair)
+        ->post(route('group-members.store', $sub), ['member_ids' => [$chair->id]])
+        ->assertSessionHasNoErrors();
+
+    expect(GroupMember::where('group_id', $sub->id)->where('member_id', $chair->id)->exists())->toBeTrue();
+
+    // Joined, the Group opens to them as to any member.
+    $chair->unsetRelation('memberships');
+    $this->actingAs($chair)
+        ->get(route('groups.show', ['group' => $sub, 'section' => 'overview']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('overview.description', 'Private about text.'));
 });

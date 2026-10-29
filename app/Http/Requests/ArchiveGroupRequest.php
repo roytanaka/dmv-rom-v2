@@ -23,7 +23,7 @@ class ArchiveGroupRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('administer-groups') || $this->user()->can('restructure-group', $this->group());
+        return $this->user()->administersWholeOrg() || $this->user()->can('restructure-group', $this->group());
     }
 
     /**

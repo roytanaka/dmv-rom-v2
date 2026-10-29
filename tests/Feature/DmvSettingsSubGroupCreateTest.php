@@ -100,12 +100,39 @@ it('refuses a parent outside the officer\'s subtree, the root and a Container', 
     $guideSub = Group::factory()->workingGroup()->create(['parent_id' => $guides->id, 'slug' => 'guides-sections', 'name' => 'Sections']);
     $parent = ['root' => $root, 'container' => $section, 'other group' => $guides, 'other sub-group' => $guideSub][$target];
 
+    // Refused as the structure form refuses a move outside the subtree: a parent_id error.
     $this->actingAs(subGroupOfficerOf($docents))
         ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $parent->id])
-        ->assertForbidden();
+        ->assertSessionHasErrors(['parent_id' => __('dmv_settings.error.outside_subtree')]);
 
     expect(Group::where('name', 'Tours')->exists())->toBeFalse();
 })->with(['root', 'container', 'other group', 'other sub-group']);
+
+it('gives a parent officer a parent_id error for a missing or unknown parent, not 403', function (array $payload, string $message) {
+    [, , $docents] = subGroupTree();
+
+    $this->actingAs(subGroupOfficerOf($docents))
+        ->post('/officer/settings/groups', ['name' => 'Tours', ...$payload])
+        ->assertSessionHasErrors(['parent_id' => $message]);
+
+    expect(Group::where('name', 'Tours')->exists())->toBeFalse();
+})->with([
+    'missing' => [[], 'The parent id field is required.'],
+    'unknown' => [['parent_id' => 999999], 'Choose one of your Groups or a Group below it.'],
+]);
+
+it('refuses a parent officer of an archived Group the create', function () {
+    [, $section, $docents] = subGroupTree();
+    $retired = Group::factory()->program()->archived()->create(['parent_id' => $section->id, 'slug' => 'retired', 'name' => 'Retired']);
+    $officer = subGroupOfficerOf($retired);
+    $sub = Group::factory()->workingGroup()->create(['parent_id' => $retired->id, 'slug' => 'retired-sub', 'name' => 'Retired Sub']);
+
+    $this->actingAs($officer)
+        ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $sub->id])
+        ->assertForbidden();
+
+    expect(Group::where('name', 'Tours')->exists())->toBeFalse();
+});
 
 it('refuses a plain Member and a Librarian of the parent', function (string $who) {
     [, , $docents] = subGroupTree();

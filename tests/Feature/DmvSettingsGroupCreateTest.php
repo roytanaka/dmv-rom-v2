@@ -230,7 +230,21 @@ it('forbids anyone below the super-tier', function (Role|string $authority) {
         ->assertForbidden();
 
     expect(Group::where('slug', 'youth-tours')->exists())->toBeFalse();
-})->with(['plain', 'records', Role::Chair]);
+})->with(['plain', 'records']);
+
+// A Chair is a parent officer (#884): their create is the scoped one, and a parent outside
+// their subtree is a field error, as on the structure form.
+it('refuses a Chair a parent outside their subtree', function () {
+    $section = createGroupSection();
+
+    $this->actingAs(createGroupActor(Role::Chair))
+        ->post('/officer/settings/groups', [
+            'name' => 'Youth Tours', 'slug' => 'youth-tours', 'parent_id' => $section->id, 'kind' => 'program',
+        ])
+        ->assertSessionHasErrors(['parent_id' => __('dmv_settings.error.outside_subtree')]);
+
+    expect(Group::where('slug', 'youth-tours')->exists())->toBeFalse();
+});
 
 it('records the acting Member as creator and last editor', function () {
     $section = createGroupSection();

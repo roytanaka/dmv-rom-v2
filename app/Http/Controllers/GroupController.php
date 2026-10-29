@@ -147,10 +147,16 @@ class GroupController extends Controller
         // grants no content access: a parent officer who is not a member of this child
         // is a non-member here. Public and Group visibility are org-open (navigation
         // tidiness, not confidentiality; only Private is a boundary).
+        //
+        // One opening (PRD #881 stories 34-35, ADR-0036 §11): a parent officer reaches the Roster
+        // section alone, to add themselves. `$parentageOnly` keeps the About text out of that
+        // page's payload; every other section stays 404 until they join.
+        $parentageOnly = false;
         if ($group->listing_visibility === ListingVisibility::Private
             && ! $request->user()->isAllDmv()
             && $request->user()->membershipIn($group) === null) {
-            abort(404);
+            abort_unless($section === 'roster' && $request->user()->administersAncestorOf($group), 404);
+            $parentageOnly = true;
         }
 
         // The Meetings section exists only while the Group runs meetings — a 404 for everyone,
@@ -427,10 +433,11 @@ class GroupController extends Controller
             ],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
-                'description' => $group->description,
+                // Withheld from a parent officer on a Private sub-group they have not joined.
+                'description' => $parentageOnly ? null : $group->description,
                 // How to join (#867, ADR-0037 §3) — the join steps, as-authored, sent to every
                 // reader. Null shows the card's translated fallback line.
-                'how_to_join' => $group->how_to_join,
+                'how_to_join' => $parentageOnly ? null : $group->how_to_join,
                 // The root DMV Group has no Chair (its leadership is the executive, see
                 // leadership()), so its empty card points to the DMV Executive instead.
                 'is_root' => $group->isRoot(),

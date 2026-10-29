@@ -8,6 +8,7 @@ use App\Enums\ListingVisibility;
 use App\Enums\Role;
 use App\Models\Group;
 use App\Models\GroupMemberRole;
+use App\Rules\ParentInOfficerSubtree;
 use App\Rules\UniqueSiblingGroupName;
 use App\Support\NameList;
 use App\Support\Stewardships\StewardshipGuard;
@@ -37,7 +38,7 @@ class UpdateGroupStructureRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('administer-groups') || $this->user()->can('restructure-group', $this->group());
+        return $this->user()->administersWholeOrg() || $this->user()->can('restructure-group', $this->group());
     }
 
     /**
@@ -90,19 +91,11 @@ class UpdateGroupStructureRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255', new UniqueSiblingGroupName($this->integer('parent_id'), $group->id)],
-            'parent_id' => ['required', 'integer', function (string $attribute, mixed $value, Closure $fail) use ($group): void {
+            'parent_id' => ['required', 'integer', 'bail', function (string $attribute, mixed $value, Closure $fail) use ($group): void {
                 if ((int) $value === $group->id || $group->descendants()->contains('id', $value)) {
                     $fail('dmv_settings.error.parent_cycle')->translate();
-
-                    return;
                 }
-                $parent = Group::query()->find($value);
-                if ($parent === null || ! $this->user()->can('create-sub-group', $parent)) {
-                    $fail('dmv_settings.error.outside_subtree')->translate();
-                } elseif ((int) $value !== $group->parent_id && ! $parent->isActive()) {
-                    $fail('dmv_settings.error.inactive_group')->translate();
-                }
-            }],
+            }, new ParentInOfficerSubtree($this->user(), $group->parent_id)],
         ];
     }
 
@@ -220,7 +213,7 @@ class UpdateGroupStructureRequest extends FormRequest
     /** A parent officer, not the super-tier: the name-and-parent form. */
     private function scoped(): bool
     {
-        return ! $this->user()->can('administer-groups');
+        return ! $this->user()->administersWholeOrg();
     }
 
     private function group(): Group

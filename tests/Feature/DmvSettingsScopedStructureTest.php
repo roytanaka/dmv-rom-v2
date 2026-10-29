@@ -49,7 +49,7 @@ it('offers as parents the officer\'s subtree, without the sub-group, below it or
         ->get('/officer/settings/groups/docents-sections')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scoped', true)
+            ->where('can.administerGroups', false)
             ->where('parents', fn ($parents) => collect($parents)->map(fn ($row) => [$row['name'], $row['depth'], $row['sectionId'], $row['inactive']])->all() === [
                 ['Docents', 0, $docents->id, false],
                 ['Tours', 1, $docents->id, false],
