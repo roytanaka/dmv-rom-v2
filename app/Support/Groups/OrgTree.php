@@ -78,6 +78,33 @@ final class OrgTree
     }
 
     /**
+     * A parent officer's view of the tree (ADR-0036 §11): each given head with everything below
+     * it, archived Groups included, in tree order. Depth counts from the head, so every head
+     * sits at 0. A head inside another head's subtree is listed once, as part of the outer one.
+     *
+     * @param  list<int>  $headIds
+     * @return list<OrgTreeNode>
+     */
+    public function subtrees(array $headIds): array
+    {
+        $nodes = [];
+        $headDepth = null;
+        foreach ($this->nodes as $node) {
+            if ($headDepth !== null && $node->depth <= $headDepth) {
+                $headDepth = null;
+            }
+            if ($headDepth === null && in_array($node->group->id, $headIds, true)) {
+                $headDepth = $node->depth;
+            }
+            if ($headDepth !== null) {
+                $nodes[] = new OrgTreeNode($node->group, $node->depth - $headDepth);
+            }
+        }
+
+        return $nodes;
+    }
+
+    /**
      * The Groups a stewardship may go to: active ones, the root left out (it holds nothing;
      * ADR-0036 §7).
      *

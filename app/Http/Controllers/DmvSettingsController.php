@@ -19,6 +19,7 @@ use App\Support\Groups\OrgTreeNode;
 use App\Support\Groups\ParentChoice;
 use App\Support\Stewardships\StewardshipAssignment;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -41,15 +42,34 @@ class DmvSettingsController extends Controller
      */
     public const LIVE_STEWARDSHIPS = [StewardshipFunction::MemberAdmin, StewardshipFunction::OrgMail];
 
-    /** The Groups section: the whole org tree, archived Groups included. */
-    public function groups(): Response
+    /**
+     * The Groups section. The super-tier gets the whole org tree, archived Groups included. A
+     * parent officer (ADR-0036 §11) gets only the subtrees below the Groups they administer:
+     * each of their Groups heads its subtree as a row they cannot open, and nothing about the
+     * rest of the org (no parent choices, no kinds) is sent.
+     */
+    public function groups(Request $request): Response
     {
-        Gate::authorize('administer-groups');
+        Gate::authorize('enter-dmv-settings');
 
         $tree = OrgTree::load();
 
+        if (! Gate::allows('administer-groups')) {
+            return Inertia::render('officer/settings/Groups', [
+                ...$this->shell(),
+                'scoped' => true,
+                'tree' => array_map(
+                    fn (OrgTreeNode $node) => $this->treeRow($node, head: $node->depth === 0),
+                    $tree->subtrees($request->user()->administeredGroups()->pluck('id')->all()),
+                ),
+                'parentOptions' => [],
+                'kinds' => [],
+            ]);
+        }
+
         return Inertia::render('officer/settings/Groups', [
             ...$this->shell(),
+            'scoped' => false,
             'tree' => array_map(fn (OrgTreeNode $node) => $this->treeRow($node), $tree->nodes),
             // Section first, then the parent from its subtree (#850): each option names its
             // section, with its depth below it, so the client filters the second select.
@@ -135,14 +155,30 @@ class DmvSettingsController extends Controller
      * One Group's structure form (#843, ADR-0036 §5). The root and Containers have no form
      * (ADR-0036 §3): their addresses answer 404 here, as the tree never links them. An
      * archived Group still opens, read-only; its h1 carries the Archived or Ended badge.
+     *
+     * A parent officer (ADR-0036 §11) opens a Group below one they administer, never their own
+     * Group, the root or a Container (403). Their form is read-only for now (`scoped`), and its
+     * parent choices are only the current parent and its section, so nothing about the rest of
+     * the org is sent.
      */
     public function group(Group $group): Response
     {
-        Gate::authorize('administer-groups');
+        Gate::authorize('restructure-group', $group);
         abort_unless($group->isStructurallyEditable(), 404);
+
+        $scoped = ! Gate::allows('administer-groups');
+        $parents = OrgTree::load()->parentChoices($group);
+        if ($scoped) {
+            $current = collect($parents)->first(fn (ParentChoice $choice) => $choice->group->id === $group->parent_id);
+            $parents = array_values(array_filter(
+                $parents,
+                fn (ParentChoice $choice) => $choice->group->id === $group->parent_id || $choice->group->id === $current?->section->id,
+            ));
+        }
 
         return Inertia::render('officer/settings/Group', [
             ...$this->shell(),
+            'scoped' => $scoped,
             'group' => [
                 'id' => $group->id,
                 'slug' => $group->slug,
@@ -163,7 +199,7 @@ class DmvSettingsController extends Controller
             // The current parent may be inactive: marked, so the select still shows it.
             'parents' => array_map(
                 fn (ParentChoice $choice) => [...$this->parentOption($choice), 'inactive' => ! $choice->group->isActive()],
-                OrgTree::load()->parentChoices($group),
+                $parents,
             ),
             // The Group's public page, localized (ADR-0008): shown as its address under the h1.
             'groupHref' => route('groups.show', ['group' => $group->slug], false),
@@ -275,12 +311,15 @@ class DmvSettingsController extends Controller
      * carries the facts the tree shows at a glance (#848): the six capability flags, the
      * stewardships the Group holds (eager-loaded by OrgTree) and its hours multiplier.
      *
-     * @return array{id: int, slug: string, name: string, depth: int, kind: string, archived: bool, endedOn: string|null, editable: bool, href: string|null, capabilities: array<string, bool>, stewardships: list<string>, hoursMultiplier: float}
+     * A parent officer's own Group heads their subtree (`head`): listed, never opened, as only
+     * the super-tier changes it (ADR-0036 §11).
+     *
+     * @return array{id: int, slug: string, name: string, depth: int, kind: string, archived: bool, endedOn: string|null, editable: bool, head: bool, href: string|null, capabilities: array<string, bool>, stewardships: list<string>, hoursMultiplier: float}
      */
-    private function treeRow(OrgTreeNode $node): array
+    private function treeRow(OrgTreeNode $node, bool $head = false): array
     {
         [$group, $depth] = [$node->group, $node->depth];
-        $editable = $group->isStructurallyEditable();
+        $editable = ! $head && $group->isStructurallyEditable();
 
         return [
             'id' => $group->id,
@@ -291,6 +330,7 @@ class DmvSettingsController extends Controller
             'archived' => $group->isArchived(),
             'endedOn' => $group->endedOn()?->toDateString(),
             'editable' => $editable,
+            'head' => $head,
             'href' => $editable ? route('officer.settings.group', ['group' => $group->slug], false) : null,
             'capabilities' => collect(Group::CAPABILITY_FLAGS)->mapWithKeys(fn (string $flag) => [$flag => (bool) $group->{$flag}])->all(),
             'stewardships' => $group->stewardships->map(fn (GroupStewardship $row) => $row->function->value)->sort()->values()->all(),

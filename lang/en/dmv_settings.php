@@ -24,6 +24,8 @@ return [
         // The root's settings are not here; a Container has no page of its own.
         'root_note' => 'Set by officers',
         'container_note' => 'No page',
+        // A parent officer's own Group, heading their subtree (#883): listed, not opened.
+        'own_note' => 'Your Group',
         // One letter per capability slot; the legend under the table spells them out.
         'letter' => [
             'has_meetings' => 'M',

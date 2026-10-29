@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Group;
 use App\Models\Member;
 use App\Support\Authorization\GroupWrites;
 use Illuminate\Database\Eloquent\Model;
@@ -103,5 +104,22 @@ class AppServiceProvider extends ServiceProvider
         // structure form must still open (ADR-0036 §2 binds Group-scoped writes, not this).
         // The controller and the rail item gate on it.
         Gate::define('administer-groups', fn (Member $member) => false);
+
+        // Parent officers in DMV Settings (ADR-0036 §11, PRD #881). A Group's Secretary or Chair
+        // administers the structure of every Group below theirs; `administer-groups` above stays
+        // the super-tier's whole-org authority (Stewardships, the full tree, every field). The
+        // super-tier passes all three through Gate::before. None of these names is in
+        // GroupWrites::WRITE_ABILITIES, so an archived subject never trips the inactive-Group
+        // rule: a parent officer can still open and unarchive an archived sub-group.
+        //
+        // Entering DMV Settings at all: the Member administers some Group (root, Containers aside).
+        Gate::define('enter-dmv-settings', fn (Member $member) => $member->administeredGroups()->isNotEmpty());
+        // Creating a sub-group under $parent: their own Group or one below it, never a Container.
+        Gate::define('create-sub-group', fn (Member $member, Group $parent) => $parent->isStructurallyEditable()
+            && ($member->administers($parent) || $member->administersAncestorOf($parent)));
+        // Opening, renaming, moving, archiving or unarchiving $group: the Member administers one
+        // of its strict ancestors. Never their own Group, the root or a Container.
+        Gate::define('restructure-group', fn (Member $member, Group $group) => $group->isStructurallyEditable()
+            && $member->administersAncestorOf($group));
     }
 }

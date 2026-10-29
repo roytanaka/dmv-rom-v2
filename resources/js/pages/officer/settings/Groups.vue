@@ -9,6 +9,10 @@
 // the name; below `sm` a stretched link makes the whole row one tap. The toolbar filters on the
 // client: a name search and the "Show archived Groups" tick. Every row with children can collapse
 // its subtree; all start expanded. A search ignores collapse so a match never hides.
+//
+// A parent officer (#883, ADR-0036 §11) gets a `scoped` page: only the subtrees below the Groups
+// they administer, each headed by their own Group (`head`, listed but not opened), and no
+// Stewardships section. Create arrives for them in a later ticket.
 import CreateGroupDialog from '@/components/CreateGroupDialog.vue';
 import DmvSettingsTabs from '@/components/DmvSettingsTabs.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -39,13 +43,21 @@ interface TreeRow {
     archived: boolean;
     endedOn: string | null;
     editable: boolean;
+    head: boolean;
     href: string | null;
     capabilities: Record<Capability, boolean>;
     stewardships: string[];
     hoursMultiplier: number;
 }
 
-const props = defineProps<{ tree: TreeRow[]; parentOptions: ParentOption[]; kinds: string[]; groupsHref: string; stewardshipsHref: string }>();
+const props = defineProps<{
+    scoped: boolean;
+    tree: TreeRow[];
+    parentOptions: ParentOption[];
+    kinds: string[];
+    groupsHref: string;
+    stewardshipsHref: string;
+}>();
 
 const createOpen = ref(false);
 const search = ref('');
@@ -120,8 +132,10 @@ const facts = (row: TreeRow): string[] => [
     ...(row.hoursMultiplier === 1 ? [] : [trans('dmv_settings.tree.hours', { multiplier: number.value.format(row.hoursMultiplier) })]),
 ];
 
-// Why a row has no link: the root is set by officers; a Container has no page.
-const note = (row: TreeRow): string => trans(row.kind === 'container' ? 'dmv_settings.tree.container_note' : 'dmv_settings.tree.root_note');
+// Why a row has no link: a parent officer's own Group is theirs to run, not to restructure; the
+// root is set by officers; a Container has no page.
+const note = (row: TreeRow): string =>
+    trans(row.head ? 'dmv_settings.tree.own_note' : row.kind === 'container' ? 'dmv_settings.tree.container_note' : 'dmv_settings.tree.root_note');
 
 // Indent per depth (0.75rem a level on a phone, 1.25rem from sm), via a CSS variable the cell reads.
 const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
@@ -137,10 +151,10 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
                     <h1 class="text-rom-ink text-lg font-semibold">{{ title }}</h1>
                     <p class="text-muted-foreground mt-1 text-sm">{{ trans('dmv_settings.subtitle') }}</p>
                 </div>
-                <Button class="hidden sm:inline-flex" @click="createOpen = true">{{ trans('dmv_settings.tree.create') }}</Button>
+                <Button v-if="!scoped" class="hidden sm:inline-flex" @click="createOpen = true">{{ trans('dmv_settings.tree.create') }}</Button>
             </div>
 
-            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" />
+            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" :scoped="scoped" />
 
             <div class="flex flex-col gap-3">
                 <!-- The toolbar: a per-screen composition above the Table primitive. Below sm the
@@ -156,7 +170,7 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
                             class="pl-9"
                         />
                     </div>
-                    <Button size="icon" class="sm:hidden" :aria-label="trans('dmv_settings.tree.create')" @click="createOpen = true">
+                    <Button v-if="!scoped" size="icon" class="sm:hidden" :aria-label="trans('dmv_settings.tree.create')" @click="createOpen = true">
                         <PhPlus />
                     </Button>
                     <label class="flex w-full items-center gap-2 text-sm sm:w-auto pointer-coarse:min-h-11">
@@ -251,6 +265,6 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
             </div>
         </div>
 
-        <CreateGroupDialog v-model:open="createOpen" :parent-options="parentOptions" :kinds="kinds" />
+        <CreateGroupDialog v-if="!scoped" v-model:open="createOpen" :parent-options="parentOptions" :kinds="kinds" />
     </AppLayout>
 </template>

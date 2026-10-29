@@ -364,6 +364,23 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * The Groups this Member administers ({@see administers()}) that head a parent officer's
+     * subtrees in DMV Settings (ADR-0036 §11): the root and Containers left out, as they carry
+     * no ordinary officers. Empty for most Members; non-empty opens DMV Settings to them.
+     *
+     * @return Collection<int, Group>
+     */
+    public function administeredGroups(): Collection
+    {
+        $this->loadMissing('memberships.roles', 'memberships.group');
+
+        return $this->memberships
+            ->map(fn (GroupMember $membership) => $membership->group)
+            ->filter(fn (Group $group) => $group->isStructurallyEditable() && $this->administers($group))
+            ->values();
+    }
+
+    /**
      * Whether this Member may post to the org-wide news feed at all — i.e. can act
      * as news-editor of any announcements-on Group they belong to (ADR-0017 §5).
      * The coarse hint behind the feed's "New post" control; the per-item edit/

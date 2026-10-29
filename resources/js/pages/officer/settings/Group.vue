@@ -71,6 +71,8 @@ interface StructureGroup extends Record<Flag, boolean> {
 }
 
 const props = defineProps<{
+    // A parent officer's view (#883, ADR-0036 §11): read-only for now, with no Stewardships tab.
+    scoped: boolean;
     group: StructureGroup;
     parents: ParentOption[];
     kinds: string[];
@@ -165,7 +167,9 @@ const SECTIONS: readonly Section[] = [
     { id: 'hours', key: 'hours', fields: ['hours_multiplier'] },
     { id: 'archive', key: 'archive', fields: [] },
 ];
-const sections = computed(() => (props.group.archived ? SECTIONS.filter((section) => section.id !== 'archive') : SECTIONS));
+// Read-only: an archived Group, or any Group in a parent officer's (scoped) view for now.
+const readOnly = computed(() => props.group.archived || props.scoped);
+const sections = computed(() => (readOnly.value ? SECTIONS.filter((section) => section.id !== 'archive') : SECTIONS));
 const sectionTitle = (section: Section): string => trans(`dmv_settings.group.${section.key}`);
 const sectionHasError = (section: Section): boolean =>
     section.id === 'archive' ? archiveError.value !== undefined : section.fields.some((field) => errors.value[field] !== undefined);
@@ -201,7 +205,7 @@ const countLine = (flag: Capability): string | null => {
                 </p>
             </div>
 
-            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" />
+            <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" :scoped="scoped" />
 
             <div class="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start lg:gap-8">
                 <!-- The section index (lg+): in-page anchors, a dot on each section with an error. -->
@@ -236,12 +240,12 @@ const countLine = (flag: Capability): string | null => {
                             <AlertDescription>{{ trans('dmv_settings.archived_banner.body') }}</AlertDescription>
                             <InputError :message="archiveError" />
                         </div>
-                        <Button type="button" class="shrink-0" :disabled="archiveForm.processing" @click="unarchive">
+                        <Button v-if="!scoped" type="button" class="shrink-0" :disabled="archiveForm.processing" @click="unarchive">
                             {{ trans('dmv_settings.archive.unarchive') }}
                         </Button>
                     </Alert>
 
-                    <fieldset class="flex flex-col gap-6" :disabled="group.archived">
+                    <fieldset class="flex flex-col gap-6" :disabled="readOnly">
                         <DmvSettingsSection id="identity" :title="sectionTitle(SECTIONS[0])">
                             <div class="grid gap-2">
                                 <Label for="group-name">{{ trans('dmv_settings.field.name') }}</Label>
@@ -375,12 +379,7 @@ const countLine = (flag: Capability): string | null => {
 
                     <!-- The Archive section (#845) sits outside the disabled fieldset; an archived
                          Group has the banner's Unarchive instead. -->
-                    <DmvSettingsSection
-                        v-if="!group.archived"
-                        id="archive"
-                        :title="sectionTitle(SECTIONS[6])"
-                        layout="flex flex-col items-start gap-3"
-                    >
+                    <DmvSettingsSection v-if="!readOnly" id="archive" :title="sectionTitle(SECTIONS[6])" layout="flex flex-col items-start gap-3">
                         <p class="text-sm">{{ trans('dmv_settings.group.archive_note') }}</p>
                         <Button
                             type="button"
@@ -395,10 +394,7 @@ const countLine = (flag: Capability): string | null => {
                     </DmvSettingsSection>
 
                     <!-- The save bar: sticks to the bottom of the content while the form is in view. -->
-                    <div
-                        v-if="!group.archived"
-                        class="bg-background sticky bottom-0 z-10 flex flex-col gap-3 border-t py-3 sm:flex-row sm:items-center"
-                    >
+                    <div v-if="!readOnly" class="bg-background sticky bottom-0 z-10 flex flex-col gap-3 border-t py-3 sm:flex-row sm:items-center">
                         <p v-if="lastChanged" class="text-muted-foreground text-sm">
                             {{
                                 trans('dmv_settings.last_changed', {

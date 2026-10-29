@@ -24,6 +24,8 @@ return [
         // Les paramètres de la racine ne sont pas ici ; un conteneur n’a pas de page.
         'root_note' => 'Défini par les responsables',
         'container_note' => 'Aucune page',
+        // Le groupe d’un responsable parent, en tête de son sous-arbre (#883) : listé, non ouvert.
+        'own_note' => 'Votre groupe',
         // Une lettre par fonction ; la légende sous le tableau les explique. Les mêmes codes
         // qu’en anglais, pour que l’arborescence se lise pareil dans les deux langues.
         'letter' => [

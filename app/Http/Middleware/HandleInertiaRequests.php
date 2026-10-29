@@ -353,7 +353,7 @@ class HandleInertiaRequests extends Middleware
             ['key' => 'communications', 'route' => 'officer.communications', 'labelKey' => 'nav.officer.communications', 'gate' => 'post-news'],
             ['key' => 'reports', 'route' => 'officer.reports', 'labelKey' => 'nav.officer.reports'],
             ['key' => 'flash-messages', 'route' => 'officer.flash-messages', 'labelKey' => 'nav.officer.flash_messages'],
-            ['key' => 'settings', 'route' => 'officer.settings', 'labelKey' => 'nav.officer.dmv_settings', 'gate' => 'administer-groups'],
+            ['key' => 'settings', 'route' => 'officer.settings', 'labelKey' => 'nav.officer.dmv_settings', 'gate' => 'enter-dmv-settings'],
             ['key' => 'document-downloads', 'route' => 'officer.document-downloads', 'labelKey' => 'nav.officer.document_downloads', 'gate' => 'view-document-downloads'],
             ['key' => 'mail-status', 'href' => route('mail-status', absolute: false), 'labelKey' => 'nav.officer.mail_status', 'gate' => 'view-mail-status'],
             ['key' => 'help-status', 'href' => route('help-status', absolute: false), 'labelKey' => 'nav.officer.help_status', 'gate' => 'view-help-ledger'],
