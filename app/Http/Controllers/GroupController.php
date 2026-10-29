@@ -287,6 +287,10 @@ class GroupController extends Controller
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $this->managesRoster($request, $group),
                 'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
+                // `viewPastSchedules` drives the Scheduling tab's "Past schedules" link (ADR-0037
+                // §4) — the Group's Chair, Statistician or Scheduler, or the super-tier. UI hint
+                // only; the section re-checks it before honouring `?past=1`.
+                'viewPastSchedules' => $request->user()->can('viewPast', [Schedule::class, $group]),
                 // `manageSettings` drives the Settings tab (ADR-0027 §1) — true when any of the
                 // five configuration rights below holds. UI hint only; the section re-checks it.
                 'manageSettings' => $canManageSettings,
@@ -982,15 +986,20 @@ class GroupController extends Controller
      *
      * Each Schedule is filtered through the SchedulePolicy's per-Schedule `view`, so a
      * draft surfaces only to the Group's schedule admins while a published one follows
-     * the Group's listing visibility. Past Schedules stay in the list — nothing is
-     * hidden by date.
+     * the Group's listing visibility.
+     *
+     * The list holds current and upcoming Schedules only, soonest first (ADR-0037 §4). A
+     * Past Schedule (ended before today) leaves it for everyone. The Group's Chair,
+     * Statistician or Scheduler (and the super-tier) may ask for the past list with
+     * `?past=1`: Past Schedules only, newest end date first. Anyone else who sends
+     * `?past=1` gets the normal list, like the Roster's officer-only toggle.
      *
      * Navigation has two outcomes and no data-dependent branch. A permalink
-     * (`$schedule` bound) opens that Schedule after the same `view` check; the bare
-     * section URL always shows the list, current and upcoming first. The section
-     * behaves like every other section tab — an index, from which a reader picks.
+     * (`$schedule` bound) opens that Schedule after the same `view` check, past or not;
+     * the bare section URL always shows the list. The section behaves like every other
+     * section tab — an index, from which a reader picks.
      *
-     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>, shift_kinds: list<array<string, mixed>>, mine: list<array<string, mixed>>}
+     * @return array{schedules: list<array<string, mixed>>, showing_past: bool, open: array<string, mixed>|null, roster: list<array<string, mixed>>, shift_kinds: list<array<string, mixed>>, mine: list<array<string, mixed>>}
      */
     private function scheduling(Request $request, Group $group, ?Schedule $schedule): array
     {
@@ -1008,6 +1017,7 @@ class GroupController extends Controller
 
             return [
                 'schedules' => [],
+                'showing_past' => false,
                 'open' => $this->scheduleDetail($request, $schedule),
                 'roster' => $this->assignmentRoster($request, $group),
                 'shift_kinds' => $this->shiftKinds($request, $group, $schedule),
@@ -1033,13 +1043,14 @@ class GroupController extends Controller
             ->each(fn (Schedule $candidate) => $candidate->setRelation('group', $group))
             ->filter(fn (Schedule $candidate) => $user->can('view', $candidate));
 
-        // The list: current and upcoming first (soonest range first), then past
-        // (most recently ended first) — an archive is browsed newest-first.
+        // The list: current and upcoming, soonest range first. The past list (an officer's
+        // `?past=1`, ADR-0037 §4) holds Past Schedules only, most recently ended first —
+        // an archive is browsed newest-first. Anyone else's `?past=1` is ignored.
+        $showingPast = $request->boolean('past') && $user->can('viewPast', [Schedule::class, $group]);
         [$current, $past] = $visible->partition(fn (Schedule $candidate) => $candidate->isCurrent($today));
 
         return [
-            'schedules' => $current
-                ->concat($past->sortByDesc('ends_on'))
+            'schedules' => ($showingPast ? $past->sortByDesc('ends_on') : $current)
                 ->values()
                 ->map(fn (Schedule $candidate) => [
                     'id' => $candidate->id,
@@ -1049,13 +1060,11 @@ class GroupController extends Controller
                     'state' => $candidate->state->value,
                     // A month's group-tour Schedule (#795, ADR-0032 §4), which holds Bookings only.
                     'is_group_tour' => $candidate->isGroupTour(),
-                    // Which block this Schedule heads under, resolved server-side
-                    // against one clock so the two blocks never overlap or gap.
-                    'is_past' => ! $candidate->isCurrent($today),
                     'url' => route('groups.scheduling.show', ['group' => $group->slug, 'schedule' => $candidate->id]),
                     'can' => $this->scheduleAuthoring($request, $candidate),
                 ])
                 ->all(),
+            'showing_past' => $showingPast,
             'open' => null,
             // The picker's roster and the kind vocabulary are concerns of an opened
             // Schedule's authoring only; the list view shows no Shift form and so needs

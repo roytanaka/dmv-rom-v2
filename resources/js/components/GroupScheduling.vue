@@ -4,8 +4,10 @@
 // not Meetings' members-only gate) and renders whenever the Group runs scheduling.
 //
 // Two states, resolved server-side: `open` is the Schedule a permalink addressed, and
-// `schedules` is the list every other visit gets — current & upcoming first, then past —
-// with an honest empty state when there are none. The section always lists first, like
+// `schedules` is the list every other visit gets — current & upcoming only (ADR-0037 §4) —
+// with an honest empty state when there are none. The Group's Chair, Statistician and
+// Scheduler get a "Past schedules" link (`canViewPast`) to the past list (`?past=1`), which
+// the server sends as `showing_past` with the Past Schedules, newest first. The section always lists first, like
 // every other section tab. Drafts appear only for the Group's schedule admins; the
 // server has already filtered the list to the viewer's audience.
 //
@@ -63,6 +65,7 @@ import {
     PhBinoculars,
     PhCalendarBlank,
     PhCaretRight,
+    PhClockCounterClockwise,
     PhEye,
     PhEyeSlash,
     PhListBullets,
@@ -82,6 +85,8 @@ const props = defineProps<{
     bookingClients: string[] | null;
     substitutes: { id: number; name: string }[] | null;
     canCreate: boolean;
+    // Shows the "Past schedules" link (ADR-0037 §4). UI hint; the server re-checks `?past=1`.
+    canViewPast: boolean;
     collectsVisitorCount: boolean;
     collectsExtraInteractions: boolean;
     collectsVisitorProvenance: boolean;
@@ -190,18 +195,14 @@ const hasObjects = computed(() => activeObjects.value.length > 0);
 // Shift is theirs, so its Objects are the ones the edit round-trips.
 const seatObjectIds = (shift: ShiftAgendaItem): number[] => shift.signups[0]?.objects?.map((object) => object.id) ?? [];
 
-// The list arrives already ordered (current & upcoming first, then past). Splitting
-// here only heads the two blocks; an empty block is dropped rather than left bare.
-const sections = computed(() =>
-    (['current', 'past'] as const)
-        .map((key) => ({ key, schedules: props.scheduling.schedules.filter((s) => s.is_past === (key === 'past')) }))
-        .filter((section) => section.schedules.length > 0),
-);
-
 // The link back to the list from a Schedule opened by permalink — the bare section
 // URL, which always lists. Built through the route helper so the French twin comes
 // out right, as the Roster's show-past toggle already does.
 const listHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling' }));
+
+// The officer-only past list (ADR-0037 §4) — the same section with `?past=1`, a server
+// round-trip like the Roster's show-past toggle. The past view links back to `listHref`.
+const pastHref = computed(() => route('groups.show', { group: props.groupSlug, section: 'scheduling', past: 1 }));
 
 // The opened Schedule's Email control (#490, ADR-0024 §6.3): its menu leads with "Sign-ups
 // on <Schedule>", then the owning Group's Audiences, all resolved server-side. The hand-pick
@@ -1066,7 +1067,16 @@ const runBulkAssign = (action: 'place' | 'remove') => {
             </CollapsibleContent>
         </Collapsible>
 
-        <div v-if="(canCreate || bookingOptions) && !scheduling.open" class="flex flex-wrap justify-end gap-2">
+        <div v-if="(canCreate || bookingOptions || canViewPast) && !scheduling.open" class="flex flex-wrap items-center justify-end gap-2">
+            <!-- Past schedules (ADR-0037 §4) — to the past list, and from it back to the current one. -->
+            <TextLink v-if="scheduling.showing_past" :href="listHref" class="mr-auto inline-flex items-center gap-1.5 text-sm">
+                <PhArrowLeft class="size-4 shrink-0" />
+                {{ trans('group.scheduling_panel.current_link') }}
+            </TextLink>
+            <TextLink v-else-if="canViewPast" :href="pastHref" class="mr-auto inline-flex items-center gap-1.5 text-sm">
+                <PhClockCounterClockwise class="size-4 shrink-0" />
+                {{ trans('group.scheduling_panel.past_link') }}
+            </TextLink>
             <Button
                 v-if="bookingOptions"
                 type="button"
@@ -1415,14 +1425,10 @@ const runBulkAssign = (action: 'place' | 'remove') => {
             <p v-else class="text-muted-foreground py-8 text-center text-sm">{{ trans('group.scheduling_panel.agenda.empty') }}</p>
         </template>
 
-        <!-- The list — current & upcoming first, then past, each block headed. -->
+        <!-- The list — current & upcoming, or the officer's Past Schedules (ADR-0037 §4). -->
         <template v-else-if="scheduling.schedules.length">
-            <section v-for="section in sections" :key="section.key" class="flex flex-col gap-3">
-                <h3 class="text-muted-foreground text-sm font-medium tracking-wide uppercase">
-                    {{ trans(`group.scheduling_panel.${section.key}_heading`) }}
-                </h3>
-
-                <Card v-for="schedule in section.schedules" :key="schedule.id">
+            <section class="flex flex-col gap-3">
+                <Card v-for="schedule in scheduling.schedules" :key="schedule.id">
                     <CardHeader>
                         <div class="flex flex-wrap items-start justify-between gap-2">
                             <div class="flex flex-col gap-1">
@@ -1480,7 +1486,9 @@ const runBulkAssign = (action: 'place' | 'remove') => {
         </template>
 
         <!-- Honest empty state — the Group runs scheduling but has no Schedules yet. -->
-        <p v-else class="text-muted-foreground py-12 text-center text-base">{{ trans('group.scheduling_panel.empty') }}</p>
+        <p v-else class="text-muted-foreground py-12 text-center text-base">
+            {{ trans(scheduling.showing_past ? 'group.scheduling_panel.past_empty' : 'group.scheduling_panel.empty') }}
+        </p>
 
         <!-- Add a group tour (#795) — the Booking form, for a viewer the server sent its pickers. -->
         <BookingDialog v-if="bookingOptions" v-model:open="bookingOpen" :group-slug="groupSlug" :options="bookingOptions" :clients="bookingClients" />

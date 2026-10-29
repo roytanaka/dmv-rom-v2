@@ -361,8 +361,10 @@ return [
     // Scheduling tab (#353, ADR-0021 §1) — the Schedule read surface.
     'scheduling_panel' => [
         'empty' => 'No schedules yet.',
-        'current_heading' => 'Current & upcoming',
-        'past_heading' => 'Past',
+        // The officer-only past list (ADR-0037 §4) and the link back from it.
+        'past_link' => 'Past schedules',
+        'current_link' => 'Current schedules',
+        'past_empty' => 'No past schedules.',
         'draft_badge' => 'Draft',
         'date_range' => ':start – :end',
         'back_to_list' => 'All schedules',

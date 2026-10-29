@@ -7,6 +7,6 @@
 persona amara.abara@dmv.test
 start /groups/docents/scheduling
 
-act showScheduleList 01             # the Scheduling tab: the list of schedules
+act showScheduleList 01             # the Scheduling tab: current & upcoming schedules only, no past heading (#868)
 act openCurrentMonthSchedule        # open the month's Schedule
 act showUpcomingFullShift 02        # an upcoming day: seats taken against capacity, and a full shift says Full
