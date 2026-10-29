@@ -295,6 +295,9 @@ final class HelpManifest
             new HelpArticle('administer-groups', HelpSection::Groups, requires: ['super_tier'], status: ArticleStatus::Draft, route: 'officer.settings', routes: ['officer.settings.group']),
             // DMV Settings › Stewardships (#846, ADR-0036 §7).
             new HelpArticle('assign-a-stewardship', HelpSection::Groups, requires: ['super_tier'], status: ArticleStatus::Draft, route: 'officer.settings.stewardships'),
+            // Sub-groups for parent officers (#889, PRD #881, ADR-0036 §11): a Group's Secretary or
+            // Chair works in a scoped DMV Settings, reached from the Settings tab's Manage sub-groups card.
+            new HelpArticle('manage-your-groups-sub-groups', HelpSection::Groups, requires: ['secretary', 'chair'], status: ArticleStatus::Draft, route: 'officer.settings', routes: ['officer.settings.group', 'groups.show']),
 
             new HelpArticle('scheduling', HelpSection::Scheduling, isOverview: true, route: 'groups.scheduling.show'),
             new HelpArticle('sign-up-for-a-shift', HelpSection::Scheduling, route: 'groups.scheduling.show'),
