@@ -34,10 +34,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { telHref } from '@/directory/contact';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
-import { type RosterMember, type RosterMeta } from '@/types';
+import { type RosterCandidate, type RosterMember, type RosterMeta } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
-import { PhDotsThree, PhMagnifyingGlass, PhPlus } from '@phosphor-icons/vue';
-import { trans } from 'laravel-vue-i18n';
+import { PhDotsThree, PhMagnifyingGlass, PhPlus, PhX } from '@phosphor-icons/vue';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -132,19 +132,40 @@ const toggleShowPast = (next: boolean) => {
     router.get(route('groups.show', params), {}, { preserveScroll: true, preserveState: false });
 };
 
-// Toggle a role on or off within a form's role array (the shared assign/revoke
-// control for both the add and manage dialogs).
-const toggleRole = (roles: string[], role: string, on: boolean) => {
-    const index = roles.indexOf(role);
-    if (on && index === -1) roles.push(role);
-    if (!on && index !== -1) roles.splice(index, 1);
+// Toggle an item on or off within a form's array — the shared control for the role
+// checkboxes in both dialogs and the Member picks in the add dialog.
+const toggleIn = <T,>(list: T[], item: T, on: boolean) => {
+    const index = list.indexOf(item);
+    if (on && index === -1) list.push(item);
+    if (!on && index !== -1) list.splice(index, 1);
 };
 
-// Add member — search the Group's non-members, set standing (default Full), and
-// optionally assign roles on add.
+// Add member — tick one or more of the Group's non-members (#873), set standing
+// (default Full) for all of them, and optionally assign roles. Roles come only with a
+// single Member: officers assign roles one person at a time, and the server agrees.
 const addOpen = ref(false);
 const candidateSearch = ref('');
-const addForm = useForm<{ member_id: number | null; status: string; roles: string[] }>({ member_id: null, status: 'full', roles: [] });
+const addForm = useForm<{ member_ids: number[]; status: string; roles: string[] }>({ member_ids: [], status: 'full', roles: [] });
+
+// The ticked Members as chips, in the order they were picked. They live in the form,
+// not the filtered list, so a change to the search text keeps them.
+const selectedCandidates = computed(() =>
+    addForm.member_ids
+        .map((id) => props.meta.candidates.find((candidate) => candidate.id === id))
+        .filter((candidate): candidate is RosterCandidate => candidate !== undefined),
+);
+
+const rolesLocked = computed(() => addForm.member_ids.length > 1);
+
+const toggleCandidate = (id: number, on: boolean) => {
+    toggleIn(addForm.member_ids, id, on);
+    if (rolesLocked.value) addForm.roles = [];
+};
+
+const candidateName = (candidate: RosterCandidate) => `${candidate.last_name}, ${candidate.first_name}`;
+
+// The batch errors arrive per index (`member_ids.2`); the dialog shows the first.
+const memberIdsError = computed(() => Object.entries(addForm.errors).find(([key]) => key.startsWith('member_ids'))?.[1]);
 
 const candidates = computed(() => {
     const needle = candidateSearch.value.trim().toLowerCase();
@@ -377,7 +398,7 @@ const hardRemove = (member: RosterMember) => {
             />
         </div>
 
-        <!-- Add member dialog (#192) — search all Members, set standing, assign roles. -->
+        <!-- Add member dialog (#192, #873) — tick one or more Members, set standing, assign roles. -->
         <Dialog v-if="canManage" v-model:open="addOpen">
             <DialogContent>
                 <DialogHeader>
@@ -386,21 +407,39 @@ const hardRemove = (member: RosterMember) => {
                 <form class="flex flex-col gap-4" @submit.prevent="submitAdd">
                     <div class="grid gap-2">
                         <Label for="add-search">{{ trans('group.roster.add_search') }}</Label>
-                        <Input id="add-search" v-model="candidateSearch" type="search" :placeholder="trans('group.roster.search.placeholder')" />
-                        <div class="max-h-48 overflow-y-auto border">
-                            <button
-                                v-for="candidate in candidates"
-                                :key="candidate.id"
-                                type="button"
-                                class="hover:bg-muted flex w-full items-center px-3 py-2 text-left text-sm"
-                                :class="addForm.member_id === candidate.id ? 'bg-muted font-medium' : ''"
-                                @click="addForm.member_id = candidate.id"
-                            >
-                                {{ candidate.last_name }}, {{ candidate.first_name }}
-                            </button>
-                            <p v-if="!candidates.length" class="text-muted-foreground px-3 py-2 text-sm">{{ trans('group.roster.no_candidates') }}</p>
+                        <div v-if="selectedCandidates.length" class="flex flex-wrap gap-1.5">
+                            <Badge v-for="candidate in selectedCandidates" :key="candidate.id" variant="secondary" class="gap-1 font-normal">
+                                {{ candidateName(candidate) }}
+                                <button
+                                    type="button"
+                                    class="hover:text-foreground -mr-0.5 flex items-center justify-center rounded-full transition-colors pointer-coarse:size-11"
+                                    :aria-label="trans('group.roster.add_remove_selected', { name: candidateName(candidate) })"
+                                    @click="toggleCandidate(candidate.id, false)"
+                                >
+                                    <PhX class="size-3" />
+                                </button>
+                            </Badge>
                         </div>
-                        <p v-if="addForm.errors.member_id" class="text-destructive text-sm">{{ addForm.errors.member_id }}</p>
+                        <Input id="add-search" v-model="candidateSearch" type="search" :placeholder="trans('group.roster.search.placeholder')" />
+                        <ul class="max-h-48 overflow-y-auto border">
+                            <li v-for="candidate in candidates" :key="candidate.id">
+                                <!-- A ticked row is takes the heritage-blue wash, so it never reads as hover. -->
+                                <label
+                                    class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm pointer-coarse:min-h-11"
+                                    :class="addForm.member_ids.includes(candidate.id) ? 'bg-rom-slate-50 font-medium' : 'hover:bg-muted'"
+                                >
+                                    <Checkbox
+                                        :checked="addForm.member_ids.includes(candidate.id)"
+                                        @update:checked="(on: boolean) => toggleCandidate(candidate.id, on)"
+                                    />
+                                    {{ candidateName(candidate) }}
+                                </label>
+                            </li>
+                            <li v-if="!candidates.length" class="text-muted-foreground px-3 py-2 text-sm">
+                                {{ trans('group.roster.no_candidates') }}
+                            </li>
+                        </ul>
+                        <p v-if="memberIdsError" class="text-destructive text-sm">{{ memberIdsError }}</p>
                     </div>
 
                     <div class="grid gap-2">
@@ -414,18 +453,25 @@ const hardRemove = (member: RosterMember) => {
 
                     <fieldset v-if="meta.assignableRoles.length" class="grid gap-2">
                         <legend class="text-muted-foreground mb-2 text-sm font-medium">{{ trans('group.roster.field.roles') }}</legend>
-                        <label v-for="role in meta.assignableRoles" :key="role" class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
+                        <label
+                            v-for="role in meta.assignableRoles"
+                            :key="role"
+                            class="flex items-center gap-2 text-sm pointer-coarse:min-h-11"
+                            :class="{ 'opacity-50': rolesLocked }"
+                        >
                             <Checkbox
                                 :checked="addForm.roles.includes(role)"
-                                @update:checked="(on: boolean) => toggleRole(addForm.roles, role, on)"
+                                :disabled="rolesLocked"
+                                @update:checked="(on: boolean) => toggleIn(addForm.roles, role, on)"
                             />
                             {{ trans(`group.role.${role}`) }}
                         </label>
+                        <p v-if="addForm.errors.roles" class="text-destructive text-sm">{{ addForm.errors.roles }}</p>
                     </fieldset>
 
                     <div class="flex gap-2">
-                        <Button type="submit" size="sm" :disabled="addForm.processing || addForm.member_id === null">{{
-                            trans('group.roster.add_submit')
+                        <Button type="submit" size="sm" :disabled="addForm.processing || addForm.member_ids.length === 0">{{
+                            transChoice('group.roster.add_submit', addForm.member_ids.length, { count: String(addForm.member_ids.length) })
                         }}</Button>
                         <Button type="button" variant="ghost" size="sm" :disabled="addForm.processing" @click="addOpen = false">
                             {{ trans('group.roster.cancel') }}
@@ -468,7 +514,7 @@ const hardRemove = (member: RosterMember) => {
                         <label v-for="role in meta.assignableRoles" :key="role" class="flex items-center gap-2 text-sm pointer-coarse:min-h-11">
                             <Checkbox
                                 :checked="editForm.roles.includes(role)"
-                                @update:checked="(on: boolean) => toggleRole(editForm.roles, role, on)"
+                                @update:checked="(on: boolean) => toggleIn(editForm.roles, role, on)"
                             />
                             {{ trans(`group.role.${role}`) }}
                         </label>

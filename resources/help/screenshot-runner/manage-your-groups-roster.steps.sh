@@ -8,8 +8,8 @@ persona oliver.bennett@dmv.test
 start /groups/docents/roster
 
 nav /groups/docents/roster 01       # the Members tab: Show past members, Add member, and the per-row menu
-act openAddMemberDialog 02          # the Add member dialog: the search list, Standing, and Roles
+act pickMembersToAdd 02             # the Add member dialog: two Members ticked, their chips, and Roles turned off
 nav /groups/docents/roster          # reload to close the dialog
-act openRosterRowMenu 03            # a row's menu: Manage, Resign member, and Remove (added in error)
+act openRosterRowMenu 03            # a row's menu: Manage, Resign member, Tours, and Remove (added in error)
 nav /groups/docents/roster          # reload to close the menu
 act openManageMembershipDialog 04   # the Manage membership dialog: Standing, the leave dates, and Roles

@@ -63,7 +63,12 @@ return [
         'add' => 'Ajouter un membre',
         'add_title' => 'Ajouter un membre',
         'add_search' => 'Rechercher parmi tous les membres',
-        'add_submit' => 'Ajouter au groupe',
+        // Le nombre de membres choisis (#873) : « Ajouter 3 au groupe ».
+        'add_submit' => '{0} Ajouter au groupe|[1,*] Ajouter :count au groupe',
+        'add_remove_selected' => 'Retirer :name',
+        'add_unknown' => 'Un de ces membres est introuvable.',
+        'add_already_member' => 'Un de ces membres fait déjà partie de ce groupe.',
+        'add_roles_one_member' => 'Les rôles se règlent pour un seul membre à la fois.',
         'no_candidates' => 'Aucun membre ne correspond à votre recherche.',
         'edit_title' => 'Gérer l’adhésion',
         'field' => [

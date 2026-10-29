@@ -609,6 +609,24 @@
         return clickAndSettle(pageButtonLabelled(/^add member$/i));
     }
 
+    // The Add member dialog mid-pick (#873): a search typed, two Members ticked, so the shot
+    // shows the chips, the ticked rows, the count on the button, and the Roles turned off.
+    async function pickMembersToAdd() {
+        if (!(await openAddMemberDialog())) return false;
+        const dialog = document.querySelector('[role="dialog"]');
+        const search = dialog?.querySelector('#add-search');
+        if (!search) return false;
+        typeInto(search, 'abara');
+        await settle(200);
+        const boxes = Array.from(dialog.querySelectorAll('ul [role="checkbox"]')).slice(0, 2);
+        if (boxes.length < 2) return false;
+        for (const box of boxes) {
+            box.click();
+            await settle(100);
+        }
+        return settle();
+    }
+
     function openRosterRowMenu() {
         return openMenuFrom(document.querySelector('tbody [aria-haspopup="menu"]'));
     }
@@ -1023,6 +1041,7 @@
         showPostShiftChange,
         openPostShiftCorrection,
         openAddMemberDialog,
+        pickMembersToAdd,
         openRosterRowMenu,
         openManageMembershipDialog,
         openNewMeetingDialog,

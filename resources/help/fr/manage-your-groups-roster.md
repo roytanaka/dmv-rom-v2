@@ -11,19 +11,25 @@ Ajoutez des membres à votre groupe, réglez les rôles qu'ils tiennent, et reti
 
 3. Sélectionnez **Ajouter un membre**.
 
-    ![La fenêtre Ajouter un membre : la liste de recherche, puis le Statut et les Rôles](02.png)
+    ![La fenêtre Ajouter un membre : deux membres cochés s'affichent au-dessus du champ de recherche, et les Rôles ne sont pas disponibles](02.png)
 
 4. Saisissez un nom dans **Rechercher parmi tous les membres**.
-5. Choisissez le·la membre dans la liste.
-6. Réglez son **Statut** dans le groupe.
-7. Cochez chaque **Rôle** qu'il·elle tient.
-8. Sélectionnez **Ajouter au groupe**.
+5. Cochez la case de chaque membre à ajouter. Chaque membre coché·e s'affiche au-dessus du champ de recherche.
+6. Réglez le **Statut** dans le groupe. Il s'applique à chaque membre coché·e.
+7. Cochez chaque **Rôle** que le·la membre tient.
+8. Sélectionnez **Ajouter au groupe**. Le bouton indique combien de membres vous ajoutez.
+
+> **Note :** Vous pouvez régler les rôles d'un·e seul·e membre à la fois. Quand vous cochez deux membres ou plus, les **Rôles** ne sont pas disponibles.
+
+Pour régler les rôles de ces membres, ajoutez-les, puis sélectionnez **Gérer** sur chaque ligne.
+
+Pour retirer un·e membre de votre sélection, sélectionnez le **×** à côté de son nom au-dessus du champ de recherche.
 
 ## Changer les rôles ou le statut d'un·e membre
 
 1. Ouvrez le menu à trois points au bout de la ligne du·de la membre.
 
-    ![Le menu d'une ligne : Gérer, Faire démissionner et Retirer (ajouté par erreur)](03.png)
+    ![Le menu d'une ligne : Gérer, Faire démissionner, Visites et Retirer (ajouté par erreur)](03.png)
 
 2. Sélectionnez **Gérer**.
 

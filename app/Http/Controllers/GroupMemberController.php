@@ -11,6 +11,7 @@ use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Support\Tours\QualificationRules;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Officer roster CRUD (#192, PRD #186) — the write seam for a Group's membership
@@ -27,25 +28,31 @@ use Illuminate\Http\RedirectResponse;
 class GroupMemberController extends Controller
 {
     /**
-     * Add a member to a Group. The owning Group comes from the route; the Member,
-     * standing, and any roles come from the Form Request whitelist. Standing defaults
-     * to Full when the request omits it. Roles assigned on add are written alongside. The
-     * status rules (#793) treat the first standing as a change: a new Trainee gets the
-     * trainee Tour, a new Full Member the starter Tours.
+     * Add one or more Members to a Group (#873). The owning Group comes from the route;
+     * the Members, standing, and any roles come from the Form Request whitelist. Standing
+     * defaults to Full when the request omits it and applies to every Member; roles come
+     * only with a single Member. The batch runs in one transaction, so it lands whole or
+     * not at all. The status rules (#793) treat the first standing as a change: a new
+     * Trainee gets the trainee Tour, a new Full Member the starter Tours.
      */
     public function store(StoreGroupMemberRequest $request, Group $group, QualificationRules $rules): RedirectResponse
     {
         $data = $request->validated();
+        $status = $data['status'] ?? MembershipStatus::Full->value;
 
-        $membership = $group->memberships()->create([
-            'member_id' => $data['member_id'],
-            'status' => $data['status'] ?? MembershipStatus::Full->value,
-        ]);
+        DB::transaction(function () use ($data, $status, $group, $rules) {
+            foreach ($data['member_ids'] as $memberId) {
+                $membership = $group->memberships()->create([
+                    'member_id' => $memberId,
+                    'status' => $status,
+                ]);
 
-        $this->syncRoles($membership, $data['roles'] ?? []);
+                $this->syncRoles($membership, $data['roles'] ?? []);
 
-        $membership->setRelation('group', $group);
-        $rules->apply($membership, null);
+                $membership->setRelation('group', $group);
+                $rules->apply($membership, null);
+            }
+        });
 
         return back();
     }

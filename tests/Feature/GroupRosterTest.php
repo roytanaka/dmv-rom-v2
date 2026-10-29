@@ -215,7 +215,7 @@ it('refuses a Chair a roster change on an archived Group while the roster still 
             ->where('roster', fn (Collection $roster) => $roster->contains('id', $existing->id)));
 
     $this->actingAs($chair)
-        ->post(route('group-members.store', $group), ['member_id' => $outsider->id])
+        ->post(route('group-members.store', $group), ['member_ids' => [$outsider->id]])
         ->assertForbidden();
 
     $this->actingAs($chair)
@@ -231,7 +231,7 @@ it('refuses the super-tier a roster addition on an expired time-boxed Group', fu
     $outsider = Member::factory()->create();
 
     $this->actingAs(Member::factory()->superTier()->create())
-        ->post(route('group-members.store', $group), ['member_id' => $outsider->id])
+        ->post(route('group-members.store', $group), ['member_ids' => [$outsider->id]])
         ->assertForbidden();
 
     expect(GroupMember::where('member_id', $outsider->id)->exists())->toBeFalse();

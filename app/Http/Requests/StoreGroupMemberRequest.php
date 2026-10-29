@@ -36,11 +36,13 @@ class StoreGroupMemberRequest extends FormRequest
     }
 
     /**
-     * The whitelist of fields adding a member may set. `member_id` is the Member
-     * brought in — required to already exist and not already be in this Group.
-     * `status` defaults to Full in the controller when omitted. `roles` are assigned
-     * on add — each capability-valid for this Group (a role the Group has no
-     * capability for is rejected, never surfaced as a 500), at most one of each.
+     * The whitelist of fields adding members may set. `member_ids` are the Members
+     * brought in (#873) — each required to already exist and not already be in this
+     * Group, so one bad ID rejects the whole batch. `status` defaults to Full in the
+     * controller when omitted and applies to every Member. `roles` are assigned on add —
+     * each capability-valid for this Group (a role the Group has no capability for is
+     * rejected, never surfaced as a 500), at most one of each — and only when one Member
+     * is added: officers assign roles one person at a time.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -49,15 +51,31 @@ class StoreGroupMemberRequest extends FormRequest
         $group = $this->route('group');
 
         return [
-            'member_id' => [
-                'required',
+            'member_ids' => ['required', 'array', 'min:1'],
+            'member_ids.*' => [
                 'integer',
+                'distinct',
                 Rule::exists('members', 'id'),
                 Rule::unique('group_member', 'member_id')->where('group_id', $group->id),
             ],
             'status' => ['sometimes', Rule::enum(MembershipStatus::class)],
-            'roles' => ['sometimes', 'array'],
+            'roles' => ['sometimes', 'array', Rule::prohibitedIf(fn () => count((array) $this->input('member_ids', [])) > 1)],
             'roles.*' => ['required', Rule::enum(Role::class), 'distinct', new CapabilityValidRole($group)],
+        ];
+    }
+
+    /**
+     * Plain-language errors for the batch: the dialog shows one line, not a per-index
+     * message naming `member_ids.2`.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'member_ids.*.exists' => __('group.roster.add_unknown'),
+            'member_ids.*.unique' => __('group.roster.add_already_member'),
+            'roles.prohibited' => __('group.roster.add_roles_one_member'),
         ];
     }
 }

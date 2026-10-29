@@ -45,7 +45,7 @@ it('lets a Secretary add a member, defaulting standing to Full', function () {
     $target = Member::factory()->create();
 
     $this->actingAs(crudOfficerOf($group, Role::Secretary))
-        ->post(route('group-members.store', $group), ['member_id' => $target->id])
+        ->post(route('group-members.store', $group), ['member_ids' => [$target->id]])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
@@ -59,7 +59,7 @@ it('lets a Chair add a member (Chair-implication)', function () {
     $target = Member::factory()->create();
 
     $this->actingAs(crudOfficerOf($group, Role::Chair))
-        ->post(route('group-members.store', $group), ['member_id' => $target->id])
+        ->post(route('group-members.store', $group), ['member_ids' => [$target->id]])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
@@ -71,7 +71,7 @@ it('lets a super-tier member add to any Group', function () {
     $target = Member::factory()->create();
 
     $this->actingAs(Member::factory()->superTier()->create())
-        ->post(route('group-members.store', $group), ['member_id' => $target->id])
+        ->post(route('group-members.store', $group), ['member_ids' => [$target->id]])
         ->assertSessionHasNoErrors()
         ->assertRedirect();
 
@@ -84,7 +84,7 @@ it('adds a member with an explicit standing and roles', function () {
 
     $this->actingAs(crudOfficerOf($group, Role::Secretary))
         ->post(route('group-members.store', $group), [
-            'member_id' => $target->id,
+            'member_ids' => [$target->id],
             'status' => MembershipStatus::Trainee->value,
             'roles' => [Role::Secretary->value],
         ])
@@ -95,6 +95,24 @@ it('adds a member with an explicit standing and roles', function () {
         ->and($membership->roles->pluck('role')->all())->toBe([Role::Secretary]);
 });
 
+it('adds several members at once, each with the chosen standing', function () {
+    $group = Group::factory()->create();
+    $targets = Member::factory()->count(3)->create();
+
+    $this->actingAs(crudOfficerOf($group, Role::Secretary))
+        ->post(route('group-members.store', $group), [
+            'member_ids' => $targets->pluck('id')->all(),
+            'status' => MembershipStatus::Trainee->value,
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    $memberships = GroupMember::whereIn('member_id', $targets->pluck('id'))->get();
+    expect($memberships)->toHaveCount(3)
+        ->and($memberships->pluck('group_id')->unique()->all())->toBe([$group->id])
+        ->and($memberships->pluck('status')->unique()->all())->toBe([MembershipStatus::Trainee]);
+});
+
 // --- Adding a member (store) — deny + validation rows -----------------------
 
 it('forbids an ordinary member from adding to the roster', function () {
@@ -102,7 +120,7 @@ it('forbids an ordinary member from adding to the roster', function () {
     $target = Member::factory()->create();
 
     $this->actingAs(crudMemberOf($group))
-        ->post(route('group-members.store', $group), ['member_id' => $target->id])
+        ->post(route('group-members.store', $group), ['member_ids' => [$target->id]])
         ->assertForbidden();
 
     expect(GroupMember::where('member_id', $target->id)->exists())->toBeFalse();
@@ -114,7 +132,7 @@ it('forbids a Secretary of one Group from adding to another', function () {
     $target = Member::factory()->create();
 
     $this->actingAs($secretary)
-        ->post(route('group-members.store', $other), ['member_id' => $target->id])
+        ->post(route('group-members.store', $other), ['member_ids' => [$target->id]])
         ->assertForbidden();
 
     expect(GroupMember::where('group_id', $other->id)->exists())->toBeFalse();
@@ -128,7 +146,7 @@ it('refuses even the super-tier a stored membership on the root DMV Group', func
     $target = Member::factory()->create();
 
     $this->actingAs(Member::factory()->superTier()->create())
-        ->post(route('group-members.store', $root), ['member_id' => $target->id])
+        ->post(route('group-members.store', $root), ['member_ids' => [$target->id]])
         ->assertForbidden();
 
     expect(GroupMember::where('group_id', $root->id)->exists())->toBeFalse();
@@ -139,7 +157,7 @@ it('refuses a Chair holding a legacy root row a stored membership on the root DM
     $target = Member::factory()->create();
 
     $this->actingAs(crudOfficerOf($root, Role::Chair))
-        ->post(route('group-members.store', $root), ['member_id' => $target->id])
+        ->post(route('group-members.store', $root), ['member_ids' => [$target->id]])
         ->assertForbidden();
 
     expect(GroupMember::where('member_id', $target->id)->exists())->toBeFalse();
@@ -148,7 +166,7 @@ it('refuses a Chair holding a legacy root row a stored membership on the root DM
 it('redirects an unauthenticated add to login', function () {
     $group = Group::factory()->create();
 
-    $this->post(route('group-members.store', $group), ['member_id' => Member::factory()->create()->id])
+    $this->post(route('group-members.store', $group), ['member_ids' => [Member::factory()->create()->id]])
         ->assertRedirect(route('login'));
 });
 
@@ -160,7 +178,7 @@ it('rejects adding a role the Group has no capability for', function () {
 
     $this->actingAs(crudOfficerOf($group, Role::Secretary))
         ->post(route('group-members.store', $group), [
-            'member_id' => $target->id,
+            'member_ids' => [$target->id],
             'roles' => [Role::Scheduler->value],
         ])
         ->assertSessionHasErrors('roles.0');
@@ -173,10 +191,48 @@ it('rejects adding a member who is already in the Group', function () {
     $existing = crudMemberOf($group);
 
     $this->actingAs(crudOfficerOf($group, Role::Secretary))
-        ->post(route('group-members.store', $group), ['member_id' => $existing->id])
-        ->assertSessionHasErrors('member_id');
+        ->post(route('group-members.store', $group), ['member_ids' => [$existing->id]])
+        ->assertSessionHasErrors('member_ids.0');
 
     expect(GroupMember::where('member_id', $existing->id)->count())->toBe(1);
+});
+
+it('rejects roles when adding more than one member', function () {
+    // Officers assign roles one person at a time (#873).
+    $group = Group::factory()->create();
+    $targets = Member::factory()->count(2)->create();
+
+    $this->actingAs(crudOfficerOf($group, Role::Secretary))
+        ->post(route('group-members.store', $group), [
+            'member_ids' => $targets->pluck('id')->all(),
+            'roles' => [Role::Secretary->value],
+        ])
+        ->assertSessionHasErrors(['roles' => 'Roles can be set for one member at a time.']);
+
+    expect(GroupMember::whereIn('member_id', $targets->pluck('id'))->exists())->toBeFalse();
+});
+
+it('rejects the whole batch when one member is already in the Group', function () {
+    $group = Group::factory()->create();
+    $existing = crudMemberOf($group);
+    $fresh = Member::factory()->create();
+
+    $this->actingAs(crudOfficerOf($group, Role::Secretary))
+        ->post(route('group-members.store', $group), ['member_ids' => [$fresh->id, $existing->id]])
+        ->assertSessionHasErrors(['member_ids.1' => 'One of these members is already in this group.']);
+
+    expect(GroupMember::where('member_id', $fresh->id)->exists())->toBeFalse();
+});
+
+it('rejects the whole batch when one member does not exist', function () {
+    $group = Group::factory()->create();
+    $fresh = Member::factory()->create();
+
+    $this->actingAs(crudOfficerOf($group, Role::Secretary))
+        ->post(route('group-members.store', $group), ['member_ids' => [$fresh->id, 999999]])
+        ->assertSessionHasErrors(['member_ids.1' => 'One of these members could not be found.']);
+
+    expect(GroupMember::where('member_id', $fresh->id)->exists())->toBeFalse();
 });
 
 // --- Changing standing (update) ---------------------------------------------
