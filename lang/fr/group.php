@@ -32,6 +32,10 @@ return [
     'facts_dates' => ':start – :end',
     'facts_starts' => 'Débute le :date',
     'facts_ends' => 'Se termine le :date',
+    'how_to_join' => 'Comment se joindre',
+    'how_to_join_empty' => 'Pour vous joindre à ce groupe, communiquez avec son ou sa Président·e.',
+    'how_to_join_empty_root' => 'Pour vous joindre au DMV, communiquez avec la Direction générale du DMV.',
+    'members_only' => 'Réservé aux membres de ce groupe',
 
     'roster' => [
         'search' => [
@@ -124,6 +128,8 @@ return [
         'about' => 'Modifier',
         'about_title' => 'Modifier la section À propos',
         'about_placeholder' => 'Décrivez ce groupe…',
+        'how_to_join' => 'Modifier',
+        'how_to_join_placeholder' => 'Expliquez comment se joindre à ce groupe…',
         'banner' => 'Changer la bannière',
         'banner_title' => 'Choisir une bannière',
         'save' => 'Enregistrer',
@@ -330,8 +336,10 @@ return [
     // Onglet Horaire (#353, ADR-0021 §1) — la surface de lecture des horaires.
     'scheduling_panel' => [
         'empty' => 'Aucun horaire pour l’instant.',
-        'current_heading' => 'Actuels et à venir',
-        'past_heading' => 'Passés',
+        // La liste des horaires passés, réservée aux officiers (ADR-0037 §4), et le lien de retour.
+        'past_link' => 'Horaires passés',
+        'current_link' => 'Horaires actuels',
+        'past_empty' => 'Aucun horaire passé.',
         'draft_badge' => 'Brouillon',
         'date_range' => 'Du :start au :end',
         'back_to_list' => 'Tous les horaires',

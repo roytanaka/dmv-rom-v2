@@ -12,6 +12,7 @@
 // `can.update` hint; the GroupPolicy enforces every mutation regardless.
 import GroupDocuments from '@/components/GroupDocuments.vue';
 import GroupHours from '@/components/GroupHours.vue';
+import GroupJoinNotice from '@/components/GroupJoinNotice.vue';
 import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupQualifications, { type QualificationScreen } from '@/components/GroupQualifications.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
@@ -84,7 +85,7 @@ const props = defineProps<{
         banner_key: string | null;
         capabilities: {
             meetings: boolean;
-            // Whether the Group runs vetting (#792) — with `can.viewTours`, opens the Tours tab.
+            // Whether the Group runs vetting (#792) — opens the Tours tab.
             vetting: boolean;
             documents: boolean;
             scheduling: boolean;
@@ -97,6 +98,9 @@ const props = defineProps<{
         selfServeUnitMinutes: number;
     };
     section: string;
+    // ADR-0037 §2: true when the active section is members-only (Meetings, or the Tours page)
+    // and the viewer is not a member. The section shows only the join notice; its payload is empty.
+    joinNotice: boolean;
     // UI hints from the policies — drive the officer affordances only; the server
     // enforces every mutation regardless. `update` gates the Overview edits (#191);
     // `createMeeting` gates the Meetings tab's "New meeting" control (#193);
@@ -105,11 +109,11 @@ const props = defineProps<{
     // `manageSettings` gates the Settings tab (ADR-0027 §1).
     can: {
         update: boolean;
-        // `viewMeetings` gates the Meetings tab (Feedback item 79) — a Member of the Group, or the super-tier.
-        viewMeetings: boolean;
         createMeeting: boolean;
         manageRoster: boolean;
         createSchedule: boolean;
+        // `viewPastSchedules` gates the Scheduling tab's "Past schedules" link (ADR-0037 §4).
+        viewPastSchedules: boolean;
         manageSettings: boolean;
         manageReminders: boolean;
         manageEmptyDesk: boolean;
@@ -122,8 +126,6 @@ const props = defineProps<{
         manageTourRules: boolean;
         // `manageBookings` gates the Settings tab's Group tours card (#794).
         manageBookings: boolean;
-        // `viewTours` gates the Tours tab (#792) — a current Member of a vetting Group, or the super-tier.
-        viewTours: boolean;
         enterHours: boolean;
         viewReports: boolean;
         // `manageDocuments` gates the Documents tab's upload control and uploader column (#712).
@@ -169,6 +171,10 @@ const props = defineProps<{
     };
     overview: {
         description: string | null;
+        // How to join (#867): the join steps, as-authored; null shows the fallback line.
+        how_to_join: string | null;
+        // The root DMV Group has no Chair, so its fallback line points to the DMV Executive.
+        is_root: boolean;
         children: ChildGroup[];
         leadership: LeadershipEntry[];
         facts: Facts;
@@ -183,8 +189,9 @@ const formatDate = (iso: string) => new Intl.DateTimeFormat(page.props.locale, {
 const ended = computed(() => !props.group.archived && props.group.end_date !== null && new Date(props.group.end_date) < new Date());
 
 // The in-body section tabs. Overview · Roster are always present; Meetings, Documents
-// (#712) and Scheduling each render when the Group runs that capability; Meetings also
-// needs a viewer the section admits (`can.viewMeetings`). Hours is always-on (ADR-0022
+// (#712), Scheduling and Tours each render when the Group runs that capability, for
+// members and non-members alike (ADR-0037 §2: a non-member's Meetings or Tours tab shows
+// only the join notice). Hours is always-on (ADR-0022
 // §3): its tab renders on every Group and sub-Group, now a real tab carrying the
 // extra-hours entry surface (#408). Settings comes last, only for a viewer
 // holding a configuration right, on every visit, empty or not (ADR-0027 §1). Hrefs are
@@ -195,10 +202,10 @@ const tabs = computed<NavNode[]>(() => {
         { href: href(), labelKey: 'group.tab.overview' },
         { href: href('roster'), labelKey: 'group.tab.members' },
     ];
-    if (props.group.capabilities.meetings && props.can.viewMeetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
+    if (props.group.capabilities.meetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents' });
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
-    if (props.group.capabilities.vetting && props.can.viewTours) list.push({ href: href('tours'), labelKey: 'group.tab.tours' });
+    if (props.group.capabilities.vetting) list.push({ href: href('tours'), labelKey: 'group.tab.tours' });
     list.push({ href: href('hours'), labelKey: 'group.tab.hours' });
     if (props.can.manageSettings) list.push({ href: href('settings'), labelKey: 'group.tab.settings' });
     return list;
@@ -252,6 +259,23 @@ const saveAbout = () =>
 const cancelAbout = () => {
     aboutForm.description = props.overview.description;
     editingAbout.value = false;
+};
+
+// The How to join card (#867) edits the same way, with its own form and field.
+const editingJoin = ref(false);
+const joinForm = useForm<{ how_to_join: string | null }>({ how_to_join: props.overview.how_to_join });
+const joinDraft = computed({
+    get: () => joinForm.how_to_join ?? '',
+    set: (value: string) => (joinForm.how_to_join = value === '' ? null : value),
+});
+const saveJoin = () =>
+    joinForm.patch(updateUrl(), {
+        preserveScroll: true,
+        onSuccess: () => (editingJoin.value = false),
+    });
+const cancelJoin = () => {
+    joinForm.how_to_join = props.overview.how_to_join;
+    editingJoin.value = false;
 };
 
 const bannerPickerOpen = ref(false);
@@ -446,6 +470,40 @@ const pickBanner = (key: string | null) => {
                                 </ul>
                             </CardContent>
                         </Card>
+
+                        <!-- How to join (#867, ADR-0037 §3). The fixed `how-to-join` id is the
+                             target of the members-only tabs' "How to join" link (#869). -->
+                        <Card id="how-to-join" class="scroll-mt-[calc(var(--header-height)+var(--section-bar-height,0px)+2rem)]">
+                            <CardHeader class="flex flex-row items-center justify-between gap-2 space-y-0">
+                                <CardTitle class="text-sm font-semibold tracking-wide uppercase">{{ trans('group.how_to_join') }}</CardTitle>
+                                <Button v-if="can.update && !editingJoin" variant="ghost" size="sm" class="gap-1.5" @click="editingJoin = true">
+                                    <PhPencilSimple class="h-4 w-4" />
+                                    {{ trans('group.edit.how_to_join') }}
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <form v-if="editingJoin" class="flex flex-col gap-3" @submit.prevent="saveJoin">
+                                    <Textarea
+                                        v-model="joinDraft"
+                                        :rows="6"
+                                        :placeholder="trans('group.edit.how_to_join_placeholder')"
+                                        :aria-label="trans('group.how_to_join')"
+                                    />
+                                    <div class="flex gap-2">
+                                        <Button type="submit" size="sm" :disabled="joinForm.processing">{{ trans('group.edit.save') }}</Button>
+                                        <Button type="button" variant="ghost" size="sm" :disabled="joinForm.processing" @click="cancelJoin">
+                                            {{ trans('group.edit.cancel') }}
+                                        </Button>
+                                    </div>
+                                </form>
+                                <template v-else>
+                                    <p v-if="overview.how_to_join" class="text-rom-ink text-sm whitespace-pre-line">{{ overview.how_to_join }}</p>
+                                    <p v-else class="text-muted-foreground text-sm">
+                                        {{ trans(overview.is_root ? 'group.how_to_join_empty_root' : 'group.how_to_join_empty') }}
+                                    </p>
+                                </template>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
 
@@ -461,6 +519,10 @@ const pickBanner = (key: string | null) => {
                     :email-reason="email.reason"
                     :can-manage-tours="can.manageTours"
                 />
+
+                <!-- The join notice (ADR-0037 §2) — a non-member's Meetings or Tours tab, in place of
+                     the members-only content. The qualification screens keep their own gates. -->
+                <GroupJoinNotice v-else-if="joinNotice" :group-slug="group.slug" />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
                      surface, with officer CRUD behind the `can` hints. -->
@@ -479,6 +541,7 @@ const pickBanner = (key: string | null) => {
                     :booking-clients="bookingClients ?? null"
                     :substitutes="substitutes ?? null"
                     :can-create="can.createSchedule"
+                    :can-view-past="can.viewPastSchedules"
                     :collects-visitor-count="group.capabilities.collectsVisitorCount"
                     :collects-extra-interactions="group.capabilities.collectsExtraInteractions"
                     :collects-visitor-provenance="group.capabilities.collectsVisitorProvenance"

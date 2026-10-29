@@ -153,10 +153,11 @@ class GroupController extends Controller
             abort(404);
         }
 
-        // The Meetings list is members-only (MeetingPolicy), unlike the org-open
-        // Overview and Roster — a non-member visiting the section is forbidden.
+        // The Meetings section exists only while the Group runs meetings — a 404 for everyone,
+        // super-tier included, so the tab and the URL agree. Past that the list is members-only
+        // (MeetingPolicy): see `$joinNotice` below.
         if ($section === 'meetings') {
-            abort_unless($request->user()->can('viewAny', [Meeting::class, $group]), 403);
+            abort_unless($group->has_meetings, 404);
         }
 
         // The Scheduling section exists only while the Group runs scheduling — a 404
@@ -175,14 +176,20 @@ class GroupController extends Controller
 
         // The Tours page (#792, ADR-0033 §5) exists only while the Group runs vetting — a 404 for
         // everyone, super-tier included, so the tab and the URL agree. Past that it is members-only
-        // (TourPolicy `view`): a non-member gets 403, the Meetings shape. The qualification screens
-        // render in this section too, gated in their own actions.
-        $canViewTours = $group->has_vetting && $request->user()->can('view', [Tour::class, $group]);
-
+        // (TourPolicy `view`): see `$joinNotice` below. The qualification screens render in this
+        // section too, gated in their own actions.
         if ($section === 'tours' && $qualifications === null) {
             abort_unless($group->has_vetting, 404);
-            abort_unless($canViewTours, 403);
         }
+
+        // The members-only sections (ADR-0037 §2): a viewer who is not a member (nor super-tier)
+        // gets the Meetings tab or the Tours page with only the join notice, and no Meeting or
+        // Tour data rides in the payload below.
+        $joinNotice = match (true) {
+            $section === 'meetings' => ! $request->user()->can('viewAny', [Meeting::class, $group]),
+            $section === 'tours' && $qualifications === null => ! $request->user()->can('view', [Tour::class, $group]),
+            default => false,
+        };
 
         // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
         // configuration right. Anyone else gets 403 — the Meetings shape: the Group exists and
@@ -233,8 +240,7 @@ class GroupController extends Controller
                 // on every Group and needs no flag.
                 'capabilities' => [
                     'meetings' => $group->has_meetings,
-                    // Whether the Group runs vetting (#792, ADR-0033) — with `can.viewTours`, opens
-                    // the Tours tab.
+                    // Whether the Group runs vetting (#792, ADR-0033) — opens the Tours tab.
                     'vetting' => $group->has_vetting,
                     'documents' => $group->has_documents,
                     'scheduling' => $group->has_scheduling,
@@ -282,12 +288,13 @@ class GroupController extends Controller
             // `createSchedule` drives the Scheduling tab's "New schedule" affordance (#354).
             'can' => [
                 'update' => $request->user()->can('update', $group),
-                // `viewMeetings` drives the Meetings tab (Feedback item 79) — the same gate as the
-                // section, so a non-member sees no tab. UI hint only; the section re-checks it.
-                'viewMeetings' => $request->user()->can('viewAny', [Meeting::class, $group]),
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $this->managesRoster($request, $group),
                 'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
+                // `viewPastSchedules` drives the Scheduling tab's "Past schedules" link (ADR-0037
+                // §4) — the Group's Chair, Statistician or Scheduler, or the super-tier. UI hint
+                // only; the section re-checks it before honouring `?past=1`.
+                'viewPastSchedules' => $request->user()->can('viewPast', [Schedule::class, $group]),
                 // `manageSettings` drives the Settings tab (ADR-0027 §1) — true when any of the
                 // five configuration rights below holds. UI hint only; the section re-checks it.
                 'manageSettings' => $canManageSettings,
@@ -322,9 +329,6 @@ class GroupController extends Controller
                 // a Booker or Chair of a Group running bookings. UI hint only; the booking-type
                 // Form Requests re-check the BookingTypePolicy on write.
                 'manageBookings' => $canManageBookings,
-                // `viewTours` drives the Tours tab (#792, ADR-0033 §5) — a Member of a vetting Group,
-                // or the super-tier. UI hint only; the section re-checks it.
-                'viewTours' => $canViewTours,
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.
@@ -345,6 +349,9 @@ class GroupController extends Controller
                 // UI hint only; the Document Form Requests re-check the DocumentPolicy on write.
                 'manageDocuments' => $group->has_documents && $request->user()->can('manage', [Document::class, $group]),
             ],
+            // True when the active section is members-only and the viewer is not a member
+            // (ADR-0037 §2): the section renders only the join notice; its payload stays empty.
+            'joinNotice' => $joinNotice,
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
             // the Overview never needs.
@@ -361,7 +368,7 @@ class GroupController extends Controller
             ],
             // The Meetings tab's payload is resolved only when that tab is active
             // and the viewer has cleared the members-only gate above.
-            'meetings' => $section === 'meetings' ? $this->meetings($request, $group) : [],
+            'meetings' => $section === 'meetings' && ! $joinNotice ? $this->meetings($request, $group) : [],
             // The Scheduling tab's payload, resolved only on that tab: the viewer's
             // visible Schedules and which one (if any) opens directly.
             'scheduling' => $section === 'scheduling'
@@ -396,13 +403,19 @@ class GroupController extends Controller
             'qualifications' => $qualifications,
             // The Tours page's payload (#792, ADR-0033 §5), resolved only on that page and past its
             // gate above — not on the qualification screens that share the section.
-            'tours' => $section === 'tours' && $qualifications === null ? TourPayloads::toursPage($group) : [],
+            'tours' => $section === 'tours' && $qualifications === null && ! $joinNotice ? TourPayloads::toursPage($group) : [],
             'settings' => $section === 'settings'
                 ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours, $canManageTourRules, $canManageBookings)
                 : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null, 'tourRules' => null, 'bookings' => null],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
+                // How to join (#867, ADR-0037 §3) — the join steps, as-authored, sent to every
+                // reader. Null shows the card's translated fallback line.
+                'how_to_join' => $group->how_to_join,
+                // The root DMV Group has no Chair (its leadership is the executive, see
+                // leadership()), so its empty card points to the DMV Executive instead.
+                'is_root' => $group->isRoot(),
                 'children' => $group->children
                     ->map(fn (Group $child) => [
                         'name' => $child->name,
@@ -976,15 +989,20 @@ class GroupController extends Controller
      *
      * Each Schedule is filtered through the SchedulePolicy's per-Schedule `view`, so a
      * draft surfaces only to the Group's schedule admins while a published one follows
-     * the Group's listing visibility. Past Schedules stay in the list — nothing is
-     * hidden by date.
+     * the Group's listing visibility.
+     *
+     * The list holds current and upcoming Schedules only, soonest first (ADR-0037 §4). A
+     * Past Schedule (ended before today) leaves it for everyone. The Group's Chair,
+     * Statistician or Scheduler (and the super-tier) may ask for the past list with
+     * `?past=1`: Past Schedules only, newest end date first. Anyone else who sends
+     * `?past=1` gets the normal list, like the Roster's officer-only toggle.
      *
      * Navigation has two outcomes and no data-dependent branch. A permalink
-     * (`$schedule` bound) opens that Schedule after the same `view` check; the bare
-     * section URL always shows the list, current and upcoming first. The section
-     * behaves like every other section tab — an index, from which a reader picks.
+     * (`$schedule` bound) opens that Schedule after the same `view` check, past or not;
+     * the bare section URL always shows the list. The section behaves like every other
+     * section tab — an index, from which a reader picks.
      *
-     * @return array{schedules: list<array<string, mixed>>, open: array<string, mixed>|null, roster: list<array<string, mixed>>, shift_kinds: list<array<string, mixed>>, mine: list<array<string, mixed>>}
+     * @return array{schedules: list<array<string, mixed>>, showing_past: bool, open: array<string, mixed>|null, roster: list<array<string, mixed>>, shift_kinds: list<array<string, mixed>>, mine: list<array<string, mixed>>}
      */
     private function scheduling(Request $request, Group $group, ?Schedule $schedule): array
     {
@@ -1002,6 +1020,7 @@ class GroupController extends Controller
 
             return [
                 'schedules' => [],
+                'showing_past' => false,
                 'open' => $this->scheduleDetail($request, $schedule),
                 'roster' => $this->assignmentRoster($request, $group),
                 'shift_kinds' => $this->shiftKinds($request, $group, $schedule),
@@ -1027,13 +1046,14 @@ class GroupController extends Controller
             ->each(fn (Schedule $candidate) => $candidate->setRelation('group', $group))
             ->filter(fn (Schedule $candidate) => $user->can('view', $candidate));
 
-        // The list: current and upcoming first (soonest range first), then past
-        // (most recently ended first) — an archive is browsed newest-first.
+        // The list: current and upcoming, soonest range first. The past list (an officer's
+        // `?past=1`, ADR-0037 §4) holds Past Schedules only, most recently ended first —
+        // an archive is browsed newest-first. Anyone else's `?past=1` is ignored.
+        $showingPast = $request->boolean('past') && $user->can('viewPast', [Schedule::class, $group]);
         [$current, $past] = $visible->partition(fn (Schedule $candidate) => $candidate->isCurrent($today));
 
         return [
-            'schedules' => $current
-                ->concat($past->sortByDesc('ends_on'))
+            'schedules' => ($showingPast ? $past->sortByDesc('ends_on') : $current)
                 ->values()
                 ->map(fn (Schedule $candidate) => [
                     'id' => $candidate->id,
@@ -1043,13 +1063,11 @@ class GroupController extends Controller
                     'state' => $candidate->state->value,
                     // A month's group-tour Schedule (#795, ADR-0032 §4), which holds Bookings only.
                     'is_group_tour' => $candidate->isGroupTour(),
-                    // Which block this Schedule heads under, resolved server-side
-                    // against one clock so the two blocks never overlap or gap.
-                    'is_past' => ! $candidate->isCurrent($today),
                     'url' => route('groups.scheduling.show', ['group' => $group->slug, 'schedule' => $candidate->id]),
                     'can' => $this->scheduleAuthoring($request, $candidate),
                 ])
                 ->all(),
+            'showing_past' => $showingPast,
             'open' => null,
             // The picker's roster and the kind vocabulary are concerns of an opened
             // Schedule's authoring only; the list view shows no Shift form and so needs

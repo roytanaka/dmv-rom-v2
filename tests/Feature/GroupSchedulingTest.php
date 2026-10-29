@@ -161,24 +161,117 @@ it('shows the list when two or more current published Schedules exist', function
                 && $s->pluck('name')->contains('September 2026')));
 });
 
-it('lists a past Schedule beside the current one', function () {
-    // Nothing is hidden by date, and no Schedule is skipped over on the way in.
+it('leaves a Past Schedule out of the list (ADR-0037 §4)', function (?Role $role) {
+    // The list holds current and upcoming Schedules only, for every reader — an officer
+    // included, who reaches the Past Schedules through `?past=1` instead.
     $group = schedulingGroup();
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'August 2026']);
-    Schedule::factory()->published()->create([
-        'group_id' => $group->id,
-        'name' => 'Last spring',
-        'starts_on' => now()->subMonths(2)->startOfMonth(),
-        'ends_on' => now()->subMonths(2)->endOfMonth(),
-    ]);
+    Schedule::factory()->published()->past()->create(['group_id' => $group->id, 'name' => 'Last spring']);
 
-    $this->actingAs(schedulingMemberOf($group))
+    $this->actingAs(schedulingMemberOf($group, $role))
         ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('scheduling.open', null)
-            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->contains('August 2026')
-                && $s->pluck('name')->contains('Last spring')));
+            ->where('scheduling.showing_past', false)
+            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->all() === ['August 2026']));
+})->with([
+    'a plain member' => [null],
+    'a Chair' => [Role::Chair],
+    'a Scheduler' => [Role::Scheduler],
+]);
+
+// --- Past Schedules: the officer-only `?past=1` view (ADR-0037 §4) -----------
+
+it('shows a past-view officer the Past Schedules only, newest end date first', function (Role $role) {
+    $group = schedulingGroup();
+    // Created out of order so entry order cannot pass the assertion by accident.
+    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Older past', 'starts_on' => now()->subMonths(4)->startOfMonth(), 'ends_on' => now()->subMonths(4)->endOfMonth()]);
+    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Current', 'starts_on' => now()->startOfMonth(), 'ends_on' => now()->endOfMonth()]);
+    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Recent past', 'starts_on' => now()->subMonth()->startOfMonth(), 'ends_on' => now()->subMonth()->endOfMonth()]);
+    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Upcoming', 'starts_on' => now()->addMonth()->startOfMonth(), 'ends_on' => now()->addMonth()->endOfMonth()]);
+
+    $this->actingAs(schedulingMemberOf($group, $role))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling', 'past' => 1]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.viewPastSchedules', true)
+            ->where('scheduling.showing_past', true)
+            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->all() === [
+                'Recent past',
+                'Older past',
+            ]));
+})->with([
+    'a Chair' => [Role::Chair],
+    'a Statistician' => [Role::Statistician],
+    'a Scheduler' => [Role::Scheduler],
+]);
+
+it('shows the super-tier the Past Schedules without membership', function () {
+    $group = schedulingGroup();
+    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'August 2026']);
+    Schedule::factory()->published()->past()->create(['group_id' => $group->id, 'name' => 'Last spring']);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling', 'past' => 1]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.viewPastSchedules', true)
+            ->where('scheduling.showing_past', true)
+            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->all() === ['Last spring']));
 });
+
+it('keeps a draft Past Schedule out of a Statistician\'s past view', function () {
+    // The past view narrows by date only; each Schedule still passes its own `view` check,
+    // and a Statistician is not a schedule admin, so a draft stays hidden.
+    $group = schedulingGroup();
+    Schedule::factory()->published()->past()->create(['group_id' => $group->id, 'name' => 'Published past']);
+    Schedule::factory()->draft()->create(['group_id' => $group->id, 'name' => 'Draft past', 'starts_on' => now()->subMonths(3)->startOfMonth(), 'ends_on' => now()->subMonths(3)->endOfMonth()]);
+
+    $this->actingAs(schedulingMemberOf($group, Role::Statistician))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling', 'past' => 1]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->all() === ['Published past']));
+});
+
+it('gives a plain member or a non-member the normal list for ?past=1', function (bool $isMember) {
+    $group = schedulingGroup();
+    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'August 2026']);
+    Schedule::factory()->published()->past()->create(['group_id' => $group->id, 'name' => 'Last spring']);
+    $viewer = $isMember ? schedulingMemberOf($group) : Member::factory()->create();
+
+    $this->actingAs($viewer)
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling', 'past' => 1]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.viewPastSchedules', false)
+            ->where('scheduling.showing_past', false)
+            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->all() === ['August 2026']));
+})->with([
+    'a plain member' => [true],
+    'a non-member' => [false],
+]);
+
+it('withholds the past-schedules hint from an officer of another Group', function () {
+    $group = schedulingGroup();
+    $elsewhere = schedulingGroup();
+
+    $this->actingAs(schedulingMemberOf($elsewhere, Role::Chair))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
+        ->assertInertia(fn (Assert $page) => $page->where('can.viewPastSchedules', false));
+});
+
+it('opens a Past Schedule by permalink for a non-officer reader', function (bool $isMember) {
+    $group = schedulingGroup();
+    $schedule = Schedule::factory()->published()->past()->create(['group_id' => $group->id, 'name' => 'Last spring']);
+    $viewer = $isMember ? schedulingMemberOf($group) : Member::factory()->create();
+
+    $this->actingAs($viewer)
+        ->get(route('groups.scheduling.show', ['group' => $group, 'schedule' => $schedule->id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.name', 'Last spring'));
+})->with([
+    'a plain member' => [true],
+    'a non-member' => [false],
+]);
 
 it('shows a Scheduler their draft beside a current published Schedule', function () {
     // The case that used to branch: one current published Schedule plus a draft. The
@@ -311,14 +404,13 @@ it('lets a member read a Private Group published Schedule', function () {
         ->assertInertia(fn (Assert $page) => $page->where('scheduling.open.name', 'Members month'));
 });
 
-// --- Ordering: current & upcoming first, then past most-recent-first --------
+// --- Ordering: current & upcoming, soonest first ---------------------------
 
-it('orders the list current-first then past most-recently-ended-first', function () {
+it('orders the list soonest-first', function () {
     $group = schedulingGroup();
     // Created out of order so entry order cannot pass the assertion by accident.
-    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Older past', 'starts_on' => now()->subMonths(4)->startOfMonth(), 'ends_on' => now()->subMonths(4)->endOfMonth()]);
+    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Later', 'starts_on' => now()->addMonths(2)->startOfMonth(), 'ends_on' => now()->addMonths(2)->endOfMonth()]);
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Current', 'starts_on' => now()->startOfMonth(), 'ends_on' => now()->endOfMonth()]);
-    Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Recent past', 'starts_on' => now()->subMonth()->startOfMonth(), 'ends_on' => now()->subMonth()->endOfMonth()]);
     Schedule::factory()->published()->create(['group_id' => $group->id, 'name' => 'Upcoming', 'starts_on' => now()->addMonth()->startOfMonth(), 'ends_on' => now()->addMonth()->endOfMonth()]);
 
     $this->actingAs(schedulingMemberOf($group))
@@ -327,8 +419,7 @@ it('orders the list current-first then past most-recently-ended-first', function
             ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->all() === [
                 'Current',
                 'Upcoming',
-                'Recent past',
-                'Older past',
+                'Later',
             ]));
 });
 
@@ -389,8 +480,7 @@ it('keeps a Schedule current through the evening of its last day', function (str
     $this->actingAs(schedulingMemberOf($group))
         ->get(route('groups.show', ['group' => $group, 'section' => 'scheduling']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('scheduling.schedules.0.name', 'Last day')
-            ->where('scheduling.schedules.0.is_past', false));
+            ->where('scheduling.schedules', fn (Collection $s) => $s->pluck('name')->all() === ['Last day']));
 })->with([
     'summer (EDT)' => ['2026-08-16 01:00:00', '2026-08-15'],
     'winter (EST)' => ['2026-01-16 02:00:00', '2026-01-15'],

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Models\Group;
@@ -13,7 +14,8 @@ use Inertia\Testing\AssertableInertia as Assert;
 /*
  * The Tours page (#792, ADR-0033 §5). Members of a vetting Group see each active Tour and the
  * Members who hold an active qualification for it, with their Last vet dates — the old Who's Who
- * tour lists. Open-to-all Tours are marked. Non-members get 403 and no tab; super-tier sees it.
+ * tour lists. Open-to-all Tours are marked. Non-members get the tab with a join notice and no Tour
+ * data (ADR-0037 §2); super-tier sees it.
  */
 
 /** A vetting Group. */
@@ -60,7 +62,7 @@ it('shows a Member each active Tour with its active holders and Last vet dates',
             ->where('section', 'tours')
             ->where('qualifications', null)
             ->where('group.capabilities.vetting', true)
-            ->where('can.viewTours', true)
+            ->where('joinNotice', false)
             ->where('can.manageTours', false)
             ->where('tours', [
                 ['id' => $canada->id, 'name' => 'Canada', 'openToAll' => true, 'members' => []],
@@ -105,31 +107,42 @@ it('sends no Tours payload on other sections', function () {
         ->assertInertia(fn (Assert $page) => $page->where('tours', []));
 });
 
-it('forbids a Member who is not in the Group and hides the tab hint', function () {
+it('shows a Member who is not in the Group the members-only tab with no Tour data', function () {
     $group = toursPageGroup();
+    $tour = Tour::factory()->create(['group_id' => $group->id, 'name' => 'Birds']);
+    Qualification::factory()->create(['group_member_id' => toursPageMembershipOf($group)->id, 'tour_id' => $tour->id]);
     $outsider = toursPageMembershipOf(toursPageGroup())->member;
 
     $this->actingAs($outsider)
         ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
-        ->assertForbidden();
-
-    $this->actingAs($outsider)
-        ->get(route('groups.show', ['group' => $group]))
-        ->assertInertia(fn (Assert $page) => $page->where('can.viewTours', false));
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('section', 'tours')
+            ->where('group.capabilities.vetting', true)
+            ->where('joinNotice', true)
+            ->where('tours', []));
 });
 
-it('forbids a Member whose Membership no longer counts and hides the tab hint', function (MembershipStatus $status) {
+it('shows a Member whose Membership no longer counts the members-only tab', function (MembershipStatus $status) {
     $group = toursPageGroup();
+    Tour::factory()->create(['group_id' => $group->id]);
     $former = toursPageMembershipOf($group, status: $status)->member;
 
     $this->actingAs($former)
         ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
-        ->assertForbidden();
-
-    $this->actingAs($former)
-        ->get(route('groups.show', ['group' => $group]))
-        ->assertInertia(fn (Assert $page) => $page->where('can.viewTours', false));
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('joinNotice', true)
+            ->where('tours', []));
 })->with([MembershipStatus::Resigned, MembershipStatus::Deceased, MembershipStatus::Inactive]);
+
+it('404s a non-member of a Private Group on the Tours section', function () {
+    $group = toursPageGroup(['listing_visibility' => ListingVisibility::Private]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
+        ->assertNotFound();
+});
 
 it('lets the super-tier see the page without a Membership', function () {
     $group = toursPageGroup();
@@ -139,7 +152,7 @@ it('lets the super-tier see the page without a Membership', function () {
         ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('can.viewTours', true)
+            ->where('joinNotice', false)
             ->where('tours.0.name', 'Birds'));
 });
 
@@ -156,7 +169,8 @@ it('404s when the Group runs no vetting, super-tier included', function () {
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->get(route('groups.show', ['group' => $group]))
-        ->assertInertia(fn (Assert $page) => $page->where('can.viewTours', false));
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('group.capabilities.vetting', false));
 });
 
 it('tells a Vetting officer to link Tour rows to the by-Tour screens', function () {

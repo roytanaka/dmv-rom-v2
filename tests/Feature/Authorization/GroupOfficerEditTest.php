@@ -73,6 +73,64 @@ it('lets a super-tier member edit any Group About Us', function () {
     expect($group->fresh()->description)->toBe('Super edit.');
 });
 
+// --- How to join edit (#867) — same right as About Us -----------------------
+
+it('lets a Secretary, a Chair and the super-tier edit the How to join text', function (string $actor) {
+    $group = Group::factory()->create(['how_to_join' => 'Old steps.']);
+
+    $member = match ($actor) {
+        'secretary' => groupOfficerOf($group, Role::Secretary),
+        'chair' => groupOfficerOf($group, Role::Chair),
+        'super' => Member::factory()->superTier()->create(),
+    };
+
+    $this->actingAs($member)
+        ->patch(route('groups.update', $group), ['how_to_join' => "Step one.\nStep two."])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect($group->fresh()->how_to_join)->toBe("Step one.\nStep two.");
+})->with(['secretary', 'chair', 'super']);
+
+it('saves an emptied How to join as null', function () {
+    $group = Group::factory()->create(['how_to_join' => 'Old steps.']);
+
+    $this->actingAs(groupOfficerOf($group, Role::Secretary))
+        ->patch(route('groups.update', $group), ['how_to_join' => ''])
+        ->assertSessionHasNoErrors();
+
+    expect($group->fresh()->how_to_join)->toBeNull();
+});
+
+it('forbids an ordinary member from editing the How to join text', function () {
+    $group = Group::factory()->create(['how_to_join' => 'Old steps.']);
+
+    $this->actingAs(plainMemberOf($group))
+        ->patch(route('groups.update', $group), ['how_to_join' => 'Hacked.'])
+        ->assertForbidden();
+
+    expect($group->fresh()->how_to_join)->toBe('Old steps.');
+});
+
+it('leaves About Us untouched when only How to join is sent', function () {
+    $group = Group::factory()->create(['description' => 'About.', 'how_to_join' => 'Old.']);
+
+    $this->actingAs(groupOfficerOf($group, Role::Chair))
+        ->patch(route('groups.update', $group), ['how_to_join' => 'New.']);
+
+    expect($group->fresh())
+        ->description->toBe('About.')
+        ->how_to_join->toBe('New.');
+});
+
+it('rejects a How to join text over the length limit', function () {
+    $group = Group::factory()->create();
+
+    $this->actingAs(groupOfficerOf($group, Role::Chair))
+        ->patch(route('groups.update', $group), ['how_to_join' => str_repeat('a', 10001)])
+        ->assertSessionHasErrors('how_to_join');
+});
+
 // --- Banner selection — allow rows -----------------------------------------
 
 it('lets a Secretary pick a banner from the curated set', function () {

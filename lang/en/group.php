@@ -37,6 +37,15 @@ return [
     'facts_dates' => ':start – :end',
     'facts_starts' => 'Starts :date',
     'facts_ends' => 'Ends :date',
+    // The How to join card (#867, ADR-0037 §3). The join steps render as-authored; the
+    // fallback line shows when the Group has written none.
+    'how_to_join' => 'How to join',
+    'how_to_join_empty' => 'To join this group, contact its Chair.',
+    // The root DMV Group has no Chair; its leadership is the DMV Executive.
+    'how_to_join_empty_root' => 'To join the DMV, contact the DMV Executive.',
+    // The join notice on a non-member's Meetings or Tours tab (#869, ADR-0037 §2), above a
+    // "How to join" link to the card.
+    'members_only' => 'For members of this group',
 
     // Roster tab (#189) — the Group-scoped Directory surface.
     'roster' => [
@@ -139,6 +148,8 @@ return [
         'about' => 'Edit',
         'about_title' => 'Edit About Us',
         'about_placeholder' => 'Describe this group…',
+        'how_to_join' => 'Edit',
+        'how_to_join_placeholder' => 'Explain how to join this group…',
         'banner' => 'Change banner',
         'banner_title' => 'Choose a banner',
         'save' => 'Save',
@@ -352,8 +363,10 @@ return [
     // Scheduling tab (#353, ADR-0021 §1) — the Schedule read surface.
     'scheduling_panel' => [
         'empty' => 'No schedules yet.',
-        'current_heading' => 'Current & upcoming',
-        'past_heading' => 'Past',
+        // The officer-only past list (ADR-0037 §4) and the link back from it.
+        'past_link' => 'Past schedules',
+        'current_link' => 'Current schedules',
+        'past_empty' => 'No past schedules.',
         'draft_badge' => 'Draft',
         'date_range' => ':start – :end',
         'back_to_list' => 'All schedules',

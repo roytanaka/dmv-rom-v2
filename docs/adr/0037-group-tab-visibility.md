@@ -36,16 +36,16 @@ Facts that shaped the decision:
 
 Readers are signed-in Members. Guests reach no Group page.
 
-| Tab | Non-member | Member | Officer extras |
-|---|---|---|---|
-| Overview | yes | yes | Secretary/Chair edit About and How to join |
-| Members | names only | yes | roster edits, past members |
-| Meetings | join prompt (§2) | published Meetings | unpublished Meetings, manage |
-| Documents | `group` Folders | all Folders | Librarian manages |
-| Scheduling | published Schedules; sign up on `open` Shifts | also `group` Shifts | Scheduler/Chair: drafts, all seat numbers |
-| Tours | join prompt (§2) | yes | Vetting manages |
-| Hours | own records | own records | Chair/Statistician reports |
-| Settings | hidden | hidden | per configuration right (ADR-0027) |
+| Tab        | Non-member                                    | Member              | Officer extras                             |
+| ---------- | --------------------------------------------- | ------------------- | ------------------------------------------ |
+| Overview   | yes                                           | yes                 | Secretary/Chair edit About and How to join |
+| Members    | names only                                    | yes                 | roster edits, past members                 |
+| Meetings   | join prompt (§2)                              | published Meetings  | unpublished Meetings, manage               |
+| Documents  | `group` Folders                               | all Folders         | Librarian manages                          |
+| Scheduling | published Schedules; sign up on `open` Shifts | also `group` Shifts | Scheduler/Chair: drafts, all seat numbers  |
+| Tours      | join prompt (§2)                              | yes                 | Vetting manages                            |
+| Hours      | own records                                   | own records         | Chair/Statistician reports                 |
+| Settings   | hidden                                        | hidden              | per configuration right (ADR-0027)         |
 
 **A Private Group still returns 404 to a non-member**, whatever the matrix says (ADR-0019). A Container still returns 404 to everyone.
 
@@ -57,6 +57,8 @@ Readers are signed-in Members. Guests reach no Group page.
 
 The route still refuses the content. Only the tab and the notice are new. This matches Documents, where a non-member sees the tab and only what is open to them.
 
+The Meetings section URL returns 404 when the Group has Meetings off, super-tier included. This matches Tours, Documents and Scheduling.
+
 ### 3. How to join, a section on the Overview
 
 **The Overview sidebar gets a How to join card, below At a glance.**
@@ -64,7 +66,7 @@ The route still refuses the content. Only the tab and the notice are new. This m
 - It holds as-authored text, one language, like About Us. It is never translated.
 - Secretary and Chair edit it inline, with the same right as About Us (`GroupPolicy::update`).
 - Everyone who can read the Overview sees it, members included.
-- When it is empty, the card shows a fallback line: to join, contact this Group's Chair. So the link from §2 never lands on an empty card.
+- When it is empty, the card shows a fallback line: to join, contact this Group's Chair. So the link from §2 never lands on an empty card. The root DMV Group has no Chair, so its fallback points to the DMV Executive.
 - The card has a fixed anchor, so the §2 link lands on it.
 
 ### 4. Scheduling: no date cap, past Schedules off the list

@@ -4,11 +4,15 @@ Scheduling is how a Group staffs its shifts. You sign up for the shifts you want
 
 ## Schedules
 
-A Schedule is a named date range a Group publishes its shifts in, often one month. Open the **Scheduling** tab to see a Group's schedules.
+A Schedule is a named date range a Group publishes its shifts in, often one month. Open the **Scheduling** tab to see a Group's schedules. The list shows current and upcoming schedules only.
 
-![The Scheduling tab: the list of schedules below your sign-ups, one card each with its date range](01.png)
+![The Scheduling tab: the current and upcoming schedules below your sign-ups, one card each with its date range](01.png)
 
 A current schedule opens at today. To see the days that are gone, click **Show earlier shifts**. In the Calendar view, today has a coloured background.
+
+A schedule leaves the list once its end date has passed. A link to it, such as one in an email, still opens it.
+
+> **Note:** Only the Group's Chair, Statistician and Scheduler see the **Past schedules** link above the list. It lists past schedules, newest first, with a **Current schedules** link back.
 
 ## Shifts
 

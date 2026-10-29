@@ -11,3 +11,5 @@ nav /groups/docents 01      # the Overview: the About Us card with Edit, and Cha
 act openAboutEditForm 02    # the About Us edit form: the text box, Save, and Cancel
 nav /groups/docents         # reload to close the edit form
 act openBannerPicker 03     # the Choose a banner dialog: the six banner options
+nav /groups/docents         # reload to close the picker
+act openHowToJoinEditForm 04  # the How to join edit form (#867): the text box, Save, and Cancel

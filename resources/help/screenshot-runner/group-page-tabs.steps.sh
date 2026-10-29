@@ -13,3 +13,4 @@ nav /groups/docents/roster 02      # the Members tab: the roster
 nav /groups/dmv/meetings 03        # the Meetings tab, on a Group that holds meetings
 nav /groups/docents/scheduling 04  # the Scheduling tab
 nav /groups/docents/hours 05       # the Hours tab
+nav /groups/guides-du-rom/tours 06 # the join notice (#869): Amara is not in GDR, so its Tours tab shows only the notice and the How to join link

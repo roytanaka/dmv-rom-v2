@@ -4,11 +4,15 @@ L'horaire est la façon dont un groupe dote ses quarts. Vous vous inscrivez aux 
 
 ## Horaires
 
-Un horaire est une plage de dates nommée dans laquelle un groupe publie ses quarts, souvent un mois. Ouvrez l'onglet **Horaire** pour voir les horaires d'un groupe.
+Un horaire est une plage de dates nommée dans laquelle un groupe publie ses quarts, souvent un mois. Ouvrez l'onglet **Horaire** pour voir les horaires d'un groupe. La liste montre seulement les horaires en cours et à venir.
 
-![L'onglet Horaire : la liste des horaires sous vos inscriptions, une carte chacun avec sa plage de dates](01.png)
+![L'onglet Horaire : les horaires en cours et à venir sous vos inscriptions, une carte chacun avec sa plage de dates](01.png)
 
 Un horaire en cours s'ouvre à aujourd'hui. Pour voir les jours passés, cliquez sur **Afficher les créneaux précédents**. Dans la vue Calendrier, aujourd'hui a un fond coloré.
+
+Un horaire quitte la liste une fois sa date de fin passée. Un lien vers lui, comme celui d'un courriel, l'ouvre toujours.
+
+> **Note :** Seuls la présidence, la ou le statisticien·ne et la ou le responsable horaire voient le lien **Horaires passés**. Il liste les horaires passés, du plus récent au plus ancien, avec un lien **Horaires actuels** pour revenir.
 
 ## Quarts
 

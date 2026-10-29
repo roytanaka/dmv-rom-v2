@@ -6,6 +6,8 @@ Every Group page holds the same set of tabs across the top. Here is what each on
 
 The first tab. It shows the Group's description, its officers, and a few facts about the Group.
 
+The **How to join** card sits below **At a glance**. It tells you how to join the Group. If the Group has not written its steps yet, the card tells you to contact its Chair. On the DMV Group, it points you to the DMV Executive.
+
 ![A Group page on Overview: the description and the officers, with the tabs across the top](01.png)
 
 ## Members
@@ -17,6 +19,8 @@ The Group's roster. It lists everyone in the Group and the role each person hold
 ## Meetings
 
 The Group's meetings, with their agendas and minutes. This tab shows only when the Group holds meetings.
+
+Meetings and Tours are for members of the Group. If you are not in the Group, you still see these tabs. Each one shows only **For members of this group** and a **How to join** link. Select the link to open the **How to join** card on the Overview.
 
 ![The Meetings tab on a committee: a different set of tabs, and no meetings recorded yet](03.png)
 
