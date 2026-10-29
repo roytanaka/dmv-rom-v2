@@ -24,7 +24,7 @@ The Group's meetings, with their agendas and minutes. This tab shows only when t
 
 Meetings and Tours are for members of the Group. If you are not in the Group, you still see these tabs. Each one shows only **For members of this group** and a **How to join** link. Select the link to open the **How to join** card on the Overview.
 
-![The Tours tab on a Group you are not in: For members of this group, and the How to join link](06.png)
+![The Tours tab on a Group you are not in: the members-only notice and the How to join link](06.png)
 
 ## Scheduling
 

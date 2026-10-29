@@ -24,7 +24,7 @@ Les réunions du groupe, avec leurs ordres du jour et leurs procès-verbaux. Cet
 
 Les onglets Réunions et Visites sont réservés aux membres du groupe. Si vous n'êtes pas dans le groupe, vous voyez quand même ces onglets. Chacun montre seulement **Réservé aux membres de ce groupe** et un lien **Comment se joindre**. Sélectionnez le lien pour ouvrir la carte **Comment se joindre** de l'Aperçu.
 
-![L'onglet Visites d'un groupe dont vous n'êtes pas membre : Réservé aux membres de ce groupe, et le lien Comment se joindre](06.png)
+![L'onglet Visites d'un groupe hors des vôtres : l'avis réservé aux membres et le lien Comment se joindre](06.png)
 
 ## Horaire
 
