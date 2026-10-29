@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\Kind;
 use App\Models\Group;
+use App\Rules\UniqueSiblingGroupName;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -64,7 +65,7 @@ class StoreGroupRequest extends FormRequest
 
         if ($this->scoped()) {
             return [
-                'name' => ['required', 'string', 'max:255', Rule::unique('groups', 'name')->where('parent_id', $this->integer('parent_id'))],
+                'name' => ['required', 'string', 'max:255', new UniqueSiblingGroupName($this->integer('parent_id'))],
                 'parent_id' => $parentRule,
             ];
         }
@@ -86,7 +87,6 @@ class StoreGroupRequest extends FormRequest
         return [
             'slug.unique' => __('dmv_settings.error.slug_taken'),
             'slug.regex' => __('dmv_settings.error.slug_format'),
-            'name.unique' => __('dmv_settings.error.sibling_name_taken'),
         ];
     }
 }

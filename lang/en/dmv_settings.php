@@ -199,7 +199,6 @@ return [
         'not_editable' => 'The root and Containers have no settings here.',
         'archived' => 'Unarchive this Group to change its settings.',
         'archive_steward' => ':group holds :stewardship. Move the Stewardship first.',
-        'sibling_name_taken' => 'Another Group under this parent has this name.',
         'outside_subtree' => 'Choose one of your Groups or a Group below it.',
         'capability_in_use' => '{1} :roles needs this capability. Reassign the role first.|[2,*] :roles need this capability. Reassign the roles first.',
     ],
