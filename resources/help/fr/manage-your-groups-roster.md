@@ -29,7 +29,7 @@ Pour retirer un·e membre de votre sélection, sélectionnez le **×** à côté
 
 1. Ouvrez le menu à trois points au bout de la ligne du·de la membre.
 
-    ![Le menu d'une ligne : Gérer, Faire démissionner et Retirer (ajouté par erreur)](03.png)
+    ![Le menu d'une ligne : Gérer, Faire démissionner, Visites et Retirer (ajouté par erreur)](03.png)
 
 2. Sélectionnez **Gérer**.
 

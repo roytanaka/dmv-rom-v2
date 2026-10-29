@@ -29,7 +29,7 @@ To remove a Member from your selection, select the **×** next to their name abo
 
 1. Open the three-dot menu at the end of the Member's row.
 
-    ![A row's menu: Manage, Resign member, and Remove (added in error)](03.png)
+    ![A row's menu: Manage, Resign member, Tours, and Remove (added in error)](03.png)
 
 2. Select **Manage**.
 
