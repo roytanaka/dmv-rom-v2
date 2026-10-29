@@ -75,7 +75,12 @@ return [
         'add' => 'Add member',
         'add_title' => 'Add member',
         'add_search' => 'Search all members',
-        'add_submit' => 'Add to group',
+        // The count of selected Members (#873): 'Add 3 to group'.
+        'add_submit' => '{0} Add to group|[1,*] Add :count to group',
+        'add_remove_selected' => 'Remove :name',
+        'add_unknown' => 'One of these members could not be found.',
+        'add_already_member' => 'One of these members is already in this group.',
+        'add_roles_one_member' => 'Roles can be set for one member at a time.',
         'no_candidates' => 'No members match your search.',
         'edit_title' => 'Manage membership',
         'field' => [

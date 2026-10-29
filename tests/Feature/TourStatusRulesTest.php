@@ -209,14 +209,28 @@ it('gives a Member added as a Trainee the trainee Tour, and one added as Full th
     $full = Member::factory()->create();
 
     $this->actingAs($secretary)
-        ->post(route('group-members.store', $group), ['member_id' => $trainee->id, 'status' => 'trainee'])
+        ->post(route('group-members.store', $group), ['member_ids' => [$trainee->id], 'status' => 'trainee'])
         ->assertSessionHasNoErrors();
     $this->actingAs($secretary)
-        ->post(route('group-members.store', $group), ['member_id' => $full->id])
+        ->post(route('group-members.store', $group), ['member_ids' => [$full->id]])
         ->assertSessionHasNoErrors();
 
     expect(rulesState($trainee->membershipIn($group)))->toBe(['Highlights – New Docents' => [true, '2026-10-10']])
         ->and(rulesState($full->fresh()->membershipIn($group)))->toBe(['Highlights' => [true, '2026-10-10']]);
+});
+
+it('gives each Member added in one batch the trainee Tour', function () {
+    $group = rulesGroup();
+    $secretary = rulesMembershipOf($group, Role::Secretary)->member;
+    $first = Member::factory()->create();
+    $second = Member::factory()->create();
+
+    $this->actingAs($secretary)
+        ->post(route('group-members.store', $group), ['member_ids' => [$first->id, $second->id], 'status' => 'trainee'])
+        ->assertSessionHasNoErrors();
+
+    expect(rulesState($first->membershipIn($group)))->toBe(['Highlights – New Docents' => [true, '2026-10-10']])
+        ->and(rulesState($second->membershipIn($group)))->toBe(['Highlights – New Docents' => [true, '2026-10-10']]);
 });
 
 it('runs no rules in a Group without vetting', function () {

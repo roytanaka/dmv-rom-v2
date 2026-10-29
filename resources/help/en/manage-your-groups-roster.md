@@ -14,10 +14,16 @@ Add Members to your Group, set the roles they hold, and remove those who leave. 
     ![The Add member dialog: the search list, then Standing and Roles](02.png)
 
 4. Type a name in **Search all members**.
-5. Choose the Member from the list.
-6. Set their **Standing** in the Group.
-7. Check any **Roles** they hold.
-8. Select **Add to group**.
+5. Check the box next to each Member to add. Each Member you check shows above the search box.
+6. Set the **Standing** in the Group. It applies to every Member you checked.
+7. Check any **Roles** the Member holds.
+8. Select **Add to group**. The button shows how many Members you add.
+
+> **Note:** You can set roles for one Member at a time. When you check two or more Members, the **Roles** are not available.
+
+To set roles for those Members, add them, then select **Manage** on each row.
+
+To remove a Member from your selection, select the **×** next to their name above the search box.
 
 ## Change a Member's roles or standing
 
