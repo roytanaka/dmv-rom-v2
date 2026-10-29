@@ -5,6 +5,8 @@
 return [
     'title' => 'DMV Settings',
     'subtitle' => 'The organisation\'s Groups and Stewardships.',
+    // A parent officer's page (#883, #884): only the sub-groups below their Groups.
+    'subtitle_scoped' => 'The sub-groups below the Groups you run.',
     'section' => [
         'groups' => 'Groups',
         'stewardships' => 'Stewardships',
@@ -45,6 +47,7 @@ return [
         'hours' => 'Hours ×:multiplier',
         'archived' => 'Archived',
         'create' => 'Create a Group',
+        'create_sub_group' => 'Create a sub-group',
     ],
     'kind' => [
         'standing_committee' => 'Standing committee',
@@ -57,6 +60,8 @@ return [
     // Create a Group (#842): the dialog on the tree.
     'create' => [
         'title' => 'Create a Group',
+        // A parent officer's dialog (#884): name and parent only.
+        'sub_group_title' => 'Create a sub-group',
         'submit' => 'Create',
         'cancel' => 'Cancel',
     ],
@@ -189,6 +194,7 @@ return [
         'inactive_group' => 'Choose an active Group.',
         'parent_cycle' => 'A Group cannot sit under itself or one of its own Groups.',
         'root_parent' => 'Choose a section, not the root.',
+        'sibling_name_taken' => 'Another Group under this parent has this name.',
         'end_before_start' => 'The end date must be on or after the start date.',
         'not_editable' => 'The root and Containers have no settings here.',
         'archived' => 'Unarchive this Group to change its settings.',
