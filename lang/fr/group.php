@@ -32,6 +32,8 @@ return [
     'facts_dates' => ':start – :end',
     'facts_starts' => 'Débute le :date',
     'facts_ends' => 'Se termine le :date',
+    'how_to_join' => 'Comment se joindre',
+    'how_to_join_empty' => 'Pour vous joindre à ce groupe, communiquez avec son ou sa Président·e.',
 
     'roster' => [
         'search' => [
@@ -124,6 +126,8 @@ return [
         'about' => 'Modifier',
         'about_title' => 'Modifier la section À propos',
         'about_placeholder' => 'Décrivez ce groupe…',
+        'how_to_join' => 'Modifier',
+        'how_to_join_placeholder' => 'Expliquez comment se joindre à ce groupe…',
         'banner' => 'Changer la bannière',
         'banner_title' => 'Choisir une bannière',
         'save' => 'Enregistrer',

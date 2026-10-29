@@ -40,6 +40,28 @@ it('renders the Groups/Show page with header and Overview props for any Member',
             ->where('overview.description', 'Stewards the membership lifecycle.'));
 });
 
+it('sends the How to join text to every reader of the Overview, members and non-members alike (#867)', function () {
+    $group = Group::factory()->create(['how_to_join' => "Email the Chair.\nCome to a meeting."]);
+
+    $member = Member::factory()->create();
+    GroupMember::factory()->create(['group_id' => $group->id, 'member_id' => $member->id]);
+
+    foreach ([$member, Member::factory()->create()] as $reader) {
+        $this->actingAs($reader)
+            ->get(route('groups.show', $group))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('overview.how_to_join', "Email the Chair.\nCome to a meeting."));
+    }
+});
+
+it('sends a null How to join when the Group has written none (#867)', function () {
+    $group = Group::factory()->create();
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page->where('overview.how_to_join', null));
+});
+
 it('defaults a bare slug to the Overview section and reads the {section} segment', function () {
     $group = Group::factory()->create();
     $this->actingAs(Member::factory()->create());

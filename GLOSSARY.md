@@ -122,6 +122,10 @@ _Avoid_: "Content Maintainer" (merged into this role, [ADR-0030](docs/adr/0030-d
 The container a **Group** publishes its **Shifts** in — a **named date range** owned by exactly one Group, in one of two states: `draft` (seen only by the Group's Scheduler/Chair and super-tier) or `published` (seen by the Group's `listing_visibility` audience). A calendar month is the common case, not a separate kind: "August 2026" and a Visitor Wayfinders occasion are the same entity with different ranges and names. Schedules may overlap, are kept indefinitely, and can be un-published or deleted only while they hold zero **Sign-ups**. Its `name` and `description` are as-authored **content** — never translated. See [ADR-0021](docs/adr/0021-scheduling-first-pass.md).
 _Avoid_: "the month" or "the event" for this (see **Event** under Legacy vocabulary); and calling the _authoring screen_ a Schedule — that is a surface, this is the row.
 
+**Past Schedule**:
+A **Schedule** whose end date is before today. It leaves the Group's Schedule list. The Group's Chair, Statistician and Scheduler reach it through "Past schedules". Any Member who can read it can still open it by link. See [ADR-0037](docs/adr/0037-group-tab-visibility.md).
+_Avoid_: "archived Schedule" (archive is a **Group** state) and "period" (the entity is a Schedule).
+
 **Shift**:
 A dated thing a **Member** signs up to staff — a tour, a desk slot, an event role. The unit of scheduling. Belongs to exactly one **Schedule** (mandatory — there are no orphan Shifts) and carries a start and end time, an integer **capacity**, an optional **shift kind**, and an **audience**. Programs name it differently — docents say "tour," Visitor Guides say "shift" — but **Shift** is the canonical umbrella term. Authored by the Group's **Scheduler**, or, in a **self-serve** Group, by the Member who will take it (see **Self-serve Shift**).
 _Avoid_: reading a Shift as one person's seat — it is a **slot** that holds up to `capacity` **Sign-ups**. Per-seat facts (one volunteer's hours, one volunteer's visitor count) belong on the Sign-up. And note what a Shift does **not** carry: no location (kind is the only descriptive axis), no state of its own (it inherits the Schedule's), no qualification flag (a requirement hangs off the **shift kind**), and no repeat rule — recurring Shifts are **bulk-written**, never spawned from a stored pattern.
@@ -291,6 +295,10 @@ _Avoid_: reading "officer" here as a Group's **Officer**; the two senses are unr
 **Group Settings** (the Settings tab):
 The last section tab on a **Group** page, shown only to a Member with at least one configuration right on that Group. Holds the Group's **settings**: reminders, empty-desk alert, self-serve shifts, **Shift kinds**, **Objects**. A setting is a value an **Officer** sets once and the app reads later. See [ADR-0027](docs/adr/0027-group-settings-tab.md).
 _Avoid_: putting **records** or content work here. A **Schedule**, a **Shift**, a **Sign-up**, a **Meeting**, a roster line, the About text or the banner is edited inline on the tab where it is read. "Settings" names three scopes in the app: Account settings (the user menu), Group Settings (this tab), DMV Settings (**Officer Tools**).
+
+**How to join**:
+A section of a **Group**'s Overview that tells a Member how to join the Group. As-authored **content**, set by the Group's Secretary or Chair. When empty, it tells the reader to contact the Chair. A members-only tab (Meetings, Tours) shows a non-member a link to it. See [ADR-0037](docs/adr/0037-group-tab-visibility.md).
+_Avoid_: putting join steps in the About text.
 
 **DMV Settings**:
 The **Officer Tools** page for the organisation's own settings, open to the **super-tier** only. Two sections: **Groups** (the org tree, create a Group, and each Group's structure: name, parent, Kind, visibility, order, logo, time-box, capabilities, hours multiplier, archived) and **Stewardships**. The slug is set once at create and never changes. See [ADR-0036](docs/adr/0036-group-administration.md).

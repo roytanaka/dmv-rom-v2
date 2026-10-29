@@ -81,6 +81,7 @@ class Group extends Model
         'slug',
         'name',
         'description',
+        'how_to_join',
         'banner_key',
         'logo_key',
         'kind',
