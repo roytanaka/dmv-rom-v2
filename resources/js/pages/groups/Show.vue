@@ -169,6 +169,8 @@ const props = defineProps<{
     };
     overview: {
         description: string | null;
+        // How to join (#867): the join steps, as-authored; null shows the fallback line.
+        how_to_join: string | null;
         children: ChildGroup[];
         leadership: LeadershipEntry[];
         facts: Facts;
@@ -252,6 +254,23 @@ const saveAbout = () =>
 const cancelAbout = () => {
     aboutForm.description = props.overview.description;
     editingAbout.value = false;
+};
+
+// The How to join card (#867) edits the same way, with its own form and field.
+const editingJoin = ref(false);
+const joinForm = useForm<{ how_to_join: string | null }>({ how_to_join: props.overview.how_to_join });
+const joinDraft = computed({
+    get: () => joinForm.how_to_join ?? '',
+    set: (value: string) => (joinForm.how_to_join = value === '' ? null : value),
+});
+const saveJoin = () =>
+    joinForm.patch(updateUrl(), {
+        preserveScroll: true,
+        onSuccess: () => (editingJoin.value = false),
+    });
+const cancelJoin = () => {
+    joinForm.how_to_join = props.overview.how_to_join;
+    editingJoin.value = false;
 };
 
 const bannerPickerOpen = ref(false);
@@ -444,6 +463,38 @@ const pickBanner = (key: string | null) => {
                                     <li v-if="overview.facts.meets">{{ trans('group.facts_meets') }}</li>
                                     <li v-if="overview.facts.time_boxed && datesFact">{{ datesFact }}</li>
                                 </ul>
+                            </CardContent>
+                        </Card>
+
+                        <!-- How to join (#867, ADR-0037 §3). The fixed `how-to-join` id is the
+                             target of the members-only tabs' "How to join" link (#869). -->
+                        <Card id="how-to-join" class="scroll-mt-[calc(var(--header-height)+var(--section-bar-height,0px)+2rem)]">
+                            <CardHeader class="flex flex-row items-center justify-between gap-2 space-y-0">
+                                <CardTitle class="text-sm font-semibold tracking-wide uppercase">{{ trans('group.how_to_join') }}</CardTitle>
+                                <Button v-if="can.update && !editingJoin" variant="ghost" size="sm" class="gap-1.5" @click="editingJoin = true">
+                                    <PhPencilSimple class="h-4 w-4" />
+                                    {{ trans('group.edit.how_to_join') }}
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <form v-if="editingJoin" class="flex flex-col gap-3" @submit.prevent="saveJoin">
+                                    <Textarea
+                                        v-model="joinDraft"
+                                        :rows="6"
+                                        :placeholder="trans('group.edit.how_to_join_placeholder')"
+                                        :aria-label="trans('group.how_to_join')"
+                                    />
+                                    <div class="flex gap-2">
+                                        <Button type="submit" size="sm" :disabled="joinForm.processing">{{ trans('group.edit.save') }}</Button>
+                                        <Button type="button" variant="ghost" size="sm" :disabled="joinForm.processing" @click="cancelJoin">
+                                            {{ trans('group.edit.cancel') }}
+                                        </Button>
+                                    </div>
+                                </form>
+                                <template v-else>
+                                    <p v-if="overview.how_to_join" class="text-rom-ink text-sm whitespace-pre-line">{{ overview.how_to_join }}</p>
+                                    <p v-else class="text-muted-foreground text-sm">{{ trans('group.how_to_join_empty') }}</p>
+                                </template>
                             </CardContent>
                         </Card>
                     </div>

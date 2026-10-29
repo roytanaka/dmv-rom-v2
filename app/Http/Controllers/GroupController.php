@@ -403,6 +403,9 @@ class GroupController extends Controller
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,
+                // How to join (#867, ADR-0037 §3) — the join steps, as-authored, sent to every
+                // reader. Null shows the card's translated fallback line.
+                'how_to_join' => $group->how_to_join,
                 'children' => $group->children
                     ->map(fn (Group $child) => [
                         'name' => $child->name,

@@ -630,6 +630,15 @@
         return clickAndSettle(buttonLabelled(/^edit$/i));
     }
 
+    // The How to join card's edit control (#867), the same v-if toggle. Its Edit sits inside
+    // the card's fixed #how-to-join anchor, so the About Us Edit above it is never picked.
+    function openHowToJoinEditForm() {
+        const card = document.getElementById('how-to-join');
+        if (!card) return false;
+        card.scrollIntoView({ block: 'center' });
+        return clickAndSettle(buttonLabelled(/^edit$/i, (element) => card.contains(element)));
+    }
+
     // The banner picker on the Group header, for a Secretary or Chair. A reka-ui Dialog whose
     // trigger opens on a DOM click, so it comes through clickAndSettle like the other dialogs.
     function openBannerPicker() {
@@ -1008,6 +1017,7 @@
         openManageMembershipDialog,
         openNewMeetingDialog,
         openAboutEditForm,
+        openHowToJoinEditForm,
         openBannerPicker,
         openEmailMenu,
         openWholeGroupComposer,

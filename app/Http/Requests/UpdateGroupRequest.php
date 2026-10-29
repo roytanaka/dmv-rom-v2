@@ -28,6 +28,7 @@ class UpdateGroupRequest extends FormRequest
     /**
      * The whitelist of fields an officer edit may set. `description` is
      * member-authored About Us content (nullable — an officer may clear it);
+     * `how_to_join` is the How to join card's join steps (#867), on the same terms;
      * `banner_key` must be one of the curated set, or null to fall back to the
      * neutral default.
      *
@@ -37,6 +38,7 @@ class UpdateGroupRequest extends FormRequest
     {
         return [
             'description' => ['nullable', 'string', 'max:10000'],
+            'how_to_join' => ['nullable', 'string', 'max:10000'],
             'banner_key' => ['nullable', Rule::enum(GroupBanner::class)],
         ];
     }
