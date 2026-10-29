@@ -47,6 +47,8 @@ return [
             'roles' => 'Rôles',
             'contact' => 'Coordonnées',
             'standing' => 'Statut',
+            'dmv_standing' => 'Statut DMV',
+            'group_standing' => 'Statut dans le groupe',
             'actions' => 'Actions',
         ],
         'no_contact' => '—',

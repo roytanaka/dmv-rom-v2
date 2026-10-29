@@ -124,10 +124,10 @@ const hasContact = (member: RosterMember) => member.email !== undefined || membe
 // The DMV-wide standing marker (#877): shown to a roster manager when the Category isn't Active.
 const dmvStanding = (member: RosterMember) => dmvStandingMarker(member.standing, props.canManage);
 
-// Empty-state colspan tracks the optional officer Actions column.
+// Empty-state colspan tracks the optional officer columns: DMV standing (#877) and Actions.
 // The Actions column carries the roster CRUD (#192) and the Tours link (#789).
 const hasActions = computed(() => props.canManage || props.canManageTours);
-const columnCount = computed(() => (hasActions.value ? 6 : 5));
+const columnCount = computed(() => 5 + (props.canManage ? 1 : 0) + (hasActions.value ? 1 : 0));
 
 // --- Officer CRUD (#192) ----------------------------------------------------
 
@@ -288,7 +288,12 @@ const hardRemove = (member: RosterMember) => {
                             <TableHead>{{ trans('group.roster.column.name') }}</TableHead>
                             <TableHead class="hidden md:table-cell">{{ trans('group.roster.column.roles') }}</TableHead>
                             <TableHead class="hidden lg:table-cell">{{ trans('group.roster.column.contact') }}</TableHead>
-                            <TableHead class="hidden md:table-cell">{{ trans('group.roster.column.standing') }}</TableHead>
+                            <!-- A roster manager sees the DMV-wide standing in its own column (#877); the
+                                 headers tell the two apart, as legacy's DMV Status / Status did. -->
+                            <TableHead v-if="canManage" class="hidden md:table-cell">{{ trans('group.roster.column.dmv_standing') }}</TableHead>
+                            <TableHead class="hidden md:table-cell">{{
+                                trans(canManage ? 'group.roster.column.group_standing' : 'group.roster.column.standing')
+                            }}</TableHead>
                             <TableHead v-if="hasActions" class="w-12 text-right"
                                 ><span class="sr-only">{{ trans('group.roster.column.actions') }}</span></TableHead
                             >
@@ -353,12 +358,10 @@ const hardRemove = (member: RosterMember) => {
                                 </div>
                                 <span v-else>{{ trans('group.roster.no_contact') }}</span>
                             </TableCell>
-                            <TableCell class="hidden md:table-cell">
-                                <div class="flex flex-wrap gap-1.5">
-                                    <GroupStandingBadge :standing="member.group_standing" />
-                                    <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" />
-                                </div>
+                            <TableCell v-if="canManage" class="hidden md:table-cell">
+                                <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" />
                             </TableCell>
+                            <TableCell class="hidden md:table-cell"><GroupStandingBadge :standing="member.group_standing" /></TableCell>
                             <TableCell v-if="hasActions" class="text-right">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
