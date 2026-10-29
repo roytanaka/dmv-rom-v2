@@ -38,6 +38,12 @@ Pour retirer un·e membre de votre sélection, sélectionnez le **×** à côté
 3. Changez le **Statut**, les dates de congé ou les **Rôles**.
 4. Sélectionnez **Enregistrer**.
 
+## Voir le statut DMV d'un·e membre
+
+La colonne **Statut** montre le statut du ou de la membre dans votre groupe. Certaines lignes montrent aussi un badge qui commence par **DMV :**, par exemple **DMV : En congé**. Ce badge montre le statut du ou de la membre dans tout le DMV. Il s'affiche seulement quand ce statut n'est pas Actif.
+
+Les deux statuts sont distincts. Un changement du statut DMV ne change pas le statut dans votre groupe. Pour changer le statut dans votre groupe, sélectionnez **Gérer** sur la ligne.
+
 ## Retirer un·e membre
 
 Ouvrez le menu à trois points au bout de la ligne du·de la membre.

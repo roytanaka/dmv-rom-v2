@@ -235,6 +235,9 @@ export interface RosterMember {
     first_name: string;
     last_name: string;
     photo: string | null;
+    // DMV-wide standing (the Member's Category), from MemberResource; separate from
+    // `group_standing`. A roster manager sees it marked when not Active (#877).
+    standing: string;
     group_roles: string[];
     group_standing: string;
     email?: string;

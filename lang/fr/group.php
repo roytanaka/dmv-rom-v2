@@ -52,6 +52,7 @@ return [
         'no_contact' => '—',
         'empty' => 'Aucun membre pour le moment.',
         'no_matches' => 'Aucun membre ne correspond à votre recherche.',
+        'dmv_standing' => 'DMV : :standing',
 
         // CRUD du registre par les officiers (#192) — visible uniquement pour un·e
         // secrétaire / président·e / super-palier (contrôlé côté serveur via
