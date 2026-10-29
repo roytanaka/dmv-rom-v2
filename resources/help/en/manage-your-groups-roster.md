@@ -11,7 +11,7 @@ Add Members to your Group, set the roles they hold, and remove those who leave. 
 
 3. Select **Add member**.
 
-    ![The Add member dialog: the search list, then Standing and Roles](02.png)
+    ![The Add member dialog: two Members checked show above the search box, and the Roles are not available](02.png)
 
 4. Type a name in **Search all members**.
 5. Check the box next to each Member to add. Each Member you check shows above the search box.

@@ -11,7 +11,7 @@ Ajoutez des membres à votre groupe, réglez les rôles qu'ils tiennent, et reti
 
 3. Sélectionnez **Ajouter un membre**.
 
-    ![La fenêtre Ajouter un membre : la liste de recherche, puis le Statut et les Rôles](02.png)
+    ![La fenêtre Ajouter un membre : deux membres cochés s'affichent au-dessus du champ de recherche, et les Rôles ne sont pas disponibles](02.png)
 
 4. Saisissez un nom dans **Rechercher parmi tous les membres**.
 5. Cochez la case de chaque membre à ajouter. Chaque membre coché·e s'affiche au-dessus du champ de recherche.
