@@ -29,7 +29,7 @@ _Avoid_: equating "DMV Executive" with all-DMV access (that is the super-tier), 
 
 - **Super-tier** — the single org-wide "see and do everything" grant, seeded with President / VP1 / VP2 (a flag on the Member; [ADR-0011](docs/adr/0011-authorization-model.md)).
 - **Member administration** — managing member records and all-DMV reports; authority comes from holding a **role in the Records Group** (a stewardship), not a flag.
-- **Group administration** — creating, configuring and archiving **Groups** and assigning **Stewardships**, from **DMV Settings**; a **super-tier** power ([ADR-0036](docs/adr/0036-group-administration.md)).
+- **Group administration** — creating, configuring and archiving **Groups** and assigning **Stewardships**, from **DMV Settings**; a **super-tier** power, except that a Group's Secretary or Chair administers the structure and roster of its **sub-groups** ([ADR-0036](docs/adr/0036-group-administration.md) §11).
 - **Support administration** — a maintainer administering data or impersonating for support; the explicit `initiate-support-session` permission ([ADR-0009](docs/adr/0009-user-switching-and-support-impersonation.md)), deliberately _not_ super-tier.
   _Avoid_: "admin" unqualified; admin-ness is a role or grant, never a membership standing.
 
@@ -89,7 +89,7 @@ The one-time switch that makes v2 the live app at the main domain and turns the 
 _Avoid_: "launch", "go-live", "migration" (the migration is the data copy, which also runs during Beta).
 
 **Group**:
-The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. A Group is **archived**, never deleted: an archived Group, or a time-boxed Group past its end date, is read-only ([ADR-0036](docs/adr/0036-group-administration.md)). See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Lifecycle axes and the capability set (the Scope axis was withdrawn by ADR-0036), and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
+The single organizing entity in DMV. Every committee, subcommittee, program, working group, project, and event cohort is a **Group** — a named set of people, each holding **role(s) in that Group**, with one parent, a lifecycle state, and a set of capabilities it switches on (meetings, documents, scheduling, vetting, announcements). Two capabilities are **always on** and carry no flag: **roster** and **hours** ([ADR-0022](docs/adr/0022-hours-and-statistics-model.md)). "Subcommittee" is not a separate noun: it is a **Group whose parent is another Group**. A **sub-group** is any Group in the subtree below a given Group. It is the word the app shows a Member. Authorization and document visibility are decided from a Member's Group memberships and the roles they carry there. A Group is **archived**, never deleted: an archived Group, or a time-boxed Group past its end date, is read-only ([ADR-0036](docs/adr/0036-group-administration.md)). See [ADR-0010](docs/adr/0010-group-model.md) for the Kind / Lifecycle axes and the capability set (the Scope axis was withdrawn by ADR-0036), and [ADR-0011](docs/adr/0011-authorization-model.md) for how authorization reads from it.
 
 **Committee**:
 A **Kind** of **Group**: a standing, org-scoped group that meets and holds documents but runs no shift scheduling (governance, operations, social). One Kind among several — not the central entity.
@@ -289,7 +289,7 @@ The **Chrome**'s left-hand navigation: My Groups, Browse Groups, and **Officer T
 _Avoid_: "the rail" in Help articles; bare "sidebar" there too, because the Account settings page has its own sidebar. And the Directory's **A–Z jump rail** (the letter bar) is a different thing.
 
 **Officer Tools**:
-The rail's bottom cluster of **org-wide** administration: Members, Communications, Reports, Flash Messages, DMV Settings, plus the super-tier status pages. Built and gated on the server per rail item ([ADR-0018 §4](docs/adr/0018-server-driven-grouping-rail.md), [ADR-0027 §4](docs/adr/0027-group-settings-tab.md)). Nothing **Group**-scoped lives here. **DMV Settings** is where the super-tier administers Groups and **Stewardships** ([ADR-0036](docs/adr/0036-group-administration.md)).
+The rail's bottom cluster of **org-wide** administration: Members, Communications, Reports, Flash Messages, DMV Settings, plus the super-tier status pages. Built and gated on the server per rail item ([ADR-0018 §4](docs/adr/0018-server-driven-grouping-rail.md), [ADR-0027 §4](docs/adr/0027-group-settings-tab.md)). Nothing **Group**-scoped lives here. **DMV Settings** is where the super-tier administers Groups and **Stewardships**, and where a Group's Secretary or Chair administers its **sub-groups** ([ADR-0036](docs/adr/0036-group-administration.md)).
 _Avoid_: reading "officer" here as a Group's **Officer**; the two senses are unrelated. Do not put a Group's tools in the rail.
 
 **Group Settings** (the Settings tab):
@@ -301,7 +301,7 @@ A section of a **Group**'s Overview that tells a Member how to join the Group. A
 _Avoid_: putting join steps in the About text.
 
 **DMV Settings**:
-The **Officer Tools** page for the organisation's own settings, open to the **super-tier** only. Two sections: **Groups** (the org tree, create a Group, and each Group's structure: name, parent, Kind, visibility, order, logo, time-box, capabilities, hours multiplier, archived) and **Stewardships**. The slug is set once at create and never changes. See [ADR-0036](docs/adr/0036-group-administration.md).
+The **Officer Tools** page for the organisation's own settings. Two sections: **Groups** (the org tree, create a Group, and each Group's structure: name, parent, Kind, visibility, order, logo, time-box, capabilities, hours multiplier, archived) and **Stewardships**. The slug is set once at create and never changes. The **super-tier** sees all of it. A Group's Secretary or Chair sees only the Groups section, limited to the **sub-groups** below their Group, with name, parent and Chair on create and name and parent after. See [ADR-0036](docs/adr/0036-group-administration.md) §11.
 _Avoid_: putting a Group officer's settings here (those are **Group Settings**), or calling this "admin". The root Group and a Container are not configured here past their About text and banner.
 
 **Stewardship**:
