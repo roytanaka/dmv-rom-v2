@@ -34,6 +34,8 @@ final class PersonaCatalogue
 
     private const DOCENTS = 'docents';
 
+    private const DOCENTS_SECTIONS = 'docents-sections';
+
     private const RECEPTION = 'reception';
 
     // Program slugs the enrichment placements target — so the impersonated execs and
@@ -65,6 +67,11 @@ final class PersonaCatalogue
     public const LIBRARIAN_EMAIL = 'hannah.schmidt@dmv.test';
 
     public const LIBRARY_READER_EMAIL = 'felix.andersson@dmv.test';
+
+    // The sub-group Chair Persona (#882): chairs Docents › Sections without holding office
+    // in Docents, so the sub-group's own Chair view sits beside the Docents Chair's
+    // parent-officer view (ADR-0036 §11).
+    public const SUBGROUP_CHAIR_EMAIL = 'rosa.delgado@dmv.test';
 
     /**
      * Every catalogued Persona, in picker order (grouped by function).
@@ -112,6 +119,10 @@ final class PersonaCatalogue
             new Persona(self::CHAIR_EMAIL, 'Oliver', 'Bennett', PersonaGroup::Officers, 'Chair · Docents', placements: [
                 new PersonaPlacement(self::DOCENTS, roles: [Role::Chair]),
                 new PersonaPlacement(self::GALLERY_INTERPRETERS),
+            ]),
+            new Persona(self::SUBGROUP_CHAIR_EMAIL, 'Rosa', 'Delgado', PersonaGroup::Officers, 'Chair · Docents › Sections', placements: [
+                new PersonaPlacement(self::DOCENTS),
+                new PersonaPlacement(self::DOCENTS_SECTIONS, roles: [Role::Chair]),
             ]),
             // Secretary and Treasurer sit on the Executive committee — a real Group —
             // alongside the President / VPs. Governance & Operations is now a page-less

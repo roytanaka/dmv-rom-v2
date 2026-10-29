@@ -341,6 +341,29 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * Whether this Member administers a Group above the given one — {@see administers()} on
+     * any strict ancestor, to any depth, never the Group itself (ADR-0036 §11, ADR-0019 §B).
+     * The parent-officer authority over a sub-group's structure and roster only: content
+     * policies stay on {@see administers()}, so parentage never opens a sub-group's About
+     * text, banner, Meetings or Documents. The root and Containers carry no ordinary
+     * officers, so the climb skips them rather than let a stray role there cascade.
+     */
+    public function administersAncestorOf(Group $group): bool
+    {
+        // Walk up by explicit query — reading `parent` lazily would trip strict mode's
+        // lazy-load guard, and the tree is only a few Groups deep.
+        $node = $group->parent_id !== null ? Group::find($group->parent_id) : null;
+        while ($node !== null) {
+            if ($node->isStructurallyEditable() && $this->administers($node)) {
+                return true;
+            }
+            $node = $node->parent_id !== null ? Group::find($node->parent_id) : null;
+        }
+
+        return false;
+    }
+
+    /**
      * Whether this Member may post to the org-wide news feed at all — i.e. can act
      * as news-editor of any announcements-on Group they belong to (ADR-0017 §5).
      * The coarse hint behind the feed's "New post" control; the per-item edit/
