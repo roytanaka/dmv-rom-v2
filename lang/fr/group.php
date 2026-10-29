@@ -707,6 +707,8 @@ return [
             'heading' => 'Mes inscriptions',
             'toggle' => 'Afficher ou masquer Mes inscriptions',
             'subtitle' => 'Vos quarts à venir, et tout quart récent qui attend encore un nombre de visiteur·euses.',
+            // Un groupe qui ne recueille aucun nombre ne liste que les quarts à venir (#865).
+            'subtitle_upcoming' => 'Vos quarts à venir.',
         ],
         // Bascule de vue (#360, ADR-0021 §7) — la ou le lecteur choisit Agenda ou
         // Calendrier ; le choix vit dans localStorage, jamais dans le formulaire de
