@@ -172,17 +172,20 @@ onMounted(() => {
 
 watch(view, (value) => localStorage.setItem(VIEW_KEY, value));
 
-// --- My sign-ups (#449, ADR-0023 §5) — the outstanding-shifts panel ------------
+// --- My sign-ups (#449, #865, ADR-0023 §5) — the viewer's own seats -----------
 
 // "My Sign-ups on this Group": the viewer's upcoming Shifts, plus any past Shift inside the
-// 28-day window still owed a number. Server-resolved (`scheduling.mine`), already the viewer's
-// own seats and no one else's, ordered by start, and crossing Schedules — the one surface that
-// reaches a three-week-old Shift on last month's Schedule, a different page. The panel is
-// **absent, not empty**, when there is nothing to show: an empty list renders no panel at all,
-// and a Group that collects no count sends an empty list too. Each entry is a ShiftCard, so
-// filing a number here rides the same PATCH seam as the Agenda; a past Shift shows the sign-out
-// form (its window has no upper bound), an upcoming one just lists with its drop control.
+// 28-day window still owed a number; a Group that collects no count lists upcoming Shifts only
+// (#865). Server-resolved (`scheduling.mine`), already the viewer's own seats and no one else's,
+// ordered by start, and crossing Schedules — the one surface that reaches a three-week-old Shift
+// on last month's Schedule, a different page. The panel is **absent, not empty**, when there is
+// nothing to show: an empty list renders no panel at all. Each entry is a ShiftCard, so filing a
+// number here rides the same PATCH seam as the Agenda; a past Shift shows the sign-out form (its
+// window has no upper bound), an upcoming one just lists with its drop control.
 const mine = computed(() => props.scheduling.mine);
+const mineSubtitle = computed(() =>
+    trans(props.collectsVisitorCount ? 'group.scheduling_panel.mine.subtitle' : 'group.scheduling_panel.mine.subtitle_upcoming'),
+);
 
 // --- Objects (#586, ADR-0026 §3) — the handling collection reserved on a seat ------
 
@@ -1046,7 +1049,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 </CollapsibleTrigger>
             </h3>
             <CollapsibleContent class="-mx-1 -mb-1 flex flex-col gap-2 px-1 pb-1">
-                <p class="text-muted-foreground text-sm">{{ trans('group.scheduling_panel.mine.subtitle') }}</p>
+                <p class="text-muted-foreground text-sm">{{ mineSubtitle }}</p>
                 <ShiftCard
                     v-for="shift in mine"
                     :key="shift.id"

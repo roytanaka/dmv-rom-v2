@@ -1088,9 +1088,10 @@ class GroupController extends Controller
      * three-week-old Shift on last month's Schedule is a different page the Agenda alone strands,
      * and this is the one surface that reaches it.
      *
-     * Present only where the Group collects a count: Reception collects nothing and gets no panel.
-     * The list is the viewer's own seats and no one else's, ordered by Shift start. It is returned
-     * as a flat list; **empty means no panel** — a viewer who owes nothing and holds no upcoming
+     * Present in every Group that runs scheduling (#865). Where the Group collects no count, such
+     * as Reception, nothing is owed after a Shift, so the list is the upcoming set only. The list
+     * is the viewer's own seats and no one else's, ordered by Shift start. It is returned as a flat
+     * list; **empty means no panel** — a viewer who owes nothing and holds no upcoming
      * seat, and a reader with no Sign-ups here at all, both get an empty list and the tab renders
      * no panel. Each entry is the shared {@see shiftPayload} the ShiftCard reads, carrying `canManage:
      * false` — the volunteer files from here through the same PATCH seam as the Agenda; the Officer's
@@ -1100,12 +1101,9 @@ class GroupController extends Controller
      */
     private function mine(Request $request, Group $group): array
     {
-        if (! $group->collects_visitor_count) {
-            return [];
-        }
-
         $viewer = $request->user();
         $now = CarbonImmutable::now();
+        $collectsCount = $group->collects_visitor_count;
 
         // The seats post-shift saves just wrote (#668). Remembered for the next save, so two saves
         // in a row keep both seats; any other page load clears it.
@@ -1118,11 +1116,13 @@ class GroupController extends Controller
             ->where(fn (Builder $query) => $query
                 // Upcoming — a seat still ahead of the viewer, whatever it does or does not record.
                 ->whereHas('shift', fn (Builder $shift) => $shift->where('ends_at', '>=', $now))
-                // Or outstanding — a past Shift inside the window still owed a number.
-                ->orWhere(fn (Builder $outstanding) => $outstanding->outstandingFor($viewer))
-                // Or just saved (#668) — the seats post-shift saves wrote, for the page load after
-                // them, so a first save shows its summary here instead of dropping out.
-                ->orWhereIn('id', $justSaved))
+                // Only a Group that collects a count owes anything after the Shift (#865).
+                ->when($collectsCount, fn (Builder $query) => $query
+                    // Or outstanding — a past Shift inside the window still owed a number.
+                    ->orWhere(fn (Builder $outstanding) => $outstanding->outstandingFor($viewer))
+                    // Or just saved (#668) — the seats post-shift saves wrote, for the page load
+                    // after them, so a first save shows its summary here instead of dropping out.
+                    ->orWhereIn('id', $justSaved)))
             ->with([
                 'shift.kind.tours',
                 'shift.booking.tour',

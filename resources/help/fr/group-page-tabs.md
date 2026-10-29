@@ -8,7 +8,7 @@ Le premier onglet. Il montre la description du groupe, ses responsables et quelq
 
 La carte **Comment se joindre** se trouve sous **En bref**. Elle vous explique comment vous joindre au groupe. Sans étapes écrites, la carte vous invite à communiquer avec son ou sa Président·e. Sur le groupe DMV, elle vous renvoie à la Direction générale du DMV.
 
-![Une page de groupe sur Aperçu : la description et les responsables, avec les onglets en haut](01.png)
+![Une page de groupe sur Aperçu : la description, les responsables et la carte Comment se joindre sous En bref](01.png)
 
 ## Membres
 
@@ -20,9 +20,11 @@ La liste de membres du groupe. Elle liste chaque personne du groupe et le rôle 
 
 Les réunions du groupe, avec leurs ordres du jour et leurs procès-verbaux. Cet onglet apparaît seulement quand le groupe tient des réunions.
 
+![L'onglet Réunions sur un comité : un ensemble d'onglets différent, et aucune réunion notée encore](03.png)
+
 Les onglets Réunions et Visites sont réservés aux membres du groupe. Si vous n'êtes pas dans le groupe, vous voyez quand même ces onglets. Chacun montre seulement **Réservé aux membres de ce groupe** et un lien **Comment se joindre**. Sélectionnez le lien pour ouvrir la carte **Comment se joindre** de l'Aperçu.
 
-![L'onglet Réunions sur un comité : un ensemble d'onglets différent, et aucune réunion notée encore](03.png)
+![L'onglet Visites d'un groupe hors des vôtres : l'avis réservé aux membres et le lien Comment se joindre](06.png)
 
 ## Horaire
 
