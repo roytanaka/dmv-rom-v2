@@ -12,7 +12,8 @@
 // the save bar. The ten flags and Time-boxed are DmvSettingsFlagRow switches; a capability that
 // is on shows how many records sit behind it, and once switched off in the draft, how many
 // become hidden (#844). A parent officer's form (`scoped`, ADR-0036 §11, #886) is the Identity card
-// with name and one parent select over their own subtrees; every other card stays super-tier only.
+// with name and one parent select over their own subtrees, and the Archive card (#887); every
+// other card stays super-tier only.
 import DmvSettingsFlagRow from '@/components/DmvSettingsFlagRow.vue';
 import DmvSettingsSection from '@/components/DmvSettingsSection.vue';
 import DmvSettingsTabs from '@/components/DmvSettingsTabs.vue';
@@ -172,11 +173,10 @@ const SECTIONS: readonly Section[] = [
     { id: 'hours', key: 'hours', fields: ['hours_multiplier'] },
     { id: 'archive', key: 'archive', fields: [] },
 ];
-// Read-only: an archived Group. A parent officer cannot archive or unarchive yet (#887).
+// Read-only: an archived Group.
 const readOnly = computed(() => props.group.archived);
-const canArchive = computed(() => !props.scoped);
 const sections = computed(() =>
-    SECTIONS.filter((section) => (section.id === 'archive' ? !readOnly.value && canArchive.value : !props.scoped || section.id === 'identity')),
+    SECTIONS.filter((section) => (section.id === 'archive' ? !readOnly.value : !props.scoped || section.id === 'identity')),
 );
 const sectionTitle = (section: Section): string => trans(`dmv_settings.group.${section.key}`);
 const sectionHasError = (section: Section): boolean =>
@@ -248,7 +248,7 @@ const countLine = (flag: Capability): string | null => {
                             <AlertDescription>{{ trans('dmv_settings.archived_banner.body') }}</AlertDescription>
                             <InputError :message="archiveError" />
                         </div>
-                        <Button v-if="canArchive" type="button" class="shrink-0" :disabled="archiveForm.processing" @click="unarchive">
+                        <Button type="button" class="shrink-0" :disabled="archiveForm.processing" @click="unarchive">
                             {{ trans('dmv_settings.archive.unarchive') }}
                         </Button>
                     </Alert>
@@ -397,12 +397,7 @@ const countLine = (flag: Capability): string | null => {
 
                     <!-- The Archive section (#845) sits outside the disabled fieldset; an archived
                          Group has the banner's Unarchive instead. -->
-                    <DmvSettingsSection
-                        v-if="!readOnly && canArchive"
-                        id="archive"
-                        :title="sectionTitle(SECTIONS[6])"
-                        layout="flex flex-col items-start gap-3"
-                    >
+                    <DmvSettingsSection v-if="!readOnly" id="archive" :title="sectionTitle(SECTIONS[6])" layout="flex flex-col items-start gap-3">
                         <p class="text-sm">{{ trans('dmv_settings.group.archive_note') }}</p>
                         <Button
                             type="button"
