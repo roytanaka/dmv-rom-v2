@@ -8,7 +8,8 @@
 persona amara.abara@dmv.test
 start /groups/docents
 
-nav /groups/docents 01             # the section tabs across the top, on Overview
+nav /groups/docents                # open Overview
+act showHowToJoinCard 01           # the section tabs across the top, and the How to join card below At a glance (#867)
 nav /groups/docents/roster 02      # the Members tab: the roster
 nav /groups/dmv/meetings 03        # the Meetings tab, on a Group that holds meetings
 nav /groups/docents/scheduling 04  # the Scheduling tab
