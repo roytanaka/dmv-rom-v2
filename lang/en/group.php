@@ -724,6 +724,8 @@ return [
             'heading' => 'My sign-ups',
             'toggle' => 'Show or hide My sign-ups',
             'subtitle' => 'Your upcoming shifts, and any recent shift that still needs a visitor count.',
+            // A Group that collects no count lists upcoming Shifts only (#865).
+            'subtitle_upcoming' => 'Your upcoming shifts.',
         ],
         // View toggle (#360, ADR-0021 §7) — the reader chooses Agenda or Calendar; the
         // choice lives in localStorage, never in the authoring form. Agenda is the default.

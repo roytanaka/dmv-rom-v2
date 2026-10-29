@@ -123,6 +123,8 @@ This is a faithful port. Legacy already puts the box in both places, in every sc
 
 **Nothing at all is built for a Group that collects nothing.** Reception renders no panel, no boxes and no column. The switch is the Group-level setting, not the `ShiftKind`.
 
+> **Amendment (2026-10-29, [#865](https://github.com/roytanaka/dmv-rom-v2/issues/865)).** A Group that collects nothing now gets the My sign-ups panel. The panel also lists the viewer's upcoming Shifts, and Reception volunteers lost that list. In such a Group, the panel lists upcoming Shifts only. It shows no past Shifts and no Post-shift report. The boxes and the column stay absent.
+
 ### 6. Summary Visitor Interactions returns, with one composition rule
 
 A Group's figure for one month is:
