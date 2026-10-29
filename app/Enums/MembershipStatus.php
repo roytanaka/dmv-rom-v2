@@ -53,4 +53,18 @@ enum MembershipStatus: string
     {
         return $this->canSignUp() || $this === self::Loa;
     }
+
+    /**
+     * The stored values of every standing that {@see countsAsBelonging()}: a Group's active
+     * roster, for a query's `whereIn`.
+     *
+     * @return list<string>
+     */
+    public static function belongingValues(): array
+    {
+        return array_values(array_map(
+            fn (self $status): string => $status->value,
+            array_filter(self::cases(), fn (self $status): bool => $status->countsAsBelonging()),
+        ));
+    }
 }

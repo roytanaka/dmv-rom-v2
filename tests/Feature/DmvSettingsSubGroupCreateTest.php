@@ -3,6 +3,7 @@
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
+use App\Enums\MembershipStatus;
 use App\Enums\Role;
 use App\Models\Group;
 use App\Models\GroupMember;
@@ -221,4 +222,134 @@ it('starts the sub-group at its defaults and ignores a crafted slug, kind or fla
         ->and($group->collects_visitor_provenance)->toBeFalse()
         ->and($group->visitor_figures_await_booking)->toBeFalse()
         ->and($group->hours_multiplier)->toBe('1.000');
+});
+
+/*
+ * Chair on create (#885, ADR-0036 §11): an optional Member from the parent's active roster
+ * joins the new sub-group as Full with the Chair role, in the same save.
+ */
+
+/** A member of $group in $status, holding no role. */
+function subGroupRosterMember(Group $group, MembershipStatus $status = MembershipStatus::Full): Member
+{
+    $member = Member::factory()->create();
+    GroupMember::factory()->status($status)->create(['group_id' => $group->id, 'member_id' => $member->id]);
+
+    return $member;
+}
+
+it('makes the chosen Chair a Full member of the sub-group with the Chair role', function () {
+    [, , $docents] = subGroupTree();
+    $chair = subGroupRosterMember($docents);
+
+    $this->actingAs(subGroupOfficerOf($docents))
+        ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $docents->id, 'chair_id' => $chair->id])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect('/officer/settings/groups/tours');
+
+    $memberships = Group::where('slug', 'tours')->sole()->memberships()->with('roles')->get();
+    expect($memberships)->toHaveCount(1)
+        ->and($memberships[0]->member_id)->toBe($chair->id)
+        ->and($memberships[0]->status)->toBe(MembershipStatus::Full)
+        ->and($memberships[0]->roles->pluck('role')->all())->toBe([Role::Chair]);
+});
+
+it('sends each parent\'s active roster as its Chair candidates, by surname', function () {
+    [, , $docents] = subGroupTree();
+    $sections = Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'docents-sections', 'name' => 'Sections']);
+    $officer = subGroupOfficerOf($docents);
+    $officer->update(['first_name' => 'Olive', 'last_name' => 'Bennett']);
+    $zed = subGroupRosterMember($docents);
+    $zed->update(['first_name' => 'Zoe', 'last_name' => 'Zed']);
+    $ada = subGroupRosterMember($docents, MembershipStatus::Loa);
+    $ada->update(['first_name' => 'Ada', 'last_name' => 'Abbott']);
+    subGroupRosterMember($docents, MembershipStatus::Resigned);
+    $sectionMember = subGroupRosterMember($sections);
+    $sectionMember->update(['first_name' => 'Sam', 'last_name' => 'Sato']);
+
+    $this->actingAs($officer)
+        ->get('/officer/settings')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('subGroupChairs', [
+                $docents->id => [
+                    ['id' => $ada->id, 'first_name' => 'Ada', 'last_name' => 'Abbott'],
+                    ['id' => $officer->id, 'first_name' => 'Olive', 'last_name' => 'Bennett'],
+                    ['id' => $zed->id, 'first_name' => 'Zoe', 'last_name' => 'Zed'],
+                ],
+                $sections->id => [
+                    ['id' => $sectionMember->id, 'first_name' => 'Sam', 'last_name' => 'Sato'],
+                ],
+            ]));
+});
+
+it('sends the super-tier no Chair candidates', function () {
+    [, , $docents] = subGroupTree();
+    subGroupRosterMember($docents);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/officer/settings')
+        ->assertInertia(fn (Assert $page) => $page->where('subGroupChairs', []));
+});
+
+it('creates the sub-group with an empty roster when no Chair is chosen', function (array $chair) {
+    [, , $docents] = subGroupTree();
+
+    $this->actingAs(subGroupOfficerOf($docents))
+        ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $docents->id, ...$chair])
+        ->assertSessionHasNoErrors();
+
+    expect(Group::where('slug', 'tours')->sole()->memberships()->exists())->toBeFalse();
+})->with(['omitted' => [[]], 'null' => [['chair_id' => null]]]);
+
+it('accepts a Chair on leave from the parent', function () {
+    [, , $docents] = subGroupTree();
+    $chair = subGroupRosterMember($docents, MembershipStatus::Loa);
+
+    $this->actingAs(subGroupOfficerOf($docents))
+        ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $docents->id, 'chair_id' => $chair->id])
+        ->assertSessionHasNoErrors();
+
+    expect(Group::where('slug', 'tours')->sole()->memberships()->sole()->member_id)->toBe($chair->id);
+});
+
+it('refuses a Chair who is not on the parent\'s active roster', function (string $who) {
+    [, $section, $docents] = subGroupTree();
+    $guides = Group::factory()->program()->create(['parent_id' => $section->id, 'slug' => 'guides', 'name' => 'Guides']);
+    $chair = match ($who) {
+        'not a member' => Member::factory()->create(),
+        'another Group\'s member' => subGroupRosterMember($guides),
+        'resigned' => subGroupRosterMember($docents, MembershipStatus::Resigned),
+        'inactive' => subGroupRosterMember($docents, MembershipStatus::Inactive),
+    };
+
+    $this->actingAs(subGroupOfficerOf($docents))
+        ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $docents->id, 'chair_id' => $chair->id])
+        ->assertSessionHasErrors(['chair_id' => 'Choose a member of the parent Group.']);
+
+    expect(Group::where('name', 'Tours')->exists())->toBeFalse();
+})->with(['not a member', 'another Group\'s member', 'resigned', 'inactive']);
+
+it('refuses a Chair from outside the parent in French', function () {
+    [, , $docents] = subGroupTree();
+    $officer = subGroupOfficerOf($docents);
+    $stranger = Member::factory()->create();
+
+    $this->withLocaleRoutes('fr', function () use ($officer, $docents, $stranger) {
+        $this->actingAs($officer)
+            ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $docents->id, 'chair_id' => $stranger->id])
+            ->assertSessionHasErrors(['chair_id' => 'Choisissez un membre du groupe parent.']);
+    });
+});
+
+it('creates no Group when the Chair\'s membership cannot be written', function () {
+    [, , $docents] = subGroupTree();
+    $officer = subGroupOfficerOf($docents);
+    $chair = subGroupRosterMember($docents);
+    GroupMember::creating(fn () => throw new RuntimeException('membership write failed'));
+
+    $this->actingAs($officer)
+        ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $docents->id, 'chair_id' => $chair->id])
+        ->assertServerError();
+
+    expect(Group::where('name', 'Tours')->exists())->toBeFalse();
 });

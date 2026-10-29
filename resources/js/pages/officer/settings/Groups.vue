@@ -12,8 +12,8 @@
 //
 // A parent officer (#883, ADR-0036 §11) gets a `scoped` page: only the subtrees below the Groups
 // they administer, each headed by their own Group (`head`, listed but not opened), and no
-// Stewardships section. Their Create button opens the CreateSubGroupDialog instead (#884): name
-// and a parent from `subGroupParents`, nothing else.
+// Stewardships section. Their Create button opens the CreateSubGroupDialog instead (#884): name,
+// a parent from `subGroupParents` and an optional Chair from `subGroupChairs` (#885).
 import CreateGroupDialog from '@/components/CreateGroupDialog.vue';
 import CreateSubGroupDialog, { type SubGroupParent } from '@/components/CreateSubGroupDialog.vue';
 import DmvSettingsTabs from '@/components/DmvSettingsTabs.vue';
@@ -26,7 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { type ParentOption } from '@/composables/useParentPicker';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
-import { type BreadcrumbItem, type SharedData } from '@/types';
+import { type BreadcrumbItem, type RosterCandidate, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { PhCaretDown, PhCaretRight, PhMagnifyingGlass, PhPlus } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
@@ -58,6 +58,7 @@ const props = defineProps<{
     parentOptions: ParentOption[];
     kinds: string[];
     subGroupParents: SubGroupParent[];
+    subGroupChairs: Record<number, RosterCandidate[]>;
     groupsHref: string;
     stewardshipsHref: string;
 }>();
@@ -279,7 +280,7 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
             </div>
         </div>
 
-        <CreateSubGroupDialog v-if="scoped" v-model:open="createOpen" :parents="subGroupParents" />
+        <CreateSubGroupDialog v-if="scoped" v-model:open="createOpen" :parents="subGroupParents" :chairs="subGroupChairs" />
         <CreateGroupDialog v-else v-model:open="createOpen" :parent-options="parentOptions" :kinds="kinds" />
     </AppLayout>
 </template>

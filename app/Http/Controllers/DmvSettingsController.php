@@ -6,6 +6,8 @@ use App\Enums\GroupLogo;
 use App\Enums\Kind;
 use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
+use App\Enums\MembershipStatus;
+use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use App\Http\Requests\ArchiveGroupRequest;
 use App\Http\Requests\PreviewStewardshipsRequest;
@@ -13,6 +15,7 @@ use App\Http\Requests\StoreGroupRequest;
 use App\Http\Requests\UpdateGroupStructureRequest;
 use App\Http\Requests\UpdateStewardshipRequest;
 use App\Models\Group;
+use App\Models\GroupMember;
 use App\Models\GroupStewardship;
 use App\Support\Groups\OrgTree;
 use App\Support\Groups\OrgTreeNode;
@@ -58,6 +61,7 @@ class DmvSettingsController extends Controller
 
         if (! Gate::allows('administer-groups')) {
             $subtrees = $tree->subtrees($request->user()->administeredGroups()->pluck('id')->all());
+            $parents = array_values(array_filter($subtrees, fn (OrgTreeNode $node) => $node->group->isActive()));
 
             return Inertia::render('officer/settings/Groups', [
                 ...$this->shell(),
@@ -67,10 +71,12 @@ class DmvSettingsController extends Controller
                 'kinds' => [],
                 // The Create sub-group dialog's one parent select (#884): each head and its
                 // active descendants, in tree order, depth counted from the head.
-                'subGroupParents' => array_values(array_map(
+                'subGroupParents' => array_map(
                     fn (OrgTreeNode $node) => ['id' => $node->group->id, 'name' => $node->group->name, 'depth' => $node->depth],
-                    array_filter($subtrees, fn (OrgTreeNode $node) => $node->group->isActive()),
-                )),
+                    $parents,
+                ),
+                // Its Chair select (#885): each parent's active roster, keyed by parent id.
+                'subGroupChairs' => $this->subGroupChairs(array_map(fn (OrgTreeNode $node) => $node->group->id, $parents)),
             ]);
         }
 
@@ -87,7 +93,33 @@ class DmvSettingsController extends Controller
             // A Container is made by the seeder only (#850).
             'kinds' => array_values(array_diff(array_column(Kind::cases(), 'value'), [Kind::Container->value])),
             'subGroupParents' => [],
+            'subGroupChairs' => [],
         ]);
+    }
+
+    /**
+     * The Members a parent officer may name Chair of a new sub-group (#885, ADR-0036 §11): the
+     * active roster of each candidate parent, by surname, keyed by the parent's id. One query.
+     *
+     * @param  list<int>  $parentIds
+     * @return array<int, list<array{id: int, first_name: string, last_name: string}>>
+     */
+    private function subGroupChairs(array $parentIds): array
+    {
+        return GroupMember::query()
+            ->whereIn('group_member.group_id', $parentIds)
+            ->whereIn('group_member.status', MembershipStatus::belongingValues())
+            ->join('members', 'members.id', '=', 'group_member.member_id')
+            ->orderBy('members.last_name')
+            ->orderBy('members.first_name')
+            ->get(['group_member.group_id', 'members.id', 'members.first_name', 'members.last_name'])
+            ->groupBy('group_id')
+            ->map(fn ($rows) => $rows->map(fn (GroupMember $row) => [
+                'id' => $row->id,
+                'first_name' => $row->first_name,
+                'last_name' => $row->last_name,
+            ])->values()->all())
+            ->all();
     }
 
     /**
@@ -151,37 +183,49 @@ class DmvSettingsController extends Controller
      * A parent officer's sub-group (#884, ADR-0036 §11): a name and a parent, the slug made by
      * the server. It starts as a Legacy sub-committee did: a Working group with Meetings and
      * Documents on, every other flag off, Group listing, hours multiplier 1, not time-boxed.
-     * One transaction, so a later step (a Chair on create, #885) commits or fails with it.
+     * An optional Chair from the parent's roster (#885) joins it as Full with the Chair role, in
+     * the same transaction: no Group is left behind if that write fails.
      */
     private function createSubGroup(StoreGroupRequest $request): Group
     {
         $parent = $request->parent();
         $name = $request->validated('name');
+        $chairId = $request->validated('chair_id');
 
-        return DB::transaction(fn () => Group::create([
-            'name' => $name,
-            'slug' => SubGroupSlug::for($name, $parent),
-            'parent_id' => $parent->id,
-            'kind' => Kind::WorkingGroup,
-            'lifecycle_state' => LifecycleState::Active,
-            'listing_visibility' => ListingVisibility::Group,
-            'display_order' => 0,
-            'logo_key' => null,
-            'time_boxed' => false,
-            'has_meetings' => true,
-            'has_documents' => true,
-            'has_scheduling' => false,
-            'has_vetting' => false,
-            'has_announcements' => false,
-            'has_bookings' => false,
-            'collects_visitor_count' => false,
-            'collects_extra_interactions' => false,
-            'collects_visitor_provenance' => false,
-            'visitor_figures_await_booking' => false,
-            'hours_multiplier' => 1,
-            'created_by' => $request->user()->id,
-            'updated_by' => $request->user()->id,
-        ]));
+        return DB::transaction(function () use ($request, $parent, $name, $chairId) {
+            $group = Group::create([
+                'name' => $name,
+                'slug' => SubGroupSlug::for($name, $parent),
+                'parent_id' => $parent->id,
+                'kind' => Kind::WorkingGroup,
+                'lifecycle_state' => LifecycleState::Active,
+                'listing_visibility' => ListingVisibility::Group,
+                'display_order' => 0,
+                'logo_key' => null,
+                'time_boxed' => false,
+                'has_meetings' => true,
+                'has_documents' => true,
+                'has_scheduling' => false,
+                'has_vetting' => false,
+                'has_announcements' => false,
+                'has_bookings' => false,
+                'collects_visitor_count' => false,
+                'collects_extra_interactions' => false,
+                'collects_visitor_provenance' => false,
+                'visitor_figures_await_booking' => false,
+                'hours_multiplier' => 1,
+                'created_by' => $request->user()->id,
+                'updated_by' => $request->user()->id,
+            ]);
+
+            if ($chairId !== null) {
+                $group->memberships()
+                    ->create(['member_id' => $chairId, 'status' => MembershipStatus::Full])
+                    ->roles()->create(['role' => Role::Chair]);
+            }
+
+            return $group;
+        });
     }
 
     /**

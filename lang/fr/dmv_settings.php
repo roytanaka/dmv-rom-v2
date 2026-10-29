@@ -77,6 +77,7 @@ return [
         // L’enfant de la racine dont le sous-arbre fournit le parent (#850).
         'section' => 'Section',
         'parent' => 'Parent',
+        'chair' => 'Président·e',
         'kind' => 'Type',
         'kind_container_note' => 'Un conteneur n’a pas de page. Son adresse répond 404.',
         'visibility' => 'Visibilité dans la liste',
@@ -196,6 +197,7 @@ return [
         'parent_cycle' => 'Un groupe ne peut pas se placer sous lui-même ni sous l’un de ses groupes.',
         'root_parent' => 'Choisissez une section, pas la racine.',
         'sibling_name_taken' => 'Un autre groupe sous ce parent porte ce nom.',
+        'chair_not_on_parent' => 'Choisissez un membre du groupe parent.',
         'end_before_start' => 'La date de fin doit être égale ou postérieure à la date de début.',
         'not_editable' => 'La racine et les conteneurs n’ont pas de paramètres ici.',
         'archived' => 'Désarchivez ce groupe pour modifier ses paramètres.',
