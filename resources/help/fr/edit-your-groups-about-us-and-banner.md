@@ -26,6 +26,8 @@ La carte **Comment se joindre** explique aux autres membres comment se joindre �
 3. Saisissez les étapes pour se joindre, une par ligne.
 4. Sélectionnez **Enregistrer**.
 
+    ![Le formulaire Comment se joindre : la boîte de texte, Enregistrer et Annuler](04.png)
+
 > **Note :** Videz la boîte et enregistrez pour effacer les étapes. La carte invite alors les lecteurs à communiquer avec le ou la Président·e de votre groupe.
 
 ## Choisir une bannière

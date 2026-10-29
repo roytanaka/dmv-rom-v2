@@ -26,6 +26,8 @@ The **How to join** card tells other Members how to join your Group. Everyone wh
 3. Type the steps to join, one per line.
 4. Select **Save**.
 
+    ![The How to join edit form: the text box, Save, and Cancel](04.png)
+
 > **Note:** Empty the box and save to clear the steps. The card then tells readers to contact your Group's Chair.
 
 ## Choose a banner
