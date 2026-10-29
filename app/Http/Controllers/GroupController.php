@@ -153,10 +153,14 @@ class GroupController extends Controller
             abort(404);
         }
 
-        // The Meetings list is members-only (MeetingPolicy), unlike the org-open
-        // Overview and Roster — a non-member visiting the section is forbidden.
+        // The Meetings section exists only while the Group runs meetings — a 404 for everyone,
+        // super-tier included, so the tab and the URL agree. Past that the list is members-only
+        // (MeetingPolicy): a non-member gets the tab with only the join notice (ADR-0037 §2), and
+        // no Meeting data rides in the payload below.
+        $canViewMeetings = $group->has_meetings && $request->user()->can('viewAny', [Meeting::class, $group]);
+
         if ($section === 'meetings') {
-            abort_unless($request->user()->can('viewAny', [Meeting::class, $group]), 403);
+            abort_unless($group->has_meetings, 404);
         }
 
         // The Scheduling section exists only while the Group runs scheduling — a 404
@@ -175,13 +179,12 @@ class GroupController extends Controller
 
         // The Tours page (#792, ADR-0033 §5) exists only while the Group runs vetting — a 404 for
         // everyone, super-tier included, so the tab and the URL agree. Past that it is members-only
-        // (TourPolicy `view`): a non-member gets 403, the Meetings shape. The qualification screens
+        // (TourPolicy `view`): a non-member gets the tab with only the join notice (ADR-0037 §2). The qualification screens
         // render in this section too, gated in their own actions.
         $canViewTours = $group->has_vetting && $request->user()->can('view', [Tour::class, $group]);
 
         if ($section === 'tours' && $qualifications === null) {
             abort_unless($group->has_vetting, 404);
-            abort_unless($canViewTours, 403);
         }
 
         // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
@@ -233,8 +236,7 @@ class GroupController extends Controller
                 // on every Group and needs no flag.
                 'capabilities' => [
                     'meetings' => $group->has_meetings,
-                    // Whether the Group runs vetting (#792, ADR-0033) — with `can.viewTours`, opens
-                    // the Tours tab.
+                    // Whether the Group runs vetting (#792, ADR-0033) — opens the Tours tab.
                     'vetting' => $group->has_vetting,
                     'documents' => $group->has_documents,
                     'scheduling' => $group->has_scheduling,
@@ -282,9 +284,6 @@ class GroupController extends Controller
             // `createSchedule` drives the Scheduling tab's "New schedule" affordance (#354).
             'can' => [
                 'update' => $request->user()->can('update', $group),
-                // `viewMeetings` drives the Meetings tab (Feedback item 79) — the same gate as the
-                // section, so a non-member sees no tab. UI hint only; the section re-checks it.
-                'viewMeetings' => $request->user()->can('viewAny', [Meeting::class, $group]),
                 'createMeeting' => $request->user()->can('create', [Meeting::class, $group]),
                 'manageRoster' => $this->managesRoster($request, $group),
                 'createSchedule' => $request->user()->can('create', [Schedule::class, $group]),
@@ -322,9 +321,6 @@ class GroupController extends Controller
                 // a Booker or Chair of a Group running bookings. UI hint only; the booking-type
                 // Form Requests re-check the BookingTypePolicy on write.
                 'manageBookings' => $canManageBookings,
-                // `viewTours` drives the Tours tab (#792, ADR-0033 §5) — a Member of a vetting Group,
-                // or the super-tier. UI hint only; the section re-checks it.
-                'viewTours' => $canViewTours,
                 // `enterHours` drives the Hours tab's entry form — any participating
                 // Member on any Group they can open (ADR-0022 §4); a departed Category
                 // gets no form. UI hint only — StoreHoursRecordRequest re-checks on POST.
@@ -345,6 +341,13 @@ class GroupController extends Controller
                 // UI hint only; the Document Form Requests re-check the DocumentPolicy on write.
                 'manageDocuments' => $group->has_documents && $request->user()->can('manage', [Document::class, $group]),
             ],
+            // The members-only tabs (ADR-0037 §2): the Group runs the capability, so the tab shows,
+            // but the viewer is not a member (nor super-tier). The tab renders only the join notice;
+            // its payload below stays empty.
+            'membersOnly' => [
+                'meetings' => $group->has_meetings && ! $canViewMeetings,
+                'tours' => $group->has_vetting && ! $canViewTours,
+            ],
             // The Roster tab's payload is resolved only when that tab is active —
             // its per-row contact gating eager-loads each member's memberships, work
             // the Overview never needs.
@@ -361,7 +364,7 @@ class GroupController extends Controller
             ],
             // The Meetings tab's payload is resolved only when that tab is active
             // and the viewer has cleared the members-only gate above.
-            'meetings' => $section === 'meetings' ? $this->meetings($request, $group) : [],
+            'meetings' => $section === 'meetings' && $canViewMeetings ? $this->meetings($request, $group) : [],
             // The Scheduling tab's payload, resolved only on that tab: the viewer's
             // visible Schedules and which one (if any) opens directly.
             'scheduling' => $section === 'scheduling'
@@ -396,7 +399,7 @@ class GroupController extends Controller
             'qualifications' => $qualifications,
             // The Tours page's payload (#792, ADR-0033 §5), resolved only on that page and past its
             // gate above — not on the qualification screens that share the section.
-            'tours' => $section === 'tours' && $qualifications === null ? TourPayloads::toursPage($group) : [],
+            'tours' => $section === 'tours' && $qualifications === null && $canViewTours ? TourPayloads::toursPage($group) : [],
             'settings' => $section === 'settings'
                 ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours, $canManageTourRules, $canManageBookings)
                 : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null, 'tourRules' => null, 'bookings' => null],

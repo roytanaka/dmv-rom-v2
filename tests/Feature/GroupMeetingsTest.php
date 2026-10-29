@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Category;
+use App\Enums\ListingVisibility;
 use App\Enums\MeetingLinkKind;
 use App\Enums\Role;
 use App\Models\Group;
@@ -13,7 +14,8 @@ use Inertia\Testing\AssertableInertia as Assert;
 /*
  * Group Meetings tab (#190, PRD #186). The Group's first own-data capability,
  * asserted at the Inertia prop seam: the list is members-only (visible to Group
- * members and the super-tier, withheld from non-members), present only when the
+ * members and the super-tier; a non-member gets the tab with a join notice and no
+ * Meeting data, ADR-0037 §2), present only when the
  * Group runs meetings, and the published/hidden flag is respected for ordinary
  * members.
  */
@@ -42,13 +44,30 @@ it('lists a meetings-Group meetings for a Group member', function () {
             ->where('meetings', fn (Collection $meetings) => $meetings->contains('title', $meeting->title)));
 });
 
-it('withholds the meetings list from a non-member', function () {
+it('shows a non-member the members-only Meetings tab with no Meeting data (ADR-0037 §2)', function () {
     $group = Group::factory()->workingGroup()->create();
-    Meeting::factory()->create(['group_id' => $group->id]);
+    Meeting::factory()->create(['group_id' => $group->id, 'title' => 'Spring planning']);
 
     $this->actingAs(Member::factory()->create())
         ->get(route('groups.show', ['group' => $group, 'section' => 'meetings']))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('section', 'meetings')
+            ->where('group.capabilities.meetings', true)
+            ->where('membersOnly.meetings', true)
+            ->where('meetings', []));
+
+    expect(__('group.members_only', [], 'en'))->toBe('For members of this group')
+        ->and(__('group.members_only', [], 'fr'))->toBe('Réservé aux membres de ce groupe')
+        ->and(__('group.how_to_join', [], 'fr'))->toBe('Comment se joindre');
+});
+
+it('404s a non-member of a Private Group on the Meetings section', function () {
+    $group = Group::factory()->workingGroup()->create(['listing_visibility' => ListingVisibility::Private]);
+
+    $this->actingAs(Member::factory()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'meetings']))
+        ->assertNotFound();
 });
 
 it('shows the meetings list to the super-tier without membership', function () {
@@ -71,25 +90,32 @@ it('opens the root DMV Group meetings to a listed Member with no stored root row
         ->get(route('groups.show', ['group' => $root, 'section' => 'meetings']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('can.viewMeetings', true)
+            ->where('membersOnly.meetings', false)
             ->where('meetings', fn (Collection $meetings) => $meetings->contains('title', $meeting->title)));
 });
 
-it('withholds the root DMV Group meetings from a Member whose Category grants no listing', function () {
+it('shows the root DMV Group join notice to a Member whose Category grants no listing', function () {
     $root = Group::factory()->standingCommittee()->create(['slug' => Group::ROOT_SLUG, 'name' => 'DMV', 'has_meetings' => true]);
     Meeting::factory()->create(['group_id' => $root->id]);
 
     $this->actingAs(Member::factory()->category(Category::Provisional)->create())
         ->get(route('groups.show', ['group' => $root, 'section' => 'meetings']))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('membersOnly.meetings', true)
+            ->where('meetings', []));
 });
 
-it('forbids the meetings section on a Group that does not run meetings', function () {
+it('404s the meetings section on a Group that does not run meetings', function () {
     $group = Group::factory()->create(['has_meetings' => false]);
 
     $this->actingAs(memberOf($group))
         ->get(route('groups.show', ['group' => $group, 'section' => 'meetings']))
-        ->assertForbidden();
+        ->assertNotFound();
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get(route('groups.show', ['group' => $group, 'section' => 'meetings']))
+        ->assertNotFound();
 });
 
 it('hides an unpublished meeting from an ordinary member', function () {
@@ -183,47 +209,53 @@ it('marks each meeting as upcoming or past for the client to head the two blocks
             ->etc());
 });
 
-// The Meetings tab hint (Feedback item 79): the tab answers to the same gate as the
-// route, so a viewer the route would refuse sees no tab.
-it('opens the Meetings tab hint to a Group member', function () {
+// The Meetings tab hint (ADR-0037 §2): the tab shows wherever the Group runs meetings; the
+// members-only flag tells the tab to show the join notice instead of the list.
+it('sends a Group member the Meetings tab with its content', function () {
     $group = Group::factory()->workingGroup()->create();
 
     $this->actingAs(memberOf($group))
         ->get(route('groups.show', ['group' => $group]))
-        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', true));
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('group.capabilities.meetings', true)
+            ->where('membersOnly.meetings', false));
 });
 
-it('withholds the Meetings tab hint from a non-member', function () {
+it('flags the Meetings tab members-only for a non-member', function () {
     $group = Group::factory()->workingGroup()->create();
 
     $this->actingAs(Member::factory()->create())
         ->get(route('groups.show', ['group' => $group]))
-        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', false));
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('group.capabilities.meetings', true)
+            ->where('membersOnly.meetings', true));
 });
 
-it('withholds the Meetings tab hint from a member of the parent Group only', function () {
+it('flags the Meetings tab members-only for a member of the parent Group only', function () {
     $parent = Group::factory()->workingGroup()->create();
     $subgroup = Group::factory()->workingGroup()->create(['parent_id' => $parent->id]);
 
     $this->actingAs(memberOf($parent))
         ->get(route('groups.show', ['group' => $subgroup]))
-        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', false));
+        ->assertInertia(fn (Assert $page) => $page->where('membersOnly.meetings', true));
 });
 
-it('opens the Meetings tab hint to the super-tier without membership', function () {
+it('opens the Meetings tab to the super-tier without membership', function () {
     $group = Group::factory()->workingGroup()->create();
 
     $this->actingAs(Member::factory()->superTier()->create())
         ->get(route('groups.show', ['group' => $group]))
-        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', true));
+        ->assertInertia(fn (Assert $page) => $page->where('membersOnly.meetings', false));
 });
 
-it('withholds the Meetings tab hint on a Group that does not run meetings', function () {
+it('sends no members-only flag on a Group that does not run meetings', function () {
     $group = Group::factory()->create(['has_meetings' => false]);
 
-    $this->actingAs(memberOf($group))
+    $this->actingAs(Member::factory()->create())
         ->get(route('groups.show', ['group' => $group]))
-        ->assertInertia(fn (Assert $page) => $page->where('can.viewMeetings', false));
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('group.capabilities.meetings', false)
+            ->where('membersOnly.meetings', false));
 });
 
 // --- Inactive Groups are read-only (#839, ADR-0036 §2) ------------------------

@@ -13,7 +13,7 @@ Chaque visite active a sa propre ligne. La ligne indique combien de membres donn
 
 Pour trouver une visite ou un membre, tapez une partie du nom dans la zone de recherche. La liste montre seulement les visites qui correspondent. Si le nom d'un membre correspond, sa visite s'ouvre et le nom est surligné.
 
-Seuls les membres actuels du groupe voient l'onglet **Visites**. Un membre démissionnaire, décédé ou inactif ne le voit pas.
+Seuls les membres actuels du groupe voient la liste des visites. Toute autre personne, y compris un membre démissionnaire, décédé ou inactif, voit plutôt **Réservé aux membres de ce groupe** dans l'onglet. Un lien **Comment se joindre** en dessous ouvre la carte **Comment se joindre** de l'Aperçu.
 
 ## Écrire aux membres qui donnent une visite
 

@@ -13,7 +13,7 @@ Each active Tour has its own row. The row shows how many Members give the Tour. 
 
 To find a Tour or a Member, type part of the name in the search box. The list shows only the Tours that match. If a Member's name matches, their Tour opens and the name is marked.
 
-Only current Members of the Group see the **Tours** tab. A Member who has resigned, died or gone inactive does not.
+Only current Members of the Group see the Tours list. Anyone else, including a Member who has resigned, died or gone inactive, sees **For members of this group** on the tab instead. A **How to join** link below it opens the **How to join** card on the Overview.
 
 ## Email the Members who give a Tour
 

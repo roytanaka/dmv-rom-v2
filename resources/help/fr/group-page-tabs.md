@@ -20,6 +20,8 @@ La liste de membres du groupe. Elle liste chaque personne du groupe et le rôle 
 
 Les réunions du groupe, avec leurs ordres du jour et leurs procès-verbaux. Cet onglet apparaît seulement quand le groupe tient des réunions.
 
+Les onglets Réunions et Visites sont réservés aux membres du groupe. Si vous n'êtes pas dans le groupe, vous voyez quand même ces onglets. Chacun montre seulement **Réservé aux membres de ce groupe** et un lien **Comment se joindre**. Sélectionnez le lien pour ouvrir la carte **Comment se joindre** de l'Aperçu.
+
 ![L'onglet Réunions sur un comité : un ensemble d'onglets différent, et aucune réunion notée encore](03.png)
 
 ## Horaire

@@ -12,6 +12,7 @@
 // `can.update` hint; the GroupPolicy enforces every mutation regardless.
 import GroupDocuments from '@/components/GroupDocuments.vue';
 import GroupHours from '@/components/GroupHours.vue';
+import GroupJoinNotice from '@/components/GroupJoinNotice.vue';
 import GroupMeetings from '@/components/GroupMeetings.vue';
 import GroupQualifications, { type QualificationScreen } from '@/components/GroupQualifications.vue';
 import GroupRoster from '@/components/GroupRoster.vue';
@@ -84,7 +85,7 @@ const props = defineProps<{
         banner_key: string | null;
         capabilities: {
             meetings: boolean;
-            // Whether the Group runs vetting (#792) — with `can.viewTours`, opens the Tours tab.
+            // Whether the Group runs vetting (#792) — opens the Tours tab.
             vetting: boolean;
             documents: boolean;
             scheduling: boolean;
@@ -97,6 +98,12 @@ const props = defineProps<{
         selfServeUnitMinutes: number;
     };
     section: string;
+    // The members-only tabs (ADR-0037 §2): true when the Group runs the capability but the viewer
+    // is not a member. The tab shows only the join notice and its payload is empty.
+    membersOnly: {
+        meetings: boolean;
+        tours: boolean;
+    };
     // UI hints from the policies — drive the officer affordances only; the server
     // enforces every mutation regardless. `update` gates the Overview edits (#191);
     // `createMeeting` gates the Meetings tab's "New meeting" control (#193);
@@ -105,8 +112,6 @@ const props = defineProps<{
     // `manageSettings` gates the Settings tab (ADR-0027 §1).
     can: {
         update: boolean;
-        // `viewMeetings` gates the Meetings tab (Feedback item 79) — a Member of the Group, or the super-tier.
-        viewMeetings: boolean;
         createMeeting: boolean;
         manageRoster: boolean;
         createSchedule: boolean;
@@ -122,8 +127,6 @@ const props = defineProps<{
         manageTourRules: boolean;
         // `manageBookings` gates the Settings tab's Group tours card (#794).
         manageBookings: boolean;
-        // `viewTours` gates the Tours tab (#792) — a current Member of a vetting Group, or the super-tier.
-        viewTours: boolean;
         enterHours: boolean;
         viewReports: boolean;
         // `manageDocuments` gates the Documents tab's upload control and uploader column (#712).
@@ -185,8 +188,9 @@ const formatDate = (iso: string) => new Intl.DateTimeFormat(page.props.locale, {
 const ended = computed(() => !props.group.archived && props.group.end_date !== null && new Date(props.group.end_date) < new Date());
 
 // The in-body section tabs. Overview · Roster are always present; Meetings, Documents
-// (#712) and Scheduling each render when the Group runs that capability; Meetings also
-// needs a viewer the section admits (`can.viewMeetings`). Hours is always-on (ADR-0022
+// (#712), Scheduling and Tours each render when the Group runs that capability, for
+// members and non-members alike (ADR-0037 §2: a non-member's Meetings or Tours tab shows
+// only the join notice). Hours is always-on (ADR-0022
 // §3): its tab renders on every Group and sub-Group, now a real tab carrying the
 // extra-hours entry surface (#408). Settings comes last, only for a viewer
 // holding a configuration right, on every visit, empty or not (ADR-0027 §1). Hrefs are
@@ -197,10 +201,10 @@ const tabs = computed<NavNode[]>(() => {
         { href: href(), labelKey: 'group.tab.overview' },
         { href: href('roster'), labelKey: 'group.tab.members' },
     ];
-    if (props.group.capabilities.meetings && props.can.viewMeetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
+    if (props.group.capabilities.meetings) list.push({ href: href('meetings'), labelKey: 'group.tab.meetings' });
     if (props.group.capabilities.documents) list.push({ href: href('documents'), labelKey: 'group.tab.documents' });
     if (props.group.capabilities.scheduling) list.push({ href: href('scheduling'), labelKey: 'group.tab.scheduling' });
-    if (props.group.capabilities.vetting && props.can.viewTours) list.push({ href: href('tours'), labelKey: 'group.tab.tours' });
+    if (props.group.capabilities.vetting) list.push({ href: href('tours'), labelKey: 'group.tab.tours' });
     list.push({ href: href('hours'), labelKey: 'group.tab.hours' });
     if (props.can.manageSettings) list.push({ href: href('settings'), labelKey: 'group.tab.settings' });
     return list;
@@ -511,6 +515,13 @@ const pickBanner = (key: string | null) => {
                     :group-name="group.name"
                     :email-reason="email.reason"
                     :can-manage-tours="can.manageTours"
+                />
+
+                <!-- The join notice (ADR-0037 §2) — a non-member's Meetings or Tours tab, in place of
+                     the members-only content. The qualification screens keep their own gates. -->
+                <GroupJoinNotice
+                    v-else-if="(section === 'meetings' && membersOnly.meetings) || (section === 'tours' && !qualifications && membersOnly.tours)"
+                    :group-slug="group.slug"
                 />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only

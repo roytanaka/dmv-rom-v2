@@ -20,6 +20,8 @@ The Group's roster. It lists everyone in the Group and the role each person hold
 
 The Group's meetings, with their agendas and minutes. This tab shows only when the Group holds meetings.
 
+Meetings and Tours are for members of the Group. If you are not in the Group, you still see these tabs. Each one shows only **For members of this group** and a **How to join** link. Select the link to open the **How to join** card on the Overview.
+
 ![The Meetings tab on a committee: a different set of tabs, and no meetings recorded yet](03.png)
 
 ## Scheduling

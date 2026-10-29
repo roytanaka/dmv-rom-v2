@@ -34,6 +34,7 @@ return [
     'facts_ends' => 'Se termine le :date',
     'how_to_join' => 'Comment se joindre',
     'how_to_join_empty' => 'Pour vous joindre à ce groupe, communiquez avec son ou sa Président·e.',
+    'members_only' => 'Réservé aux membres de ce groupe',
 
     'roster' => [
         'search' => [
