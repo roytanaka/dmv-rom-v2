@@ -150,18 +150,22 @@ it('hints roster management on for an officer and off for an ordinary member', f
         ->assertInertia(fn (Assert $page) => $page->where('can.manageRoster', false));
 });
 
-it('carries an LOA Member’s DMV-wide standing beside a Full Group standing, for a manager and a non-manager', function () {
-    // The roster marks the DMV-wide standing (Category) for a roster manager only (#877); the
-    // frontend reads it off `standing` and gates it on `can.manageRoster`. The Category change
-    // leaves the Group standing alone: the two stay separate.
+it('carries an LOA Member’s DMV-wide standing to every viewer, with the manager hint only for a manager', function () {
+    // The roster marks the DMV-wide standing (Category) for a roster manager only (#877). The
+    // standing is always-public, so every viewer gets it; the frontend gates the marker on
+    // `can.manageRoster`. The Category change leaves the Group standing alone.
     $group = Group::factory()->create();
     $secretary = rosterMember($group, 'Sec', 'Retary', MembershipStatus::Full, [Role::Secretary]);
     $leave = rosterMember($group, 'Lou', 'Leave', MembershipStatus::Full);
     $leave->update(['category' => Category::Loa]);
     $section = ['group' => $group, 'section' => 'roster'];
 
-    $loaRow = fn (Collection $roster) => $roster->firstWhere('id', $leave->id)['standing'] === Category::Loa->value
-        && $roster->firstWhere('id', $leave->id)['group_standing'] === MembershipStatus::Full->value;
+    $loaRow = function (Collection $roster) use ($leave) {
+        $row = $roster->firstWhere('id', $leave->id);
+
+        return $row['standing'] === Category::Loa->value
+            && $row['group_standing'] === MembershipStatus::Full->value;
+    };
 
     $this->actingAs($secretary)
         ->get(route('groups.show', $section))

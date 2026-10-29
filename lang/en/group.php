@@ -64,8 +64,6 @@ return [
         'no_contact' => '—',
         'empty' => 'No members yet.',
         'no_matches' => 'No members match your search.',
-        // A roster manager's marker for a Member whose DMV-wide standing is not Active (#877).
-        'dmv_standing' => 'DMV: :standing',
 
         // Officer roster CRUD (#192) — shown only to a Secretary / Chair / super-tier
         // (server-gated via `can.manageRoster`). The validation strings surface from

@@ -38,4 +38,6 @@ return [
         'resigned' => 'Démissionnaire',
         'deceased' => 'Décédé',
     ],
+    // Le statut au sein du DMV sur la liste d'un groupe, à côté du statut dans le groupe (#877).
+    'dmv_standing' => 'DMV : :standing',
 ];

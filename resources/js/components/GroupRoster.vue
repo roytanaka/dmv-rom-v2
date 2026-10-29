@@ -21,6 +21,7 @@
 // GroupMemberPolicy regardless of what renders.
 import AlphaJumpRail from '@/components/AlphaJumpRail.vue';
 import GroupStandingBadge from '@/components/GroupStandingBadge.vue';
+import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -121,10 +122,7 @@ const displayName = (member: RosterMember) => `${member.last_name}, ${member.fir
 const hasContact = (member: RosterMember) => member.email !== undefined || member.phone !== undefined;
 
 // The DMV-wide standing marker (#877): shown to a roster manager when the Category isn't Active.
-const dmvMarker = (member: RosterMember) => {
-    const standing = dmvStandingMarker(member.standing, props.canManage);
-    return standing === null ? null : trans('group.roster.dmv_standing', { standing: trans(`member.standing.${standing}`) });
-};
+const dmvStanding = (member: RosterMember) => dmvStandingMarker(member.standing, props.canManage);
 
 // Empty-state colspan tracks the optional officer Actions column.
 // The Actions column carries the roster CRUD (#192) and the Tours link (#789).
@@ -315,14 +313,14 @@ const hardRemove = (member: RosterMember) => {
                                 }}</TextLink>
                                 <!-- On a phone the other columns hide; their facts ride under the name. -->
                                 <div
-                                    v-if="member.group_roles.length || member.group_standing !== 'full' || dmvMarker(member)"
+                                    v-if="member.group_roles.length || member.group_standing !== 'full' || dmvStanding(member)"
                                     class="mt-1 flex flex-wrap gap-1.5 md:hidden"
                                 >
                                     <Badge v-for="role in member.group_roles" :key="role" variant="secondary" class="whitespace-normal">{{
                                         trans(`group.role.${role}`)
                                     }}</Badge>
                                     <GroupStandingBadge :standing="member.group_standing" class="whitespace-normal" />
-                                    <Badge v-if="dmvMarker(member)" variant="outline" class="whitespace-normal">{{ dmvMarker(member) }}</Badge>
+                                    <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" prefixed class="whitespace-normal" />
                                 </div>
                                 <!-- A narrow cell breaks the address after the @ first, and mid-word only if it must. -->
                                 <div v-if="hasContact(member)" class="text-muted-foreground mt-1 flex flex-col text-sm wrap-anywhere lg:hidden">
@@ -358,7 +356,7 @@ const hardRemove = (member: RosterMember) => {
                             <TableCell class="hidden md:table-cell">
                                 <div class="flex flex-wrap gap-1.5">
                                     <GroupStandingBadge :standing="member.group_standing" />
-                                    <Badge v-if="dmvMarker(member)" variant="outline">{{ dmvMarker(member) }}</Badge>
+                                    <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" prefixed />
                                 </div>
                             </TableCell>
                             <TableCell v-if="hasActions" class="text-right">
