@@ -41,6 +41,8 @@ return [
     // fallback line shows when the Group has written none.
     'how_to_join' => 'How to join',
     'how_to_join_empty' => 'To join this group, contact its Chair.',
+    // The root DMV Group has no Chair; its leadership is the DMV Executive.
+    'how_to_join_empty_root' => 'To join the DMV, contact the DMV Executive.',
     // The join notice on a non-member's Meetings or Tours tab (#869, ADR-0037 §2), above a
     // "How to join" link to the card.
     'members_only' => 'For members of this group',

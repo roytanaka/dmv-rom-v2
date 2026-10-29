@@ -12,7 +12,7 @@ A current schedule opens at today. To see the days that are gone, click **Show e
 
 A schedule leaves the list once its end date has passed. A link to it, such as one in an email, still opens it.
 
-**Note:** The Group's Chair, Statistician and Scheduler see a **Past schedules** link above the list. It lists the past schedules, newest first. To go back, click **Current schedules**.
+> **Note:** Only the Group's Chair, Statistician and Scheduler see the **Past schedules** link above the list. It lists past schedules, newest first, with a **Current schedules** link back.
 
 ## Shifts
 

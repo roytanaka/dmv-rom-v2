@@ -62,7 +62,7 @@ it('shows a Member each active Tour with its active holders and Last vet dates',
             ->where('section', 'tours')
             ->where('qualifications', null)
             ->where('group.capabilities.vetting', true)
-            ->where('membersOnly.tours', false)
+            ->where('joinNotice', false)
             ->where('can.manageTours', false)
             ->where('tours', [
                 ['id' => $canada->id, 'name' => 'Canada', 'openToAll' => true, 'members' => []],
@@ -119,12 +119,8 @@ it('shows a Member who is not in the Group the members-only tab with no Tour dat
         ->assertInertia(fn (Assert $page) => $page
             ->where('section', 'tours')
             ->where('group.capabilities.vetting', true)
-            ->where('membersOnly.tours', true)
+            ->where('joinNotice', true)
             ->where('tours', []));
-
-    $this->actingAs($outsider)
-        ->get(route('groups.show', ['group' => $group]))
-        ->assertInertia(fn (Assert $page) => $page->where('membersOnly.tours', true));
 });
 
 it('shows a Member whose Membership no longer counts the members-only tab', function (MembershipStatus $status) {
@@ -136,7 +132,7 @@ it('shows a Member whose Membership no longer counts the members-only tab', func
         ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('membersOnly.tours', true)
+            ->where('joinNotice', true)
             ->where('tours', []));
 })->with([MembershipStatus::Resigned, MembershipStatus::Deceased, MembershipStatus::Inactive]);
 
@@ -156,7 +152,7 @@ it('lets the super-tier see the page without a Membership', function () {
         ->get(route('groups.show', ['group' => $group, 'section' => 'tours']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('membersOnly.tours', false)
+            ->where('joinNotice', false)
             ->where('tours.0.name', 'Birds'));
 });
 
@@ -174,8 +170,7 @@ it('404s when the Group runs no vetting, super-tier included', function () {
     $this->actingAs(Member::factory()->superTier()->create())
         ->get(route('groups.show', ['group' => $group]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('group.capabilities.vetting', false)
-            ->where('membersOnly.tours', false));
+            ->where('group.capabilities.vetting', false));
 });
 
 it('tells a Vetting officer to link Tour rows to the by-Tour screens', function () {

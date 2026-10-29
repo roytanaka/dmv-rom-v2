@@ -62,6 +62,18 @@ it('sends a null How to join when the Group has written none (#867)', function (
         ->assertInertia(fn (Assert $page) => $page->where('overview.how_to_join', null));
 });
 
+it('flags the root DMV Group so its empty How to join card points to the DMV Executive', function () {
+    $root = Group::factory()->standingCommittee()->create(['slug' => Group::ROOT_SLUG, 'name' => 'DMV']);
+    $group = Group::factory()->create();
+    $this->actingAs(Member::factory()->create());
+
+    $this->get(route('groups.show', $root))
+        ->assertInertia(fn (Assert $page) => $page->where('overview.is_root', true));
+
+    $this->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page->where('overview.is_root', false));
+});
+
 it('defaults a bare slug to the Overview section and reads the {section} segment', function () {
     $group = Group::factory()->create();
     $this->actingAs(Member::factory()->create());

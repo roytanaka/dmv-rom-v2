@@ -1,6 +1,6 @@
 # Modifier la section À propos et la bannière de votre groupe
 
-Modifiez la description et les étapes pour se joindre sur la page de votre groupe, et choisissez son image de bannière. Vous avez besoin du rôle Secrétaire ou Président·e.
+Modifiez la description et les étapes pour se joindre sur la page de votre groupe. Choisissez aussi son image de bannière. Vous avez besoin du rôle Secrétaire ou Président·e.
 
 ## Modifier le texte de la section À propos
 
@@ -19,7 +19,7 @@ Modifiez la description et les étapes pour se joindre sur la page de votre grou
 
 ## Écrire les étapes pour se joindre
 
-La carte **Comment se joindre** explique aux autres membres comment se joindre à votre groupe. Chaque membre qui ouvre votre groupe peut la lire.
+La carte **Comment se joindre** explique aux autres membres comment se joindre à votre groupe. Toute personne qui peut ouvrir l'Aperçu de votre groupe peut la lire. Un groupe privé reste caché aux non-membres.
 
 1. Sur l'onglet **Aperçu**, trouvez la carte **Comment se joindre** sous **En bref**.
 2. Sélectionnez **Modifier** dans la carte **Comment se joindre**.
@@ -41,4 +41,4 @@ Votre choix est enregistré aussitôt. Le sélecteur se ferme et votre groupe af
 
 ## Et ensuite
 
-Les membres de votre groupe voient le nouveau texte À propos et la nouvelle bannière sur l'onglet Aperçu. Chaque membre voit la carte Comment se joindre.
+Les membres de votre groupe voient le nouveau texte À propos et la nouvelle bannière sur l'onglet Aperçu. Toute personne qui peut ouvrir l'Aperçu voit la carte Comment se joindre.

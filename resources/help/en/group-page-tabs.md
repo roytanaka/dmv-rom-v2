@@ -6,7 +6,7 @@ Every Group page holds the same set of tabs across the top. Here is what each on
 
 The first tab. It shows the Group's description, its officers, and a few facts about the Group.
 
-The **How to join** card sits below **At a glance**. It tells you how to join the Group. If the Group has not written its steps yet, the card tells you to contact its Chair.
+The **How to join** card sits below **At a glance**. It tells you how to join the Group. If the Group has not written its steps yet, the card tells you to contact its Chair. On the DMV Group, it points you to the DMV Executive.
 
 ![A Group page on Overview: the description and the officers, with the tabs across the top](01.png)
 

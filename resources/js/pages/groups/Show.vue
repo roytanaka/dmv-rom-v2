@@ -98,12 +98,9 @@ const props = defineProps<{
         selfServeUnitMinutes: number;
     };
     section: string;
-    // The members-only tabs (ADR-0037 §2): true when the Group runs the capability but the viewer
-    // is not a member. The tab shows only the join notice and its payload is empty.
-    membersOnly: {
-        meetings: boolean;
-        tours: boolean;
-    };
+    // ADR-0037 §2: true when the active section is members-only (Meetings, or the Tours page)
+    // and the viewer is not a member. The section shows only the join notice; its payload is empty.
+    joinNotice: boolean;
     // UI hints from the policies — drive the officer affordances only; the server
     // enforces every mutation regardless. `update` gates the Overview edits (#191);
     // `createMeeting` gates the Meetings tab's "New meeting" control (#193);
@@ -176,6 +173,8 @@ const props = defineProps<{
         description: string | null;
         // How to join (#867): the join steps, as-authored; null shows the fallback line.
         how_to_join: string | null;
+        // The root DMV Group has no Chair, so its fallback line points to the DMV Executive.
+        is_root: boolean;
         children: ChildGroup[];
         leadership: LeadershipEntry[];
         facts: Facts;
@@ -499,7 +498,9 @@ const pickBanner = (key: string | null) => {
                                 </form>
                                 <template v-else>
                                     <p v-if="overview.how_to_join" class="text-rom-ink text-sm whitespace-pre-line">{{ overview.how_to_join }}</p>
-                                    <p v-else class="text-muted-foreground text-sm">{{ trans('group.how_to_join_empty') }}</p>
+                                    <p v-else class="text-muted-foreground text-sm">
+                                        {{ trans(overview.is_root ? 'group.how_to_join_empty_root' : 'group.how_to_join_empty') }}
+                                    </p>
                                 </template>
                             </CardContent>
                         </Card>
@@ -521,10 +522,7 @@ const pickBanner = (key: string | null) => {
 
                 <!-- The join notice (ADR-0037 §2) — a non-member's Meetings or Tours tab, in place of
                      the members-only content. The qualification screens keep their own gates. -->
-                <GroupJoinNotice
-                    v-else-if="(section === 'meetings' && membersOnly.meetings) || (section === 'tours' && !qualifications && membersOnly.tours)"
-                    :group-slug="group.slug"
-                />
+                <GroupJoinNotice v-else-if="joinNotice" :group-slug="group.slug" />
 
                 <!-- Meetings (#190, #193) — the Group's first own-data, members-only
                      surface, with officer CRUD behind the `can` hints. -->

@@ -6,7 +6,7 @@ Chaque page de groupe présente le même ensemble d'onglets en haut. Voici à qu
 
 Le premier onglet. Il montre la description du groupe, ses responsables et quelques faits sur le groupe.
 
-La carte **Comment se joindre** se trouve sous **En bref**. Elle vous explique comment vous joindre au groupe. Si le groupe n'a pas encore écrit ses étapes, la carte vous invite à communiquer avec son ou sa Président·e.
+La carte **Comment se joindre** se trouve sous **En bref**. Elle vous explique comment vous joindre au groupe. Sans étapes écrites, la carte vous invite à communiquer avec son ou sa Président·e. Sur le groupe DMV, elle vous renvoie à la Direction générale du DMV.
 
 ![Une page de groupe sur Aperçu : la description et les responsables, avec les onglets en haut](01.png)
 

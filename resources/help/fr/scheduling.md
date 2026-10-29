@@ -12,7 +12,7 @@ Un horaire en cours s'ouvre à aujourd'hui. Pour voir les jours passés, cliquez
 
 Un horaire quitte la liste une fois sa date de fin passée. Un lien vers lui, comme celui d'un courriel, l'ouvre toujours.
 
-**Remarque :** La présidence, la ou le statisticien·ne et la ou le responsable horaire du groupe voient un lien **Horaires passés** au-dessus de la liste. Il liste les horaires passés, du plus récent au plus ancien. Pour revenir, cliquez sur **Horaires actuels**.
+> **Note :** Seuls la présidence, la ou le statisticien·ne et la ou le responsable horaire voient le lien **Horaires passés**. Il liste les horaires passés, du plus récent au plus ancien, avec un lien **Horaires actuels** pour revenir.
 
 ## Quarts
 
