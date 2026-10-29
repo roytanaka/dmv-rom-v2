@@ -38,6 +38,15 @@ To remove a Member from your selection, select the **×** next to their name abo
 3. Change the **Standing**, the leave dates, or the **Roles**.
 4. Select **Save**.
 
+## See a Member's DMV standing
+
+The roster has two standing columns:
+
+- **DMV standing** shows the Member's standing in the whole DMV, for example **On leave**. It is empty when the Member is Active. It has the same badge as on the Member's profile.
+- **Group standing** shows the Member's standing in your Group. It is empty when the Member is Full.
+
+The two standings are separate. A change to the DMV standing does not change the standing in your Group. To change the standing in your Group, select **Manage** on the row.
+
 ## Remove a Member
 
 Open the three-dot menu at the end of the Member's row.

@@ -4,7 +4,8 @@
 // through to the profile, contact gated by `viewContact`) plus its name filter and
 // A–Z jump rail, so a member doesn't learn a new surface. Two Group-specific
 // additions per row: the role badge(s) the member holds in this Group, and a
-// standing badge shown only when the within-Group standing isn't Full.
+// standing badge shown only when the within-Group standing isn't Full. A roster
+// manager also sees a Member's DMV-wide standing when it isn't Active (#877).
 //
 // Ordering is pure A–Z by surname (officers are surfaced on the Overview, not floated
 // here). The payload arrives pre-sorted from the server; the rail re-derives its
@@ -21,6 +22,7 @@
 import AlphaJumpRail from '@/components/AlphaJumpRail.vue';
 import GroupStandingBadge from '@/components/GroupStandingBadge.vue';
 import MemberPickList from '@/components/MemberPickList.vue';
+import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +36,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import EmailMenu from '@/emailing/EmailMenu.vue';
 import { telHref } from '@/directory/contact';
+import { dmvStandingMarker } from '@/directory/rosterStanding';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
 import { type RosterMember, type RosterMeta } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
@@ -119,10 +122,13 @@ const displayName = (member: RosterMember) => `${member.last_name}, ${member.fir
 
 const hasContact = (member: RosterMember) => member.email !== undefined || member.phone !== undefined;
 
-// Empty-state colspan tracks the optional officer Actions column.
+// The DMV-wide standing marker (#877): shown to a roster manager when the Category isn't Active.
+const dmvStanding = (member: RosterMember) => dmvStandingMarker(member.standing, props.canManage);
+
+// Empty-state colspan tracks the optional officer columns: DMV standing (#877) and Actions.
 // The Actions column carries the roster CRUD (#192) and the Tours link (#789).
 const hasActions = computed(() => props.canManage || props.canManageTours);
-const columnCount = computed(() => (hasActions.value ? 6 : 5));
+const columnCount = computed(() => 5 + (props.canManage ? 1 : 0) + (hasActions.value ? 1 : 0));
 
 // --- Officer CRUD (#192) ----------------------------------------------------
 
@@ -264,7 +270,12 @@ const hardRemove = (member: RosterMember) => {
                             <TableHead>{{ trans('group.roster.column.name') }}</TableHead>
                             <TableHead class="hidden md:table-cell">{{ trans('group.roster.column.roles') }}</TableHead>
                             <TableHead class="hidden lg:table-cell">{{ trans('group.roster.column.contact') }}</TableHead>
-                            <TableHead class="hidden md:table-cell">{{ trans('group.roster.column.standing') }}</TableHead>
+                            <!-- A roster manager sees the DMV-wide standing in its own column (#877); the
+                                 headers tell the two apart, as legacy's DMV Status / Status did. -->
+                            <TableHead v-if="canManage" class="hidden md:table-cell">{{ trans('group.roster.column.dmv_standing') }}</TableHead>
+                            <TableHead class="hidden md:table-cell">{{
+                                trans(canManage ? 'group.roster.column.group_standing' : 'group.roster.column.standing')
+                            }}</TableHead>
                             <TableHead v-if="hasActions" class="w-12 text-right"
                                 ><span class="sr-only">{{ trans('group.roster.column.actions') }}</span></TableHead
                             >
@@ -289,13 +300,14 @@ const hardRemove = (member: RosterMember) => {
                                 }}</TextLink>
                                 <!-- On a phone the other columns hide; their facts ride under the name. -->
                                 <div
-                                    v-if="member.group_roles.length || member.group_standing !== 'full'"
+                                    v-if="member.group_roles.length || member.group_standing !== 'full' || dmvStanding(member)"
                                     class="mt-1 flex flex-wrap gap-1.5 md:hidden"
                                 >
                                     <Badge v-for="role in member.group_roles" :key="role" variant="secondary" class="whitespace-normal">{{
                                         trans(`group.role.${role}`)
                                     }}</Badge>
                                     <GroupStandingBadge :standing="member.group_standing" class="whitespace-normal" />
+                                    <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" class="whitespace-normal" />
                                 </div>
                                 <!-- A narrow cell breaks the address after the @ first, and mid-word only if it must. -->
                                 <div v-if="hasContact(member)" class="text-muted-foreground mt-1 flex flex-col text-sm wrap-anywhere lg:hidden">
@@ -327,6 +339,9 @@ const hardRemove = (member: RosterMember) => {
                                     }}</a>
                                 </div>
                                 <span v-else>{{ trans('group.roster.no_contact') }}</span>
+                            </TableCell>
+                            <TableCell v-if="canManage" class="hidden md:table-cell">
+                                <StandingBadge v-if="dmvStanding(member)" :standing="member.standing" />
                             </TableCell>
                             <TableCell class="hidden md:table-cell"><GroupStandingBadge :standing="member.group_standing" /></TableCell>
                             <TableCell v-if="hasActions" class="text-right">
