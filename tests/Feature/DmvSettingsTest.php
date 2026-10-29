@@ -11,8 +11,8 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 /*
  * DMV Settings (#841, PRD #836, ADR-0036 §3): the super-tier's page for the org's Groups and
- * Stewardships. The Groups section lists the whole tree; every other actor gets 403 and never
- * sees the rail item.
+ * Stewardships. The Groups section lists the whole tree. A parent officer gets a scoped view
+ * (#883, DmvSettingsScopedTest); every other actor gets 403 and never sees the rail item.
  *
  * Asserted from outside: the HTTP response, the Inertia props and the shared rail prop.
  */
@@ -56,11 +56,12 @@ it('forbids a plain Member', function () {
         ->assertForbidden();
 });
 
-it('forbids a Records Member and a Group Chair', function (Role|string $authority) {
-    $this->actingAs(dmvSettingsActor($authority))
+// A Group Chair reaches a scoped DMV Settings (#883): DmvSettingsScopedTest.
+it('forbids a Records Member', function () {
+    $this->actingAs(dmvSettingsActor('records'))
         ->get('/officer/settings')
         ->assertForbidden();
-})->with(['records', Role::Chair]);
+});
 
 it('resolves the French twins under /fr/', function () {
     $member = Member::factory()->superTier()->create();
@@ -107,16 +108,16 @@ it('opens a Group structure page for the super-tier only', function () {
 
 // --- Rail -----------------------------------------------------------------------------
 
-it('hides the DMV Settings rail item from everyone but the super-tier', function (Role|string $authority) {
+it('hides the DMV Settings rail item from a plain or Records Member', function (Role|string $authority) {
     $this->actingAs(dmvSettingsActor($authority))
         ->get('/dashboard')
         ->assertOk()
-        // A plain Member or a Chair gets no Officer Tools at all; a Records Member gets Members only.
+        // A plain Member gets no Officer Tools at all; a Records Member gets Members only.
         ->assertInertia(fn (Assert $page) => $page->where(
             'rail',
             fn ($rail) => collect(data_get($rail, 'officer.items', []))->doesntContain('key', 'settings'),
         ));
-})->with(['plain' => 'plain', 'records' => 'records', 'chair' => Role::Chair]);
+})->with(['plain' => 'plain', 'records' => 'records']);
 
 // --- Groups tree ----------------------------------------------------------------------
 
@@ -141,7 +142,7 @@ it('lists every Group under its parent in display order with kind, archived mark
             ->count('tree', 7)
             ->where('tree.0', [
                 'id' => $root->id, 'slug' => 'dmv', 'name' => 'DMV', 'depth' => 0, 'kind' => 'standing_committee',
-                'archived' => false, 'endedOn' => null, 'editable' => false, 'href' => null,
+                'archived' => false, 'endedOn' => null, 'editable' => false, 'head' => false, 'href' => null,
                 'capabilities' => [...array_fill_keys(Group::CAPABILITY_FLAGS, false), 'has_meetings' => true, 'has_documents' => true],
                 'stewardships' => [], 'hoursMultiplier' => 1,
             ])
@@ -152,7 +153,7 @@ it('lists every Group under its parent in display order with kind, archived mark
             ->where('tree.1.href', null)
             ->where('tree.2', [
                 'id' => $records->id, 'slug' => 'records', 'name' => 'Records', 'depth' => 2,
-                'kind' => 'standing_committee', 'archived' => false, 'endedOn' => null, 'editable' => true,
+                'kind' => 'standing_committee', 'archived' => false, 'endedOn' => null, 'editable' => true, 'head' => false,
                 'href' => '/officer/settings/groups/records',
                 'capabilities' => [...array_fill_keys(Group::CAPABILITY_FLAGS, false), 'has_meetings' => true, 'has_documents' => true],
                 'stewardships' => [], 'hoursMultiplier' => 1,

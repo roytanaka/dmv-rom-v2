@@ -5,6 +5,8 @@
 return [
     'title' => 'DMV Settings',
     'subtitle' => 'The organisation\'s Groups and Stewardships.',
+    // A parent officer's page (#883, #884): only the sub-groups below their Groups.
+    'subtitle_scoped' => 'The sub-groups below the Groups you run.',
     'section' => [
         'groups' => 'Groups',
         'stewardships' => 'Stewardships',
@@ -24,6 +26,8 @@ return [
         // The root's settings are not here; a Container has no page of its own.
         'root_note' => 'Set by officers',
         'container_note' => 'No page',
+        // A parent officer's own Group, heading their subtree (#883): listed, not opened.
+        'own_note' => 'Your Group',
         // One letter per capability slot; the legend under the table spells them out.
         'letter' => [
             'has_meetings' => 'M',
@@ -43,6 +47,7 @@ return [
         'hours' => 'Hours ×:multiplier',
         'archived' => 'Archived',
         'create' => 'Create a Group',
+        'create_sub_group' => 'Create a sub-group',
     ],
     'kind' => [
         'standing_committee' => 'Standing committee',
@@ -55,6 +60,8 @@ return [
     // Create a Group (#842): the dialog on the tree.
     'create' => [
         'title' => 'Create a Group',
+        // A parent officer's dialog (#884): name and parent only.
+        'sub_group_title' => 'Create a sub-group',
         'submit' => 'Create',
         'cancel' => 'Cancel',
     ],
@@ -69,6 +76,7 @@ return [
         // The root's child whose subtree the parent comes from (#850).
         'section' => 'Section',
         'parent' => 'Parent',
+        'chair' => 'Chair',
         'kind' => 'Kind',
         'kind_container_note' => 'A Container has no page. Its address answers 404.',
         'visibility' => 'Listing visibility',
@@ -187,10 +195,13 @@ return [
         'inactive_group' => 'Choose an active Group.',
         'parent_cycle' => 'A Group cannot sit under itself or one of its own Groups.',
         'root_parent' => 'Choose a section, not the root.',
+        'sibling_name_taken' => 'Another Group under this parent has this name.',
+        'chair_not_on_parent' => 'Choose a member of the parent Group.',
         'end_before_start' => 'The end date must be on or after the start date.',
         'not_editable' => 'The root and Containers have no settings here.',
         'archived' => 'Unarchive this Group to change its settings.',
         'archive_steward' => ':group holds :stewardship. Move the Stewardship first.',
+        'outside_subtree' => 'Choose one of your Groups or a Group below it.',
         'capability_in_use' => '{1} :roles needs this capability. Reassign the role first.|[2,*] :roles need this capability. Reassign the roles first.',
     ],
     // The Stewardships section (#846, ADR-0036 §7).

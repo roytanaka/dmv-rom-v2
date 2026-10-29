@@ -8,6 +8,7 @@ import GroupBookingTypesCard, { type SettingsBookings } from '@/components/Group
 import GroupTourRulesCard, { type SettingsTourRules } from '@/components/GroupTourRulesCard.vue';
 import GroupToursCard, { type SettingsTour } from '@/components/GroupToursCard.vue';
 import InputError from '@/components/InputError.vue';
+import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,6 +54,8 @@ const props = defineProps<{
     // `canManageBookings`, on a Group that runs bookings.
     bookings: SettingsBookings | null;
     canManageBookings: boolean;
+    // DMV Settings at this Group's row (#888, ADR-0036 §11), for its Chair or Secretary; null otherwise.
+    subGroupsHref: string | null;
     groupSlug: string;
 }>();
 
@@ -66,6 +69,7 @@ const showTourRules = computed(() => props.canManageTourRules && props.tourRules
 const showBookings = computed(() => props.canManageBookings && props.bookings !== null);
 const showAnyCard = computed(
     () =>
+        props.subGroupsHref !== null ||
         showReminders.value ||
         showEmptyDesk.value ||
         showSelfServe.value ||
@@ -232,6 +236,17 @@ const moveObject = (index: number, delta: number) => {
 <template>
     <div class="flex flex-col gap-4">
         <template v-if="showAnyCard">
+            <!-- Sub-groups (#888, ADR-0036 §11): the feature lives in DMV Settings; this card only
+                 points there, for the Group's Chair or Secretary. -->
+            <Card v-if="subGroupsHref">
+                <CardHeader>
+                    <CardTitle>{{ trans('group.settings_sub_groups.heading') }}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <TextLink :href="subGroupsHref">{{ trans('group.settings_sub_groups.link') }}</TextLink>
+                </CardContent>
+            </Card>
+
             <!-- Reminders settings (#486, ADR-0024 §7) — the schedule-admin's on/off switch and
                  lead days for this Group's shift Reminders. Shown only to a Scheduler / Chair
                  (`canManageReminders`) of a scheduling Group; the server re-checks on save. -->

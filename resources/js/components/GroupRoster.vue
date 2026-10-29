@@ -21,6 +21,7 @@
 // GroupMemberPolicy regardless of what renders.
 import AlphaJumpRail from '@/components/AlphaJumpRail.vue';
 import GroupStandingBadge from '@/components/GroupStandingBadge.vue';
+import MemberPickList from '@/components/MemberPickList.vue';
 import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -37,11 +38,11 @@ import EmailMenu from '@/emailing/EmailMenu.vue';
 import { telHref } from '@/directory/contact';
 import { dmvStandingMarker } from '@/directory/rosterStanding';
 import { type EmailReason, type Recipient } from '@/emailing/composer';
-import { type RosterCandidate, type RosterMember, type RosterMeta } from '@/types';
+import { type RosterMember, type RosterMeta } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
-import { PhDotsThree, PhMagnifyingGlass, PhPlus, PhX } from '@phosphor-icons/vue';
+import { PhDotsThree, PhMagnifyingGlass, PhPlus } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
     members: RosterMember[];
@@ -139,50 +140,31 @@ const toggleShowPast = (next: boolean) => {
 };
 
 // Toggle an item on or off within a form's array — the shared control for the role
-// checkboxes in both dialogs and the Member picks in the add dialog.
+// checkboxes in both dialogs.
 const toggleIn = <T,>(list: T[], item: T, on: boolean) => {
     const index = list.indexOf(item);
     if (on && index === -1) list.push(item);
     if (!on && index !== -1) list.splice(index, 1);
 };
 
-// Add member — tick one or more of the Group's non-members (#873), set standing
-// (default Full) for all of them, and optionally assign roles. Roles come only with a
+// Add member — tick one or more of the Group's non-members (#873) in the shared pick list, set
+// standing (default Full) for all of them, and optionally assign roles. Roles come only with a
 // single Member: officers assign roles one person at a time, and the server agrees.
 const addOpen = ref(false);
-const candidateSearch = ref('');
 const addForm = useForm<{ member_ids: number[]; status: string; roles: string[] }>({ member_ids: [], status: 'full', roles: [] });
-
-// The ticked Members as chips, in the order they were picked. They live in the form,
-// not the filtered list, so a change to the search text keeps them.
-const selectedCandidates = computed(() =>
-    addForm.member_ids
-        .map((id) => props.meta.candidates.find((candidate) => candidate.id === id))
-        .filter((candidate): candidate is RosterCandidate => candidate !== undefined),
-);
 
 const rolesLocked = computed(() => addForm.member_ids.length > 1);
 
-const toggleCandidate = (id: number, on: boolean) => {
-    toggleIn(addForm.member_ids, id, on);
-    if (rolesLocked.value) addForm.roles = [];
-};
-
-const candidateName = (candidate: RosterCandidate) => `${candidate.last_name}, ${candidate.first_name}`;
+watch(rolesLocked, (locked) => {
+    if (locked) addForm.roles = [];
+});
 
 // The batch errors arrive per index (`member_ids.2`); the dialog shows the first.
 const memberIdsError = computed(() => Object.entries(addForm.errors).find(([key]) => key.startsWith('member_ids'))?.[1]);
 
-const candidates = computed(() => {
-    const needle = candidateSearch.value.trim().toLowerCase();
-    if (needle === '') return props.meta.candidates;
-    return props.meta.candidates.filter((candidate) => `${candidate.first_name} ${candidate.last_name}`.toLowerCase().includes(needle));
-});
-
 const openAdd = () => {
     addForm.reset();
     addForm.clearErrors();
-    candidateSearch.value = '';
     addOpen.value = true;
 };
 
@@ -429,38 +411,7 @@ const hardRemove = (member: RosterMember) => {
                 <form class="flex flex-col gap-4" @submit.prevent="submitAdd">
                     <div class="grid gap-2">
                         <Label for="add-search">{{ trans('group.roster.add_search') }}</Label>
-                        <div v-if="selectedCandidates.length" class="flex flex-wrap gap-1.5">
-                            <Badge v-for="candidate in selectedCandidates" :key="candidate.id" variant="secondary" class="gap-1 font-normal">
-                                {{ candidateName(candidate) }}
-                                <button
-                                    type="button"
-                                    class="hover:text-foreground -mr-0.5 flex items-center justify-center rounded-full transition-colors pointer-coarse:size-11"
-                                    :aria-label="trans('group.roster.add_remove_selected', { name: candidateName(candidate) })"
-                                    @click="toggleCandidate(candidate.id, false)"
-                                >
-                                    <PhX class="size-3" />
-                                </button>
-                            </Badge>
-                        </div>
-                        <Input id="add-search" v-model="candidateSearch" type="search" :placeholder="trans('group.roster.search.placeholder')" />
-                        <ul class="max-h-48 overflow-y-auto border">
-                            <li v-for="candidate in candidates" :key="candidate.id">
-                                <!-- A ticked row is takes the heritage-blue wash, so it never reads as hover. -->
-                                <label
-                                    class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm pointer-coarse:min-h-11"
-                                    :class="addForm.member_ids.includes(candidate.id) ? 'bg-rom-slate-50 font-medium' : 'hover:bg-muted'"
-                                >
-                                    <Checkbox
-                                        :checked="addForm.member_ids.includes(candidate.id)"
-                                        @update:checked="(on: boolean) => toggleCandidate(candidate.id, on)"
-                                    />
-                                    {{ candidateName(candidate) }}
-                                </label>
-                            </li>
-                            <li v-if="!candidates.length" class="text-muted-foreground px-3 py-2 text-sm">
-                                {{ trans('group.roster.no_candidates') }}
-                            </li>
-                        </ul>
+                        <MemberPickList v-model="addForm.member_ids" :candidates="meta.candidates" input-id="add-search" />
                         <p v-if="memberIdsError" class="text-destructive text-sm">{{ memberIdsError }}</p>
                     </div>
 

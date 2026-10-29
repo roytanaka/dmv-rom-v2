@@ -8,6 +8,8 @@ use App\Enums\ListingVisibility;
 use App\Enums\Role;
 use App\Models\Group;
 use App\Models\GroupMemberRole;
+use App\Rules\ParentInOfficerSubtree;
+use App\Rules\UniqueSiblingGroupName;
 use App\Support\NameList;
 use App\Support\Stewardships\StewardshipGuard;
 use Carbon\Carbon;
@@ -22,8 +24,13 @@ use Illuminate\Validation\Validator;
  * structure form: name, parent, kind, listing, logo, dates, the capability and collection
  * flags and the hours multiplier. The slug is never accepted, so a crafted one is dropped.
  *
- * Authorized on the Group-less `administer-groups` ability only. Never a Group-scoped
- * ability: GroupWrites' Gate::before refuses those on an archived Group, super-tier included.
+ * A parent officer (ADR-0036 §11, #886) gets name and parent only, through `restructure-group`:
+ * a sub-group below a Group they administer, never their own. The parent stays in their
+ * subtree, and a sibling under it must not have the name.
+ *
+ * Authorized on the Group-less `administer-groups` ability, or `restructure-group` for a parent
+ * officer. Never an ability in GroupWrites: its Gate::before refuses those on an archived Group,
+ * super-tier included.
  * The Group itself is refused in `after()` instead: the root and Containers have no form, and
  * an archived Group's form is read-only until it is unarchived (#845).
  */
@@ -31,7 +38,7 @@ class UpdateGroupStructureRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('administer-groups');
+        return $this->user()->administersWholeOrg() || $this->user()->can('restructure-group', $this->group());
     }
 
     /**
@@ -40,6 +47,10 @@ class UpdateGroupStructureRequest extends FormRequest
     public function rules(): array
     {
         $group = $this->group();
+
+        if ($this->scoped()) {
+            return $this->scopedRules($group);
+        }
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -70,6 +81,25 @@ class UpdateGroupStructureRequest extends FormRequest
     }
 
     /**
+     * A parent officer's form (ADR-0036 §11): name and parent only, so every other field a
+     * crafted request carries is dropped. The new parent must sit in their subtree (their own
+     * Group or below it) and be active; the cycle check is the super-tier's.
+     *
+     * @return array<string, array<mixed>>
+     */
+    private function scopedRules(Group $group): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255', new UniqueSiblingGroupName($this->integer('parent_id'), $group->id)],
+            'parent_id' => ['required', 'integer', 'bail', function (string $attribute, mixed $value, Closure $fail) use ($group): void {
+                if ((int) $value === $group->id || $group->descendants()->contains('id', $value)) {
+                    $fail('dmv_settings.error.parent_cycle')->translate();
+                }
+            }, new ParentInOfficerSubtree($this->user(), $group->parent_id)],
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     public function messages(): array
@@ -96,7 +126,7 @@ class UpdateGroupStructureRequest extends FormRequest
                 $validator->errors()->add('group', __('dmv_settings.error.not_editable'));
             } elseif ($group->isArchived()) {
                 $validator->errors()->add('group', __('dmv_settings.error.archived'));
-            } else {
+            } elseif (! $this->scoped()) {
                 $this->guardCapabilities($validator, $group);
                 $this->guardStewardships($validator, $group);
             }
@@ -172,12 +202,18 @@ class UpdateGroupStructureRequest extends FormRequest
     {
         $structure = $this->validated();
 
-        if (! $structure['time_boxed']) {
+        if (array_key_exists('time_boxed', $structure) && ! $structure['time_boxed']) {
             $structure['start_date'] = null;
             $structure['end_date'] = null;
         }
 
         return $structure;
+    }
+
+    /** A parent officer, not the super-tier: the name-and-parent form. */
+    private function scoped(): bool
+    {
+        return ! $this->user()->administersWholeOrg();
     }
 
     private function group(): Group

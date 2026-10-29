@@ -78,6 +78,59 @@ final class OrgTree
     }
 
     /**
+     * A parent officer's view of the tree (ADR-0036 §11): each given head with everything below
+     * it, archived Groups included, in tree order. Depth counts from the head, so every head
+     * sits at 0. A head inside another head's subtree is listed once, as part of the outer one.
+     *
+     * @param  list<int>  $headIds
+     * @return list<OrgTreeNode>
+     */
+    public function subtrees(array $headIds): array
+    {
+        $nodes = [];
+        $headDepth = null;
+        foreach ($this->nodes as $node) {
+            if ($headDepth !== null && $node->depth <= $headDepth) {
+                $headDepth = null;
+            }
+            if ($headDepth === null && in_array($node->group->id, $headIds, true)) {
+                $headDepth = $node->depth;
+            }
+            if ($headDepth !== null) {
+                $nodes[] = new OrgTreeNode($node->group, $node->depth - $headDepth);
+            }
+        }
+
+        return $nodes;
+    }
+
+    /**
+     * Where a parent officer may put a Group (ADR-0036 §11): every active Group in their
+     * subtrees, each head included, in tree order. Each choice names its head as its section,
+     * with its depth below it. For an existing Group, minus the Group and everything under it,
+     * plus its current parent even when that parent is inactive, so it can be saved in place.
+     *
+     * @param  list<int>  $headIds
+     * @return list<ParentChoice>
+     */
+    public function subtreeParentChoices(array $headIds, ?Group $for = null): array
+    {
+        $excluded = $for === null ? [] : $this->subtreeIds($for);
+
+        $choices = [];
+        $head = null;
+        foreach ($this->subtrees($headIds) as $node) {
+            $head = $node->depth === 0 ? $node->group : $head;
+            if (! in_array($node->group->id, $excluded, true)
+                && ($node->group->isActive() || $node->group->id === $for?->parent_id)) {
+                $choices[] = new ParentChoice($node->group, $head, $node->depth);
+            }
+        }
+
+        return $choices;
+    }
+
+    /**
      * The Groups a stewardship may go to: active ones, the root left out (it holds nothing;
      * ADR-0036 §7).
      *

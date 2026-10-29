@@ -1610,6 +1610,17 @@ it('seeds a Docents Librarian Persona who manages the Docents library', function
         ->and(Document::where('group_id', $docents->id)->where('uploaded_by_id', $librarian->id)->exists())->toBeTrue();
 });
 
+it('seeds a Persona who chairs an active Docents sub-group (#882)', function () {
+    $chair = Member::where('email', PersonaCatalogue::SUBGROUP_CHAIR_EMAIL)->firstOrFail();
+    $docents = Group::where('slug', 'docents')->firstOrFail();
+    $sub = Group::active()->where('parent_id', $docents->id)
+        ->get()
+        ->first(fn (Group $group) => $chair->canActAs(Role::Chair, $group));
+
+    expect($sub)->not->toBeNull()
+        ->and($chair->administers($docents))->toBeFalse();
+});
+
 it('seeds a Persona outside Docents who reads its shared Folders but not its Group-only ones', function () {
     $reader = Member::where('email', PersonaCatalogue::LIBRARY_READER_EMAIL)->firstOrFail();
     $docents = Group::where('slug', 'docents')->firstOrFail();

@@ -12,7 +12,8 @@ use App\Models\Member;
  * resigning a member, and the added-in-error hard-remove. Mirrors the GroupPolicy /
  * MeetingPolicy seam: every mutation routes a Form Request through here.
  *
- * Roster management is gated to a Group's Secretary or Chair (plus the super-tier).
+ * Roster management is gated to a Group's Secretary or Chair, a parent officer of any
+ * Group above it (ADR-0036 §11), plus the super-tier.
  * Like the GroupPolicy's Overview edits — and unlike the MeetingPolicy — there is
  * deliberately no capability guard: every Group has a roster regardless of its
  * capability flags, so managing it is a core officer power, not a per-capability one.
@@ -29,30 +30,32 @@ class GroupMemberPolicy
 {
     /**
      * Who may add a member to a Group: a member who {@see Member::administers()} it
-     * (its Secretary or Chair) — never on the root DMV Group, whose membership is
+     * (its Secretary or Chair) or a Group above it — never on the root DMV Group, whose membership is
      * derived from Category and never stored (ADR-0036 §9).
      */
     public function create(Member $actor, Group $group): bool
     {
         return ! $group->isRoot()
-            && $actor->administers($group);
+            && $actor->administersOrOversees($group);
     }
 
     /**
      * Who may change a membership — its standing, leave window, or roles: a member
-     * who administers the Group that owns it. Authority never leaks across Groups.
+     * who administers the Group that owns it or a Group above it. Authority never leaks
+     * sideways across Groups.
      */
     public function update(Member $actor, GroupMember $membership): bool
     {
-        return $actor->administers($membership->group);
+        return $actor->administersOrOversees($membership->group);
     }
 
     /**
-     * Who may hard-remove a membership: a member who administers the owning Group.
+     * Who may hard-remove a membership: a member who administers the owning Group or a
+     * Group above it.
      * The separate "no dependent records" precondition is enforced in the Form Request.
      */
     public function delete(Member $actor, GroupMember $membership): bool
     {
-        return $actor->administers($membership->group);
+        return $actor->administersOrOversees($membership->group);
     }
 }

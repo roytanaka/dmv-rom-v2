@@ -2,6 +2,8 @@
 
 Créez des groupes, modifiez leur configuration et archivez ceux qui ont terminé. Vous avez besoin du grade super-niveau.
 
+Le·la Secrétaire ou le·la Président·e d’un groupe gère les sous-groupes en dessous depuis la même page. Consultez [Gérer les sous-groupes de votre groupe](manage-your-groups-sub-groups).
+
 ## Ouvrir les paramètres du DMV
 
 1. Dans la barre latérale gauche, sélectionnez **Paramètres du DMV** sous Outils des responsables.

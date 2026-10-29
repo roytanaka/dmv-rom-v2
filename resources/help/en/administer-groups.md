@@ -2,6 +2,8 @@
 
 Create Groups, change how they are set up, and archive the ones that have finished. You need the super-tier grant.
 
+A Group's Secretary or Chair runs the sub-groups below it from the same page. See [Manage your Group's sub-groups](manage-your-groups-sub-groups).
+
 ## Open DMV Settings
 
 1. In the Left Side Bar, select **DMV Settings** under Officer Tools.

@@ -180,6 +180,12 @@ return [
 
     // The Settings tab (#604, ADR-0027) when none of its cards applies to the viewer.
     'settings_empty' => 'This group has no settings you can change.',
+    // The Settings tab's Sub-groups card (#888, ADR-0036 §11): a link to DMV Settings, for the
+    // Group's Chair or Secretary.
+    'settings_sub_groups' => [
+        'heading' => 'Sub-groups',
+        'link' => 'Manage sub-groups',
+    ],
     // The Settings tab's Tours card (#788, ADR-0033 §1, §4) — the Group's Tour list and which
     // shift kinds each Tour is given on, kept by a Vetting officer or the Chair.
     'tours' => [

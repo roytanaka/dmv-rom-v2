@@ -157,6 +157,12 @@ return [
 
     // L'onglet Paramètres (#604, ADR-0027) quand aucune de ses cartes ne s'applique.
     'settings_empty' => 'Ce groupe n’a aucun paramètre que vous pouvez modifier.',
+    // La carte Sous-groupes de l’onglet Paramètres (#888, ADR-0036 §11) : un lien vers les
+    // paramètres du DMV, pour la présidence ou le secrétariat du groupe.
+    'settings_sub_groups' => [
+        'heading' => 'Sous-groupes',
+        'link' => 'Gérer les sous-groupes',
+    ],
     // La carte Visites de l’onglet Paramètres (#788, ADR-0033 §1, §4) — la liste des visites du
     // groupe et les types de quart où chaque visite se donne.
     'tours' => [

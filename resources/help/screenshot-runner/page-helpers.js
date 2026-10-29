@@ -948,7 +948,29 @@
         return clickAndSettle(buttonMatching(/^archive this group$/i));
     }
 
-    // ── Verify-run helpers (#807) ───────────────────────────────────────────
+    // ── Sub-groups for parent officers (#889, ADR-0036 §11) ─────────────────
+
+    // The Settings tab's Sub-groups card, with its Manage sub-groups link.
+    function showSubGroupsCard() {
+        return showCardTitled(/^sub-groups/i);
+    }
+
+    // The scoped Create a sub-group dialog (Radix, so a DOM click()). Fill a name and pick the
+    // first parent so the Chair search shows. Never submitted.
+    async function openCreateSubGroupDialog() {
+        if (!(await clickAndSettle(buttonMatching(/^create a sub-group$/i)))) return false;
+        const name = document.getElementById('new-sub-group-name');
+        const parent = document.getElementById('new-sub-group-parent');
+        if (!name || !parent) return false;
+        typeInto(name, 'Tour planning');
+        const option = Array.from(parent.options).find((element) => !element.disabled);
+        if (!option) return false;
+        parent.value = option.value;
+        parent.dispatchEvent(new Event('change', { bubbles: true }));
+        return settle();
+    }
+
+    // ── Verify-run helpers (#807)───────────────────────────────────────────
     // General-purpose helpers for an agent checking a branch with `/verify`
     // (.claude/skills/verify/SKILL.md), not tied to one help article.
 
@@ -1082,5 +1104,7 @@
         showCapabilities,
         showArchiveSection,
         openArchiveConfirm,
+        showSubGroupsCard,
+        openCreateSubGroupDialog,
     };
 })();

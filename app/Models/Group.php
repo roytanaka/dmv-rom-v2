@@ -225,6 +225,31 @@ class Group extends Model
     }
 
     /**
+     * Every Group above this one, nearest first, up to the root (ADR-0036 §11): the climb a
+     * parent officer's authority takes. One query: the tree is tens of Groups, so it loads
+     * whole and walks the chain in memory, rather than a query per level.
+     *
+     * @return Collection<int, Group>
+     */
+    public function ancestors(): Collection
+    {
+        if ($this->parent_id === null) {
+            return new Collection;
+        }
+
+        $groups = static::query()->get()->keyBy('id');
+
+        $chain = new Collection;
+        $parent = $groups->get($this->parent_id);
+        while ($parent !== null && ! $chain->contains('id', $parent->id)) {
+            $chain->push($parent);
+            $parent = $parent->parent_id === null ? null : $groups->get($parent->parent_id);
+        }
+
+        return $chain;
+    }
+
+    /**
      * Every membership in this Group — the roster source.
      *
      * @return HasMany<GroupMember, $this>

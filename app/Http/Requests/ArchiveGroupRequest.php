@@ -12,15 +12,18 @@ use Illuminate\Validation\Validator;
  * Archive or unarchive a Group from DMV Settings (#845, ADR-0036 §2). No fields: the route
  * says which way. Every refusal lands on an `archive` error, shown under the button.
  *
- * Authorized on the Group-less `administer-groups` ability only. Never a Group-scoped
- * ability: GroupWrites' Gate::before refuses those on an archived Group, super-tier included,
- * which would leave an archived Group with no way back.
+ * A parent officer (ADR-0036 §11, #887) archives and unarchives a sub-group below a Group they
+ * administer, never their own, through `restructure-group`. The stewardship guard is the same.
+ *
+ * Authorized on the Group-less `administer-groups` ability, or `restructure-group` for a parent
+ * officer. Never an ability in GroupWrites: its Gate::before refuses those on an archived Group,
+ * super-tier included, which would leave an archived Group with no way back.
  */
 class ArchiveGroupRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('administer-groups');
+        return $this->user()->administersWholeOrg() || $this->user()->can('restructure-group', $this->group());
     }
 
     /**

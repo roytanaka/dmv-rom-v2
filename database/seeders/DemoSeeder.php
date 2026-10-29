@@ -3334,6 +3334,10 @@ class DemoSeeder extends Seeder
                     // the talked-to second box (ADR-0023 §2) — and their historical figures came
                     // off a booking table, so they carry the incomplete marker (§6).
                     $this->program('Docents', [
+                        // The one active Docents sub-group, chaired by its own Persona so
+                        // testers see a sub-group Chair's view beside the Docents Chair's
+                        // parent-officer view (#882, ADR-0036 §11).
+                        $this->workingGroup('Sections', 'docents-sections'),
                         $this->cohort('Pompeii', archived: true),
                         $this->cohort('Ultimate Dinosaurs', archived: true),
                         $this->cohort('Forbidden City', archived: true),
