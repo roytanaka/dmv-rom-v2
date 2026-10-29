@@ -189,7 +189,14 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow v-for="row in visibleRows" :key="row.id" :aria-level="row.depth + 1">
+                        <!-- `#group-<slug>` lands here from Group Settings' "Manage sub-groups" link (#888). -->
+                        <TableRow
+                            v-for="row in visibleRows"
+                            :id="`group-${row.slug}`"
+                            :key="row.id"
+                            :aria-level="row.depth + 1"
+                            class="target:bg-rom-slate-50 scroll-mt-24"
+                        >
                             <TableCell
                                 class="relative pl-[calc(0.75rem+var(--indent)*0.75rem)] whitespace-normal sm:pl-[calc(0.75rem+var(--indent)*1.25rem)]"
                                 :style="indent(row)"

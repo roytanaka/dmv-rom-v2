@@ -119,13 +119,47 @@ it('gives a super-tier Member no scheduling cards on a vetting Group that runs n
             ->where('settings.reminders', null));
 });
 
-it('forbids the Settings section to the Chair of a Group that runs no scheduling', function () {
-    // Today every configuration right is a scheduling one, so a non-scheduling Group has none.
-    $group = Group::factory()->publicListing()->create(['has_scheduling' => false]);
+// --- The "Manage sub-groups" link (#888, ADR-0036 §11) --------------------------
 
-    $this->actingAs(settingsMemberOf($group, role: Role::Chair))
+it('opens the Settings section to the Chair and Secretary with a link to their subtree in DMV Settings', function (Role $role) {
+    // A Group with no configurable capability: the link alone opens the tab.
+    $group = Group::factory()->publicListing()->create(['slug' => 'docents', 'has_scheduling' => false]);
+
+    $this->actingAs(settingsMemberOf($group, role: $role))
         ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.manageSettings', true)
+            ->where('settings.subGroupsHref', '/officer/settings#group-docents'));
+})->with([Role::Chair, Role::Secretary]);
+
+it('gives a plain Member no sub-groups link', function () {
+    $group = settingsGroup();
+
+    $this->actingAs(settingsMemberOf($group))
+        ->get(route('groups.show', $group))
+        ->assertInertia(fn (Assert $page) => $page->where('settings.subGroupsHref', null));
+});
+
+it('gives a Scheduler who administers nothing no sub-groups link', function () {
+    $group = settingsGroup();
+
+    $this->actingAs(settingsMemberOf($group, role: Role::Scheduler))
+        ->get(route('groups.show', ['group' => $group, 'section' => 'settings']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('settings.subGroupsHref', null));
+});
+
+it('points the French sub-groups link at the French DMV Settings path', function () {
+    $group = Group::factory()->publicListing()->create(['slug' => 'docents', 'has_scheduling' => false]);
+    $chair = settingsMemberOf($group, role: Role::Chair);
+
+    $this->withLocaleRoutes('fr', function () use ($chair) {
+        $this->actingAs($chair)
+            ->get('/fr/groupes/docents/parametres')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('settings.subGroupsHref', '/fr/officier/parametres#group-docents'));
+    });
 });
 
 // --- The Empty-desk and Self-serve cards (#606) ------------------------------
