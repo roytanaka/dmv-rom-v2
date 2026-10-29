@@ -207,8 +207,14 @@ class GroupController extends Controller
         // The Settings section (ADR-0027 §1) is for a viewer holding at least one Group-scoped
         // configuration right. Anyone else gets 403 — the Meetings shape: the Group exists and
         // they may open it, but not this tab. The tab appears with authority, not with data.
+        // The Group's own Chair or Secretary administers its sub-groups (#888, ADR-0036 §11), so
+        // the tab opens for them on any active Group to carry the "Manage sub-groups" link. The
+        // super-tier reaches DMV Settings from the rail and gets no tab from this.
+        $canManageSubGroups = $group->isStructurallyEditable() && $group->isActive() && $request->user()->administers($group);
+
         $canManageSettings = $canManageTours || $canManageBookings || $canManageReminders
-            || $canManageEmptyDesk || $canManageSelfServe || $canManageShiftKinds || $canManageObjects;
+            || $canManageEmptyDesk || $canManageSelfServe || $canManageShiftKinds || $canManageObjects
+            || $canManageSubGroups;
 
         if ($section === 'settings') {
             abort_unless($canManageSettings, 403);
@@ -409,9 +415,16 @@ class GroupController extends Controller
             // The Tours page's payload (#792, ADR-0033 §5), resolved only on that page and past its
             // gate above — not on the qualification screens that share the section.
             'tours' => $section === 'tours' && $qualifications === null && ! $joinNotice ? TourPayloads::toursPage($group) : [],
-            'settings' => $section === 'settings'
-                ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours, $canManageTourRules, $canManageBookings)
-                : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null, 'tourRules' => null, 'bookings' => null],
+            'settings' => [
+                ...($section === 'settings'
+                    ? $this->settings($group, $canManageReminders, $canManageEmptyDesk, $canManageSelfServe, $canManageShiftKinds, $canManageObjects, $canManageTours, $canManageTourRules, $canManageBookings)
+                    : ['reminders' => null, 'emptyDesk' => null, 'selfServe' => null, 'shiftKinds' => null, 'objects' => null, 'tours' => null, 'tourRules' => null, 'bookings' => null]),
+                // The "Manage sub-groups" link (#888, ADR-0036 §11): DMV Settings, scrolled to this
+                // Group's row, so its subtree is in view. The feature stays in DMV Settings.
+                'subGroupsHref' => $section === 'settings' && $canManageSubGroups
+                    ? route('officer.settings', [], false).'#group-'.$group->slug
+                    : null,
+            ],
             'overview' => [
                 // About Us — member-authored content, rendered as-authored.
                 'description' => $group->description,

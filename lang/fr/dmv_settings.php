@@ -5,6 +5,8 @@
 return [
     'title' => 'Paramètres du DMV',
     'subtitle' => 'Les groupes et les intendances de l’organisation.',
+    // La page d’un responsable parent (#883, #884) : seulement les sous-groupes de ses groupes.
+    'subtitle_scoped' => 'Les sous-groupes des groupes que vous dirigez.',
     'section' => [
         'groups' => 'Groupes',
         'stewardships' => 'Intendances',
@@ -46,6 +48,7 @@ return [
         'hours' => 'Heures ×:multiplier',
         'archived' => 'Archivé',
         'create' => 'Créer un groupe',
+        'create_sub_group' => 'Créer un sous-groupe',
     ],
     'kind' => [
         'standing_committee' => 'Comité permanent',
@@ -58,6 +61,8 @@ return [
     // Créer un groupe (#842) : la boîte de dialogue de l'arborescence.
     'create' => [
         'title' => 'Créer un groupe',
+        // La boîte d’un responsable parent (#884) : nom et parent seulement.
+        'sub_group_title' => 'Créer un sous-groupe',
         'submit' => 'Créer',
         'cancel' => 'Annuler',
     ],
@@ -190,6 +195,7 @@ return [
         'inactive_group' => 'Choisissez un groupe actif.',
         'parent_cycle' => 'Un groupe ne peut pas se placer sous lui-même ni sous l’un de ses groupes.',
         'root_parent' => 'Choisissez une section, pas la racine.',
+        'sibling_name_taken' => 'Un autre groupe sous ce parent porte ce nom.',
         'end_before_start' => 'La date de fin doit être égale ou postérieure à la date de début.',
         'not_editable' => 'La racine et les conteneurs n’ont pas de paramètres ici.',
         'archived' => 'Désarchivez ce groupe pour modifier ses paramètres.',

@@ -168,6 +168,8 @@ const props = defineProps<{
         // The Tour rules card (#793): the trainee Tour, the starter Tours and the LOA rule.
         tourRules: SettingsTourRules | null;
         bookings: SettingsBookings | null;
+        // The Sub-groups card (#888): DMV Settings at this Group's row, for its Chair or Secretary.
+        subGroupsHref: string | null;
     };
     overview: {
         description: string | null;
@@ -582,6 +584,7 @@ const pickBanner = (key: string | null) => {
                     :can-manage-tour-rules="can.manageTourRules"
                     :bookings="settings.bookings"
                     :can-manage-bookings="can.manageBookings"
+                    :sub-groups-href="settings.subGroupsHref"
                     :group-slug="group.slug"
                 />
 

@@ -12,8 +12,10 @@
 //
 // A parent officer (#883, ADR-0036 §11) gets a `scoped` page: only the subtrees below the Groups
 // they administer, each headed by their own Group (`head`, listed but not opened), and no
-// Stewardships section. Create arrives for them in a later ticket.
+// Stewardships section. Their Create button opens the CreateSubGroupDialog instead (#884): name
+// and a parent from `subGroupParents`, nothing else.
 import CreateGroupDialog from '@/components/CreateGroupDialog.vue';
+import CreateSubGroupDialog, { type SubGroupParent } from '@/components/CreateSubGroupDialog.vue';
 import DmvSettingsTabs from '@/components/DmvSettingsTabs.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +57,7 @@ const props = defineProps<{
     tree: TreeRow[];
     parentOptions: ParentOption[];
     kinds: string[];
+    subGroupParents: SubGroupParent[];
     groupsHref: string;
     stewardshipsHref: string;
 }>();
@@ -70,6 +73,10 @@ const page = usePage<SharedData>();
 // `computed` so the label survives a full-page locale switch (the messages load async).
 const title = computed(() => trans('dmv_settings.title'));
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href: props.groupsHref }]);
+
+// A parent officer creates a sub-group, and only while some active Group can take one.
+const canCreate = computed(() => !props.scoped || props.subGroupParents.length > 0);
+const createLabel = computed(() => trans(props.scoped ? 'dmv_settings.tree.create_sub_group' : 'dmv_settings.tree.create'));
 
 // A row has children when the next row sits deeper (the tree is depth-first).
 const hasChildren = computed(() => new Map(props.tree.map((row, index) => [row.id, (props.tree[index + 1]?.depth ?? 0) > row.depth])));
@@ -149,9 +156,9 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h1 class="text-rom-ink text-lg font-semibold">{{ title }}</h1>
-                    <p class="text-muted-foreground mt-1 text-sm">{{ trans('dmv_settings.subtitle') }}</p>
+                    <p class="text-muted-foreground mt-1 text-sm">{{ trans(scoped ? 'dmv_settings.subtitle_scoped' : 'dmv_settings.subtitle') }}</p>
                 </div>
-                <Button v-if="!scoped" class="hidden sm:inline-flex" @click="createOpen = true">{{ trans('dmv_settings.tree.create') }}</Button>
+                <Button v-if="canCreate" class="hidden sm:inline-flex" @click="createOpen = true">{{ createLabel }}</Button>
             </div>
 
             <DmvSettingsTabs :groups-href="groupsHref" :stewardships-href="stewardshipsHref" :scoped="scoped" />
@@ -170,7 +177,7 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
                             class="pl-9"
                         />
                     </div>
-                    <Button v-if="!scoped" size="icon" class="sm:hidden" :aria-label="trans('dmv_settings.tree.create')" @click="createOpen = true">
+                    <Button v-if="canCreate" size="icon" class="sm:hidden" :aria-label="createLabel" @click="createOpen = true">
                         <PhPlus />
                     </Button>
                     <label class="flex w-full items-center gap-2 text-sm sm:w-auto pointer-coarse:min-h-11">
@@ -189,7 +196,14 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow v-for="row in visibleRows" :key="row.id" :aria-level="row.depth + 1">
+                        <!-- `#group-<slug>` lands here from Group Settings' "Manage sub-groups" link (#888). -->
+                        <TableRow
+                            v-for="row in visibleRows"
+                            :id="`group-${row.slug}`"
+                            :key="row.id"
+                            :aria-level="row.depth + 1"
+                            class="target:bg-rom-slate-50 scroll-mt-24"
+                        >
                             <TableCell
                                 class="relative pl-[calc(0.75rem+var(--indent)*0.75rem)] whitespace-normal sm:pl-[calc(0.75rem+var(--indent)*1.25rem)]"
                                 :style="indent(row)"
@@ -265,6 +279,7 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
             </div>
         </div>
 
-        <CreateGroupDialog v-if="!scoped" v-model:open="createOpen" :parent-options="parentOptions" :kinds="kinds" />
+        <CreateSubGroupDialog v-if="scoped" v-model:open="createOpen" :parents="subGroupParents" />
+        <CreateGroupDialog v-else v-model:open="createOpen" :parent-options="parentOptions" :kinds="kinds" />
     </AppLayout>
 </template>
