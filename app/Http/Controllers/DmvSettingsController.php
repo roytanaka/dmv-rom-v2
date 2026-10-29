@@ -17,9 +17,11 @@ use App\Models\GroupStewardship;
 use App\Support\Groups\OrgTree;
 use App\Support\Groups\OrgTreeNode;
 use App\Support\Groups\ParentChoice;
+use App\Support\Groups\SubGroupSlug;
 use App\Support\Stewardships\StewardshipAssignment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -55,15 +57,20 @@ class DmvSettingsController extends Controller
         $tree = OrgTree::load();
 
         if (! Gate::allows('administer-groups')) {
+            $subtrees = $tree->subtrees($request->user()->administeredGroups()->pluck('id')->all());
+
             return Inertia::render('officer/settings/Groups', [
                 ...$this->shell(),
                 'scoped' => true,
-                'tree' => array_map(
-                    fn (OrgTreeNode $node) => $this->treeRow($node, head: $node->depth === 0),
-                    $tree->subtrees($request->user()->administeredGroups()->pluck('id')->all()),
-                ),
+                'tree' => array_map(fn (OrgTreeNode $node) => $this->treeRow($node, head: $node->depth === 0), $subtrees),
                 'parentOptions' => [],
                 'kinds' => [],
+                // The Create sub-group dialog's one parent select (#884): each head and its
+                // active descendants, in tree order, depth counted from the head.
+                'subGroupParents' => array_values(array_map(
+                    fn (OrgTreeNode $node) => ['id' => $node->group->id, 'name' => $node->group->name, 'depth' => $node->depth],
+                    array_filter($subtrees, fn (OrgTreeNode $node) => $node->group->isActive()),
+                )),
             ]);
         }
 
@@ -79,6 +86,7 @@ class DmvSettingsController extends Controller
             ),
             // A Container is made by the seeder only (#850).
             'kinds' => array_values(array_diff(array_column(Kind::cases(), 'value'), [Kind::Container->value])),
+            'subGroupParents' => [],
         ]);
     }
 
@@ -110,10 +118,11 @@ class DmvSettingsController extends Controller
      * Create a Group (#842, ADR-0036 §4) from four fields; everything else starts at its
      * default: active, public listing, display order 0, no logo, not time-boxed, every
      * capability and collection flag off, hours multiplier 1. Lands on its structure form.
+     * A parent officer's create (#884) takes its own path below.
      */
     public function store(StoreGroupRequest $request): RedirectResponse
     {
-        $group = Group::create([
+        $group = $request->scoped() ? $this->createSubGroup($request) : Group::create([
             ...$request->validated(),
             'lifecycle_state' => LifecycleState::Active,
             'listing_visibility' => ListingVisibility::Public,
@@ -136,6 +145,43 @@ class DmvSettingsController extends Controller
         ]);
 
         return redirect()->route('officer.settings.group', ['group' => $group->slug]);
+    }
+
+    /**
+     * A parent officer's sub-group (#884, ADR-0036 §11): a name and a parent, the slug made by
+     * the server. It starts as a Legacy sub-committee did: a Working group with Meetings and
+     * Documents on, every other flag off, Group listing, hours multiplier 1, not time-boxed.
+     * One transaction, so a later step (a Chair on create, #885) commits or fails with it.
+     */
+    private function createSubGroup(StoreGroupRequest $request): Group
+    {
+        $parent = $request->parent();
+        $name = $request->validated('name');
+
+        return DB::transaction(fn () => Group::create([
+            'name' => $name,
+            'slug' => SubGroupSlug::for($name, $parent),
+            'parent_id' => $parent->id,
+            'kind' => Kind::WorkingGroup,
+            'lifecycle_state' => LifecycleState::Active,
+            'listing_visibility' => ListingVisibility::Group,
+            'display_order' => 0,
+            'logo_key' => null,
+            'time_boxed' => false,
+            'has_meetings' => true,
+            'has_documents' => true,
+            'has_scheduling' => false,
+            'has_vetting' => false,
+            'has_announcements' => false,
+            'has_bookings' => false,
+            'collects_visitor_count' => false,
+            'collects_extra_interactions' => false,
+            'collects_visitor_provenance' => false,
+            'visitor_figures_await_booking' => false,
+            'hours_multiplier' => 1,
+            'created_by' => $request->user()->id,
+            'updated_by' => $request->user()->id,
+        ]));
     }
 
     /**
