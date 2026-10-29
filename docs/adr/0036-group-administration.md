@@ -30,7 +30,7 @@ Facts that shaped the decision:
 
 ### 1. Super-tier only
 
-**Only the super-tier administers Groups and Stewardships.** No new stewardship, no reuse of the unused `website` one. One explicit org-wide grant exists and this is org-wide work. ADR-0019 §B's cascade to parent officers stays unbuilt; this ADR neither builds nor withdraws it. If a real holder outside the super-tier asks for the job, that is the moment to add a stewardship for it.
+**Only the super-tier administers Groups and Stewardships.** No new stewardship, no reuse of the unused `website` one. One explicit org-wide grant exists and this is org-wide work. ADR-0019 §B's cascade to parent officers stays unbuilt; this ADR neither builds nor withdraws it. If a real holder outside the super-tier asks for the job, that is the moment to add a stewardship for it. _(Amended 2026-10-29, Tester feedback items 92 and 93: a Group's Secretary or Chair now administers the structure and roster of the Groups below their own. That builds ADR-0019 §B for those operations. See §11. Top-level Groups, a Group's own structure, and Stewardships stay super-tier only.)_
 
 ### 2. Create, edit and archive in-app. Never delete.
 
@@ -49,7 +49,7 @@ Facts that shaped the decision:
 
 **The Group's own Settings tab is unchanged.** Officers still find reminders, empty-desk, self-serve, Shift kinds and Objects there. Structure is not a Group officer's setting, so it does not go on that tab. The super-tier administers every Group from one place and never leaves Officer Tools to do it. ADR-0027's rule stands: Group-scoped settings on the Group, org-wide settings in the rail. Which Groups exist, where they sit and what they can do is an org-wide fact.
 
-The route gates on the super-tier, as ADR-0027 §4 requires of every Officer Tools page.
+The route gates on the super-tier, as ADR-0027 §4 requires of every Officer Tools page. _(Amended 2026-10-29: DMV Settings also opens to a Member who administers any Group, scoped to the subtrees below their Groups. See §11.)_
 
 ### 4. The Create form
 
@@ -95,6 +95,35 @@ ADR-0021 §1's note that "no model in this app carries one" is amended: the conv
 
 **No roles catalog.** Roles are the `Role` enum and change with a deploy. The grill confirmed that is fine: role names are the vocabulary of ADR-0011 and the policies read them by case. A roles screen would be a new permission system, and nobody has asked for one.
 
+### 11. Parent officers administer their sub-groups (amended 2026-10-29)
+
+From a grilling session on 2026-10-29, on Tester feedback items 92 and 93. **This is parity, not new scope.** The Context above says the Legacy app had no screen to add a Group. That is true for top-level Groups only. On Docents, Gallery Interpreters and Guides du ROM, the Chair had a SubCommittees button on Who's Who. On Membership, the Chair or the Records officer had it. Behind it, the Chair listed, added, changed and deleted sub-committees, and managed their members (`servicesp.php`, `_showSubCommittees` and `_secretaryManageMembers_sub`). Legacy kept sub-committees in their own tables. In v2 they are Groups.
+
+**Who.** A Group's Secretary or Chair (Chair-implication as usual) administers every Group in the subtree below it, to any depth. This is ADR-0019 §B as written. One rule for every Group, not only the four Legacy ones. Membership gets no Records special case: a Records person who needs it gets the Secretary role. **Their own Group is not in scope.** They cannot rename, move or archive it. That stays with the super-tier. The root and Containers have no ordinary officers, so the cascade from them grants nothing.
+
+**What: structure and roster only.** A parent officer may create a sub-group, rename it, move it within their subtree, archive and unarchive it, and manage its roster: add, change standing, assign and revoke roles, resign, hard-remove. **Content is not conferred.** A parent officer gets no Meetings, Documents, About text or banner in the sub-group from parentage. To read or write them, they add themselves to the sub-group, which shows on its roster. This is ADR-0019 §B's structure/content split. The mechanism is a separate ancestor check used only by the structure and roster abilities. `administers()` stays scoped to the Group itself, because it also gates content.
+
+**Where.** Officer Tools → DMV Settings → Groups, the same place the super-tier works. A parent officer sees the rail item, and the Groups section shows only the subtrees below their Groups. They do not see the Stewardships section. Group Settings gets one "Manage sub-groups" link that opens DMV Settings on that Group, because Testers looked there first. ADR-0027's split stands: the link goes to the feature, it does not move it.
+
+**The Create form for a parent officer.** Three fields:
+
+- **Name.** A sibling with the same name under the same parent is refused.
+- **Parent.** A select of their own Group and its active descendants.
+- **Chair** (optional). A search over the parent Group's active roster. The chosen Member joins the sub-group as Full with the Chair role, in the same save.
+
+**The slug is generated, never shown.** It comes from the name. If it is taken, the parent's slug goes in front (`docents-sections`). If that is taken too, a number follows (`docents-sections-2`). A parent officer cannot fix a slug clash, so the form never asks them to. The super-tier keeps the editable slug on its own form.
+
+**Defaults.** Kind is Working group. Meetings and Documents are on, and every other capability flag is off. Listing visibility is Group, the hours multiplier is 1, and there is no time-box. This matches a Legacy sub-committee, which had its own Meetings, Publications, Who's Who and Extra Hours. Hours need no flag (ADR-0022). Anything else is a request to the super-tier.
+
+**The structure form for a parent officer.** Name and parent only. The Chair is changed on the sub-group's roster, like any role. Kind, capabilities, collection flags, visibility, display order, logo, time-box and hours multiplier stay super-tier only.
+
+**Deviations from Legacy, each raised and accepted:**
+
+- **Archive, not delete.** Legacy deleted a sub-committee. §2 stands: a sub-group soon carries Memberships and Hours, and history must stay readable.
+- **The description is on the Overview.** Legacy set it on the create form. It is content, so the sub-group's own officers write it on the Overview.
+- **The parent Chair joins to read content.** Legacy let the parent Chair open a sub-committee's Meetings and Documents without membership. ADR-0019 §B forbids that, and a `Private` sub-group stays private from the parent Chair.
+- **Chair on create only.** Legacy also changed the Chair on its edit screen. The roster already handles a Chair change, including the old Chair's role.
+
 ## Interaction with Beta and the import
 
 Staging reseeds on every push (ADR-0007), so a Group created on staging lives until the next deploy. The demo seed stays the source of the demo org tree. Group administration earns its keep on Beta and after Cutover (ADR-0035).
@@ -112,6 +141,10 @@ Staging reseeds on every push (ADR-0007), so a Group created on staging lives un
 - **A full activity log (own table or a package).** Rejected: infrastructure ahead of use, for a sole engineer with no live users.
 - **Keep `scope`, hidden.** Rejected: dead code is excised, not hidden.
 - **Root membership stored and canonical.** Rejected: ADR-0020 §B already chose derived, and the two regressions came from keeping both.
+- **Widen `administers()` up the ancestor chain** (§11). Rejected: it also gates the About text, the banner and Meetings, so the parent Chair would get the sub-group's content, which ADR-0019 §B forbids.
+- **Sub-group management in Group Settings** (§11). Rejected: it splits Group administration across two places. A link from Group Settings covers discoverability.
+- **A slug field for parent officers, with a clash error** (§11). Rejected: a Chair cannot know what a slug is or how to fix one.
+- **Every capability off for a new sub-group** (§11). Rejected: Legacy sub-committees had Meetings and Documents, so every new one would need a super-tier request.
 - **Slug editable with a redirect table.** Rejected: nobody has asked to rename a Group, and 41 help articles would still go stale.
 
 ## Consequences
@@ -126,7 +159,8 @@ Staging reseeds on every push (ADR-0007), so a Group created on staging lives un
 - **#815, #288 and #334 close** when the tickets ship. #262 (Manage Events for Gallery Interpreters) is checked against ADR-0026 at ticket time.
 - **Help articles** (ADR-0025): one for Groups administration, one for Stewardships, super-tier required role.
 - **The design pass**: the Groups tree and structure form get a dedicated design ticket before build, so the UI is right the first time.
-- **ADR-0019 §B** remains deferred. This ADR does not build the parent-officer cascade.
+- **ADR-0019 §B** remains deferred. This ADR does not build the parent-officer cascade. _(Amended 2026-10-29: §11 builds it for structure and roster.)_
+- **DMV Settings gains a scoped mode** for parent officers (§11): the rail item, the Groups section filtered to their subtrees, a three-field Create form and a two-field structure form. A Group Settings link opens it. The roster policy gains the ancestor check for the roster abilities. Add a help article for Chairs, and a demo persona who chairs a sub-group.
 
 ## References
 
