@@ -218,10 +218,17 @@ const openManage = (member: RosterMember) => {
     editMember.value = member;
 };
 
+// The leave dates show, and are sent, only for On leave; the server clears them otherwise (#892).
+const onLeave = computed(() => editForm.status === 'loa');
+
 const submitManage = () => {
     if (editMember.value === null) return;
     editForm
-        .transform((data) => ({ ...data, loa_start: data.loa_start || null, loa_end: data.loa_end || null }))
+        .transform((data) => ({
+            ...data,
+            loa_start: (onLeave.value && data.loa_start) || null,
+            loa_end: (onLeave.value && data.loa_end) || null,
+        }))
         .patch(route('group-members.update', { membership: editMember.value.membership_id }), {
             preserveScroll: true,
             onSuccess: () => (editMember.value = null),
@@ -512,17 +519,20 @@ const hardRemove = (member: RosterMember) => {
                         </NativeSelect>
                     </div>
 
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div class="grid gap-2">
-                            <Label for="edit-loa-start">{{ trans('group.roster.field.loa_start') }}</Label>
-                            <Input id="edit-loa-start" v-model="editForm.loa_start" type="date" />
+                    <!-- The leave window belongs to On leave only; the end date is required (#892). -->
+                    <template v-if="onLeave">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="grid gap-2">
+                                <Label for="edit-loa-start">{{ trans('group.roster.field.loa_start') }}</Label>
+                                <Input id="edit-loa-start" v-model="editForm.loa_start" type="date" />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="edit-loa-end">{{ trans('group.roster.field.loa_end') }}</Label>
+                                <Input id="edit-loa-end" v-model="editForm.loa_end" type="date" required />
+                            </div>
                         </div>
-                        <div class="grid gap-2">
-                            <Label for="edit-loa-end">{{ trans('group.roster.field.loa_end') }}</Label>
-                            <Input id="edit-loa-end" v-model="editForm.loa_end" type="date" />
-                        </div>
-                    </div>
-                    <p v-if="editForm.errors.loa_end" class="text-destructive text-sm">{{ editForm.errors.loa_end }}</p>
+                        <p v-if="editForm.errors.loa_end" class="text-destructive text-sm">{{ editForm.errors.loa_end }}</p>
+                    </template>
 
                     <fieldset v-if="meta.assignableRoles.length" class="grid gap-2">
                         <legend class="text-muted-foreground mb-2 text-sm font-medium">{{ trans('group.roster.field.roles') }}</legend>

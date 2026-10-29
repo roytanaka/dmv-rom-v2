@@ -12,4 +12,4 @@ act pickMembersToAdd 02             # the Add member dialog: two Members ticked,
 nav /groups/docents/roster          # reload to close the dialog
 act openRosterRowMenu 03            # a row's menu: Manage, Resign member, Tours, and Remove (added in error)
 nav /groups/docents/roster          # reload to close the menu
-act openManageMembershipDialog 04   # the Manage membership dialog: Standing, the leave dates, and Roles
+act openManageMembershipDialog 04   # the Manage membership dialog: Standing and Roles

@@ -30,8 +30,9 @@ class UpdateGroupMemberRequest extends FormRequest
 
     /**
      * The whitelist of fields a roster edit may set. `status` is the within-Group
-     * standing (Resigned for a resign). `loa_start` / `loa_end` are the optional
-     * leave window, the end never before the start. `roles` — when present — replace
+     * standing (Resigned for a resign). `loa_start` / `loa_end` are the leave window,
+     * the end never before the start and required when the standing is set to On leave,
+     * as legacy asks (#892). `roles` — when present — replace
      * the membership's roles wholesale; each must be capability-valid for the Group.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -43,7 +44,7 @@ class UpdateGroupMemberRequest extends FormRequest
         return [
             'status' => ['sometimes', Rule::enum(MembershipStatus::class)],
             'loa_start' => ['nullable', 'date'],
-            'loa_end' => ['nullable', 'date', 'after_or_equal:loa_start'],
+            'loa_end' => [Rule::requiredIf($this->input('status') === MembershipStatus::Loa->value), 'nullable', 'date', 'after_or_equal:loa_start'],
             'roles' => ['sometimes', 'array'],
             'roles.*' => ['required', Rule::enum(Role::class), 'distinct', new CapabilityValidRole($group)],
         ];

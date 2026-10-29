@@ -73,7 +73,11 @@ function rulesSetStatus(GroupMember $membership, MembershipStatus $status)
     $secretary = rulesMembershipOf($membership->group, Role::Secretary)->member;
 
     return test()->actingAs($secretary)
-        ->patch(route('group-members.update', $membership), ['status' => $status->value])
+        // On leave needs its end date (#892).
+        ->patch(route('group-members.update', $membership), [
+            'status' => $status->value,
+            ...($status === MembershipStatus::Loa ? ['loa_end' => '2027-04-30'] : []),
+        ])
         ->assertSessionHasNoErrors();
 }
 
