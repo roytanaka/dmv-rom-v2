@@ -247,24 +247,19 @@ class DmvSettingsController extends Controller
      * archived Group still opens, read-only; its h1 carries the Archived or Ended badge.
      *
      * A parent officer (ADR-0036 §11) opens a Group below one they administer, never their own
-     * Group, the root or a Container (403). Their form is read-only for now (`scoped`), and its
-     * parent choices are only the current parent and its section, so nothing about the rest of
-     * the org is sent.
+     * Group, the root or a Container (403). Their form (`scoped`) is name and parent only, and
+     * its parent choices are their own subtrees, each headed by a Group they administer, so
+     * nothing about the rest of the org is sent.
      */
-    public function group(Group $group): Response
+    public function group(Request $request, Group $group): Response
     {
         Gate::authorize('restructure-group', $group);
         abort_unless($group->isStructurallyEditable(), 404);
 
         $scoped = ! Gate::allows('administer-groups');
-        $parents = OrgTree::load()->parentChoices($group);
-        if ($scoped) {
-            $current = collect($parents)->first(fn (ParentChoice $choice) => $choice->group->id === $group->parent_id);
-            $parents = array_values(array_filter(
-                $parents,
-                fn (ParentChoice $choice) => $choice->group->id === $group->parent_id || $choice->group->id === $current?->section->id,
-            ));
-        }
+        $parents = $scoped
+            ? OrgTree::load()->subtreeParentChoices($request->user()->administeredGroups()->pluck('id')->all(), $group)
+            : OrgTree::load()->parentChoices($group);
 
         return Inertia::render('officer/settings/Group', [
             ...$this->shell(),

@@ -202,6 +202,7 @@ return [
         'not_editable' => 'La racine et les conteneurs n’ont pas de paramètres ici.',
         'archived' => 'Désarchivez ce groupe pour modifier ses paramètres.',
         'archive_steward' => ':group détient :stewardship. Déplacez d’abord l’intendance.',
+        'outside_subtree' => 'Choisissez l’un de vos groupes ou un groupe en dessous.',
         'capability_in_use' => '{1} :roles a besoin de cette fonction. Réattribuez d’abord le rôle.|[2,*] :roles ont besoin de cette fonction. Réattribuez d’abord les rôles.',
     ],
     // La section Intendances (#846, ADR-0036 §7).
