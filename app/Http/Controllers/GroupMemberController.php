@@ -69,6 +69,13 @@ class GroupMemberController extends Controller
         $roles = $data['roles'] ?? [];
         unset($data['roles']);
 
+        // The leave window belongs to On leave only (#892): any other standing, Resigned
+        // included, clears it, as legacy does on a return to Active.
+        if (($data['status'] ?? $membership->status->value) !== MembershipStatus::Loa->value) {
+            $data['loa_start'] = null;
+            $data['loa_end'] = null;
+        }
+
         $from = $membership->status;
         $membership->update($data);
 

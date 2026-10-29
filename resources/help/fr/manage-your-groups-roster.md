@@ -33,10 +33,13 @@ Pour retirer un·e membre de votre sélection, sélectionnez le **×** à côté
 
 2. Sélectionnez **Gérer**.
 
-    ![La fenêtre Gérer l'adhésion : le Statut, les dates de congé et les Rôles](04.png)
+    ![La fenêtre Gérer l'adhésion : le Statut et les Rôles](04.png)
 
-3. Changez le **Statut**, les dates de congé ou les **Rôles**.
-4. Sélectionnez **Enregistrer**.
+3. Changez le **Statut** ou les **Rôles**.
+4. Si le Statut est **En congé**, réglez **Début du congé** et **Fin du congé**. **Fin du congé** est obligatoire. Si vous ne connaissez pas la date de fin, entrez la fin de l'exercice financier.
+5. Sélectionnez **Enregistrer**.
+
+Quand vous changez le Statut En congé pour un autre Statut, les dates de congé sont effacées.
 
 ## Voir le statut DMV d'un·e membre
 

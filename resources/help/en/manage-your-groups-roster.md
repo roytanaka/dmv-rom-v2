@@ -33,10 +33,13 @@ To remove a Member from your selection, select the **×** next to their name abo
 
 2. Select **Manage**.
 
-    ![The Manage membership dialog: Standing, the leave dates, and Roles](04.png)
+    ![The Manage membership dialog: Standing and Roles](04.png)
 
-3. Change the **Standing**, the leave dates, or the **Roles**.
-4. Select **Save**.
+3. Change the **Standing** or the **Roles**.
+4. If the Standing is **On leave**, set **Leave starts** and **Leave ends**. **Leave ends** is required. If you do not know the end date, enter the end of the fiscal year.
+5. Select **Save**.
+
+When you change the Standing from On leave to another Standing, the leave dates are cleared.
 
 ## See a Member's DMV standing
 
