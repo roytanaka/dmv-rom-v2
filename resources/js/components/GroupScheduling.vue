@@ -1,3 +1,25 @@
+<script lang="ts">
+import { router as inertiaRouter } from '@inertiajs/vue3';
+import { ref as vueRef } from 'vue';
+
+// My sign-ups open state (#830, Feedback item 97). Every visit remounts this component, so the
+// state lives at module scope: a Member who closes the panel keeps it closed while they move
+// between Schedules or sign up. It opens again when they leave the Group's Scheduling tab.
+const mineOpen = vueRef(true);
+let mineOpenGroup: string | null = null;
+
+if (typeof window !== 'undefined') {
+    inertiaRouter.on('navigate', (event) => {
+        const { component, props } = event.detail.page;
+        const group = (props.group as { slug?: string } | undefined)?.slug ?? null;
+        if (component !== 'groups/Show' || props.section !== 'scheduling' || group !== mineOpenGroup) {
+            mineOpen.value = true;
+            mineOpenGroup = group;
+        }
+    });
+}
+</script>
+
 <script setup lang="ts">
 // Group Scheduling tab (#353, #354, PRD #352, ADR-0021 §1) — the Schedule read surface
 // with the Scheduler's inline authoring on top. The section is org-open (deliberately
@@ -102,6 +124,11 @@ const props = defineProps<{
 }>();
 
 const page = usePage<SharedData>();
+
+if (mineOpenGroup !== props.groupSlug) {
+    mineOpen.value = true;
+    mineOpenGroup = props.groupSlug;
+}
 
 // Schedule ranges are dates, not instants — a month, not an o'clock — so they format
 // on the plain calendar date the server sends (`YYYY-MM-DD`), read in the active
@@ -1030,12 +1057,12 @@ const runBulkAssign = (action: 'place' | 'remove') => {
              non-empty. Each Shift is the shared ShiftCard, so a number is filed straight from
              here through the same seam as the Agenda. -->
         <!-- The panel collapses (#830) so a phone reaches the Schedule without scrolling past it.
-             It opens on every load, and the heading is the toggle. No inner scroll box: the
-             page keeps its one scroll. -->
+             It stays closed across Schedules, and the heading is the toggle. No inner scroll box:
+             the page keeps its one scroll. -->
         <Collapsible
             v-if="mine.length"
+            v-model:open="mineOpen"
             as="section"
-            default-open
             class="group/mine flex flex-col gap-2"
             :aria-label="trans('group.scheduling_panel.mine.aria_label')"
         >
