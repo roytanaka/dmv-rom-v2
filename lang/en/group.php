@@ -58,6 +58,9 @@ return [
             'roles' => 'Roles',
             'contact' => 'Contact',
             'standing' => 'Standing',
+            // A roster manager sees both standings, each in its own column (#877).
+            'dmv_standing' => 'DMV standing',
+            'group_standing' => 'Group standing',
             'actions' => 'Actions',
         ],
         // Shown in the contact cell when the viewer may not see contact details.
