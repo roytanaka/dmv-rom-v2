@@ -15,7 +15,8 @@ use Inertia\Testing\AssertableInertia as Assert;
  * "my Sign-ups on this Group": upcoming Shifts, plus any past Shift inside a 28-day window that
  * still has a null visitor count. It is date-ranged, so it crosses Schedules, and it is the
  * viewer's own seats and no one else's. Absent (not empty) when there is nothing to show, and
- * upcoming Shifts only on a Group that collects nothing (#865). The panel reads from `scheduling.mine`.
+ * upcoming Shifts only on a Group that collects nothing (#865). The panel reads from
+ * `scheduling.mine`.
  *
  * A fixed clock so the 28-day window is exact. `ends_at` is a stored UTC instant, so every time
  * here is UTC, matching the rest of the scheduling suite. Prior art: SignUpVisitorCountTest.
@@ -206,6 +207,28 @@ it('lists an upcoming Sign-up on a Group that collects nothing, with no Post-shi
         'schedule_id' => $schedule->id,
         'starts_at' => CarbonImmutable::parse('2026-09-20 10:00'),
         'ends_at' => CarbonImmutable::parse('2026-09-20 13:00'),
+    ]);
+    $member = panelMemberOf($group);
+    SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => $member->id]);
+
+    viewScheduling($member, $group)
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('scheduling.mine', 1)
+            ->where('scheduling.mine.0.id', $shift->id)
+            ->where('scheduling.mine.0.can.readReport', false));
+});
+
+it('shows no Post-shift report on an in-progress Shift in a Group that collects nothing', function () {
+    $this->travelTo(outstandingNow());
+
+    $group = Group::factory()->program()->publicListing()->create(); // collects_visitor_count false
+    $schedule = Schedule::factory()->published()->create(['group_id' => $group->id]);
+    // Started earlier today and not yet ended: still upcoming, and not after today, so only the
+    // Group's setting keeps the report out.
+    $shift = Shift::factory()->create([
+        'schedule_id' => $schedule->id,
+        'starts_at' => CarbonImmutable::parse('2026-09-10 10:00'),
+        'ends_at' => CarbonImmutable::parse('2026-09-10 13:00'),
     ]);
     $member = panelMemberOf($group);
     SignUp::factory()->create(['shift_id' => $shift->id, 'member_id' => $member->id]);

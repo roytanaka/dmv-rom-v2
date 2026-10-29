@@ -172,7 +172,7 @@ onMounted(() => {
 
 watch(view, (value) => localStorage.setItem(VIEW_KEY, value));
 
-// --- My sign-ups (#449, ADR-0023 §5) — the outstanding-shifts panel ------------
+// --- My sign-ups (#449, #865, ADR-0023 §5) — the viewer's own seats -----------
 
 // "My Sign-ups on this Group": the viewer's upcoming Shifts, plus any past Shift inside the
 // 28-day window still owed a number; a Group that collects no count lists upcoming Shifts only
@@ -183,6 +183,9 @@ watch(view, (value) => localStorage.setItem(VIEW_KEY, value));
 // number here rides the same PATCH seam as the Agenda; a past Shift shows the sign-out form (its
 // window has no upper bound), an upcoming one just lists with its drop control.
 const mine = computed(() => props.scheduling.mine);
+const mineSubtitle = computed(() =>
+    trans(props.collectsVisitorCount ? 'group.scheduling_panel.mine.subtitle' : 'group.scheduling_panel.mine.subtitle_upcoming'),
+);
 
 // --- Objects (#586, ADR-0026 §3) — the handling collection reserved on a seat ------
 
@@ -1046,9 +1049,7 @@ const runBulkAssign = (action: 'place' | 'remove') => {
                 </CollapsibleTrigger>
             </h3>
             <CollapsibleContent class="-mx-1 -mb-1 flex flex-col gap-2 px-1 pb-1">
-                <p class="text-muted-foreground text-sm">
-                    {{ trans(collectsVisitorCount ? 'group.scheduling_panel.mine.subtitle' : 'group.scheduling_panel.mine.subtitle_upcoming') }}
-                </p>
+                <p class="text-muted-foreground text-sm">{{ mineSubtitle }}</p>
                 <ShiftCard
                     v-for="shift in mine"
                     :key="shift.id"
