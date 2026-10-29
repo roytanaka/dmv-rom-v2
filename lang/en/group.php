@@ -85,7 +85,7 @@ return [
         'add_already_member' => 'One of these members is already in this group.',
         'add_roles_one_member' => 'Roles can be set for one member at a time.',
         'no_candidates' => 'No members match your search.',
-        'edit_title' => 'Manage membership',
+        'edit_title' => 'Manage membership: :name',
         'field' => [
             'standing' => 'Standing',
             'roles' => 'Roles',

@@ -507,7 +507,10 @@ const hardRemove = (member: RosterMember) => {
         <Dialog v-if="canManage" v-model:open="editOpen">
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{{ trans('group.roster.edit_title') }}</DialogTitle>
+                    <!-- The Member's name, so an officer who steps away knows whose row this is. -->
+                    <DialogTitle>{{
+                        trans('group.roster.edit_title', { name: editMember ? `${editMember.first_name} ${editMember.last_name}` : '' })
+                    }}</DialogTitle>
                 </DialogHeader>
                 <form class="flex flex-col gap-4" @submit.prevent="submitManage">
                     <div class="grid gap-2">
