@@ -15,7 +15,7 @@ declare global {
     }
 }
 
-const appName = import.meta.env.VITE_APP_NAME || 'DMV-ROM';
+const appName = import.meta.env.VITE_APP_NAME || 'ROM DMV';
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
