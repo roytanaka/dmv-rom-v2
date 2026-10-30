@@ -200,6 +200,33 @@ it('lists active child Groups but never an archived child', function () {
             }));
 });
 
+it('lists a Private child Group only to a viewer who can open it', function () {
+    $parent = Group::factory()->create();
+    $public = Group::factory()->create(['parent_id' => $parent->id]);
+    $private = Group::factory()->privateListing()->create(['parent_id' => $parent->id]);
+
+    $member = Member::factory()->create();
+    GroupMember::factory()->status(MembershipStatus::Full)->create([
+        'group_id' => $private->id,
+        'member_id' => $member->id,
+    ]);
+
+    $slugsFor = function (Member $viewer) use ($parent) {
+        $slugs = null;
+        $this->actingAs($viewer)
+            ->get(route('groups.show', $parent))
+            ->assertInertia(function (Assert $page) use (&$slugs) {
+                $slugs = collect($page->toArray()['props']['overview']['children'])->pluck('slug')->all();
+            });
+
+        return $slugs;
+    };
+
+    expect($slugsFor(Member::factory()->create()))->toBe([$public->slug])
+        ->and($slugsFor($member))->toContain($private->slug)
+        ->and($slugsFor(Member::factory()->superTier()->create()))->toContain($private->slug);
+});
+
 it('surfaces the Group leadership by role, names and profile ids', function () {
     $group = Group::factory()->create();
     $chair = Member::factory()->create(['first_name' => 'Ada', 'last_name' => 'Lovelace']);

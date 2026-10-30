@@ -441,7 +441,13 @@ class GroupController extends Controller
                 // The root DMV Group has no Chair (its leadership is the executive, see
                 // leadership()), so its empty card points to the DMV Executive instead.
                 'is_root' => $group->isRoot(),
+                // A Private child the viewer cannot open is left out, the same rule as the
+                // Private page-gate above, so the list never links to a 404.
                 'children' => $group->children
+                    ->reject(fn (Group $child) => $child->listing_visibility === ListingVisibility::Private
+                        && ! $request->user()->isAllDmv()
+                        && $request->user()->membershipIn($child) === null)
+                    ->values()
                     ->map(fn (Group $child) => [
                         'name' => $child->name,
                         'slug' => $child->slug,
