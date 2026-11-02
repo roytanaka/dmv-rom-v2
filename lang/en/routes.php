@@ -33,6 +33,10 @@ return [
     'invitations.create' => 'invitations/create',
     'invitations.invitation' => 'invitations/{invitation}',
     'invitations.edit' => 'invitations/{invitation}/edit',
+    // The guest list (#903): the page and a single pick, a bulk pick, one Guest.
+    'invitations.guests' => 'invitations/{invitation}/guests',
+    'invitations.guests.audience' => 'invitations/{invitation}/guests/audience',
+    'invitations.guest' => 'invitations/{invitation}/guests/{guest}',
     'profile' => 'profile',
     'renew' => 'renew',
     // Help centre (#517, ADR-0025). The index at 'help' and one article at

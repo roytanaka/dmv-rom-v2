@@ -27,6 +27,10 @@ return [
     'invitations.create' => 'invitations/creer',
     'invitations.invitation' => 'invitations/{invitation}',
     'invitations.edit' => 'invitations/{invitation}/modifier',
+    // La liste d'invités (#903) : la page et l'ajout d'une personne, l'ajout en bloc, un invité.
+    'invitations.guests' => 'invitations/{invitation}/invites',
+    'invitations.guests.audience' => 'invitations/{invitation}/invites/audience',
+    'invitations.guest' => 'invitations/{invitation}/invites/{guest}',
     'profile' => 'profil',
     'renew' => 'renouveler',
     // Centre d'aide (#517, ADR-0025). L'index à « aide » et un article à

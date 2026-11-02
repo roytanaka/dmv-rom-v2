@@ -138,6 +138,62 @@ class AudienceResolver
     }
 
     /**
+     * The bulk picks a Host may make for a guest list (ADR-0034 §3): All Members for an
+     * org-wide sender, and the live Groups they may pick. The Broadcast rule gives a Group's
+     * members its roster; an org-wide sender also gets every Group, which the Broadcast rule
+     * does not grant, so it is added here and Broadcasts stay as they are. The root stores no
+     * roster and a Container holds none, and All Members already covers the root.
+     *
+     * @return Collection<int, Audience>
+     */
+    public function guestAudiences(Member $actor): Collection
+    {
+        $directory = AudienceContext::directory();
+
+        $groups = Group::query()->active()
+            ->where('slug', '!=', Group::ROOT_SLUG)
+            ->where('kind', '!=', Kind::Container)
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (Group $group): bool => $actor->isOrgWideSender()
+                || $this->canPick($actor, AudienceContext::group($group), AudienceKey::WholeGroup))
+            ->map(fn (Group $group): Audience => new Audience(AudienceKey::WholeGroup, $group->slug, $group->name));
+
+        return collect($this->canPick($actor, $directory, AudienceKey::AllMembers)
+            ? [new Audience(AudienceKey::AllMembers, null, $this->label($directory, AudienceKey::AllMembers, null))]
+            : [])
+            ->concat($groups)
+            ->values();
+    }
+
+    /**
+     * Resolve a bulk pick to the Members it puts on a guest list, or a 403 when the actor
+     * may not pick it. Unlike {@see resolve()} this keeps no-email Members: the flag stops
+     * mail, not an Invitation. It drops departed Members, whom a stale roster row can hold.
+     *
+     * @return Collection<int, Member>
+     */
+    public function resolveGuests(Member $actor, AudienceKey $key, ?string $parameter = null): Collection
+    {
+        $picked = $this->guestAudiences($actor)->contains(
+            fn (Audience $audience): bool => $audience->key === $key && $audience->parameter === $parameter,
+        );
+
+        if (! $picked) {
+            throw new AuthorizationException('You may not invite that audience.');
+        }
+
+        $context = $key === AudienceKey::WholeGroup
+            ? AudienceContext::group(Group::where('slug', $parameter)->firstOrFail())
+            : AudienceContext::directory();
+
+        return $this->base($context, $key, null)
+            ->reject(fn (Member $member): bool => $member->category->accessTier() === AccessTier::None)
+            ->unique(fn (Member $member): int => $member->getKey())
+            ->values();
+    }
+
+    /**
      * The Members an org-wide or leadership Audience holds — the base set alone, with
      * no picker rule, edits, or no-email skip. The Directory's Who's who list (#699)
      * reads it, so the Directory and email agree on who is in each set. The caller

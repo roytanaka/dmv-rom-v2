@@ -20,7 +20,7 @@ interface HostedInvitation {
     end_time: string;
     state: 'draft' | 'open';
     host: string;
-    can: { update: boolean; delete: boolean };
+    can: { update: boolean; delete: boolean; guests: boolean };
 }
 
 defineProps<{ invitations: HostedInvitation[] }>();
@@ -78,6 +78,11 @@ const destroy = (invitation: HostedInvitation) => {
                         </TableCell>
                         <TableCell class="text-right">
                             <div class="flex justify-end gap-2">
+                                <Button v-if="invitation.can.guests" as-child variant="ghost" size="sm">
+                                    <Link :href="route('invitations.guests', { invitation: invitation.id })">{{
+                                        trans('invitations.guests.title')
+                                    }}</Link>
+                                </Button>
                                 <Button v-if="invitation.can.update" as-child variant="ghost" size="sm">
                                     <Link :href="route('invitations.edit', { invitation: invitation.id })">{{ trans('invitations.edit') }}</Link>
                                 </Button>

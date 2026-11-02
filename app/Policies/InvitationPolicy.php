@@ -42,6 +42,15 @@ class InvitationPolicy
     }
 
     /**
+     * Who may see and change the guest list: its Host. The Guest row holds the Reply,
+     * so this also guards the Replies (ADR-0034 §11).
+     */
+    public function manageGuests(Member $actor, Invitation $invitation): bool
+    {
+        return $this->manages($actor, $invitation);
+    }
+
+    /**
      * The shared predicate: the actor is the Host and may still host.
      */
     private function manages(Member $actor, Invitation $invitation): bool

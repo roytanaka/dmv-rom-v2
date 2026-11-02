@@ -24,6 +24,7 @@ use App\Http\Controllers\GroupMemberController;
 use App\Http\Controllers\GroupReminderSettingsController;
 use App\Http\Controllers\GroupSelfServeSettingsController;
 use App\Http\Controllers\GroupTourRulesController;
+use App\Http\Controllers\GuestController;
 use App\Http\Controllers\HelpController;
 use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
@@ -202,6 +203,14 @@ Route::group([
         ->middleware('auth')->name('invitations.update');
     Route::delete(LaravelLocalization::transRoute('routes.invitations.invitation'), [InvitationController::class, 'destroy'])
         ->middleware('auth')->name('invitations.destroy');
+    Route::get(LaravelLocalization::transRoute('routes.invitations.guests'), [GuestController::class, 'index'])
+        ->middleware('auth')->name('invitations.guests');
+    Route::post(LaravelLocalization::transRoute('routes.invitations.guests'), [GuestController::class, 'store'])
+        ->middleware('auth')->name('invitations.guests.store');
+    Route::post(LaravelLocalization::transRoute('routes.invitations.guests.audience'), [GuestController::class, 'storeAudience'])
+        ->middleware('auth')->name('invitations.guests.audience');
+    Route::delete(LaravelLocalization::transRoute('routes.invitations.guest'), [GuestController::class, 'destroy'])
+        ->middleware('auth')->scopeBindings()->name('invitations.guests.destroy');
 
     // Group detail page (#188, PRD #186). Resolves the Group by its slug (content,
     // as-authored even under /fr/ — only the /groups segment is translated, ADR-0008)

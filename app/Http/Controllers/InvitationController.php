@@ -58,6 +58,7 @@ class InvitationController extends Controller
                 'can' => [
                     'update' => $viewer->can('update', $invitation),
                     'delete' => $viewer->can('delete', $invitation),
+                    'guests' => $viewer->can('manageGuests', $invitation),
                 ],
             ])->all(),
         ]);

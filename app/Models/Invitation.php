@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -98,6 +99,34 @@ class Invitation extends Model
     public function options(): HasMany
     {
         return $this->hasMany(Option::class);
+    }
+
+    /**
+     * The guest list.
+     *
+     * @return HasMany<Guest, $this>
+     */
+    public function guests(): HasMany
+    {
+        return $this->hasMany(Guest::class);
+    }
+
+    /**
+     * Put these Members on the guest list. A Member already on it keeps their row and
+     * their Reply, and the unique index holds this when two requests add the same Member.
+     *
+     * @param  Collection<int, Member>  $members
+     */
+    public function addGuests(Collection $members): void
+    {
+        $now = now();
+
+        Guest::query()->insertOrIgnore($members->map(fn (Member $member): array => [
+            'invitation_id' => $this->id,
+            'member_id' => $member->id,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ])->all());
     }
 
     /**

@@ -153,7 +153,7 @@ it('lists only the Host\'s own Invitations, past ones included', function () {
             ->where('invitations.1.date', '2020-01-15')
             ->where('invitations.1.start_time', '10:00')
             ->where('invitations.1.state', 'draft')
-            ->where('invitations.1.can', ['update' => true, 'delete' => true]));
+            ->where('invitations.1.can', ['update' => true, 'delete' => true, 'guests' => true]));
 });
 
 it('carries no email address on the Hosting list', function () {
@@ -173,7 +173,7 @@ it('shows the super-tier every Invitation', function () {
         ->get(route('invitations.hosting'))
         ->assertInertia(fn (Assert $page) => $page
             ->has('invitations', 2)
-            ->where('invitations.0.can', ['update' => true, 'delete' => true]));
+            ->where('invitations.0.can', ['update' => true, 'delete' => true, 'guests' => true]));
 });
 
 // --- Editing and deleting ----------------------------------------------------
