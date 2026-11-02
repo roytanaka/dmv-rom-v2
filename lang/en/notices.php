@@ -51,4 +51,11 @@ return [
         'docents' => 'Docents on this tour',
         'view_schedule' => 'View the schedule',
     ],
+    // The limit-reached Notice (#906, ADR-0034 §9). :name is the Invitation's name, as written.
+    'invitation_full' => [
+        'subject' => 'Guest limit reached: :name',
+        'heading' => 'Your invitation is full',
+        'intro' => ':name has reached its Guest limit.',
+        'view_replies' => 'View the replies',
+    ],
 ];

@@ -30,6 +30,7 @@ return [
         'directory' => 'Répertoire',
         'documents' => 'Documents',
         'news' => 'Nouvelles',
+        'invitations' => 'Invitations',
         'profile' => 'Mon profil',
     ],
 

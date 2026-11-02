@@ -33,6 +33,7 @@ class Delivery extends Model
         'email',
         'broadcast_id',
         'shift_id',
+        'invitation_id',
         'payload',
         'state',
         'attempts',
@@ -80,6 +81,17 @@ class Delivery extends Model
     public function shift(): BelongsTo
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    /**
+     * The Invitation a Reminder is keyed to (#909). Null for every other kind, and for a
+     * Reminder whose Invitation has since been soft deleted.
+     *
+     * @return BelongsTo<Invitation, $this>
+     */
+    public function invitation(): BelongsTo
+    {
+        return $this->belongsTo(Invitation::class);
     }
 
     /**
