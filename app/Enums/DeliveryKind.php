@@ -23,4 +23,6 @@ enum DeliveryKind: string
     case Notice = 'notice';
     // One Guest's copy of a Host's Invitation mail, rendered from its `broadcasts` row.
     case Invitation = 'invitation';
+    // A Reminder before an Invitation (#909, ADR-0034 §12), rendered from the live Invitation.
+    case InvitationReminder = 'invitation_reminder';
 }

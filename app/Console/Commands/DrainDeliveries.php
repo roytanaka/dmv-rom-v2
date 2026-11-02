@@ -10,12 +10,14 @@ use App\Mail\BroadcastMail;
 use App\Mail\BroadcastSenderCopy;
 use App\Mail\EmptyDeskAlert;
 use App\Mail\InvitationMail;
+use App\Mail\InvitationReminder;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
 use App\Mail\SignUpSubstituted;
 use App\Mail\StandingChanged;
 use App\Models\Broadcast;
 use App\Models\Delivery;
+use App\Models\Guest;
 use App\Support\Mail\BroadcastAttachmentStorage;
 use Illuminate\Console\Command;
 use Illuminate\Mail\Mailable;
@@ -95,7 +97,7 @@ class DrainDeliveries extends Command
             // The member for locale and address; the Shift and its chrome for a Reminder, which
             // renders from the live Shift; the Broadcast and its sender and Group for a Broadcast
             // or sender copy (all null on the kinds that do not use them, so the loads are free).
-            ->with(['member', 'shift.schedule.group', 'shift.kind', 'broadcast.sender', 'broadcast.group', 'broadcast.invitation.host'])
+            ->with(['member', 'shift.schedule.group', 'shift.kind', 'invitation.host', 'broadcast.sender', 'broadcast.group', 'broadcast.invitation.host'])
             ->where('state', DeliveryState::Pending)
             ->where('next_attempt_at', '<=', now())
             // Oldest first, no priority — a Notice queued behind a big send waits its turn.
@@ -122,6 +124,14 @@ class DrainDeliveries extends Command
 
             // The link would refuse this Guest now, so the mail is no longer worth sending.
             if ($delivery->kind === DeliveryKind::Invitation && ! $this->invitationMailWanted($delivery)) {
+                $delivery->update(['state' => DeliveryState::Expired]);
+
+                continue;
+            }
+
+            // An Invitation Reminder renders from live data, so a Guest who has since declined,
+            // or a deleted Invitation, ends the row here (ADR-0034 §12).
+            if ($delivery->kind === DeliveryKind::InvitationReminder && $this->guestToRemind($delivery) === null) {
                 $delivery->update(['state' => DeliveryState::Expired]);
 
                 continue;
@@ -163,6 +173,15 @@ class DrainDeliveries extends Command
             && ! $invitation->trashed()
             && $invitation->state === InvitationState::Open
             && $invitation->guestFor($delivery->member) !== null;
+    }
+
+    /**
+     * The Guest an Invitation Reminder row should still reach, or null if it should not go.
+     * The relation hides a soft-deleted Invitation, so a deleted one reads as null here.
+     */
+    private function guestToRemind(Delivery $delivery): ?Guest
+    {
+        return $delivery->invitation?->guestToRemind($delivery->member);
     }
 
     /**
@@ -281,6 +300,7 @@ class DrainDeliveries extends Command
         return match ($delivery->kind) {
             DeliveryKind::Notice => $this->noticeFor($delivery->payload),
             DeliveryKind::Reminder => new ShiftReminder($delivery->shift, $delivery->member),
+            DeliveryKind::InvitationReminder => new InvitationReminder($delivery->invitation, $this->guestToRemind($delivery)),
             // The empty-desk alert renders from its payload snapshot too — the Shifts it names
             // may be filled or gone by now (ADR-0024 §7).
             DeliveryKind::EmptyDesk => EmptyDeskAlert::fromSnapshot($delivery->payload),

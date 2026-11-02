@@ -36,6 +36,7 @@ return [
     'state' => [
         'draft' => 'Draft',
         'open' => 'Open',
+        'closed' => 'Closed',
     ],
     'form' => [
         'create_title' => 'New invitation',
@@ -72,6 +73,23 @@ return [
         'subject' => 'Invitation: :name',
         'when' => 'You are invited to :name on :date, from :start to :end.',
         'link' => 'See the invitation and reply',
+    ],
+    'reminder_email' => [
+        'subject' => 'Reminder: :name on :date',
+        'heading' => 'Your invitation is coming up',
+        'intro' => 'Hello :member — this is a reminder of an invitation you accepted:',
+        'your_options' => 'Your options: :options',
+        'view_invitation' => 'View the invitation',
+    ],
+    'replies' => [
+        'title' => 'Replies',
+        'title_for' => 'Replies: :name',
+        'print' => 'Print',
+        'add' => 'Reply for a Member',
+        'set' => 'Set reply',
+        'guest' => 'Guest',
+        'member' => 'Member',
+        'reply' => 'Reply',
     ],
     'move_to_draft' => 'Move to Draft',
     'edit' => 'Edit',
