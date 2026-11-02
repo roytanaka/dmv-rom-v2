@@ -37,6 +37,7 @@ return [
     'state' => [
         'draft' => 'Brouillon',
         'open' => 'Ouverte',
+        'closed' => 'Fermée',
     ],
     'form' => [
         'create_title' => 'Nouvelle invitation',
@@ -68,6 +69,16 @@ return [
         'intro' => 'Bonjour :member — ceci est un rappel d’une invitation que vous avez acceptée :',
         'your_options' => 'Vos options : :options',
         'view_invitation' => 'Voir l’invitation',
+    ],
+    'replies' => [
+        'title' => 'Réponses',
+        'title_for' => 'Réponses : :name',
+        'print' => 'Imprimer',
+        'add' => 'Répondre pour un membre',
+        'set' => 'Saisir la réponse',
+        'guest' => 'Invité',
+        'member' => 'Membre',
+        'reply' => 'Réponse',
     ],
     'open' => 'Ouvrir',
     'move_to_draft' => 'Remettre en brouillon',

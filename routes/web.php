@@ -25,6 +25,7 @@ use App\Http\Controllers\GroupReminderSettingsController;
 use App\Http\Controllers\GroupSelfServeSettingsController;
 use App\Http\Controllers\GroupTourRulesController;
 use App\Http\Controllers\GuestController;
+use App\Http\Controllers\GuestReplyController;
 use App\Http\Controllers\HelpController;
 use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
@@ -213,6 +214,10 @@ Route::group([
         ->middleware('auth')->name('invitations.show');
     Route::put(LaravelLocalization::transRoute('routes.invitations.reply'), [ReplyController::class, 'update'])
         ->middleware('auth')->name('invitations.reply');
+    Route::get(LaravelLocalization::transRoute('routes.invitations.replies'), [GuestReplyController::class, 'index'])
+        ->middleware('auth')->name('invitations.replies');
+    Route::put(LaravelLocalization::transRoute('routes.invitations.replies'), [GuestReplyController::class, 'update'])
+        ->middleware('auth')->name('invitations.replies.update');
     Route::get(LaravelLocalization::transRoute('routes.invitations.guests'), [GuestController::class, 'index'])
         ->middleware('auth')->name('invitations.guests');
     Route::post(LaravelLocalization::transRoute('routes.invitations.guests'), [GuestController::class, 'store'])
