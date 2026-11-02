@@ -111,6 +111,7 @@ class InvitationController extends Controller
                 'start_time' => $invitation->start_time,
                 'end_time' => $invitation->end_time,
                 'state' => $invitation->state->value,
+                'closed' => $invitation->isClosed(),
                 'host' => $invitation->host->fullName(),
                 'can' => [
                     'update' => $viewer->can('update', $invitation),

@@ -10,8 +10,9 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * The limit-reached Notice (#906, ADR-0034 §9): an Invitation's Host is told that a Guest
- * took the last spot. The Drain builds this from a Notice {@see Delivery}'s payload snapshot.
+ * The limit-reached Notice (#906, ADR-0034 §9): an Invitation's Host is told that the
+ * Accepted count reached the limit. The Drain builds this from a Notice {@see Delivery}'s
+ * payload snapshot.
  *
  * It renders in the Host's saved locale. An Invitation has no Group to name, so From is the
  * app's own default. There is no Reply-To: an automatic Notice is not a conversation.

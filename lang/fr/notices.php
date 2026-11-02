@@ -57,6 +57,6 @@ return [
         'subject' => "Limite d'invités atteinte : :name",
         'heading' => 'Votre invitation est complète',
         'intro' => ":name a atteint sa limite d'invités.",
-        'view_guests' => 'Voir les invités',
+        'view_replies' => 'Voir les réponses',
     ],
 ];

@@ -19,6 +19,7 @@ interface HostedInvitation {
     start_time: string;
     end_time: string;
     state: 'draft' | 'open';
+    closed: boolean;
     host: string;
     can: { update: boolean; delete: boolean; guests: boolean };
 }
@@ -78,7 +79,7 @@ const destroy = (invitation: HostedInvitation) => {
                         </TableCell>
                         <TableCell class="hidden lg:table-cell">{{ invitation.host }}</TableCell>
                         <TableCell>
-                            <Badge variant="secondary">{{ trans(`invitations.state.${invitation.state}`) }}</Badge>
+                            <Badge variant="secondary">{{ trans(`invitations.state.${invitation.closed ? 'closed' : invitation.state}`) }}</Badge>
                         </TableCell>
                         <TableCell class="text-right">
                             <div class="flex justify-end gap-2">
@@ -103,6 +104,11 @@ const destroy = (invitation: HostedInvitation) => {
                                 <Button v-if="invitation.can.guests" as-child variant="ghost" size="sm">
                                     <Link :href="route('invitations.guests', { invitation: invitation.id })">{{
                                         trans('invitations.guests.title')
+                                    }}</Link>
+                                </Button>
+                                <Button v-if="invitation.can.guests" as-child variant="ghost" size="sm">
+                                    <Link :href="route('invitations.replies', { invitation: invitation.id })">{{
+                                        trans('invitations.replies.title')
                                     }}</Link>
                                 </Button>
                                 <Button v-if="invitation.can.update" as-child variant="ghost" size="sm">

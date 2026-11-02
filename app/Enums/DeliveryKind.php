@@ -21,4 +21,6 @@ enum DeliveryKind: string
     case Reminder = 'reminder';
     case EmptyDesk = 'empty_desk';
     case Notice = 'notice';
+    // A Reminder before an Invitation (#909, ADR-0034 §12), rendered from the live Invitation.
+    case InvitationReminder = 'invitation_reminder';
 }

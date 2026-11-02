@@ -9,9 +9,10 @@ use App\Models\Delivery;
 use App\Models\Invitation;
 
 /**
- * The limit-reached Notice writer (#906, ADR-0034 §9). When a Guest takes the last spot,
- * the Host is told. It writes one Notice {@see Delivery} and nothing else; the Drain sends
- * it, from a payload snapshot, because the Invitation may be renamed or deleted by then.
+ * The limit-reached Notice writer (#906, ADR-0034 §9). When the Accepted count reaches
+ * the limit, the Host is told. It writes one Notice {@see Delivery} and nothing else; the
+ * Drain sends it, from a payload snapshot, because the Invitation may be renamed or deleted
+ * by then.
  */
 class InvitationFullNoticeWriter
 {

@@ -56,6 +56,6 @@ return [
         'subject' => 'Guest limit reached: :name',
         'heading' => 'Your invitation is full',
         'intro' => ':name has reached its Guest limit.',
-        'view_guests' => 'View the Guests',
+        'view_replies' => 'View the replies',
     ],
 ];

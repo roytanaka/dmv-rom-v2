@@ -31,8 +31,7 @@ function limitedInvitation(?int $limit, int $accepted = 0, ?Member $host = null)
     $invitation->state = InvitationState::Open;
     $invitation->save();
 
-    Guest::factory()->count($accepted)->create(['invitation_id' => $invitation->id])
-        ->each(fn (Guest $guest) => $guest->setReply(Reply::Accepted));
+    Guest::factory()->count($accepted)->create(['invitation_id' => $invitation->id, 'reply' => Reply::Accepted]);
 
     return $invitation;
 }
@@ -193,13 +192,16 @@ it('lets an Accepted Guest on a full Invitation change their Options', function 
 });
 
 it('lets a Host-set Reply go over the limit, which keeps Guests out', function () {
-    $invitation = limitedInvitation(1, accepted: 1);
+    $host = Member::factory()->create();
+    $invitation = limitedInvitation(1, accepted: 1, host: $host);
     $exception = guestAwaitingReply($invitation);
     $guest = guestAwaitingReply($invitation);
 
-    $exception->setReply(Reply::Accepted);
+    $this->actingAs($host)
+        ->put(route('invitations.replies', ['invitation' => $invitation->id]), ['member' => $exception->member_id, 'reply' => 'accepted'])
+        ->assertSessionHasNoErrors();
 
-    expect($invitation->guests()->where('reply', Reply::Accepted)->count())->toBe(2);
+    expect($exception->fresh()->reply)->toBe(Reply::Accepted);
     replyFor($guest, 'accepted')->assertSessionHasErrors('reply');
 });
 
@@ -265,6 +267,21 @@ it('queues one Notice to the Host when a Guest takes the last spot, and sends no
         ->and($notice->email)->toBe($host->email);
 });
 
+it('queues the Notice when a Host-set Reply reaches the limit, and none when it goes over', function () {
+    $host = Member::factory()->create();
+    $invitation = limitedInvitation(1, host: $host);
+
+    foreach ([1, 1] as $notices) {
+        $member = guestAwaitingReply($invitation)->member_id;
+        $this->actingAs($host)
+            ->put(route('invitations.replies', ['invitation' => $invitation->id]), ['member' => $member, 'reply' => 'accepted']);
+
+        expect(Delivery::count())->toBe($notices);
+    }
+
+    expect(Delivery::sole()->member_id)->toBe($host->id);
+});
+
 it('queues no Notice below the limit, with no limit, or on a refused accept', function () {
     $roomy = limitedInvitation(3, accepted: 1);
     replyFor(guestAwaitingReply($roomy), 'accepted');
@@ -322,7 +339,7 @@ it('writes no Notice for a Host with the no-email flag, and still fills the Invi
         ->and($guest->fresh()->reply)->toBe(Reply::Accepted);
 });
 
-it('drains the Notice in the Host\'s locale, naming the Invitation and linking to its Guests', function (string $locale, string $subject, string $link) {
+it('drains the Notice in the Host\'s locale, naming the Invitation and linking to its Replies', function (string $locale, string $subject, string $link) {
     Mail::fake();
     $host = Member::factory()->create(['locale' => $locale]);
     $invitation = limitedInvitation(1, host: $host);
@@ -341,8 +358,8 @@ it('drains the Notice in the Host\'s locale, naming the Invitation and linking t
 
     expect(Delivery::sole()->state)->toBe(DeliveryState::Sent);
 })->with([
-    'English' => ['en', 'Guest limit reached: Spring outing', '/invitations/{id}/guests'],
-    'French' => ['fr', "Limite d'invités atteinte : Spring outing", '/fr/invitations/{id}/invites'],
+    'English' => ['en', 'Guest limit reached: Spring outing', '/invitations/{id}/replies'],
+    'French' => ['fr', "Limite d'invités atteinte : Spring outing", '/fr/invitations/{id}/reponses'],
 ]);
 
 it('still drains the Notice after the Invitation is deleted', function () {
