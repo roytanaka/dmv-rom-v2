@@ -41,6 +41,8 @@ return [
     'invitations.guests' => 'invitations/{invitation}/guests',
     'invitations.guests.audience' => 'invitations/{invitation}/guests/audience',
     'invitations.guest' => 'invitations/{invitation}/guests/{guest}',
+    // The Host's Replies page and a Reply set for a Guest (#905).
+    'invitations.replies' => 'invitations/{invitation}/replies',
     'profile' => 'profile',
     'renew' => 'renew',
     // Help centre (#517, ADR-0025). The index at 'help' and one article at

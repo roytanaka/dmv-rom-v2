@@ -37,6 +37,7 @@ return [
     'state' => [
         'draft' => 'Brouillon',
         'open' => 'Ouverte',
+        'closed' => 'Fermée',
     ],
     'form' => [
         'create_title' => 'Nouvelle invitation',
@@ -61,6 +62,16 @@ return [
         'add' => 'Ajouter',
         'remove' => 'Retirer',
         'confirm_remove' => 'Retirer cet invité ? Sa réponse sera aussi retirée.',
+    ],
+    'replies' => [
+        'title' => 'Réponses',
+        'title_for' => 'Réponses : :name',
+        'print' => 'Imprimer',
+        'add' => 'Répondre pour un membre',
+        'set' => 'Saisir la réponse',
+        'guest' => 'Invité',
+        'member' => 'Membre',
+        'reply' => 'Réponse',
     ],
     'open' => 'Ouvrir',
     'move_to_draft' => 'Remettre en brouillon',

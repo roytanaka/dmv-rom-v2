@@ -36,6 +36,7 @@ return [
     'state' => [
         'draft' => 'Draft',
         'open' => 'Open',
+        'closed' => 'Closed',
     ],
     'form' => [
         'create_title' => 'New invitation',
@@ -60,6 +61,16 @@ return [
         'add' => 'Add',
         'remove' => 'Remove',
         'confirm_remove' => 'Remove this Guest? Their reply goes too.',
+    ],
+    'replies' => [
+        'title' => 'Replies',
+        'title_for' => 'Replies: :name',
+        'print' => 'Print',
+        'add' => 'Reply for a Member',
+        'set' => 'Set reply',
+        'guest' => 'Guest',
+        'member' => 'Member',
+        'reply' => 'Reply',
     ],
     'open' => 'Open',
     'move_to_draft' => 'Move to Draft',

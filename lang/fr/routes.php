@@ -35,6 +35,8 @@ return [
     'invitations.guests' => 'invitations/{invitation}/invites',
     'invitations.guests.audience' => 'invitations/{invitation}/invites/audience',
     'invitations.guest' => 'invitations/{invitation}/invites/{guest}',
+    // La page des réponses de l'hôte et la réponse saisie pour un invité (#905).
+    'invitations.replies' => 'invitations/{invitation}/reponses',
     'profile' => 'profil',
     'renew' => 'renouveler',
     // Centre d'aide (#517, ADR-0025). L'index à « aide » et un article à
