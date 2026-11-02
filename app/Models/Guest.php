@@ -7,6 +7,8 @@ use Database\Factories\GuestFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A Member on an Invitation's guest list (ADR-0034): one row per (Invitation, Member).
@@ -56,5 +58,32 @@ class Guest extends Model
     public function member(): BelongsTo
     {
         return $this->belongsTo(Member::class);
+    }
+
+    /**
+     * The Options this Guest chose. Only an Accepted Reply has any.
+     *
+     * @return BelongsToMany<Option, $this>
+     */
+    public function options(): BelongsToMany
+    {
+        return $this->belongsToMany(Option::class);
+    }
+
+    /**
+     * Record a Reply and its chosen Options, the one write every Reply goes through. It
+     * asks nothing about who is replying or when: the caller has already decided that. An
+     * Option survives only on an Accepted Reply, so a Decline clears the choices.
+     *
+     * @param  list<int>  $optionIds  Options of this Guest's Invitation
+     */
+    public function setReply(Reply $reply, array $optionIds = []): void
+    {
+        DB::transaction(function () use ($reply, $optionIds): void {
+            $this->reply = $reply;
+            $this->save();
+
+            $this->options()->sync($reply === Reply::Accepted ? $optionIds : []);
+        });
     }
 }

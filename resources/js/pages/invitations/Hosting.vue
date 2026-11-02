@@ -31,6 +31,10 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: trans('invitation
 const locale = computed(() => usePage<SharedData>().props.locale);
 const formatDate = (date: string) => new Intl.DateTimeFormat(locale.value, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(date));
 
+const moveTo = (invitation: HostedInvitation, target: 'invitations.open' | 'invitations.draft') => {
+    router.post(route(target, { invitation: invitation.id }), {}, { preserveScroll: true });
+};
+
 const destroy = (invitation: HostedInvitation) => {
     if (window.confirm(trans('invitations.confirm_delete'))) {
         router.delete(route('invitations.destroy', { invitation: invitation.id }), { preserveScroll: true });
@@ -78,6 +82,24 @@ const destroy = (invitation: HostedInvitation) => {
                         </TableCell>
                         <TableCell class="text-right">
                             <div class="flex justify-end gap-2">
+                                <Button
+                                    v-if="invitation.can.update && invitation.state === 'draft'"
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    @click="moveTo(invitation, 'invitations.open')"
+                                >
+                                    {{ trans('invitations.open') }}
+                                </Button>
+                                <Button
+                                    v-if="invitation.can.update && invitation.state === 'open'"
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    @click="moveTo(invitation, 'invitations.draft')"
+                                >
+                                    {{ trans('invitations.move_to_draft') }}
+                                </Button>
                                 <Button v-if="invitation.can.guests" as-child variant="ghost" size="sm">
                                     <Link :href="route('invitations.guests', { invitation: invitation.id })">{{
                                         trans('invitations.guests.title')

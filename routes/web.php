@@ -39,6 +39,7 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
 use App\Http\Controllers\QualificationController;
+use App\Http\Controllers\ReplyController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SelfServeShiftController;
 use App\Http\Controllers\ShiftController;
@@ -203,6 +204,15 @@ Route::group([
         ->middleware('auth')->name('invitations.update');
     Route::delete(LaravelLocalization::transRoute('routes.invitations.invitation'), [InvitationController::class, 'destroy'])
         ->middleware('auth')->name('invitations.destroy');
+    Route::post(LaravelLocalization::transRoute('routes.invitations.open'), [InvitationController::class, 'open'])
+        ->middleware('auth')->name('invitations.open');
+    Route::post(LaravelLocalization::transRoute('routes.invitations.draft'), [InvitationController::class, 'draft'])
+        ->middleware('auth')->name('invitations.draft');
+    // Below create and hosting, so neither binds as an Invitation id.
+    Route::get(LaravelLocalization::transRoute('routes.invitations.invitation'), [InvitationController::class, 'show'])
+        ->middleware('auth')->name('invitations.show');
+    Route::put(LaravelLocalization::transRoute('routes.invitations.reply'), [ReplyController::class, 'update'])
+        ->middleware('auth')->name('invitations.reply');
     Route::get(LaravelLocalization::transRoute('routes.invitations.guests'), [GuestController::class, 'index'])
         ->middleware('auth')->name('invitations.guests');
     Route::post(LaravelLocalization::transRoute('routes.invitations.guests'), [GuestController::class, 'store'])

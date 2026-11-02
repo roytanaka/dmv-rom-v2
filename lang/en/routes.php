@@ -33,6 +33,10 @@ return [
     'invitations.create' => 'invitations/create',
     'invitations.invitation' => 'invitations/{invitation}',
     'invitations.edit' => 'invitations/{invitation}/edit',
+    // Moving between Draft and Open, and a Guest's own Reply (#904).
+    'invitations.open' => 'invitations/{invitation}/open',
+    'invitations.draft' => 'invitations/{invitation}/draft',
+    'invitations.reply' => 'invitations/{invitation}/reply',
     // The guest list (#903): the page and a single pick, a bulk pick, one Guest.
     'invitations.guests' => 'invitations/{invitation}/guests',
     'invitations.guests.audience' => 'invitations/{invitation}/guests/audience',

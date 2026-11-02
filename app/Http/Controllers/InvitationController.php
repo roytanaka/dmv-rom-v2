@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\InvitationState;
 use App\Http\Requests\DeleteInvitationRequest;
 use App\Http\Requests\StoreInvitationRequest;
 use App\Http\Requests\UpdateInvitationRequest;
+use App\Models\Guest;
 use App\Models\Invitation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,12 +23,59 @@ use Inertia\Response;
 class InvitationController extends Controller
 {
     /**
-     * My invitations. It stays empty until a Member can be a Guest.
+     * My invitations: the Invitations this Member can reply to, soonest first, each with
+     * their own Reply. The Guest comes from the signed-in Member.
      */
     public function index(Request $request): Response
     {
+        $guests = Guest::query()
+            ->where('member_id', $request->user()->id)
+            ->whereHas('invitation', fn ($query) => $query->takingReplies())
+            ->with('invitation.host')
+            ->get()
+            ->sortBy(fn (Guest $guest): string => $guest->invitation->date->toDateString());
+
         return Inertia::render('invitations/Mine', [
             'can' => ['host' => $request->user()->can('create', Invitation::class)],
+            'invitations' => $guests->map(fn (Guest $guest): array => [
+                'id' => $guest->invitation->id,
+                'name' => $guest->invitation->name,
+                'date' => $guest->invitation->date->toDateString(),
+                'start_time' => $guest->invitation->start_time,
+                'end_time' => $guest->invitation->end_time,
+                'host' => $guest->invitation->host->fullName(),
+                'reply' => $guest->reply->value,
+            ])->values()->all(),
+        ]);
+    }
+
+    /**
+     * One Invitation as a Guest reads it. It carries the viewer's own Reply and no one
+     * else's (ADR-0034 §11). The Reply comes from the signed-in Member.
+     */
+    public function show(Request $request, Invitation $invitation): Response
+    {
+        Gate::authorize('view', $invitation);
+
+        $guest = $invitation->guestFor($request->user());
+
+        return Inertia::render('invitations/Show', [
+            'invitation' => [
+                'id' => $invitation->id,
+                'name' => $invitation->name,
+                'date' => $invitation->date->toDateString(),
+                'start_time' => $invitation->start_time,
+                'end_time' => $invitation->end_time,
+                'description' => $invitation->description,
+                'host' => $invitation->host->fullName(),
+                'closed' => $invitation->isClosed(),
+                'options' => $invitation->options()->orderBy('id')->get(['id', 'name'])->toArray(),
+            ],
+            'guest' => $guest === null ? null : [
+                'reply' => $guest->reply->value,
+                'options' => $guest->options()->pluck('options.id')->all(),
+            ],
+            'can' => ['reply' => $invitation->takesReplyFrom($request->user())],
         ]);
     }
 
@@ -122,6 +171,34 @@ class InvitationController extends Controller
     public function destroy(DeleteInvitationRequest $request, Invitation $invitation): RedirectResponse
     {
         $invitation->delete();
+
+        return to_route('invitations.hosting');
+    }
+
+    /**
+     * Open a Draft, so its Guests can see it and reply. The send ticket (#907) replaces
+     * this with sending.
+     */
+    public function open(Invitation $invitation): RedirectResponse
+    {
+        return $this->moveTo($invitation, InvitationState::Open);
+    }
+
+    /**
+     * Move an Open Invitation back to Draft, which hides it from its Guests. Their Replies
+     * stay.
+     */
+    public function draft(Invitation $invitation): RedirectResponse
+    {
+        return $this->moveTo($invitation, InvitationState::Draft);
+    }
+
+    private function moveTo(Invitation $invitation, InvitationState $state): RedirectResponse
+    {
+        Gate::authorize('update', $invitation);
+
+        $invitation->state = $state;
+        $invitation->save();
 
         return to_route('invitations.hosting');
     }

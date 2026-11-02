@@ -13,6 +13,18 @@ return [
     'mine' => [
         'empty' => "Vous n'avez aucune invitation.",
     ],
+    'show' => [
+        'hosted_by' => 'Organisée par :name',
+        'your_reply' => 'Votre réponse',
+        'closed' => 'Cette invitation est fermée.',
+    ],
+    'reply' => [
+        'no_reply' => 'Aucune réponse',
+        'accepted' => 'Acceptée',
+        'declined' => 'Refusée',
+        'accept' => 'Accepter',
+        'decline' => 'Refuser',
+    ],
     'hosting' => [
         'empty' => "Vous n'organisez aucune invitation.",
         'new' => 'Nouvelle invitation',
@@ -50,6 +62,8 @@ return [
         'remove' => 'Retirer',
         'confirm_remove' => 'Retirer cet invité ? Sa réponse sera aussi retirée.',
     ],
+    'open' => 'Ouvrir',
+    'move_to_draft' => 'Remettre en brouillon',
     'edit' => 'Modifier',
     'delete' => 'Supprimer',
     'save' => 'Enregistrer',

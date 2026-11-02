@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\AccessTier;
+use App\Enums\InvitationState;
 use App\Models\Invitation;
 use App\Models\Member;
 
@@ -23,6 +24,16 @@ class InvitationPolicy
     public function create(Member $actor): bool
     {
         return $actor->category->accessTier() === AccessTier::Full;
+    }
+
+    /**
+     * Who may read a single Invitation: its Host, and a Guest while it is not a Draft.
+     * Every other Member is refused, so a private occasion stays private.
+     */
+    public function view(Member $actor, Invitation $invitation): bool
+    {
+        return $this->manages($actor, $invitation)
+            || ($invitation->state !== InvitationState::Draft && $invitation->guestFor($actor) !== null);
     }
 
     /**

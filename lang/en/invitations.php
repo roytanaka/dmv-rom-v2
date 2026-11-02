@@ -12,6 +12,18 @@ return [
     'mine' => [
         'empty' => 'You have no invitations.',
     ],
+    'show' => [
+        'hosted_by' => 'Hosted by :name',
+        'your_reply' => 'Your reply',
+        'closed' => 'This invitation is closed.',
+    ],
+    'reply' => [
+        'no_reply' => 'No reply',
+        'accepted' => 'Accepted',
+        'declined' => 'Declined',
+        'accept' => 'Accept',
+        'decline' => 'Decline',
+    ],
     'hosting' => [
         'empty' => 'You are not hosting any invitations.',
         'new' => 'New invitation',
@@ -49,6 +61,8 @@ return [
         'remove' => 'Remove',
         'confirm_remove' => 'Remove this Guest? Their reply goes too.',
     ],
+    'open' => 'Open',
+    'move_to_draft' => 'Move to Draft',
     'edit' => 'Edit',
     'delete' => 'Delete',
     'save' => 'Save',

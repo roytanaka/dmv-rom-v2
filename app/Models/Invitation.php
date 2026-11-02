@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\InvitationState;
+use App\Support\OrgTime;
 use Database\Factories\InvitationFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -109,6 +111,46 @@ class Invitation extends Model
     public function guests(): HasMany
     {
         return $this->hasMany(Guest::class);
+    }
+
+    /**
+     * Invitations a Guest can still reply to: Open, with a date that has not passed.
+     *
+     * @param  Builder<Invitation>  $query
+     */
+    public function scopeTakingReplies(Builder $query): void
+    {
+        $query->where('state', InvitationState::Open)
+            ->whereDate('date', '>=', OrgTime::today()->toDateString());
+    }
+
+    /**
+     * Closed is computed (ADR-0034 §6): an Open Invitation whose date has passed on the
+     * museum's clock. The occasion's own day is not past, and a later date reopens it.
+     */
+    public function isClosed(): bool
+    {
+        return $this->state === InvitationState::Open && $this->date->lt(OrgTime::today());
+    }
+
+    /**
+     * This Member's row on the guest list, if they have one.
+     */
+    public function guestFor(Member $member): ?Guest
+    {
+        return $this->guests()->where('member_id', $member->id)->first();
+    }
+
+    /**
+     * Whether this Member may set their own Reply now: they are a Guest, and the Invitation
+     * is Open and not Closed. This is not a policy ability because `Gate::before` would
+     * grant it to the super-tier, who may answer only as a Guest like anyone else.
+     */
+    public function takesReplyFrom(Member $member): bool
+    {
+        return $this->state === InvitationState::Open
+            && ! $this->isClosed()
+            && $this->guestFor($member) !== null;
     }
 
     /**
