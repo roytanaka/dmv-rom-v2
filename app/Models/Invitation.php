@@ -41,6 +41,7 @@ class Invitation extends Model
         'start_time',
         'end_time',
         'description',
+        'guest_limit',
     ];
 
     /**
@@ -181,6 +182,23 @@ class Invitation extends Model
         return $this->state === InvitationState::Open
             && ! $this->isClosed()
             && $this->guestFor($member) !== null;
+    }
+
+    /**
+     * Whether the Accepted Replies have reached the Guest limit (ADR-0034 §9). A Host-set
+     * Reply can take the count past the limit, so this is at or over. Options do not count.
+     */
+    public function isFull(): bool
+    {
+        return $this->guest_limit !== null && $this->acceptedCount() >= $this->guest_limit;
+    }
+
+    /**
+     * How many Guests have accepted.
+     */
+    public function acceptedCount(): int
+    {
+        return $this->guests()->where('reply', Reply::Accepted)->count();
     }
 
     /**

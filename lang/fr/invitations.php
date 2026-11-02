@@ -17,6 +17,7 @@ return [
         'hosted_by' => 'Organisée par :name',
         'your_reply' => 'Votre réponse',
         'closed' => 'Cette invitation est fermée.',
+        'full' => 'Cette invitation est complète.',
     ],
     'reply' => [
         'no_reply' => 'Aucune réponse',
@@ -47,6 +48,7 @@ return [
         'start_time' => 'Heure de début',
         'end_time' => 'Heure de fin',
         'description' => 'Description',
+        'guest_limit' => "Limite d'invités",
         'options' => 'Options',
         'option_name' => "Nom de l'option",
         'add_option' => 'Ajouter une option',

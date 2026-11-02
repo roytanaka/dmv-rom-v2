@@ -16,6 +16,7 @@ return [
         'hosted_by' => 'Hosted by :name',
         'your_reply' => 'Your reply',
         'closed' => 'This invitation is closed.',
+        'full' => 'This invitation is full.',
     ],
     'reply' => [
         'no_reply' => 'No reply',
@@ -46,6 +47,7 @@ return [
         'start_time' => 'Start time',
         'end_time' => 'End time',
         'description' => 'Description',
+        'guest_limit' => 'Guest limit',
         'options' => 'Options',
         'option_name' => 'Option name',
         'add_option' => 'Add option',

@@ -10,6 +10,7 @@ use App\Mail\BookingMail;
 use App\Mail\BroadcastMail;
 use App\Mail\BroadcastSenderCopy;
 use App\Mail\EmptyDeskAlert;
+use App\Mail\InvitationFull;
 use App\Mail\InvitationMail;
 use App\Mail\InvitationReminder;
 use App\Mail\ShiftReminder;
@@ -341,6 +342,7 @@ class DrainDeliveries extends Command
             StandingChanged::NOTICE_TYPE => StandingChanged::fromSnapshot($payload),
             SignUpSubstituted::NOTICE_TYPE => SignUpSubstituted::fromSnapshot($payload),
             BookingMail::REQUEST, BookingMail::CONFIRMATION => BookingMail::fromSnapshot($payload),
+            InvitationFull::NOTICE_TYPE => InvitationFull::fromSnapshot($payload),
             default => SignUpCancelled::fromSnapshot($payload),
         };
     }

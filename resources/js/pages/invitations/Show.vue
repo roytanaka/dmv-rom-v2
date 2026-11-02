@@ -23,10 +23,11 @@ const props = defineProps<{
         description: string;
         host: string;
         closed: boolean;
+        full: boolean;
         options: { id: number; name: string }[];
     };
     guest: { reply: 'no_reply' | 'accepted' | 'declined'; options: number[] } | null;
-    can: { reply: boolean };
+    can: { reply: boolean; accept: boolean };
 }>();
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
@@ -78,6 +79,7 @@ const submit = (reply: 'accepted' | 'declined') => {
             <p class="text-sm whitespace-pre-line">{{ invitation.description }}</p>
 
             <p v-if="invitation.closed" class="text-muted-foreground text-sm">{{ trans('invitations.show.closed') }}</p>
+            <p v-else-if="can.reply && !can.accept" class="text-muted-foreground text-sm">{{ trans('invitations.show.full') }}</p>
 
             <section v-if="guest" class="flex flex-col gap-4">
                 <div class="flex items-center gap-2">
@@ -87,8 +89,8 @@ const submit = (reply: 'accepted' | 'declined') => {
 
                 <p v-if="!can.reply && chosenNames.length" class="text-sm">{{ chosenNames.join(', ') }}</p>
 
-                <form v-if="can.reply" class="flex flex-col gap-4" @submit.prevent="submit('accepted')">
-                    <fieldset v-if="invitation.options.length" class="flex flex-col gap-2">
+                <form v-if="can.reply" class="flex flex-col gap-4" @submit.prevent="submit(can.accept ? 'accepted' : 'declined')">
+                    <fieldset v-if="can.accept && invitation.options.length" class="flex flex-col gap-2">
                         <legend class="text-sm font-medium">{{ trans('invitations.form.options') }}</legend>
                         <div v-for="option in invitation.options" :key="option.id" class="flex items-center gap-2">
                             <Checkbox
@@ -103,7 +105,7 @@ const submit = (reply: 'accepted' | 'declined') => {
                     <InputError :message="form.errors.reply" />
 
                     <div class="flex gap-2">
-                        <Button type="submit" :disabled="form.processing">{{ trans('invitations.reply.accept') }}</Button>
+                        <Button v-if="can.accept" type="submit" :disabled="form.processing">{{ trans('invitations.reply.accept') }}</Button>
                         <Button type="button" variant="outline" :disabled="form.processing" @click="submit('declined')">
                             {{ trans('invitations.reply.decline') }}
                         </Button>
