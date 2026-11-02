@@ -204,8 +204,6 @@ Route::group([
         ->middleware('auth')->name('invitations.update');
     Route::delete(LaravelLocalization::transRoute('routes.invitations.invitation'), [InvitationController::class, 'destroy'])
         ->middleware('auth')->name('invitations.destroy');
-    Route::post(LaravelLocalization::transRoute('routes.invitations.open'), [InvitationController::class, 'open'])
-        ->middleware('auth')->name('invitations.open');
     Route::post(LaravelLocalization::transRoute('routes.invitations.draft'), [InvitationController::class, 'draft'])
         ->middleware('auth')->name('invitations.draft');
     // Below create and hosting, so neither binds as an Invitation id.

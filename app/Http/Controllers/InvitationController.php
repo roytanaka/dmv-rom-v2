@@ -104,10 +104,12 @@ class InvitationController extends Controller
                 'end_time' => $invitation->end_time,
                 'state' => $invitation->state->value,
                 'host' => $invitation->host->fullName(),
+                'mail' => $invitation->mailDraft(),
                 'can' => [
                     'update' => $viewer->can('update', $invitation),
                     'delete' => $viewer->can('delete', $invitation),
                     'guests' => $viewer->can('manageGuests', $invitation),
+                    'send' => $viewer->can('send', $invitation),
                 ],
             ])->all(),
         ]);
@@ -176,28 +178,14 @@ class InvitationController extends Controller
     }
 
     /**
-     * Open a Draft, so its Guests can see it and reply. The send ticket (#907) replaces
-     * this with sending.
-     */
-    public function open(Invitation $invitation): RedirectResponse
-    {
-        return $this->moveTo($invitation, InvitationState::Open);
-    }
-
-    /**
      * Move an Open Invitation back to Draft, which hides it from its Guests. Their Replies
-     * stay.
+     * stay. Only sending moves a Draft to Open.
      */
     public function draft(Invitation $invitation): RedirectResponse
     {
-        return $this->moveTo($invitation, InvitationState::Draft);
-    }
-
-    private function moveTo(Invitation $invitation, InvitationState $state): RedirectResponse
-    {
         Gate::authorize('update', $invitation);
 
-        $invitation->state = $state;
+        $invitation->state = InvitationState::Draft;
         $invitation->save();
 
         return to_route('invitations.hosting');

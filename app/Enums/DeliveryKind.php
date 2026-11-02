@@ -21,4 +21,6 @@ enum DeliveryKind: string
     case Reminder = 'reminder';
     case EmptyDesk = 'empty_desk';
     case Notice = 'notice';
+    // One Guest's copy of a Host's Invitation mail, rendered from its `broadcasts` row.
+    case Invitation = 'invitation';
 }

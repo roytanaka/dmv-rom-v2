@@ -46,6 +46,8 @@ const props = defineProps<{
     // Audience — a Tour row's Email button seeds its qualified Members. It stays a hand-pick
     // (ADR-0024 §6): the ids post as additions and the server checks them against the roster.
     seed?: number[];
+    // Prefilled, editable text (ADR-0034 §7): an Invitation opens with a mail already written.
+    prefill?: { subject: string; body: string } | null;
 }>();
 
 const emit = defineEmits<{ (e: 'update:open', value: boolean): void }>();
@@ -83,8 +85,8 @@ watch(
         step.value = 'who';
         search.value = '';
         chipsExpanded.value = false;
-        subject.value = '';
-        body.value = '';
+        subject.value = props.prefill?.subject ?? '';
+        body.value = props.prefill?.body ?? '';
         attachments.value = [];
         queued.value = 0;
         skipped.value = [];
@@ -333,7 +335,7 @@ function close(): void {
                     </div>
                 </div>
 
-                <div>
+                <div v-if="roster.length > 0">
                     <Button v-if="!panelOpen" type="button" variant="outline" size="sm" @click="panelOpen = true">
                         {{ trans('broadcasts.composer.add_people') }}
                     </Button>

@@ -61,7 +61,18 @@ return [
         'remove' => 'Remove',
         'confirm_remove' => 'Remove this Guest? Their reply goes too.',
     ],
-    'open' => 'Open',
+    'send' => [
+        'action' => 'Send',
+        're_send' => 'Re-send',
+        'unreachable' => 'No Guest can be reached by email.',
+    ],
+    // The prefilled text is the Host's to edit, and stays in the Host's language. The link
+    // is the app's own text, in each Guest's language.
+    'mail' => [
+        'subject' => 'Invitation: :name',
+        'when' => 'You are invited to :name on :date, from :start to :end.',
+        'link' => 'See the invitation and reply',
+    ],
     'move_to_draft' => 'Move to Draft',
     'edit' => 'Edit',
     'delete' => 'Delete',

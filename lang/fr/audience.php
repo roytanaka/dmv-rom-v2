@@ -29,6 +29,10 @@ return [
     'committee_chairs' => 'Présidences de comité',
     'all_chairs' => 'Toutes les présidences',
 
+    // Publics des invitations.
+    'invitation_guests' => 'Tous les invités',
+    'invitation_no_reply' => 'Invités sans réponse',
+
     // Suffixe d'audience modifiée, ajouté lorsque le sélecteur a retiré des
     // personnes (ADR-0024 §6) : le nom de l'audience demeure et le nombre de
     // retraits est indiqué.
