@@ -28,6 +28,7 @@ use App\Http\Controllers\HelpController;
 use App\Http\Controllers\HelpStatusController;
 use App\Http\Controllers\HoursController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\LinkDocumentController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
@@ -183,6 +184,24 @@ Route::group([
     // replacing the earlier ComingSoon stub now that the feature has landed.
     Route::get(LaravelLocalization::transRoute('routes.news'), [NewsController::class, 'index'])
         ->middleware('auth')->name('news');
+
+    // Invitations (#902, ADR-0034). The page opens on My invitations; Hosting and the
+    // Host's writes check the InvitationPolicy. The writes stay inside this group, like
+    // Feedback's, so a redirect after a save keeps the Member's locale.
+    Route::get(LaravelLocalization::transRoute('routes.invitations'), [InvitationController::class, 'index'])
+        ->middleware('auth')->name('invitations');
+    Route::post(LaravelLocalization::transRoute('routes.invitations'), [InvitationController::class, 'store'])
+        ->middleware('auth')->name('invitations.store');
+    Route::get(LaravelLocalization::transRoute('routes.invitations.hosting'), [InvitationController::class, 'hosting'])
+        ->middleware('auth')->name('invitations.hosting');
+    Route::get(LaravelLocalization::transRoute('routes.invitations.create'), [InvitationController::class, 'create'])
+        ->middleware('auth')->name('invitations.create');
+    Route::get(LaravelLocalization::transRoute('routes.invitations.edit'), [InvitationController::class, 'edit'])
+        ->middleware('auth')->name('invitations.edit');
+    Route::patch(LaravelLocalization::transRoute('routes.invitations.invitation'), [InvitationController::class, 'update'])
+        ->middleware('auth')->name('invitations.update');
+    Route::delete(LaravelLocalization::transRoute('routes.invitations.invitation'), [InvitationController::class, 'destroy'])
+        ->middleware('auth')->name('invitations.destroy');
 
     // Group detail page (#188, PRD #186). Resolves the Group by its slug (content,
     // as-authored even under /fr/ — only the /groups segment is translated, ADR-0008)

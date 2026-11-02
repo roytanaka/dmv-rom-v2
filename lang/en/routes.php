@@ -26,6 +26,13 @@ return [
     // map can point at; {document} is the id in both locales.
     'documents.download' => 'documents/{document}/download',
     'news' => 'news',
+    // Invitations (#902, ADR-0034): My invitations at the root, the Hosting tab, a Host's
+    // create and edit pages. {invitation} is the id in both locales.
+    'invitations' => 'invitations',
+    'invitations.hosting' => 'invitations/hosting',
+    'invitations.create' => 'invitations/create',
+    'invitations.invitation' => 'invitations/{invitation}',
+    'invitations.edit' => 'invitations/{invitation}/edit',
     'profile' => 'profile',
     'renew' => 'renew',
     // Help centre (#517, ADR-0025). The index at 'help' and one article at
