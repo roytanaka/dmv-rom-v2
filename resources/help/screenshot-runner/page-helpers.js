@@ -167,7 +167,7 @@
     }
 
     // Open the draft Schedule — the one whose list card carries the Draft badge. The demo seed
-    // drafts next month on Docents, empty, the state a Scheduler is in right after creating it.
+    // drafts a month ahead on Docents, empty, the state a Scheduler is in right after creating it.
     // Only a schedule admin sees a draft, so this helper is for the officer walkthroughs.
     function openDraftSchedule() {
         const isDraft = (link) =>
