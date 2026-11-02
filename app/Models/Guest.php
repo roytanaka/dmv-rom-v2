@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Reply;
+use App\Support\Notices\InvitationFullNoticeWriter;
 use Database\Factories\GuestFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -84,6 +85,39 @@ class Guest extends Model
             $this->save();
 
             $this->options()->sync($reply === Reply::Accepted ? $optionIds : []);
+        });
+    }
+
+    /**
+     * Record a Guest's own Reply, held to the Guest limit (ADR-0034 §9). Returns false, and
+     * changes nothing, when this would take a spot on a full Invitation. A Guest who already
+     * holds a spot is not taking one, so they can still change their Options. Taking the last
+     * spot queues the Host's Notice, in the same transaction as the Reply.
+     *
+     * The Invitation's row lock serializes these writes, so two Guests cannot take the last
+     * spot. It is this transaction's first read, so the count below sees every Reply committed
+     * before the lock was granted. A Host-set Reply goes straight to {@see setReply}.
+     *
+     * @param  list<int>  $optionIds  Options of this Guest's Invitation
+     */
+    public function setReplyWithinLimit(Reply $reply, array $optionIds = []): bool
+    {
+        return DB::transaction(function () use ($reply, $optionIds): bool {
+            $invitation = Invitation::query()->lockForUpdate()->findOrFail($this->invitation_id);
+
+            $takesSpot = $reply === Reply::Accepted && $this->refresh()->reply !== Reply::Accepted;
+
+            if ($takesSpot && $invitation->isFull()) {
+                return false;
+            }
+
+            $this->setReply($reply, $optionIds);
+
+            if ($takesSpot && $invitation->isFull()) {
+                (new InvitationFullNoticeWriter)->write($invitation);
+            }
+
+            return true;
         });
     }
 }

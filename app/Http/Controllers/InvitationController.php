@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\InvitationState;
+use App\Enums\Reply;
 use App\Http\Requests\DeleteInvitationRequest;
 use App\Http\Requests\StoreInvitationRequest;
 use App\Http\Requests\UpdateInvitationRequest;
@@ -58,6 +59,8 @@ class InvitationController extends Controller
         Gate::authorize('view', $invitation);
 
         $guest = $invitation->guestFor($request->user());
+        $full = $invitation->isFull();
+        $canReply = $invitation->takesReplyFrom($request->user());
 
         return Inertia::render('invitations/Show', [
             'invitation' => [
@@ -69,13 +72,18 @@ class InvitationController extends Controller
                 'description' => $invitation->description,
                 'host' => $invitation->host->fullName(),
                 'closed' => $invitation->isClosed(),
+                'full' => $full,
                 'options' => $invitation->options()->orderBy('id')->get(['id', 'name'])->toArray(),
             ],
             'guest' => $guest === null ? null : [
                 'reply' => $guest->reply->value,
                 'options' => $guest->options()->pluck('options.id')->all(),
             ],
-            'can' => ['reply' => $invitation->takesReplyFrom($request->user())],
+            'can' => [
+                'reply' => $canReply,
+                // A Guest who holds a spot may keep it, and change their Options.
+                'accept' => $canReply && (! $full || $guest->reply === Reply::Accepted),
+            ],
         ]);
     }
 
@@ -150,6 +158,7 @@ class InvitationController extends Controller
                 'start_time' => $invitation->start_time,
                 'end_time' => $invitation->end_time,
                 'description' => $invitation->description,
+                'guest_limit' => $invitation->guest_limit,
                 'options' => $invitation->options()->orderBy('id')->get(['id', 'name'])->toArray(),
             ],
         ]);

@@ -20,6 +20,7 @@ interface EditableInvitation {
     start_time: string;
     end_time: string;
     description: string;
+    guest_limit: number | null;
     options: { id: number | null; name: string }[];
 }
 
@@ -37,6 +38,7 @@ const form = useForm({
     start_time: props.invitation?.start_time ?? '',
     end_time: props.invitation?.end_time ?? '',
     description: props.invitation?.description ?? '',
+    guest_limit: props.invitation?.guest_limit ?? '',
     options: props.invitation?.options ?? [],
 });
 
@@ -83,6 +85,11 @@ const submit = () => {
                     <Label for="invitation-description">{{ trans('invitations.form.description') }}</Label>
                     <Textarea id="invitation-description" v-model="form.description" required rows="6" />
                     <InputError :message="form.errors.description" />
+                </div>
+                <div class="grid gap-2">
+                    <Label for="invitation-guest-limit">{{ trans('invitations.form.guest_limit') }}</Label>
+                    <Input id="invitation-guest-limit" v-model="form.guest_limit" type="number" min="1" max="65535" />
+                    <InputError :message="form.errors.guest_limit" />
                 </div>
 
                 <fieldset class="flex flex-col gap-2">

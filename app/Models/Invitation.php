@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\InvitationState;
+use App\Enums\Reply;
 use App\Support\OrgTime;
 use Database\Factories\InvitationFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -39,6 +40,7 @@ class Invitation extends Model
         'start_time',
         'end_time',
         'description',
+        'guest_limit',
     ];
 
     /**
@@ -151,6 +153,16 @@ class Invitation extends Model
         return $this->state === InvitationState::Open
             && ! $this->isClosed()
             && $this->guestFor($member) !== null;
+    }
+
+    /**
+     * Whether the Accepted Replies have reached the Guest limit (ADR-0034 §9). A Host-set
+     * Reply can take the count past the limit, so this is at or over. Options do not count.
+     */
+    public function isFull(): bool
+    {
+        return $this->guest_limit !== null
+            && $this->guests()->where('reply', Reply::Accepted)->count() >= $this->guest_limit;
     }
 
     /**
