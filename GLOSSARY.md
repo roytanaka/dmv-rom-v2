@@ -198,6 +198,7 @@ _Avoid_: "member-to-member messaging" (the older ADR-0011 / ADR-0017 phrase), "D
 
 **Reminder**:
 An automatic mail about the recipient's **own upcoming Sign-up**, written by the daily pass for every Sign-up inside the Group's lead window (3 days by default) that has no Reminder **Delivery** yet, and sent by the **Drain**. Per-Group settings: on or off, lead days. Chrome, rendered in the recipient's **locale**; no Reply-To. A Reminder's Delivery expires at the Shift's start. The **empty-desk alert** is its sibling, a Group setting (watched shift kinds and days ahead, on for Visitor Guides): every third day of the month the roster is told which watched Shifts still have no Sign-up.
+An Accepted **Guest** gets the same kind of mail before an **Invitation**, at a fixed 4 days.
 _Avoid_: "notification"; and reading a Reminder as a date match. It is a window with a sent record, so a missed day catches up and a late Sign-up still gets one.
 
 **Notice**:
@@ -217,11 +218,11 @@ The every-minute scheduled task that sends pending **Deliveries**. **The only co
 _Avoid_: "worker" or "queue worker" ([ADR-0002](docs/adr/0002-stay-on-stormweb-shared-hosting.md): none exist; this is a cron pass), and sending mail from anywhere else.
 
 **Invitation**:
-An occasion a **Host** asks named **Members** to attend, together with its guest list. Members only, never outside people. An Invitation belongs to its Host, not to a **Group**: Invitations is an org-wide feature, not a Group capability.
+An occasion a **Host** asks named **Members** to attend, together with its guest list. Members only, never outside people. An Invitation belongs to its Host, not to a **Group**: Invitations is an org-wide feature, not a Group capability. An Invitation is Draft (seen only by its Host), Open (Guests see it and reply), or Closed (its date has passed).
 _Avoid_: "event", "e-Vite", "RSVP" as a noun for the occasion. And "Invitations Group": legacy's Invitations committee is not carried over.
 
 **Host**:
-The **Member** who creates an **Invitation** and runs it. Any Member whose **Category** gives Full access may host. A Host invites from the Groups they belong to; an **org-wide sender** may also invite All Members or any Group. The super-tier may manage every Invitation.
+The **Member** who creates an **Invitation** and runs it. Any Member whose **Category** gives Full access may host. A Host may invite any single Member, and whole Groups they belong to; an **org-wide sender** may also invite All Members or any Group. The super-tier may manage every Invitation.
 _Avoid_: "organiser", "creator", and the legacy "executive host" or "super-host".
 
 **Guest**:
