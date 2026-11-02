@@ -28,7 +28,6 @@ return [
     'invitations.invitation' => 'invitations/{invitation}',
     'invitations.edit' => 'invitations/{invitation}/modifier',
     // Le passage entre brouillon et ouverte, et la réponse d'un invité (#904).
-    'invitations.open' => 'invitations/{invitation}/ouvrir',
     'invitations.draft' => 'invitations/{invitation}/brouillon',
     'invitations.reply' => 'invitations/{invitation}/reponse',
     // La liste d'invités (#903) : la page et l'ajout d'une personne, l'ajout en bloc, un invité.

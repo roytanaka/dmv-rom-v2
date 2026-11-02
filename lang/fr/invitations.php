@@ -65,6 +65,18 @@ return [
         'remove' => 'Retirer',
         'confirm_remove' => 'Retirer cet invité ? Sa réponse sera aussi retirée.',
     ],
+    'send' => [
+        'action' => 'Envoyer',
+        're_send' => 'Renvoyer',
+        'unreachable' => 'Aucun invité ne peut être joint par courriel.',
+    ],
+    // Le texte prérempli appartient à l'hôte et reste dans sa langue. Le lien fait partie
+    // de l'interface et suit la langue de chaque invité.
+    'mail' => [
+        'subject' => 'Invitation : :name',
+        'when' => 'Vous êtes invité à :name le :date, de :start à :end.',
+        'link' => "Voir l'invitation et répondre",
+    ],
     'reminder_email' => [
         'subject' => 'Rappel : :name le :date',
         'heading' => 'Votre invitation approche',
@@ -82,7 +94,6 @@ return [
         'member' => 'Membre',
         'reply' => 'Réponse',
     ],
-    'open' => 'Ouvrir',
     'move_to_draft' => 'Remettre en brouillon',
     'edit' => 'Modifier',
     'delete' => 'Supprimer',

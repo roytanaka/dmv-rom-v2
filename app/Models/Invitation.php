@@ -202,6 +202,27 @@ class Invitation extends Model
     }
 
     /**
+     * The mail the composer opens with, in the Host's language (ADR-0034 §7). The body is
+     * HTML, so the as-authored fields are escaped into it.
+     *
+     * @return array{subject: string, body: string}
+     */
+    public function mailDraft(): array
+    {
+        $when = __('invitations.mail.when', [
+            'name' => e($this->name),
+            'date' => $this->date->translatedFormat('j F Y'),
+            'start' => $this->start_time,
+            'end' => $this->end_time,
+        ]);
+
+        return [
+            'subject' => __('invitations.mail.subject', ['name' => $this->name]),
+            'body' => '<p>'.$when.'</p><p>'.nl2br(e($this->description), false).'</p>',
+        ];
+    }
+
+    /**
      * Put these Members on the guest list. A Member already on it keeps their row and
      * their Reply, and the unique index holds this when two requests add the same Member.
      *

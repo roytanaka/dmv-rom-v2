@@ -50,48 +50,34 @@ function replyAs(Member $member, Invitation $invitation, array $data): TestRespo
 
 // --- A Host moves an Invitation between Draft and Open -----------------------
 
-it('lets a Host open a Draft and move it back to Draft', function () {
+it('lets a Host move an Open Invitation back to Draft', function () {
     $host = Member::factory()->create();
-    $invitation = Invitation::factory()->create(['host_id' => $host->id]);
-
-    $this->actingAs($host)
-        ->post(route('invitations.open', ['invitation' => $invitation->id]))
-        ->assertRedirect(route('invitations.hosting'));
-    expect($invitation->fresh()->state)->toBe(InvitationState::Open);
+    $invitation = openInvitation(['host_id' => $host->id]);
 
     $this->actingAs($host)
         ->post(route('invitations.draft', ['invitation' => $invitation->id]))
         ->assertRedirect(route('invitations.hosting'));
+
     expect($invitation->fresh()->state)->toBe(InvitationState::Draft);
 });
 
-it('lets the super-tier open any Invitation', function () {
-    $invitation = Invitation::factory()->create();
-
-    $this->actingAs(Member::factory()->superTier()->create())
-        ->post(route('invitations.open', ['invitation' => $invitation->id]))
-        ->assertRedirect();
-
-    expect($invitation->fresh()->state)->toBe(InvitationState::Open);
-});
-
-it('refuses opening or drafting to anyone but the Host', function (string $route) {
-    $invitation = Invitation::factory()->create();
+it('refuses drafting to anyone but the Host', function () {
+    $invitation = openInvitation();
 
     $this->actingAs(Member::factory()->create())
-        ->post(route($route, ['invitation' => $invitation->id]))
+        ->post(route('invitations.draft', ['invitation' => $invitation->id]))
         ->assertForbidden();
-})->with(['invitations.open', 'invitations.draft']);
+});
 
 it('refuses a Host who has lost Full access', function () {
     $host = Member::factory()->category(Category::Provisional)->create();
-    $invitation = Invitation::factory()->create(['host_id' => $host->id]);
+    $invitation = openInvitation(['host_id' => $host->id]);
 
     $this->actingAs($host)
-        ->post(route('invitations.open', ['invitation' => $invitation->id]))
+        ->post(route('invitations.draft', ['invitation' => $invitation->id]))
         ->assertForbidden();
 
-    expect($invitation->fresh()->state)->toBe(InvitationState::Draft);
+    expect($invitation->fresh()->state)->toBe(InvitationState::Open);
 });
 
 it('keeps Replies when an Invitation goes back to Draft', function () {
@@ -232,7 +218,6 @@ it('serves reading, replying and the state moves under translated French URLs', 
 
         $this->actingAs($host);
         $this->post("/fr/invitations/{$invitation->id}/brouillon")->assertRedirect('/fr/invitations/organisation');
-        $this->post("/fr/invitations/{$invitation->id}/ouvrir")->assertRedirect('/fr/invitations/organisation');
     });
 });
 

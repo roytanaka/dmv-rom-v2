@@ -8,9 +8,12 @@ use App\Enums\Category;
 use App\Enums\ContextType;
 use App\Enums\Kind;
 use App\Enums\MembershipStatus;
+use App\Enums\Reply;
 use App\Enums\Role;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\Guest;
+use App\Models\Invitation;
 use App\Models\Member;
 use App\Models\Shift;
 use App\Models\SignUp;
@@ -246,6 +249,7 @@ class AudienceResolver
                 AudienceKey::HandPicked,
             ],
             ContextType::Member => [AudienceKey::OneMember],
+            ContextType::Invitation => [AudienceKey::InvitationGuests, AudienceKey::InvitationNoReply],
         };
     }
 
@@ -267,6 +271,7 @@ class AudienceResolver
                 default => $actor->isOrgWideSender(),
             },
             ContextType::Member => true,
+            ContextType::Invitation => $actor->can('send', $context->subject),
             // Group, Schedule, and Shift are all scoped to a Group.
             default => $this->canPickGroupScoped($actor, $context->owningGroup(), $key),
         };
@@ -320,6 +325,8 @@ class AudienceResolver
             AudienceKey::AllChairs => $this->chairMembers(topLevelOnly: false),
             AudienceKey::OneMember => collect([$context->subject]),
             AudienceKey::HandPicked => collect(),
+            AudienceKey::InvitationGuests => $this->guestMembers($context->subject),
+            AudienceKey::InvitationNoReply => $this->guestMembers($context->subject, Reply::NoReply),
         };
     }
 
@@ -335,9 +342,27 @@ class AudienceResolver
         return match ($context->type) {
             ContextType::Directory => Member::query()->inDirectory()->get(),
             ContextType::Member => collect([$context->subject]),
+            ContextType::Invitation => $this->guestMembers($context->subject),
             default => $context->owningGroup()->memberships()->with('member')->get()
                 ->map(fn (GroupMember $membership): Member => $membership->member),
         };
+    }
+
+    /**
+     * The Invitation's Guests, optionally only those with one Reply. A departed Member stays
+     * on the list and gets no more mail (spec #901).
+     *
+     * @return Collection<int, Member>
+     */
+    private function guestMembers(Invitation $invitation, ?Reply $reply = null): Collection
+    {
+        return $invitation->guests()
+            ->when($reply !== null, fn ($query) => $query->where('reply', $reply))
+            ->with('member')
+            ->get()
+            ->map(fn (Guest $guest): Member => $guest->member)
+            ->reject(fn (Member $member): bool => $member->category->accessTier() === AccessTier::None)
+            ->values();
     }
 
     /**

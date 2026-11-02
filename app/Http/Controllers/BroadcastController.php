@@ -7,6 +7,7 @@ use App\Enums\BroadcastKind;
 use App\Enums\ContextType;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Enums\InvitationState;
 use App\Http\Requests\SendBroadcastRequest;
 use App\Models\Broadcast;
 use App\Models\Delivery;
@@ -57,7 +58,11 @@ class BroadcastController extends Controller
             $request->input('added', []),
         );
 
-        $kind = $context->type === ContextType::Member ? BroadcastKind::DirectMessage : BroadcastKind::Broadcast;
+        $kind = match ($context->type) {
+            ContextType::Member => BroadcastKind::DirectMessage,
+            ContextType::Invitation => BroadcastKind::Invitation,
+            default => BroadcastKind::Broadcast,
+        };
 
         // A Direct message has one recipient and no silent-skip: where a Broadcast quietly drops a
         // flagged Member and reports them after the fact, a Direct message to one is refused outright
@@ -68,6 +73,12 @@ class BroadcastController extends Controller
             ]);
         }
 
+        // A Draft opens only when a mail is written (ADR-0034 §7), so a send that reaches no
+        // Guest changes nothing.
+        if ($kind === BroadcastKind::Invitation && $resolved->recipients->isEmpty()) {
+            throw ValidationException::withMessages(['audience' => __('invitations.send.unreachable')]);
+        }
+
         $manifest = $this->attachments->store($this->uploadedFiles($request));
 
         $broadcast = DB::transaction(function () use ($actor, $context, $key, $kind, $resolved, $request, $manifest): Broadcast {
@@ -75,6 +86,7 @@ class BroadcastController extends Controller
                 'kind' => $kind,
                 'sender_id' => $actor->getKey(),
                 'group_id' => $context->owningGroup()?->getKey(),
+                'invitation_id' => $kind === BroadcastKind::Invitation ? $context->subject->getKey() : null,
                 'audience_key' => $key->value,
                 'audience_label' => $resolved->label,
                 'edited' => $resolved->edited,
@@ -87,6 +99,11 @@ class BroadcastController extends Controller
 
             $this->writeRecipientDeliveries($broadcast, $resolved);
             $this->writeSenderCopy($broadcast, $actor);
+
+            if ($kind === BroadcastKind::Invitation) {
+                $context->subject->state = InvitationState::Open;
+                $context->subject->save();
+            }
 
             return $broadcast;
         });
@@ -108,7 +125,7 @@ class BroadcastController extends Controller
             $valid = filter_var($member->email, FILTER_VALIDATE_EMAIL) !== false;
 
             $broadcast->deliveries()->create([
-                'kind' => DeliveryKind::Broadcast,
+                'kind' => $broadcast->kind->deliveryKind(),
                 'member_id' => $member->getKey(),
                 'email' => $member->email,
                 'state' => $valid ? DeliveryState::Pending : DeliveryState::Failed,

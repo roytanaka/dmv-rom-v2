@@ -4,11 +4,13 @@ namespace App\Console\Commands;
 
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Enums\InvitationState;
 use App\Mail\BookingMail;
 use App\Mail\BroadcastMail;
 use App\Mail\BroadcastSenderCopy;
 use App\Mail\EmptyDeskAlert;
 use App\Mail\InvitationFull;
+use App\Mail\InvitationMail;
 use App\Mail\InvitationReminder;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
@@ -96,7 +98,7 @@ class DrainDeliveries extends Command
             // The member for locale and address; the Shift and its chrome for a Reminder, which
             // renders from the live Shift; the Broadcast and its sender and Group for a Broadcast
             // or sender copy (all null on the kinds that do not use them, so the loads are free).
-            ->with(['member', 'shift.schedule.group', 'shift.kind', 'invitation.host', 'broadcast.sender', 'broadcast.group'])
+            ->with(['member', 'shift.schedule.group', 'shift.kind', 'invitation.host', 'broadcast.sender', 'broadcast.group', 'broadcast.invitation.host'])
             ->where('state', DeliveryState::Pending)
             ->where('next_attempt_at', '<=', now())
             // Oldest first, no priority — a Notice queued behind a big send waits its turn.
@@ -118,6 +120,13 @@ class DrainDeliveries extends Command
             // The sender's copy is the done signal: it waits until every sibling has reached a
             // terminal state (ADR-0024 §4). Not yet — leave it pending, the next pass looks again.
             if ($delivery->kind === DeliveryKind::SenderCopy && ! $this->senderCopyReady($delivery)) {
+                continue;
+            }
+
+            // The link would refuse this Guest now, so the mail is no longer worth sending.
+            if ($delivery->kind === DeliveryKind::Invitation && ! $this->invitationMailWanted($delivery)) {
+                $delivery->update(['state' => DeliveryState::Expired]);
+
                 continue;
             }
 
@@ -148,11 +157,23 @@ class DrainDeliveries extends Command
      */
     private function senderCopyReady(Delivery $delivery): bool
     {
-        return ! Delivery::query()
-            ->where('broadcast_id', $delivery->broadcast_id)
-            ->where('kind', DeliveryKind::Broadcast)
+        return ! $delivery->broadcast->recipientDeliveries()
             ->where('state', DeliveryState::Pending)
             ->exists();
+    }
+
+    /**
+     * Whether a queued Invitation mail still has a reader: a big send drains over an hour, and
+     * the Host may delete the Invitation, draft it, or remove the Guest meanwhile.
+     */
+    private function invitationMailWanted(Delivery $delivery): bool
+    {
+        $invitation = $delivery->broadcast->invitation;
+
+        return $invitation !== null
+            && ! $invitation->trashed()
+            && $invitation->state === InvitationState::Open
+            && $invitation->guestFor($delivery->member) !== null;
     }
 
     /**
@@ -285,6 +306,7 @@ class DrainDeliveries extends Command
             // may be filled or gone by now (ADR-0024 §7).
             DeliveryKind::EmptyDesk => EmptyDeskAlert::fromSnapshot($delivery->payload),
             DeliveryKind::Broadcast => new BroadcastMail($delivery->broadcast),
+            DeliveryKind::Invitation => new InvitationMail($delivery->broadcast),
             // The sender's copy carries the roll of who was not reached, read from the failed
             // recipient rows now that every sibling is terminal (ADR-0024 §4).
             DeliveryKind::SenderCopy => new BroadcastSenderCopy($delivery->broadcast, $this->failedNames($delivery->broadcast)),

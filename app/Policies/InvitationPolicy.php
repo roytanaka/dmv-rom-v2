@@ -62,6 +62,14 @@ class InvitationPolicy
     }
 
     /**
+     * Who may mail the Guests: its Host.
+     */
+    public function send(Member $actor, Invitation $invitation): bool
+    {
+        return $this->manages($actor, $invitation);
+    }
+
+    /**
      * The shared predicate: the actor is the Host and may still host.
      */
     private function manages(Member $actor, Invitation $invitation): bool

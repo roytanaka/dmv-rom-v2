@@ -29,6 +29,10 @@ return [
     'committee_chairs' => 'Committee Chairs',
     'all_chairs' => 'All Chairs',
 
+    // Invitation Audiences.
+    'invitation_guests' => 'All Guests',
+    'invitation_no_reply' => 'Guests with No reply',
+
     // The edited-Audience suffix, appended when the picker removed anyone
     // (ADR-0024 §6): the Audience name stays and the count of removals is named.
     'edited' => ':label, :count removed',
