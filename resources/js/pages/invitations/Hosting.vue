@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import ComposerSheet from '@/emailing/ComposerSheet.vue';
 import { type AudienceOption } from '@/emailing/composer';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
@@ -52,9 +53,8 @@ const onComposerOpen = (open: boolean) => {
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: trans('invitations.title'), href: '#' }]);
 
-// `date` is a calendar day, so it formats in UTC to stay on the day the Host wrote.
 const locale = computed(() => usePage<SharedData>().props.locale);
-const formatDate = (date: string) => new Intl.DateTimeFormat(locale.value, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(date));
+const formatDate = (date: string) => formatDateOnly(date, locale.value, 'long');
 
 const moveToDraft = (invitation: HostedInvitation) => {
     router.post(route('invitations.draft', { invitation: invitation.id }), {}, { preserveScroll: true });
@@ -84,19 +84,24 @@ const destroy = (invitation: HostedInvitation) => {
 
             <Table v-else>
                 <TableHeader>
-                    <TableRow>
+                    <!-- A row holds up to six actions, more than a phone's width beside the name, so
+                         below md each row is a grid and its actions take a line of their own. -->
+                    <TableRow class="grid grid-cols-[1fr_auto] md:table-row">
                         <TableHead>{{ trans('invitations.hosting.name') }}</TableHead>
                         <TableHead class="hidden md:table-cell">{{ trans('invitations.hosting.date') }}</TableHead>
                         <TableHead class="hidden lg:table-cell">{{ trans('invitations.hosting.host') }}</TableHead>
                         <TableHead>{{ trans('invitations.hosting.status') }}</TableHead>
-                        <TableHead class="text-right">{{ trans('invitations.hosting.actions') }}</TableHead>
+                        <TableHead class="hidden text-right md:table-cell">{{ trans('invitations.hosting.actions') }}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    <TableRow v-for="invitation in invitations" :key="invitation.id">
-                        <TableCell class="whitespace-normal">
+                    <TableRow v-for="invitation in invitations" :key="invitation.id" class="grid grid-cols-[1fr_auto] md:table-row">
+                        <TableCell class="min-w-0 whitespace-normal">
                             {{ invitation.name }}
-                            <p class="text-muted-foreground md:hidden">{{ formatDate(invitation.date) }}</p>
+                            <p class="text-muted-foreground md:hidden">
+                                {{ formatDate(invitation.date) }} · {{ invitation.start_time }}–{{ invitation.end_time }}
+                            </p>
+                            <p class="text-muted-foreground lg:hidden">{{ invitation.host }}</p>
                         </TableCell>
                         <TableCell class="hidden md:table-cell">
                             {{ formatDate(invitation.date) }} · {{ invitation.start_time }}–{{ invitation.end_time }}
@@ -105,8 +110,8 @@ const destroy = (invitation: HostedInvitation) => {
                         <TableCell>
                             <Badge variant="secondary">{{ trans(`invitations.state.${invitation.closed ? 'closed' : invitation.state}`) }}</Badge>
                         </TableCell>
-                        <TableCell class="text-right">
-                            <div class="flex justify-end gap-2">
+                        <TableCell class="col-span-2 pt-0 md:table-cell md:pt-4 md:text-right">
+                            <div class="flex flex-wrap gap-2 md:justify-end">
                                 <Button
                                     v-if="invitation.can.send && invitation.state === 'draft'"
                                     type="button"
@@ -168,6 +173,7 @@ const destroy = (invitation: HostedInvitation) => {
                 :roster="[]"
                 :audience="audience"
                 :prefill="composing?.mail"
+                :lock-recipients="composing?.state === 'draft'"
                 @update:open="onComposerOpen"
             />
         </div>

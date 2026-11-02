@@ -10,12 +10,14 @@ Chaque membre a cet onglet. Il liste les invitations ouvertes où vous figurez, 
 
 Les membres qui ont l'accès complet voient aussi l'onglet **Organisation**. Le membre qui crée une invitation en est l'hôte. Seuls l'hôte et le super-niveau voient la liste des invités et les réponses.
 
-L'organisation compte quatre parties :
+L'organisation compte ces parties :
 
 - [Créer une invitation](create-an-invitation)
 - [Choisir vos invités](pick-your-guests)
 - [Envoyer une invitation](send-an-invitation)
 - [Suivre les réponses](track-the-replies)
+- [Saisir une réponse pour un invité](set-a-reply-for-a-guest)
+- [Écrire aux invités ayant accepté](email-accepted-guests)
 
 ## Brouillon, ouverte et fermée
 

@@ -6,7 +6,6 @@ use App\Models\Guest;
 use App\Models\Invitation;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -17,8 +16,8 @@ use Illuminate\Queue\SerializesModels;
  * it always shows the Guest's current Options.
  *
  * The chrome renders in the Guest's locale; the Invitation's name, description, and Options
- * stay as written (ADR-0004). As with all Invitation mail, From is the app's one address
- * wearing the Host's name, and Reply-To is the Host (ADR-0034 §7).
+ * stay as written (ADR-0004). It is automatic mail, so unlike the Host's own mail it has the
+ * default From and no Reply-To (ADR-0024 §3). Its body names the Host.
  */
 class InvitationReminder extends Mailable
 {
@@ -34,11 +33,7 @@ class InvitationReminder extends Mailable
      */
     public function envelope(): Envelope
     {
-        $host = $this->invitation->host;
-
         return new Envelope(
-            from: new Address(config('mail.from.address'), $host->fullName()),
-            replyTo: [new Address($host->email, $host->fullName())],
             subject: __('invitations.reminder_email.subject', [
                 'name' => $this->invitation->name,
                 'date' => $this->invitation->date->translatedFormat('j F Y'),

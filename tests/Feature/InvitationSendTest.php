@@ -138,11 +138,47 @@ it('skips a no-email Guest and names them', function () {
     expect(invitationRecipients())->toBe([$reached->member_id]);
 });
 
-it('sends nothing to a Guest whose Category is no longer current', function () {
+it('sends nothing to a Guest who is no longer current', function (Category $category) {
     $reached = guestRow($this->invitation);
-    guestRow($this->invitation, ['category' => Category::Resigned]);
+    guestRow($this->invitation, ['category' => $category]);
 
     sendInvitation($this->host, $this->invitation)->assertOk()->assertJson(['queued' => 1]);
+
+    expect(invitationRecipients())->toBe([$reached->member_id]);
+})->with([
+    'resigned' => [Category::Resigned],
+    'provisional, who has no Directory listing' => [Category::Provisional],
+]);
+
+it('refuses a send on a Draft that would not reach every Guest, and writes nothing', function (Closure $request) {
+    guestRow($this->invitation);
+    $removable = guestRow($this->invitation);
+
+    sendInvitation($this->host, $this->invitation, $request($removable))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('audience');
+
+    expect($this->invitation->fresh()->state)->toBe(InvitationState::Draft)
+        ->and(Broadcast::count())->toBe(0)
+        ->and(Delivery::count())->toBe(0);
+})->with([
+    'No reply only' => [fn () => ['audience' => 'invitation_no_reply']],
+    'a Guest removed' => [fn (Guest $guest) => ['removed' => [$guest->member_id]]],
+]);
+
+it('still checks who is sending before it refuses a Draft send', function () {
+    $guest = guestRow($this->invitation);
+
+    sendInvitation($guest->member, $this->invitation, ['audience' => 'invitation_no_reply'])->assertForbidden();
+});
+
+it('lets a Host remove a Guest from a re-send', function () {
+    $this->invitation->state = InvitationState::Open;
+    $this->invitation->save();
+    $reached = guestRow($this->invitation);
+    $removed = guestRow($this->invitation);
+
+    sendInvitation($this->host, $this->invitation, ['removed' => [$removed->member_id]])->assertOk();
 
     expect(invitationRecipients())->toBe([$reached->member_id]);
 });

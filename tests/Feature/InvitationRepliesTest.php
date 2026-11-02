@@ -7,6 +7,7 @@ use App\Models\Guest;
 use App\Models\Invitation;
 use App\Models\Member;
 use App\Support\OrgTime;
+use Illuminate\Database\QueryException;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
@@ -183,6 +184,15 @@ it('adds a Member who is not on the list as a Guest with the Reply', function ()
             ->has('guests', 1)
             ->where('guests.0.name', 'Ada Lee')
             ->where('guests.0.reply', 'accepted'));
+});
+
+it('adds no Guest when their Reply cannot be written', function () {
+    $invitation = Invitation::factory()->create();
+    $member = Member::factory()->create();
+
+    expect(fn () => $invitation->setReplyFor($member, Reply::Accepted, [999999]))->toThrow(QueryException::class);
+
+    expect($invitation->guests()->count())->toBe(0);
 });
 
 it('still lets a Host answer for a Guest who is no longer current', function () {

@@ -14,7 +14,9 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import ComposerSheet from '@/emailing/ComposerSheet.vue';
 import { type AudienceOption } from '@/emailing/composer';
+import { toggledOption, type Answer, type Reply } from '@/invitations/reply';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
@@ -24,7 +26,7 @@ interface ReplyRow {
     id: number;
     member: number;
     name: string;
-    reply: 'no_reply' | 'accepted' | 'declined';
+    reply: Reply;
     options: number[];
 }
 
@@ -49,11 +51,8 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     { title: trans('invitations.replies.title'), href: '#' },
 ]);
 
-// `date` is a calendar day, so it formats in UTC to stay on the day the Host wrote.
 const locale = computed(() => usePage<SharedData>().props.locale);
-const formattedDate = computed(() =>
-    new Intl.DateTimeFormat(locale.value, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(props.invitation.date)),
-);
+const formattedDate = computed(() => formatDateOnly(props.invitation.date, locale.value, 'long'));
 
 const optionNames = (guest: ReplyRow) =>
     props.invitation.options
@@ -64,7 +63,7 @@ const optionNames = (guest: ReplyRow) =>
 // One dialog serves a row's Guest and a Member not on the list: with a row, the Member is fixed.
 const dialogOpen = ref(false);
 const editing = ref<ReplyRow | null>(null);
-const form = useForm<{ member: number | ''; reply: 'accepted' | 'declined'; options: number[] }>({
+const form = useForm<{ member: number | ''; reply: Answer; options: number[] }>({
     member: '',
     reply: 'accepted',
     options: [],
@@ -77,10 +76,6 @@ const openDialog = (guest: ReplyRow | null) => {
     form.reply = guest?.reply === 'declined' ? 'declined' : 'accepted';
     form.options = [...(guest?.options ?? [])];
     dialogOpen.value = true;
-};
-
-const toggleOption = (id: number, on: boolean) => {
-    form.options = on ? [...form.options, id] : form.options.filter((chosen) => chosen !== id);
 };
 
 const submit = () => {
@@ -194,11 +189,11 @@ const accepted = computed<AudienceOption>(() => ({
                     </div>
                     <fieldset v-if="form.reply === 'accepted' && invitation.options.length" class="flex flex-col gap-2">
                         <legend class="text-sm font-medium">{{ trans('invitations.form.options') }}</legend>
-                        <div v-for="option in invitation.options" :key="option.id" class="flex items-center gap-2">
+                        <div v-for="option in invitation.options" :key="option.id" class="flex items-center gap-2 pointer-coarse:min-h-11">
                             <Checkbox
                                 :id="`reply-option-${option.id}`"
                                 :checked="form.options.includes(option.id)"
-                                @update:checked="(on: boolean) => toggleOption(option.id, on)"
+                                @update:checked="(on: boolean) => (form.options = toggledOption(form.options, option.id, on))"
                             />
                             <Label :for="`reply-option-${option.id}`">{{ option.name }}</Label>
                         </div>

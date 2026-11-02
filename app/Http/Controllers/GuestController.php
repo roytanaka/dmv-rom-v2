@@ -39,12 +39,7 @@ class GuestController extends Controller
                 ->sortBy(fn (Guest $guest): string => $guest->member->surnameKey())
                 ->map(fn (Guest $guest): array => ['id' => $guest->id, 'name' => $guest->member->fullName()])
                 ->values()->all(),
-            'candidates' => Member::query()->inDirectory()
-                ->whereNotIn('id', $guests->pluck('member_id'))
-                ->get()
-                ->sortBy(fn (Member $member): string => $member->surnameKey())
-                ->map(fn (Member $member): array => ['id' => $member->id, 'name' => $member->fullName()])
-                ->values()->all(),
+            'candidates' => $invitation->candidates(),
             'audiences' => $this->resolver->guestAudiences($request->user())
                 ->map(fn (Audience $audience): array => [
                     'key' => $audience->key->value,

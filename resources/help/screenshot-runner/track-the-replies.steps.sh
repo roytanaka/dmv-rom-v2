@@ -8,4 +8,3 @@ persona oliver.bennett@dmv.test
 start /invitations/hosting
 
 act openInvitationReplies 01    # the Replies page: totals, then each Guest with Reply and Options
-act openSetReplyDialog 02       # the Set reply dialog for the first Guest

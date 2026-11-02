@@ -63,11 +63,13 @@ return [
         'add' => 'Add',
         'remove' => 'Remove',
         'confirm_remove' => 'Remove this Guest? Their reply goes too.',
+        'audience_refused' => 'You may not invite that audience.',
     ],
     'send' => [
         'action' => 'Send',
         're_send' => 'Re-send',
         'unreachable' => 'No Guest can be reached by email.',
+        'every_guest' => 'The first send goes to every Guest.',
     ],
     // The prefilled text is the Host's to edit, and stays in the Host's language. The link
     // is the app's own text, in each Guest's language.

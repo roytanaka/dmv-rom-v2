@@ -23,6 +23,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['invitation_id', 'member_id']);
+            $table->index('reply');
         });
     }
 

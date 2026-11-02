@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesGuestPick;
 use App\Http\Requests\Concerns\ValidatesReply;
-use App\Models\Member;
-use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -14,7 +13,7 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class SetGuestReplyRequest extends FormRequest
 {
-    use ValidatesReply;
+    use ValidatesGuestPick, ValidatesReply;
 
     public function authorize(): bool
     {
@@ -29,14 +28,7 @@ class SetGuestReplyRequest extends FormRequest
         $invitation = $this->route('invitation');
 
         return [
-            'member' => ['required', 'integer', function (string $attribute, mixed $value, Closure $fail) use ($invitation): void {
-                $eligible = $invitation->guests()->where('member_id', $value)->exists()
-                    || Member::query()->inDirectory()->whereKey($value)->exists();
-
-                if (! $eligible) {
-                    $fail(__('validation.exists', ['attribute' => $attribute]));
-                }
-            }],
+            'member' => $this->guestPickRules($invitation),
             ...$this->replyRules($invitation),
         ];
     }

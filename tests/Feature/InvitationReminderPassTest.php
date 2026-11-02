@@ -5,12 +5,14 @@ use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\InvitationState;
 use App\Enums\Reply;
+use App\Mail\InvitationReminder;
 use App\Models\Delivery;
 use App\Models\Guest;
 use App\Models\Invitation;
 use App\Models\Member;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 
 /*
  * The Invitation half of the daily pass (#909, ADR-0034 §12). The pass writes one Reminder per
@@ -105,13 +107,16 @@ it('writes nothing for a Guest who has not accepted, a Draft, a deleted Invitati
     expect(Delivery::count())->toBe(0);
 });
 
-it('writes nothing for a Guest whose Category has stopped being current', function () {
-    repliedGuest(occasionOn('2026-11-12'), Reply::Accepted, Member::factory()->create(['category' => Category::Resigned]));
+it('writes nothing for a Guest who is not current', function (Category $category) {
+    repliedGuest(occasionOn('2026-11-12'), Reply::Accepted, Member::factory()->create(['category' => $category]));
 
     $this->artisan('mail:daily-pass')->assertSuccessful();
 
     expect(Delivery::count())->toBe(0);
-});
+})->with([
+    'resigned' => [Category::Resigned],
+    'provisional, who has no Directory listing' => [Category::Provisional],
+]);
 
 it('writes no second Reminder on a later pass', function () {
     repliedGuest(occasionOn('2026-11-12'));
@@ -133,6 +138,85 @@ it('reminds a Guest who accepts inside the window on the next pass', function ()
     $this->artisan('mail:daily-pass')->assertSuccessful();
 
     expect(Delivery::sole()->member_id)->toBe($guest->member_id);
+});
+
+it('revives the expired Reminder of a Guest who declined and accepted again', function () {
+    Mail::fake();
+    $guest = repliedGuest(occasionOn('2026-11-12'));
+
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+    $guest->setReply(Reply::Declined);
+    $this->artisan('mail:drain')->assertSuccessful();
+    expect(Delivery::sole()->state)->toBe(DeliveryState::Expired);
+
+    $guest->setReply(Reply::Accepted);
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+    expect(Delivery::sole()->state)->toBe(DeliveryState::Pending);
+
+    $this->artisan('mail:drain')->assertSuccessful();
+    Mail::assertSent(InvitationReminder::class, 1);
+    expect(Delivery::sole()->state)->toBe(DeliveryState::Sent);
+});
+
+it('revives the expired Reminder when a Draft is reopened', function () {
+    Mail::fake();
+    $invitation = occasionOn('2026-11-12');
+    repliedGuest($invitation);
+
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+    $invitation->state = InvitationState::Draft;
+    $invitation->save();
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    $invitation->state = InvitationState::Open;
+    $invitation->save();
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+
+    expect(Delivery::sole()->state)->toBe(DeliveryState::Pending);
+});
+
+it('gives a revived Reminder a fresh expiry when the occasion has moved', function () {
+    $invitation = occasionOn('2026-11-11');
+    repliedGuest($invitation);
+
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+    $this->travelTo(Carbon::parse('2026-11-11 16:00:00', 'UTC'));
+    $this->artisan('mail:drain')->assertSuccessful();
+    expect(Delivery::sole()->state)->toBe(DeliveryState::Expired);
+
+    $invitation->update(['date' => '2026-11-13']);
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+
+    $row = Delivery::sole();
+    expect($row->state)->toBe(DeliveryState::Pending);
+    expect($row->expires_at->equalTo(Carbon::parse('2026-11-13 15:00:00', 'UTC')))->toBeTrue();
+});
+
+it('leaves an expired Reminder alone while the Guest does not qualify', function () {
+    Mail::fake();
+    $guest = repliedGuest(occasionOn('2026-11-12'));
+
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+    $guest->setReply(Reply::Declined);
+    $this->artisan('mail:drain')->assertSuccessful();
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+
+    expect(Delivery::sole()->state)->toBe(DeliveryState::Expired);
+});
+
+it('never revives a Reminder that went out', function () {
+    Mail::fake();
+    $guest = repliedGuest(occasionOn('2026-11-12'));
+
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+    $this->artisan('mail:drain')->assertSuccessful();
+    $guest->setReply(Reply::Declined);
+    $guest->setReply(Reply::Accepted);
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    Mail::assertSent(InvitationReminder::class, 1);
+    expect(Delivery::sole()->state)->toBe(DeliveryState::Sent);
 });
 
 it('makes one Reminder per Invitation and Member a database fact', function () {

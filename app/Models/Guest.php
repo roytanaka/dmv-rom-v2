@@ -72,29 +72,16 @@ class Guest extends Model
     }
 
     /**
-     * Record a Reply and its chosen Options, the one write every Reply goes through. It
-     * asks nothing about who is replying or when: the caller has already decided that. An
-     * Option survives only on an Accepted Reply, so a Decline clears the choices.
-     *
-     * An accept that brings the count up to the Guest limit queues the Host's Notice, in the
-     * same transaction, whoever set the Reply (ADR-0034 §9). A count that goes past the limit,
-     * or falls back to it, queues nothing.
+     * Record a Reply and its chosen Options, the Host's write. It asks nothing about who is
+     * replying or when: the caller has already decided that, and it skips the Guest limit
+     * (ADR-0034 §9).
      *
      * @param  list<int>  $optionIds  Options of this Guest's Invitation
      */
     public function setReply(Reply $reply, array $optionIds = []): void
     {
         DB::transaction(function () use ($reply, $optionIds): void {
-            $takesSpot = $this->takesSpot($reply);
-
-            $this->reply = $reply;
-            $this->save();
-
-            $this->options()->sync($reply === Reply::Accepted ? $optionIds : []);
-
-            if ($takesSpot && $this->invitation->acceptedCount() === $this->invitation->guest_limit) {
-                (new InvitationFullNoticeWriter)->write($this->invitation);
-            }
+            $this->write($this->lockInvitation(), $reply, $optionIds);
         });
     }
 
@@ -103,25 +90,58 @@ class Guest extends Model
      * changes nothing, when this would take a spot on a full Invitation. A Guest who already
      * holds a spot is not taking one, so they can still change their Options.
      *
-     * The Invitation's row lock serializes these writes, so two Guests cannot take the last
-     * spot. It is this transaction's first read, so the count below sees every Reply committed
-     * before the lock was granted. A Host-set Reply goes straight to {@see setReply}.
-     *
      * @param  list<int>  $optionIds  Options of this Guest's Invitation
      */
     public function setReplyWithinLimit(Reply $reply, array $optionIds = []): bool
     {
         return DB::transaction(function () use ($reply, $optionIds): bool {
-            $invitation = Invitation::query()->lockForUpdate()->findOrFail($this->invitation_id);
+            $invitation = $this->lockInvitation();
 
-            if ($this->refresh()->takesSpot($reply) && $invitation->isFull()) {
+            if ($this->takesSpot($reply) && $invitation->isFull()) {
                 return false;
             }
 
-            $this->setReply($reply, $optionIds);
+            $this->write($invitation, $reply, $optionIds);
 
             return true;
         });
+    }
+
+    /**
+     * Take the Invitation's row lock, which serializes every Reply on it, and re-read this
+     * row under it. So two Guests cannot take the last spot, and a Host-set Reply and a Guest's
+     * accept cannot both see the count reach the limit. Call it before any other read in the
+     * transaction, so the count sees every Reply committed before the lock was granted.
+     */
+    private function lockInvitation(): Invitation
+    {
+        $invitation = Invitation::query()->lockForUpdate()->findOrFail($this->invitation_id);
+
+        $this->refresh();
+
+        return $invitation;
+    }
+
+    /**
+     * The one write every Reply goes through, under the Invitation's lock. An Option survives
+     * only on an Accepted Reply, so a Decline clears the choices. An accept that brings the
+     * count up to the Guest limit queues the Host's Notice, in the same transaction. A count
+     * that goes past the limit, or falls back to it, queues nothing.
+     *
+     * @param  list<int>  $optionIds
+     */
+    private function write(Invitation $invitation, Reply $reply, array $optionIds): void
+    {
+        $takesSpot = $this->takesSpot($reply);
+
+        $this->reply = $reply;
+        $this->save();
+
+        $this->options()->sync($reply === Reply::Accepted ? $optionIds : []);
+
+        if ($takesSpot && $invitation->acceptedCount() === $invitation->guest_limit) {
+            app(InvitationFullNoticeWriter::class)->write($invitation);
+        }
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Enums\AudienceKey;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\InvitationState;
+use App\Enums\Reply;
 use App\Mail\BookingMail;
 use App\Mail\BroadcastMail;
 use App\Mail\BroadcastSenderCopy;
@@ -165,18 +166,29 @@ class DrainDeliveries extends Command
 
     /**
      * Whether a queued Invitation mail still has a reader: a big send drains over an hour, and
-     * the Host may delete the Invitation, draft it, or remove the Guest meanwhile. Mail to
+     * meanwhile the Host may delete the Invitation, draft it, or remove the Guest, the Guest may
+     * stop being current, or their Reply may take them out of the mail's Audience. Mail to
      * Accepted Guests does not depend on the link, so a Draft does not stop it (#908).
      */
     private function invitationMailWanted(Delivery $delivery): bool
     {
         $invitation = $delivery->broadcast->invitation;
+        $audience = AudienceKey::tryFrom($delivery->broadcast->audience_key);
 
-        return $invitation !== null
-            && ! $invitation->trashed()
-            && ($invitation->state === InvitationState::Open
-                || $delivery->broadcast->audience_key === AudienceKey::InvitationAccepted->value)
-            && $invitation->guestFor($delivery->member) !== null;
+        if ($invitation === null
+            || $invitation->trashed()
+            || ($invitation->state !== InvitationState::Open && $audience !== AudienceKey::InvitationAccepted)
+            || ! $delivery->member->category->grantsDirectoryListing()) {
+            return false;
+        }
+
+        $guest = $invitation->guestFor($delivery->member);
+
+        return $guest !== null && match ($audience) {
+            AudienceKey::InvitationAccepted => $guest->reply === Reply::Accepted,
+            AudienceKey::InvitationNoReply => $guest->reply === Reply::NoReply,
+            default => true,
+        };
     }
 
     /**

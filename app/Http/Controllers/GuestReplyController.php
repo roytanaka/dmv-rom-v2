@@ -65,27 +65,18 @@ class GuestReplyController extends Controller
                     'options' => $guest->options->pluck('id')->sort()->values()->all(),
                 ])
                 ->values()->all(),
-            'candidates' => Member::query()->inDirectory()
-                ->whereNotIn('id', $guests->pluck('member_id'))
-                ->get()
-                ->sortBy(fn (Member $member): string => $member->surnameKey())
-                ->map(fn (Member $member): array => ['id' => $member->id, 'name' => $member->fullName()])
-                ->values()->all(),
+            'candidates' => $invitation->candidates(),
         ]);
     }
 
     /**
      * Record an answer given to the Host, even after Closed. A Member not on the list
-     * becomes a Guest. A Host-set Reply goes straight to `Guest::setReply`, so it skips the
-     * Guest's own checks.
+     * becomes a Guest. A Host-set Reply skips the Guest's own checks.
      */
     public function update(SetGuestReplyRequest $request, Invitation $invitation): RedirectResponse
     {
-        $member = Member::query()->findOrFail($request->integer('member'));
-
-        $invitation->addGuests(collect([$member]));
-
-        $invitation->guestFor($member)->setReply(
+        $invitation->setReplyFor(
+            Member::query()->findOrFail($request->integer('member')),
             $request->enum('reply', Reply::class),
             $request->validated('options', []),
         );

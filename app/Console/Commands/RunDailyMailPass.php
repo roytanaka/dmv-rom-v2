@@ -104,6 +104,10 @@ class RunDailyMailPass extends Command
      * Write the Invitation Reminders (#909, ADR-0034 §12), the same window with a sent record
      * on the (Invitation, Member) grain. The lead is fixed, because no Group owns the setting.
      * A Guest who is no longer current stays on the list but gets no more mail (spec #901).
+     *
+     * The row is still the sent record, so a Reminder that went out is never written again. An
+     * Expired row never went out: its Guest declined or the Invitation went back to Draft, and
+     * the Drain ended it. A Guest who qualifies again gets that same row back, on a fresh expiry.
      */
     private function writeInvitationReminders(\DateTimeInterface $now): void
     {
@@ -125,19 +129,25 @@ class RunDailyMailPass extends Command
                 continue;
             }
 
-            Delivery::firstOrCreate(
+            $queued = [
+                'email' => $guest->member->email,
+                'state' => DeliveryState::Pending,
+                'next_attempt_at' => $now,
+                'expires_at' => $startsAt,
+            ];
+
+            $row = Delivery::firstOrCreate(
                 [
                     'kind' => DeliveryKind::InvitationReminder,
                     'invitation_id' => $guest->invitation_id,
                     'member_id' => $guest->member_id,
                 ],
-                [
-                    'email' => $guest->member->email,
-                    'state' => DeliveryState::Pending,
-                    'next_attempt_at' => $now,
-                    'expires_at' => $startsAt,
-                ],
+                $queued,
             );
+
+            if ($row->state === DeliveryState::Expired && $row->sent_at === null) {
+                $row->update($queued);
+            }
         }
     }
 }

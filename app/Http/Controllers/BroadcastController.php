@@ -73,6 +73,15 @@ class BroadcastController extends Controller
             ]);
         }
 
+        // A Draft's Send is the mail that opens it, and it goes once to every Guest (ADR-0034 §7).
+        // Mail to Accepted Guests opens nothing, so it stays free.
+        if ($kind === BroadcastKind::Invitation
+            && $context->subject->state === InvitationState::Draft
+            && ($key === AudienceKey::InvitationNoReply
+                || ($key === AudienceKey::InvitationGuests && $request->input('removed', []) !== []))) {
+            throw ValidationException::withMessages(['audience' => __('invitations.send.every_guest')]);
+        }
+
         // A Draft opens only when a mail is written (ADR-0034 §7), so a send that reaches no
         // Guest changes nothing.
         if ($kind === BroadcastKind::Invitation && $resolved->recipients->isEmpty()) {
@@ -103,8 +112,7 @@ class BroadcastController extends Controller
             // Mailing Accepted Guests is the Host's door tool, and a Draft can hold Accepted
             // Replies, so that send opens nothing (#908).
             if ($kind === BroadcastKind::Invitation && $key !== AudienceKey::InvitationAccepted) {
-                $context->subject->state = InvitationState::Open;
-                $context->subject->save();
+                $context->subject->open();
             }
 
             return $broadcast;

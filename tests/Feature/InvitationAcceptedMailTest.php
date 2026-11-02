@@ -105,6 +105,24 @@ it('leaves a Draft a Draft, and the Accepted Guest still gets the mail, with no 
     });
 });
 
+it('lets a Host remove an Accepted Guest from this mail on a Draft', function () {
+    $invitation = acceptedInvitation(state: InvitationState::Draft);
+    $reached = acceptedGuest($invitation);
+    $removed = acceptedGuest($invitation);
+
+    test()->actingAs($invitation->host)->postJson(route('broadcasts.store'), [
+        'context' => 'invitation',
+        'context_subject' => (string) $invitation->id,
+        'audience' => 'invitation_accepted',
+        'subject' => 'Parking on the day',
+        'body' => '<p>Use the east door.</p>',
+        'removed' => [$removed->member_id],
+    ])->assertOk();
+
+    expect(Delivery::where('kind', DeliveryKind::Invitation)->sole()->member_id)->toBe($reached->member_id)
+        ->and($invitation->fresh()->state)->toBe(InvitationState::Draft);
+});
+
 it('still expires a plain send on an Invitation moved back to Draft', function () {
     Mail::fake();
     $invitation = acceptedInvitation();

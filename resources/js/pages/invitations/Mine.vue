@@ -2,11 +2,14 @@
 // My invitations (ADR-0034 §13), the tab the Invitations page opens on: the Invitations
 // this Member can reply to, each with their own Reply.
 import InvitationTabs from '@/components/InvitationTabs.vue';
+import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { type Reply } from '@/invitations/reply';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
@@ -17,16 +20,15 @@ interface GuestInvitation {
     start_time: string;
     end_time: string;
     host: string;
-    reply: 'no_reply' | 'accepted' | 'declined';
+    reply: Reply;
 }
 
 defineProps<{ can: { host: boolean }; invitations: GuestInvitation[] }>();
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: trans('invitations.title'), href: '#' }]);
 
-// `date` is a calendar day, so it formats in UTC to stay on the day the Host wrote.
 const locale = computed(() => usePage<SharedData>().props.locale);
-const formatDate = (date: string) => new Intl.DateTimeFormat(locale.value, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(date));
+const formatDate = (date: string) => formatDateOnly(date, locale.value, 'long');
 </script>
 
 <template>
@@ -51,8 +53,11 @@ const formatDate = (date: string) => new Intl.DateTimeFormat(locale.value, { dat
                 <TableBody>
                     <TableRow v-for="invitation in invitations" :key="invitation.id">
                         <TableCell class="whitespace-normal">
-                            <Link :href="route('invitations.show', { invitation: invitation.id })" class="underline">{{ invitation.name }}</Link>
-                            <p class="text-muted-foreground md:hidden">{{ formatDate(invitation.date) }}</p>
+                            <TextLink :href="route('invitations.show', { invitation: invitation.id })">{{ invitation.name }}</TextLink>
+                            <p class="text-muted-foreground md:hidden">
+                                {{ formatDate(invitation.date) }} · {{ invitation.start_time }}–{{ invitation.end_time }}
+                            </p>
+                            <p class="text-muted-foreground lg:hidden">{{ invitation.host }}</p>
                         </TableCell>
                         <TableCell class="hidden md:table-cell">
                             {{ formatDate(invitation.date) }} · {{ invitation.start_time }}–{{ invitation.end_time }}

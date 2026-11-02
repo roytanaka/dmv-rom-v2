@@ -282,6 +282,17 @@ it('queues the Notice when a Host-set Reply reaches the limit, and none when it 
     expect(Delivery::sole()->member_id)->toBe($host->id);
 });
 
+it('counts from the row, so a stale Guest cannot queue a second Notice', function () {
+    $invitation = limitedInvitation(1);
+    $guest = guestAwaitingReply($invitation);
+    $stale = Guest::find($guest->id);
+
+    replyFor($guest, 'accepted');
+    $stale->setReply(Reply::Accepted);
+
+    expect(Delivery::count())->toBe(1);
+});
+
 it('queues no Notice below the limit, with no limit, or on a refused accept', function () {
     $roomy = limitedInvitation(3, accepted: 1);
     replyFor(guestAwaitingReply($roomy), 'accepted');

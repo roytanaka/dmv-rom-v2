@@ -113,7 +113,8 @@ reseed with `pnpm sail artisan migrate:fresh --seed` before you shoot again.
 The demo data has no Invitations, so the Invitations scripts build one between
 them. Reseed, then run them in this order: `create-an-invitation`,
 `pick-your-guests`, `send-an-invitation`, `reply-to-an-invitation`,
-`track-the-replies`, `invitations`.
+`track-the-replies`, `set-a-reply-for-a-guest`, `email-accepted-guests`,
+`invitations`.
 
 ## When a shot comes out wrong
 

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\InvitationState;
 use App\Enums\Reply;
 use App\Http\Requests\DeleteInvitationRequest;
 use App\Http\Requests\StoreInvitationRequest;
@@ -113,7 +112,7 @@ class InvitationController extends Controller
                 'state' => $invitation->state->value,
                 'closed' => $invitation->isClosed(),
                 'host' => $invitation->host->fullName(),
-                'mail' => $invitation->mailDraft(),
+                'mail' => $invitation->prefilledMail(),
                 'can' => [
                     'update' => $viewer->can('update', $invitation),
                     'delete' => $viewer->can('delete', $invitation),
@@ -195,8 +194,7 @@ class InvitationController extends Controller
     {
         Gate::authorize('update', $invitation);
 
-        $invitation->state = InvitationState::Draft;
-        $invitation->save();
+        $invitation->moveToDraft();
 
         return to_route('invitations.hosting');
     }

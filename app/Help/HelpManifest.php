@@ -274,6 +274,8 @@ final class HelpManifest
             new HelpArticle('pick-your-guests', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.guests'),
             new HelpArticle('send-an-invitation', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.hosting'),
             new HelpArticle('track-the-replies', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.replies'),
+            new HelpArticle('set-a-reply-for-a-guest', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.replies'),
+            new HelpArticle('email-accepted-guests', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.replies'),
 
             // Groups and Scheduling for members (#525) — what an ordinary Member of a Group does.
             new HelpArticle('groups', HelpSection::Groups, isOverview: true, route: 'groups.show'),

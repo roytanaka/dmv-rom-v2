@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { toggledOption, type Answer, type Reply } from '@/invitations/reply';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
@@ -26,7 +28,7 @@ const props = defineProps<{
         full: boolean;
         options: { id: number; name: string }[];
     };
-    guest: { reply: 'no_reply' | 'accepted' | 'declined'; options: number[] } | null;
+    guest: { reply: Reply; options: number[] } | null;
     can: { reply: boolean; accept: boolean };
 }>();
 
@@ -35,26 +37,19 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     { title: props.invitation.name, href: '#' },
 ]);
 
-// `date` is a calendar day, so it formats in UTC to stay on the day the Host wrote.
 const locale = computed(() => usePage<SharedData>().props.locale);
-const formattedDate = computed(() =>
-    new Intl.DateTimeFormat(locale.value, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(props.invitation.date)),
-);
+const formattedDate = computed(() => formatDateOnly(props.invitation.date, locale.value, 'long'));
 
 const chosenNames = computed(() =>
     props.invitation.options.filter((option) => props.guest?.options.includes(option.id)).map((option) => option.name),
 );
 
-const form = useForm<{ reply: 'accepted' | 'declined'; options: number[] }>({
+const form = useForm<{ reply: Answer; options: number[] }>({
     reply: 'accepted',
     options: [...(props.guest?.options ?? [])],
 });
 
-const toggleOption = (id: number, on: boolean) => {
-    form.options = on ? [...form.options, id] : form.options.filter((chosen) => chosen !== id);
-};
-
-const submit = (reply: 'accepted' | 'declined') => {
+const submit = (reply: Answer) => {
     form.reply = reply;
     form.put(route('invitations.reply', { invitation: props.invitation.id }), {
         preserveScroll: true,
@@ -92,11 +87,11 @@ const submit = (reply: 'accepted' | 'declined') => {
                 <form v-if="can.reply" class="flex flex-col gap-4" @submit.prevent="submit(can.accept ? 'accepted' : 'declined')">
                     <fieldset v-if="can.accept && invitation.options.length" class="flex flex-col gap-2">
                         <legend class="text-sm font-medium">{{ trans('invitations.form.options') }}</legend>
-                        <div v-for="option in invitation.options" :key="option.id" class="flex items-center gap-2">
+                        <div v-for="option in invitation.options" :key="option.id" class="flex items-center gap-2 pointer-coarse:min-h-11">
                             <Checkbox
                                 :id="`option-${option.id}`"
                                 :checked="form.options.includes(option.id)"
-                                @update:checked="(on: boolean) => toggleOption(option.id, on)"
+                                @update:checked="(on: boolean) => (form.options = toggledOption(form.options, option.id, on))"
                             />
                             <Label :for="`option-${option.id}`">{{ option.name }}</Label>
                         </div>

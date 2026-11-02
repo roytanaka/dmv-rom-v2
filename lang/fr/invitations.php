@@ -64,11 +64,13 @@ return [
         'add' => 'Ajouter',
         'remove' => 'Retirer',
         'confirm_remove' => 'Retirer cet invité ? Sa réponse sera aussi retirée.',
+        'audience_refused' => 'Vous ne pouvez pas inviter ce public.',
     ],
     'send' => [
         'action' => 'Envoyer',
         're_send' => 'Renvoyer',
         'unreachable' => 'Aucun invité ne peut être joint par courriel.',
+        'every_guest' => 'Le premier envoi va à tous les invités.',
     ],
     // Le texte prérempli appartient à l'hôte et reste dans sa langue. Le lien fait partie
     // de l'interface et suit la langue de chaque invité.

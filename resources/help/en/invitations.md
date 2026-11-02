@@ -10,12 +10,14 @@ Every Member has this tab. It lists the Open Invitations you are on, with your R
 
 Members with Full access also see the **Hosting** tab. The Member who creates an Invitation is its Host. Only the Host and the super-tier see the guest list and the Replies.
 
-Hosting has four parts:
+Hosting has these parts:
 
 - [Create an Invitation](create-an-invitation)
 - [Pick your Guests](pick-your-guests)
 - [Send an Invitation](send-an-invitation)
 - [Track the Replies](track-the-replies)
+- [Set a Reply for a Guest](set-a-reply-for-a-guest)
+- [Email Accepted Guests](email-accepted-guests)
 
 ## Draft, Open, and Closed
 

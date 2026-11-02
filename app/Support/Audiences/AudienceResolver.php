@@ -172,7 +172,8 @@ class AudienceResolver
     /**
      * Resolve a bulk pick to the Members it puts on a guest list, or a 403 when the actor
      * may not pick it. Unlike {@see resolve()} this keeps no-email Members: the flag stops
-     * mail, not an Invitation. It drops departed Members, whom a stale roster row can hold.
+     * mail, not an Invitation. It keeps only current Members, the same standing a single pick
+     * needs: a Directory listing.
      *
      * @return Collection<int, Member>
      */
@@ -183,7 +184,7 @@ class AudienceResolver
         );
 
         if (! $picked) {
-            throw new AuthorizationException('You may not invite that audience.');
+            throw new AuthorizationException(__('invitations.guests.audience_refused'));
         }
 
         $context = $key === AudienceKey::WholeGroup
@@ -191,7 +192,7 @@ class AudienceResolver
             : AudienceContext::directory();
 
         return $this->base($context, $key, null)
-            ->reject(fn (Member $member): bool => $member->category->accessTier() === AccessTier::None)
+            ->filter(fn (Member $member): bool => $member->category->grantsDirectoryListing())
             ->unique(fn (Member $member): int => $member->getKey())
             ->values();
     }
@@ -350,8 +351,8 @@ class AudienceResolver
     }
 
     /**
-     * The Invitation's Guests, optionally only those with one Reply. A departed Member stays
-     * on the list and gets no more mail (spec #901).
+     * The Invitation's current Guests, optionally only those with one Reply. A Guest who
+     * stops being current stays on the list and gets no more mail (spec #901).
      *
      * @return Collection<int, Member>
      */
@@ -359,10 +360,10 @@ class AudienceResolver
     {
         return $invitation->guests()
             ->when($reply !== null, fn ($query) => $query->where('reply', $reply))
+            ->whereHas('member', fn ($query) => $query->inDirectory())
             ->with('member')
             ->get()
             ->map(fn (Guest $guest): Member => $guest->member)
-            ->reject(fn (Member $member): bool => $member->category->accessTier() === AccessTier::None)
             ->values();
     }
 

@@ -2,8 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Member;
-use Closure;
+use App\Http\Requests\Concerns\ValidatesGuestPick;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -13,6 +12,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class StoreGuestRequest extends FormRequest
 {
+    use ValidatesGuestPick;
+
     public function authorize(): bool
     {
         return $this->user()->can('manageGuests', $this->route('invitation'));
@@ -24,11 +25,7 @@ class StoreGuestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'member' => ['required', 'integer', function (string $attribute, mixed $value, Closure $fail): void {
-                if (! Member::query()->inDirectory()->whereKey($value)->exists()) {
-                    $fail(__('validation.exists', ['attribute' => $attribute]));
-                }
-            }],
+            'member' => $this->guestPickRules(),
         ];
     }
 }

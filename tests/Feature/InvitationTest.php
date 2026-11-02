@@ -300,3 +300,14 @@ it('serves the French routes with translated segments', function () use ($fields
         $this->post('/fr/invitations', $fields)->assertRedirect('/fr/invitations/organisation');
     });
 });
+
+// --- Wall clock (org timezone) ----------------------------------------------
+
+it('reads the date and start time on the museum clock, either side of DST', function (string $date, string $utc) {
+    $invitation = Invitation::factory()->create(['date' => $date, 'start_time' => '10:00']);
+
+    expect($invitation->fresh()->startsAt()->toDateTimeString())->toBe($utc);
+})->with([
+    'summer, EDT' => ['2026-07-01', '2026-07-01 14:00:00'],
+    'winter, EST' => ['2026-12-01', '2026-12-01 15:00:00'],
+]);

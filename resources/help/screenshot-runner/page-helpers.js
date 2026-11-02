@@ -1086,6 +1086,14 @@
         return clickAndWaitFor(buttonLabelled(/^set reply$/i), openDialog);
     }
 
+    // The composer fetches the Accepted Guests after it opens, and Next stays off until they arrive.
+    function openEmailAcceptedGuests() {
+        return clickAndWaitFor(buttonLabelled(/^email accepted guests$/i), () => {
+            const next = dialogButtonLabelled(/^next$/i);
+            return next && !next.disabled;
+        });
+    }
+
     window.__help = {
         fillSampleInvitation,
         saveInvitation,
@@ -1097,6 +1105,7 @@
         tickFirstInvitationOption,
         acceptInvitation,
         openSetReplyDialog,
+        openEmailAcceptedGuests,
         login,
         clickButton,
         props,

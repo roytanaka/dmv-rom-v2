@@ -173,11 +173,16 @@ it('lets a Host add a whole Group they belong to, with its no-email Members', fu
     expect(guestNames($host, $invitation))->toBe(['Hal Host', 'Ada Lee', 'Bo Ray']);
 });
 
-it('leaves departed Members out of a whole Group', function () {
+it('leaves Members who are not current out of a whole Group', function () {
     $host = Member::factory()->create(['first_name' => 'Hal', 'last_name' => 'Host']);
     $invitation = hostedInvitation($host);
     $group = Group::factory()->create();
-    rosterOf($group, $host, Member::factory()->category(Category::Resigned)->create());
+    rosterOf(
+        $group,
+        $host,
+        Member::factory()->category(Category::Resigned)->create(),
+        Member::factory()->category(Category::Provisional)->create(),
+    );
 
     $this->actingAs($host);
     addAudience($invitation, ['audience' => 'whole_group', 'parameter' => $group->slug])->assertRedirect();
@@ -196,6 +201,21 @@ it('refuses a Group the Host does not belong to', function () {
     expect(Guest::count())->toBe(0);
 });
 
+it('words the refusal of an Audience in the Host language', function () {
+    $invitation = hostedInvitation();
+
+    $this->actingAs($invitation->host)
+        ->postJson(route('invitations.guests.audience', ['invitation' => $invitation->id]), ['audience' => 'all_members'])
+        ->assertForbidden()
+        ->assertJsonPath('message', 'You may not invite that audience.');
+
+    $this->withLocaleRoutes('fr', function () use ($invitation) {
+        $this->postJson("/fr/invitations/{$invitation->id}/invites/audience", ['audience' => 'all_members'])
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Vous ne pouvez pas inviter ce public.');
+    });
+});
+
 it('lets an org-wide sender add any Group', function () {
     $invitation = hostedInvitation(chair());
     $group = Group::factory()->create();
@@ -207,10 +227,11 @@ it('lets an org-wide sender add any Group', function () {
     expect(guestNames($invitation->host, $invitation))->toBe(['Ada Lee']);
 });
 
-it('lets an org-wide sender add All Members, without those on leave or departed', function () {
+it('lets an org-wide sender add All Members, without those on leave or not current', function () {
     $host = chair();
     $invitation = hostedInvitation($host);
-    $provisional = Member::factory()->category(Category::Provisional)->create();
+    $sustaining = Member::factory()->category(Category::Sustaining)->create();
+    Member::factory()->category(Category::Provisional)->create();
     Member::factory()->category(Category::Loa)->create();
     Member::factory()->category(Category::Resigned)->create();
 
@@ -218,7 +239,7 @@ it('lets an org-wide sender add All Members, without those on leave or departed'
     addAudience($invitation, ['audience' => 'all_members'])->assertRedirect();
 
     expect(Guest::pluck('member_id')->sort()->values()->all())
-        ->toBe(collect([$host->id, $provisional->id])->sort()->values()->all());
+        ->toBe(collect([$host->id, $sustaining->id])->sort()->values()->all());
 });
 
 it('refuses All Members from a Host who is not an org-wide sender', function () {

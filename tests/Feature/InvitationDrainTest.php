@@ -1,8 +1,11 @@
 <?php
 
+use App\Enums\AudienceKey;
+use App\Enums\Category;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\InvitationState;
+use App\Enums\Reply;
 use App\Mail\BroadcastSenderCopy;
 use App\Mail\InvitationMail;
 use App\Models\Broadcast;
@@ -125,6 +128,51 @@ it('sends nothing for a queued mail that lost its reader', function (Closure $ch
         $invitation->save();
     }],
     'a removed Guest' => [fn (Invitation $invitation, Delivery $row) => $invitation->guests()->where('member_id', $row->member_id)->delete()],
+]);
+
+it('expires a queued mail whose Audience the Guest has left', function (AudienceKey $key, Reply $reply) {
+    Mail::fake();
+    $this->broadcast->update(['audience_key' => $key->value]);
+    $row = queuedInvitationMail($this->broadcast, $this->invitation);
+
+    $this->invitation->guestFor($row->member)->setReply($reply);
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    Mail::assertNotSent(InvitationMail::class);
+    expect($row->fresh()->state)->toBe(DeliveryState::Expired);
+})->with([
+    'an Accepted mail to a Guest who declined' => [AudienceKey::InvitationAccepted, Reply::Declined],
+    'a No reply mail to a Guest who accepted' => [AudienceKey::InvitationNoReply, Reply::Accepted],
+    'a No reply mail to a Guest who declined' => [AudienceKey::InvitationNoReply, Reply::Declined],
+]);
+
+it('still sends a queued mail to a Guest in its Audience', function (AudienceKey $key, Reply $reply) {
+    Mail::fake();
+    $this->broadcast->update(['audience_key' => $key->value]);
+    $row = queuedInvitationMail($this->broadcast, $this->invitation);
+
+    $this->invitation->guestFor($row->member)->setReply($reply);
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    expect($row->fresh()->state)->toBe(DeliveryState::Sent);
+})->with([
+    'an Accepted mail' => [AudienceKey::InvitationAccepted, Reply::Accepted],
+    'a No reply mail' => [AudienceKey::InvitationNoReply, Reply::NoReply],
+    'an all Guests mail to a Guest who declined' => [AudienceKey::InvitationGuests, Reply::Declined],
+]);
+
+it('expires a queued mail to a Guest who stopped being current', function (Category $category) {
+    Mail::fake();
+    $row = queuedInvitationMail($this->broadcast, $this->invitation);
+
+    $row->member->update(['category' => $category]);
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    Mail::assertNotSent(InvitationMail::class);
+    expect($row->fresh()->state)->toBe(DeliveryState::Expired);
+})->with([
+    'resigned' => [Category::Resigned],
+    'provisional, who has no Directory listing' => [Category::Provisional],
 ]);
 
 it('still sends the sender copy after a deleted Invitation', function () {

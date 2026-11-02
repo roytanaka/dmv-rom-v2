@@ -158,12 +158,15 @@ class Invitation extends Model
 
     /**
      * This Member's Guest row if a queued Reminder should still go to them: the Invitation
-     * is still Open and has not started, and their Reply is still Accepted. The Drain asks
-     * this at send time, because any of it may have changed since the row was written.
+     * is still Open and has not started, they are still current, and their Reply is still
+     * Accepted. The Drain asks this at send time, because any of it may have changed since
+     * the row was written.
      */
     public function guestToRemind(Member $member): ?Guest
     {
-        if ($this->state !== InvitationState::Open || $this->startsAt()->isPast()) {
+        if ($this->state !== InvitationState::Open
+            || $this->startsAt()->isPast()
+            || ! $member->category->grantsDirectoryListing()) {
             return null;
         }
 
@@ -174,14 +177,32 @@ class Invitation extends Model
 
     /**
      * Whether this Member may set their own Reply now: they are a Guest, and the Invitation
-     * is Open and not Closed. This is not a policy ability because `Gate::before` would
-     * grant it to the super-tier, who may answer only as a Guest like anyone else.
+     * is taking replies, a rule with one home in {@see scopeTakingReplies}. This is not a
+     * policy ability because `Gate::before` would grant it to the super-tier, who may answer
+     * only as a Guest like anyone else.
      */
     public function takesReplyFrom(Member $member): bool
     {
-        return $this->state === InvitationState::Open
-            && ! $this->isClosed()
+        return self::query()->takingReplies()->whereKey($this->id)->exists()
             && $this->guestFor($member) !== null;
+    }
+
+    /**
+     * The one move from Draft to Open: only a written mail makes it (ADR-0034 §7).
+     */
+    public function open(): void
+    {
+        $this->state = InvitationState::Open;
+        $this->save();
+    }
+
+    /**
+     * Hide an Open Invitation from its Guests. Their Replies stay.
+     */
+    public function moveToDraft(): void
+    {
+        $this->state = InvitationState::Draft;
+        $this->save();
     }
 
     /**
@@ -207,7 +228,7 @@ class Invitation extends Model
      *
      * @return array{subject: string, body: string}
      */
-    public function mailDraft(): array
+    public function prefilledMail(): array
     {
         $when = __('invitations.mail.when', [
             'name' => e($this->name),
@@ -238,6 +259,40 @@ class Invitation extends Model
             'created_at' => $now,
             'updated_at' => $now,
         ])->all());
+    }
+
+    /**
+     * The current Members not on the guest list, as a Host's pickers name them: by surname,
+     * with no address.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    public function candidates(): array
+    {
+        return Member::query()->inDirectory()
+            ->whereNotIn('id', $this->guests()->pluck('member_id'))
+            ->get()
+            ->sortBy(fn (Member $member): string => $member->surnameKey())
+            ->map(fn (Member $member): array => ['id' => $member->id, 'name' => $member->fullName()])
+            ->values()->all();
+    }
+
+    /**
+     * Record a Reply a Host was given for this Member, putting them on the guest list if they
+     * are not on it. The row and the Reply land together. The lock comes first: a read before
+     * it would fix the transaction's view, and the count under it would miss a Reply committed
+     * in between (see {@see Guest::setReply}).
+     *
+     * @param  list<int>  $optionIds  Options of this Invitation
+     */
+    public function setReplyFor(Member $member, Reply $reply, array $optionIds = []): void
+    {
+        DB::transaction(function () use ($member, $reply, $optionIds): void {
+            self::query()->lockForUpdate()->findOrFail($this->id);
+
+            $this->addGuests(collect([$member]));
+            $this->guestFor($member)->setReply($reply, $optionIds);
+        });
     }
 
     /**

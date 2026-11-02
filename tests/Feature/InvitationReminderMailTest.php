@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Category;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\InvitationState;
@@ -13,8 +14,9 @@ use Illuminate\Support\Facades\Mail;
 
 /*
  * The Invitation Reminder through the Drain (#909, ADR-0034 §12). It renders from the live
- * Invitation in the Guest's locale, names their Options, the description and the Host, and
- * replies to the Host. A Guest who has since declined and a deleted Invitation get no mail.
+ * Invitation in the Guest's locale and names their Options, the description and the Host. It is
+ * automatic mail, so it has no Reply-To. A Guest who has since declined and a deleted Invitation
+ * get no mail.
  * Prior art: ReminderMailTest.
  */
 
@@ -96,6 +98,20 @@ it('sends nothing for an Invitation moved back to Draft, or to a removed Guest',
     expect(Delivery::where('state', DeliveryState::Expired)->count())->toBe(2);
 });
 
+it('sends nothing to a Guest who stopped being current', function (Category $category) {
+    Mail::fake();
+
+    queuedInvitationReminder()->member->update(['category' => $category]);
+
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    Mail::assertNothingSent();
+    expect(Delivery::sole()->state)->toBe(DeliveryState::Expired);
+})->with([
+    'resigned' => [Category::Resigned],
+    'provisional, who has no Directory listing' => [Category::Provisional],
+]);
+
 it('sends nothing once the occasion has started', function () {
     Mail::fake();
 
@@ -138,16 +154,14 @@ it('leaves out the Options line when the Guest chose none', function () {
         ->assertDontSeeInHtml(__('invitations.reminder_email.your_options'));
 });
 
-it('renders the date in the subject, the Host as the From name, and the Host as Reply-To', function () {
+it('renders the date in the subject, with the default From and no Reply-To', function () {
     $guest = queuedInvitationReminder([], ['name' => 'Annual Meeting', 'date' => '2026-11-12']);
-    $host = $guest->invitation->host;
 
     $envelope = (new InvitationReminder($guest->invitation, $guest))->envelope();
 
     expect($envelope->subject)->toBe(__('invitations.reminder_email.subject', ['name' => 'Annual Meeting', 'date' => '12 November 2026']));
-    expect($envelope->from->address)->toBe(config('mail.from.address'));
-    expect($envelope->from->name)->toBe($host->fullName());
-    expect($envelope->replyTo[0]->address)->toBe($host->email);
+    expect($envelope->from)->toBeNull();
+    expect($envelope->replyTo)->toBe([]);
 });
 
 it('renders in French with a /fr/ link, and the Host’s text as written', function () {
