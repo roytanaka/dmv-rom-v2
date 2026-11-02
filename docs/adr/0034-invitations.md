@@ -40,7 +40,7 @@ From the grilling session for [#698](https://github.com/roytanaka/dmv-rom-v2/iss
 
 14. **Not carried over.** The Applicants guest option, which no row uses. The "Executive Hosts" page and the committee's Assistants and Secretary menus. My Calendar entries wait for [#898](https://github.com/roytanaka/dmv-rom-v2/issues/898).
 
-15. **On Beta, Invitations work and send no mail.** Sending moves an Invitation to Open and writes no Deliveries. Reminders are off too ([ADR-0035](0035-beta-and-cutover.md) §6). No screen adds Beta-only wording. The site-wide alert bar ([#899](https://github.com/roytanaka/dmv-rom-v2/issues/899)) and tester instructions cover this.
+15. **Invitations need no Beta-specific work.** Beta does not exist yet. When it does, its mail setting ([ADR-0035](0035-beta-and-cutover.md) §6) must also stop Invitation mail and Reminders. Sending still moves an Invitation to Open. No screen adds Beta-only wording. The site-wide alert bar ([#899](https://github.com/roytanaka/dmv-rom-v2/issues/899)) and tester instructions cover this.
 
 ## Considered options
 
