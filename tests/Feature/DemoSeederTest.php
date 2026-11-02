@@ -430,11 +430,11 @@ it('seeds one published Schedule on the Docents Group covering the current month
         ->and($schedule->ends_on->greaterThanOrEqualTo(now()->startOfDay()))->toBeTrue();
 });
 
-it('seeds an empty next-month draft Schedule on Docents, so a Scheduler has one to publish', function () {
+it('seeds an empty draft Schedule on Docents two months out, so a Scheduler has one to publish', function () {
     // The Create a Schedule walkthrough (#530) shoots a draft's Publish and New shift controls.
     // A Member never sees a draft, so the member walkthroughs read as before.
     $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
-    $next = CarbonImmutable::instance(now())->startOfMonth()->addMonth();
+    $next = CarbonImmutable::instance(now())->startOfMonth()->addMonths(2);
 
     $draft = Schedule::where('group_id', $docents->id)->where('state', ScheduleState::Draft)->sole();
 
@@ -442,6 +442,31 @@ it('seeds an empty next-month draft Schedule on Docents, so a Scheduler has one 
         ->and($draft->starts_on->toDateString())->toBe($next->toDateString())
         ->and($draft->ends_on->toDateString())->toBe($next->endOfMonth()->toDateString())
         ->and($draft->shifts()->count())->toBe(0);
+});
+
+it('publishes next month for every rostered Group, seated, with the Member Persona left off it', function () {
+    $next = CarbonImmutable::instance(now())->startOfMonth()->addMonth();
+
+    foreach ([DemoSeeder::PROGRAM, DemoSeeder::VISITOR_GUIDES, DemoSeeder::GUIDES_DU_ROM, DemoSeeder::RECEPTION, DemoSeeder::GALLERY_INTERPRETERS] as $slug) {
+        $schedule = Schedule::where('group_id', Group::where('slug', $slug)->value('id'))
+            ->where('name', $next->format('F Y'))
+            ->sole();
+
+        expect($schedule->state)->toBe(ScheduleState::Published)
+            ->and($schedule->shifts()->count())->toBeGreaterThan(0)
+            ->and(SignUp::whereRelation('shift', 'schedule_id', $schedule->id)->count())->toBeGreaterThan(0);
+    }
+
+    $wayfinding = Schedule::where('group_id', Group::where('slug', DemoSeeder::VISITOR_WAYFINDERS)->value('id'))
+        ->where('name', 'Wayfinding - '.$next->format('F Y'))
+        ->sole();
+
+    expect($wayfinding->state)->toBe(ScheduleState::Published)
+        ->and($wayfinding->shifts()->count())->toBeGreaterThan(0);
+
+    expect(SignUp::whereRelation('member', 'email', PersonaCatalogue::MEMBER_EMAIL)
+        ->whereRelation('shift', 'starts_at', '>=', $next->toDateTimeString())
+        ->exists())->toBeFalse();
 });
 
 it('seeds the real Docents roster: five one-hour, one-Docent tours from 11:00 every day of the month', function () {
@@ -521,7 +546,7 @@ it('keeps the Bookings idempotent across a reseed', function () {
 
     $this->seed(DemoSeeder::class);
 
-    expect(Booking::count())->toBe($before)->toBe(14);
+    expect(Booking::count())->toBe($before)->toBe(21);
 });
 
 it('seeds a Spot Paid group tour on Docents, paid by the docent-hour', function () {
@@ -531,7 +556,7 @@ it('seeds a Spot Paid group tour on Docents, paid by the docent-hour', function 
         ->with(['shift.signUps', 'bookingType'])
         ->get();
 
-    expect($spots)->toHaveCount(2)
+    expect($spots)->toHaveCount(3)
         ->and($spots->every(fn (Booking $b) => (float) $b->bookingType->rate_per_docent_hour > 0))->toBeTrue()
         ->and($spots->contains(fn (Booking $b) => (float) $b->earned() > 0))->toBeTrue();
 });
@@ -841,13 +866,14 @@ it('seeds the Wayfinders evening events as one-day Schedules staffed by station'
     $events = Schedule::where('group_id', $wayfinders->id)
         ->where('name', 'not like', 'Wayfinding - '.$month->format('F Y'))
         ->where('name', 'not like', 'Wayfinding - '.$month->subMonth()->format('F Y'))
+        ->where('name', 'not like', 'Wayfinding - '.$month->addMonth()->format('F Y'))
         ->with('shifts.kind')
         ->get();
 
-    // TTNF and ROM After Dark run both months; Members Evening only this month.
-    expect($events)->toHaveCount(5)
-        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Wayfinding - TTNF'))->count())->toBe(2)
-        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Members Evening'))->count())->toBe(1);
+    // TTNF and ROM After Dark run all three months; Members Evening only this month and next.
+    expect($events)->toHaveCount(8)
+        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Wayfinding - TTNF'))->count())->toBe(3)
+        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Members Evening'))->count())->toBe(2);
 
     $events->each(function (Schedule $event) {
         // One day, labelled by station, never the daytime Wayfinding label.
@@ -1386,7 +1412,7 @@ it('seeds one off-site GI event a month over consecutive days, its Objects held 
     $orgTimezone = config('app.org_timezone');
 
     // One event a month, each carrying seats with Objects on them.
-    expect($shifts->pluck('schedule_id')->unique())->toHaveCount(2)
+    expect($shifts->pluck('schedule_id')->unique())->toHaveCount(3)
         ->and($shifts->every(fn (Shift $s) => $s->signUps->isNotEmpty()))->toBeTrue()
         ->and($shifts->every(fn (Shift $s) => $s->signUps->every(fn (SignUp $u) => $u->objects->isNotEmpty())))->toBeTrue();
 
