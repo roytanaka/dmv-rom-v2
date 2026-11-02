@@ -110,6 +110,11 @@ Some scripts save a form, so a second run finds a different page. The
 then leaves My sign-ups. Shoot `shifts-you-owe-a-number-for` first, or
 reseed with `pnpm sail artisan migrate:fresh --seed` before you shoot again.
 
+The demo data has no Invitations, so the Invitations scripts build one between
+them. Reseed, then run them in this order: `create-an-invitation`,
+`pick-your-guests`, `send-an-invitation`, `reply-to-an-invitation`,
+`track-the-replies`, `invitations`.
+
 ## When a shot comes out wrong
 
 Replace that one PNG by hand and leave the step script as it is. The script

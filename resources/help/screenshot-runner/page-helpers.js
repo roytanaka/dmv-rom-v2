@@ -1010,7 +1010,93 @@
         return { status: response.status, body: parsed };
     }
 
+    // Set a form control and fire the event its v-model listens for.
+    function setControl(element, value, eventName = 'input') {
+        element.value = value;
+        element.dispatchEvent(new Event(eventName, { bubbles: true }));
+    }
+
+    // Fill the Invitation form, dated two weeks out so the Invitation stays Open whenever it
+    // is shot. TimeField's hour selects carry the ids; a picked hour sets the minutes to :00.
+    async function fillSampleInvitation() {
+        const field = (id) => document.getElementById(id);
+        if (!field('invitation-name')) return false;
+        setControl(field('invitation-name'), 'Spring volunteer lunch');
+        setControl(field('invitation-date'), new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
+        setControl(field('invitation-start-time'), '12', 'change');
+        setControl(field('invitation-end-time'), '14', 'change');
+        setControl(field('invitation-description'), 'Join us for lunch in the Volunteer Lounge.');
+        setControl(field('invitation-guest-limit'), '40');
+        buttonLabelled(/^add option$/i)?.click();
+        await settle();
+        setControl(document.querySelector('input[aria-label="Option name"]'), 'Museum tour after lunch');
+        return settle();
+    }
+
+    function saveInvitation() {
+        return clickAndWaitFor(buttonLabelled(/^save$/i), () => location.pathname.endsWith('/hosting'));
+    }
+
+    // The first Hosting row's link with this label. A script's Invitation is the only row.
+    function followHostingLink(pattern) {
+        const link = Array.from(document.querySelectorAll('table a')).find((element) => pattern.test(element.textContent.trim()));
+        return link ? followLink(link) : false;
+    }
+
+    function openInvitationGuests() {
+        return followHostingLink(/^guests$/i);
+    }
+
+    function openInvitationReplies() {
+        return followHostingLink(/^replies$/i);
+    }
+
+    // Pick Docents under Add a group and add it. The select holds an index, so the option is
+    // found by its label.
+    function addDocentsAsGuests() {
+        const select = document.getElementById('guest-audience');
+        const option = Array.from(select?.options ?? []).find((element) => element.textContent.trim() === 'Docents');
+        if (!option) return false;
+        setControl(select, option.value, 'change');
+        return clickAndWaitFor(select.closest('form').querySelector('button[type="submit"]'), () => document.querySelector('table tbody tr'));
+    }
+
+    // The composer fetches the Guests after it opens, and Next stays off until they arrive.
+    function openInvitationSend() {
+        return clickAndWaitFor(buttonLabelled(/^send$/i), () => {
+            const next = dialogButtonLabelled(/^next$/i);
+            return next && !next.disabled;
+        });
+    }
+
+    function openFirstInvitation() {
+        const link = document.querySelector('table a[href*="/invitations/"]');
+        return link ? followLink(link) : false;
+    }
+
+    function tickFirstInvitationOption() {
+        return clickAndSettle(document.querySelector('[role="checkbox"]'));
+    }
+
+    function acceptInvitation() {
+        return clickAndWaitFor(buttonLabelled(/^accept$/i), () => /Your reply\s*Accepted/.test(document.body.textContent));
+    }
+
+    function openSetReplyDialog() {
+        return clickAndWaitFor(buttonLabelled(/^set reply$/i), openDialog);
+    }
+
     window.__help = {
+        fillSampleInvitation,
+        saveInvitation,
+        openInvitationGuests,
+        openInvitationReplies,
+        addDocentsAsGuests,
+        openInvitationSend,
+        openFirstInvitation,
+        tickFirstInvitationOption,
+        acceptInvitation,
+        openSetReplyDialog,
         login,
         clickButton,
         props,

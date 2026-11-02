@@ -18,6 +18,7 @@ enum HelpSection: string
     case MyHours = 'my-hours';
     case Directory = 'directory';
     case News = 'news';
+    case Invitations = 'invitations';
     case Groups = 'groups';
     case Scheduling = 'scheduling';
     case HoursAndReports = 'hours-and-reports';
