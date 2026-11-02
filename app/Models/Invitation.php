@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\InvitationState;
+use App\Enums\Reply;
 use App\Support\OrgTime;
+use Carbon\CarbonImmutable;
 use Database\Factories\InvitationFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -134,11 +136,39 @@ class Invitation extends Model
     }
 
     /**
+     * The instant the occasion starts, in UTC. The date and start time are wall-clock
+     * values at the museum, so they are read in the org zone.
+     */
+    public function startsAt(): CarbonImmutable
+    {
+        return CarbonImmutable::parse(
+            $this->date->toDateString().' '.$this->start_time,
+            config('app.org_timezone'),
+        )->utc();
+    }
+
+    /**
      * This Member's row on the guest list, if they have one.
      */
     public function guestFor(Member $member): ?Guest
     {
         return $this->guests()->where('member_id', $member->id)->first();
+    }
+
+    /**
+     * This Member's Guest row if a queued Reminder should still go to them: the Invitation
+     * is still Open and has not started, and their Reply is still Accepted. The Drain asks
+     * this at send time, because any of it may have changed since the row was written.
+     */
+    public function guestToRemind(Member $member): ?Guest
+    {
+        if ($this->state !== InvitationState::Open || $this->startsAt()->isPast()) {
+            return null;
+        }
+
+        $guest = $this->guestFor($member);
+
+        return $guest?->reply === Reply::Accepted ? $guest : null;
     }
 
     /**

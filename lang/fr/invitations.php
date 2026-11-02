@@ -62,6 +62,13 @@ return [
         'remove' => 'Retirer',
         'confirm_remove' => 'Retirer cet invité ? Sa réponse sera aussi retirée.',
     ],
+    'reminder_email' => [
+        'subject' => 'Rappel : :name le :date',
+        'heading' => 'Votre invitation approche',
+        'intro' => 'Bonjour :member — ceci est un rappel d’une invitation que vous avez acceptée :',
+        'your_options' => 'Vos options : :options',
+        'view_invitation' => 'Voir l’invitation',
+    ],
     'open' => 'Ouvrir',
     'move_to_draft' => 'Remettre en brouillon',
     'edit' => 'Modifier',

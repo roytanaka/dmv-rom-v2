@@ -61,6 +61,13 @@ return [
         'remove' => 'Remove',
         'confirm_remove' => 'Remove this Guest? Their reply goes too.',
     ],
+    'reminder_email' => [
+        'subject' => 'Reminder: :name on :date',
+        'heading' => 'Your invitation is coming up',
+        'intro' => 'Hello :member — this is a reminder of an invitation you accepted:',
+        'your_options' => 'Your options: :options',
+        'view_invitation' => 'View the invitation',
+    ],
     'open' => 'Open',
     'move_to_draft' => 'Move to Draft',
     'edit' => 'Edit',
