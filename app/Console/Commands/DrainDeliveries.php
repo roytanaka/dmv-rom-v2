@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\AudienceKey;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\InvitationState;
@@ -122,7 +123,7 @@ class DrainDeliveries extends Command
                 continue;
             }
 
-            // The link would refuse this Guest now, so the mail is no longer worth sending.
+            // The Guest can no longer use this mail, so it is no longer worth sending.
             if ($delivery->kind === DeliveryKind::Invitation && ! $this->invitationMailWanted($delivery)) {
                 $delivery->update(['state' => DeliveryState::Expired]);
 
@@ -163,7 +164,8 @@ class DrainDeliveries extends Command
 
     /**
      * Whether a queued Invitation mail still has a reader: a big send drains over an hour, and
-     * the Host may delete the Invitation, draft it, or remove the Guest meanwhile.
+     * the Host may delete the Invitation, draft it, or remove the Guest meanwhile. Mail to
+     * Accepted Guests does not depend on the link, so a Draft does not stop it (#908).
      */
     private function invitationMailWanted(Delivery $delivery): bool
     {
@@ -171,7 +173,8 @@ class DrainDeliveries extends Command
 
         return $invitation !== null
             && ! $invitation->trashed()
-            && $invitation->state === InvitationState::Open
+            && ($invitation->state === InvitationState::Open
+                || $delivery->broadcast->audience_key === AudienceKey::InvitationAccepted->value)
             && $invitation->guestFor($delivery->member) !== null;
     }
 

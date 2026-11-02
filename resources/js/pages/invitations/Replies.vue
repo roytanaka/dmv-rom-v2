@@ -2,7 +2,8 @@
 // The Host's Replies page (ADR-0034 §10, §11): totals, every Guest with their Reply and Options,
 // and a Reply set for a Guest or for a Member not yet on the list. Print hands this page to the
 // browser; the chrome and the controls carry `print:hidden`, so the heading, totals and list are
-// what lands on paper. No address reaches this page.
+// what lands on paper. Email Accepted Guests opens the composer, which holds names only (#908).
+// No address reaches this page.
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import ComposerSheet from '@/emailing/ComposerSheet.vue';
+import { type AudienceOption } from '@/emailing/composer';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
@@ -29,6 +32,7 @@ const props = defineProps<{
     invitation: {
         id: number;
         name: string;
+        host: string;
         date: string;
         start_time: string;
         end_time: string;
@@ -87,6 +91,15 @@ const submit = () => {
 };
 
 const print = () => window.print();
+
+// No prefill: the prefilled mail invites, and these Guests have already said yes.
+const composerOpen = ref(false);
+const accepted = computed<AudienceOption>(() => ({
+    key: 'invitation_accepted',
+    parameter: null,
+    label: trans('audience.invitation_accepted'),
+    count: props.totals.accepted,
+}));
 </script>
 
 <template>
@@ -101,6 +114,9 @@ const print = () => window.print();
                 </div>
                 <div class="flex gap-2 print:hidden">
                     <Button type="button" variant="outline" size="sm" @click="print">{{ trans('invitations.replies.print') }}</Button>
+                    <Button type="button" variant="outline" size="sm" :disabled="!totals.accepted" @click="composerOpen = true">
+                        {{ trans('invitations.replies.email_accepted') }}
+                    </Button>
                     <Button type="button" size="sm" @click="openDialog(null)">{{ trans('invitations.replies.add') }}</Button>
                 </div>
             </div>
@@ -197,5 +213,14 @@ const print = () => window.print();
                 </form>
             </DialogContent>
         </Dialog>
+
+        <ComposerSheet
+            v-model:open="composerOpen"
+            context="invitation"
+            :context-subject="String(invitation.id)"
+            :group-name="invitation.host"
+            :roster="[]"
+            :audience="accepted"
+        />
     </AppLayout>
 </template>

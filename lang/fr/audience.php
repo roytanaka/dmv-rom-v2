@@ -32,6 +32,7 @@ return [
     // Publics des invitations.
     'invitation_guests' => 'Tous les invités',
     'invitation_no_reply' => 'Invités sans réponse',
+    'invitation_accepted' => 'Invités ayant accepté',
 
     // Suffixe d'audience modifiée, ajouté lorsque le sélecteur a retiré des
     // personnes (ADR-0024 §6) : le nom de l'audience demeure et le nombre de

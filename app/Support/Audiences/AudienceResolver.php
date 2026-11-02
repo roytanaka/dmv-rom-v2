@@ -249,7 +249,7 @@ class AudienceResolver
                 AudienceKey::HandPicked,
             ],
             ContextType::Member => [AudienceKey::OneMember],
-            ContextType::Invitation => [AudienceKey::InvitationGuests, AudienceKey::InvitationNoReply],
+            ContextType::Invitation => [AudienceKey::InvitationGuests, AudienceKey::InvitationNoReply, AudienceKey::InvitationAccepted],
         };
     }
 
@@ -327,6 +327,7 @@ class AudienceResolver
             AudienceKey::HandPicked => collect(),
             AudienceKey::InvitationGuests => $this->guestMembers($context->subject),
             AudienceKey::InvitationNoReply => $this->guestMembers($context->subject, Reply::NoReply),
+            AudienceKey::InvitationAccepted => $this->guestMembers($context->subject, Reply::Accepted),
         };
     }
 

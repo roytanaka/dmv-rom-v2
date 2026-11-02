@@ -86,6 +86,7 @@ return [
         'title' => 'Réponses',
         'title_for' => 'Réponses : :name',
         'print' => 'Imprimer',
+        'email_accepted' => 'Écrire aux invités ayant accepté',
         'add' => 'Répondre pour un membre',
         'set' => 'Saisir la réponse',
         'guest' => 'Invité',

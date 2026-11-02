@@ -100,7 +100,9 @@ class BroadcastController extends Controller
             $this->writeRecipientDeliveries($broadcast, $resolved);
             $this->writeSenderCopy($broadcast, $actor);
 
-            if ($kind === BroadcastKind::Invitation) {
+            // Mailing Accepted Guests is the Host's door tool, and a Draft can hold Accepted
+            // Replies, so that send opens nothing (#908).
+            if ($kind === BroadcastKind::Invitation && $key !== AudienceKey::InvitationAccepted) {
                 $context->subject->state = InvitationState::Open;
                 $context->subject->save();
             }

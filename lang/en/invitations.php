@@ -85,6 +85,7 @@ return [
         'title' => 'Replies',
         'title_for' => 'Replies: :name',
         'print' => 'Print',
+        'email_accepted' => 'Email Accepted Guests',
         'add' => 'Reply for a Member',
         'set' => 'Set reply',
         'guest' => 'Guest',

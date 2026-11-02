@@ -36,6 +36,7 @@ class GuestReplyController extends Controller
             'invitation' => [
                 'id' => $invitation->id,
                 'name' => $invitation->name,
+                'host' => $invitation->host->fullName(),
                 'date' => $invitation->date->toDateString(),
                 'start_time' => $invitation->start_time,
                 'end_time' => $invitation->end_time,
