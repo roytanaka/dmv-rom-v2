@@ -99,6 +99,7 @@ return [
         'category' => 'Category',
         'status_date' => 'Status date',
         'last_sign_in_at' => 'Last sign-in',
+        'sign_ins_count' => 'Sign-ins',
     ],
 
     'paid_through_add_year' => 'Add a year to the paid-through year',

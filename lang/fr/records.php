@@ -99,6 +99,7 @@ return [
         'category' => 'Catégorie',
         'status_date' => 'Date du statut',
         'last_sign_in_at' => 'Dernière connexion',
+        'sign_ins_count' => 'Connexions',
     ],
 
     'paid_through_add_year' => 'Ajouter une année au paiement',
