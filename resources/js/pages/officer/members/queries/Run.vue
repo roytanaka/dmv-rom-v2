@@ -1,15 +1,17 @@
 <script setup lang="ts">
 // A Saved query's run (#923, ADR-0038 §7): the count, the clause text, and a table of the chosen
-// columns with a checkbox per row. The server sends every cell as text. CSV, Labels and Email
-// results (#924) cover the whole query, as the Legacy app's did; Send email waits on #925.
+// columns with a checkbox per row. The server sends every cell as text. Send email (#925) opens the
+// composer on the run with the unchecked rows removed. CSV, Labels and Email results (#924) cover
+// the whole query, as the Legacy app's did.
 import SavedQueryEmailResultsDialog from '@/components/SavedQueryEmailResultsDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import RecordsSendEmail from '@/emailing/RecordsSendEmail.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type RosterCandidate } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { PhDownloadSimple, PhEnvelopeSimple, PhPaperPlaneTilt, PhPencilSimple, PhPrinter } from '@phosphor-icons/vue';
+import { PhDownloadSimple, PhPaperPlaneTilt, PhPencilSimple, PhPrinter } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -50,6 +52,9 @@ const allChecked = computed<boolean | 'indeterminate'>(() => {
     return checked.value.size === props.rows.length ? true : 'indeterminate';
 });
 
+// The unchecked rows, posted as removals when Send email opens the composer (#925).
+const unchecked = computed(() => props.rows.filter((row) => !checked.value.has(row.id)).map((row) => row.id));
+
 const toggleAll = (value: boolean | 'indeterminate') => {
     checked.value = new Set(value === true ? props.rows.map((row) => row.id) : []);
 };
@@ -89,10 +94,13 @@ const rowName = (row: Row, index: number) => [row.cells.first_name, row.cells.la
             <p class="bg-muted rounded-md px-3 py-2 font-mono text-sm break-words">{{ clauseText }}</p>
 
             <div v-if="rows.length > 0" class="flex flex-wrap gap-2">
-                <Button variant="outline" disabled>
-                    <PhEnvelopeSimple aria-hidden="true" />
-                    {{ trans('saved_queries.send_email') }}
-                </Button>
+                <RecordsSendEmail
+                    context="saved_query"
+                    :context-subject="String(query.id)"
+                    :label="trans('saved_queries.send_email')"
+                    :exclude="unchecked"
+                    :disabled="checked.size === 0"
+                />
                 <!-- A real navigation, not an Inertia visit: the response is a file download. -->
                 <Button as="a" variant="outline" :href="route('officer.members.queries.csv', { savedQuery: query.id })">
                     <PhDownloadSimple aria-hidden="true" />
