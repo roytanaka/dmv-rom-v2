@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Category;
+use App\Enums\CategoryGroup;
 use App\Http\Requests\DeleteSavedQueryRequest;
 use App\Http\Requests\RenameSavedQueryRequest;
 use App\Http\Requests\SaveSavedQueryRequest;
+use App\Models\Member;
 use App\Models\SavedQuery;
 use App\Policies\SavedQueryPolicy;
 use App\Support\SavedQueries\SavedQueryFields;
@@ -97,6 +100,13 @@ class SavedQueryController extends Controller
                 'label' => SavedQueryFields::columnLabel($column),
             ], $savedQuery->output_columns),
             'rows' => $rows,
+            // Email results' recipient picker (#924): Current and Admin Members, loaded when the
+            // dialog opens.
+            'recipients' => Inertia::optional(fn (): array => Member::query()
+                ->whereIn('category', [...Category::inGroup(CategoryGroup::Current), ...Category::inGroup(CategoryGroup::Admin)])
+                ->orderBy('last_name')->orderBy('first_name')->orderBy('id')
+                ->get(['id', 'first_name', 'last_name'])
+                ->all()),
         ]);
     }
 

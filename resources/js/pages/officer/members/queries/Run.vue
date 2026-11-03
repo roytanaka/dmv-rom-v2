@@ -1,16 +1,17 @@
 <script setup lang="ts">
 // A Saved query's run (#923, ADR-0038 §7): the count, the clause text, and a table of the chosen
 // columns with a checkbox per row. The server sends every cell as text. Send email (#925) opens the
-// composer on the run with the unchecked rows removed. CSV, Labels and Email results stay disabled
-// until their ticket (#924) wires them to the checked rows.
+// composer on the run with the unchecked rows removed. CSV, Labels and Email results (#924) cover
+// the whole query, as the Legacy app's did.
+import SavedQueryEmailResultsDialog from '@/components/SavedQueryEmailResultsDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import RecordsSendEmail from '@/emailing/RecordsSendEmail.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type RosterCandidate } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { PhPencilSimple } from '@phosphor-icons/vue';
+import { PhDownloadSimple, PhPaperPlaneTilt, PhPencilSimple, PhPrinter } from '@phosphor-icons/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -25,7 +26,11 @@ const props = defineProps<{
     count: number;
     columns: { key: string; label: string }[];
     rows: Row[];
+    recipients?: RosterCandidate[];
 }>();
+
+const emailResultsOpen = ref(false);
+const emailResultsSent = ref(false);
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     { title: trans('records.members'), href: route('officer.members') },
@@ -96,10 +101,31 @@ const rowName = (row: Row, index: number) => [row.cells.first_name, row.cells.la
                     :exclude="unchecked"
                     :disabled="checked.size === 0"
                 />
-                <Button variant="outline" disabled>{{ trans('saved_queries.csv') }}</Button>
-                <Button variant="outline" disabled>{{ trans('saved_queries.labels') }}</Button>
-                <Button variant="outline" disabled>{{ trans('saved_queries.email_results') }}</Button>
+                <!-- A real navigation, not an Inertia visit: the response is a file download. -->
+                <Button as="a" variant="outline" :href="route('officer.members.queries.csv', { savedQuery: query.id })">
+                    <PhDownloadSimple aria-hidden="true" />
+                    {{ trans('saved_queries.csv') }}
+                </Button>
+                <Button variant="outline" as-child>
+                    <Link :href="route('officer.members.queries.labels', { savedQuery: query.id })">
+                        <PhPrinter aria-hidden="true" />
+                        {{ trans('saved_queries.labels') }}
+                    </Link>
+                </Button>
+                <Button variant="outline" type="button" @click="emailResultsOpen = true">
+                    <PhPaperPlaneTilt aria-hidden="true" />
+                    {{ trans('saved_queries.email_results') }}
+                </Button>
             </div>
+
+            <p v-if="emailResultsSent" role="status" class="text-muted-foreground text-base">{{ trans('saved_queries.email_dialog.sent') }}</p>
+
+            <SavedQueryEmailResultsDialog
+                v-model:open="emailResultsOpen"
+                :query-id="query.id"
+                :recipients="recipients"
+                @sent="emailResultsSent = true"
+            />
 
             <div v-if="rows.length > 0" class="overflow-x-auto">
                 <Table>

@@ -67,4 +67,13 @@ return [
         'intro' => 'The Records office has changed :member to Active.',
         'footer' => 'This message is for your information; no reply is expected.',
     ],
+    // A Saved query's results (#924, ADR-0038 §7): the Legacy app's "Results of DMV Query".
+    'saved_query_results' => [
+        'from' => 'DMV Records',
+        'subject' => 'Results of DMV query: :query',
+        'heading' => 'Saved query results',
+        'intro' => ':sender has sent you the results of the saved query “:query”.',
+        'view' => 'Open the results',
+        'footer' => 'The link opens after you sign in, for members of the Records office.',
+    ],
 ];

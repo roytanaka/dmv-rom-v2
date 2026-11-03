@@ -68,4 +68,13 @@ return [
         'intro' => 'Le bureau des dossiers a fait passer :member au statut actif.',
         'footer' => 'Ce message est fourni à titre informatif ; aucune réponse n’est attendue.',
     ],
+    // Les résultats d'une requête enregistrée (#924, ADR-0038 §7).
+    'saved_query_results' => [
+        'from' => 'Dossiers DMV',
+        'subject' => 'Résultats de la requête DMV : :query',
+        'heading' => 'Résultats d’une requête enregistrée',
+        'intro' => ':sender vous a envoyé les résultats de la requête enregistrée « :query ».',
+        'view' => 'Ouvrir les résultats',
+        'footer' => 'Le lien s’ouvre après connexion, pour les membres du bureau des dossiers.',
+    ],
 ];
