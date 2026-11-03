@@ -5,6 +5,7 @@ namespace App\Support\Audiences;
 use App\Enums\AccessTier;
 use App\Enums\AudienceKey;
 use App\Enums\Category;
+use App\Enums\CategoryGroup;
 use App\Enums\ContextType;
 use App\Enums\Kind;
 use App\Enums\MembershipStatus;
@@ -532,8 +533,9 @@ class AudienceResolver
 
     /**
      * The parameter values to expand a key into for the menu — the distinct statuses
-     * present in the Group, the current Categories present among Members, or the
-     * Group's children. Non-parameterised keys expand to a single null.
+     * present in the Group, the Categories present among Members other than the
+     * departed (the non-member standings stay reachable, ADR-0038 §4), or the Group's
+     * children. Non-parameterised keys expand to a single null.
      *
      * @return list<?string>
      */
@@ -546,7 +548,7 @@ class AudienceResolver
             AudienceKey::OneCategory => Member::query()->get(['category'])
                 ->map(fn (Member $member): Category => $member->category)
                 ->unique()
-                ->filter(fn (Category $category): bool => $category->accessTier() !== AccessTier::None)
+                ->reject(fn (Category $category): bool => in_array($category->group(), [CategoryGroup::Resigned, CategoryGroup::Deceased], true))
                 ->map(fn (Category $category): string => $category->value)
                 ->sort()->values()->all(),
             AudienceKey::ChildRoster => $context->owningGroup()->children()->orderBy('display_order')
