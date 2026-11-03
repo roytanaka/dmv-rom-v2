@@ -30,12 +30,6 @@ const showPassword = ref(false);
 
 const officeEmail = 'volunteers@rom.on.ca';
 
-// The Applicant code entry (#930, ADR-0038 §8): shown only while the code is published and
-// unexpired. The right code opens the application form; a wrong one comes back on `code`.
-const codeForm = useForm({ code: '' });
-// A POST keeps the code out of the URL and the logs; the server redirects to the form.
-const startApplication = () => codeForm.post(route('apply.code'));
-
 const submit = () => {
     form.post(route('login'), {
         onFinish: () => form.reset('password'),
@@ -111,17 +105,15 @@ const submit = () => {
             </Button>
         </form>
 
-        <form v-if="applicationOpen" class="mt-8 flex flex-col gap-2 border-t pt-6" @submit.prevent="startApplication">
-            <p class="text-sm">{{ trans('apply.prompt') }}</p>
-            <Label for="applicant-code" class="sr-only">{{ trans('apply.code_label') }}</Label>
-            <div class="flex gap-2">
-                <Input id="applicant-code" v-model="codeForm.code" required autocomplete="off" maxlength="64" />
-                <Button type="submit" variant="outline" :loading="codeForm.processing">{{ trans('apply.start') }}</Button>
-            </div>
-            <InputError :message="codeForm.errors.code" />
-        </form>
+        <!-- The way to /apply (#949), only while the Applicant code is open; the code goes in there. -->
+        <p v-if="applicationOpen" class="mt-8 text-sm">
+            {{ trans('apply.sign_in_prompt') }}
+            <TextLink :href="route('apply')"
+                >{{ trans('apply.sign_in_link') }} <PhArrowRight class="inline h-3.5 w-3.5" aria-hidden="true"
+            /></TextLink>
+        </p>
 
-        <p class="text-muted-foreground mt-8 text-sm">
+        <p class="text-muted-foreground text-sm" :class="applicationOpen ? 'mt-4' : 'mt-8'">
             {{ trans('auth.login.help_before', { phone: helpPhone }) }}
             <!-- mailto is an external scheme, so a plain anchor — not the Inertia <Link> TextLink wraps. -->
             <a
