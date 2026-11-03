@@ -2,8 +2,10 @@
 
 namespace App\Support\Audiences;
 
+use App\Enums\ApplicantStatus;
 use App\Enums\ContextType;
 use App\Enums\MemberList;
+use App\Http\Controllers\ApplicantController;
 use App\Models\Group;
 use App\Models\Invitation;
 use App\Models\Member;
@@ -43,7 +45,24 @@ class AudienceContextFactory
             ContextType::Invitation => AudienceContext::invitation(Invitation::findOrFail($subject)),
             ContextType::MemberList => AudienceContext::memberList($this->memberList($subject)),
             ContextType::SavedQuery => AudienceContext::savedQuery(SavedQuery::findOrFail($subject)),
+            ContextType::Applicants => AudienceContext::applicants($this->applicantFilter($subject)),
         };
+    }
+
+    /**
+     * The Applicants list's status filter: `all` (null), one Applicant status, or a 404.
+     */
+    private function applicantFilter(mixed $subject): ?ApplicantStatus
+    {
+        if ($subject === ApplicantController::ALL) {
+            return null;
+        }
+
+        $status = is_string($subject) ? ApplicantStatus::tryFrom($subject) : null;
+
+        abort_if($status === null, 404);
+
+        return $status;
     }
 
     /**

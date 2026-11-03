@@ -8,6 +8,7 @@
 import type { NavNode } from '@/chrome/types';
 import ApplicantCodeDialog, { type ApplicantCodeSettings } from '@/components/applicants/ApplicantCodeDialog.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
+import RecordsSendEmail from '@/emailing/RecordsSendEmail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +18,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { PhMagnifyingGlass, PhPlus } from '@phosphor-icons/vue';
+import { PhMagnifyingGlass, PhPlus, PhPrinter } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -71,6 +72,19 @@ watch(
     },
 );
 
+// Print list follows the filter and the search the page shows (#929).
+const printHref = computed(() => {
+    const query = new URLSearchParams();
+    if (props.status !== 'all') {
+        query.set('status', props.status);
+    }
+    if (props.search) {
+        query.set('q', props.search);
+    }
+    const suffix = query.toString();
+    return route('officer.members.applicants.print') + (suffix ? `?${suffix}` : '');
+});
+
 const reload = () => {
     const query: Record<string, string> = {};
     if (filter.value !== 'all') {
@@ -92,6 +106,19 @@ const reload = () => {
                 <h1 class="text-rom-ink text-2xl font-semibold">{{ title }}</h1>
                 <div class="flex flex-wrap gap-2">
                     <ApplicantCodeDialog v-if="applicantCode" :settings="applicantCode" />
+                    <!-- Send email mails the Applicants the status filter shows; holder members only, as Add applicant. -->
+                    <RecordsSendEmail
+                        v-if="canCreate"
+                        context="applicants"
+                        :context-subject="status"
+                        :label="trans('applicants.outputs.send_email')"
+                    />
+                    <Button variant="outline" as-child>
+                        <Link :href="printHref">
+                            <PhPrinter aria-hidden="true" />
+                            {{ trans('applicants.outputs.print') }}
+                        </Link>
+                    </Button>
                     <Button v-if="canCreate && status === 'new'" as-child>
                         <Link :href="route('officer.members.applicants.create')">
                             <PhPlus aria-hidden="true" />

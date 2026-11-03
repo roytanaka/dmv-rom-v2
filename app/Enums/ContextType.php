@@ -42,4 +42,8 @@ enum ContextType: string
     // A Saved query run (ADR-0038 §7), named by the query id: the run's Members, the
     // unchecked rows removed. Member administration only.
     case SavedQuery = 'saved_query';
+
+    // The Applicants list (#929, ADR-0038 §8), named by its status filter (`all` or one Applicant
+    // status): the filtered Applicants. Holder members of the `applicants` Stewardship only.
+    case Applicants = 'applicants';
 }

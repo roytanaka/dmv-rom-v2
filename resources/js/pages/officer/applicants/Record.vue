@@ -5,6 +5,7 @@
 // the status. Notes are a log: the page shows it and takes a new line, which the server dates and
 // signs. A reader without edit rights (`canEdit` false) sees the same record, every field disabled.
 import ApplicantFormFields from '@/components/applicants/ApplicantFormFields.vue';
+import ApplicantRecordActions from '@/components/applicants/ApplicantRecordActions.vue';
 import ApplicantLanguagesInput, { type LanguageRow } from '@/components/applicants/ApplicantLanguagesInput.vue';
 import DmvSettingsSection from '@/components/DmvSettingsSection.vue';
 import InputError from '@/components/InputError.vue';
@@ -60,6 +61,7 @@ export interface RecordApplicant {
 const props = defineProps<{
     applicant: RecordApplicant;
     canEdit: boolean;
+    canDelete: boolean;
     statuses: string[];
     departureReasons: string[];
     mentors: { id: number; name: string }[];
@@ -128,6 +130,7 @@ const save = () => {
                 <p class="text-muted-foreground text-sm">{{ trans('applicants.title') }}</p>
                 <h1 class="text-rom-ink text-2xl font-semibold">{{ fullName }}</h1>
                 <p v-if="enteredByLine" class="text-muted-foreground text-sm">{{ enteredByLine }}</p>
+                <ApplicantRecordActions class="mt-2" :applicant-id="applicant.id" :name="fullName" :can-delete="canDelete" />
             </header>
 
             <form class="flex max-w-3xl flex-col gap-6" @submit.prevent="save">

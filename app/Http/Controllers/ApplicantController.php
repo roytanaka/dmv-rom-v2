@@ -168,6 +168,7 @@ class ApplicantController extends Controller
                 ]))->values(),
             ],
             'canEdit' => $request->user()->can('update', $applicant),
+            'canDelete' => $request->user()->can('delete', $applicant) && ApplicantPolicy::deletable($applicant),
             'statuses' => array_map(fn (ApplicantStatus $case) => $case->value, ApplicantStatus::cases()),
             'departureReasons' => array_map(fn (DepartureReason $reason) => $reason->value, DepartureReason::cases()),
             'mentors' => self::withCurrent(ApplicantOptions::mentors(), $applicant->mentor_id, $applicant->mentor?->fullName()),

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\ApplicantCodeController;
 use App\Http\Controllers\ApplicantController;
+use App\Http\Controllers\ApplicantDeletionController;
+use App\Http\Controllers\ApplicantPrintController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
@@ -145,6 +147,11 @@ Route::group([
         ->middleware('auth')->name('officer.members.applicants.create');
     Route::get(LaravelLocalization::transRoute('routes.officer.members.applicants.show'), [ApplicantController::class, 'show'])
         ->middleware('auth')->whereNumber('applicant')->name('officer.members.applicants.show');
+    // Print list and Print record (#929): print-styled pages, no app chrome. ApplicantPolicy `view`.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.applicants.print'), [ApplicantPrintController::class, 'list'])
+        ->middleware('auth')->name('officer.members.applicants.print');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.applicants.print-record'), [ApplicantPrintController::class, 'record'])
+        ->middleware('auth')->whereNumber('applicant')->name('officer.members.applicants.print-record');
 
     // The Member lists (#919, ADR-0038 §5): one route, the list a translated word
     // (/officer/members/resigned ↔ /fr/officier/membres/demissionnaires). A bare path opens
@@ -501,6 +508,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('applicants/{applicant}', [ApplicantController::class, 'update'])->name('applicants.update');
     // The Applicant code dialog (#930): the Applicant Chair, via ApplicantPolicy::setCode.
     Route::put('applicant-code', [ApplicantCodeController::class, 'update'])->name('applicant-code.update');
+    // Delete (#929): only while no Member is linked, re-checked in DeleteApplicantRequest.
+    Route::delete('applicants/{applicant}', ApplicantDeletionController::class)->name('applicants.destroy');
 });
 
 // The structured lists on the Member record (#918, ADR-0038 §3). Member administration or

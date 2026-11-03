@@ -55,6 +55,11 @@ enum AudienceKey: string
     case MemberList = 'member_list';
     case SavedQuery = 'saved_query';
 
+    // The Applicants a status filter shows (#929, ADR-0038 §8) — pickable by holder members of the
+    // `applicants` Stewardship, from the Applicants list. Applicants are not Members: they are
+    // mailed by the address on the Applicant record and have no no-email flag.
+    case Applicants = 'applicants';
+
     /**
      * Whether this Audience carries a parameter beside its key (the chosen status,
      * category, child Group, or Member). The resolver requires the parameter for

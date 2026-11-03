@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AudienceKey;
+use App\Models\Applicant;
 use App\Models\Member;
 use App\Support\Audiences\Audience;
 use App\Support\Audiences\AudienceContext;
@@ -80,7 +81,7 @@ class AudienceController extends Controller
             'label' => $resolved->label,
             'edited' => $resolved->edited,
             'count' => $resolved->recipients->count(),
-            'recipients' => $resolved->recipients->map(fn (Member $member): array => $this->row($member, $request->user()))->values(),
+            'recipients' => $resolved->recipients->map(fn (Member|Applicant $member): array => $this->row($member, $request->user()))->values(),
             'skipped' => $resolved->skipped->map(fn (Member $member): array => $this->row($member, $request->user()))->values(),
         ]);
     }
@@ -95,12 +96,23 @@ class AudienceController extends Controller
     }
 
     /**
-     * A recipient row: identity, avatar, and a standing hint — never an address (§5).
+     * A recipient row: identity, avatar, and a standing hint — never an address (§5). An
+     * Applicant (#929) has no photo; its standing is its Applicant status.
      *
      * @return array<string, mixed>
      */
-    private function row(Member $member, ?Member $viewer): array
+    private function row(Member|Applicant $member, ?Member $viewer): array
     {
+        if ($member instanceof Applicant) {
+            return [
+                'id' => $member->id,
+                'first_name' => $member->first_name,
+                'last_name' => $member->last_name,
+                'photo' => null,
+                'standing' => $member->status->value,
+            ];
+        }
+
         return [
             'id' => $member->id,
             'first_name' => $member->first_name,

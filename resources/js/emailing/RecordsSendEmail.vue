@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // Send email on a Records office page (#925, ADR-0038 §5, §7): a Member list or a Saved query run.
+// The Applicants list (#929) works the same way, named by its status filter.
 // The context offers one Audience, the whole list or the run, so the button opens the composer on
 // it directly; there is no menu. The server names it and resolves it (ADR-0024 §5). A query run
 // passes its unchecked rows as `exclude`, which the composer posts as removals; the browser never
@@ -14,7 +15,7 @@ import { ref } from 'vue';
 
 const props = withDefaults(
     defineProps<{
-        context: 'member_list' | 'saved_query';
+        context: 'member_list' | 'saved_query' | 'applicants';
         contextSubject: string;
         label: string;
         exclude?: number[];

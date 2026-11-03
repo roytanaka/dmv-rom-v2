@@ -10,6 +10,8 @@ use App\Enums\Kind;
 use App\Enums\MembershipStatus;
 use App\Enums\Reply;
 use App\Enums\Role;
+use App\Http\Controllers\ApplicantController;
+use App\Models\Applicant;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Guest;
@@ -119,12 +121,12 @@ class AudienceResolver
         }
 
         $base = $this->base($context, $key, $parameter)
-            ->unique(fn (Member $member): int => $member->getKey())
+            ->unique(fn (Member|Applicant $member): int => $member->getKey())
             ->values();
 
         $roster = $this->pageRoster($context)
-            ->unique(fn (Member $member): int => $member->getKey())
-            ->keyBy(fn (Member $member): int => $member->getKey());
+            ->unique(fn (Member|Applicant $member): int => $member->getKey())
+            ->keyBy(fn (Member|Applicant $member): int => $member->getKey());
 
         $removedIds = collect($removed)->map(fn ($id): int => (int) $id)->unique()->values();
         $addedIds = collect($added)->map(fn ($id): int => (int) $id)->unique()->values();
@@ -132,13 +134,14 @@ class AudienceResolver
         $this->assertEditsInBounds($base, $roster, $removedIds, $addedIds);
 
         $recipients = $base
-            ->reject(fn (Member $member): bool => $removedIds->contains($member->getKey()))
-            ->concat($addedIds->map(fn (int $id): Member => $roster->get($id)))
-            ->unique(fn (Member $member): int => $member->getKey())
+            ->reject(fn (Member|Applicant $member): bool => $removedIds->contains($member->getKey()))
+            ->concat($addedIds->map(fn (int $id): Member|Applicant => $roster->get($id)))
+            ->unique(fn (Member|Applicant $member): int => $member->getKey())
             ->values();
 
+        // An Applicant has no no-email flag (#929): only a Member is skipped.
         [$skipped, $reachable] = $recipients->partition(
-            fn (Member $member): bool => (bool) $member->no_email,
+            fn (Member|Applicant $member): bool => $member instanceof Member && $member->no_email,
         );
 
         return new ResolvedAudience(
@@ -262,6 +265,7 @@ class AudienceResolver
             ContextType::Invitation => [AudienceKey::InvitationGuests, AudienceKey::InvitationNoReply, AudienceKey::InvitationAccepted],
             ContextType::MemberList => [AudienceKey::MemberList],
             ContextType::SavedQuery => [AudienceKey::SavedQuery],
+            ContextType::Applicants => [AudienceKey::Applicants],
         };
     }
 
@@ -285,6 +289,7 @@ class AudienceResolver
             ContextType::Member => true,
             ContextType::Invitation => $actor->can('send', $context->subject),
             ContextType::MemberList, ContextType::SavedQuery => $actor->hasMemberAdminAuthority(),
+            ContextType::Applicants => $actor->hasApplicantAuthority(),
             // Group, Schedule, and Shift are all scoped to a Group.
             default => $this->canPickGroupScoped($actor, $context->owningGroup(), $key),
         };
@@ -342,6 +347,7 @@ class AudienceResolver
             AudienceKey::InvitationNoReply => $this->guestMembers($context->subject, Reply::NoReply),
             AudienceKey::InvitationAccepted => $this->guestMembers($context->subject, Reply::Accepted),
             AudienceKey::MemberList, AudienceKey::SavedQuery => $this->recordsMembers($context),
+            AudienceKey::Applicants => $this->filteredApplicants($context),
         };
     }
 
@@ -360,6 +366,7 @@ class AudienceResolver
             ContextType::Invitation => $this->guestMembers($context->subject),
             // One Audience and no hand-pick: the list or the run is the whole page.
             ContextType::MemberList, ContextType::SavedQuery => $this->recordsMembers($context),
+            ContextType::Applicants => $this->filteredApplicants($context),
             default => $context->owningGroup()->memberships()->with('member')->get()
                 ->map(fn (GroupMember $membership): Member => $membership->member),
         };
@@ -376,6 +383,18 @@ class AudienceResolver
         return $context->type === ContextType::MemberList
             ? $context->subject->members()->get()
             : $this->queries->query($context->subject)->get();
+    }
+
+    /**
+     * The Applicants the list's status filter shows (#929), in the list's order — the one Audience
+     * the Applicants list offers, and its whole roster. Applicants, not Members: the send path
+     * mails them by the address on the record.
+     *
+     * @return Collection<int, Applicant>
+     */
+    private function filteredApplicants(AudienceContext $context): Collection
+    {
+        return ApplicantController::listed($context->subject)->get();
     }
 
     /**
@@ -598,6 +617,9 @@ class AudienceResolver
             AudienceKey::SignUpsSchedule => (string) __('audience.sign_ups_schedule', ['schedule' => $context->subject->name]),
             AudienceKey::MemberList => (string) __('audience.member_list', ['list' => __('records.list.'.$context->subject->value)]),
             AudienceKey::SavedQuery => $context->subject->name,
+            AudienceKey::Applicants => (string) __('audience.applicants', [
+                'status' => __('applicants.status.'.($context->subject?->value ?? ApplicantController::ALL)),
+            ]),
             default => (string) __('audience.'.$key->value),
         };
     }
@@ -626,7 +648,7 @@ class AudienceResolver
      */
     private function assertEditsInBounds(Collection $base, Collection $roster, Collection $removedIds, Collection $addedIds): void
     {
-        $baseIds = $base->map(fn (Member $member): int => $member->getKey());
+        $baseIds = $base->map(fn (Member|Applicant $member): int => $member->getKey());
 
         if ($removedIds->diff($baseIds)->isNotEmpty()) {
             throw ValidationException::withMessages([
