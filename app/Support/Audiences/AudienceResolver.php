@@ -18,6 +18,7 @@ use App\Models\Invitation;
 use App\Models\Member;
 use App\Models\Shift;
 use App\Models\SignUp;
+use App\Support\SavedQueries\SavedQueryRunner;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -36,10 +37,13 @@ use InvalidArgumentException;
  * officers get the officer set and a child Group's roster; a Chair or Scheduler gets
  * the Sign-up sets; any Member gets the three leadership Audiences on the Directory;
  * the remaining org-wide Audiences and the Directory hand-pick need an org-wide
- * sender ({@see Member::isOrgWideSender()}). Super-tier inherits everything.
+ * sender ({@see Member::isOrgWideSender()}); a Records office Member list or Saved query
+ * needs member administration (ADR-0038 §5, §7). Super-tier inherits everything.
  */
 class AudienceResolver
 {
+    public function __construct(private readonly SavedQueryRunner $queries) {}
+
     /**
      * The Audiences an actor may pick in a context, each with the label the menu
      * shows and the record stores. Parameterised Audiences (one status, one
@@ -75,6 +79,11 @@ class AudienceResolver
      */
     public function emptyReason(Member $actor, AudienceContext $context): ?string
     {
+        // The Records office's lists and queries are member administration's alone (ADR-0038 §5, §7).
+        if (in_array($context->type, [ContextType::MemberList, ContextType::SavedQuery], true)) {
+            return $this->available($actor, $context)->isEmpty() ? 'not_member_admin' : null;
+        }
+
         $group = $context->owningGroup();
 
         if ($group === null || $this->available($actor, $context)->isNotEmpty()) {
@@ -252,6 +261,8 @@ class AudienceResolver
             ],
             ContextType::Member => [AudienceKey::OneMember],
             ContextType::Invitation => [AudienceKey::InvitationGuests, AudienceKey::InvitationNoReply, AudienceKey::InvitationAccepted],
+            ContextType::MemberList => [AudienceKey::MemberList],
+            ContextType::SavedQuery => [AudienceKey::SavedQuery],
         };
     }
 
@@ -274,6 +285,7 @@ class AudienceResolver
             },
             ContextType::Member => true,
             ContextType::Invitation => $actor->can('send', $context->subject),
+            ContextType::MemberList, ContextType::SavedQuery => $actor->hasMemberAdminAuthority(),
             // Group, Schedule, and Shift are all scoped to a Group.
             default => $this->canPickGroupScoped($actor, $context->owningGroup(), $key),
         };
@@ -330,6 +342,8 @@ class AudienceResolver
             AudienceKey::InvitationGuests => $this->guestMembers($context->subject),
             AudienceKey::InvitationNoReply => $this->guestMembers($context->subject, Reply::NoReply),
             AudienceKey::InvitationAccepted => $this->guestMembers($context->subject, Reply::Accepted),
+            AudienceKey::MemberList => $context->subject->members()->get(),
+            AudienceKey::SavedQuery => $this->queries->query($context->subject)->get(),
         };
     }
 
@@ -346,6 +360,9 @@ class AudienceResolver
             ContextType::Directory => Member::query()->inDirectory()->get(),
             ContextType::Member => collect([$context->subject]),
             ContextType::Invitation => $this->guestMembers($context->subject),
+            // One Audience and no hand-pick: the list or the run is the whole page.
+            ContextType::MemberList => $context->subject->members()->get(),
+            ContextType::SavedQuery => $this->queries->query($context->subject)->get(),
             default => $context->owningGroup()->memberships()->with('member')->get()
                 ->map(fn (GroupMember $membership): Member => $membership->member),
         };
@@ -569,6 +586,8 @@ class AudienceResolver
             AudienceKey::ChildRoster => $this->requireChild($context->owningGroup(), $parameter)->name,
             AudienceKey::OneMember => $this->memberName($context->subject),
             AudienceKey::SignUpsSchedule => (string) __('audience.sign_ups_schedule', ['schedule' => $context->subject->name]),
+            AudienceKey::MemberList => (string) __('audience.member_list', ['list' => __('records.list.'.$context->subject->value)]),
+            AudienceKey::SavedQuery => $context->subject->name,
             default => (string) __('audience.'.$key->value),
         };
     }

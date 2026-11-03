@@ -2,8 +2,8 @@
 // The Member lists (#919, ADR-0038 §5): Officer Tools → Members. Seven tabs, one route; the server
 // sends the rows, the list's row actions and its Send email answer. The search is a query
 // parameter, applied on submit. Edit opens the Member record; Reinstate posts (#920). Delete (#921)
-// opens a dialog that asks for the Member's last name; Send email stays disabled until its ticket
-// wires it. The header links to Remove personal data (#921). Photo (#922) opens a dialog that uploads or
+// opens a dialog that asks for the Member's last name. Send email (#925) opens the composer on the
+// whole list, resolved on the server. The header links to Remove personal data (#921). Photo (#922) opens a dialog that uploads or
 // replaces the Member's photo and sets whether peers see it. Below `md` the row's facts ride under the name
 // (docs/conventions.md § Tables on small screens). Names are content, shown as stored.
 import type { NavNode } from '@/chrome/types';
@@ -21,7 +21,8 @@ import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import InputError from '@/components/InputError.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { PhEnvelopeSimple, PhListMagnifyingGlass, PhMagnifyingGlass } from '@phosphor-icons/vue';
+import RecordsSendEmail from '@/emailing/RecordsSendEmail.vue';
+import { PhListMagnifyingGlass, PhMagnifyingGlass } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -159,10 +160,7 @@ const submitSearch = () => {
                             {{ trans('saved_queries.title') }}
                         </Link>
                     </Button>
-                    <Button v-if="canSendEmail" variant="outline" disabled>
-                        <PhEnvelopeSimple aria-hidden="true" />
-                        {{ trans('records.send_email') }}
-                    </Button>
+                    <RecordsSendEmail v-if="canSendEmail" context="member_list" :context-subject="list" :label="trans('records.send_email')" />
                     <Button variant="outline" as-child>
                         <Link :href="route('officer.members.remove-personal-data')">{{ trans('records.remove_personal_data.title') }}</Link>
                     </Button>

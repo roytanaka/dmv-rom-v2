@@ -38,9 +38,10 @@ export function menuFromIndex(audiences: AudienceOption[]): { audiences: Audienc
 /**
  * Why the Email control can pick no Audience on a Group-scoped surface (#513, ADR-0024 §6),
  * as the server computes it: `not_member` — the viewer has not joined this Group — or
- * `not_org_wide_sender` — the root's Audiences are org-wide and need the sender franchise.
+ * `not_org_wide_sender` — the root's Audiences are org-wide and need the sender franchise —
+ * or `not_member_admin` — a Records list or Saved query is member administration's alone.
  */
-export type EmailReason = 'not_member' | 'not_org_wide_sender';
+export type EmailReason = 'not_member' | 'not_org_wide_sender' | 'not_member_admin';
 
 /**
  * The translation key naming an empty-state reason, shown both in the control's hover

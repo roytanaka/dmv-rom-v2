@@ -34,4 +34,12 @@ enum ContextType: string
     // One Invitation (ADR-0034 §7): its Guests, narrowed by the Audience key. Only its Host
     // and the super-tier may pick here.
     case Invitation = 'invitation';
+
+    // A Records office Member list (ADR-0038 §5), named by its list word: the whole list.
+    // Member administration only.
+    case MemberList = 'member_list';
+
+    // A Saved query run (ADR-0038 §7), named by the query id: the run's Members, the
+    // unchecked rows removed. Member administration only.
+    case SavedQuery = 'saved_query';
 }
