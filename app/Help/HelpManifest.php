@@ -213,7 +213,7 @@ final class HelpManifest
         return [
             // Coming Soon stubs (routes/web.php) — pages that do not exist yet.
             'calendar', 'documents', 'profile', 'renew',
-            'officer.members', 'officer.communications', 'officer.reports',
+            'officer.communications', 'officer.reports',
             'officer.flash-messages',
             // CSV export twins — each rides behind a report page an article covers.
             'groups.hours.report.csv',
@@ -261,10 +261,25 @@ final class HelpManifest
             new HelpArticle('directory', HelpSection::Directory, isOverview: true, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('find-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('what-you-can-see-about-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'members.show'),
+            new HelpArticle('member-lists-and-the-member-record', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members', routes: ['officer.members.record']),
+            // Saved queries (#923, ADR-0038 §7): member administration's named filters.
+            new HelpArticle('saved-queries', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.queries', routes: ['officer.members.queries.create', 'officer.members.queries.edit', 'officer.members.queries.run']),
+            new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.remove-personal-data'),
 
             new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Published, route: 'news'),
             new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Published, route: 'news'),
             new HelpArticle('post-a-news-item', HelpSection::News, requires: ['news_editor'], status: ArticleStatus::Published, route: 'news'),
+
+            // Invitations (#910, spec #901, ADR-0034). Replying is for every Member; the Host's
+            // tasks need Full access, which is a Category, not a role token, so they carry no badge.
+            new HelpArticle('invitations', HelpSection::Invitations, isOverview: true, status: ArticleStatus::Published, route: 'invitations'),
+            new HelpArticle('reply-to-an-invitation', HelpSection::Invitations, status: ArticleStatus::Published, route: 'invitations', routes: ['invitations.show']),
+            new HelpArticle('create-an-invitation', HelpSection::Invitations, status: ArticleStatus::Published, route: 'invitations.hosting', routes: ['invitations.create', 'invitations.edit']),
+            new HelpArticle('pick-your-guests', HelpSection::Invitations, status: ArticleStatus::Published, route: 'invitations.guests'),
+            new HelpArticle('send-an-invitation', HelpSection::Invitations, status: ArticleStatus::Published, route: 'invitations.hosting'),
+            new HelpArticle('track-the-replies', HelpSection::Invitations, status: ArticleStatus::Published, route: 'invitations.replies'),
+            new HelpArticle('set-a-reply-for-a-guest', HelpSection::Invitations, status: ArticleStatus::Published, route: 'invitations.replies'),
+            new HelpArticle('email-accepted-guests', HelpSection::Invitations, status: ArticleStatus::Published, route: 'invitations.replies'),
 
             // Groups and Scheduling for members (#525) — what an ordinary Member of a Group does.
             new HelpArticle('groups', HelpSection::Groups, isOverview: true, route: 'groups.show'),

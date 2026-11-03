@@ -2,18 +2,27 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\AudienceKey;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Enums\InvitationState;
+use App\Enums\Reply;
 use App\Mail\BookingMail;
 use App\Mail\BroadcastMail;
 use App\Mail\BroadcastSenderCopy;
 use App\Mail\EmptyDeskAlert;
+use App\Mail\InvitationFull;
+use App\Mail\InvitationMail;
+use App\Mail\InvitationReminder;
+use App\Mail\MenteeActivated;
+use App\Mail\SavedQueryResults;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
 use App\Mail\SignUpSubstituted;
 use App\Mail\StandingChanged;
 use App\Models\Broadcast;
 use App\Models\Delivery;
+use App\Models\Guest;
 use App\Support\Mail\BroadcastAttachmentStorage;
 use Illuminate\Console\Command;
 use Illuminate\Mail\Mailable;
@@ -93,7 +102,7 @@ class DrainDeliveries extends Command
             // The member for locale and address; the Shift and its chrome for a Reminder, which
             // renders from the live Shift; the Broadcast and its sender and Group for a Broadcast
             // or sender copy (all null on the kinds that do not use them, so the loads are free).
-            ->with(['member', 'shift.schedule.group', 'shift.kind', 'broadcast.sender', 'broadcast.group'])
+            ->with(['member', 'shift.schedule.group', 'shift.kind', 'invitation.host', 'broadcast.sender', 'broadcast.group', 'broadcast.invitation.host'])
             ->where('state', DeliveryState::Pending)
             ->where('next_attempt_at', '<=', now())
             // Oldest first, no priority — a Notice queued behind a big send waits its turn.
@@ -118,6 +127,21 @@ class DrainDeliveries extends Command
                 continue;
             }
 
+            // The Guest can no longer use this mail, so it is no longer worth sending.
+            if ($delivery->kind === DeliveryKind::Invitation && ! $this->invitationMailWanted($delivery)) {
+                $delivery->update(['state' => DeliveryState::Expired]);
+
+                continue;
+            }
+
+            // An Invitation Reminder renders from live data, so a Guest who has since declined,
+            // or a deleted Invitation, ends the row here (ADR-0034 §12).
+            if ($delivery->kind === DeliveryKind::InvitationReminder && $this->guestToRemind($delivery) === null) {
+                $delivery->update(['state' => DeliveryState::Expired]);
+
+                continue;
+            }
+
             $this->send($delivery);
 
             // The attachments lived on the private disk only for the queue's life: once the
@@ -137,11 +161,45 @@ class DrainDeliveries extends Command
      */
     private function senderCopyReady(Delivery $delivery): bool
     {
-        return ! Delivery::query()
-            ->where('broadcast_id', $delivery->broadcast_id)
-            ->where('kind', DeliveryKind::Broadcast)
+        return ! $delivery->broadcast->recipientDeliveries()
             ->where('state', DeliveryState::Pending)
             ->exists();
+    }
+
+    /**
+     * Whether a queued Invitation mail still has a reader: a big send drains over an hour, and
+     * meanwhile the Host may delete the Invitation, draft it, or remove the Guest, the Guest may
+     * stop being current, or their Reply may take them out of the mail's Audience. Mail to
+     * Accepted Guests does not depend on the link, so a Draft does not stop it (#908).
+     */
+    private function invitationMailWanted(Delivery $delivery): bool
+    {
+        $invitation = $delivery->broadcast->invitation;
+        $audience = AudienceKey::tryFrom($delivery->broadcast->audience_key);
+
+        if ($invitation === null
+            || $invitation->trashed()
+            || ($invitation->state !== InvitationState::Open && $audience !== AudienceKey::InvitationAccepted)
+            || ! $delivery->member->category->grantsDirectoryListing()) {
+            return false;
+        }
+
+        $guest = $invitation->guestFor($delivery->member);
+
+        return $guest !== null && match ($audience) {
+            AudienceKey::InvitationAccepted => $guest->reply === Reply::Accepted,
+            AudienceKey::InvitationNoReply => $guest->reply === Reply::NoReply,
+            default => true,
+        };
+    }
+
+    /**
+     * The Guest an Invitation Reminder row should still reach, or null if it should not go.
+     * The relation hides a soft-deleted Invitation, so a deleted one reads as null here.
+     */
+    private function guestToRemind(Delivery $delivery): ?Guest
+    {
+        return $delivery->invitation?->guestToRemind($delivery->member);
     }
 
     /**
@@ -260,10 +318,12 @@ class DrainDeliveries extends Command
         return match ($delivery->kind) {
             DeliveryKind::Notice => $this->noticeFor($delivery->payload),
             DeliveryKind::Reminder => new ShiftReminder($delivery->shift, $delivery->member),
+            DeliveryKind::InvitationReminder => new InvitationReminder($delivery->invitation, $this->guestToRemind($delivery)),
             // The empty-desk alert renders from its payload snapshot too — the Shifts it names
             // may be filled or gone by now (ADR-0024 §7).
             DeliveryKind::EmptyDesk => EmptyDeskAlert::fromSnapshot($delivery->payload),
             DeliveryKind::Broadcast => new BroadcastMail($delivery->broadcast),
+            DeliveryKind::Invitation => new InvitationMail($delivery->broadcast),
             // The sender's copy carries the roll of who was not reached, read from the failed
             // recipient rows now that every sibling is terminal (ADR-0024 §4).
             DeliveryKind::SenderCopy => new BroadcastSenderCopy($delivery->broadcast, $this->failedNames($delivery->broadcast)),
@@ -296,6 +356,9 @@ class DrainDeliveries extends Command
             StandingChanged::NOTICE_TYPE => StandingChanged::fromSnapshot($payload),
             SignUpSubstituted::NOTICE_TYPE => SignUpSubstituted::fromSnapshot($payload),
             BookingMail::REQUEST, BookingMail::CONFIRMATION => BookingMail::fromSnapshot($payload),
+            InvitationFull::NOTICE_TYPE => InvitationFull::fromSnapshot($payload),
+            MenteeActivated::NOTICE_TYPE => MenteeActivated::fromSnapshot($payload),
+            SavedQueryResults::NOTICE_TYPE => SavedQueryResults::fromSnapshot($payload),
             default => SignUpCancelled::fromSnapshot($payload),
         };
     }

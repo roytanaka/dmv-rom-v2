@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Enums\Category;
+use App\Enums\CategoryGroup;
+use App\Enums\DepartureReason;
 use App\Enums\DocumentKind;
 use App\Enums\DocumentVisibility;
 use App\Enums\GroupLogo;
@@ -31,6 +33,7 @@ use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\News;
 use App\Models\Qualification;
+use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
@@ -483,6 +486,9 @@ class DemoSeeder extends Seeder
 
         $this->roster();
         $this->bulkRoster();
+        $this->memberRecords();
+        $this->personaRecordLists();
+        $this->savedQueries();
         $this->prunePhotoFiles();
         $this->objects();
         $this->scheduling();
@@ -651,6 +657,224 @@ class DemoSeeder extends Seeder
     {
         $pool = $this->memberPool();
         $this->distribute($pool);
+    }
+
+    /**
+     * Fill the Member record's fields (#917, ADR-0038 §3) on every Member, personas and bulk
+     * roster alike, so the Records pages are never empty. Derived from the email hash, so a
+     * reseed lands the same values.
+     */
+    private function memberRecords(): void
+    {
+        $year = (int) now()->year;
+        $fees = ['Active', 'Active-SR', 'Active-ST', 'Sust', 'LOA'];
+        $mentors = ['Alex Morgan', 'Sam Chen', 'Priya Nair', 'Louise Tremblay'];
+
+        Member::query()->orderBy('id')->each(function (Member $member) use ($year, $fees, $mentors): void {
+            $hash = $this->hash((string) $member->email);
+            $entryYear = $year - 2 - $hash % 26;
+            // Awards up to last year, so this year's are still to come and the next award year
+            // lands this year for about one Member in five (the Saved query demo, #923).
+            $awards = (int) floor(($year - 1 - $entryYear) / 5);
+            $lastAwardYear = $awards > 0 ? $entryYear + $awards * 5 : null;
+            $paidThrough = $hash % 4 === 0 ? $year - 1 : $year;
+            $lifetime = $hash % 13 === 0;
+
+            $member->forceFill([
+                'membership_number' => sprintf('R%06d', $hash % 1000000),
+                'membership_expiry' => $lifetime ? null : sprintf('%d-%02d-01', $year + 1 + $hash % 2, 1 + $hash % 12),
+                'membership_lifetime' => $lifetime,
+                'amount_paid' => 25,
+                'paid_through_year' => $paidThrough,
+                'fee_category' => $fees[$hash % count($fees)],
+                'entry_year' => $entryYear,
+                'service_awards' => array_map(fn (int $step) => ($step * 5).' yr', $awards > 0 ? range(1, min($awards, 12)) : []),
+                'last_award_year' => $lastAwardYear,
+                'next_award_year' => ($lastAwardYear ?? $entryYear) + 5,
+                'emergency_contact' => $mentors[($hash + 1) % count($mentors)],
+                'emergency_contact_number' => sprintf('416-555-%04d', $hash % 10000),
+                'newsletter_opt_in' => $hash % 5 !== 0,
+                'status_date' => sprintf('%d-09-01', $entryYear),
+                'code_of_conduct_year' => $paidThrough,
+                'renewal_year' => $paidThrough,
+                'renewal_status' => 'Active',
+                'renewal_placements' => 'Current Group placements confirmed.',
+                'mentor_name' => $mentors[$hash % count($mentors)],
+                'volunteer_experience' => 'Community museum guide and school library helper.',
+                'past_experience' => 'Retired from a career in teaching.',
+                'education' => 'BA, University of Toronto.',
+                'notes' => sprintf("%d-03-15 DMV Records: Renewal received.\n%d-09-01 DMV Records: Welcome package sent.", $paidThrough, $entryYear),
+            ])->saveQuietly();
+
+            $this->categoryHistory($member, $entryYear);
+        });
+    }
+
+    /**
+     * Write a Category history (#920, ADR-0038 §4) that ends at the Member's seeded Category, so
+     * the record is never empty: Provisional on entry, Active a year on, then the current
+     * standing when it is neither. The newest entry sets the status date, as the action would.
+     * Rewritten on each seed, so a reseed lands the same rows.
+     */
+    private function categoryHistory(Member $member, int $entryYear): void
+    {
+        $entries = [[Category::Provisional, sprintf('%d-09-01', $entryYear)]];
+
+        if (! in_array($member->category, [Category::Provisional, Category::PreActive], true)) {
+            $entries[] = [Category::Active, sprintf('%d-09-01', $entryYear + 1)];
+        }
+
+        if (! in_array($member->category, [Category::Active, Category::Provisional], true)) {
+            $entries[] = [$member->category, OrgTime::now()->subMonth()->toDateString()];
+        }
+
+        $reason = in_array($member->category, [Category::Resigned, Category::Withdrawn], true)
+            ? DepartureReason::Moved
+            : null;
+
+        $member->categoryChanges()->delete();
+
+        foreach ($entries as [$category, $date]) {
+            $member->categoryChanges()->create([
+                'category' => $category->value,
+                'date' => $date,
+                'departure_reason' => $category === $member->category ? $reason : null,
+            ]);
+        }
+
+        $member->forceFill(['status_date' => end($entries)[1], 'departure_reason' => $reason])->saveQuietly();
+    }
+
+    /**
+     * Give a few Personas the Member record's structured lists (#918, ADR-0038 §3, §10):
+     * languages, a Service award and a board position, whatever the hash dealt them above.
+     */
+    private function personaRecordLists(): void
+    {
+        $year = (int) now()->year;
+
+        $lists = [
+            PersonaCatalogue::CHAIR_EMAIL => [
+                'languages' => [['en', true, true, true], ['fr', true, true, false]],
+                'position' => ['Past President', sprintf('%d-%d', $year - 6, $year - 4)],
+            ],
+            PersonaCatalogue::SCHEDULER_EMAIL => [
+                'languages' => [['en', true, true, true], ['asl', true, false, false]],
+                'position' => ['Treasurer', sprintf('%d-%d', $year - 3, $year - 1)],
+            ],
+            PersonaCatalogue::MEMBER_EMAIL => [
+                'languages' => [['en', true, true, true], ['Italian', true, false, false]],
+                'position' => ['Member at Large', (string) ($year - 2)],
+            ],
+        ];
+
+        foreach ($lists as $email => $list) {
+            $member = Member::where('email', $email)->firstOrFail();
+
+            foreach ($list['languages'] as [$code, $speaks, $reads, $writes]) {
+                $member->languages()->updateOrCreate(
+                    ['language_code' => $code],
+                    ['speaks' => $speaks, 'reads' => $reads, 'writes' => $writes],
+                );
+            }
+
+            [$position, $years] = $list['position'];
+            $member->boardPositions()->updateOrCreate(['position' => $position], ['years' => $years]);
+
+            $member->forceFill([
+                'entry_year' => $year - 11,
+                'service_awards' => ['5 yr', '10 yr'],
+                'last_award_year' => $year - 1,
+                'next_award_year' => $year + 4,
+            ])->saveQuietly();
+        }
+    }
+
+    /**
+     * Three Saved queries (#923, ADR-0038 §7) as the Records office keeps them, and the two Members
+     * that give the second and third a row: a Current Member with no email and one who resigned
+     * last year. Keyed on the query name and the Member's name, so a reseed heals them.
+     */
+    private function savedQueries(): void
+    {
+        $year = (int) OrgTime::now()->year;
+
+        $this->recordsDemoMember('Marguerite', 'Okonkwo-Bell', Category::Active, [
+            [Category::Provisional, sprintf('%d-09-01', $year - 8)],
+            [Category::Active, sprintf('%d-09-01', $year - 7)],
+        ]);
+        $this->recordsDemoMember('Theodore', 'Vasquez-Lin', Category::Resigned, [
+            [Category::Provisional, sprintf('%d-09-01', $year - 12)],
+            [Category::Active, sprintf('%d-09-01', $year - 11)],
+            [Category::Resigned, sprintf('%d-06-15', $year - 1)],
+        ], 'theodore.vasquez-lin@dmv.test');
+
+        $queries = [
+            'Service awards this year' => [
+                'clauses' => [['source' => 'member', 'field' => 'next_award_year', 'operator' => 'is', 'value' => (string) $year]],
+                'output_columns' => ['first_name', 'last_name', 'entry_year', 'last_award_year', 'next_award_year', 'service_awards'],
+            ],
+            'Active with no email' => [
+                'clauses' => [
+                    ['source' => 'member', 'field' => 'category', 'operator' => 'is', 'value' => Category::Active->value],
+                    ['source' => 'member', 'field' => 'email', 'operator' => 'is', 'value' => ''],
+                ],
+                'output_columns' => ['first_name', 'last_name', 'phone', 'address_city'],
+            ],
+            'Resigned last year' => [
+                'clauses' => [
+                    ['source' => 'member', 'field' => 'category_group', 'operator' => 'is', 'value' => CategoryGroup::Resigned->value],
+                    ['source' => 'member', 'field' => 'status_date', 'operator' => 'greater_than', 'value' => sprintf('%d-12-31', $year - 2)],
+                    ['source' => 'member', 'field' => 'status_date', 'operator' => 'less_than', 'value' => sprintf('%d-01-01', $year)],
+                ],
+                'output_columns' => ['first_name', 'last_name', 'category', 'departure_reason', 'status_date', 'category_history'],
+            ],
+        ];
+
+        foreach ($queries as $name => $query) {
+            SavedQuery::updateOrCreate(['name' => $name], [...$query, 'conjunction' => 'and', 'sort' => 'last_name']);
+        }
+    }
+
+    /**
+     * A Member the Saved query demo needs, with a Category history ending at their Category.
+     *
+     * @param  list<array{0: Category, 1: string}>  $history
+     */
+    private function recordsDemoMember(string $first, string $last, Category $category, array $history, ?string $email = null): void
+    {
+        $member = Member::firstOrNew(['first_name' => $first, 'last_name' => $last]);
+        $statusDate = end($history)[1];
+        $entryYear = (int) substr($history[0][1], 0, 4);
+        $reason = $category === Category::Resigned ? DepartureReason::Moved : null;
+
+        $member->forceFill([
+            'email' => $email,
+            'password' => $member->password ?? Hash::make('password'),
+            'category' => $category,
+            'phone' => '416-555-0199',
+            'address_city' => 'Toronto',
+            'membership_number' => sprintf('R9%05d', $this->hash($first.$last) % 100000),
+            'entry_year' => $entryYear,
+            'paid_through_year' => (int) substr($statusDate, 0, 4),
+            'fee_category' => 'Active',
+            'next_award_year' => $entryYear + 10,
+            'emergency_contact' => 'Sam Chen',
+            'emergency_contact_number' => '416-555-0198',
+            'notes' => sprintf('%s DMV Records: Category history entered.', $statusDate),
+            'status_date' => $statusDate,
+            'departure_reason' => $reason,
+        ])->save();
+
+        $member->categoryChanges()->delete();
+
+        foreach ($history as [$entry, $date]) {
+            $member->categoryChanges()->create([
+                'category' => $entry->value,
+                'date' => $date,
+                'departure_reason' => $entry === $category ? $reason : null,
+            ]);
+        }
     }
 
     /**
@@ -1173,9 +1397,9 @@ class DemoSeeder extends Seeder
      *
      * Docents is the intended demo Group: the only demo Group carrying a Scheduler Persona
      * (James Tremblay), so the drop-a-Shift cancellation email (#373) has a real recipient,
-     * and a kinded Group. It gets two published month Schedules, named for their month as
-     * legacy names them: last month, worked and signed out, and this month, part-way through.
-     * Next month follows as an empty draft.
+     * and a kinded Group. It gets three published month Schedules, named for their month as
+     * legacy names them: last month, worked and signed out, this month, part-way through, and
+     * next month, open for sign-up. The month after follows as an empty draft.
      *
      * Each month is the roster Docents actually run, read off the legacy weekly template:
      * five one-hour tours every day from 11:00 to 15:00, one Docent each, the label
@@ -1192,6 +1416,7 @@ class DemoSeeder extends Seeder
 
         $month = CarbonImmutable::instance(now())->startOfMonth();
         $lastMonth = $month->subMonth();
+        $nextMonth = $month->addMonth();
 
         $kinds = $this->shiftKinds($docents);
         $this->tours($docents, self::DOCENT_TOURS, $kinds);
@@ -1201,35 +1426,38 @@ class DemoSeeder extends Seeder
 
         $previous = $this->monthSchedule($docents, $lastMonth, 'Last month\'s docent tour roster, worked and signed out.');
         $current = $this->monthSchedule($docents, $month, 'The current-month docent tour roster — sign up for a tour below.');
+        $upcoming = $this->monthSchedule($docents, $nextMonth, 'Next month\'s docent tour roster, open for sign-up.');
 
         $this->tourShifts($previous, $lastMonth, $kinds);
         $this->tourShifts($current, $month, $kinds);
+        $this->tourShifts($upcoming, $nextMonth, $kinds);
 
-        $this->seatTours($docents, $previous, $current);
+        $this->seatTours($docents, [$previous, $current, $upcoming]);
 
         $lastGroupTours = $this->bookings($docents, $lastMonth, self::DOCENT_BOOKINGS, 'en');
         $this->seatBookings($docents, [
             $lastGroupTours,
             $this->bookings($docents, $month, self::DOCENT_BOOKINGS, 'en'),
+            $this->bookings($docents, $nextMonth, self::DOCENT_BOOKINGS, 'en'),
         ], [10, 25]);
         $this->bookingFigures($docents, $lastGroupTours, $lastMonth);
         $this->ensureBooker($docents);
 
-        $this->draftNextMonth($docents, $month);
+        $this->draftAhead($docents, $month->addMonths(2));
 
-        $this->visitorGuidesScheduling($lastMonth, $month);
+        $this->visitorGuidesScheduling($lastMonth, $month, $nextMonth);
 
-        $this->guidesDuRomScheduling($lastMonth, $month);
+        $this->guidesDuRomScheduling($lastMonth, $month, $nextMonth);
 
-        $this->receptionScheduling($lastMonth, $month);
+        $this->receptionScheduling($lastMonth, $month, $nextMonth);
 
-        $this->wayfindersScheduling($lastMonth, $month);
+        $this->wayfindersScheduling($lastMonth, $month, $nextMonth);
 
-        $this->galleryInterpretersScheduling($lastMonth, $month);
+        $this->galleryInterpretersScheduling($lastMonth, $month, $nextMonth);
     }
 
     /**
-     * The Visitor Guides desk roster, on the same two published months as Docents. Each open day
+     * The Visitor Guides desk roster, on the same three published months as Docents. Each open day
      * has a Desk and a Shadow shift on every hour from 10:00 to 15:00 ({@see DESK_ROSTER}). The
      * desk closes on Mondays except in summer, as legacy runs it.
      *
@@ -1237,7 +1465,7 @@ class DemoSeeder extends Seeder
      * an upcoming Desk shift nobody has taken is what it reports. Skipped silently if the Group
      * is absent.
      */
-    private function visitorGuidesScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month): void
+    private function visitorGuidesScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month, CarbonImmutable $nextMonth): void
     {
         $group = Group::where('slug', self::VISITOR_GUIDES)->first();
 
@@ -1258,8 +1486,9 @@ class DemoSeeder extends Seeder
 
         $previous = $this->monthSchedule($group, $lastMonth, 'Last month\'s Visitor Guides desk roster, worked and signed out.');
         $current = $this->monthSchedule($group, $month, 'The current-month desk roster. Sign up for a desk hour below.');
+        $upcoming = $this->monthSchedule($group, $nextMonth, 'Next month\'s desk roster. Sign up for a desk hour below.');
 
-        foreach ([[$previous, $lastMonth], [$current, $month]] as [$schedule, $start]) {
+        foreach ([[$previous, $lastMonth], [$current, $month], [$upcoming, $nextMonth]] as [$schedule, $start]) {
             $specs = [];
             for ($day = 0; $day < $start->daysInMonth; $day++) {
                 $date = $start->addDays($day);
@@ -1277,7 +1506,7 @@ class DemoSeeder extends Seeder
 
         $this->seatRoster(
             $group,
-            [$previous, $current],
+            [$previous, $current, $upcoming],
             fn (Shift $shift) => $this->deskSeats($shift),
             fn (Shift $shift) => [10, 70],
         );
@@ -1324,7 +1553,7 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * The Visitor Wayfinders roster: a month Schedule each for last month and this month, named
+     * The Visitor Wayfinders roster: a month Schedule each for last, this and next month, named
      * as legacy names them ("Wayfinding - September 2026"), and the evening events around them
      * ({@see WAYFINDER_EVENTS}).
      *
@@ -1333,7 +1562,7 @@ class DemoSeeder extends Seeder
      * one daytime seat in seven, most at midday. Events fill well, about three seats in four.
      * Skipped silently if the Group is absent.
      */
-    private function wayfindersScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month): void
+    private function wayfindersScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month, CarbonImmutable $nextMonth): void
     {
         $group = Group::where('slug', self::VISITOR_WAYFINDERS)->first();
 
@@ -1350,7 +1579,7 @@ class DemoSeeder extends Seeder
         }
 
         $schedules = [];
-        foreach ([$lastMonth, $month] as $start) {
+        foreach ([$lastMonth, $month, $nextMonth] as $start) {
             $schedule = $this->daySchedule($group, 'Wayfinding - '.$start->format('F Y'), $start, $start->endOfMonth(), 'Daytime wayfinding across the galleries. Sign up for an hour below.');
 
             $specs = [];
@@ -1425,7 +1654,7 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * The Guides du ROM tour roster, on the same two published months as Docents. Legacy runs one
+     * The Guides du ROM tour roster, on the same three published months as Docents. Legacy runs one
      * French tour a day at 14:00, one guide, every day but Monday, labelled "Le choix du guide".
      * One free group tour a month sits beside them, a Booking on a Saturday at 11:30
      * ({@see GDR_GROUP_TOUR_SATURDAY}, {@see GDR_BOOKING}).
@@ -1434,7 +1663,7 @@ class DemoSeeder extends Seeder
      * months open for sign-up. Counts are small, often zero, and split into five origins.
      * Skipped silently if the Group is absent.
      */
-    private function guidesDuRomScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month): void
+    private function guidesDuRomScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month, CarbonImmutable $nextMonth): void
     {
         $group = Group::where('slug', self::GUIDES_DU_ROM)->first();
 
@@ -1456,8 +1685,9 @@ class DemoSeeder extends Seeder
 
         $previous = $this->monthSchedule($group, $lastMonth, 'Le calendrier des visites du mois dernier, données et signées.');
         $current = $this->monthSchedule($group, $month, 'Les visites du mois. Inscrivez-vous à une visite ci-dessous.');
+        $upcoming = $this->monthSchedule($group, $nextMonth, 'Les visites du mois prochain. Inscrivez-vous à une visite ci-dessous.');
 
-        foreach ([[$previous, $lastMonth], [$current, $month]] as [$schedule, $start]) {
+        foreach ([[$previous, $lastMonth], [$current, $month], [$upcoming, $nextMonth]] as [$schedule, $start]) {
             $specs = [];
             for ($day = 0; $day < $start->daysInMonth; $day++) {
                 if (! $start->addDays($day)->isMonday()) {
@@ -1469,13 +1699,13 @@ class DemoSeeder extends Seeder
 
         $this->seatRoster(
             $group,
-            [$previous, $current],
+            [$previous, $current, $upcoming],
             fn (Shift $shift) => $shift->ends_at->isPast() || $this->spread($shift->starts_at->timestamp, 0, 99) < 90 ? 1 : 0,
             fn (Shift $shift) => [0, 6],
         );
 
         $groupTours = [];
-        foreach ([$lastMonth, $month] as $start) {
+        foreach ([$lastMonth, $month, $nextMonth] as $start) {
             $saturday = $start->nthOfMonth(self::GDR_GROUP_TOUR_SATURDAY, CarbonImmutable::SATURDAY);
             $groupTours[] = $this->bookings($group, $start, [['day' => $saturday->day - 1, ...self::GDR_BOOKING]], 'fr');
         }
@@ -1484,13 +1714,13 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * The Reception roster, on the same two published months as Docents ({@see RECEPTION_ROSTER}).
+     * The Reception roster, on the same three published months as Docents ({@see RECEPTION_ROSTER}).
      * The shifts carry no kind, as legacy Reception has no shift labels. A regular holds the same
      * few shifts each week ({@see RECEPTION_REGULARS}); the others are mostly open, before and
      * after the day alike. Reception collects no visitor count, so no seat carries one.
      * Skipped silently if the Group is absent.
      */
-    private function receptionScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month): void
+    private function receptionScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month, CarbonImmutable $nextMonth): void
     {
         $group = Group::where('slug', self::RECEPTION)->first();
 
@@ -1500,8 +1730,9 @@ class DemoSeeder extends Seeder
 
         $previous = $this->monthSchedule($group, $lastMonth, 'Last month\'s Reception roster.');
         $current = $this->monthSchedule($group, $month, 'The current-month Reception roster. Sign up for a shift below.');
+        $upcoming = $this->monthSchedule($group, $nextMonth, 'Next month\'s Reception roster. Sign up for a shift below.');
 
-        foreach ([[$previous, $lastMonth], [$current, $month]] as [$schedule, $start]) {
+        foreach ([[$previous, $lastMonth], [$current, $month], [$upcoming, $nextMonth]] as [$schedule, $start]) {
             $specs = [];
             for ($day = 0; $day < $start->daysInMonth; $day++) {
                 foreach (self::RECEPTION_ROSTER[$start->addDays($day)->dayOfWeekIso] ?? [] as $time) {
@@ -1513,7 +1744,7 @@ class DemoSeeder extends Seeder
 
         $this->seatRoster(
             $group,
-            [$previous, $current],
+            [$previous, $current, $upcoming],
             function (Shift $shift) {
                 $wallClock = $shift->starts_at->copy()->setTimezone(config('app.org_timezone'));
                 $regular = in_array($wallClock->dayOfWeekIso.'-'.$wallClock->hour, self::RECEPTION_REGULARS, true);
@@ -1528,9 +1759,9 @@ class DemoSeeder extends Seeder
      * rather than the generic recent-shifts Schedule the other collecting Groups drop. Every Shift
      * is self-serve shaped ({@see ADR-0026 §1}): capacity 1, one Sign-up on it — the author — a
      * station for its kind, one to three 45-minute units for its length, and three Objects on the
-     * Sign-up. Written on last month and this month, as the other rostered Groups are: last
-     * month is worked and signed out throughout, and this month carries the numbers filed on its
-     * past days while its future days read as advance sign-ups.
+     * Sign-up. Written on last, this and next month, as the other rostered Groups are: last
+     * month is worked and signed out throughout, this month carries the numbers filed on its
+     * past days, and its future days and next month read as advance sign-ups.
      *
      * The month passes the app's own two checks by construction ({@see reserveGalleryInterpreterObjects()}
      * and the distinct-station-per-day rule of {@see galleryInterpreterSpecs()}): no Object sits on
@@ -1538,7 +1769,7 @@ class DemoSeeder extends Seeder
      * three days, its Objects held a day either side by the off-site kind. Skipped silently if the
      * Group is absent.
      */
-    private function galleryInterpretersScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month): void
+    private function galleryInterpretersScheduling(CarbonImmutable $lastMonth, CarbonImmutable $month, CarbonImmutable $nextMonth): void
     {
         $group = Group::where('slug', self::GALLERY_INTERPRETERS)->first();
 
@@ -1549,7 +1780,7 @@ class DemoSeeder extends Seeder
         $kinds = $this->galleryInterpreterKinds($group);
 
         $schedules = [];
-        foreach ([$lastMonth, $month] as $start) {
+        foreach ([$lastMonth, $month, $nextMonth] as $start) {
             $schedule = $this->monthSchedule(
                 $group,
                 $start,
@@ -1832,8 +2063,8 @@ class DemoSeeder extends Seeder
 
     /**
      * A published month Schedule on the Group, keyed on (Group, name) so a reseed heals
-     * rather than duplicates. Last month's seed drafted this month ahead
-     * ({@see draftNextMonth()}), so a reseed without a fresh migrate finds that draft here;
+     * rather than duplicates. An earlier month's seed drafted this month ahead
+     * ({@see draftAhead()}), so a reseed without a fresh migrate finds that draft here;
      * publish it rather than leave it hidden.
      */
     private function monthSchedule(Group $group, CarbonImmutable $month, string $description): Schedule
@@ -1919,22 +2150,20 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * An empty next-month draft Schedule on Docents (#530): the state a Scheduler is in right
+     * An empty draft Schedule on Docents (#530), the month after the published ones: the state a Scheduler is in right
      * after creating one, so the Create a Schedule walkthrough shoots its Draft badge, Publish,
      * and New shift controls. A draft is hidden from Members, so the member walkthroughs read
      * as before. Keyed on (Group, name) so a reseed heals rather than duplicates.
      */
-    private function draftNextMonth(Group $docents, CarbonImmutable $month): void
+    private function draftAhead(Group $docents, CarbonImmutable $month): void
     {
-        $next = $month->addMonth();
-
         Schedule::firstOrCreate(
-            ['group_id' => $docents->id, 'name' => $next->format('F Y')],
+            ['group_id' => $docents->id, 'name' => $month->format('F Y')],
             [
-                'starts_on' => $next->toDateString(),
-                'ends_on' => $next->endOfMonth()->toDateString(),
+                'starts_on' => $month->toDateString(),
+                'ends_on' => $month->endOfMonth()->toDateString(),
                 'state' => ScheduleState::Draft,
-                'description' => 'Next month\'s docent tour roster, still being drafted.',
+                'description' => 'An upcoming docent tour roster, still being drafted.',
             ],
         );
     }
@@ -1946,12 +2175,14 @@ class DemoSeeder extends Seeder
      *
      * Counts sit near the legacy averages: about 16 on a Museum Highlights tour (never
      * empty), and about 12 on a Gallery/Theme tour (sometimes a recorded zero).
+     *
+     * @param  list<Schedule>  $schedules
      */
-    private function seatTours(Group $group, Schedule $previous, Schedule $current): void
+    private function seatTours(Group $group, array $schedules): void
     {
         $this->seatRoster(
             $group,
-            [$previous, $current],
+            $schedules,
             fn (Shift $shift) => match (true) {
                 $shift->ends_at->isPast() => $shift->capacity,
                 default => $this->spread($shift->starts_at->timestamp, 0, 99) < $this->tourFillChance($shift) ? 1 : 0,
@@ -2072,7 +2303,7 @@ class DemoSeeder extends Seeder
      * still to come, which is what the outstanding-shifts panel reads (ADR-0023 §5).
      *
      * The Member Persona is placed by hand, not by the draw (#529): on the latest ended
-     * Shift, still owed a number, and on the month's last Shift, a seat she can drop. The draw
+     * Shift, still owed a number, and on this month's last Shift, a seat she can drop. The draw
      * skips her, so her My sign-ups panel shows exactly those two. This applies only on a
      * Group she belongs to.
      *
@@ -2080,14 +2311,13 @@ class DemoSeeder extends Seeder
      * seat is a legitimate group-audience Sign-up. Written in one bulk upsert on the
      * (Shift, Member) grain, like {@see writeSeatRecords()}.
      *
-     * @param  list<Schedule>  $schedules  oldest first; the last is the current month
+     * @param  list<Schedule>  $schedules
      * @param  callable(Shift): int  $seatsFor
      * @param  (callable(Shift): array{int, int})|null  $countRange  null for a Group that collects no count
      * @param  bool  $placePersona  false to leave the Member Persona off these Schedules (group tours)
      */
     private function seatRoster(Group $group, array $schedules, callable $seatsFor, ?callable $countRange = null, bool $placePersona = true): void
     {
-        $current = end($schedules);
         $roster = $this->livingRoster($group);
         $persona = collect($roster)->first($this->isMemberPersona(...));
         $pool = array_values(array_filter($roster, fn (Member $member) => ! $this->isMemberPersona($member)));
@@ -2108,7 +2338,8 @@ class DemoSeeder extends Seeder
         $personaShifts = [];
         if ($persona !== null && $placePersona) {
             $lastEnded = $shifts->filter(fn (Shift $shift) => $shift->ends_at->lessThan($now))->last();
-            $lastTour = $shifts->where('schedule_id', $current->id)->last();
+            $monthEnd = OrgTime::now()->endOfMonth();
+            $lastTour = $shifts->filter(fn (Shift $shift) => $shift->starts_at->lessThanOrEqualTo($monthEnd))->last();
 
             foreach ([$lastEnded, $lastTour] as $shift) {
                 if ($shift !== null) {

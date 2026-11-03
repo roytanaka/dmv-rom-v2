@@ -52,4 +52,29 @@ return [
         'docents' => 'Guides de cette visite',
         'view_schedule' => 'Voir l’horaire',
     ],
+    // L'avis de limite atteinte (#906, ADR-0034 §9). :name est le nom de l'invitation, tel qu'écrit.
+    'invitation_full' => [
+        'subject' => "Limite d'invités atteinte : :name",
+        'heading' => 'Votre invitation est complète',
+        'intro' => ":name a atteint sa limite d'invités.",
+        'view_replies' => 'Voir les réponses',
+    ],
+    // L'avis au mentor (#920, ADR-0038 §4) : le bureau des dossiers a fait passer le mentoré
+    // du statut provisoire ou préactif au statut actif. :member tel que saisi.
+    'mentee_activated' => [
+        'from' => 'Dossiers DMV',
+        'subject' => 'Membre maintenant actif : :member',
+        'heading' => 'Votre mentoré est maintenant actif',
+        'intro' => 'Le bureau des dossiers a fait passer :member au statut actif.',
+        'footer' => 'Ce message est fourni à titre informatif ; aucune réponse n’est attendue.',
+    ],
+    // Les résultats d'une requête enregistrée (#924, ADR-0038 §7).
+    'saved_query_results' => [
+        'from' => 'Dossiers DMV',
+        'subject' => 'Résultats de la requête DMV : :query',
+        'heading' => 'Résultats d’une requête enregistrée',
+        'intro' => ':sender vous a envoyé les résultats de la requête enregistrée « :query ».',
+        'view' => 'Ouvrir les résultats',
+        'footer' => 'Le lien s’ouvre après connexion, pour les membres du bureau des dossiers.',
+    ],
 ];

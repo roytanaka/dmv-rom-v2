@@ -143,13 +143,14 @@ class HandleInertiaRequests extends Middleware
      */
     private function chromeNav(Request $request): array
     {
-        // Primary destinations, in render order (My Hours · My Calendar · News ·
+        // Primary destinations, in render order (My Hours · My Calendar · News · Invitations ·
         // Directory). My Hours / My Calendar are ComingSoon stubs until their slices
         // land; News and Directory point at the live routes.
         $primary = [
             ['key' => 'hours', 'route' => 'hours', 'labelKey' => 'nav.personal.hours'],
             ['key' => 'calendar', 'route' => 'calendar', 'labelKey' => 'nav.personal.calendar'],
             ['key' => 'news', 'route' => 'news', 'labelKey' => 'nav.personal.news'],
+            ['key' => 'invitations', 'route' => 'invitations', 'labelKey' => 'nav.personal.invitations'],
             ['key' => 'directory', 'route' => 'directory', 'labelKey' => 'nav.personal.directory'],
         ];
 

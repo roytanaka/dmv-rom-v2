@@ -18,4 +18,15 @@ enum BroadcastKind: string
 {
     case Broadcast = 'broadcast';
     case DirectMessage = 'direct_message';
+
+    // A Host's mail to their Guests (ADR-0034 §7). The From name and Reply-To are the Host's.
+    case Invitation = 'invitation';
+
+    /**
+     * The Delivery kind of this send's recipient rows.
+     */
+    public function deliveryKind(): DeliveryKind
+    {
+        return $this === self::Invitation ? DeliveryKind::Invitation : DeliveryKind::Broadcast;
+    }
 }

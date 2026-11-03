@@ -72,7 +72,7 @@ class MemberController extends Controller
         $request->user()->loadMissing('memberships.roles');
 
         return Inertia::render('members/Show', [
-            'member' => new MemberResource($member),
+            'member' => (new MemberResource($member))->withRecordsFields(),
         ]);
     }
 
@@ -88,7 +88,7 @@ class MemberController extends Controller
             $member->email_verified_at = null;
         }
 
-        $member->save();
+        $member->markUpdatedBy($request->user());
 
         return back();
     }

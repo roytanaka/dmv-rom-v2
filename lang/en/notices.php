@@ -51,4 +51,29 @@ return [
         'docents' => 'Docents on this tour',
         'view_schedule' => 'View the schedule',
     ],
+    // The limit-reached Notice (#906, ADR-0034 §9). :name is the Invitation's name, as written.
+    'invitation_full' => [
+        'subject' => 'Guest limit reached: :name',
+        'heading' => 'Your invitation is full',
+        'intro' => ':name has reached its Guest limit.',
+        'view_replies' => 'View the replies',
+    ],
+    // The mentor Notice (#920, ADR-0038 §4): the Records office moved a mentor's mentee from
+    // Provisional or Pre-active to Active. :member is as-authored.
+    'mentee_activated' => [
+        'from' => 'DMV Records',
+        'subject' => 'Member now Active: :member',
+        'heading' => 'Your mentee is now Active',
+        'intro' => 'The Records office has changed :member to Active.',
+        'footer' => 'This message is for your information; no reply is expected.',
+    ],
+    // A Saved query's results (#924, ADR-0038 §7): the Legacy app's "Results of DMV Query".
+    'saved_query_results' => [
+        'from' => 'DMV Records',
+        'subject' => 'Results of DMV query: :query',
+        'heading' => 'Saved query results',
+        'intro' => ':sender has sent you the results of the saved query “:query”.',
+        'view' => 'Open the results',
+        'footer' => 'The link opens after you sign in, for members of the Records office.',
+    ],
 ];

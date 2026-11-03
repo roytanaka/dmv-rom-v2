@@ -20,6 +20,22 @@ return [
     // Téléchargement d'un document (#712, ADR-0030 §13). Le {document} est l'identifiant.
     'documents.download' => 'documents/{document}/telecharger',
     'news' => 'nouvelles',
+    // Invitations (#902, ADR-0034) : Mes invitations à la racine, l'onglet Organisation, les
+    // pages de création et de modification. Le {invitation} est l'identifiant.
+    'invitations' => 'invitations',
+    'invitations.hosting' => 'invitations/organisation',
+    'invitations.create' => 'invitations/creer',
+    'invitations.invitation' => 'invitations/{invitation}',
+    'invitations.edit' => 'invitations/{invitation}/modifier',
+    // Le passage entre brouillon et ouverte, et la réponse d'un invité (#904).
+    'invitations.draft' => 'invitations/{invitation}/brouillon',
+    'invitations.reply' => 'invitations/{invitation}/reponse',
+    // La liste d'invités (#903) : la page et l'ajout d'une personne, l'ajout en bloc, un invité.
+    'invitations.guests' => 'invitations/{invitation}/invites',
+    'invitations.guests.audience' => 'invitations/{invitation}/invites/audience',
+    'invitations.guest' => 'invitations/{invitation}/invites/{guest}',
+    // La page des réponses de l'hôte et la réponse saisie pour un invité (#905).
+    'invitations.replies' => 'invitations/{invitation}/reponses',
     'profile' => 'profil',
     'renew' => 'renouveler',
     // Centre d'aide (#517, ADR-0025). L'index à « aide » et un article à
@@ -40,7 +56,26 @@ return [
     'feedback.unfollow' => 'retroaction/abonnes/{follower}/arreter',
 
     // Zone C — officer/admin
-    'officer.members' => 'officier/membres',
+    // Les listes de membres (#919, ADR-0038 §5). Une seule route ; chaque mot de liste est
+    // inscrit ci-dessous pour figurer dans la table des segments.
+    'officer.members.remove-personal-data' => 'officier/membres/retrait-donnees-personnelles',
+    'officer.members' => 'officier/membres/{list?}',
+    'officer.members.list.current' => 'officier/membres/actuels',
+    'officer.members.list.resigned' => 'officier/membres/demissionnaires',
+    'officer.members.list.past' => 'officier/membres/anciens',
+    'officer.members.list.deceased' => 'officier/membres/decedes',
+    'officer.members.list.admin' => 'officier/membres/administration',
+    'officer.members.list.donors' => 'officier/membres/donateurs',
+    'officer.members.list.applicants' => 'officier/membres/candidats',
+    'officer.members.record' => 'officier/membres/dossiers/{member}',
+    // Les requêtes enregistrées (#923, ADR-0038 §7) : la liste, une nouvelle requête, le formulaire et l'exécution.
+    'officer.members.queries' => 'officier/membres/requetes',
+    'officer.members.queries.create' => 'officier/membres/requetes/creer',
+    'officer.members.queries.edit' => 'officier/membres/requetes/{savedQuery}/modifier',
+    'officer.members.queries.run' => 'officier/membres/requetes/{savedQuery}',
+    // Les sorties d'une exécution (#924) : le CSV et la page d'étiquettes Avery 5160.
+    'officer.members.queries.csv' => 'officier/membres/requetes/{savedQuery}/export.csv',
+    'officer.members.queries.labels' => 'officier/membres/requetes/{savedQuery}/etiquettes',
     'officer.communications' => 'officier/communications',
     'officer.reports' => 'officier/rapports',
     'officer.flash-messages' => 'officier/messages-eclair',

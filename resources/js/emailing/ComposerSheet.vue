@@ -46,6 +46,13 @@ const props = defineProps<{
     // Audience — a Tour row's Email button seeds its qualified Members. It stays a hand-pick
     // (ADR-0024 §6): the ids post as additions and the server checks them against the roster.
     seed?: number[];
+    // Prefilled, editable text (ADR-0034 §7): an Invitation opens with a mail already written.
+    prefill?: { subject: string; body: string } | null;
+    // The first Send of a Draft Invitation goes to every Guest (ADR-0034 §7), so its chips stay put.
+    lockRecipients?: boolean;
+    // Ids un-ticked as the sheet opens (#925): a Saved query run's unchecked rows. They post as
+    // removals, the hand-picked edit path, so the server re-resolves the run and drops them.
+    exclude?: number[];
 }>();
 
 const emit = defineEmits<{ (e: 'update:open', value: boolean): void }>();
@@ -83,8 +90,8 @@ watch(
         step.value = 'who';
         search.value = '';
         chipsExpanded.value = false;
-        subject.value = '';
-        body.value = '';
+        subject.value = props.prefill?.subject ?? '';
+        body.value = props.prefill?.body ?? '';
         attachments.value = [];
         queued.value = 0;
         skipped.value = [];
@@ -140,7 +147,8 @@ async function loadRecipients(audience: AudienceOption): Promise<void> {
     }
     directory.value = merged;
     baseIds.value = data.recipients.map((recipient) => recipient.id);
-    ticked.value = new Set(baseIds.value);
+    const excluded = new Set(props.exclude ?? []);
+    ticked.value = new Set(baseIds.value.filter((id) => !excluded.has(id)));
 }
 
 const recipientCount = computed(() => ticked.value.size);
@@ -322,6 +330,7 @@ function close(): void {
                         <Badge v-for="member in chips" :key="member.id" variant="secondary" class="gap-1 font-normal">
                             {{ recipientName(member) }}
                             <button
+                                v-if="!lockRecipients"
                                 type="button"
                                 class="hover:text-foreground -mr-0.5 rounded-full transition-colors"
                                 :aria-label="trans('broadcasts.composer.remove', { name: recipientName(member) })"
@@ -333,7 +342,9 @@ function close(): void {
                     </div>
                 </div>
 
-                <div>
+                <!-- No Add people where the Audience is the whole page: an Invitation's Guests, a
+                     Records list, a Saved query run. -->
+                <div v-if="!['invitation', 'member_list', 'saved_query'].includes(context)">
                     <Button v-if="!panelOpen" type="button" variant="outline" size="sm" @click="panelOpen = true">
                         {{ trans('broadcasts.composer.add_people') }}
                     </Button>

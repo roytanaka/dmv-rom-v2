@@ -17,8 +17,20 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        // Fresh, because these columns may not be hydrated on the authenticated model (strict mode).
+        $member = $request->user()->fresh();
+
         return Inertia::render('settings/Profile', [
             'status' => $request->session()->get('status'),
+            // The Records fields a Member sees about themself (ADR-0038 §3).
+            'membership' => [
+                'paid_through_year' => $member->paid_through_year,
+                'membership_expiry' => $member->membership_expiry?->toDateString(),
+                'membership_lifetime' => (bool) $member->membership_lifetime,
+                'last_award_year' => $member->last_award_year,
+            ],
+            // Whether the Member shows their photo to peers (#922, ADR-0038 §3).
+            'photoPublic' => (bool) $member->photo_public,
             // Fine-grained, per-resource UI hint (ADR-0017 §9): may this member edit
             // this record? The server still enforces the action; this only drives
             // whether the form's controls render enabled.
@@ -53,7 +65,9 @@ class ProfileController extends Controller
             $member->photo_path = $photos->store($request->file('photo'));
         }
 
-        $member->save();
+        if ($member->isDirty()) {
+            $member->markUpdatedBy($member);
+        }
 
         if ($previousPath !== null) {
             $photos->delete($previousPath);

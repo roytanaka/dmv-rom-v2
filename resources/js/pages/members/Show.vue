@@ -17,7 +17,7 @@ import { type AudienceOption, type Recipient } from '@/emailing/composer';
 import ComposerSheet from '@/emailing/ComposerSheet.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { PhEnvelopeSimple } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -116,10 +116,15 @@ const senderName = computed(() => `${page.props.auth.user.first_name} ${page.pro
                     <h1 class="text-rom-ink text-2xl font-semibold">{{ fullName }}</h1>
                     <StandingBadge :standing="member.standing" class="self-start" />
                 </div>
-                <Button v-if="!isSelf" type="button" variant="outline" size="sm" class="ml-auto gap-1.5" @click="messageOpen = true">
-                    <PhEnvelopeSimple class="size-4" />
-                    {{ trans('member.message', { name: member.first_name }) }}
-                </Button>
+                <div class="ml-auto flex items-center gap-2">
+                    <Button v-if="canManageNoEmail" as-child variant="outline" size="sm">
+                        <Link :href="route('officer.members.record', { member: member.id })">{{ trans('member.open_record') }}</Link>
+                    </Button>
+                    <Button v-if="!isSelf" type="button" variant="outline" size="sm" class="gap-1.5" @click="messageOpen = true">
+                        <PhEnvelopeSimple class="size-4" />
+                        {{ trans('member.message', { name: member.first_name }) }}
+                    </Button>
+                </div>
             </header>
 
             <ComposerSheet

@@ -44,7 +44,7 @@ class BroadcastSenderCopy extends Mailable
     {
         return new Envelope(
             from: new Address(config('mail.from.address'), $this->broadcast->fromName()),
-            replyTo: [new Address($this->broadcast->sender->email, $this->broadcast->sender->fullName())],
+            replyTo: [new Address($this->broadcast->replyToMember()->email, $this->broadcast->replyToMember()->fullName())],
             subject: $this->broadcast->subject,
         );
     }

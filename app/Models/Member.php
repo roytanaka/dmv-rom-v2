@@ -4,15 +4,19 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Category;
+use App\Enums\CategoryGroup;
+use App\Enums\DepartureReason;
 use App\Enums\DirectoryList;
 use App\Enums\Kind;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
+use App\Support\OrgTime;
 use Database\Factories\MemberFactory;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -24,6 +28,57 @@ class Member extends Authenticatable implements HasLocalePreference
 {
     /** @use HasFactory<MemberFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * The Records-only fields member administration edits through the record form (ADR-0038 §3).
+     * Mass assignable; the rest of {@see RECORDS_FIELDS} is written by the app itself.
+     *
+     * @var list<string>
+     */
+    private const RECORDS_EDITABLE = [
+        'membership_number',
+        'membership_expiry',
+        'membership_lifetime',
+        'amount_paid',
+        'paid_through_year',
+        'fee_category',
+        'entry_year',
+        'service_awards',
+        'last_award_year',
+        'next_award_year',
+        'other_awards',
+        'emergency_contact',
+        'emergency_contact_number',
+        'newsletter_opt_in',
+        'code_of_conduct_year',
+        'renewal_year',
+        'renewal_status',
+        'renewal_placements',
+        'renewal_other',
+        'record_form_placements',
+        'record_form_other',
+        'mentor_name',
+        'volunteer_experience',
+        'past_experience',
+        'education',
+        'photo_public',
+    ];
+
+    /**
+     * The fields the Records office keeps (ADR-0038 §3): Records-only tier. Hidden from every
+     * serialized Member, the shared `auth.user` included; they travel only through
+     * `MemberResource::withRecordsFields()`, behind `viewRecordsFields`, so a Member passed whole
+     * to a page can never leak one. The status date follows the Category
+     * history, Notes only grow by {@see prependNote()}, and sign-in writes the last sign-in.
+     *
+     * @var list<string>
+     */
+    public const RECORDS_FIELDS = [
+        ...self::RECORDS_EDITABLE,
+        'status_date',
+        'notes',
+        'last_sign_in_at',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -44,7 +99,10 @@ class Member extends Authenticatable implements HasLocalePreference
         'address_country',
         'password',
         'category',
+        'departure_reason',
+        'personal_data_removed_at',
         'locale',
+        ...self::RECORDS_EDITABLE,
     ];
 
     /**
@@ -55,6 +113,11 @@ class Member extends Authenticatable implements HasLocalePreference
     protected $hidden = [
         'password',
         'remember_token',
+        'created_by',
+        'updated_by',
+        'languages',
+        'boardPositions',
+        ...self::RECORDS_FIELDS,
     ];
 
     /**
@@ -79,10 +142,107 @@ class Member extends Authenticatable implements HasLocalePreference
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'category' => Category::class,
+            'departure_reason' => DepartureReason::class,
+            'personal_data_removed_at' => 'datetime',
             'super_tier' => 'boolean',
             'support_operator' => 'boolean',
             'no_email' => 'boolean',
+            'membership_expiry' => 'date',
+            'membership_lifetime' => 'boolean',
+            'amount_paid' => 'decimal:2',
+            'service_awards' => 'array',
+            'newsletter_opt_in' => 'boolean',
+            'status_date' => 'date',
+            'last_sign_in_at' => 'datetime',
+            'photo_public' => 'boolean',
         ];
+    }
+
+    /**
+     * A Member with no email is a Member the mail cannot reach (ADR-0038 §3). Raising the no-email
+     * flag here keeps them out of every Delivery writer, each of which reads the flag and none of
+     * which can store a blank address. Filling the address back in leaves the flag for Records.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Member $member): void {
+            if (($member->getAttributes()['email'] ?? null) === null) {
+                $member->no_email = true;
+            }
+        });
+    }
+
+    /**
+     * Prepend a dated, signed line to the Notes log (ADR-0038 §3). The one write to `notes`, so
+     * an earlier line is never touched. The date is the museum's day.
+     */
+    public function prependNote(string $text, Member $author): void
+    {
+        $line = OrgTime::now()->toDateString().' '.$author->fullName().': '.$text;
+        $earlier = $this->getAttributes()['notes'] ?? null;
+
+        $this->notes = filled($earlier) ? $line."\n".$earlier : $line;
+    }
+
+    /**
+     * Who last saved this record (ADR-0036 §8).
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'updated_by');
+    }
+
+    /**
+     * The Member's Category history (ADR-0038 §4).
+     *
+     * @return HasMany<CategoryChange, $this>
+     */
+    public function categoryChanges(): HasMany
+    {
+        return $this->hasMany(CategoryChange::class);
+    }
+
+    /**
+     * Save an edit of the record as the actor's (ADR-0036 §8): the one way "Last updated by" is
+     * written. Saves any pending change on this row and moves `updated_at`, so a change kept
+     * outside the row, such as a language or a board position, counts as an edit too.
+     */
+    public function markUpdatedBy(Member $actor): void
+    {
+        $this->updated_by = $actor->id;
+        $this->touch();
+    }
+
+    /**
+     * The Member's languages (ADR-0038 §3). Records-only.
+     *
+     * @return HasMany<MemberLanguage, $this>
+     */
+    public function languages(): HasMany
+    {
+        return $this->hasMany(MemberLanguage::class);
+    }
+
+    /**
+     * The board positions the Member has held (ADR-0038 §3). Records-only.
+     *
+     * @return HasMany<BoardPosition, $this>
+     */
+    public function boardPositions(): HasMany
+    {
+        return $this->hasMany(BoardPosition::class);
+    }
+
+    /**
+     * The Member's rows in the Sign-in log (ADR-0038 §12).
+     *
+     * @return HasMany<SignIn, $this>
+     */
+    public function signIns(): HasMany
+    {
+        return $this->hasMany(SignIn::class);
     }
 
     /**
@@ -109,11 +269,27 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * The photo URL as the viewer may see it (#922, ADR-0038 §3): null when the Member keeps their
+     * photo from peers and the viewer is not the Member, member administration or the super-tier.
+     * An unhydrated flag reads as the column default, public.
+     */
+    public function photoUrlFor(?Member $viewer): ?string
+    {
+        $url = $this->photo_url;
+
+        if ($url === null || ($this->getAttributes()['photo_public'] ?? true)) {
+            return $url;
+        }
+
+        return $viewer?->can('viewPhoto', $this) ? $url : null;
+    }
+
+    /**
      * The directory roster: Members whose DMV-wide Category grants a listing —
      * Active, Honourary, Sustaining, and LOA (on leave, but still Full access).
-     * Excludes the departed (Resigned / Withdrawn / Deceased) and the not-yet-
-     * activated (PreActive / Provisional). The privacy rule has one home here —
-     * tunable in a single place, never scattered across controllers.
+     * Excludes the departed (Resigned / Withdrawn / Deceased), the not-yet-activated
+     * (PreActive / Provisional) and the non-member standings. The privacy rule has one
+     * home here — tunable in a single place, never scattered across controllers.
      *
      * @param  Builder<Member>  $query
      */
@@ -126,6 +302,27 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * The Past Members: the Resigned and Deceased groups once Remove personal data has
+     * reached them (ADR-0038 §4, §6).
+     *
+     * @param  Builder<Member>  $query
+     */
+    public function scopePast(Builder $query): void
+    {
+        $query->whereNotNull('personal_data_removed_at')
+            ->whereIn('category', Category::departed());
+    }
+
+    /**
+     * Whether this Member is in the Current Category group: the only standing that may sign in or
+     * stay signed in (ADR-0038 §4).
+     */
+    public function isCurrent(): bool
+    {
+        return $this->category->group() === CategoryGroup::Current;
+    }
+
+    /**
      * The Member's full name, first and last, for a mail's display name and a sender
      * copy's roll of who was not reached (ADR-0024 §3, §4). Trimmed so a missing part
      * leaves no stray space.
@@ -133,6 +330,25 @@ class Member extends Authenticatable implements HasLocalePreference
     public function fullName(): string
     {
         return trim($this->first_name.' '.$this->last_name);
+    }
+
+    /**
+     * The Member's mailing label lines (ADR-0038 §7): name, street, "city, province", then the
+     * postal code, which the country leads only outside Canada (the Legacy app's rule).
+     *
+     * @return list<string>
+     */
+    public function mailingLabel(): array
+    {
+        $country = trim((string) $this->address_country);
+        $prefix = $country === '' || strcasecmp($country, 'canada') === 0 ? '' : $country.'    ';
+
+        return [
+            $this->fullName(),
+            (string) $this->address_street,
+            trim(implode(', ', array_filter([$this->address_city, $this->address_province], 'filled'))),
+            $prefix.$this->address_postal_code,
+        ];
     }
 
     /**

@@ -45,7 +45,6 @@ class LocaleResolutionTest extends TestCase
             'renew' => ['en' => '/renew', 'fr' => '/fr/renouveler', 'component' => 'ComingSoon'],
 
             // Zone C — officer/admin
-            'officer members' => ['en' => '/officer/members', 'fr' => '/fr/officier/membres', 'component' => 'ComingSoon'],
             'officer communications' => ['en' => '/officer/communications', 'fr' => '/fr/officier/communications', 'component' => 'ComingSoon'],
             'officer reports' => ['en' => '/officer/reports', 'fr' => '/fr/officier/rapports', 'component' => 'ComingSoon'],
             'officer flash-messages' => ['en' => '/officer/flash-messages', 'fr' => '/fr/officier/messages-eclair', 'component' => 'ComingSoon'],

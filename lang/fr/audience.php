@@ -29,6 +29,14 @@ return [
     'committee_chairs' => 'Présidences de comité',
     'all_chairs' => 'Toutes les présidences',
 
+    // Publics des invitations.
+    'invitation_guests' => 'Tous les invités',
+    'invitation_no_reply' => 'Invités sans réponse',
+    'invitation_accepted' => 'Invités ayant accepté',
+
+    // Audiences du bureau des dossiers (ADR-0038 §5, §7). Une requête enregistrée garde son nom, tel que saisi.
+    'member_list' => 'Liste « :list »',
+
     // Suffixe d'audience modifiée, ajouté lorsque le sélecteur a retiré des
     // personnes (ADR-0024 §6) : le nom de l'audience demeure et le nombre de
     // retraits est indiqué.
@@ -40,5 +48,6 @@ return [
     // groupe non racine que l'utilisateur n'a pas rejoint ; « not_org_wide_sender » sur la
     // racine, dont les audiences visent l'ensemble de l'organisme.
     'not_member' => 'Joignez-vous à ce groupe pour écrire à ses membres.',
+    'not_member_admin' => 'Seule l’administration des membres peut écrire à une liste des dossiers.',
     'not_org_wide_sender' => 'Seules les présidences et les membres des groupes Direction, Archives et Prix peuvent écrire à l’ensemble du DMV.',
 ];

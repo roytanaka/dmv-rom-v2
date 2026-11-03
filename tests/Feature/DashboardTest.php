@@ -51,11 +51,12 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
-                ->has('chromeNav.destinations', 4)
+                ->has('chromeNav.destinations', 5)
                 ->where('chromeNav.destinations.0.key', 'hours')
                 ->where('chromeNav.destinations.1.key', 'calendar')
                 ->where('chromeNav.destinations.2.key', 'news')
-                ->where('chromeNav.destinations.3.key', 'directory')
+                ->where('chromeNav.destinations.3.key', 'invitations')
+                ->where('chromeNav.destinations.4.key', 'directory')
                 ->where('chromeNav.help.labelKey', 'nav.help'));
     }
 }

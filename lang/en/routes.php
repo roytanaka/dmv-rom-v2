@@ -26,6 +26,22 @@ return [
     // map can point at; {document} is the id in both locales.
     'documents.download' => 'documents/{document}/download',
     'news' => 'news',
+    // Invitations (#902, ADR-0034): My invitations at the root, the Hosting tab, a Host's
+    // create and edit pages. {invitation} is the id in both locales.
+    'invitations' => 'invitations',
+    'invitations.hosting' => 'invitations/hosting',
+    'invitations.create' => 'invitations/create',
+    'invitations.invitation' => 'invitations/{invitation}',
+    'invitations.edit' => 'invitations/{invitation}/edit',
+    // Moving between Draft and Open, and a Guest's own Reply (#904).
+    'invitations.draft' => 'invitations/{invitation}/draft',
+    'invitations.reply' => 'invitations/{invitation}/reply',
+    // The guest list (#903): the page and a single pick, a bulk pick, one Guest.
+    'invitations.guests' => 'invitations/{invitation}/guests',
+    'invitations.guests.audience' => 'invitations/{invitation}/guests/audience',
+    'invitations.guest' => 'invitations/{invitation}/guests/{guest}',
+    // The Host's Replies page and a Reply set for a Guest (#905).
+    'invitations.replies' => 'invitations/{invitation}/replies',
     'profile' => 'profile',
     'renew' => 'renew',
     // Help centre (#517, ADR-0025). The index at 'help' and one article at
@@ -49,7 +65,26 @@ return [
     'feedback.unfollow' => 'feedback/followers/{follower}/stop',
 
     // Zone C — officer/admin
-    'officer.members' => 'officer/members',
+    // The Member lists (#919, ADR-0038 §5). One route; each list word is keyed below so the
+    // segment table carries it. The default list (Current) has a bare path.
+    'officer.members.remove-personal-data' => 'officer/members/remove-personal-data',
+    'officer.members' => 'officer/members/{list?}',
+    'officer.members.list.current' => 'officer/members/current',
+    'officer.members.list.resigned' => 'officer/members/resigned',
+    'officer.members.list.past' => 'officer/members/past',
+    'officer.members.list.deceased' => 'officer/members/deceased',
+    'officer.members.list.admin' => 'officer/members/admin',
+    'officer.members.list.donors' => 'officer/members/donors',
+    'officer.members.list.applicants' => 'officer/members/applicants',
+    'officer.members.record' => 'officer/members/records/{member}',
+    // Saved queries (#923, ADR-0038 §7): the index, a new query, the form and the run.
+    'officer.members.queries' => 'officer/members/queries',
+    'officer.members.queries.create' => 'officer/members/queries/create',
+    'officer.members.queries.edit' => 'officer/members/queries/{savedQuery}/edit',
+    'officer.members.queries.run' => 'officer/members/queries/{savedQuery}',
+    // A run's outputs (#924): the CSV and the Avery 5160 labels page.
+    'officer.members.queries.csv' => 'officer/members/queries/{savedQuery}/export.csv',
+    'officer.members.queries.labels' => 'officer/members/queries/{savedQuery}/labels',
     'officer.communications' => 'officer/communications',
     'officer.reports' => 'officer/reports',
     'officer.flash-messages' => 'officer/flash-messages',

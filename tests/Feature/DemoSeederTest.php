@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AudienceKey;
 use App\Enums\Category;
 use App\Enums\DocumentKind;
 use App\Enums\DocumentVisibility;
@@ -29,12 +30,15 @@ use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\Qualification;
+use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
 use App\Models\Tour;
 use App\Personas\PersonaCatalogue;
+use App\Support\Audiences\AudienceContext;
+use App\Support\Audiences\AudienceResolver;
 use App\Support\CommitteeHoursStatistics;
 use App\Support\OrgTime;
 use App\Support\VisitorInteractionStatistics;
@@ -360,6 +364,29 @@ it('excludes the departed Persona from the Directory and My-Groups sources', fun
     expect($qualifying)->toBeEmpty();
 });
 
+it('seeds a Donor Persona that One Category reaches and the Directory does not', function () {
+    $donor = Member::where('email', 'harriet.osei@dmv.test')->firstOrFail();
+
+    expect($donor->category)->toBe(Category::Donor)
+        ->and(Member::inDirectory()->whereKey($donor->id)->exists())->toBeFalse();
+
+    $operator = Member::where('super_tier', true)->firstOrFail();
+
+    $this->actingAs($operator)
+        ->getJson(route('audiences.index', ['context' => 'directory']))
+        ->assertOk()
+        ->assertJsonFragment(['key' => 'one_category', 'parameter' => 'donor', 'label' => 'Donor', 'count' => 1]);
+
+    $recipients = app(AudienceResolver::class)->resolve(
+        $operator,
+        AudienceContext::directory(),
+        AudienceKey::OneCategory,
+        Category::Donor->value,
+    )->recipients;
+
+    expect($recipients->pluck('id')->all())->toBe([$donor->id]);
+});
+
 it('gives the multi-group no-office Persona Full standing in several programs', function () {
     $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)
         ->with('memberships.roles', 'memberships.group')
@@ -430,11 +457,11 @@ it('seeds one published Schedule on the Docents Group covering the current month
         ->and($schedule->ends_on->greaterThanOrEqualTo(now()->startOfDay()))->toBeTrue();
 });
 
-it('seeds an empty next-month draft Schedule on Docents, so a Scheduler has one to publish', function () {
+it('seeds an empty draft Schedule on Docents two months out, so a Scheduler has one to publish', function () {
     // The Create a Schedule walkthrough (#530) shoots a draft's Publish and New shift controls.
     // A Member never sees a draft, so the member walkthroughs read as before.
     $docents = Group::where('slug', DemoSeeder::PROGRAM)->firstOrFail();
-    $next = CarbonImmutable::instance(now())->startOfMonth()->addMonth();
+    $next = CarbonImmutable::instance(now())->startOfMonth()->addMonths(2);
 
     $draft = Schedule::where('group_id', $docents->id)->where('state', ScheduleState::Draft)->sole();
 
@@ -442,6 +469,31 @@ it('seeds an empty next-month draft Schedule on Docents, so a Scheduler has one 
         ->and($draft->starts_on->toDateString())->toBe($next->toDateString())
         ->and($draft->ends_on->toDateString())->toBe($next->endOfMonth()->toDateString())
         ->and($draft->shifts()->count())->toBe(0);
+});
+
+it('publishes next month for every rostered Group, seated, with the Member Persona left off it', function () {
+    $next = CarbonImmutable::instance(now())->startOfMonth()->addMonth();
+
+    foreach ([DemoSeeder::PROGRAM, DemoSeeder::VISITOR_GUIDES, DemoSeeder::GUIDES_DU_ROM, DemoSeeder::RECEPTION, DemoSeeder::GALLERY_INTERPRETERS] as $slug) {
+        $schedule = Schedule::where('group_id', Group::where('slug', $slug)->value('id'))
+            ->where('name', $next->format('F Y'))
+            ->sole();
+
+        expect($schedule->state)->toBe(ScheduleState::Published)
+            ->and($schedule->shifts()->count())->toBeGreaterThan(0)
+            ->and(SignUp::whereRelation('shift', 'schedule_id', $schedule->id)->count())->toBeGreaterThan(0);
+    }
+
+    $wayfinding = Schedule::where('group_id', Group::where('slug', DemoSeeder::VISITOR_WAYFINDERS)->value('id'))
+        ->where('name', 'Wayfinding - '.$next->format('F Y'))
+        ->sole();
+
+    expect($wayfinding->state)->toBe(ScheduleState::Published)
+        ->and($wayfinding->shifts()->count())->toBeGreaterThan(0);
+
+    expect(SignUp::whereRelation('member', 'email', PersonaCatalogue::MEMBER_EMAIL)
+        ->whereRelation('shift', 'starts_at', '>=', $next->toDateTimeString())
+        ->exists())->toBeFalse();
 });
 
 it('seeds the real Docents roster: five one-hour, one-Docent tours from 11:00 every day of the month', function () {
@@ -521,7 +573,7 @@ it('keeps the Bookings idempotent across a reseed', function () {
 
     $this->seed(DemoSeeder::class);
 
-    expect(Booking::count())->toBe($before)->toBe(14);
+    expect(Booking::count())->toBe($before)->toBe(21);
 });
 
 it('seeds a Spot Paid group tour on Docents, paid by the docent-hour', function () {
@@ -531,7 +583,7 @@ it('seeds a Spot Paid group tour on Docents, paid by the docent-hour', function 
         ->with(['shift.signUps', 'bookingType'])
         ->get();
 
-    expect($spots)->toHaveCount(2)
+    expect($spots)->toHaveCount(3)
         ->and($spots->every(fn (Booking $b) => (float) $b->bookingType->rate_per_docent_hour > 0))->toBeTrue()
         ->and($spots->contains(fn (Booking $b) => (float) $b->earned() > 0))->toBeTrue();
 });
@@ -841,13 +893,14 @@ it('seeds the Wayfinders evening events as one-day Schedules staffed by station'
     $events = Schedule::where('group_id', $wayfinders->id)
         ->where('name', 'not like', 'Wayfinding - '.$month->format('F Y'))
         ->where('name', 'not like', 'Wayfinding - '.$month->subMonth()->format('F Y'))
+        ->where('name', 'not like', 'Wayfinding - '.$month->addMonth()->format('F Y'))
         ->with('shifts.kind')
         ->get();
 
-    // TTNF and ROM After Dark run both months; Members Evening only this month.
-    expect($events)->toHaveCount(5)
-        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Wayfinding - TTNF'))->count())->toBe(2)
-        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Members Evening'))->count())->toBe(1);
+    // TTNF and ROM After Dark run all three months; Members Evening only this month and next.
+    expect($events)->toHaveCount(8)
+        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Wayfinding - TTNF'))->count())->toBe(3)
+        ->and($events->pluck('name')->filter(fn (string $n) => str_starts_with($n, 'Members Evening'))->count())->toBe(2);
 
     $events->each(function (Schedule $event) {
         // One day, labelled by station, never the daytime Wayfinding label.
@@ -1386,7 +1439,7 @@ it('seeds one off-site GI event a month over consecutive days, its Objects held 
     $orgTimezone = config('app.org_timezone');
 
     // One event a month, each carrying seats with Objects on them.
-    expect($shifts->pluck('schedule_id')->unique())->toHaveCount(2)
+    expect($shifts->pluck('schedule_id')->unique())->toHaveCount(3)
         ->and($shifts->every(fn (Shift $s) => $s->signUps->isNotEmpty()))->toBeTrue()
         ->and($shifts->every(fn (Shift $s) => $s->signUps->every(fn (SignUp $u) => $u->objects->isNotEmpty())))->toBeTrue();
 
@@ -1687,10 +1740,67 @@ it('seeds the group-tour shift kind and Schedule label for Docents and GDR', fun
     'GDR' => ['guides-du-rom', 'Visite de groupe', 'Visites de groupe'],
 ]);
 
+it('fills the Member record on the personas and the bulk roster', function () {
+    $persona = Member::where('email', PersonaCatalogue::all()[0]->email)->firstOrFail();
+    $bulk = Member::whereNotIn('email', PersonaCatalogue::emails())->orderByDesc('id')->firstOrFail();
+
+    foreach ([$persona, $bulk] as $member) {
+        expect($member->membership_number)->not->toBeNull()
+            ->and($member->paid_through_year)->not->toBeNull()
+            ->and($member->fee_category)->not->toBeNull()
+            ->and($member->entry_year)->not->toBeNull()
+            ->and($member->next_award_year)->not->toBeNull()
+            ->and($member->emergency_contact)->not->toBeNull()
+            ->and($member->status_date)->not->toBeNull()
+            ->and($member->notes)->not->toBeNull();
+    }
+
+    expect(Member::whereNull('membership_number')->count())->toBe(0);
+});
+
+it('gives a few Personas languages, a Service award and a board position (#918)', function () {
+    foreach ([PersonaCatalogue::CHAIR_EMAIL, PersonaCatalogue::SCHEDULER_EMAIL, PersonaCatalogue::MEMBER_EMAIL] as $email) {
+        $member = Member::where('email', $email)->firstOrFail();
+
+        expect($member->languages()->count())->toBe(2)
+            ->and($member->boardPositions()->count())->toBe(1)
+            ->and($member->service_awards)->not->toBeEmpty()
+            ->and($member->next_award_year)->toBe($member->last_award_year + 5);
+    }
+});
+
 it('keeps the booking types idempotent across a reseed', function () {
     $before = BookingType::count();
 
     $this->seed(DemoSeeder::class);
 
     expect(BookingType::count())->toBe($before)->toBe(10);
+});
+
+it('writes a Category history that ends at each Member’s Category', function () {
+    expect(Member::doesntHave('categoryChanges')->count())->toBe(0);
+
+    Member::with('categoryChanges')->get()->each(function (Member $member) {
+        $newest = $member->categoryChanges->sortByDesc(fn ($change) => [$change->date->toDateString(), $change->id])->first();
+
+        expect($newest->category)->toBe($member->category->value)
+            ->and($newest->date->toDateString())->toBe($member->status_date->toDateString());
+    });
+
+    $resigned = Member::where('email', 'sven.larsson@dmv.test')->firstOrFail();
+    expect($resigned->departure_reason)->not->toBeNull();
+});
+
+it('seeds three Saved queries that each run with results (#923)', function () {
+    $super = Member::where('super_tier', true)->firstOrFail();
+
+    expect(SavedQuery::orderBy('name')->pluck('name')->all())
+        ->toBe(['Active with no email', 'Resigned last year', 'Service awards this year']);
+
+    foreach (SavedQuery::all() as $query) {
+        $this->actingAs($super)
+            ->get(route('officer.members.queries.run', $query))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('count', fn (int $count) => $count > 0));
+    }
 });

@@ -13,8 +13,88 @@ A Member's join-row in a **Group** — carrying that Member's status within the 
 _Avoid_: reusing **Member** for this (the person is the Member; the relationship is the Membership). "Group member" is fine prose for a person in a Group, but is never the schema name for the identity.
 
 **Category** (of a Member):
-A Member's standing in DMV _as a whole_ — Active, Sustaining, Honourary, Provisional, LOA, Resigned, etc. Lives once on the `members` record and sets the base access tier (Full / Limited / None). **Independent of the per-Group status a Membership carries** — a Member can be DMV-wide Active yet on leave from one Group.
-_Avoid_: conflating with a **Membership**'s within-Group status; they are different facts set by different officers.
+A Member's standing in DMV _as a whole_ — Active, Sustaining, Honourary, Provisional, Pre-active, LOA, Resigned, Withdrawn, Deceased, and the non-member standings Donor, Guest, Volunteer, Admin and Security. Lives once on the `members` record and sets the base access tier (Full / Limited / None). **Independent of the per-Group status a Membership carries** — a Member can be DMV-wide Active yet on leave from one Group. A Category changes only through a **Category history** entry. Resigned and Withdrawn carry a **departure reason**. See [ADR-0038](docs/adr/0038-records-office-tools.md).
+_Avoid_: conflating with a **Membership**'s within-Group status; they are different facts set by different officers. And the Legacy app's eighteen reason-coded categories: a reason is a field beside the Category, not a Category.
+
+**Category group**:
+The coarse bucket a **Category** falls in, derived and never stored: Current, Resigned, Deceased, Admin, Non-member, Security. **Past** is a Resigned or Deceased Member whose personal data was removed. The **Member lists** filter on it.
+_Avoid_: "status" (that is a Membership's within-Group fact) and the Legacy app's `Category_Group` letter codes.
+
+**Category history**:
+The dated list of a Member's **Category** changes, one entry per change: the category and the date it took effect. The newest entry is the Member's Category. **Reinstate** adds two entries, Reinstate then Active.
+_Avoid_: reading it for **Service awards**; awards run on the entry year and the last award year, never on this list.
+
+**Departure reason**:
+Why a Member left, recorded beside a Resigned or Withdrawn **Category**: family, job, health, moved, none given, age, schedule, stopped, other, involuntary. An **Applicant** marked Incomplete carries one too.
+_Avoid_: folding the reason into the Category name.
+
+**Member record**:
+A Member's full DMV record as the Records office sees it: identity, contact, address, ROM **membership number** and expiry, the **paid-through year**, entry year, **Service awards**, emergency contact, languages, **notes**, the **Category history**, board positions and **Memberships**. Read and edited by **member administration**; a Member edits only their own contact fields, expiry, photo, skills and the **Renewal** form.
+_Avoid_: "profile" (that is the Member's own Account settings view) and the **Directory** row (read-only, no contact fields).
+
+**Member list**:
+One of seven Records office rosters under **Officer Tools** → Members: Current, Resigned, Past, Deceased, Admin, Donors, Applicants. Each is a **Category group** or, for Donors, one Category; Applicants lists **Applicants**. Each has the row actions the Legacy app gave it, and Current and Resigned have Send email.
+_Avoid_: the **Directory**, which is for every Member and never an editing surface.
+
+**Membership number**:
+A Member's ROM membership card number, with its expiry date or "Life". Records-only field-visibility tier. Its last four characters are the Legacy app's password and the Beta first-sign-in secret ([ADR-0035 §7](docs/adr/0035-beta-and-cutover.md)), so it is never a **Saved query** output field.
+_Avoid_: "Museum ID" (the legacy column name) and "member ID" (the row key).
+
+**Paid-through year**:
+The last year for which a Member's DMV dues are paid, typed by **member administration** after the money arrives. A **Renewal** year after the paid-through year means renewed and not yet paid. It is what turns the renewal link off.
+_Avoid_: "fees year" (the legacy column) and reading it from any payment system; nothing comes back from the ROM's payment page.
+
+**Notes** (on a Member record):
+A dated log on the **Member record** that **member administration** adds to. Each entry carries the date and the author; earlier entries are never edited.
+_Avoid_: "comments" (the legacy column) and treating it as a message to the Member.
+
+**Service award**:
+A years-of-service award recorded by hand on the **Member record**: the list of awards given (5 to 60 years), the last award year, and the next award year, which is last + 5, or entry year + 5 when the Member becomes Active.
+_Avoid_: computing it from hours or from the **Category history**.
+
+**Reinstate**:
+The Records office action that returns a Resigned Member to Active: two **Category history** entries and the Member's access reopened. Sends nothing.
+_Avoid_: "reactivate" and editing the Category by hand.
+
+**Remove personal data**:
+The Records office's yearly privacy action: for every Resigned or Deceased Member whose status date is before a chosen year (default seven years back), blank contact details, membership number, experience, skills, languages, photo and notes, and mark the personal data as removed. Name, **Category history** and **Hours records** stay. It also deletes **Applicants** older than that year. Typed confirmation, logged.
+_Avoid_: "delete" (Delete removes the whole Member, and only on Past, Deceased and Admin) and "anonymise" (the name stays).
+
+**Saved query**:
+A named filter over Member data, kept by **member administration**: up to ten clauses of field, operator and value joined by AND or OR, over the **Member record**, Memberships, board positions and the **Category history**, with one sort field. A run lists the matching Members with Send email, CSV, **Labels** and Email results.
+_Avoid_: "report" (the two hours reports are reports; a query is a filter the office keeps) and storing it as SQL.
+
+**Labels**:
+A print-styled page of a **Saved query**'s result in the Avery 5160 grid, three by ten, name and mailing address.
+_Avoid_: "PDF".
+
+**Applicant**:
+A person who has applied to volunteer and is not yet a Member: their own record, with contact fields, the ROM **membership number**, languages, a mentor, a placement **Group**, and an **Applicant status**. Administered by the Group that holds the **`applicants` Stewardship** (Membership today). Accept creates a Provisional Member from it. See [ADR-0038 §8](docs/adr/0038-records-office-tools.md).
+_Avoid_: "pre-active Member" (an Applicant is not in the Members table, the **Directory**, any **Audience** or sign-in) and "candidate".
+
+**Applicant status**:
+Where an **Applicant** is in intake: New, Assigned for interview, Accepted, Placed, Yellow card completed, Ready to go active, Incomplete. The status date moves on every change. Accepted and Placed trigger accept; Placed, Yellow card completed and Incomplete each send a **Notice**.
+_Avoid_: a Member **Category** (an Applicant has none until accepted).
+
+**Applicant code**:
+The one shared code, with a publish flag and an expiry date, that the holder's Chair sets so the sign-in page shows the public application form. Checked before any Applicant row exists.
+_Avoid_: "promo code" (the legacy name) and per-person codes.
+
+**Renewal**:
+A Member's yearly four-step pass: code of conduct, the renewal form (membership number, expiry, contact fields, placements, emergency contact, the Category and fee chosen), skills, then the payment page with the ROM's payment link and cheque instructions. It records the renewal year and status; the **paid-through year** is recorded later by **member administration**. See [ADR-0038 §9](docs/adr/0038-records-office-tools.md).
+_Avoid_: "membership renewal" without saying which: the ROM membership (card expiry) and the DMV renewal (dues) are two different things.
+
+**Renewal settings**:
+The Records office page that drives a year's **Renewal**: the show flag, the renewal year, the send dates and the two message texts for Active and for Sustaining Members, and the Sustaining attachment. Edited once a year by **member administration**.
+_Avoid_: "renewal control" (the legacy table) and putting it under **DMV Settings** (that is the super-tier's page).
+
+**Renewal reminder**:
+An automatic mail from the daily pass to each Active or Sustaining Member not yet paid for the renewal year: the first once on or after the send date plus six weeks, the second at ten weeks. A window with a sent record, like a **Reminder**. Its sibling the **ROM-expiry notice** goes every second month to Members whose ROM card has expired. Both off during Beta.
+_Avoid_: "fees not paid" (the legacy name of the expiry notice, which is not about dues) and an exact-day match.
+
+**Sign-in log**:
+One row per sign-in: Member, time, IP address, user agent. After a year the IP address and user agent are blanked; the row stays for statistics and "last sign-in". Read by **member administration**.
+_Avoid_: "audit log" (it records sign-ins, not changes) and keeping the IP forever.
 
 **Officer**:
 A Member who holds at least one authority-bearing **role** (Chair, Secretary, Scheduler, Booker, Statistician, Vetting, Librarian, Treasurer) in a given **Group**. Always **per-Group** — a Member can be an officer of one Group and an ordinary member of another; there is no global officer status. See [ADR-0011](docs/adr/0011-authorization-model.md).
@@ -198,10 +278,11 @@ _Avoid_: "member-to-member messaging" (the older ADR-0011 / ADR-0017 phrase), "D
 
 **Reminder**:
 An automatic mail about the recipient's **own upcoming Sign-up**, written by the daily pass for every Sign-up inside the Group's lead window (3 days by default) that has no Reminder **Delivery** yet, and sent by the **Drain**. Per-Group settings: on or off, lead days. Chrome, rendered in the recipient's **locale**; no Reply-To. A Reminder's Delivery expires at the Shift's start. The **empty-desk alert** is its sibling, a Group setting (watched shift kinds and days ahead, on for Visitor Guides): every third day of the month the roster is told which watched Shifts still have no Sign-up.
+An Accepted **Guest** gets the same kind of mail before an **Invitation**, at a fixed 4 days.
 _Avoid_: "notification"; and reading a Reminder as a date match. It is a window with a sent record, so a missed day catches up and a late Sign-up still gets one.
 
 **Notice**:
-An automatic mail triggered by an **event**: a Member cancelling a Sign-up (to the Group's Schedulers and Chairs, [ADR-0021](docs/adr/0021-scheduling-first-pass.md)), or a Member's **Category** moving to Resigned or Deceased (to the Chairs of every Group where their Membership is not already departed). Chrome in the recipient's locale, no Reply-To, plain links, never expires. Officer assign and remove, leave of absence, reinstatement, and Withdrawn send nothing, on purpose.
+An automatic mail triggered by an **event**: a Member cancelling a Sign-up (to the Group's Schedulers and Chairs, [ADR-0021](docs/adr/0021-scheduling-first-pass.md)), or a Member's **Category** moving to Resigned or Deceased (to the Chairs of every Group where their Membership is not already departed), or to Active from Provisional (to the mentor); an **Applicant** accepted (to the Records Audience and the mentor), placed, yellow-carded or marked Incomplete; a **Renewal** form saved (to the Records Audience, with the changed fields). Chrome in the recipient's locale, no Reply-To, plain links, never expires. Officer assign and remove, leave of absence, reinstatement, and Withdrawn send nothing, on purpose.
 _Avoid_: "notification" (retired, see Flagged ambiguities); and building a Notice on a model observer. The hook is the action that makes the change.
 
 **No-email flag**:
@@ -217,11 +298,11 @@ The every-minute scheduled task that sends pending **Deliveries**. **The only co
 _Avoid_: "worker" or "queue worker" ([ADR-0002](docs/adr/0002-stay-on-stormweb-shared-hosting.md): none exist; this is a cron pass), and sending mail from anywhere else.
 
 **Invitation**:
-An occasion a **Host** asks named **Members** to attend, together with its guest list. Members only, never outside people. An Invitation belongs to its Host, not to a **Group**: Invitations is an org-wide feature, not a Group capability.
+An occasion a **Host** asks named **Members** to attend, together with its guest list. Members only, never outside people. An Invitation belongs to its Host, not to a **Group**: Invitations is an org-wide feature, not a Group capability. An Invitation is Draft (seen only by its Host), Open (Guests see it and reply), or Closed (its date has passed).
 _Avoid_: "event", "e-Vite", "RSVP" as a noun for the occasion. And "Invitations Group": legacy's Invitations committee is not carried over.
 
 **Host**:
-The **Member** who creates an **Invitation** and runs it. Any Member whose **Category** gives Full access may host. A Host invites from the Groups they belong to; an **org-wide sender** may also invite All Members or any Group. The super-tier may manage every Invitation.
+The **Member** who creates an **Invitation** and runs it. Any Member whose **Category** gives Full access may host. A Host may invite any single Member, and whole Groups they belong to; an **org-wide sender** may also invite All Members or any Group. The super-tier may manage every Invitation.
 _Avoid_: "organiser", "creator", and the legacy "executive host" or "super-host".
 
 **Guest**:
@@ -305,7 +386,7 @@ The **Officer Tools** page for the organisation's own settings. Two sections: **
 _Avoid_: putting a Group officer's settings here (those are **Group Settings**), or calling this "admin". The root Group and a Container are not configured here past their About text and banner.
 
 **Stewardship**:
-An org-wide job held by a **Group**, so that every Member of that Group carries the job's authority. Two are live: **member administration** (held by exactly one Group, Records today) and **org-wide sender** (held by several). Assigned on **DMV Settings**; the last holder of member administration cannot be removed, and a Group that holds a stewardship cannot be archived. See [ADR-0011](docs/adr/0011-authorization-model.md), [ADR-0036](docs/adr/0036-group-administration.md).
+An org-wide job held by a **Group**, so that every Member of that Group carries the job's authority. Three are live: **member administration** (held by exactly one Group, Records today), **org-wide sender** (held by several) and **applicants** (held by one, Membership today; its Chair edits every **Applicant**, its members edit the ones they mentor). Assigned on **DMV Settings**; the last holder of member administration cannot be removed, and a Group that holds a stewardship cannot be archived. See [ADR-0011](docs/adr/0011-authorization-model.md), [ADR-0036](docs/adr/0036-group-administration.md).
 _Avoid_: confusing it with a **role** (a role is per-Member within a Group; a stewardship is per-Group across the org) or with a capability (a capability is what a Group can do for itself; a stewardship is what it does for everyone).
 
 **Locale**:
@@ -493,3 +574,31 @@ _Avoid_: reading a sentinel address as a bad address, and porting the string mat
 **Send email** (legacy button) and **DMV Reminder** (legacy From name):
 Every legacy list page carries a Send email button that posts the page's visible addresses to one shared composer. "Send email" is therefore a _surface_, not a kind of mail, and _which page it sat on_ is what we now call the **Audience** (of a **Broadcast**). "DMV Reminder" is the fixed From display name of the nightly job; ours is the Group's name on the app's one address, and the mail is a **Reminder**.
 _Avoid_: "the emailer" as a feature name. Name the Broadcast, the Audience, or the Reminder.
+
+**Records** (legacy `Members.Records` bit) and **Assistants** (legacy button):
+A tinyint on the Member row: 1 for a Records officer, 2 for an "assistant" chosen on the Assistants button. Any value above 0 unlocks the whole Records menu, so an assistant is a full Records officer. No server function checks it. **We call this member administration**, a **Stewardship** held by the Records Group; Assistants is not ported.
+_Avoid_: porting the bit, or reading 2 as a lesser power.
+
+**Museum_ID** and **PWD** (legacy columns):
+`Museum_ID` is the ROM membership card number, and its last four characters are the legacy password; `PWD` is a dead column that nothing compares, though the Records dialog still shows it. **We call the first the membership number**; the second is not ported.
+_Avoid_: treating the membership number as public data.
+
+**Category_Group** (legacy column) and **`X`**:
+A one-letter bucket stored beside `Category` (A Admin, C Current, R Retired, D Deceased, S Security, N Non-member, X "expired retired"). Only X is not derivable: Remove personal data sets it. **We call this the Category group**, derived, with X as **Past**, a marker set by Remove personal data.
+_Avoid_: importing the letter.
+
+**Applicants** (legacy table) and **promocode**:
+Intake lives in its own table, administered by the Membership subcommittee, with one shared `promocode` on a control row that opens the public form from the sign-in page. **We keep both shapes**: the **Applicant** record and the **Applicant code**, the latter with its expiry honoured and attempts throttled.
+_Avoid_: modelling an applicant as a Member.
+
+**MembersQueries** (legacy table) and **showresult.php**:
+A saved query is stored as SQL text that the browser assembled, and "Email Results" mails a link that runs it with no login. **We call this a Saved query**: stored as structure, run by the server, emailed only to Members behind login.
+_Avoid_: importing the SQL text as-is; the import rebuilds each query's clauses.
+
+**Fees_Year**, **Renewal_Year**, **RenewalControl** (legacy columns and table):
+`Fees_Year` is the year dues are paid through, typed by Records; `Renewal_Year` is the year the Member submitted the form; the one-row `MembersRenewalControl` holds the send dates and reminder texts. **We call these the paid-through year, the renewal year and Renewal settings.**
+_Avoid_: reading "fees not paid" (`_DMVFeesNotPaid`) as a dues notice; it mails Members whose ROM card has expired.
+
+**dmv_log** (legacy table):
+One row per sign-in and per committee switch since 2011: Member, time, IP, browser, platform. 1.3 million rows, nothing reads them. **We call this the Sign-in log**, with the IP and user agent blanked after a year; the legacy rows import as Member and time only.
+_Avoid_: "audit log".
