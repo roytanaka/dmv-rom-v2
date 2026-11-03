@@ -46,6 +46,10 @@ return [
     'invitations.replies' => 'invitations/{invitation}/replies',
     'profile' => 'profile',
     'renew' => 'renew',
+    // The Renewal's steps 2 to 4 (#939, ADR-0038 §9).
+    'renew.form' => 'renew/form',
+    'renew.skills' => 'renew/skills',
+    'renew.payment' => 'renew/payment',
     // Help centre (#517, ADR-0025). The index at 'help' and one article at
     // 'help/{article}'. The {article} slug is an identifier — the SAME string in
     // both locales — so only the 'help' word changes in the French twin.

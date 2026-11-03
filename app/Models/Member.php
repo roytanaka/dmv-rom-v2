@@ -8,6 +8,7 @@ use App\Enums\CategoryGroup;
 use App\Enums\DepartureReason;
 use App\Enums\DirectoryList;
 use App\Enums\Kind;
+use App\Enums\RenewalEligibility;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
 use App\Support\OrgTime;
@@ -182,6 +183,47 @@ class Member extends Authenticatable implements HasLocalePreference
         $earlier = $this->getAttributes()['notes'] ?? null;
 
         $this->notes = filled($earlier) ? $line."\n".$earlier : $line;
+    }
+
+    /**
+     * Whether this Member must act on the Renewal, and why (#939, ADR-0038 §9). Reads the settings
+     * row when none is passed.
+     */
+    public function renewalEligibility(?RenewalSetting $settings = null): RenewalEligibility
+    {
+        return RenewalEligibility::for($this, $settings ?? RenewalSetting::current());
+    }
+
+    /**
+     * The year this Member's Renewal serves (#939, ADR-0038 §9): the settings' renewal year, except
+     * from January to March for a Member with no paid-through year or on leave, whose Renewal is
+     * for the current year, as the Legacy app has it. The current year stands in until the settings
+     * row first names one.
+     */
+    public function renewalServedYear(?RenewalSetting $settings = null): int
+    {
+        $settings ??= RenewalSetting::current();
+        $now = OrgTime::now();
+
+        if ($now->month < 4 && ($this->paidThroughYear() === null || $this->onRenewalLeave())) {
+            return $now->year;
+        }
+
+        return $settings->renewal_year ?? $now->year;
+    }
+
+    /** Whether the renewal status is LOA: the Member chose leave on their last Renewal. */
+    public function onRenewalLeave(): bool
+    {
+        return strtoupper(trim((string) ($this->getAttributes()['renewal_status'] ?? null))) === 'LOA';
+    }
+
+    /** The paid-through year Records typed, or null. Read raw: a Member made in memory may lack it. */
+    public function paidThroughYear(): ?int
+    {
+        $year = $this->getAttributes()['paid_through_year'] ?? null;
+
+        return $year === null ? null : (int) $year;
     }
 
     /**
