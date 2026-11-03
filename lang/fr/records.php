@@ -152,6 +152,29 @@ return [
         ],
     ],
 
+    // Supprimer (#921, ADR-0038 §6).
+    'delete' => [
+        'title' => 'Supprimer :name',
+        'confirm_last_name' => 'Tapez le nom de famille pour confirmer',
+        'submit' => 'Supprimer',
+        'cancel' => 'Annuler',
+        'last_name_mismatch' => 'Le nom de famille ne correspond pas.',
+        'has_hours' => 'Ce membre a des relevés d’heures et ne peut pas être supprimé. Utilisez plutôt Retirer les données personnelles.',
+        'hosts_invitation' => 'Ce membre est l’hôte d’une invitation et ne peut pas être supprimé.',
+    ],
+
+    // Retirer les données personnelles (#921, ADR-0038 §6).
+    'remove_personal_data' => [
+        'title' => 'Retirer les données personnelles',
+        'year' => 'Date de statut avant le 1er janvier de',
+        'preview' => 'Aperçu',
+        'members' => 'Membres démissionnaires ou décédés : :count',
+        'applicants' => 'Candidats : :count',
+        'confirm_count' => 'Tapez le nombre de membres pour confirmer',
+        'submit' => 'Retirer les données personnelles',
+        'count_mismatch' => 'Le nombre ne correspond pas.',
+    ],
+
     'board' => [
         'add' => 'Ajouter un poste au conseil',
         'none' => 'Aucun poste au conseil pour l’instant.',

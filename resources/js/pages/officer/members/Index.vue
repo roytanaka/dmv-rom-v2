@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // The Member lists (#919, ADR-0038 §5): Officer Tools → Members. Seven tabs, one route; the server
 // sends the rows, the list's row actions and its Send email answer. The search is a query
-// parameter, applied on submit. Edit opens the Member record; Reinstate posts (#920). Delete and
-// Send email stay disabled until their tickets wire them. Photo (#922) opens a dialog that uploads or
+// parameter, applied on submit. Edit opens the Member record; Reinstate posts (#920). Delete (#921)
+// opens a dialog that asks for the Member's last name; Send email stays disabled until its ticket
+// wires it. The header links to Remove personal data (#921). Photo (#922) opens a dialog that uploads or
 // replaces the Member's photo and sets whether peers see it. Below `md` the row's facts ride under the name
 // (docs/conventions.md § Tables on small screens). Names are content, shown as stored.
 import type { NavNode } from '@/chrome/types';
@@ -61,12 +62,34 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href
 const tabItems = computed<NavNode[]>(() => props.tabs.map((tab) => ({ href: tab.href, labelKey: `records.list.${tab.key}` })));
 
 // The actions a later ticket wires; each renders disabled until then.
-const pendingActions = computed(() => props.actions.filter((action) => !['edit', 'photo', 'reinstate'].includes(action)));
+const pendingActions = computed(() => props.actions.filter((action) => !['edit', 'photo', 'reinstate', 'delete'].includes(action)));
 const canReinstate = computed(() => props.actions.includes('reinstate'));
 
 // Reinstate (#920): Reinstate then Active, dated today; the Member leaves this list.
 const reinstate = (id: number) => {
     router.post(route('members.reinstate', { member: id }), {}, { preserveScroll: true });
+};
+
+// The Delete dialog (#921): the last name typed back; a refusal (Hours records) lands on `member`.
+const deleteMember = ref<Row | null>(null);
+const deleteOpen = ref(false);
+const deleteForm = useForm({ confirm_last_name: '' });
+
+const openDelete = (member: Row) => {
+    deleteMember.value = member;
+    deleteForm.reset();
+    deleteForm.clearErrors();
+    deleteOpen.value = true;
+};
+
+const submitDelete = () => {
+    if (!deleteMember.value) {
+        return;
+    }
+    deleteForm.delete(route('members.destroy', { member: deleteMember.value.id }), {
+        preserveScroll: true,
+        onSuccess: () => (deleteOpen.value = false),
+    });
 };
 
 // The Photo dialog (#922): one Member at a time, the file optional so the flag can change alone.
@@ -140,6 +163,9 @@ const submitSearch = () => {
                         <PhEnvelopeSimple aria-hidden="true" />
                         {{ trans('records.send_email') }}
                     </Button>
+                    <Button variant="outline" as-child>
+                        <Link :href="route('officer.members.remove-personal-data')">{{ trans('records.remove_personal_data.title') }}</Link>
+                    </Button>
                 </div>
             </header>
 
@@ -197,6 +223,9 @@ const submitSearch = () => {
                                 <Button v-if="actions.includes('photo')" variant="outline" @click="openPhoto(member)">
                                     {{ trans('records.action.photo') }}
                                 </Button>
+                                <Button v-if="actions.includes('delete')" variant="outline" @click="openDelete(member)">
+                                    {{ trans('records.action.delete') }}
+                                </Button>
                                 <Button v-for="action in pendingActions" :key="action" variant="outline" disabled>
                                     {{ trans(`records.action.${action}`) }}
                                 </Button>
@@ -223,6 +252,30 @@ const submitSearch = () => {
                 </Button>
                 <span v-else />
             </nav>
+
+            <Dialog v-model:open="deleteOpen">
+                <DialogContent v-if="deleteMember">
+                    <form class="flex flex-col gap-4" @submit.prevent="submitDelete">
+                        <DialogHeader>
+                            <DialogTitle>{{
+                                trans('records.delete.title', { name: `${deleteMember.first_name} ${deleteMember.last_name}` })
+                            }}</DialogTitle>
+                        </DialogHeader>
+                        <div class="grid gap-2">
+                            <Label for="records-delete-last-name">{{ trans('records.delete.confirm_last_name') }}</Label>
+                            <Input id="records-delete-last-name" v-model="deleteForm.confirm_last_name" autocomplete="off" />
+                            <InputError :message="deleteForm.errors.confirm_last_name" />
+                        </div>
+                        <InputError :message="(deleteForm.errors as Record<string, string>).member" />
+                        <DialogFooter>
+                            <Button type="button" variant="outline" @click="deleteOpen = false">{{ trans('records.delete.cancel') }}</Button>
+                            <Button type="submit" variant="destructive" :disabled="deleteForm.processing || deleteForm.confirm_last_name === ''">
+                                {{ trans('records.delete.submit') }}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             <Dialog v-model:open="photoOpen">
                 <DialogContent v-if="photoMember">
