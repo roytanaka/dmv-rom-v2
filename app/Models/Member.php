@@ -10,7 +10,6 @@ use App\Enums\DirectoryList;
 use App\Enums\Kind;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
-use App\Http\Resources\MemberResource;
 use App\Support\OrgTime;
 use Database\Factories\MemberFactory;
 use Illuminate\Contracts\Translation\HasLocalePreference;
@@ -31,14 +30,12 @@ class Member extends Authenticatable implements HasLocalePreference
     use HasFactory, Notifiable;
 
     /**
-     * The fields the Records office keeps (ADR-0038 §3): Records-only tier. Hidden from every
-     * serialized Member, the shared `auth.user` included; they travel only through
-     * {@see MemberResource::withRecordsFields()}, behind `viewRecordsFields`, so a Member passed
-     * whole to a page can never leak one.
+     * The Records-only fields member administration edits through the record form (ADR-0038 §3).
+     * Mass assignable; the rest of {@see RECORDS_FIELDS} is written by the app itself.
      *
      * @var list<string>
      */
-    public const RECORDS_FIELDS = [
+    private const RECORDS_EDITABLE = [
         'membership_number',
         'membership_expiry',
         'membership_lifetime',
@@ -53,7 +50,6 @@ class Member extends Authenticatable implements HasLocalePreference
         'emergency_contact',
         'emergency_contact_number',
         'newsletter_opt_in',
-        'status_date',
         'code_of_conduct_year',
         'renewal_year',
         'renewal_status',
@@ -65,9 +61,23 @@ class Member extends Authenticatable implements HasLocalePreference
         'volunteer_experience',
         'past_experience',
         'education',
+        'photo_public',
+    ];
+
+    /**
+     * The fields the Records office keeps (ADR-0038 §3): Records-only tier. Hidden from every
+     * serialized Member, the shared `auth.user` included; they travel only through
+     * `MemberResource::withRecordsFields()`, behind `viewRecordsFields`, so a Member passed whole
+     * to a page can never leak one. The status date follows the Category
+     * history, Notes only grow by {@see prependNote()}, and sign-in writes the last sign-in.
+     *
+     * @var list<string>
+     */
+    public const RECORDS_FIELDS = [
+        ...self::RECORDS_EDITABLE,
+        'status_date',
         'notes',
         'last_sign_in_at',
-        'photo_public',
     ];
 
     /**
@@ -92,32 +102,7 @@ class Member extends Authenticatable implements HasLocalePreference
         'departure_reason',
         'personal_data_removed_at',
         'locale',
-        'membership_number',
-        'membership_expiry',
-        'membership_lifetime',
-        'amount_paid',
-        'paid_through_year',
-        'fee_category',
-        'entry_year',
-        'service_awards',
-        'last_award_year',
-        'next_award_year',
-        'other_awards',
-        'emergency_contact',
-        'emergency_contact_number',
-        'newsletter_opt_in',
-        'code_of_conduct_year',
-        'renewal_year',
-        'renewal_status',
-        'renewal_placements',
-        'renewal_other',
-        'record_form_placements',
-        'record_form_other',
-        'mentor_name',
-        'volunteer_experience',
-        'past_experience',
-        'education',
-        'photo_public',
+        ...self::RECORDS_EDITABLE,
     ];
 
     /**
@@ -220,8 +205,9 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
-     * Sign a change kept outside this row, such as a language or a board position, as an edit of
-     * the record, so "Last updated by" stays true.
+     * Save an edit of the record as the actor's (ADR-0036 §8): the one way "Last updated by" is
+     * written. Saves any pending change on this row and moves `updated_at`, so a change kept
+     * outside the row, such as a language or a board position, counts as an edit too.
      */
     public function markUpdatedBy(Member $actor): void
     {
@@ -344,6 +330,25 @@ class Member extends Authenticatable implements HasLocalePreference
     public function fullName(): string
     {
         return trim($this->first_name.' '.$this->last_name);
+    }
+
+    /**
+     * The Member's mailing label lines (ADR-0038 §7): name, street, "city, province", then the
+     * postal code, which the country leads only outside Canada (the Legacy app's rule).
+     *
+     * @return list<string>
+     */
+    public function mailingLabel(): array
+    {
+        $country = trim((string) $this->address_country);
+        $prefix = $country === '' || strcasecmp($country, 'canada') === 0 ? '' : $country.'    ';
+
+        return [
+            $this->fullName(),
+            (string) $this->address_street,
+            trim(implode(', ', array_filter([$this->address_city, $this->address_province], 'filled'))),
+            $prefix.$this->address_postal_code,
+        ];
     }
 
     /**

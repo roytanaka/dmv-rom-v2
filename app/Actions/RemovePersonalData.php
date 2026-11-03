@@ -89,11 +89,10 @@ class RemovePersonalData
                         ...array_fill_keys(self::BLANKED, null),
                         'photo_public' => false,
                         'personal_data_removed_at' => now(),
-                        'updated_by' => $actor->id,
                     ]);
                     // A Remember me cookie stops matching.
                     $member->setRememberToken(Str::random(60));
-                    $member->save();
+                    $member->markUpdatedBy($actor);
 
                     $member->languages()->delete();
                     $member->skills()->detach();

@@ -2,73 +2,63 @@
 
 namespace App\Support\SavedQueries;
 
-use App\Enums\Category;
-use App\Enums\CategoryGroup;
-use App\Enums\DepartureReason;
-use App\Enums\MembershipStatus;
-use App\Models\CategoryChange;
-use App\Models\Group;
+use App\Enums\SavedQueryFieldType as T;
 
 /**
  * The fixed allowlist a Saved query reads (#923, ADR-0038 §7): its sources, their fields and each
- * field's type, the operators a type takes, and the output columns. Nothing outside it is ever a
- * filter, a sort or a column. The membership number, the password and every hash or token are
- * deliberately absent: the membership number's last four characters are a sign-in secret.
- *
- * A field's type decides how its value is read: text, number, date, datetime, boolean (yes/no),
- * list (a JSON list, matched as text), or a choice from a fixed set of options.
+ * field's {@see T type}, and the output columns. Nothing outside it is ever a filter, a sort or a
+ * column. The membership number, the password and every hash or token are deliberately absent:
+ * the membership number's last four characters are a sign-in secret.
  */
 final class SavedQueryFields
 {
-    public const OPERATORS = ['is', 'is_not', 'less_than', 'greater_than', 'contains', 'not_contains'];
-
     public const CONJUNCTIONS = ['and', 'or'];
 
     /** The Member record's fields, column => type. */
     public const MEMBER = [
-        'first_name' => 'text',
-        'last_name' => 'text',
-        'email' => 'text',
-        'phone' => 'text',
-        'alternate_phone' => 'text',
-        'business_phone' => 'text',
-        'address_street' => 'text',
-        'address_city' => 'text',
-        'address_province' => 'text',
-        'address_postal_code' => 'text',
-        'address_country' => 'text',
-        'category' => 'category',
-        'category_group' => 'category_group',
-        'departure_reason' => 'departure_reason',
-        'status_date' => 'date',
-        'membership_expiry' => 'date',
-        'membership_lifetime' => 'boolean',
-        'amount_paid' => 'number',
-        'paid_through_year' => 'number',
-        'fee_category' => 'text',
-        'entry_year' => 'number',
-        'service_awards' => 'list',
-        'last_award_year' => 'number',
-        'next_award_year' => 'number',
-        'other_awards' => 'text',
-        'emergency_contact' => 'text',
-        'emergency_contact_number' => 'text',
-        'newsletter_opt_in' => 'boolean',
-        'code_of_conduct_year' => 'number',
-        'renewal_year' => 'number',
-        'renewal_status' => 'text',
-        'renewal_placements' => 'text',
-        'renewal_other' => 'text',
-        'record_form_placements' => 'text',
-        'record_form_other' => 'text',
-        'mentor_name' => 'text',
-        'volunteer_experience' => 'text',
-        'past_experience' => 'text',
-        'education' => 'text',
-        'notes' => 'text',
-        'photo_public' => 'boolean',
-        'no_email' => 'boolean',
-        'last_sign_in_at' => 'datetime',
+        'first_name' => T::Text,
+        'last_name' => T::Text,
+        'email' => T::Text,
+        'phone' => T::Text,
+        'alternate_phone' => T::Text,
+        'business_phone' => T::Text,
+        'address_street' => T::Text,
+        'address_city' => T::Text,
+        'address_province' => T::Text,
+        'address_postal_code' => T::Text,
+        'address_country' => T::Text,
+        'category' => T::Category,
+        'category_group' => T::CategoryGroup,
+        'departure_reason' => T::DepartureReason,
+        'status_date' => T::Date,
+        'membership_expiry' => T::Date,
+        'membership_lifetime' => T::Boolean,
+        'amount_paid' => T::Number,
+        'paid_through_year' => T::Number,
+        'fee_category' => T::Text,
+        'entry_year' => T::Number,
+        'service_awards' => T::List,
+        'last_award_year' => T::Number,
+        'next_award_year' => T::Number,
+        'other_awards' => T::Text,
+        'emergency_contact' => T::Text,
+        'emergency_contact_number' => T::Text,
+        'newsletter_opt_in' => T::Boolean,
+        'code_of_conduct_year' => T::Number,
+        'renewal_year' => T::Number,
+        'renewal_status' => T::Text,
+        'renewal_placements' => T::Text,
+        'renewal_other' => T::Text,
+        'record_form_placements' => T::Text,
+        'record_form_other' => T::Text,
+        'mentor_name' => T::Text,
+        'volunteer_experience' => T::Text,
+        'past_experience' => T::Text,
+        'education' => T::Text,
+        'notes' => T::Text,
+        'photo_public' => T::Boolean,
+        'no_email' => T::Boolean,
+        'last_sign_in_at' => T::Datetime,
     ];
 
     /**
@@ -78,32 +68,23 @@ final class SavedQueryFields
     public const RELATED = [
         'membership' => [
             'relation' => 'memberships',
-            'fields' => ['group' => 'group', 'status' => 'membership_status'],
+            'fields' => ['group' => T::Group, 'status' => T::MembershipStatus],
             'column' => 'memberships',
         ],
         'board_position' => [
             'relation' => 'boardPositions',
-            'fields' => ['position' => 'text', 'years' => 'text'],
+            'fields' => ['position' => T::Text, 'years' => T::Text],
             'column' => 'board_positions',
         ],
         'category_history' => [
             'relation' => 'categoryChanges',
-            'fields' => ['category' => 'history_category', 'date' => 'date'],
+            'fields' => ['category' => T::HistoryCategory, 'date' => T::Date],
             'column' => 'category_history',
         ],
     ];
 
     /** The derived Member field that names a Category group; no column stores it. */
     public const CATEGORY_GROUP = 'category_group';
-
-    /** The operators each type takes. */
-    private const TYPE_OPERATORS = [
-        'text' => self::OPERATORS,
-        'number' => ['is', 'is_not', 'less_than', 'greater_than'],
-        'date' => ['is', 'is_not', 'less_than', 'greater_than'],
-        'datetime' => ['is', 'is_not', 'less_than', 'greater_than'],
-        'list' => ['contains', 'not_contains'],
-    ];
 
     /** @return list<string> */
     public static function sources(): array
@@ -112,19 +93,13 @@ final class SavedQueryFields
     }
 
     /** The type of a source's field, or null when the pair is not on the allowlist. */
-    public static function type(string $source, string $field): ?string
+    public static function type(string $source, string $field): ?T
     {
         if ($source === 'member') {
             return self::MEMBER[$field] ?? null;
         }
 
         return self::RELATED[$source]['fields'][$field] ?? null;
-    }
-
-    /** @return list<string> */
-    public static function operatorsFor(string $type): array
-    {
-        return self::TYPE_OPERATORS[$type] ?? ['is', 'is_not'];
     }
 
     /**
@@ -149,28 +124,6 @@ final class SavedQueryFields
     public static function sortFields(): array
     {
         return array_keys(array_diff_key(self::MEMBER, [self::CATEGORY_GROUP => true, 'service_awards' => true]));
-    }
-
-    /**
-     * The fixed options of a choice type, value => label, or null for a free-text type.
-     *
-     * @return array<string, string>|null
-     */
-    public static function options(string $type): ?array
-    {
-        return match ($type) {
-            'boolean' => ['yes' => __('saved_queries.yes'), 'no' => __('saved_queries.no')],
-            'category' => self::enumOptions(Category::cases(), 'member.standing'),
-            'history_category' => [
-                ...self::enumOptions(Category::cases(), 'member.standing'),
-                CategoryChange::REINSTATE => __('records.history.reinstate'),
-            ],
-            'category_group' => self::enumOptions(CategoryGroup::cases(), 'member.category_group'),
-            'departure_reason' => self::enumOptions(DepartureReason::cases(), 'member.departure_reason'),
-            'membership_status' => self::enumOptions(MembershipStatus::cases(), 'group.standing'),
-            'group' => Group::query()->orderBy('name')->pluck('name', 'slug')->all(),
-            default => null,
-        };
     }
 
     /** The label of a source's field, in the active locale. */
@@ -206,7 +159,7 @@ final class SavedQueryFields
             return 'saved_queries.error.field';
         }
 
-        if (! is_string($operator) || ! in_array($operator, self::operatorsFor($type), true)) {
+        if (! is_string($operator) || ! in_array($operator, $type->operators(), true)) {
             return 'saved_queries.error.operator';
         }
 
@@ -217,15 +170,15 @@ final class SavedQueryFields
         $value = trim((string) $value);
 
         if ($value === '') {
-            return in_array($operator, ['is', 'is_not'], true) && $type !== 'category_group' ? null : 'saved_queries.error.value';
+            return in_array($operator, ['is', 'is_not'], true) && $type !== T::CategoryGroup ? null : 'saved_queries.error.value';
         }
 
-        $options = self::options($type);
+        $options = $type->options();
 
         return match (true) {
             $options !== null => array_key_exists($value, $options) ? null : 'saved_queries.error.value',
-            $type === 'number' => is_numeric($value) ? null : 'saved_queries.error.number',
-            $type === 'date', $type === 'datetime' => self::isDate($value) ? null : 'saved_queries.error.date',
+            $type === T::Number => is_numeric($value) ? null : 'saved_queries.error.number',
+            $type->isDate() => self::isDate($value) ? null : 'saved_queries.error.date',
             default => mb_strlen($value) <= 255 ? null : 'saved_queries.error.value',
         };
     }
@@ -235,20 +188,5 @@ final class SavedQueryFields
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
 
         return $date !== false && $date->format('Y-m-d') === $value;
-    }
-
-    /**
-     * @param  list<\BackedEnum>  $cases
-     * @return array<string, string>
-     */
-    private static function enumOptions(array $cases, string $prefix): array
-    {
-        $options = [];
-
-        foreach ($cases as $case) {
-            $options[(string) $case->value] = __("{$prefix}.{$case->value}");
-        }
-
-        return $options;
     }
 }

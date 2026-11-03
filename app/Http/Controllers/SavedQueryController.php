@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Category;
 use App\Enums\CategoryGroup;
+use App\Enums\SavedQueryFieldType;
 use App\Http\Requests\DeleteSavedQueryRequest;
 use App\Http\Requests\RenameSavedQueryRequest;
 use App\Http\Requests\SaveSavedQueryRequest;
@@ -106,6 +107,7 @@ class SavedQueryController extends Controller
                 ->whereIn('category', [...Category::inGroup(CategoryGroup::Current), ...Category::inGroup(CategoryGroup::Admin)])
                 ->orderBy('last_name')->orderBy('first_name')->orderBy('id')
                 ->get(['id', 'first_name', 'last_name'])
+                ->map(fn (Member $member): array => $member->only('id', 'first_name', 'last_name'))
                 ->all()),
         ]);
     }
@@ -117,7 +119,7 @@ class SavedQueryController extends Controller
      */
     private function formOptions(): array
     {
-        $choices = fn (string $type) => collect(SavedQueryFields::options($type) ?? [])
+        $choices = fn (SavedQueryFieldType $type) => collect($type->options() ?? [])
             ->map(fn (string $label, string|int $value) => ['value' => (string) $value, 'label' => $label])
             ->values()
             ->all();
@@ -126,12 +128,12 @@ class SavedQueryController extends Controller
             'key' => $source,
             'label' => __("saved_queries.source.{$source}"),
             'fields' => collect($source === 'member' ? SavedQueryFields::MEMBER : SavedQueryFields::RELATED[$source]['fields'])
-                ->map(fn (string $type, string $field) => [
+                ->map(fn (SavedQueryFieldType $type, string $field) => [
                     'key' => $field,
                     'label' => SavedQueryFields::fieldLabel($source, $field),
-                    'type' => $type,
-                    'operators' => SavedQueryFields::operatorsFor($type),
-                    'options' => SavedQueryFields::options($type) === null ? null : $choices($type),
+                    'type' => $type->value,
+                    'operators' => $type->operators(),
+                    'options' => $type->options() === null ? null : $choices($type),
                 ])
                 ->values()
                 ->all(),
@@ -142,7 +144,7 @@ class SavedQueryController extends Controller
             'operators' => array_map(fn (string $operator) => [
                 'key' => $operator,
                 'label' => __("saved_queries.operator.{$operator}"),
-            ], SavedQueryFields::OPERATORS),
+            ], SavedQueryFieldType::OPERATORS),
             'columns' => array_map(fn (string $column) => [
                 'key' => $column,
                 'label' => SavedQueryFields::columnLabel($column),

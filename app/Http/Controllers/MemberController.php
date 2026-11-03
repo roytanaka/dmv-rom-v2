@@ -88,8 +88,7 @@ class MemberController extends Controller
             $member->email_verified_at = null;
         }
 
-        $member->updated_by = $request->user()->id;
-        $member->save();
+        $member->markUpdatedBy($request->user());
 
         return back();
     }
