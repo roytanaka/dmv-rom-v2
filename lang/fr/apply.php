@@ -1,12 +1,17 @@
 <?php
 
-// Le code de candidature et le formulaire public (#930, ADR-0038 §8).
+// Le code de candidature et le formulaire public (#930, #949, ADR-0038 §8).
 return [
-    'title' => 'Devenir bénévole',
-    'prompt' => "Si vous avez assisté à une séance d'accueil récente, entrez le code qu'on vous a remis.",
+    'title' => 'Postuler comme bénévole',
+    'instruction' => "Entrez le code qu'on vous a remis à la séance d'accueil.",
     'code_label' => 'Code de candidature',
-    'start' => 'Postuler',
-    'wrong_code' => "Ce code n'est pas valide. Veuillez appeler le comité des adhésions du DMV au :phone.",
+    'continue' => 'Continuer',
+    'wrong_code' => "Ce code n'est pas valide. Appelez le comité des adhésions du DMV au :phone.",
+    'closed' => 'Les candidatures sont fermées pour le moment. Pour vous renseigner sur le bénévolat, appelez le comité des adhésions du DMV au :phone.',
+    'already_volunteer' => 'Déjà bénévole?',
+    'log_in' => 'Se connecter',
+    'sign_in_prompt' => 'Vous voulez devenir bénévole?',
+    'sign_in_link' => 'Commencez ici',
     'one_other_language' => 'Indiquez au plus une autre langue.',
     'submit' => 'Envoyer la candidature',
     'received_title' => 'Candidature reçue',
@@ -17,7 +22,7 @@ return [
         'button' => 'Code de candidature',
         'title' => 'Code de candidature',
         'code' => 'Code',
-        'published' => 'Offrir la candidature sur la page de connexion',
+        'published' => 'Ouvrir les candidatures',
         'expires_on' => "Valide jusqu'au",
         'save' => 'Enregistrer',
         'code_required' => 'Indiquez un code pour offrir la candidature.',

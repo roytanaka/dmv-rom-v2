@@ -1,16 +1,18 @@
 # Postuler comme bénévole
 
-Vous postulez depuis la page de connexion, avec le code reçu lors d'une séance d'accueil.
+Vous postulez sur la page **Postuler comme bénévole**, avec le code reçu lors d'une séance d'accueil.
 
 ## Entrer votre code
 
-1. Ouvrez la page de connexion.
-2. Sous le formulaire de connexion, tapez le code de candidature qu'on vous a remis.
-3. Sélectionnez **Postuler**. Le formulaire de candidature s'ouvre.
+1. Ouvrez l'adresse indiquée sur le document de la séance d'accueil.
+2. Tapez le code de candidature qu'on vous a remis.
+3. Sélectionnez **Continuer**. Le formulaire de candidature s'ouvre.
 
 Si le code n'est pas valide, la page l'indique et donne un numéro à appeler. Après cinq essais ratés, attendez une minute avant de réessayer.
 
-> **Note :** L'entrée du code n'apparaît que lorsque le comité des adhésions accepte des candidatures.
+> **Astuce :** Vous pouvez aussi sélectionner **Commencez ici** sur la page de connexion.
+
+> **Note :** Quand le comité des adhésions n'accepte pas de candidatures, la page l'indique. Elle donne un numéro à appeler.
 
 ## Remplir le formulaire
 

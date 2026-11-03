@@ -130,9 +130,9 @@ Route::group([
     Route::get(LaravelLocalization::transRoute('routes.officer.members.remove-personal-data'), [RemovePersonalDataController::class, 'show'])
         ->middleware('auth')->name('officer.members.remove-personal-data');
 
-    // The public application form (#930, ADR-0038 §8, §14.6), for guests (/apply ↔ /fr/postuler):
-    // the sign-in page POSTs the Applicant code (in the body, never the URL or the logs) to
-    // apply/code, which redirects to the form; the POST to apply stores the application.
+    // The public application form (#930, #949, ADR-0038 §8, §14.6), for guests (/apply ↔ /fr/postuler):
+    // /apply asks for the Applicant code and POSTs it (in the body, never the URL or the logs) to
+    // apply/code, which redirects back to /apply; the POST to apply stores the application.
     // ApplicationController holds the code check and its throttle.
     Route::post(LaravelLocalization::transRoute('routes.apply_code'), [ApplicationController::class, 'code'])
         ->middleware('guest')->name('apply.code');

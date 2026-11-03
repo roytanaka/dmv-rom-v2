@@ -1,12 +1,17 @@
 <?php
 
-// The Applicant code and the public application form (#930, ADR-0038 §8).
+// The Applicant code and the public application form (#930, #949, ADR-0038 §8).
 return [
     'title' => 'Apply to volunteer',
-    'prompt' => 'If you attended a recent intake meeting, enter the code you were given.',
+    'instruction' => 'Enter the code you were given at the intake meeting.',
     'code_label' => 'Applicant code',
-    'start' => 'Apply',
-    'wrong_code' => 'That code is not right. Please call the DMV Membership Committee at :phone.',
+    'continue' => 'Continue',
+    'wrong_code' => 'That code is not right. Call the DMV Membership Committee at :phone.',
+    'closed' => 'Applications are closed right now. To ask about volunteering, call the DMV Membership Committee at :phone.',
+    'already_volunteer' => 'Already a volunteer?',
+    'log_in' => 'Log in',
+    'sign_in_prompt' => 'Applying to volunteer?',
+    'sign_in_link' => 'Start here',
     'one_other_language' => 'Give one other language at most.',
     'submit' => 'Send application',
     'received_title' => 'Application received',
@@ -17,7 +22,7 @@ return [
         'button' => 'Applicant code',
         'title' => 'Applicant code',
         'code' => 'Code',
-        'published' => 'Offer the application on the sign-in page',
+        'published' => 'Open applications',
         'expires_on' => 'Good until',
         'save' => 'Save',
         'code_required' => 'Give a code to offer the application.',
