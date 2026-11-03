@@ -5,6 +5,7 @@
 return [
     'profile' => 'Mon profil',
     'renew' => "Renouveler l'adhésion",
+    'renew_provisional' => 'De provisoire à actif',
     'language' => 'Langue',
     'logout' => 'Se déconnecter',
 ];

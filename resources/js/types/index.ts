@@ -169,6 +169,9 @@ export interface SharedData {
             items: Array<{ key: string; labelKey: string; href: string }>;
         };
     };
+    /** The account menu's Renew link (#939, ADR-0038 §9): null unless the Member must act on the
+     *  Renewal; else why, and the link text's translation key. */
+    renewal: { eligibility: 'renew' | 'provisional_to_active' | 'loa'; labelKey: string } | null;
     /** Dev/QA role-switcher prop (ADR-0009). Null in production and for ordinary Members.
      *  Persona catalogue, grouping, and authority checks are entirely server-computed. */
     impersonation: {

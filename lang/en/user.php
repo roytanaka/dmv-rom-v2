@@ -7,6 +7,7 @@
 return [
     'profile' => 'My Profile',
     'renew' => 'Renew Membership', // account-menu only, not a primary nav destination (#196)
+    'renew_provisional' => 'Provisional to Active', // the Renew link for a first-year Member (#939)
     'language' => 'Language',
     'logout' => 'Log out',
 ];

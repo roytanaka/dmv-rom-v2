@@ -40,6 +40,10 @@ return [
     'invitations.replies' => 'invitations/{invitation}/reponses',
     'profile' => 'profil',
     'renew' => 'renouveler',
+    // Les étapes 2 à 4 du renouvellement (#939, ADR-0038 §9).
+    'renew.form' => 'renouveler/formulaire',
+    'renew.skills' => 'renouveler/competences',
+    'renew.payment' => 'renouveler/paiement',
     // Centre d'aide (#517, ADR-0025). L'index à « aide » et un article à
     // « aide/{article} ». Le slug {article} est un identifiant — la MÊME chaîne dans
     // les deux langues — donc seul le mot « aide » change ici.

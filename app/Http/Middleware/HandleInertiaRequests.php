@@ -99,6 +99,9 @@ class HandleInertiaRequests extends Middleware
             // production request) ships nothing. Built server-side like chromeNav /
             // rail; the toolbar computes no persona list, grouping, or authority.
             'impersonation' => $this->impersonation($request),
+            // The account menu's Renew link (#939, ADR-0038 §9): null unless the signed-in Member
+            // must act on the Renewal; else why, and the link's text key.
+            'renewal' => $this->renewal($request),
             'auth' => [
                 'user' => $request->user(),
                 // Coarse, app-wide capability map for chrome/nav (ADR-0017 §9).
@@ -204,6 +207,20 @@ class HandleInertiaRequests extends Middleware
         }
 
         return ['labelKey' => 'nav.help', 'items' => $items];
+    }
+
+    /**
+     * @return array{eligibility: string, labelKey: string}|null
+     */
+    private function renewal(Request $request): ?array
+    {
+        $eligibility = $request->user()?->renewalEligibility();
+
+        if ($eligibility === null || ! $eligibility->eligible()) {
+            return null;
+        }
+
+        return ['eligibility' => $eligibility->value, 'labelKey' => $eligibility->labelKey()];
     }
 
     /**
