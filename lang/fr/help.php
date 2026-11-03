@@ -29,6 +29,7 @@ return [
         'my-hours' => 'Mes heures',
         'directory' => 'Répertoire',
         'news' => 'Nouvelles',
+        'invitations' => 'Invitations',
         'groups' => 'Groupes',
         'scheduling' => 'Horaire',
         'hours-and-reports' => 'Heures et rapports',

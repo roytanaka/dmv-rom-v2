@@ -9,9 +9,12 @@ use App\Enums\CategoryGroup;
 use App\Enums\ContextType;
 use App\Enums\Kind;
 use App\Enums\MembershipStatus;
+use App\Enums\Reply;
 use App\Enums\Role;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\Guest;
+use App\Models\Invitation;
 use App\Models\Member;
 use App\Models\Shift;
 use App\Models\SignUp;
@@ -139,6 +142,63 @@ class AudienceResolver
     }
 
     /**
+     * The bulk picks a Host may make for a guest list (ADR-0034 §3): All Members for an
+     * org-wide sender, and the live Groups they may pick. The Broadcast rule gives a Group's
+     * members its roster; an org-wide sender also gets every Group, which the Broadcast rule
+     * does not grant, so it is added here and Broadcasts stay as they are. The root stores no
+     * roster and a Container holds none, and All Members already covers the root.
+     *
+     * @return Collection<int, Audience>
+     */
+    public function guestAudiences(Member $actor): Collection
+    {
+        $directory = AudienceContext::directory();
+
+        $groups = Group::query()->active()
+            ->where('slug', '!=', Group::ROOT_SLUG)
+            ->where('kind', '!=', Kind::Container)
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (Group $group): bool => $actor->isOrgWideSender()
+                || $this->canPick($actor, AudienceContext::group($group), AudienceKey::WholeGroup))
+            ->map(fn (Group $group): Audience => new Audience(AudienceKey::WholeGroup, $group->slug, $group->name));
+
+        return collect($this->canPick($actor, $directory, AudienceKey::AllMembers)
+            ? [new Audience(AudienceKey::AllMembers, null, $this->label($directory, AudienceKey::AllMembers, null))]
+            : [])
+            ->concat($groups)
+            ->values();
+    }
+
+    /**
+     * Resolve a bulk pick to the Members it puts on a guest list, or a 403 when the actor
+     * may not pick it. Unlike {@see resolve()} this keeps no-email Members: the flag stops
+     * mail, not an Invitation. It keeps only current Members, the same standing a single pick
+     * needs: a Directory listing.
+     *
+     * @return Collection<int, Member>
+     */
+    public function resolveGuests(Member $actor, AudienceKey $key, ?string $parameter = null): Collection
+    {
+        $picked = $this->guestAudiences($actor)->contains(
+            fn (Audience $audience): bool => $audience->key === $key && $audience->parameter === $parameter,
+        );
+
+        if (! $picked) {
+            throw new AuthorizationException(__('invitations.guests.audience_refused'));
+        }
+
+        $context = $key === AudienceKey::WholeGroup
+            ? AudienceContext::group(Group::where('slug', $parameter)->firstOrFail())
+            : AudienceContext::directory();
+
+        return $this->base($context, $key, null)
+            ->filter(fn (Member $member): bool => $member->category->grantsDirectoryListing())
+            ->unique(fn (Member $member): int => $member->getKey())
+            ->values();
+    }
+
+    /**
      * The Members an org-wide or leadership Audience holds — the base set alone, with
      * no picker rule, edits, or no-email skip. The Directory's Who's who list (#699)
      * reads it, so the Directory and email agree on who is in each set. The caller
@@ -191,6 +251,7 @@ class AudienceResolver
                 AudienceKey::HandPicked,
             ],
             ContextType::Member => [AudienceKey::OneMember],
+            ContextType::Invitation => [AudienceKey::InvitationGuests, AudienceKey::InvitationNoReply, AudienceKey::InvitationAccepted],
         };
     }
 
@@ -212,6 +273,7 @@ class AudienceResolver
                 default => $actor->isOrgWideSender(),
             },
             ContextType::Member => true,
+            ContextType::Invitation => $actor->can('send', $context->subject),
             // Group, Schedule, and Shift are all scoped to a Group.
             default => $this->canPickGroupScoped($actor, $context->owningGroup(), $key),
         };
@@ -265,6 +327,9 @@ class AudienceResolver
             AudienceKey::AllChairs => $this->chairMembers(topLevelOnly: false),
             AudienceKey::OneMember => collect([$context->subject]),
             AudienceKey::HandPicked => collect(),
+            AudienceKey::InvitationGuests => $this->guestMembers($context->subject),
+            AudienceKey::InvitationNoReply => $this->guestMembers($context->subject, Reply::NoReply),
+            AudienceKey::InvitationAccepted => $this->guestMembers($context->subject, Reply::Accepted),
         };
     }
 
@@ -280,9 +345,27 @@ class AudienceResolver
         return match ($context->type) {
             ContextType::Directory => Member::query()->inDirectory()->get(),
             ContextType::Member => collect([$context->subject]),
+            ContextType::Invitation => $this->guestMembers($context->subject),
             default => $context->owningGroup()->memberships()->with('member')->get()
                 ->map(fn (GroupMember $membership): Member => $membership->member),
         };
+    }
+
+    /**
+     * The Invitation's current Guests, optionally only those with one Reply. A Guest who
+     * stops being current stays on the list and gets no more mail (spec #901).
+     *
+     * @return Collection<int, Member>
+     */
+    private function guestMembers(Invitation $invitation, ?Reply $reply = null): Collection
+    {
+        return $invitation->guests()
+            ->when($reply !== null, fn ($query) => $query->where('reply', $reply))
+            ->whereHas('member', fn ($query) => $query->inDirectory())
+            ->with('member')
+            ->get()
+            ->map(fn (Guest $guest): Member => $guest->member)
+            ->values();
     }
 
     /**

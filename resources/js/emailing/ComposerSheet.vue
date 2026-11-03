@@ -46,6 +46,10 @@ const props = defineProps<{
     // Audience — a Tour row's Email button seeds its qualified Members. It stays a hand-pick
     // (ADR-0024 §6): the ids post as additions and the server checks them against the roster.
     seed?: number[];
+    // Prefilled, editable text (ADR-0034 §7): an Invitation opens with a mail already written.
+    prefill?: { subject: string; body: string } | null;
+    // The first Send of a Draft Invitation goes to every Guest (ADR-0034 §7), so its chips stay put.
+    lockRecipients?: boolean;
 }>();
 
 const emit = defineEmits<{ (e: 'update:open', value: boolean): void }>();
@@ -83,8 +87,8 @@ watch(
         step.value = 'who';
         search.value = '';
         chipsExpanded.value = false;
-        subject.value = '';
-        body.value = '';
+        subject.value = props.prefill?.subject ?? '';
+        body.value = props.prefill?.body ?? '';
         attachments.value = [];
         queued.value = 0;
         skipped.value = [];
@@ -322,6 +326,7 @@ function close(): void {
                         <Badge v-for="member in chips" :key="member.id" variant="secondary" class="gap-1 font-normal">
                             {{ recipientName(member) }}
                             <button
+                                v-if="!lockRecipients"
                                 type="button"
                                 class="hover:text-foreground -mr-0.5 rounded-full transition-colors"
                                 :aria-label="trans('broadcasts.composer.remove', { name: recipientName(member) })"
@@ -333,7 +338,7 @@ function close(): void {
                     </div>
                 </div>
 
-                <div>
+                <div v-if="context !== 'invitation'">
                     <Button v-if="!panelOpen" type="button" variant="outline" size="sm" @click="panelOpen = true">
                         {{ trans('broadcasts.composer.add_people') }}
                     </Button>

@@ -1,0 +1,105 @@
+<?php
+
+// Strings for Invitations (#902, ADR-0034). Chrome, translated like all chrome
+// (ADR-0004); an Invitation's name, description and Options are as-authored content
+// and never pass through here. Mirrors lang/fr/invitations.php.
+return [
+    'title' => 'Invitations',
+    'tabs' => [
+        'mine' => 'My invitations',
+        'hosting' => 'Hosting',
+    ],
+    'mine' => [
+        'empty' => 'You have no invitations.',
+    ],
+    'show' => [
+        'hosted_by' => 'Hosted by :name',
+        'your_reply' => 'Your reply',
+        'closed' => 'This invitation is closed.',
+        'full' => 'This invitation is full.',
+    ],
+    'reply' => [
+        'no_reply' => 'No reply',
+        'accepted' => 'Accepted',
+        'declined' => 'Declined',
+        'accept' => 'Accept',
+        'decline' => 'Decline',
+    ],
+    'hosting' => [
+        'empty' => 'You are not hosting any invitations.',
+        'new' => 'New invitation',
+        'date' => 'Date',
+        'name' => 'Name',
+        'host' => 'Host',
+        'status' => 'Status',
+        'actions' => 'Actions',
+    ],
+    'state' => [
+        'draft' => 'Draft',
+        'open' => 'Open',
+        'closed' => 'Closed',
+    ],
+    'form' => [
+        'create_title' => 'New invitation',
+        'edit_title' => 'Edit invitation',
+        'name' => 'Name',
+        'date' => 'Date',
+        'start_time' => 'Start time',
+        'end_time' => 'End time',
+        'description' => 'Description',
+        'guest_limit' => 'Guest limit',
+        'options' => 'Options',
+        'option_name' => 'Option name',
+        'add_option' => 'Add option',
+        'remove_option' => 'Remove option',
+    ],
+    'guests' => [
+        'title' => 'Guests',
+        'title_for' => 'Guests: :name',
+        'count' => ':count Guest|:count Guests',
+        'empty' => 'No Guests yet.',
+        'member' => 'Add a Member',
+        'audience' => 'Add a group',
+        'add' => 'Add',
+        'remove' => 'Remove',
+        'confirm_remove' => 'Remove this Guest? Their reply goes too.',
+        'audience_refused' => 'You may not invite that audience.',
+    ],
+    'send' => [
+        'action' => 'Send',
+        're_send' => 'Re-send',
+        'unreachable' => 'No Guest can be reached by email.',
+        'every_guest' => 'The first send goes to every Guest.',
+    ],
+    // The prefilled text is the Host's to edit, and stays in the Host's language. The link
+    // is the app's own text, in each Guest's language.
+    'mail' => [
+        'subject' => 'Invitation: :name',
+        'when' => 'You are invited to :name on :date, from :start to :end.',
+        'link' => 'See the invitation and reply',
+    ],
+    'reminder_email' => [
+        'subject' => 'Reminder: :name on :date',
+        'heading' => 'Your invitation is coming up',
+        'intro' => 'Hello :member — this is a reminder of an invitation you accepted:',
+        'your_options' => 'Your options: :options',
+        'view_invitation' => 'View the invitation',
+    ],
+    'replies' => [
+        'title' => 'Replies',
+        'title_for' => 'Replies: :name',
+        'print' => 'Print',
+        'email_accepted' => 'Email Accepted Guests',
+        'add' => 'Reply for a Member',
+        'set' => 'Set reply',
+        'guest' => 'Guest',
+        'member' => 'Member',
+        'reply' => 'Reply',
+    ],
+    'move_to_draft' => 'Move to Draft',
+    'edit' => 'Edit',
+    'delete' => 'Delete',
+    'save' => 'Save',
+    'cancel' => 'Cancel',
+    'confirm_delete' => 'Delete this invitation?',
+];

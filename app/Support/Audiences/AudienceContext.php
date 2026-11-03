@@ -4,6 +4,7 @@ namespace App\Support\Audiences;
 
 use App\Enums\ContextType;
 use App\Models\Group;
+use App\Models\Invitation;
 use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
@@ -18,7 +19,7 @@ final class AudienceContext
 {
     private function __construct(
         public readonly ContextType $type,
-        public readonly Group|Schedule|Shift|Member|null $subject,
+        public readonly Group|Schedule|Shift|Member|Invitation|null $subject,
     ) {}
 
     public static function group(Group $group): self
@@ -46,11 +47,16 @@ final class AudienceContext
         return new self(ContextType::Member, $member);
     }
 
+    public static function invitation(Invitation $invitation): self
+    {
+        return new self(ContextType::Invitation, $invitation);
+    }
+
     /**
      * The Group this context is scoped to, resolving a Schedule and a Shift up to
      * their owning Group — the Group whose roster and officer Audiences the Schedule
-     * context also offers (ADR-0024 §6.3). Null for the Directory and a Member
-     * profile, which are not scoped to any one Group.
+     * context also offers (ADR-0024 §6.3). Null for the Directory, a Member profile,
+     * and an Invitation, which are not scoped to any one Group.
      */
     public function owningGroup(): ?Group
     {
@@ -58,7 +64,7 @@ final class AudienceContext
             ContextType::Group => $this->subject,
             ContextType::Schedule => $this->subject->group,
             ContextType::Shift => $this->subject->schedule->group,
-            ContextType::Directory, ContextType::Member => null,
+            ContextType::Directory, ContextType::Member, ContextType::Invitation => null,
         };
     }
 }

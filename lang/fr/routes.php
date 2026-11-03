@@ -20,6 +20,22 @@ return [
     // Téléchargement d'un document (#712, ADR-0030 §13). Le {document} est l'identifiant.
     'documents.download' => 'documents/{document}/telecharger',
     'news' => 'nouvelles',
+    // Invitations (#902, ADR-0034) : Mes invitations à la racine, l'onglet Organisation, les
+    // pages de création et de modification. Le {invitation} est l'identifiant.
+    'invitations' => 'invitations',
+    'invitations.hosting' => 'invitations/organisation',
+    'invitations.create' => 'invitations/creer',
+    'invitations.invitation' => 'invitations/{invitation}',
+    'invitations.edit' => 'invitations/{invitation}/modifier',
+    // Le passage entre brouillon et ouverte, et la réponse d'un invité (#904).
+    'invitations.draft' => 'invitations/{invitation}/brouillon',
+    'invitations.reply' => 'invitations/{invitation}/reponse',
+    // La liste d'invités (#903) : la page et l'ajout d'une personne, l'ajout en bloc, un invité.
+    'invitations.guests' => 'invitations/{invitation}/invites',
+    'invitations.guests.audience' => 'invitations/{invitation}/invites/audience',
+    'invitations.guest' => 'invitations/{invitation}/invites/{guest}',
+    // La page des réponses de l'hôte et la réponse saisie pour un invité (#905).
+    'invitations.replies' => 'invitations/{invitation}/reponses',
     'profile' => 'profil',
     'renew' => 'renouveler',
     // Centre d'aide (#517, ADR-0025). L'index à « aide » et un article à

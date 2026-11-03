@@ -5,7 +5,7 @@
 // not here. The bar no longer reflects the active context.
 //   Left   — the ☰ sidebar trigger + the ROM/DMV wordmark (SVG, never live text),
 //            linking Home. The wordmark drops below sm (no square mark exists yet).
-//   Centre — the primary destinations (My Hours · My Calendar · News · Directory),
+//   Centre — the primary destinations (My Hours · My Calendar · News · Invitations · Directory),
 //            persistent locale-aware links shared from the server (`chromeNav`); the
 //            active one is highlighted in heritage-blue. Below lg they don't fit, so
 //            they collapse into one menu named for the current page (#741, ADR-0013
