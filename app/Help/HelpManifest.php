@@ -250,6 +250,9 @@ final class HelpManifest
         return [
             new HelpArticle('getting-started', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Published, route: 'dashboard'),
             new HelpArticle('change-your-language', HelpSection::GettingStarted, status: ArticleStatus::Published),
+            // The public application form (#930, ADR-0038 §8). The help centre is login-only (ADR-0025),
+            // so a visitor cannot read it; Members point applicants to it.
+            new HelpArticle('applying-to-volunteer', HelpSection::GettingStarted, status: ArticleStatus::Draft, route: 'apply'),
 
             // Volunteer basics (#524) — the everyday pages, one section per app area.
             new HelpArticle('dashboard', HelpSection::Dashboard, isOverview: true, status: ArticleStatus::Published, route: 'dashboard'),

@@ -6,6 +6,7 @@
 // as the Legacy app's. Below `md` the row's facts ride under the name (docs/conventions.md § Tables
 // on small screens). Names are content, shown as stored.
 import type { NavNode } from '@/chrome/types';
+import ApplicantCodeDialog, { type ApplicantCodeSettings } from '@/components/applicants/ApplicantCodeDialog.vue';
 import SectionTabs from '@/components/SectionTabs.vue';
 import RecordsSendEmail from '@/emailing/RecordsSendEmail.vue';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ const props = defineProps<{
     search: string | null;
     canCreate: boolean;
     memberListTabs: { key: string; href: string }[] | null;
+    applicantCode: ApplicantCodeSettings | null;
     applicants: {
         data: ApplicantRow[];
         current_page: number;
@@ -103,6 +105,7 @@ const reload = () => {
             <header class="flex flex-wrap items-center justify-between gap-3">
                 <h1 class="text-rom-ink text-2xl font-semibold">{{ title }}</h1>
                 <div class="flex flex-wrap gap-2">
+                    <ApplicantCodeDialog v-if="applicantCode" :settings="applicantCode" />
                     <!-- Send email mails the Applicants the status filter shows; holder members only, as Add applicant. -->
                     <RecordsSendEmail
                         v-if="canCreate"

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\ApplicantCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +21,8 @@ class AuthenticatedSessionController extends Controller
     {
         return Inertia::render('auth/Login', [
             'canResetPassword' => Route::has('password.request'),
+            // The Applicant code entry (#930): only while the code is published and unexpired.
+            'applicationOpen' => ApplicantCode::current()->isOpen(),
             // A 419 handler (bootstrap/app.php) flashes sessionExpired when a
             // stale form sends a guest here; say why they have to sign in again.
             'status' => $request->session()->get('sessionExpired')

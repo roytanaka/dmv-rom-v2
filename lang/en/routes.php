@@ -7,6 +7,7 @@
 // fixed prefixes (officer/…) live here verbatim and only the words change in fr.
 return [
     'dashboard' => 'dashboard',
+    'apply' => 'apply',
 
     // Zone A — personal
     'calendar' => 'calendar',

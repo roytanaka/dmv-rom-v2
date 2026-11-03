@@ -7,6 +7,7 @@
 // content, not translated.
 return [
     'dashboard' => 'tableau-de-bord',
+    'apply' => 'postuler',
 
     // Zone A — personal
     'calendar' => 'calendrier',
