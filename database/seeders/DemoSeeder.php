@@ -483,6 +483,7 @@ class DemoSeeder extends Seeder
 
         $this->roster();
         $this->bulkRoster();
+        $this->memberRecords();
         $this->prunePhotoFiles();
         $this->objects();
         $this->scheduling();
@@ -651,6 +652,53 @@ class DemoSeeder extends Seeder
     {
         $pool = $this->memberPool();
         $this->distribute($pool);
+    }
+
+    /**
+     * Fill the Member record's fields (#917, ADR-0038 §3) on every Member, personas and bulk
+     * roster alike, so the Records pages are never empty. Derived from the email hash, so a
+     * reseed lands the same values.
+     */
+    private function memberRecords(): void
+    {
+        $year = (int) now()->year;
+        $fees = ['Active', 'Active-SR', 'Active-ST', 'Sust', 'LOA'];
+        $mentors = ['Alex Morgan', 'Sam Chen', 'Priya Nair', 'Louise Tremblay'];
+
+        Member::query()->orderBy('id')->each(function (Member $member) use ($year, $fees, $mentors): void {
+            $hash = $this->hash((string) $member->email);
+            $entryYear = $year - 2 - $hash % 26;
+            $awards = (int) floor(($year - $entryYear) / 5);
+            $lastAwardYear = $awards > 0 ? $entryYear + $awards * 5 : null;
+            $paidThrough = $hash % 4 === 0 ? $year - 1 : $year;
+            $lifetime = $hash % 13 === 0;
+
+            $member->forceFill([
+                'membership_number' => sprintf('R%06d', $hash % 1000000),
+                'membership_expiry' => $lifetime ? null : sprintf('%d-%02d-01', $year + 1 + $hash % 2, 1 + $hash % 12),
+                'membership_lifetime' => $lifetime,
+                'amount_paid' => 25,
+                'paid_through_year' => $paidThrough,
+                'fee_category' => $fees[$hash % count($fees)],
+                'entry_year' => $entryYear,
+                'service_awards' => array_map(fn (int $step) => ($step * 5).' yr', $awards > 0 ? range(1, min($awards, 12)) : []),
+                'last_award_year' => $lastAwardYear,
+                'next_award_year' => ($lastAwardYear ?? $entryYear) + 5,
+                'emergency_contact' => $mentors[($hash + 1) % count($mentors)],
+                'emergency_contact_number' => sprintf('416-555-%04d', $hash % 10000),
+                'newsletter_opt_in' => $hash % 5 !== 0,
+                'status_date' => sprintf('%d-09-01', $entryYear),
+                'code_of_conduct_year' => $paidThrough,
+                'renewal_year' => $paidThrough,
+                'renewal_status' => 'Active',
+                'renewal_placements' => 'Current Group placements confirmed.',
+                'mentor_name' => $mentors[$hash % count($mentors)],
+                'volunteer_experience' => 'Community museum guide and school library helper.',
+                'past_experience' => 'Retired from a career in teaching.',
+                'education' => 'BA, University of Toronto.',
+                'notes' => sprintf("%d-03-15 DMV Records: Renewal received.\n%d-09-01 DMV Records: Welcome package sent.", $paidThrough, $entryYear),
+            ])->saveQuietly();
+        });
     }
 
     /**

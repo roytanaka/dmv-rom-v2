@@ -52,6 +52,9 @@ class ProfileUpdateRequest extends FormRequest
             // with a format, so a typo surfaces as validation feedback.
             'address_postal_code' => ['nullable', 'string', 'regex:/^[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d$/'],
             'address_country' => ['nullable', 'string', 'max:255'],
+            // The one Records field a Member keeps themself (ADR-0038 §2): ROM expiry, a date or "Life".
+            'membership_expiry' => ['nullable', 'date'],
+            'membership_lifetime' => ['nullable', 'boolean'],
             // Optional profile photo (#233). Format/size are gated by ProfilePhoto so
             // HEIC, unsupported types, and oversized files fail with actionable, tier-
             // specific messages rather than a generic file error. Absent field = no

@@ -34,6 +34,12 @@ return [
         'address_province' => 'Province',
         'address_postal_code' => 'Postal code',
         'address_country' => 'Country',
+        // The Records fields a Member sees about themself (#917, ADR-0038 §3).
+        'membership_heading' => 'ROM membership',
+        'paid_through_year' => 'Paid-through year',
+        'last_award_year' => 'Last award',
+        'membership_expiry' => 'ROM membership expiry',
+        'membership_lifetime' => 'Life',
         // Profile photo (#233). Public once uploaded; optional (no photo = initials).
         'photo' => 'Profile photo',
         'photo_hint' => 'JPG, PNG, or WebP, up to 5 MB. Cropped to a square automatically.',

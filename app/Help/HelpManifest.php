@@ -215,6 +215,8 @@ final class HelpManifest
             'calendar', 'documents', 'profile', 'renew',
             'officer.members', 'officer.communications', 'officer.reports',
             'officer.flash-messages',
+            // The Member record's article ships with the Member lists (#919).
+            'officer.members.record',
             // CSV export twins — each rides behind a report page an article covers.
             'groups.hours.report.csv',
             'groups.hours.month.csv',

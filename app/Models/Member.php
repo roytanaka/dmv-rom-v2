@@ -10,11 +10,14 @@ use App\Enums\DirectoryList;
 use App\Enums\Kind;
 use App\Enums\Role;
 use App\Enums\StewardshipFunction;
+use App\Http\Resources\MemberResource;
+use App\Support\OrgTime;
 use Database\Factories\MemberFactory;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -26,6 +29,45 @@ class Member extends Authenticatable implements HasLocalePreference
 {
     /** @use HasFactory<MemberFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * The fields the Records office keeps (ADR-0038 §3): Records-only tier. Hidden from every
+     * serialized Member, the shared `auth.user` included; they travel only through
+     * {@see MemberResource::withRecordsFields()}, behind `viewRecordsFields`, so a Member passed
+     * whole to a page can never leak one.
+     *
+     * @var list<string>
+     */
+    public const RECORDS_FIELDS = [
+        'membership_number',
+        'membership_expiry',
+        'membership_lifetime',
+        'amount_paid',
+        'paid_through_year',
+        'fee_category',
+        'entry_year',
+        'service_awards',
+        'last_award_year',
+        'next_award_year',
+        'other_awards',
+        'emergency_contact',
+        'emergency_contact_number',
+        'newsletter_opt_in',
+        'status_date',
+        'code_of_conduct_year',
+        'renewal_year',
+        'renewal_status',
+        'renewal_placements',
+        'renewal_other',
+        'record_form_placements',
+        'record_form_other',
+        'mentor_name',
+        'volunteer_experience',
+        'past_experience',
+        'education',
+        'notes',
+        'last_sign_in_at',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -49,6 +91,31 @@ class Member extends Authenticatable implements HasLocalePreference
         'departure_reason',
         'personal_data_removed_at',
         'locale',
+        'membership_number',
+        'membership_expiry',
+        'membership_lifetime',
+        'amount_paid',
+        'paid_through_year',
+        'fee_category',
+        'entry_year',
+        'service_awards',
+        'last_award_year',
+        'next_award_year',
+        'other_awards',
+        'emergency_contact',
+        'emergency_contact_number',
+        'newsletter_opt_in',
+        'code_of_conduct_year',
+        'renewal_year',
+        'renewal_status',
+        'renewal_placements',
+        'renewal_other',
+        'record_form_placements',
+        'record_form_other',
+        'mentor_name',
+        'volunteer_experience',
+        'past_experience',
+        'education',
     ];
 
     /**
@@ -59,6 +126,9 @@ class Member extends Authenticatable implements HasLocalePreference
     protected $hidden = [
         'password',
         'remember_token',
+        'created_by',
+        'updated_by',
+        ...self::RECORDS_FIELDS,
     ];
 
     /**
@@ -88,7 +158,50 @@ class Member extends Authenticatable implements HasLocalePreference
             'super_tier' => 'boolean',
             'support_operator' => 'boolean',
             'no_email' => 'boolean',
+            'membership_expiry' => 'date',
+            'membership_lifetime' => 'boolean',
+            'amount_paid' => 'decimal:2',
+            'service_awards' => 'array',
+            'newsletter_opt_in' => 'boolean',
+            'status_date' => 'date',
+            'last_sign_in_at' => 'datetime',
         ];
+    }
+
+    /**
+     * A Member with no email is a Member the mail cannot reach (ADR-0038 §3). Raising the no-email
+     * flag here keeps them out of every Delivery writer, each of which reads the flag and none of
+     * which can store a blank address. Filling the address back in leaves the flag for Records.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Member $member): void {
+            if (($member->getAttributes()['email'] ?? null) === null) {
+                $member->no_email = true;
+            }
+        });
+    }
+
+    /**
+     * Prepend a dated, signed line to the Notes log (ADR-0038 §3). The one write to `notes`, so
+     * an earlier line is never touched. The date is the museum's day.
+     */
+    public function prependNote(string $text, Member $author): void
+    {
+        $line = OrgTime::now()->toDateString().' '.$author->fullName().': '.$text;
+        $earlier = $this->getAttributes()['notes'] ?? null;
+
+        $this->notes = filled($earlier) ? $line."\n".$earlier : $line;
+    }
+
+    /**
+     * Who last saved this record (ADR-0036 §8).
+     *
+     * @return BelongsTo<Member, $this>
+     */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(Member::class, 'updated_by');
     }
 
     /**

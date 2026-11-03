@@ -34,6 +34,12 @@ return [
         'address_province' => 'Province',
         'address_postal_code' => 'Code postal',
         'address_country' => 'Pays',
+        // Les champs des dossiers qu’un membre voit à son sujet (#917, ADR-0038 §3).
+        'membership_heading' => 'Adhésion au ROM',
+        'paid_through_year' => 'Payé jusqu’en',
+        'last_award_year' => 'Dernier prix',
+        'membership_expiry' => 'Expiration de l’adhésion au ROM',
+        'membership_lifetime' => 'À vie',
         // Photo de profil (#233). Publique une fois téléversée ; facultative (aucune photo = initiales).
         'photo' => 'Photo de profil',
         'photo_hint' => 'JPG, PNG ou WebP, jusqu’à 5 Mo. Recadrée automatiquement en carré.',

@@ -27,6 +27,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *   (#232, ADR-0017 §field-level visibility).
  * - Gated behind the `viewNoEmailFlag` ability (Records-only, stricter still): the
  *   no-email flag — Records / super-tier only, never the member themself (#483).
+ * - Gated behind the `viewRecordsFields` ability (Records-only): the Records office's
+ *   fields (ADR-0038 §3), and only on a payload built {@see withRecordsFields()}, so a
+ *   roster row never carries a Member's notes even to a member admin.
  *
  * @property Member $resource
  */
@@ -48,6 +51,12 @@ class MemberResource extends JsonResource
     protected bool $includeContact = true;
 
     /**
+     * Whether this instance carries the Records-only fields, for a viewer allowed them. Off
+     * unless asked for: only a single Member's page wants them.
+     */
+    protected bool $includeRecordsFields = false;
+
+    /**
      * Build the directory-list collection: contact PII is suppressed for every row
      * up front, so the ~500-row roster never carries email/phone for any viewer and
      * the gate is never evaluated per row (#169, ADR-0017).
@@ -62,6 +71,17 @@ class MemberResource extends JsonResource
         });
 
         return $collection;
+    }
+
+    /**
+     * Carry the Records-only fields ({@see Member::RECORDS_FIELDS}) for a viewer allowed them.
+     * The Member must be freshly loaded: strict mode refuses an unhydrated column.
+     */
+    public function withRecordsFields(): static
+    {
+        $this->includeRecordsFields = true;
+
+        return $this;
     }
 
     /**
@@ -85,6 +105,9 @@ class MemberResource extends JsonResource
         // the member may see about themselves.
         $canViewNoEmailFlag = $this->includeContact
             && (bool) $request->user()?->can('viewNoEmailFlag', $this->resource);
+
+        $canViewRecordsFields = $this->includeRecordsFields
+            && (bool) $request->user()?->can('viewRecordsFields', $this->resource);
 
         return [
             'id' => $this->id,
@@ -131,6 +154,13 @@ class MemberResource extends JsonResource
             // never leaked to a peer or to the member themself (#483, ADR-0024 §9).
             $this->mergeWhen($canViewNoEmailFlag, fn () => [
                 'no_email' => (bool) $this->no_email,
+            ]),
+            // Records-only: absent for anyone but the Member, Records, or super-tier —
+            // never leaked to a peer or a Group officer (ADR-0038 §3).
+            $this->mergeWhen($canViewRecordsFields, fn () => [
+                ...$this->resource->only(Member::RECORDS_FIELDS),
+                'membership_expiry' => $this->membership_expiry?->toDateString(),
+                'status_date' => $this->status_date?->toDateString(),
             ]),
         ];
     }
