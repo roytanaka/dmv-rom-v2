@@ -145,6 +145,10 @@ it('offers the code entry on the sign-in page only while published and unexpired
     $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('applicationOpen', false));
 });
 
+it('gives the sign-in page the number to call from the one place the code check names it', function () {
+    $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('helpPhone', '(416) 586-8097'));
+});
+
 // The code check.
 
 it('shows the form for the right code, in either case', function () {

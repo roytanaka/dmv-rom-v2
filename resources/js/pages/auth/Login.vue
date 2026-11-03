@@ -15,6 +15,7 @@ defineProps<{
     status?: string;
     canResetPassword: boolean;
     applicationOpen: boolean;
+    helpPhone: string;
 }>();
 
 // Remember me keeps the member signed in on this device (#687; lifetime in ADR-0001).
@@ -27,7 +28,6 @@ const form = useForm({
 
 const showPassword = ref(false);
 
-const receptionPhone = '(416) 586-8097';
 const officeEmail = 'volunteers@rom.on.ca';
 
 // The Applicant code entry (#930, ADR-0038 §8): shown only while the code is published and
@@ -122,7 +122,7 @@ const submit = () => {
         </form>
 
         <p class="text-muted-foreground mt-8 text-sm">
-            {{ trans('auth.login.help_before', { phone: receptionPhone }) }}
+            {{ trans('auth.login.help_before', { phone: helpPhone }) }}
             <!-- mailto is an external scheme, so a plain anchor — not the Inertia <Link> TextLink wraps. -->
             <a
                 :href="`mailto:${officeEmail}`"

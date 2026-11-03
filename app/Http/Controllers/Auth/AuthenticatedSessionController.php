@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\ApplicantCode;
@@ -23,6 +24,8 @@ class AuthenticatedSessionController extends Controller
             'canResetPassword' => Route::has('password.request'),
             // The Applicant code entry (#930): only while the code is published and unexpired.
             'applicationOpen' => ApplicantCode::current()->isOpen(),
+            // The Membership Committee's line, from the one place the code check names it too.
+            'helpPhone' => ApplicationController::PHONE,
             // A 419 handler (bootstrap/app.php) flashes sessionExpired when a
             // stale form sends a guest here; say why they have to sign in again.
             'status' => $request->session()->get('sessionExpired')
