@@ -12,13 +12,14 @@ use App\Models\Guest;
 use App\Models\SignUp;
 use App\Support\EmptyDesk\EmptyDeskAlertWriter;
 use App\Support\OrgTime;
+use App\Support\Renewal\RenewalReminderWriter;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 
 /**
  * The daily pass (spec #479, ADR-0024 §7, §10) — the once-a-day, 06:00-org-time task that writes
- * the day's Reminder and empty-desk-alert Deliveries. It **only writes rows**; the every-minute
+ * the day's Reminder, empty-desk-alert and Renewal reminder Deliveries. It **only writes rows**; the every-minute
  * {@see DrainDeliveries} sends them within the hour. Scheduled with a 10-minute overlap lock in
  * `routes/console.php`.
  *
@@ -45,7 +46,7 @@ class RunDailyMailPass extends Command
     /** How many days ahead of the occasion an Invitation Reminder goes (ADR-0034 §12). */
     private const INVITATION_REMINDER_LEAD_DAYS = 4;
 
-    public function handle(EmptyDeskAlertWriter $emptyDeskAlerts): int
+    public function handle(EmptyDeskAlertWriter $emptyDeskAlerts, RenewalReminderWriter $renewalReminders): int
     {
         if (config('mail.daily_pass_off')) {
             Log::info('mail:daily-pass skipped: MAIL_DAILY_PASS_OFF is on (Beta), so no Deliveries were written.');
@@ -69,6 +70,10 @@ class RunDailyMailPass extends Command
         // The empty-desk alert runs on its own every-third-day cadence and Group-setting gate,
         // so it is its own writer (ADR-0024 §7); the pass just hands it the wheel.
         $emptyDeskAlerts->write();
+
+        // The Renewal reminders (#942, ADR-0038 §9): Active and Sustaining series from the
+        // Renewal settings send dates, each a window with a sent record on the series grain.
+        $renewalReminders->write();
 
         return self::SUCCESS;
     }
