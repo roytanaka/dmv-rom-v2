@@ -13,10 +13,7 @@ use App\Models\Group;
 use App\Models\GroupStewardship;
 use App\Models\Member;
 use App\Support\OrgTime;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Schema;
 
 /*
  * Accept an Applicant and the intake Notices (#931, ADR-0038 §4, §8, §14.5). A move to Accepted or
@@ -274,28 +271,6 @@ it('skips a mentor carrying the no-email flag', function () {
     moveApplicant($org['chair'], $applicant, 'placed')->assertSessionHasNoErrors();
 
     expect(Delivery::count())->toBe(0);
-});
-
-it('copies each Notice to the external addresses only when the Renewal settings list them', function () {
-    $org = acceptOrg();
-    $applicant = acceptApplicant($org, ['status' => ApplicantStatus::Placed, 'member_id' => $org['records'][0]->id]);
-    moveApplicant($org['chair'], $applicant, 'yellow_card_completed');
-    expect(Delivery::whereNull('member_id')->count())->toBe(0);
-
-    Schema::create('renewal_settings', function (Blueprint $table) {
-        $table->id();
-        $table->json('external_addresses')->nullable();
-    });
-    DB::table('renewal_settings')->insert(['external_addresses' => json_encode([])]);
-    moveApplicant($org['chair'], $applicant->fresh(), 'placed');
-    expect(Delivery::whereNull('member_id')->count())->toBe(0);
-
-    DB::table('renewal_settings')->update(['external_addresses' => json_encode(['dmvrec@example.test', 'treasurer@example.test'])]);
-    moveApplicant($org['chair'], $applicant->fresh(), 'yellow_card_completed');
-
-    $copies = Delivery::whereNull('member_id')->get();
-    expect($copies->pluck('email')->sort()->values()->all())->toBe(['dmvrec@example.test', 'treasurer@example.test'])
-        ->and($copies->every(fn (Delivery $row) => $row->payload['notice'] === ApplicantNotice::YELLOW_CARD && isset($row->payload['locale'])))->toBeTrue();
 });
 
 it('sends the activation mentor Notice to the mentor of the linked Applicant', function () {

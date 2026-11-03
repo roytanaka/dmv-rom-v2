@@ -14,8 +14,6 @@ use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * The intake Notices (#931, ADR-0038 §8, §14.5), the Legacy app's mails to the Records mailbox and
@@ -26,9 +24,6 @@ use Illuminate\Support\Facades\Schema;
  * - placed: the mentor;
  * - yellow card completed: the Treasurer of the DMV Executive;
  * - incomplete, once a Member is linked: the mentor, with the reason.
- *
- * Each also goes to every external address the Renewal settings list (#915), which replace the
- * Legacy app's hard-coded ROM mailboxes. Until that row exists, or while it lists none, nothing.
  */
 class ApplicantNoticeWriter
 {
@@ -59,7 +54,7 @@ class ApplicantNoticeWriter
     }
 
     /**
-     * One row per distinct recipient with an address, then one per external address.
+     * One row per distinct recipient, skipping the no-email flag.
      *
      * @param  array<string, mixed>  $payload
      * @param  Collection<int, Member|null>  $recipients
@@ -69,22 +64,18 @@ class ApplicantNoticeWriter
         $recipients->filter()
             ->unique('id')
             ->reject(fn (Member $member): bool => $member->no_email)
-            ->each(fn (Member $member) => $this->deliver($member->getKey(), $member->email, $payload));
-
-        foreach (self::externalAddresses() as $address) {
-            $this->deliver(null, $address, [...$payload, 'locale' => config('app.locale')]);
-        }
+            ->each(fn (Member $member) => $this->deliver($member, $payload));
     }
 
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function deliver(?int $memberId, string $email, array $payload): void
+    private function deliver(Member $member, array $payload): void
     {
         Delivery::create([
             'kind' => DeliveryKind::Notice,
-            'member_id' => $memberId,
-            'email' => $email,
+            'member_id' => $member->getKey(),
+            'email' => $member->email,
             'payload' => $payload,
             'state' => DeliveryState::Pending,
             'next_attempt_at' => now(),
@@ -147,22 +138,5 @@ class ApplicantNoticeWriter
             ->whereIn('status', MembershipStatus::belongingValues())
             ->with(['member', 'roles'])
             ->get();
-    }
-
-    /**
-     * The external addresses on the Renewal settings row (#915), read only when that table exists.
-     *
-     * @return list<string>
-     */
-    private static function externalAddresses(): array
-    {
-        if (! Schema::hasTable('renewal_settings')) {
-            return [];
-        }
-
-        $stored = DB::table('renewal_settings')->value('external_addresses');
-        $addresses = is_string($stored) ? json_decode($stored, true) : $stored;
-
-        return array_values(array_filter((array) $addresses, fn ($address) => is_string($address) && filled($address)));
     }
 }
