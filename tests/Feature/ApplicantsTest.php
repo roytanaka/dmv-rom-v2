@@ -108,6 +108,20 @@ it('shows the rail item to a holder member', function () {
         )));
 });
 
+it('leaves the rail item to the Members item for member administration', function () {
+    intakeOrg();
+
+    $this->actingAs(intakeMemberAdmin())->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('rail.officer.items', fn ($items) => collect($items)->pluck('key')->all() === ['members']));
+});
+
+it('shows the rail item to a Chair of another active Group', function () {
+    $org = intakeOrg();
+
+    $this->actingAs($org['foreignChair'])->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('rail.officer.items', fn ($items) => collect($items)->contains('key', 'applicants')));
+});
+
 it('refuses a Chair of an archived Group', function () {
     intakeOrg();
     $archived = Group::factory()->archived()->create();
