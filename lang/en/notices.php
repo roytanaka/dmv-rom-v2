@@ -107,4 +107,18 @@ return [
         'heading' => 'Applicant marked Incomplete',
         'intro' => ':applicant has been marked Incomplete. Their Member record should be withdrawn.',
     ],
+    // The Renewal reminder summary (#942, ADR-0038 §9): who one daily-pass run mailed, by series.
+    // The names are as-authored.
+    'renewal_reminder_summary' => [
+        'from' => 'DMV Records',
+        'subject' => 'Renewal reminder emails sent today',
+        'heading' => 'Renewal reminders sent',
+        'intro' => 'Today’s daily mail pass wrote these reminders for the :year renewal.',
+        'series' => [
+            'active-1' => '1st reminder, Active Members',
+            'active-2' => '2nd reminder, Active Members',
+            'sustaining-1' => '1st reminder, Sustaining Members',
+            'sustaining-2' => '2nd reminder, Sustaining Members',
+        ],
+    ],
 ];

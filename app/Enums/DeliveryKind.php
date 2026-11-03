@@ -25,4 +25,7 @@ enum DeliveryKind: string
     case Invitation = 'invitation';
     // A Reminder before an Invitation (#909, ADR-0034 §12), rendered from the live Invitation.
     case InvitationReminder = 'invitation_reminder';
+    // A Renewal reminder (#942, ADR-0038 §9), keyed on `series` and `series_year` and rendered
+    // from the settings text snapshotted in its payload.
+    case RenewalReminder = 'renewal_reminder';
 }

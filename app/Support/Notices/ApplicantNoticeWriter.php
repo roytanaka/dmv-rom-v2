@@ -6,7 +6,6 @@ use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
-use App\Enums\StewardshipFunction;
 use App\Mail\ApplicantNotice;
 use App\Models\Applicant;
 use App\Models\Delivery;
@@ -31,7 +30,7 @@ class ApplicantNoticeWriter
     {
         $this->write(
             $this->payload(ApplicantNotice::ACCEPTED, $applicant, ['member' => ['id' => $member->id]]),
-            $this->recordsRoster()->push($applicant->mentor),
+            RecordsRoster::members()->push($applicant->mentor),
         );
     }
 
@@ -101,18 +100,6 @@ class ApplicantNoticeWriter
             'placement' => $applicant->placementGroup?->name,
             ...$extra,
         ];
-    }
-
-    /**
-     * The member-administration holder's roster (the Records Audience).
-     *
-     * @return Collection<int, Member>
-     */
-    private function recordsRoster(): Collection
-    {
-        $records = Group::stewardOf(StewardshipFunction::MemberAdmin);
-
-        return $records === null ? collect() : $this->roster($records)->map(fn (GroupMember $m): Member => $m->member);
     }
 
     /**

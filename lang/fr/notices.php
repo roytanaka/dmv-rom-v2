@@ -108,4 +108,17 @@ return [
         'heading' => 'Candidat marqué incomplet',
         'intro' => ':applicant a été marqué incomplet. Son dossier de membre devrait être retiré.',
     ],
+    // Le résumé des rappels de renouvellement (#942, ADR-0038 §9).
+    'renewal_reminder_summary' => [
+        'from' => 'Dossiers DMV',
+        'subject' => 'Rappels de renouvellement envoyés aujourd’hui',
+        'heading' => 'Rappels de renouvellement envoyés',
+        'intro' => 'Le passage quotidien du courriel a écrit ces rappels pour le renouvellement :year.',
+        'series' => [
+            'active-1' => '1er rappel, membres actifs',
+            'active-2' => '2e rappel, membres actifs',
+            'sustaining-1' => '1er rappel, membres de soutien',
+            'sustaining-2' => '2e rappel, membres de soutien',
+        ],
+    ],
 ];
