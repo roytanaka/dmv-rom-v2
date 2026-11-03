@@ -84,6 +84,7 @@ const props = defineProps<{
     feeCategories: { code: string; name: string; amount: string }[];
     serviceAwards: { code: string; years: number }[];
     boardPositionSuggestions: string[];
+    signInsCount: number;
     lastUpdated: { name: string; date: string } | null;
 }>();
 
@@ -137,7 +138,14 @@ const form = useForm({
     new_note: '',
 });
 
-const lastSignIn = computed(() => props.member.last_sign_in_at?.slice(0, 10) ?? null);
+// An instant, read in the org timezone like every other instant in the app.
+const lastSignIn = computed(() =>
+    props.member.last_sign_in_at
+        ? new Intl.DateTimeFormat(page.props.locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: page.props.timezone }).format(
+              new Date(props.member.last_sign_in_at),
+          )
+        : null,
+);
 
 const toggleLifetime = (checked: boolean) => {
     form.membership_lifetime = checked;
@@ -217,10 +225,12 @@ const save = () => {
                             <dt class="text-muted-foreground">{{ trans('records.field.status_date') }}</dt>
                             <dd>{{ formatDateOnly(member.status_date, page.props.locale) }}</dd>
                         </template>
-                        <template v-if="lastSignIn">
+                        <template v-if="member.last_sign_in_at">
                             <dt class="text-muted-foreground">{{ trans('records.field.last_sign_in_at') }}</dt>
-                            <dd>{{ formatDateOnly(lastSignIn, page.props.locale) }}</dd>
+                            <dd>{{ lastSignIn }}</dd>
                         </template>
+                        <dt class="text-muted-foreground">{{ trans('records.field.sign_ins_count') }}</dt>
+                        <dd>{{ signInsCount }}</dd>
                     </dl>
                 </DmvSettingsSection>
 

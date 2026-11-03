@@ -87,6 +87,25 @@ class MemberResource extends JsonResource
     }
 
     /**
+     * One row of a Member list (ADR-0038 §5). Its page is gated on member administration as a
+     * whole, so the row skips the per-Member gates and carries only what the list shows.
+     *
+     * @return array<string, mixed>
+     */
+    public function recordsListRow(): array
+    {
+        return [
+            'id' => $this->id,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'standing' => $this->category->value,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'last_update' => $this->updated_at?->timezone(config('app.org_timezone'))->toDateString(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

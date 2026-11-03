@@ -17,7 +17,7 @@ use Inertia\Testing\AssertableInertia as Assert;
  * and board positions, kept by member administration and never sent to a peer.
  */
 
-function listsMemberAdmin(): Member
+function recordListsAdmin(): Member
 {
     $records = Group::factory()->create();
     GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
@@ -30,7 +30,7 @@ function listsMemberAdmin(): Member
 describe('languages', function () {
     it('adds a language and shows it on the record', function () {
         $member = Member::factory()->create();
-        $admin = listsMemberAdmin();
+        $admin = recordListsAdmin();
 
         $this->actingAs($admin)
             ->post("/members/{$member->id}/languages", ['language_code' => 'fr', 'speaks' => true, 'reads' => true, 'writes' => false])
@@ -49,7 +49,7 @@ describe('languages', function () {
     it('takes a free other language', function () {
         $member = Member::factory()->create();
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->post("/members/{$member->id}/languages", ['language_code' => 'Italian', 'reads' => true])
             ->assertSessionHasNoErrors();
 
@@ -59,7 +59,7 @@ describe('languages', function () {
     it('stores ASL and LSQ as speak-only, however they are spelled or sent', function (string $sent, string $stored) {
         $member = Member::factory()->create();
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->post("/members/{$member->id}/languages", ['language_code' => $sent, 'reads' => true, 'writes' => true])
             ->assertSessionHasNoErrors();
 
@@ -75,7 +75,7 @@ describe('languages', function () {
         $member = Member::factory()->create();
         $row = $member->languages()->create(['language_code' => 'asl']);
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->patch("/members/{$member->id}/languages/{$row->id}", ['speaks' => false, 'reads' => true, 'writes' => true])
             ->assertSessionHasNoErrors();
 
@@ -85,7 +85,7 @@ describe('languages', function () {
     it('refuses a second row for one language, and a blank one', function () {
         $member = Member::factory()->create();
         $member->languages()->create(['language_code' => 'en', 'speaks' => true]);
-        $admin = listsMemberAdmin();
+        $admin = recordListsAdmin();
 
         $this->actingAs($admin)
             ->post("/members/{$member->id}/languages", ['language_code' => 'en', 'reads' => true])
@@ -102,7 +102,7 @@ describe('languages', function () {
         $member = Member::factory()->create();
         Member::factory()->create()->languages()->create(['language_code' => 'en', 'speaks' => true]);
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->post("/members/{$member->id}/languages", ['language_code' => 'en', 'speaks' => true])
             ->assertSessionHasNoErrors();
 
@@ -112,7 +112,7 @@ describe('languages', function () {
     it('changes the flags and removes a row', function () {
         $member = Member::factory()->create();
         $row = $member->languages()->create(['language_code' => 'en', 'speaks' => true]);
-        $admin = listsMemberAdmin();
+        $admin = recordListsAdmin();
 
         $this->actingAs($admin)
             ->patch("/members/{$member->id}/languages/{$row->id}", ['speaks' => true, 'reads' => true, 'writes' => true])
@@ -129,7 +129,7 @@ describe('languages', function () {
         $member = Member::factory()->create();
         $row = Member::factory()->create()->languages()->create(['language_code' => 'en', 'speaks' => true]);
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->delete("/members/{$member->id}/languages/{$row->id}")
             ->assertNotFound();
 
@@ -151,7 +151,7 @@ describe('Service awards', function () {
         $member = Member::factory()->create();
         $member->forceFill(['service_awards' => ['5 yr']])->save();
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->patch("/members/{$member->id}/record", [
                 'first_name' => $member->first_name,
                 'last_name' => $member->last_name,
@@ -167,7 +167,7 @@ describe('Service awards', function () {
         $member = Member::factory()->create();
         $member->forceFill(['last_award_year' => 2015, 'next_award_year' => 2020])->save();
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->patch("/members/{$member->id}/record", [
                 'first_name' => $member->first_name,
                 'last_name' => $member->last_name,
@@ -183,7 +183,7 @@ describe('Service awards', function () {
         $member = Member::factory()->create();
         $member->forceFill(['last_award_year' => 2015, 'next_award_year' => 2020])->save();
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->patch("/members/{$member->id}/record", [
                 'first_name' => $member->first_name,
                 'last_name' => $member->last_name,
@@ -200,7 +200,7 @@ describe('Service awards', function () {
         $member = Member::factory()->create();
         $member->forceFill(['last_award_year' => 2015, 'next_award_year' => 2030])->save();
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->patch("/members/{$member->id}/record", [
                 'first_name' => $member->first_name,
                 'last_name' => $member->last_name,
@@ -216,7 +216,7 @@ describe('Service awards', function () {
         $member = Member::factory()->create();
         $member->forceFill(['last_award_year' => 2015, 'next_award_year' => 2020])->save();
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->patch("/members/{$member->id}/record", [
                 'first_name' => $member->first_name,
                 'last_name' => $member->last_name,
@@ -232,7 +232,7 @@ describe('Service awards', function () {
 describe('board positions', function () {
     it('adds a position, signed, and lists the record\'s newest first', function () {
         $member = Member::factory()->create();
-        $admin = listsMemberAdmin();
+        $admin = recordListsAdmin();
 
         foreach (['Treasurer', 'President'] as $position) {
             $this->actingAs($admin)
@@ -253,7 +253,7 @@ describe('board positions', function () {
 
     it('requires a position, and leaves the years open', function () {
         $member = Member::factory()->create();
-        $admin = listsMemberAdmin();
+        $admin = recordListsAdmin();
 
         $this->actingAs($admin)
             ->post("/members/{$member->id}/board-positions", ['position' => '', 'years' => '2020'])
@@ -269,7 +269,7 @@ describe('board positions', function () {
     it('changes a position, signed, and removes one', function () {
         $member = Member::factory()->create();
         $row = $member->boardPositions()->create(['position' => 'Treasurer', 'years' => '2019']);
-        $admin = listsMemberAdmin();
+        $admin = recordListsAdmin();
 
         $this->actingAs($admin)
             ->patch("/members/{$member->id}/board-positions/{$row->id}", ['position' => 'Past President', 'years' => '2020-2022'])
@@ -289,7 +289,7 @@ describe('board positions', function () {
         Member::factory()->create()->boardPositions()->create(['position' => 'Treasurer']);
         Member::factory()->create()->boardPositions()->create(['position' => 'President']);
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->get("/officer/members/records/{$member->id}")
             ->assertInertia(fn (Assert $page) => $page->where('boardPositionSuggestions', ['President', 'Treasurer']));
     });
@@ -298,7 +298,7 @@ describe('board positions', function () {
         $member = Member::factory()->create();
         $row = Member::factory()->create()->boardPositions()->create(['position' => 'Treasurer']);
 
-        $this->actingAs(listsMemberAdmin())
+        $this->actingAs(recordListsAdmin())
             ->patch("/members/{$member->id}/board-positions/{$row->id}", ['position' => 'Forged'])
             ->assertNotFound();
 
@@ -324,7 +324,7 @@ describe('board positions', function () {
 it('marks the admin the last editor of the record on a list change', function () {
     Carbon::setTestNow('2026-11-03 12:00:00');
     $member = Member::factory()->create();
-    $admin = listsMemberAdmin();
+    $admin = recordListsAdmin();
 
     $this->actingAs($admin)
         ->post("/members/{$member->id}/board-positions", ['position' => 'Secretary'])

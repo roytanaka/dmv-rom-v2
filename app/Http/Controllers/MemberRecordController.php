@@ -30,7 +30,7 @@ class MemberRecordController extends Controller
             'updatedBy',
             'languages' => fn ($query) => $query->orderBy('id'),
             'boardPositions' => fn ($query) => $query->orderByDesc('id'),
-        ]);
+        ])->loadCount('signIns');
 
         return Inertia::render('officer/members/Record', [
             'member' => (new MemberResource($member))->withRecordsFields(),
@@ -41,6 +41,7 @@ class MemberRecordController extends Controller
                 ->get(['code', 'name', 'amount']),
             'serviceAwards' => ServiceAward::query()->where('active', true)->orderBy('years')->get(['code', 'years']),
             'boardPositionSuggestions' => BoardPosition::query()->distinct()->orderBy('position')->pluck('position'),
+            'signInsCount' => $member->sign_ins_count,
             'lastUpdated' => $member->updatedBy === null ? null : [
                 'name' => $member->updatedBy->fullName(),
                 'date' => $member->updated_at->timezone(config('app.org_timezone'))->toDateString(),

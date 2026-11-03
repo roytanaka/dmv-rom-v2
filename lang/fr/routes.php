@@ -56,7 +56,16 @@ return [
     'feedback.unfollow' => 'retroaction/abonnes/{follower}/arreter',
 
     // Zone C — officer/admin
-    'officer.members' => 'officier/membres',
+    // Les listes de membres (#919, ADR-0038 §5). Une seule route ; chaque mot de liste est
+    // inscrit ci-dessous pour figurer dans la table des segments.
+    'officer.members' => 'officier/membres/{list?}',
+    'officer.members.list.current' => 'officier/membres/actuels',
+    'officer.members.list.resigned' => 'officier/membres/demissionnaires',
+    'officer.members.list.past' => 'officier/membres/anciens',
+    'officer.members.list.deceased' => 'officier/membres/decedes',
+    'officer.members.list.admin' => 'officier/membres/administration',
+    'officer.members.list.donors' => 'officier/membres/donateurs',
+    'officer.members.list.applicants' => 'officier/membres/candidats',
     'officer.members.record' => 'officier/membres/dossiers/{member}',
     'officer.communications' => 'officier/communications',
     'officer.reports' => 'officier/rapports',

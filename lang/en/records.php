@@ -10,6 +10,39 @@ return [
     'saved' => 'Saved.',
     'none' => 'None',
 
+    // The Member lists (#919, ADR-0038 §5).
+    'list' => [
+        'current' => 'Current',
+        'resigned' => 'Resigned',
+        'past' => 'Past',
+        'deceased' => 'Deceased',
+        'admin' => 'Admin',
+        'donors' => 'Donors',
+        'applicants' => 'Applicants',
+    ],
+    'column' => [
+        'name' => 'Name',
+        'category' => 'Category',
+        'email' => 'Email',
+        'phone' => 'Phone',
+        'last_update' => 'Last update',
+        'actions' => 'Actions',
+    ],
+    'action' => [
+        'edit' => 'Edit',
+        'photo' => 'Photo',
+        'reinstate' => 'Reinstate',
+        'delete' => 'Delete',
+    ],
+    'send_email' => 'Send email',
+    'search' => 'Search',
+    'search_last_name' => 'Search by last name',
+    'list_empty' => 'No Members on this list.',
+    'list_no_match' => 'No Members match that last name.',
+    'previous' => 'Previous',
+    'next' => 'Next',
+    'page' => 'Page :current of :last',
+
     'section' => [
         'standing' => 'Standing',
         'identity' => 'Name and email',
@@ -68,6 +101,7 @@ return [
         'category' => 'Category',
         'status_date' => 'Status date',
         'last_sign_in_at' => 'Last sign-in',
+        'sign_ins_count' => 'Sign-ins',
     ],
 
     'paid_through_add_year' => 'Add a year to the paid-through year',
