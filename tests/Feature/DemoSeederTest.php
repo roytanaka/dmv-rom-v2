@@ -293,6 +293,18 @@ it('seeds a dozen Applicants across every status, mentored from the Membership r
         ->and($applicants->where('status', ApplicantStatus::Incomplete)->whereNull('departure_reason'))->toBeEmpty();
 });
 
+it('links every Applicant past acceptance to a Provisional Member, and no other', function () {
+    $accepted = [ApplicantStatus::Accepted, ApplicantStatus::Placed, ApplicantStatus::YellowCardCompleted, ApplicantStatus::ReadyToGoActive];
+    [$linked, $unlinked] = Applicant::with('member')->get()->partition(fn (Applicant $applicant) => in_array($applicant->status, $accepted, true));
+
+    expect($linked)->not->toBeEmpty()
+        ->and($unlinked->whereNotNull('member_id'))->toBeEmpty();
+    $linked->each(fn (Applicant $applicant) => expect($applicant->member)->not->toBeNull()
+        ->and($applicant->member->category)->toBe(Category::Provisional)
+        ->and($applicant->member->email)->toBe($applicant->email)
+        ->and($applicant->member->categoryChanges()->pluck('category')->all())->toBe(['provisional']));
+});
+
 it('leaves no membership orphaned — every one references a real Group and Member', function () {
     GroupMember::with(['group', 'member'])->get()->each(function (GroupMember $membership) {
         expect($membership->group)->not->toBeNull()
@@ -312,6 +324,7 @@ it('is idempotent — re-seeding leaves row counts unchanged', function () {
         'qualifications' => Qualification::count(),
         'applicants' => Applicant::count(),
         'applicant_languages' => DB::table('applicant_languages')->count(),
+        'category_changes' => DB::table('category_changes')->count(),
     ];
     $before = $counts();
 
@@ -1762,7 +1775,8 @@ it('seeds the group-tour shift kind and Schedule label for Docents and GDR', fun
 
 it('fills the Member record on the personas and the bulk roster', function () {
     $persona = Member::where('email', PersonaCatalogue::all()[0]->email)->firstOrFail();
-    $bulk = Member::whereNotIn('email', PersonaCatalogue::emails())->orderByDesc('id')->firstOrFail();
+    // The bulk roster, not the Provisional Members accepted Applicants became (fees not set yet).
+    $bulk = Member::whereNotIn('email', PersonaCatalogue::emails())->whereNotIn('id', Applicant::whereNotNull('member_id')->select('member_id'))->orderByDesc('id')->firstOrFail();
 
     foreach ([$persona, $bulk] as $member) {
         expect($member->membership_number)->not->toBeNull()

@@ -924,7 +924,40 @@ class DemoSeeder extends Seeder
             foreach ($languages as $code) {
                 $applicant->languages()->create(['language_code' => $code, 'speaks' => true, 'reads' => true, 'writes' => $code !== 'asl']);
             }
+
+            if (in_array($status, [ApplicantStatus::Accepted, ApplicantStatus::Placed, ApplicantStatus::YellowCardCompleted, ApplicantStatus::ReadyToGoActive], true)) {
+                $this->acceptedApplicantMember($applicant, $mentor);
+            }
         }
+    }
+
+    /**
+     * The Provisional Member an accepted Applicant became (#931), as Accept would have made it on
+     * the status date, linked back. Keyed on the Applicant's email, so a reseed reuses it.
+     */
+    private function acceptedApplicantMember(Applicant $applicant, ?Member $mentor): void
+    {
+        $member = Member::firstOrNew(['email' => $applicant->email]);
+        $statusDate = $applicant->status_date->toDateString();
+        $entryYear = (int) substr($statusDate, 0, 4);
+
+        $member->forceFill([
+            ...$applicant->only([
+                'first_name', 'last_name', 'phone', 'address_street', 'address_city', 'address_province',
+                'address_postal_code', 'membership_number', 'membership_expiry', 'emergency_contact', 'emergency_contact_number',
+            ]),
+            'password' => $member->password ?? Hash::make('password'),
+            'category' => Category::Provisional,
+            'mentor_name' => $mentor?->fullName(),
+            'notes' => $applicant->notes,
+            'entry_year' => $entryYear,
+            'status_date' => $statusDate,
+        ])->save();
+
+        $member->categoryChanges()->delete();
+        $member->categoryChanges()->create(['category' => Category::Provisional->value, 'date' => $statusDate]);
+
+        $applicant->forceFill(['member_id' => $member->id, 'entry_year' => $entryYear])->save();
     }
 
     /**
