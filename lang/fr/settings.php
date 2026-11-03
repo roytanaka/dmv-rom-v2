@@ -47,6 +47,7 @@ return [
         'photo_error_unsupported' => 'Ce type de fichier n’est pas pris en charge. Veuillez téléverser une image JPG, PNG ou WebP.',
         'photo_error_too_large' => 'Cette image est trop volumineuse. Veuillez téléverser une photo de moins de :max Mo.',
         'photo_remove' => 'Supprimer la photo',
+        'photo_public' => 'Montrer ma photo aux autres membres',
         'current_password' => 'Mot de passe actuel',
         'current_password_hint' => 'Confirmez votre mot de passe actuel pour changer votre adresse courriel.',
         'save' => 'Enregistrer',

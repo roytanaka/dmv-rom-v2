@@ -47,6 +47,7 @@ return [
         'photo_error_unsupported' => 'That file type isn’t supported. Please upload a JPG, PNG, or WebP image.',
         'photo_error_too_large' => 'That image is too large. Please upload a photo under :max MB.',
         'photo_remove' => 'Remove photo',
+        'photo_public' => 'Show my photo to other Members',
         'current_password' => 'Current password',
         'current_password_hint' => 'Confirm your current password to change your email address.',
         'save' => 'Save',

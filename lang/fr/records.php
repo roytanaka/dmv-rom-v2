@@ -35,6 +35,13 @@ return [
         'delete' => 'Supprimer',
     ],
     'send_email' => 'Envoyer un courriel',
+    // L’action Photo (#922, ADR-0038 §3).
+    'photo' => [
+        'title' => 'Photo de :name',
+        'file' => 'Nouvelle photo',
+        'public' => 'Montrer cette photo à tous les membres',
+        'cancel' => 'Annuler',
+    ],
     'search' => 'Rechercher',
     'search_last_name' => 'Rechercher par nom de famille',
     'list_empty' => 'Aucun membre dans cette liste.',

@@ -19,7 +19,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * The shape is an allowlist, least-privilege by default:
  *
  * - Always public to any logged-in member: id, first/last name, photo (if
- *   uploaded), DMV-wide standing, and the member's Groups + roles — enough for a
+ *   uploaded and not kept from peers), DMV-wide standing, and the member's Groups + roles — enough for a
  *   useful directory.
  * - Gated behind the `viewContact` ability (peer-visible tier): email and the
  *   three phone numbers. A field not added to a gated block is simply absent —
@@ -102,6 +102,9 @@ class MemberResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'last_update' => $this->updated_at?->timezone(config('app.org_timezone'))->toDateString(),
+            // For the Photo action (#922): the list's viewer is member administration.
+            'photo' => $this->photo_url,
+            'photo_public' => (bool) $this->photo_public,
         ];
     }
 
@@ -134,9 +137,9 @@ class MemberResource extends JsonResource
             'id' => $this->id,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
-            // Public avatar URL (#233), or null when the member has uploaded none.
-            // Always public — a face is opt-in by uploading (contrast gated contact PII).
-            'photo' => $this->photo_url,
+            // Public avatar URL (#233), or null when the member has uploaded none, or keeps
+            // it from peers and this viewer is one (#922, ADR-0038 §3).
+            'photo' => $this->resource->photoUrlFor($request->user()),
             // DMV-wide standing (the Member's Category, glossary-named "standing").
             // Not PII — drives the directory/profile standing badge. The raw enum
             // attribute stays absent; the frontend maps this value to a chrome label.
