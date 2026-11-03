@@ -70,6 +70,9 @@ return [
     // The Member lists (#919, ADR-0038 §5). One route; each list word is keyed below so the
     // segment table carries it. The default list (Current) has a bare path.
     'officer.members.remove-personal-data' => 'officer/members/remove-personal-data',
+    // Renewal settings (#937, ADR-0038 §9) and its Sustaining attachment.
+    'officer.members.renewal' => 'officer/members/renewal',
+    'officer.members.renewal.attachment' => 'officer/members/renewal/attachment',
     'officer.members' => 'officer/members/{list?}',
     'officer.members.list.current' => 'officer/members/current',
     'officer.members.list.resigned' => 'officer/members/resigned',

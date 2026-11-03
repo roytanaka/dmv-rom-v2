@@ -61,6 +61,8 @@ return [
     // Les listes de membres (#919, ADR-0038 §5). Une seule route ; chaque mot de liste est
     // inscrit ci-dessous pour figurer dans la table des segments.
     'officer.members.remove-personal-data' => 'officier/membres/retrait-donnees-personnelles',
+    'officer.members.renewal' => 'officier/membres/renouvellement',
+    'officer.members.renewal.attachment' => 'officier/membres/renouvellement/piece-jointe',
     'officer.members' => 'officier/membres/{list?}',
     'officer.members.list.current' => 'officier/membres/actuels',
     'officer.members.list.resigned' => 'officier/membres/demissionnaires',

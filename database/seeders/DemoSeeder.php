@@ -36,6 +36,7 @@ use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\News;
 use App\Models\Qualification;
+use App\Models\RenewalSetting;
 use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
@@ -495,6 +496,7 @@ class DemoSeeder extends Seeder
         $this->departedMembers();
         $this->applicants();
         $this->applicantCode();
+        $this->renewalSettings();
         $this->prunePhotoFiles();
         $this->objects();
         $this->scheduling();
@@ -976,6 +978,28 @@ class DemoSeeder extends Seeder
             'code' => 'APPLY2026',
             'published' => true,
             'expires_on' => OrgTime::today()->addYear()->toDateString(),
+        ])->save();
+    }
+
+    /**
+     * This year's Renewal, turned on (#937, ADR-0038 §9), with both send dates in the past and
+     * placeholder texts, so staging testers see the Renew link and the reminders. No external
+     * addresses and no attachment. One settings row, healed on a reseed.
+     */
+    private function renewalSettings(): void
+    {
+        $today = OrgTime::today();
+
+        RenewalSetting::current()->forceFill([
+            'show_renewal' => true,
+            'renewal_year' => $today->year,
+            'active_send_date' => $today->copy()->subMonths(3)->toDateString(),
+            'sustaining_send_date' => $today->copy()->subMonths(3)->addWeek()->toDateString(),
+            'active_message_1' => 'Your DMV renewal for this year is open. Please sign in and choose Renew. (Demo text.)',
+            'active_message_2' => 'A last reminder: your DMV renewal is still open. Please sign in and choose Renew. (Demo text.)',
+            'sustaining_message_1' => 'Your Sustaining renewal for this year is open. The form is attached. (Demo text.)',
+            'sustaining_message_2' => 'A last reminder: your Sustaining renewal is still open. The form is attached. (Demo text.)',
+            'external_addresses' => [],
         ])->save();
     }
 

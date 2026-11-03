@@ -53,6 +53,7 @@ use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
 use App\Http\Controllers\QualificationController;
 use App\Http\Controllers\RemovePersonalDataController;
+use App\Http\Controllers\RenewalSettingsController;
 use App\Http\Controllers\ReplyController;
 use App\Http\Controllers\SavedQueryController;
 use App\Http\Controllers\SavedQueryOutputController;
@@ -129,6 +130,14 @@ Route::group([
     // Above the Member lists' {list?} route, which would otherwise take the word.
     Route::get(LaravelLocalization::transRoute('routes.officer.members.remove-personal-data'), [RemovePersonalDataController::class, 'show'])
         ->middleware('auth')->name('officer.members.remove-personal-data');
+
+    // Renewal settings (#937, ADR-0038 §9): the page and the Sustaining attachment's gated download
+    // (/officer/members/renewal ↔ /fr/officier/membres/renouvellement). Above the Member lists'
+    // {list?} route. Member administration only (`administer-members`).
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.renewal'), [RenewalSettingsController::class, 'show'])
+        ->middleware('auth')->name('officer.members.renewal');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.renewal.attachment'), [RenewalSettingsController::class, 'attachment'])
+        ->middleware('auth')->name('officer.members.renewal.attachment');
 
     // The public application form (#930, ADR-0038 §8, §14.6), for guests (/apply ↔ /fr/postuler):
     // the sign-in page POSTs the Applicant code (in the body, never the URL or the logs) to
@@ -496,6 +505,13 @@ Route::delete('members/{member}', MemberDeletionController::class)
 Route::post('members/remove-personal-data', [RemovePersonalDataController::class, 'store'])
     ->middleware(['auth'])
     ->name('members.remove-personal-data');
+
+// Save Renewal settings (#937, ADR-0038 §9). Member administration, via `administer-members` in
+// the UpdateRenewalSettingsRequest. Sent as a POST with `_method=PUT`, since PHP parses a file
+// upload only from a POST body.
+Route::put('renewal-settings', [RenewalSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('renewal-settings.update');
 
 // The Records Photo action (#922, ADR-0038 §3): upload or replace any Member's photo and set the
 // photo-public flag. Member administration or super-tier, via `MemberPolicy::administer` in the

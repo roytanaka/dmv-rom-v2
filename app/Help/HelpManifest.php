@@ -268,6 +268,8 @@ final class HelpManifest
             // Saved queries (#923, ADR-0038 §7): member administration's named filters.
             new HelpArticle('saved-queries', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Published, route: 'officer.members.queries', routes: ['officer.members.queries.create', 'officer.members.queries.edit', 'officer.members.queries.run']),
             new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Published, route: 'officer.members.remove-personal-data'),
+            // Running the renewal (#937, spec #915, ADR-0038 §9): Renewal settings and the paid-through year.
+            new HelpArticle('running-the-renewal', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.renewal'),
             // Running intake (#931, spec #914, ADR-0038 §8): the Membership Group's Applicants. No role
             // token names the `applicants` holder, so the article carries no badge.
             new HelpArticle('running-intake', HelpSection::Directory, status: ArticleStatus::Draft, route: 'officer.members.list.applicants', routes: ['officer.members.applicants.show']),
