@@ -17,7 +17,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { applicationFields } from '@/lib/applicants';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
@@ -66,6 +66,7 @@ const props = defineProps<{
     placements: { id: number; name: string }[];
     enteredBy: string | null;
     lastUpdated: { name: string; date: string } | null;
+    canOpenMember: boolean;
 }>();
 
 const page = usePage<SharedData>();
@@ -114,7 +115,11 @@ const save = () => {
         languages: data.languages.filter((row) => row.language_code.trim() !== ''),
     })).patch(route('applicants.update', { applicant: props.applicant.id }), {
         preserveScroll: true,
-        onSuccess: () => form.reset('new_note'),
+        onSuccess: () => {
+            form.reset('new_note');
+            // Accept sets the entry year on the server (#931); keep the form in step with it.
+            form.entry_year = props.applicant.entry_year ?? '';
+        },
     });
 };
 </script>
@@ -128,6 +133,13 @@ const save = () => {
                 <p class="text-muted-foreground text-sm">{{ trans('applicants.title') }}</p>
                 <h1 class="text-rom-ink text-2xl font-semibold">{{ fullName }}</h1>
                 <p v-if="enteredByLine" class="text-muted-foreground text-sm">{{ enteredByLine }}</p>
+                <Link
+                    v-if="canOpenMember && applicant.member_id"
+                    :href="route('officer.members.record', { member: applicant.member_id })"
+                    class="text-sm underline"
+                >
+                    {{ trans('member.open_record') }}
+                </Link>
             </header>
 
             <form class="flex max-w-3xl flex-col gap-6" @submit.prevent="save">

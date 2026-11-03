@@ -149,6 +149,8 @@ class ApplicantController extends Controller
                 ]))->values(),
             ],
             'canEdit' => $request->user()->can('update', $applicant),
+            // The Member it became (#931), linked for those who may open Member records.
+            'canOpenMember' => $applicant->member_id !== null && $request->user()->can('administer-members'),
             'statuses' => array_map(fn (ApplicantStatus $case) => $case->value, ApplicantStatus::cases()),
             'departureReasons' => array_map(fn (DepartureReason $reason) => $reason->value, DepartureReason::cases()),
             'mentors' => self::withCurrent(ApplicantOptions::mentors(), $applicant->mentor_id, $applicant->mentor?->fullName()),
