@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Enums\Category;
+use App\Enums\CategoryGroup;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -42,7 +45,14 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Only a Member in the Current Category group may sign in (#920, ADR-0038 §4); every
+        // other standing fails exactly like a wrong password, so the form leaks nothing.
+        $credentials = [
+            ...$this->only('email', 'password'),
+            fn (Builder $query) => $query->whereIn('category', Category::inGroup(CategoryGroup::Current)),
+        ];
+
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

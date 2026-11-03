@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // The Member lists (#919, ADR-0038 §5): Officer Tools → Members. Seven tabs, one route; the server
 // sends the rows, the list's row actions and its Send email answer. The search is a query
-// parameter, applied on submit. Edit opens the Member record. Photo, Reinstate, Delete and Send
-// email stay disabled until their tickets wire them. Photo (#922) opens a dialog that uploads or
+// parameter, applied on submit. Edit opens the Member record; Reinstate posts (#920). Delete and
+// Send email stay disabled until their tickets wire them. Photo (#922) opens a dialog that uploads or
 // replaces the Member's photo and sets whether peers see it. Below `md` the row's facts ride under the name
 // (docs/conventions.md § Tables on small screens). Names are content, shown as stored.
 import type { NavNode } from '@/chrome/types';
@@ -61,7 +61,13 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href
 const tabItems = computed<NavNode[]>(() => props.tabs.map((tab) => ({ href: tab.href, labelKey: `records.list.${tab.key}` })));
 
 // The actions a later ticket wires; each renders disabled until then.
-const pendingActions = computed(() => props.actions.filter((action) => action !== 'edit' && action !== 'photo'));
+const pendingActions = computed(() => props.actions.filter((action) => !['edit', 'photo', 'reinstate'].includes(action)));
+const canReinstate = computed(() => props.actions.includes('reinstate'));
+
+// Reinstate (#920): Reinstate then Active, dated today; the Member leaves this list.
+const reinstate = (id: number) => {
+    router.post(route('members.reinstate', { member: id }), {}, { preserveScroll: true });
+};
 
 // The Photo dialog (#922): one Member at a time, the file optional so the flag can change alone.
 const photoMember = ref<Row | null>(null);
@@ -176,6 +182,9 @@ const submitSearch = () => {
                             <div class="flex flex-wrap justify-end gap-2">
                                 <Button variant="outline" as-child>
                                     <Link :href="route('officer.members.record', { member: member.id })">{{ trans('records.action.edit') }}</Link>
+                                </Button>
+                                <Button v-if="canReinstate" variant="outline" @click="reinstate(member.id)">
+                                    {{ trans('records.action.reinstate') }}
                                 </Button>
                                 <Button v-if="actions.includes('photo')" variant="outline" @click="openPhoto(member)">
                                     {{ trans('records.action.photo') }}

@@ -59,4 +59,13 @@ return [
         'intro' => ":name a atteint sa limite d'invités.",
         'view_replies' => 'Voir les réponses',
     ],
+    // L'avis au mentor (#920, ADR-0038 §4) : le bureau des dossiers a fait passer le mentoré
+    // du statut provisoire ou préactif au statut actif. :member tel que saisi.
+    'mentee_activated' => [
+        'from' => 'Dossiers DMV',
+        'subject' => 'Membre maintenant actif : :member',
+        'heading' => 'Votre mentoré est maintenant actif',
+        'intro' => 'Le bureau des dossiers a fait passer :member au statut actif.',
+        'footer' => 'Ce message est fourni à titre informatif ; aucune réponse n’est attendue.',
+    ],
 ];

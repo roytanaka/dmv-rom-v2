@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\Category;
+use App\Enums\DepartureReason;
 use App\Enums\DocumentKind;
 use App\Enums\DocumentVisibility;
 use App\Enums\GroupLogo;
@@ -699,7 +700,44 @@ class DemoSeeder extends Seeder
                 'education' => 'BA, University of Toronto.',
                 'notes' => sprintf("%d-03-15 DMV Records: Renewal received.\n%d-09-01 DMV Records: Welcome package sent.", $paidThrough, $entryYear),
             ])->saveQuietly();
+
+            $this->categoryHistory($member, $entryYear);
         });
+    }
+
+    /**
+     * Write a Category history (#920, ADR-0038 §4) that ends at the Member's seeded Category, so
+     * the record is never empty: Provisional on entry, Active a year on, then the current
+     * standing when it is neither. The newest entry sets the status date, as the action would.
+     * Rewritten on each seed, so a reseed lands the same rows.
+     */
+    private function categoryHistory(Member $member, int $entryYear): void
+    {
+        $entries = [[Category::Provisional, sprintf('%d-09-01', $entryYear)]];
+
+        if (! in_array($member->category, [Category::Provisional, Category::PreActive], true)) {
+            $entries[] = [Category::Active, sprintf('%d-09-01', $entryYear + 1)];
+        }
+
+        if (! in_array($member->category, [Category::Active, Category::Provisional], true)) {
+            $entries[] = [$member->category, OrgTime::now()->subMonth()->toDateString()];
+        }
+
+        $reason = in_array($member->category, [Category::Resigned, Category::Withdrawn], true)
+            ? DepartureReason::Moved
+            : null;
+
+        $member->categoryChanges()->delete();
+
+        foreach ($entries as [$category, $date]) {
+            $member->categoryChanges()->create([
+                'category' => $category->value,
+                'date' => $date,
+                'departure_reason' => $category === $member->category ? $reason : null,
+            ]);
+        }
+
+        $member->forceFill(['status_date' => end($entries)[1], 'departure_reason' => $reason])->saveQuietly();
     }
 
     /**

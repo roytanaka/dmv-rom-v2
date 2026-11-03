@@ -1775,3 +1775,17 @@ it('keeps the booking types idempotent across a reseed', function () {
 
     expect(BookingType::count())->toBe($before)->toBe(10);
 });
+
+it('writes a Category history that ends at each Member’s Category', function () {
+    expect(Member::doesntHave('categoryChanges')->count())->toBe(0);
+
+    Member::with('categoryChanges')->get()->each(function (Member $member) {
+        $newest = $member->categoryChanges->sortByDesc(fn ($change) => [$change->date->toDateString(), $change->id])->first();
+
+        expect($newest->category)->toBe($member->category->value)
+            ->and($newest->date->toDateString())->toBe($member->status_date->toDateString());
+    });
+
+    $resigned = Member::where('email', 'sven.larsson@dmv.test')->firstOrFail();
+    expect($resigned->departure_reason)->not->toBeNull();
+});

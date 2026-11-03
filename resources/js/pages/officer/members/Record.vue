@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // The Member record (#917, ADR-0038 §3): the Records office's page for one Member. One form, one
 // PATCH, one Save, built on the DMV Settings cards. Category, status date and last sign-in are
-// shown, never edited: Category moves through a Category history entry. Notes are a log: the page
-// shows it and takes a new line, which the server dates and signs. Languages and board positions
-// sit in their own rows and save on their own (#918), so they keep their own forms.
+// shown, never edited: Category moves through a Category history entry, added and removed in its
+// own section with its own POST (#920). Notes are a log: the page shows it and takes a new line,
+// which the server dates and signs. Languages and board positions sit in their own rows and save
+// on their own (#918), so they keep their own forms.
 import BoardPositionsEditor from '@/components/BoardPositionsEditor.vue';
 import DmvSettingsSection from '@/components/DmvSettingsSection.vue';
 import InputError from '@/components/InputError.vue';
@@ -16,11 +17,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -75,6 +77,7 @@ interface RecordMember {
     education: string | null;
     notes: string | null;
     last_sign_in_at: string | null;
+    departure_reason: string | null;
     languages: MemberLanguage[];
     board_positions: { id: number; position: string; years: string | null }[];
 }
@@ -86,6 +89,9 @@ const props = defineProps<{
     boardPositionSuggestions: string[];
     signInsCount: number;
     lastUpdated: { name: string; date: string } | null;
+    categoryHistory: { id: number; category: string; date: string; departure_reason: string | null }[];
+    categories: string[];
+    departureReasons: string[];
 }>();
 
 const page = usePage<SharedData>();
@@ -195,6 +201,31 @@ const addPaidYear = () => {
     }
 };
 
+// A new Category history entry (#920): its own form and POST, so the record's Save is untouched.
+const entry = useForm({ category: '', date: '', departure_reason: '' });
+const needsReason = computed(() => entry.category === 'resigned' || entry.category === 'withdrawn');
+
+const addEntry = () => {
+    entry
+        .transform((data) => ({ ...data, departure_reason: needsReason.value ? data.departure_reason : null }))
+        .post(route('members.category-changes.store', { member: props.member.id }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                entry.reset();
+                // Activation may have set the next award year; take it so a later Save keeps it.
+                form.next_award_year = props.member.next_award_year ?? '';
+                form.defaults('next_award_year', form.next_award_year);
+            },
+        });
+};
+
+const removeEntry = (id: number) => {
+    router.delete(route('members.category-changes.destroy', { member: props.member.id, categoryChange: id }), { preserveScroll: true });
+};
+
+// The Reinstate marker is history only; every other entry is a Category.
+const historyLabel = (category: string) => (category === 'reinstate' ? trans('records.history.reinstate') : trans(`member.standing.${category}`));
+
 const save = () => {
     form.patch(route('members.record.update', { member: props.member.id }), {
         preserveScroll: true,
@@ -216,7 +247,7 @@ const save = () => {
                 <h1 class="text-rom-ink text-2xl font-semibold">{{ fullName }}</h1>
             </header>
 
-            <form class="flex max-w-3xl flex-col gap-6" @submit.prevent="save">
+            <div class="flex max-w-3xl flex-col gap-6">
                 <DmvSettingsSection id="standing" :title="trans('records.section.standing')">
                     <dl class="grid grid-cols-[max-content_1fr] items-center gap-x-4 gap-y-2 text-sm">
                         <dt class="text-muted-foreground">{{ trans('records.field.category') }}</dt>
@@ -231,9 +262,76 @@ const save = () => {
                         </template>
                         <dt class="text-muted-foreground">{{ trans('records.field.sign_ins_count') }}</dt>
                         <dd>{{ signInsCount }}</dd>
+                        <template v-if="member.departure_reason">
+                            <dt class="text-muted-foreground">{{ trans('records.history.departure_reason') }}</dt>
+                            <dd>{{ trans(`member.departure_reason.${member.departure_reason}`) }}</dd>
+                        </template>
                     </dl>
                 </DmvSettingsSection>
 
+                <DmvSettingsSection id="category-history" :title="trans('records.history.title')">
+                    <form class="grid gap-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end" @submit.prevent="addEntry">
+                        <div class="grid gap-2">
+                            <Label for="history_category">{{ trans('records.history.category') }}</Label>
+                            <NativeSelect id="history_category" v-model="entry.category">
+                                <option value="" disabled>{{ trans('records.history.choose') }}</option>
+                                <option v-for="category in categories" :key="category" :value="category">
+                                    {{ trans(`member.standing.${category}`) }}
+                                </option>
+                            </NativeSelect>
+                            <InputError :message="entry.errors.category" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="history_date">{{ trans('records.history.date') }}</Label>
+                            <Input id="history_date" v-model="entry.date" type="date" />
+                            <InputError :message="entry.errors.date" />
+                        </div>
+                        <div class="grid gap-2">
+                            <template v-if="needsReason">
+                                <Label for="history_reason">{{ trans('records.history.departure_reason') }}</Label>
+                                <NativeSelect id="history_reason" v-model="entry.departure_reason">
+                                    <option value="" disabled>{{ trans('records.history.choose') }}</option>
+                                    <option v-for="reason in departureReasons" :key="reason" :value="reason">
+                                        {{ trans(`member.departure_reason.${reason}`) }}
+                                    </option>
+                                </NativeSelect>
+                                <InputError :message="entry.errors.departure_reason" />
+                            </template>
+                        </div>
+                        <Button type="submit" variant="outline" :disabled="entry.processing">{{ trans('records.history.add') }}</Button>
+                    </form>
+
+                    <Table v-if="categoryHistory.length">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>{{ trans('records.history.category') }}</TableHead>
+                                <TableHead>{{ trans('records.history.date') }}</TableHead>
+                                <TableHead class="hidden sm:table-cell">{{ trans('records.history.departure_reason') }}</TableHead>
+                                <TableHead class="w-12"
+                                    ><span class="sr-only">{{ trans('records.history.remove') }}</span></TableHead
+                                >
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow v-for="change in categoryHistory" :key="change.id">
+                                <TableCell>{{ historyLabel(change.category) }}</TableCell>
+                                <TableCell>{{ formatDateOnly(change.date, page.props.locale) }}</TableCell>
+                                <TableCell class="hidden sm:table-cell">
+                                    {{ change.departure_reason ? trans(`member.departure_reason.${change.departure_reason}`) : '' }}
+                                </TableCell>
+                                <TableCell class="text-right">
+                                    <Button variant="ghost" size="icon" :aria-label="trans('records.history.remove')" @click="removeEntry(change.id)">
+                                        <PhX aria-hidden="true" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                    <p v-else class="text-muted-foreground text-sm">{{ trans('records.history.empty') }}</p>
+                </DmvSettingsSection>
+            </div>
+
+            <form class="flex max-w-3xl flex-col gap-6" @submit.prevent="save">
                 <DmvSettingsSection
                     v-for="(fields, section) in LINES"
                     :id="section"

@@ -8,6 +8,7 @@ use App\Http\Controllers\BookingEarnedController;
 use App\Http\Controllers\BookingMailController;
 use App\Http\Controllers\BookingTypeController;
 use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\CategoryChangeController;
 use App\Http\Controllers\DmvSettingsController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
@@ -403,6 +404,19 @@ Route::patch('members/{member}', [MemberController::class, 'update'])
 Route::patch('members/{member}/record', [MemberRecordController::class, 'update'])
     ->middleware(['auth'])
     ->name('members.record.update');
+
+// The Category history (#920, ADR-0038 §4): add an entry, remove a wrong one, and Reinstate a
+// Resigned Member. Member administration or super-tier, via the Form Requests.
+Route::post('members/{member}/category-changes', [CategoryChangeController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('members.category-changes.store');
+Route::delete('members/{member}/category-changes/{categoryChange}', [CategoryChangeController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->scopeBindings()
+    ->name('members.category-changes.destroy');
+Route::post('members/{member}/reinstate', [CategoryChangeController::class, 'reinstate'])
+    ->middleware(['auth'])
+    ->name('members.reinstate');
 
 // The Records Photo action (#922, ADR-0038 §3): upload or replace any Member's photo and set the
 // photo-public flag. Member administration or super-tier, via `MemberPolicy::administer` in the

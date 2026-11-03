@@ -115,6 +115,19 @@ return [
     'award_years' => ':years ans',
     'no_notes' => 'Aucune note pour l’instant.',
 
+    // L'historique de catégorie (#920, ADR-0038 §4).
+    'history' => [
+        'title' => 'Historique de catégorie',
+        'category' => 'Catégorie',
+        'date' => 'Date',
+        'departure_reason' => 'Motif du départ',
+        'add' => 'Ajouter l’entrée',
+        'remove' => 'Retirer l’entrée',
+        'empty' => 'Aucune entrée pour l’instant.',
+        'reinstate' => 'Réintégration',
+        'choose' => 'Choisir…',
+    ],
+
     'add' => 'Ajouter',
     'remove' => 'Retirer',
     'add_award' => 'Ajouter un prix',

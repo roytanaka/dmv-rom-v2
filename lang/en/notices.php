@@ -58,4 +58,13 @@ return [
         'intro' => ':name has reached its Guest limit.',
         'view_replies' => 'View the replies',
     ],
+    // The mentor Notice (#920, ADR-0038 §4): the Records office moved a mentor's mentee from
+    // Provisional or Pre-active to Active. :member is as-authored.
+    'mentee_activated' => [
+        'from' => 'DMV Records',
+        'subject' => 'Member now Active: :member',
+        'heading' => 'Your mentee is now Active',
+        'intro' => 'The Records office has changed :member to Active.',
+        'footer' => 'This message is for your information; no reply is expected.',
+    ],
 ];

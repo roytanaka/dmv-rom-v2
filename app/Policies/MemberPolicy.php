@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\CategoryGroup;
 use App\Enums\Role;
 use App\Models\GroupMember;
 use App\Models\Member;
@@ -41,6 +42,23 @@ class MemberPolicy
     public function administer(Member $actor, Member $target): bool
     {
         return $actor->hasMemberAdminAuthority();
+    }
+
+    /**
+     * Who may Reinstate a Member (ADR-0038 §4, §5): member-administration authority, and only for
+     * a Member in the Resigned group, the list that offers it. Super-tier skips this method via
+     * Gate::before, so the Form Request checks {@see reinstatable()} again.
+     */
+    public function reinstate(Member $actor, Member $target): bool
+    {
+        return $actor->hasMemberAdminAuthority() && self::reinstatable($target);
+    }
+
+    /** Whether a Member stands in the Resigned group, the only group Reinstate returns. */
+    public static function reinstatable(Member $target): bool
+    {
+        return $target->category->group() === CategoryGroup::Resigned
+            && $target->personal_data_removed_at === null;
     }
 
     /**

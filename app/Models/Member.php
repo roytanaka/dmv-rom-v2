@@ -210,6 +210,16 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * The Member's Category history (ADR-0038 §4).
+     *
+     * @return HasMany<CategoryChange, $this>
+     */
+    public function categoryChanges(): HasMany
+    {
+        return $this->hasMany(CategoryChange::class);
+    }
+
+    /**
      * Sign a change kept outside this row, such as a language or a board position, as an edit of
      * the record, so "Last updated by" stays true.
      */
