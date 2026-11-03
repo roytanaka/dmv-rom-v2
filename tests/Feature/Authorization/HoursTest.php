@@ -297,12 +297,12 @@ it('lets a Member enter hours on a Group they do not belong to', function () {
     expect(HoursRecord::sole()->member_id)->toBe($stranger->id);
 });
 
-it('forbids a departed Category from entering hours', function (Category $category) {
+it('signs a departed Category out before it can enter hours', function (Category $category) {
     $group = hoursGroup();
 
     $this->actingAs(hoursMemberOf($group, $category))
         ->post(route('hours.store', $group), ['year_month' => currentMonth(), 'hours' => 5])
-        ->assertForbidden();
+        ->assertRedirect(route('login'));
 
     expect(HoursRecord::count())->toBe(0);
 })->with([

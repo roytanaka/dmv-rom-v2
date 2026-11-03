@@ -34,6 +34,12 @@ return [
         'address_province' => 'Province',
         'address_postal_code' => 'Code postal',
         'address_country' => 'Pays',
+        // Les champs des dossiers qu’un membre voit à son sujet (#917, ADR-0038 §3).
+        'membership_heading' => 'Adhésion au ROM',
+        'paid_through_year' => 'Payé jusqu’en',
+        'last_award_year' => 'Dernier prix',
+        'membership_expiry' => 'Expiration de l’adhésion au ROM',
+        'membership_lifetime' => 'À vie',
         // Photo de profil (#233). Publique une fois téléversée ; facultative (aucune photo = initiales).
         'photo' => 'Photo de profil',
         'photo_hint' => 'JPG, PNG ou WebP, jusqu’à 5 Mo. Recadrée automatiquement en carré.',
@@ -41,6 +47,7 @@ return [
         'photo_error_unsupported' => 'Ce type de fichier n’est pas pris en charge. Veuillez téléverser une image JPG, PNG ou WebP.',
         'photo_error_too_large' => 'Cette image est trop volumineuse. Veuillez téléverser une photo de moins de :max Mo.',
         'photo_remove' => 'Supprimer la photo',
+        'photo_public' => 'Montrer ma photo aux autres membres',
         'current_password' => 'Mot de passe actuel',
         'current_password_hint' => 'Confirmez votre mot de passe actuel pour changer votre adresse courriel.',
         'save' => 'Enregistrer',

@@ -282,6 +282,43 @@
     }
 }
 
+/* Mailing labels (#924, ADR-0038 §7): one Avery 5160 sheet per section — US Letter, a
+   0.1875in side margin, three 2.625in by 1in labels across on a 2.75in pitch, ten down. The
+   top margin comes from the printer select inline. The named page drops the browser's own
+   margins for these sheets only, so the Hours reports keep theirs. */
+.label-sheet {
+    page: labels;
+    box-sizing: border-box;
+    width: 8.5in;
+    height: 11in;
+    padding-left: 0.1875in;
+    display: grid;
+    grid-template-columns: repeat(3, 2.625in);
+    grid-auto-rows: 1in;
+    column-gap: 0.125in;
+    align-content: start;
+    font-size: 11pt;
+    overflow: hidden;
+    break-after: page;
+}
+
+.label-sheet:last-child {
+    break-after: auto;
+}
+
+.label-cell {
+    padding: 0 0.1875in;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+}
+
+@page labels {
+    size: letter;
+    margin: 0;
+}
+
 /* Print (#414, PRD #406, ADR-0022 §8). The one mechanism deviation of the Hours port —
    HTML styled for print, and the browser makes the PDF. The app chrome (top bar, rail,
    breadcrumb, footer, impersonation toolbar) and each report's own toolbar and pickers

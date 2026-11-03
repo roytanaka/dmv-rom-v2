@@ -14,6 +14,8 @@ use App\Mail\EmptyDeskAlert;
 use App\Mail\InvitationFull;
 use App\Mail\InvitationMail;
 use App\Mail\InvitationReminder;
+use App\Mail\MenteeActivated;
+use App\Mail\SavedQueryResults;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
 use App\Mail\SignUpSubstituted;
@@ -355,6 +357,8 @@ class DrainDeliveries extends Command
             SignUpSubstituted::NOTICE_TYPE => SignUpSubstituted::fromSnapshot($payload),
             BookingMail::REQUEST, BookingMail::CONFIRMATION => BookingMail::fromSnapshot($payload),
             InvitationFull::NOTICE_TYPE => InvitationFull::fromSnapshot($payload),
+            MenteeActivated::NOTICE_TYPE => MenteeActivated::fromSnapshot($payload),
+            SavedQueryResults::NOTICE_TYPE => SavedQueryResults::fromSnapshot($payload),
             default => SignUpCancelled::fromSnapshot($payload),
         };
     }

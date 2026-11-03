@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AudienceKey;
 use App\Enums\Category;
 use App\Enums\DocumentKind;
 use App\Enums\DocumentVisibility;
@@ -29,12 +30,15 @@ use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\Qualification;
+use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
 use App\Models\SignUp;
 use App\Models\Tour;
 use App\Personas\PersonaCatalogue;
+use App\Support\Audiences\AudienceContext;
+use App\Support\Audiences\AudienceResolver;
 use App\Support\CommitteeHoursStatistics;
 use App\Support\OrgTime;
 use App\Support\VisitorInteractionStatistics;
@@ -358,6 +362,29 @@ it('excludes the departed Persona from the Directory and My-Groups sources', fun
         true,
     ));
     expect($qualifying)->toBeEmpty();
+});
+
+it('seeds a Donor Persona that One Category reaches and the Directory does not', function () {
+    $donor = Member::where('email', 'harriet.osei@dmv.test')->firstOrFail();
+
+    expect($donor->category)->toBe(Category::Donor)
+        ->and(Member::inDirectory()->whereKey($donor->id)->exists())->toBeFalse();
+
+    $operator = Member::where('super_tier', true)->firstOrFail();
+
+    $this->actingAs($operator)
+        ->getJson(route('audiences.index', ['context' => 'directory']))
+        ->assertOk()
+        ->assertJsonFragment(['key' => 'one_category', 'parameter' => 'donor', 'label' => 'Donor', 'count' => 1]);
+
+    $recipients = app(AudienceResolver::class)->resolve(
+        $operator,
+        AudienceContext::directory(),
+        AudienceKey::OneCategory,
+        Category::Donor->value,
+    )->recipients;
+
+    expect($recipients->pluck('id')->all())->toBe([$donor->id]);
 });
 
 it('gives the multi-group no-office Persona Full standing in several programs', function () {
@@ -1713,10 +1740,67 @@ it('seeds the group-tour shift kind and Schedule label for Docents and GDR', fun
     'GDR' => ['guides-du-rom', 'Visite de groupe', 'Visites de groupe'],
 ]);
 
+it('fills the Member record on the personas and the bulk roster', function () {
+    $persona = Member::where('email', PersonaCatalogue::all()[0]->email)->firstOrFail();
+    $bulk = Member::whereNotIn('email', PersonaCatalogue::emails())->orderByDesc('id')->firstOrFail();
+
+    foreach ([$persona, $bulk] as $member) {
+        expect($member->membership_number)->not->toBeNull()
+            ->and($member->paid_through_year)->not->toBeNull()
+            ->and($member->fee_category)->not->toBeNull()
+            ->and($member->entry_year)->not->toBeNull()
+            ->and($member->next_award_year)->not->toBeNull()
+            ->and($member->emergency_contact)->not->toBeNull()
+            ->and($member->status_date)->not->toBeNull()
+            ->and($member->notes)->not->toBeNull();
+    }
+
+    expect(Member::whereNull('membership_number')->count())->toBe(0);
+});
+
+it('gives a few Personas languages, a Service award and a board position (#918)', function () {
+    foreach ([PersonaCatalogue::CHAIR_EMAIL, PersonaCatalogue::SCHEDULER_EMAIL, PersonaCatalogue::MEMBER_EMAIL] as $email) {
+        $member = Member::where('email', $email)->firstOrFail();
+
+        expect($member->languages()->count())->toBe(2)
+            ->and($member->boardPositions()->count())->toBe(1)
+            ->and($member->service_awards)->not->toBeEmpty()
+            ->and($member->next_award_year)->toBe($member->last_award_year + 5);
+    }
+});
+
 it('keeps the booking types idempotent across a reseed', function () {
     $before = BookingType::count();
 
     $this->seed(DemoSeeder::class);
 
     expect(BookingType::count())->toBe($before)->toBe(10);
+});
+
+it('writes a Category history that ends at each Member’s Category', function () {
+    expect(Member::doesntHave('categoryChanges')->count())->toBe(0);
+
+    Member::with('categoryChanges')->get()->each(function (Member $member) {
+        $newest = $member->categoryChanges->sortByDesc(fn ($change) => [$change->date->toDateString(), $change->id])->first();
+
+        expect($newest->category)->toBe($member->category->value)
+            ->and($newest->date->toDateString())->toBe($member->status_date->toDateString());
+    });
+
+    $resigned = Member::where('email', 'sven.larsson@dmv.test')->firstOrFail();
+    expect($resigned->departure_reason)->not->toBeNull();
+});
+
+it('seeds three Saved queries that each run with results (#923)', function () {
+    $super = Member::where('super_tier', true)->firstOrFail();
+
+    expect(SavedQuery::orderBy('name')->pluck('name')->all())
+        ->toBe(['Active with no email', 'Resigned last year', 'Service awards this year']);
+
+    foreach (SavedQuery::all() as $query) {
+        $this->actingAs($super)
+            ->get(route('officer.members.queries.run', $query))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('count', fn (int $count) => $count > 0));
+    }
 });

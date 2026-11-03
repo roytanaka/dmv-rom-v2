@@ -24,6 +24,7 @@ it('lists only Members whose Category grants a directory listing', function () {
     $excluded = collect([
         Category::Resigned, Category::Withdrawn, Category::Deceased,
         Category::PreActive, Category::Provisional,
+        Category::Donor, Category::Guest, Category::Volunteer, Category::Admin, Category::Security,
     ])->mapWithKeys(fn (Category $c) => [$c->value => Member::factory()->category($c)->create()]);
 
     $this->actingAs(Member::factory()->superTier()->create())

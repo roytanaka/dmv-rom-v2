@@ -2,9 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Models\BoardPosition;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\Member;
+use App\Models\MemberLanguage;
+use App\Support\OrgTime;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,7 +20,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * The shape is an allowlist, least-privilege by default:
  *
  * - Always public to any logged-in member: id, first/last name, photo (if
- *   uploaded), DMV-wide standing, and the member's Groups + roles — enough for a
+ *   uploaded and not kept from peers), DMV-wide standing, and the member's Groups + roles — enough for a
  *   useful directory.
  * - Gated behind the `viewContact` ability (peer-visible tier): email and the
  *   three phone numbers. A field not added to a gated block is simply absent —
@@ -27,6 +30,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *   (#232, ADR-0017 §field-level visibility).
  * - Gated behind the `viewNoEmailFlag` ability (Records-only, stricter still): the
  *   no-email flag — Records / super-tier only, never the member themself (#483).
+ * - Gated behind the `viewRecordsFields` ability (Records-only): the Records office's
+ *   fields (ADR-0038 §3), and only on a payload built {@see withRecordsFields()}, so a
+ *   roster row never carries a Member's notes even to a member admin.
  *
  * @property Member $resource
  */
@@ -48,6 +54,12 @@ class MemberResource extends JsonResource
     protected bool $includeContact = true;
 
     /**
+     * Whether this instance carries the Records-only fields, for a viewer allowed them. Off
+     * unless asked for: only a single Member's page wants them.
+     */
+    protected bool $includeRecordsFields = false;
+
+    /**
      * Build the directory-list collection: contact PII is suppressed for every row
      * up front, so the ~500-row roster never carries email/phone for any viewer and
      * the gate is never evaluated per row (#169, ADR-0017).
@@ -62,6 +74,39 @@ class MemberResource extends JsonResource
         });
 
         return $collection;
+    }
+
+    /**
+     * Carry the Records-only fields ({@see Member::RECORDS_FIELDS}) for a viewer allowed them.
+     * The Member must be freshly loaded: strict mode refuses an unhydrated column.
+     */
+    public function withRecordsFields(): static
+    {
+        $this->includeRecordsFields = true;
+
+        return $this;
+    }
+
+    /**
+     * One row of a Member list (ADR-0038 §5). Its page is gated on member administration as a
+     * whole, so the row skips the per-Member gates and carries only what the list shows.
+     *
+     * @return array<string, mixed>
+     */
+    public function recordsListRow(): array
+    {
+        return [
+            'id' => $this->id,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'standing' => $this->category->value,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'last_update' => $this->updated_at === null ? null : OrgTime::toLocal($this->updated_at)->toDateString(),
+            // For the Photo action (#922): the list's viewer is member administration.
+            'photo' => $this->photo_url,
+            'photo_public' => (bool) $this->photo_public,
+        ];
     }
 
     /**
@@ -86,13 +131,16 @@ class MemberResource extends JsonResource
         $canViewNoEmailFlag = $this->includeContact
             && (bool) $request->user()?->can('viewNoEmailFlag', $this->resource);
 
+        $canViewRecordsFields = $this->includeRecordsFields
+            && (bool) $request->user()?->can('viewRecordsFields', $this->resource);
+
         return [
             'id' => $this->id,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
-            // Public avatar URL (#233), or null when the member has uploaded none.
-            // Always public — a face is opt-in by uploading (contrast gated contact PII).
-            'photo' => $this->photo_url,
+            // Public avatar URL (#233), or null when the member has uploaded none, or keeps
+            // it from peers and this viewer is one (#922, ADR-0038 §3).
+            'photo' => $this->resource->photoUrlFor($request->user()),
             // DMV-wide standing (the Member's Category, glossary-named "standing").
             // Not PII — drives the directory/profile standing badge. The raw enum
             // attribute stays absent; the frontend maps this value to a chrome label.
@@ -131,6 +179,20 @@ class MemberResource extends JsonResource
             // never leaked to a peer or to the member themself (#483, ADR-0024 §9).
             $this->mergeWhen($canViewNoEmailFlag, fn () => [
                 'no_email' => (bool) $this->no_email,
+            ]),
+            // Records-only: absent for anyone but the Member, Records, or super-tier —
+            // never leaked to a peer or a Group officer (ADR-0038 §3).
+            $this->mergeWhen($canViewRecordsFields, fn () => [
+                ...$this->resource->only(Member::RECORDS_FIELDS),
+                'membership_expiry' => $this->membership_expiry?->toDateString(),
+                'status_date' => $this->status_date?->toDateString(),
+                'departure_reason' => $this->departure_reason?->value,
+                'languages' => $this->whenLoaded('languages', fn () => $this->languages
+                    ->map(fn (MemberLanguage $language) => $language->only('id', 'language_code', 'speaks', 'reads', 'writes'))
+                    ->all()),
+                'board_positions' => $this->whenLoaded('boardPositions', fn () => $this->boardPositions
+                    ->map(fn (BoardPosition $position) => $position->only('id', 'position', 'years'))
+                    ->all()),
             ]),
         ];
     }
