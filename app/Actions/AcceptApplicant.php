@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  *
  * The Applicant's fields are copied as the Legacy app copied every shared column. On a matched
  * Member a blank Applicant field leaves the Member's value, and the Applicant's notes are prepended
- * to the Member's log. A Member under another name holding the email is refused: the email is
+ * to the Member's log. Either way the entry year is this year (spec story 39). A Member under another name holding the email is refused: the email is
  * unique, and the office decides which person this is.
  */
 class AcceptApplicant
@@ -93,7 +93,8 @@ class AcceptApplicant
             [...$applicant->only(self::COPIED), 'mentor_name' => $applicant->mentor?->fullName()],
             fn ($value) => filled($value),
         );
-        $member->forceFill($copied);
+        $year = OrgTime::today()->year;
+        $member->forceFill([...$copied, 'entry_year' => $year]);
 
         if (filled($applicant->notes)) {
             $member->prependNote($applicant->notes, $actor);
@@ -102,7 +103,7 @@ class AcceptApplicant
         $this->copyLanguages($applicant, $member);
         $member->markUpdatedBy($actor);
 
-        $applicant->forceFill(['member_id' => $member->id])->save();
+        $applicant->forceFill(['member_id' => $member->id, 'entry_year' => $year])->save();
 
         return $member;
     }

@@ -179,6 +179,7 @@ it('updates a Member matching by email and name, leaving its Category alone', fu
     $org = acceptOrg();
     $donor = Member::factory()->category(Category::Donor)->create([
         'first_name' => 'ADA', 'last_name' => 'lovelace', 'email' => 'ada@example.test', 'membership_number' => 'OLD', 'education' => 'Kept',
+        'entry_year' => 2001,
     ]);
     $applicant = acceptApplicant($org, ['education' => null]);
 
@@ -191,6 +192,8 @@ it('updates a Member matching by email and name, leaving its Category alone', fu
         ->and($donor->categoryChanges()->count())->toBe(0)
         ->and($donor->membership_number)->toBe('ROM-123')
         ->and($donor->education)->toBe('Kept')
+        ->and($donor->entry_year)->toBe(OrgTime::today()->year)
+        ->and($applicant->fresh()->entry_year)->toBe(OrgTime::today()->year)
         ->and($donor->languages()->pluck('language_code')->all())->toBe(['fr']);
 });
 
