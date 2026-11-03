@@ -16,7 +16,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 /*
  * The Applicant code and the public application form (#930, ADR-0038 §8, §14.6). The holder's
  * Chair sets one shared code, a publish flag and an expiry; while it is published and not expired,
- * the sign-in page offers the code entry, and a visitor with the code applies as a New Applicant.
+ * /apply asks for the code (#949), and a visitor with the code applies as a New Applicant.
  */
 
 /** The holder (Membership) with its Chair and a plain member. */
@@ -129,7 +129,7 @@ it('sends the code to the Applicants page for the Chair only', function () {
 
 // The sign-in page.
 
-it('offers the code entry on the sign-in page only while published and unexpired', function () {
+it('links the sign-in page to the application only while published and unexpired', function () {
     $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('applicationOpen', false));
 
     $row = openCode();
@@ -149,7 +149,44 @@ it('gives the sign-in page the number to call from the one place the code check 
     $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('helpPhone', '(416) 586-8097'));
 });
 
-// The code check.
+// The apply page and the code check.
+
+it('asks a visitor for the code while the application is open', function () {
+    openCode();
+
+    $this->get('/apply')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('apply/Start')
+            ->where('open', true)
+            ->where('phone', '(416) 586-8097'));
+});
+
+it('shows the closed message, with no redirect, while the code is closed or expired', function () {
+    $this->get('/apply')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('apply/Start')->where('open', false)->where('phone', '(416) 586-8097'));
+
+    $row = openCode('ROM2026', OrgTime::today()->subDay()->toDateString());
+    $this->get('/apply')->assertOk()->assertInertia(fn (Assert $page) => $page->where('open', false));
+
+    $row->forceFill(['expires_on' => OrgTime::today()->addDay()->toDateString(), 'published' => false])->save();
+    $this->get('/apply')->assertOk()->assertInertia(fn (Assert $page) => $page->where('open', false));
+});
+
+it('links /apply and /fr/postuler to each other', function () {
+    openCode();
+
+    $this->get('/apply')->assertInertia(fn (Assert $page) => $page
+        ->where('localeSwitcher.options', fn ($options) => collect($options)->contains(
+            fn ($option) => $option['code'] === 'fr' && str_ends_with((string) $option['url'], '/fr/postuler'))));
+
+    $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/postuler')->assertInertia(fn (Assert $page) => $page
+            ->where('localeSwitcher.options', fn ($options) => collect($options)->contains(
+                fn ($option) => $option['code'] === 'en' && str_ends_with((string) $option['url'], '/apply'))));
+    });
+});
 
 it('shows the form for the right code, in either case', function () {
     openCode('ROM2026');
@@ -164,15 +201,15 @@ it('shows the form for the right code, in either case', function () {
 it('takes the code only in a POST body, never from the URL', function () {
     openCode('ROM2026');
 
-    $this->get('/apply?code=ROM2026')->assertRedirect('/login');
-    $this->get('/apply')->assertRedirect('/login');
+    $this->get('/apply?code=ROM2026')->assertInertia(fn (Assert $page) => $page->component('apply/Start'));
 });
 
-it('refuses a wrong code with the number to call, and creates nothing', function () {
+it('refuses a wrong code on the apply page with the number to call, and creates nothing', function () {
     openCode('ROM2026');
 
+    // Back to /apply whatever the referrer, so the error shows under the field.
     $this->from('/login')->post('/apply/code', ['code' => 'WRONG'])
-        ->assertRedirect('/login')
+        ->assertRedirect('/apply')
         ->assertSessionHasErrors(['code' => __('apply.wrong_code', ['phone' => '(416) 586-8097'])]);
 
     expect(Applicant::count())->toBe(0);
@@ -181,27 +218,21 @@ it('refuses a wrong code with the number to call, and creates nothing', function
 it('refuses the right code once the application is closed', function () {
     openCode('ROM2026', OrgTime::today()->subDay()->toDateString());
 
-    $this->from('/login')->post('/apply/code', ['code' => 'ROM2026'])->assertRedirect('/login')->assertSessionHasErrors('code');
+    $this->post('/apply/code', ['code' => 'ROM2026'])->assertRedirect('/apply')->assertSessionHasErrors('code');
 });
 
 it('throttles the sixth try from one address', function () {
     openCode('ROM2026');
 
     foreach (range(1, 5) as $try) {
-        $this->from('/login')->post('/apply/code', ['code' => 'WRONG'.$try])
+        $this->post('/apply/code', ['code' => 'WRONG'.$try])
             ->assertSessionHasErrors(['code' => __('apply.wrong_code', ['phone' => '(416) 586-8097'])]);
     }
 
-    $this->from('/login')->post('/apply/code', ['code' => 'ROM2026'])
-        ->assertRedirect('/login')
+    $this->post('/apply/code', ['code' => 'ROM2026'])
+        ->assertRedirect('/apply')
         ->assertSessionHasErrors('code');
     expect(session('errors')->first('code'))->not->toBe(__('apply.wrong_code', ['phone' => '(416) 586-8097']));
-});
-
-it('sends a visitor without the code back to the sign-in page', function () {
-    openCode();
-
-    $this->get('/apply')->assertRedirect('/login');
 });
 
 it('keeps a signed-in Member off the guest pages', function () {
@@ -240,7 +271,7 @@ it('stores a New, self-entered Applicant with its languages and shows the confir
 
     $this->get('/apply')->assertInertia(fn (Assert $page) => $page->component('apply/Received'));
     // The code is spent: a second application needs it again.
-    $this->get('/apply')->assertRedirect('/login');
+    $this->get('/apply')->assertInertia(fn (Assert $page) => $page->component('apply/Start'));
 });
 
 it('creates nothing when a required field is missing or the phone is short', function (string $field, mixed $value) {
@@ -293,6 +324,11 @@ it('serves the form and the store at their French addresses', function () {
     openCode('ROM2026');
 
     $this->withLocaleRoutes('fr', function () {
+        $this->get('/fr/postuler')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('apply/Start')->where('locale', 'fr'));
+        $this->post('/fr/postuler/code', ['code' => 'WRONG'])->assertRedirect('/fr/postuler');
+
         $this->post('/fr/postuler/code', ['code' => 'ROM2026'])->assertRedirect('/fr/postuler');
         $this->get('/fr/postuler')
             ->assertOk()

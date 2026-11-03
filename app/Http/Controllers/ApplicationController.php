@@ -13,15 +13,17 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The public application form (#930, ADR-0038 §8, §14.6). A visitor types the Applicant code on
- * the sign-in page, which POSTs it so it never sits in a URL or a log; the right code, while
- * published and unexpired, is kept in the session as proof for the form and the store. A wrong one is refused with the number to call, and five
- * wrong tries from one address lock the check out as the sign-in form's do. Nothing is written
- * until the store validates; the application is then spent, and the visitor sees the confirmation.
+ * The public application form (#930, #949, ADR-0038 §8, §14.6). /apply is the one place a visitor
+ * applies: while the Applicant code is published and unexpired it asks for the code, and otherwise
+ * it says applications are closed. The code is POSTed so it never sits in a URL or a log; the right
+ * one is kept in the session as proof for the form and the store. A wrong one comes back to /apply
+ * with the number to call, and five wrong tries from one address lock the check out as the sign-in
+ * form's do. Nothing is written until the store validates; the application is then spent, and the
+ * visitor sees the confirmation.
  */
 class ApplicationController extends Controller
 {
-    /** The Membership Committee's line, as on the sign-in page. */
+    /** The Membership Committee's line, as on the sign-in page and the apply page. */
     public const PHONE = '(416) 586-8097';
 
     private const SESSION_KEY = 'applicant_code';
@@ -30,17 +32,20 @@ class ApplicationController extends Controller
 
     private const MAX_TRIES = 5;
 
-    public function show(Request $request): Response|RedirectResponse
+    public function show(Request $request): Response
     {
         if ($request->session()->get(self::RECEIVED)) {
             return Inertia::render('apply/Received');
         }
 
-        if (! self::codeAccepted($request)) {
-            return redirect()->route('login');
+        if (self::codeAccepted($request)) {
+            return Inertia::render('apply/Form');
         }
 
-        return Inertia::render('apply/Form');
+        return Inertia::render('apply/Start', [
+            'open' => ApplicantCode::current()->isOpen(),
+            'phone' => self::PHONE,
+        ]);
     }
 
     /** Check the typed code and open the form, or send the visitor back with the error. */
@@ -86,7 +91,7 @@ class ApplicationController extends Controller
 
             throw ValidationException::withMessages([
                 'code' => __('auth.throttle', ['seconds' => $seconds, 'minutes' => ceil($seconds / 60)]),
-            ]);
+            ])->redirectTo(route('apply'));
         }
 
         if (! ApplicantCode::current()->accepts($typed)) {
@@ -94,7 +99,7 @@ class ApplicationController extends Controller
 
             throw ValidationException::withMessages([
                 'code' => __('apply.wrong_code', ['phone' => self::PHONE]),
-            ]);
+            ])->redirectTo(route('apply'));
         }
 
         RateLimiter::clear($key);
