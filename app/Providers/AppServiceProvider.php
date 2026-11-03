@@ -66,6 +66,12 @@ class AppServiceProvider extends ServiceProvider
         // MemberPolicy. `can` is a UI hint — the server still enforces every action.
         Gate::define('administer-members', fn (Member $member) => $member->hasMemberAdminAuthority());
 
+        // Coarse, app-wide ability for intake (ADR-0038 §2): may this member run Applicants at
+        // all? Held via the `applicants` stewardship (Membership today); super-tier passes through
+        // the Gate::before above. Per-Applicant reach (mentor edits, Chair edits all, any Chair
+        // reads) belongs to the Applicant policy.
+        Gate::define('administer-applicants', fn (Member $member) => $member->hasApplicantAuthority());
+
         // Granting or revoking super-tier is reserved to super-tier itself (ADR-0017
         // §1): the only org-wide grant administers its own membership. The Gate::before
         // above short-circuits `true` for a super-tier actor, so this definition only

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Remove personal data (#921, ADR-0038 §6): the yearly privacy clean-up. The year is a query
-// parameter; changing it reloads the preview counts from the server. The run needs the Member
-// count typed back; the server counts again and opens the Past list when done.
+// parameter; changing it reloads the preview counts from the server. The run needs the total,
+// Members and Applicants, typed back; the server counts again and opens the Past list when done.
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +60,7 @@ const submit = () => {
             <ul class="flex flex-col gap-1 text-base">
                 <li>{{ trans('records.remove_personal_data.members', { count: String(memberCount) }) }}</li>
                 <li>{{ trans('records.remove_personal_data.applicants', { count: String(applicantCount) }) }}</li>
+                <li class="font-medium">{{ trans('records.remove_personal_data.total', { count: String(memberCount + applicantCount) }) }}</li>
             </ul>
 
             <form class="flex flex-col gap-4" @submit.prevent="submit">

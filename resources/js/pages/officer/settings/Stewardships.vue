@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // DMV Settings › Stewardships (#846, ADR-0036 §7 and §8; restyled in #848): one card per live
 // stewardship. Each card names the authority, its holder Groups and its last change, and saves on
-// its own. Member administration has exactly one holder (a select, no empty option); org-wide
-// sender has zero or more (tick rows). On any change the page reloads only the `preview` prop
+// its own. Member administration and Applicants (#927) each have exactly one holder (a select, no
+// empty option); org-wide sender has zero or more (tick rows). On any change the page reloads only the `preview` prop
 // with the draft, and the server answers with the Members who gain and lose the authority; the
 // preview panel shows them as chips, or says nothing has changed yet. Save stays off until the
 // draft differs from the saved holders; Undo change puts them back. Group and Member names are
@@ -39,7 +39,11 @@ interface AuthorityDiff {
     lose: NamedRow[];
 }
 
-type LiveStewardship = 'member_admin' | 'org_mail';
+type SingleHolderStewardship = 'member_admin' | 'applicants';
+type LiveStewardship = SingleHolderStewardship | 'org_mail';
+
+// Page order: member administration, Applicants, org-wide sender.
+const LIVE: LiveStewardship[] = ['member_admin', 'applicants', 'org_mail'];
 
 const props = defineProps<{
     groupsHref: string;
@@ -59,16 +63,20 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 ]);
 
 // The saved holders, read live from the props so a save settles the draft as unchanged.
-const savedMemberAdmin = computed(() => props.stewardships.member_admin.holders[0]?.id ?? null);
+const savedSingle = (fn: SingleHolderStewardship): number | null => props.stewardships[fn].holders[0]?.id ?? null;
 const savedOrgMail = computed(() => props.stewardships.org_mail.holders.map((holder) => holder.id));
 
-const memberAdminForm = useForm<{ group_id: number | null }>({ group_id: savedMemberAdmin.value });
+const singleForms = {
+    member_admin: useForm<{ group_id: number | null }>({ group_id: savedSingle('member_admin') }),
+    applicants: useForm<{ group_id: number | null }>({ group_id: savedSingle('applicants') }),
+};
 const orgMailForm = useForm<{ group_ids: number[] }>({ group_ids: savedOrgMail.value });
 
 const sorted = (ids: number[]): number[] => [...ids].sort((a, b) => a - b);
 const sameIds = (a: number[], b: number[]): boolean => a.length === b.length && sorted(a).every((id, index) => id === sorted(b)[index]);
 const dirty = computed<Record<LiveStewardship, boolean>>(() => ({
-    member_admin: memberAdminForm.group_id !== savedMemberAdmin.value,
+    member_admin: singleForms.member_admin.group_id !== savedSingle('member_admin'),
+    applicants: singleForms.applicants.group_id !== savedSingle('applicants'),
     org_mail: !sameIds(orgMailForm.group_ids, savedOrgMail.value),
 }));
 
@@ -76,13 +84,13 @@ const dirty = computed<Record<LiveStewardship, boolean>>(() => ({
 const refreshPreview = () => {
     router.reload({
         only: ['preview'],
-        data: { member_admin: memberAdminForm.group_id, org_mail: orgMailForm.group_ids },
+        data: { member_admin: singleForms.member_admin.group_id, applicants: singleForms.applicants.group_id, org_mail: orgMailForm.group_ids },
         preserveUrl: true,
     });
 };
 
 // The select's v-model settles a tick after the native change, so watch the draft itself.
-watch(() => memberAdminForm.group_id, refreshPreview);
+watch(() => [singleForms.member_admin.group_id, singleForms.applicants.group_id], refreshPreview);
 
 const toggleOrgMail = (id: number, on: boolean) => {
     orgMailForm.group_ids = on ? [...orgMailForm.group_ids, id] : orgMailForm.group_ids.filter((groupId) => groupId !== id);
@@ -90,9 +98,9 @@ const toggleOrgMail = (id: number, on: boolean) => {
 };
 
 const undo = (fn: LiveStewardship) => {
-    if (fn === 'member_admin') {
-        memberAdminForm.group_id = savedMemberAdmin.value;
-        memberAdminForm.clearErrors();
+    if (fn !== 'org_mail') {
+        singleForms[fn].group_id = savedSingle(fn);
+        singleForms[fn].clearErrors();
     } else {
         orgMailForm.group_ids = savedOrgMail.value;
         orgMailForm.clearErrors();
@@ -100,8 +108,8 @@ const undo = (fn: LiveStewardship) => {
     }
 };
 
-const saveMemberAdmin = () => memberAdminForm.put(route('dmv-settings.stewardships.update', { function: 'member_admin' }), { preserveScroll: true });
-const saveOrgMail = () => orgMailForm.put(route('dmv-settings.stewardships.update', { function: 'org_mail' }), { preserveScroll: true });
+const save = (fn: LiveStewardship) =>
+    (fn === 'org_mail' ? orgMailForm : singleForms[fn]).put(route('dmv-settings.stewardships.update', { function: fn }), { preserveScroll: true });
 
 const heldBy = (card: StewardshipCard) =>
     card.holders.length === 0
@@ -114,7 +122,7 @@ const lastChanged = (card: StewardshipCard) =>
         : null;
 
 const cards = computed(() =>
-    (['member_admin', 'org_mail'] as const).map((fn) => ({
+    LIVE.map((fn) => ({
         fn,
         held: heldBy(props.stewardships[fn]),
         changed: lastChanged(props.stewardships[fn]),
@@ -122,7 +130,7 @@ const cards = computed(() =>
         // The diff shows only once the draft differs; an unchanged draft reads "No change yet".
         // While the first reload is in flight the panel holds its space and says nothing.
         preview: dirty.value[fn] ? (props.preview?.[fn] ?? null) : null,
-        processing: fn === 'member_admin' ? memberAdminForm.processing : orgMailForm.processing,
+        processing: fn === 'org_mail' ? orgMailForm.processing : singleForms[fn].processing,
     })),
 );
 </script>
@@ -152,14 +160,14 @@ const cards = computed(() =>
                         </div>
                     </CardHeader>
                     <CardContent class="flex flex-col gap-4 p-4 pt-0 sm:p-6 sm:pt-0">
-                        <div v-if="card.fn === 'member_admin'" class="grid gap-2">
-                            <Label for="stewardship-member-admin">{{ trans('dmv_settings.stewardship.group') }}</Label>
-                            <NativeSelect id="stewardship-member-admin" v-model="memberAdminForm.group_id" required>
+                        <div v-if="card.fn !== 'org_mail'" class="grid gap-2">
+                            <Label :for="`stewardship-${card.fn}`">{{ trans('dmv_settings.stewardship.group') }}</Label>
+                            <NativeSelect :id="`stewardship-${card.fn}`" v-model="singleForms[card.fn].group_id" required>
                                 <option v-for="group in groups" :key="group.id" :value="group.id">
                                     {{ treeIndent(group.depth) }}{{ group.name }}
                                 </option>
                             </NativeSelect>
-                            <InputError :message="memberAdminForm.errors.group_id" />
+                            <InputError :message="singleForms[card.fn].errors.group_id" />
                         </div>
 
                         <fieldset v-else class="flex flex-col gap-1.5">
@@ -203,11 +211,7 @@ const cards = computed(() =>
                             <Button v-if="card.dirty" type="button" variant="outline" :disabled="card.processing" @click="undo(card.fn)">
                                 {{ trans('dmv_settings.stewardship.undo') }}
                             </Button>
-                            <Button
-                                type="button"
-                                :disabled="!card.dirty || card.processing"
-                                @click="card.fn === 'member_admin' ? saveMemberAdmin() : saveOrgMail()"
-                            >
+                            <Button type="button" :disabled="!card.dirty || card.processing" @click="save(card.fn)">
                                 {{ trans('dmv_settings.save') }}
                             </Button>
                         </div>

@@ -13,6 +13,8 @@ import heroJpg from '../../../images/auth/login-hero.jpg';
 defineProps<{
     title?: string;
     description?: string;
+    // The application form (#930) needs a wider card than sign-in.
+    wide?: boolean;
 }>();
 </script>
 
@@ -31,7 +33,7 @@ defineProps<{
              off the photo (the Card default shadow-xs is too quiet over imagery);
              square corners are the ROM default, kept. -->
         <div class="relative flex max-w-7xl flex-1 items-center px-4 py-12 sm:px-8 md:w-full">
-            <Card class="w-full max-w-sm overflow-hidden shadow-2xl">
+            <Card class="w-full overflow-hidden shadow-2xl" :class="wide ? 'max-w-3xl' : 'max-w-sm'">
                 <header class="bg-rom-ink px-8 py-5">
                     <Link :href="route('home')" class="inline-flex items-center" aria-label="ROM DMV">
                         <BrandLogo variant="white" class="h-7 w-auto" />

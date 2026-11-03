@@ -7,6 +7,7 @@ use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\InvitationState;
 use App\Enums\Reply;
+use App\Mail\ApplicantNotice;
 use App\Mail\BookingMail;
 use App\Mail\BroadcastMail;
 use App\Mail\BroadcastSenderCopy;
@@ -342,7 +343,8 @@ class DrainDeliveries extends Command
             ->where('state', DeliveryState::Failed)
             ->with('member')
             ->get()
-            ->map(fn (Delivery $delivery): string => $delivery->member->fullName())
+            // An Applicant's row (#929) has no Member and names the Applicant in its payload.
+            ->map(fn (Delivery $delivery): string => $delivery->member?->fullName() ?? (string) ($delivery->payload['name'] ?? ''))
             ->all();
     }
 
@@ -359,6 +361,7 @@ class DrainDeliveries extends Command
             InvitationFull::NOTICE_TYPE => InvitationFull::fromSnapshot($payload),
             MenteeActivated::NOTICE_TYPE => MenteeActivated::fromSnapshot($payload),
             SavedQueryResults::NOTICE_TYPE => SavedQueryResults::fromSnapshot($payload),
+            ApplicantNotice::ACCEPTED, ApplicantNotice::PLACED, ApplicantNotice::YELLOW_CARD, ApplicantNotice::INCOMPLETE => ApplicantNotice::fromSnapshot($payload),
             default => SignUpCancelled::fromSnapshot($payload),
         };
     }

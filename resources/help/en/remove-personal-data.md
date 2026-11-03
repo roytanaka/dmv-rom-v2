@@ -7,8 +7,8 @@ Once a year, the Records office clears the personal details of Members who left 
 1. Select **Officer Tools**, then **Members**.
 2. Select **Remove personal data**. The year starts at seven years ago.
 3. Change the year in **Status date before 1 January of** if you need to.
-4. Select **Preview**. The page counts the Resigned or Deceased Members and the Applicants it will clear.
-5. Type the number of Members in **Type the number of Members to confirm**.
+4. Select **Preview**. The page counts the Resigned or Deceased Members and the Applicants it will clear, and their **Total**.
+5. Type the **Total** in **Type the total to confirm**.
 6. Select **Remove personal data**. The **Past** list opens with those Members on it.
 
 The run clears the address, phones, email, membership number and expiry, and paid-through year. It also clears experience and education, skills, languages, next award year, emergency contact, photo and notes. The name, Category history, board positions and hours stay.

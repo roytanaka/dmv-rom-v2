@@ -36,6 +36,7 @@ return [
 
     // Records office Audiences (ADR-0038 §5, §7). A Saved query's label is its name, as authored.
     'member_list' => ':list list',
+    'applicants' => 'Applicants: :status',
 
     // The edited-Audience suffix, appended when the picker removed anyone
     // (ADR-0024 §6): the Audience name stays and the count of removals is named.

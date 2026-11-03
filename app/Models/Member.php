@@ -685,9 +685,52 @@ class Member extends Authenticatable implements HasLocalePreference
      */
     public function hasMemberAdminAuthority(): bool
     {
-        $records = Group::stewardOf(StewardshipFunction::MemberAdmin);
+        return $this->stewardMembership(StewardshipFunction::MemberAdmin) !== null;
+    }
 
-        return $records !== null && $this->membershipIn($records) !== null;
+    /**
+     * Whether this Member has applicant authority (ADR-0038 §2): membership, any status and any
+     * role, in the Group that stewards `applicants` (Membership today). Such a Member edits the
+     * Applicants they mentor and reads the rest; the Applicant Chair ({@see isApplicantChair()})
+     * edits all. False when no Group stewards the function. The super-tier inherits it through
+     * the `administer-applicants` Gate, not here.
+     */
+    public function hasApplicantAuthority(): bool
+    {
+        return $this->stewardMembership(StewardshipFunction::Applicants) !== null;
+    }
+
+    /**
+     * Whether this Member chairs the Group that stewards `applicants` (ADR-0038 §2): the Applicant
+     * Chair, who edits every Applicant and publishes the Applicant code. False when no Group
+     * stewards the function.
+     */
+    public function isApplicantChair(): bool
+    {
+        return (bool) $this->stewardMembership(StewardshipFunction::Applicants)?->roles->contains('role', Role::Chair);
+    }
+
+    /** This Member's membership in the Group stewarding the function, or null (none, or no holder). */
+    private function stewardMembership(StewardshipFunction $function): ?GroupMember
+    {
+        $holder = Group::stewardOf($function);
+
+        return $holder === null ? null : $this->membershipIn($holder);
+    }
+
+    /**
+     * Whether this Member chairs any active Group (ADR-0038 §2): the reach that lets any Chair read
+     * Applicants, to see who is coming to their Group. An archived or expired Group's Chair has
+     * none. The same "Chair in an active Group" shape {@see isOrgWideSender()} reads.
+     */
+    public function chairsAnActiveGroup(): bool
+    {
+        $this->loadMissing(['memberships.roles', 'memberships.group']);
+
+        return $this->memberships->contains(
+            fn (GroupMember $membership): bool => $membership->group->isActive()
+                && $membership->roles->contains('role', Role::Chair),
+        );
     }
 
     /**

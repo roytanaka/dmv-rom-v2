@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * A Member list (ADR-0038 §5): one of the seven Records office rosters under Officer Tools →
  * Members, in menu order. Each maps to its {@see CategoryGroup}; Donors reads the Donor Category
- * alone, and Past the removed-data marker. Applicants has no Members here: it links to the
- * Applicants page.
+ * alone, and Past the removed-data marker. Applicants has no Members here: its URL word is the
+ * Applicants page's (#928).
  *
  * Backed string enum: the value is the list's English URL word, the {list} route parameter.
  */
@@ -65,6 +65,20 @@ enum MemberList: string
     public function offersSendEmail(): bool
     {
         return in_array($this, [self::Current, self::Resigned], true);
+    }
+
+    /**
+     * The seven tabs of the Member lists, each linking its list in the active locale. Applicants
+     * links the Applicants page (#928), which owns that URL word.
+     *
+     * @return list<array{key: string, href: string}>
+     */
+    public static function tabs(): array
+    {
+        return array_map(fn (self $tab) => [
+            'key' => $tab->value,
+            'href' => route('officer.members', $tab === self::Current ? [] : ['list' => $tab->urlWord()], false),
+        ], self::cases());
     }
 
     /** The list's URL word in the active locale, from the route tables (ADR-0008). */

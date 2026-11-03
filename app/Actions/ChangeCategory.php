@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Enums\Category;
 use App\Enums\DepartureReason;
 use App\Enums\MembershipStatus;
+use App\Models\Applicant;
 use App\Models\CategoryChange;
 use App\Models\Member;
 use App\Support\Notices\MenteeActivatedNoticeWriter;
@@ -122,8 +123,9 @@ class ChangeCategory
                 $member->forceFill(['next_award_year' => $member->entry_year + 5])->save();
             }
 
-            // The mentor is known once an Applicant links to this Member (#914); until then none.
-            $this->mentorNotice->write($member, null);
+            // The mentor is the one on the Applicant this Member came from (#931); none without one.
+            $applicant = Applicant::where('member_id', $member->id)->latest('id')->first();
+            $this->mentorNotice->write($member, $applicant?->mentor);
         }
     }
 

@@ -14,7 +14,7 @@ use Inertia\Response;
 /**
  * The Member lists (#919, ADR-0038 §5): Officer Tools → Members. One route with a {list} word,
  * in the page's language; a bare /officer/members opens Current. Sorted by last name, searched by
- * its start, as the Legacy app's "Search for Last Name". Applicants is a placeholder until #914.
+ * its start, as the Legacy app's "Search for Last Name". Applicants is its own page (#928).
  */
 class MemberListController extends Controller
 {
@@ -32,19 +32,15 @@ class MemberListController extends Controller
 
         $members = $memberList->members();
 
-        if ($members === null) {
-            return Inertia::render('ComingSoon');
-        }
+        // The Applicants word belongs to the Applicants page, registered ahead of this route.
+        abort_if($members === null, 404);
 
         $query = $request->query('q');
         $search = is_string($query) && trim($query) !== '' ? trim($query) : null;
 
         return Inertia::render('officer/members/Index', [
             'list' => $memberList->value,
-            'tabs' => array_map(fn (MemberList $tab) => [
-                'key' => $tab->value,
-                'href' => $this->href($tab),
-            ], MemberList::cases()),
+            'tabs' => MemberList::tabs(),
             'actions' => $memberList->rowActions(),
             'canSendEmail' => $memberList->offersSendEmail(),
             'search' => $search,
@@ -57,10 +53,5 @@ class MemberListController extends Controller
                 ->withQueryString()
                 ->through(fn (Member $member) => (new MemberResource($member))->recordsListRow()),
         ]);
-    }
-
-    private function href(MemberList $list): string
-    {
-        return route('officer.members', $list === MemberList::Current ? [] : ['list' => $list->urlWord()], false);
     }
 }

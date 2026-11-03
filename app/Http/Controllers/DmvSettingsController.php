@@ -46,7 +46,7 @@ class DmvSettingsController extends Controller
      * The stewardships the page shows. Statistics and website stay hidden until a feature
      * reads them (ADR-0036 §7).
      */
-    public const LIVE_STEWARDSHIPS = [StewardshipFunction::MemberAdmin, StewardshipFunction::OrgMail];
+    public const LIVE_STEWARDSHIPS = [StewardshipFunction::MemberAdmin, StewardshipFunction::Applicants, StewardshipFunction::OrgMail];
 
     /**
      * The Groups section. The super-tier gets the whole org tree, archived Groups included. A
@@ -153,7 +153,7 @@ class DmvSettingsController extends Controller
             ),
             // The page reloads only this prop with the draft in the query string.
             'preview' => fn () => $request->hasDraft()
-                ? StewardshipAssignment::preview($request->draftMemberAdmin(), $request->draftOrgMail())
+                ? StewardshipAssignment::preview($request->draftMemberAdmin(), $request->draftApplicants(), $request->draftOrgMail())
                 : null,
         ]);
     }

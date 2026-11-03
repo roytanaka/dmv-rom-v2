@@ -1,5 +1,10 @@
 <?php
 
+use App\Http\Controllers\ApplicantCodeController;
+use App\Http\Controllers\ApplicantController;
+use App\Http\Controllers\ApplicantDeletionController;
+use App\Http\Controllers\ApplicantPrintController;
+use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BoardPositionController;
@@ -124,6 +129,32 @@ Route::group([
     // Above the Member lists' {list?} route, which would otherwise take the word.
     Route::get(LaravelLocalization::transRoute('routes.officer.members.remove-personal-data'), [RemovePersonalDataController::class, 'show'])
         ->middleware('auth')->name('officer.members.remove-personal-data');
+
+    // The public application form (#930, ADR-0038 §8, §14.6), for guests (/apply ↔ /fr/postuler):
+    // the sign-in page POSTs the Applicant code (in the body, never the URL or the logs) to
+    // apply/code, which redirects to the form; the POST to apply stores the application.
+    // ApplicationController holds the code check and its throttle.
+    Route::post(LaravelLocalization::transRoute('routes.apply_code'), [ApplicationController::class, 'code'])
+        ->middleware('guest')->name('apply.code');
+    Route::get(LaravelLocalization::transRoute('routes.apply'), [ApplicationController::class, 'show'])
+        ->middleware('guest')->name('apply');
+    Route::post(LaravelLocalization::transRoute('routes.apply'), [ApplicationController::class, 'store'])
+        ->middleware('guest')->name('apply.store');
+
+    // The Applicants pages (#928, ADR-0038 §8): the list owns the Applicants Member list's word
+    // (/officer/members/applicants ↔ /fr/officier/membres/candidats), so it sits above the lists
+    // route; Add applicant and the record sit below that word. ApplicantPolicy gates each.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.list.applicants'), [ApplicantController::class, 'index'])
+        ->middleware('auth')->name('officer.members.list.applicants');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.applicants.create'), [ApplicantController::class, 'create'])
+        ->middleware('auth')->name('officer.members.applicants.create');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.applicants.show'), [ApplicantController::class, 'show'])
+        ->middleware('auth')->whereNumber('applicant')->name('officer.members.applicants.show');
+    // Print list and Print record (#929): print-styled pages, no app chrome. ApplicantPolicy `view`.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.applicants.print'), [ApplicantPrintController::class, 'list'])
+        ->middleware('auth')->name('officer.members.applicants.print');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.applicants.print-record'), [ApplicantPrintController::class, 'record'])
+        ->middleware('auth')->whereNumber('applicant')->name('officer.members.applicants.print-record');
 
     // The Member lists (#919, ADR-0038 §5): one route, the list a translated word
     // (/officer/members/resigned ↔ /fr/officier/membres/demissionnaires). A bare path opens
@@ -473,6 +504,17 @@ Route::post('members/{member}/photo', MemberPhotoController::class)
     ->middleware(['auth'])
     ->name('members.photo.update');
 
+// Applicant writes (#928, ADR-0038 §8): Add applicant and the record's save. ApplicantPolicy in
+// each Form Request: a holder member adds; the Applicant Chair or the mentor saves.
+Route::middleware('auth')->group(function () {
+    Route::post('applicants', [ApplicantController::class, 'store'])->name('applicants.store');
+    Route::patch('applicants/{applicant}', [ApplicantController::class, 'update'])->name('applicants.update');
+    // The Applicant code dialog (#930): the Applicant Chair, via ApplicantPolicy::setCode.
+    Route::put('applicant-code', [ApplicantCodeController::class, 'update'])->name('applicant-code.update');
+    // Delete (#929): only while no Member is linked, re-checked in DeleteApplicantRequest.
+    Route::delete('applicants/{applicant}', ApplicantDeletionController::class)->name('applicants.destroy');
+});
+
 // The structured lists on the Member record (#918, ADR-0038 §3). Member administration or
 // super-tier, via `MemberPolicy::administer` in each Form Request. A row answers only under its
 // own Member.
@@ -502,9 +544,9 @@ Route::put('members/{member}/no-email-flag', NoEmailFlagController::class)
 
 // DMV Settings › Stewardships write seam (#846, ADR-0036 §7). Replaces one stewardship's
 // holder Groups. Super-tier only via `administer-groups` in the UpdateStewardshipRequest.
-// Only the two live stewardships route; statistics and website stay hidden.
+// Only the live stewardships route; statistics and website stay hidden.
 Route::put('officer/settings/stewardships/{function}', [DmvSettingsController::class, 'updateStewardship'])
-    ->whereIn('function', ['member_admin', 'org_mail'])
+    ->whereIn('function', array_map(fn ($function) => $function->value, DmvSettingsController::LIVE_STEWARDSHIPS))
     ->middleware(['auth'])
     ->name('dmv-settings.stewardships.update');
 

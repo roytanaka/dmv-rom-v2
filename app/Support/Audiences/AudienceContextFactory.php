@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
+use App\Support\Applicants\ApplicantFilter;
 use Illuminate\Http\Request;
 
 /**
@@ -43,7 +44,21 @@ class AudienceContextFactory
             ContextType::Invitation => AudienceContext::invitation(Invitation::findOrFail($subject)),
             ContextType::MemberList => AudienceContext::memberList($this->memberList($subject)),
             ContextType::SavedQuery => AudienceContext::savedQuery(SavedQuery::findOrFail($subject)),
+            ContextType::Applicants => AudienceContext::applicants($this->applicantFilter($subject)),
         };
+    }
+
+    /**
+     * The Applicants list's filter, its status and search ({@see ApplicantFilter::fromSubject()}),
+     * or a 404 for an unknown status.
+     */
+    private function applicantFilter(mixed $subject): ApplicantFilter
+    {
+        $filter = ApplicantFilter::fromSubject($subject);
+
+        abort_if($filter === null, 404);
+
+        return $filter;
     }
 
     /**

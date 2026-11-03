@@ -43,6 +43,7 @@ return [
         // Noms courts des intendances pour la colonne État.
         'stewardship' => [
             'member_admin' => 'Admin. des membres',
+            'applicants' => 'Candidats',
             'org_mail' => 'Expéditeur DMV',
         ],
         'hours' => 'Heures ×:multiplier',
@@ -193,6 +194,7 @@ return [
         'slug_taken' => 'Un autre groupe utilise ce slug.',
         'slug_format' => 'Utilisez des lettres minuscules, des chiffres et des traits d’union.',
         'member_admin_required' => 'Choisissez un groupe. L’administration des membres a toujours un détenteur.',
+        'applicants_required' => 'Choisissez un groupe. Les candidats ont toujours un détenteur.',
         'inactive_group' => 'Choisissez un groupe actif.',
         'parent_cycle' => 'Un groupe ne peut pas se placer sous lui-même ni sous l’un de ses groupes.',
         'root_parent' => 'Choisissez une section, pas la racine.',
@@ -210,6 +212,10 @@ return [
         'member_admin' => [
             'title' => 'Administration des membres',
             'description' => 'Les membres de ce groupe modifient le dossier de chaque membre et ouvrent les rapports de tout le DMV. Un seul groupe la détient.',
+        ],
+        'applicants' => [
+            'title' => 'Candidats',
+            'description' => 'Les membres de ce groupe gèrent l’accueil : ils suivent les candidats et leur président·e publie le code de candidature. Un seul groupe la détient.',
         ],
         'org_mail' => [
             'title' => 'Expéditeur à l’échelle du DMV',

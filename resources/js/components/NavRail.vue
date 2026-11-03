@@ -21,6 +21,7 @@ import {
     PhGear,
     PhMegaphone,
     PhQuestion,
+    PhUserPlus,
 } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -49,6 +50,7 @@ const otherGroups = computed<RailNode[]>(() => otherGroupsSection.value?.items ?
 // item's stable `key`, mirroring how the top bar maps its fixed destinations.
 const OFFICER_ICONS: Record<string, PhosphorIcon> = {
     members: PhBuildings,
+    applicants: PhUserPlus,
     communications: PhMegaphone,
     reports: PhChartBar,
     'flash-messages': PhChatCircleDots,

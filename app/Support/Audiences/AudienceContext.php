@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
+use App\Support\Applicants\ApplicantFilter;
 
 /**
  * The surface an Audience is being picked from (ADR-0024 §6) — a {@see ContextType}
@@ -21,7 +22,7 @@ final class AudienceContext
 {
     private function __construct(
         public readonly ContextType $type,
-        public readonly Group|Schedule|Shift|Member|Invitation|MemberList|SavedQuery|null $subject,
+        public readonly Group|Schedule|Shift|Member|Invitation|MemberList|SavedQuery|ApplicantFilter|null $subject,
     ) {}
 
     public static function memberList(MemberList $list): self
@@ -32,6 +33,12 @@ final class AudienceContext
     public static function savedQuery(SavedQuery $query): self
     {
         return new self(ContextType::SavedQuery, $query);
+    }
+
+    /** The Applicants list under its filter. */
+    public static function applicants(ApplicantFilter $filter): self
+    {
+        return new self(ContextType::Applicants, $filter);
     }
 
     public static function group(Group $group): self
@@ -77,7 +84,7 @@ final class AudienceContext
             ContextType::Schedule => $this->subject->group,
             ContextType::Shift => $this->subject->schedule->group,
             ContextType::Directory, ContextType::Member, ContextType::Invitation,
-            ContextType::MemberList, ContextType::SavedQuery => null,
+            ContextType::MemberList, ContextType::SavedQuery, ContextType::Applicants => null,
         };
     }
 }
