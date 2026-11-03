@@ -76,6 +76,8 @@ return [
     'officer.members.list.admin' => 'officer/members/admin',
     'officer.members.list.donors' => 'officer/members/donors',
     'officer.members.list.applicants' => 'officer/members/applicants',
+    'officer.members.applicants.create' => 'officer/members/applicants/new',
+    'officer.members.applicants.show' => 'officer/members/applicants/{applicant}',
     'officer.members.record' => 'officer/members/records/{member}',
     // Saved queries (#923, ADR-0038 §7): the index, a new query, the form and the run.
     'officer.members.queries' => 'officer/members/queries',

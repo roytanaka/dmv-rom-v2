@@ -62,6 +62,7 @@ return [
     // Zone C — responsables/administration (rail, épinglé en bas).
     'officer' => [
         'members' => 'Membres',
+        'applicants' => 'Candidats',
         'communications' => 'Communications',
         'reports' => 'Rapports',
         'flash_messages' => 'Messages éclair',

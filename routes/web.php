@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BoardPositionController;
@@ -124,6 +125,16 @@ Route::group([
     // Above the Member lists' {list?} route, which would otherwise take the word.
     Route::get(LaravelLocalization::transRoute('routes.officer.members.remove-personal-data'), [RemovePersonalDataController::class, 'show'])
         ->middleware('auth')->name('officer.members.remove-personal-data');
+
+    // The Applicants pages (#928, ADR-0038 §8): the list owns the Applicants Member list's word
+    // (/officer/members/applicants ↔ /fr/officier/membres/candidats), so it sits above the lists
+    // route; Add applicant and the record sit below that word. ApplicantPolicy gates each.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.list.applicants'), [ApplicantController::class, 'index'])
+        ->middleware('auth')->name('officer.members.list.applicants');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.applicants.create'), [ApplicantController::class, 'create'])
+        ->middleware('auth')->name('officer.members.applicants.create');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.applicants.show'), [ApplicantController::class, 'show'])
+        ->middleware('auth')->whereNumber('applicant')->name('officer.members.applicants.show');
 
     // The Member lists (#919, ADR-0038 §5): one route, the list a translated word
     // (/officer/members/resigned ↔ /fr/officier/membres/demissionnaires). A bare path opens
@@ -472,6 +483,13 @@ Route::post('members/remove-personal-data', [RemovePersonalDataController::class
 Route::post('members/{member}/photo', MemberPhotoController::class)
     ->middleware(['auth'])
     ->name('members.photo.update');
+
+// Applicant writes (#928, ADR-0038 §8): Add applicant and the record's save. ApplicantPolicy in
+// each Form Request: a holder member adds; the Applicant Chair or the mentor saves.
+Route::middleware('auth')->group(function () {
+    Route::post('applicants', [ApplicantController::class, 'store'])->name('applicants.store');
+    Route::patch('applicants/{applicant}', [ApplicantController::class, 'update'])->name('applicants.update');
+});
 
 // The structured lists on the Member record (#918, ADR-0038 §3). Member administration or
 // super-tier, via `MemberPolicy::administer` in each Form Request. A row answers only under its

@@ -65,6 +65,7 @@ return [
     // Zone C — officer/admin cluster (rail, pinned bottom, officer-only).
     'officer' => [
         'members' => 'Members',
+        'applicants' => 'Applicants',
         'communications' => 'Communications',
         'reports' => 'Reports',
         'flash_messages' => 'Flash Messages',

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ApplicantStatus;
 use App\Enums\Category;
 use App\Enums\CategoryGroup;
 use App\Enums\DepartureReason;
@@ -17,6 +18,7 @@ use App\Enums\Role;
 use App\Enums\ScheduleState;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
+use App\Models\Applicant;
 use App\Models\Booking;
 use App\Models\BookingType;
 use App\Models\Document;
@@ -489,6 +491,7 @@ class DemoSeeder extends Seeder
         $this->memberRecords();
         $this->personaRecordLists();
         $this->savedQueries();
+        $this->applicants();
         $this->prunePhotoFiles();
         $this->objects();
         $this->scheduling();
@@ -839,6 +842,88 @@ class DemoSeeder extends Seeder
 
         foreach ($queries as $name => $query) {
             SavedQuery::updateOrCreate(['name' => $name], [...$query, 'conjunction' => 'and', 'sort' => 'last_name']);
+        }
+    }
+
+    /**
+     * A dozen Applicants (#928, ADR-0038 §8) across the seven statuses, mentored by the Membership
+     * Group's roster: some entered by the office, one by the applicant and still unassigned, one
+     * placed, one closed as Incomplete. Keyed on email, so a reseed heals them. Skips a trimmed
+     * tree without Membership.
+     */
+    private function applicants(): void
+    {
+        $membership = $this->findGroup('membership');
+
+        if ($membership === null) {
+            return;
+        }
+
+        $roster = GroupMember::where('group_id', $membership->id)
+            ->whereIn('status', MembershipStatus::belongingValues())
+            ->with(['member', 'roles'])
+            ->get();
+        $chair = $roster->first(fn (GroupMember $row) => $row->roles->contains('role', Role::Chair))?->member;
+        $mentors = $roster->map(fn (GroupMember $row) => $row->member)->values();
+
+        if ($mentors->isEmpty()) {
+            return;
+        }
+
+        $placement = $this->findGroup(self::GALLERY_INTERPRETERS) ?? $membership;
+        $today = OrgTime::today();
+
+        // first, last, status, days ago, mentor index (null: unassigned), languages
+        $rows = [
+            ['Amara', 'Okeke', ApplicantStatus::New, 3, null, ['en', 'fr']],
+            ['Benoît', 'Lavoie', ApplicantStatus::New, 6, 0, ['fr']],
+            ['Chen', 'Wei', ApplicantStatus::New, 10, 1, ['en']],
+            ['Dalia', 'Haddad', ApplicantStatus::AssignedForInterview, 18, 0, ['en', 'Arabic']],
+            ['Ethan', 'Brooks', ApplicantStatus::AssignedForInterview, 25, 2, ['en', 'asl']],
+            ['Farah', 'Siddiqui', ApplicantStatus::Accepted, 40, 1, ['en', 'Urdu']],
+            ['Gabriel', 'Moreau', ApplicantStatus::Accepted, 45, 0, ['fr', 'en']],
+            ['Hana', 'Kobayashi', ApplicantStatus::Placed, 60, 2, ['en', 'Japanese']],
+            ['Isaac', 'Mensah', ApplicantStatus::YellowCardCompleted, 75, 1, ['en']],
+            ['Julia', 'Rossi', ApplicantStatus::ReadyToGoActive, 90, 0, ['en', 'Italian']],
+            ['Kofi', 'Asante', ApplicantStatus::Incomplete, 120, 2, ['en']],
+            ['Léa', 'Gagnon', ApplicantStatus::AssignedForInterview, 15, 3, ['fr', 'lsq']],
+        ];
+
+        foreach ($rows as $index => [$first, $last, $status, $daysAgo, $mentorIndex, $languages]) {
+            $email = Str::ascii(mb_strtolower("{$first}.{$last}")).'@applicant.test';
+            $mentor = $mentorIndex === null ? null : $mentors[$mentorIndex % $mentors->count()];
+            $enteredBy = $mentorIndex === null ? null : ($chair ?? $mentor);
+            $applied = $today->subDays($daysAgo);
+
+            $applicant = Applicant::firstOrNew(['email' => $email]);
+            $applicant->forceFill([
+                'first_name' => $first,
+                'last_name' => $last,
+                'phone' => sprintf('416-555-%04d', 2000 + $index),
+                'address_street' => sprintf('%d Bloor Street West', 100 + $index * 7),
+                'address_city' => 'Toronto',
+                'address_province' => 'ON',
+                'address_postal_code' => 'M5S 1V'.($index % 10),
+                'membership_number' => sprintf('R7%05d', $this->hash($email) % 100000),
+                'membership_expiry' => $today->addYear()->toDateString(),
+                'emergency_contact' => 'Sam '.$last,
+                'emergency_contact_number' => sprintf('416-555-%04d', 3000 + $index),
+                'status' => $status,
+                'status_date' => $applied->addDays(min($daysAgo, 7))->toDateString(),
+                'departure_reason' => $status === ApplicantStatus::Incomplete ? DepartureReason::Schedule : null,
+                'placement_group_id' => $status === ApplicantStatus::Placed ? $placement->id : null,
+                'mentor_id' => $mentor?->id,
+                'entered_by_applicant' => $enteredBy === null,
+                'applied_on' => $applied->toDateString(),
+                'notes' => $mentor === null ? null : sprintf('%s %s: Application received.', $applied->toDateString(), $mentor->fullName()),
+                'created_by' => $enteredBy?->id,
+                'updated_by' => $enteredBy?->id,
+            ])->save();
+
+            $applicant->languages()->delete();
+            foreach ($languages as $code) {
+                $applicant->languages()->create(['language_code' => $code, 'speaks' => true, 'reads' => true, 'writes' => $code !== 'asl']);
+            }
         }
     }
 

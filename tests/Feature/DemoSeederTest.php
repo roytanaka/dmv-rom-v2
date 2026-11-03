@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ApplicantStatus;
 use App\Enums\AudienceKey;
 use App\Enums\Category;
 use App\Enums\DocumentKind;
@@ -14,6 +15,7 @@ use App\Enums\Role;
 use App\Enums\ScheduleState;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
+use App\Models\Applicant;
 use App\Models\Booking;
 use App\Models\BookingType;
 use App\Models\Document;
@@ -279,6 +281,18 @@ it('gives the applicants stewardship to the Membership Group', function () {
     expect(Group::stewardOf(StewardshipFunction::Applicants)?->slug)->toBe('membership');
 });
 
+it('seeds a dozen Applicants across every status, mentored from the Membership roster', function () {
+    $membership = Group::where('slug', 'membership')->firstOrFail();
+    $roster = GroupMember::where('group_id', $membership->id)->pluck('member_id');
+    $applicants = Applicant::all();
+
+    expect($applicants)->toHaveCount(12)
+        ->and($applicants->pluck('status')->unique()->count())->toBe(count(ApplicantStatus::cases()))
+        ->and($applicants->whereNotNull('mentor_id')->pluck('mentor_id')->diff($roster))->toBeEmpty()
+        ->and($applicants->where('entered_by_applicant', true)->whereNull('mentor_id'))->not->toBeEmpty()
+        ->and($applicants->where('status', ApplicantStatus::Incomplete)->whereNull('departure_reason'))->toBeEmpty();
+});
+
 it('leaves no membership orphaned — every one references a real Group and Member', function () {
     GroupMember::with(['group', 'member'])->get()->each(function (GroupMember $membership) {
         expect($membership->group)->not->toBeNull()
@@ -296,6 +310,8 @@ it('is idempotent — re-seeding leaves row counts unchanged', function () {
         'tours' => Tour::count(),
         'tour_kind_links' => DB::table('shift_kind_tour')->count(),
         'qualifications' => Qualification::count(),
+        'applicants' => Applicant::count(),
+        'applicant_languages' => DB::table('applicant_languages')->count(),
     ];
     $before = $counts();
 

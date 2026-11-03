@@ -718,6 +718,21 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * Whether this Member chairs any active Group (ADR-0038 §2): the reach that lets any Chair read
+     * Applicants, to see who is coming to their Group. An archived or expired Group's Chair has
+     * none. The same "Chair in an active Group" shape {@see isOrgWideSender()} reads.
+     */
+    public function chairsAnActiveGroup(): bool
+    {
+        $this->loadMissing(['memberships.roles', 'memberships.group']);
+
+        return $this->memberships->contains(
+            fn (GroupMember $membership): bool => $membership->group->isActive()
+                && $membership->roles->contains('role', Role::Chair),
+        );
+    }
+
+    /**
      * Whether this Member sees every Who's who list on the Directory (#699), not only
      * the open ones ({@see DirectoryList::isOpen()}). As on the old site: Records, and
      * Officers — a Chair, Secretary, Treasurer, or Statistician in any Group. Super-tier

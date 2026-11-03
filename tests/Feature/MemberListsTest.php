@@ -163,7 +163,7 @@ it('gives each list its row actions and Send email', function (string $word, arr
     ['donors', ['edit'], false],
 ]);
 
-it('points the seven tabs at their lists, the Applicants tab at the placeholder', function () {
+it('points the seven tabs at their lists, the Applicants tab at the Applicants page', function () {
     $this->actingAs(listsMemberAdmin())->get('/officer/members')
         ->assertInertia(fn (Assert $page) => $page
             ->where('tabs.0', ['key' => 'current', 'href' => '/officer/members'])
@@ -172,7 +172,7 @@ it('points the seven tabs at their lists, the Applicants tab at the placeholder'
 
     $this->get('/officer/members/applicants')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('ComingSoon'));
+        ->assertInertia(fn (Assert $page) => $page->component('officer/applicants/Index'));
 });
 
 it('serves the lists at translated French addresses', function () {

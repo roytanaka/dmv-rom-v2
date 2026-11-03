@@ -7,6 +7,7 @@ use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Help\HelpManifest;
 use App\Http\Controllers\ImpersonationController;
+use App\Models\Applicant;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Member;
@@ -351,6 +352,8 @@ class HandleInertiaRequests extends Middleware
         // `route` resolves per locale; a fixed `href` is emitted as-is.
         $items = [
             ['key' => 'members', 'route' => 'officer.members', 'labelKey' => 'nav.officer.members', 'gate' => 'administer-members'],
+            // Applicants (#928, ADR-0038 §8): the holder, any active Chair and member administration.
+            ['key' => 'applicants', 'route' => 'officer.members.list.applicants', 'labelKey' => 'nav.officer.applicants', 'gate' => 'viewAny', 'arguments' => [Applicant::class]],
             ['key' => 'communications', 'route' => 'officer.communications', 'labelKey' => 'nav.officer.communications', 'gate' => 'post-news'],
             ['key' => 'reports', 'route' => 'officer.reports', 'labelKey' => 'nav.officer.reports'],
             ['key' => 'flash-messages', 'route' => 'officer.flash-messages', 'labelKey' => 'nav.officer.flash_messages'],
@@ -362,7 +365,7 @@ class HandleInertiaRequests extends Middleware
 
         $visible = collect($items)
             ->filter(fn (array $spec) => isset($spec['gate'])
-                ? $member->can($spec['gate'])
+                ? $member->can($spec['gate'], $spec['arguments'] ?? [])
                 : $member->isAllDmv())
             ->map(fn (array $spec) => $this->destination($spec))
             ->values();
