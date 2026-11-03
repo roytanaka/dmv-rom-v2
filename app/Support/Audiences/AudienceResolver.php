@@ -120,12 +120,12 @@ class AudienceResolver
         }
 
         $base = $this->base($context, $key, $parameter)
-            ->unique(fn (Member|Applicant $member): int => $member->getKey())
+            ->unique(fn (Member|Applicant $recipient): int => $recipient->getKey())
             ->values();
 
         $roster = $this->pageRoster($context)
-            ->unique(fn (Member|Applicant $member): int => $member->getKey())
-            ->keyBy(fn (Member|Applicant $member): int => $member->getKey());
+            ->unique(fn (Member|Applicant $recipient): int => $recipient->getKey())
+            ->keyBy(fn (Member|Applicant $recipient): int => $recipient->getKey());
 
         $removedIds = collect($removed)->map(fn ($id): int => (int) $id)->unique()->values();
         $addedIds = collect($added)->map(fn ($id): int => (int) $id)->unique()->values();
@@ -133,14 +133,14 @@ class AudienceResolver
         $this->assertEditsInBounds($base, $roster, $removedIds, $addedIds);
 
         $recipients = $base
-            ->reject(fn (Member|Applicant $member): bool => $removedIds->contains($member->getKey()))
+            ->reject(fn (Member|Applicant $recipient): bool => $removedIds->contains($recipient->getKey()))
             ->concat($addedIds->map(fn (int $id): Member|Applicant => $roster->get($id)))
-            ->unique(fn (Member|Applicant $member): int => $member->getKey())
+            ->unique(fn (Member|Applicant $recipient): int => $recipient->getKey())
             ->values();
 
         // An Applicant has no no-email flag (#929): only a Member is skipped.
         [$skipped, $reachable] = $recipients->partition(
-            fn (Member|Applicant $member): bool => $member instanceof Member && $member->no_email,
+            fn (Member|Applicant $recipient): bool => $recipient instanceof Member && $recipient->no_email,
         );
 
         return new ResolvedAudience(
@@ -647,7 +647,7 @@ class AudienceResolver
      */
     private function assertEditsInBounds(Collection $base, Collection $roster, Collection $removedIds, Collection $addedIds): void
     {
-        $baseIds = $base->map(fn (Member|Applicant $member): int => $member->getKey());
+        $baseIds = $base->map(fn (Member|Applicant $recipient): int => $recipient->getKey());
 
         if ($removedIds->diff($baseIds)->isNotEmpty()) {
             throw ValidationException::withMessages([

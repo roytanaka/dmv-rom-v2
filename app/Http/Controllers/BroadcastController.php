@@ -134,16 +134,16 @@ class BroadcastController extends Controller
      */
     private function writeRecipientDeliveries(Broadcast $broadcast, ResolvedAudience $resolved): void
     {
-        foreach ($resolved->recipients as $member) {
-            $valid = filter_var($member->email, FILTER_VALIDATE_EMAIL) !== false;
-            $applicant = $member instanceof Applicant;
+        foreach ($resolved->recipients as $recipient) {
+            $valid = filter_var($recipient->email, FILTER_VALIDATE_EMAIL) !== false;
+            $applicant = $recipient instanceof Applicant;
 
             $broadcast->deliveries()->create([
                 'kind' => $broadcast->kind->deliveryKind(),
-                'member_id' => $applicant ? null : $member->getKey(),
-                'payload' => $applicant ? ['name' => $member->fullName(), 'locale' => app()->getLocale()] : null,
+                'member_id' => $applicant ? null : $recipient->getKey(),
+                'payload' => $applicant ? ['name' => $recipient->fullName(), 'locale' => app()->getLocale()] : null,
                 // An imported Applicant or Member may have no address: the row is written failed.
-                'email' => $member->email ?? '',
+                'email' => $recipient->email ?? '',
                 'state' => $valid ? DeliveryState::Pending : DeliveryState::Failed,
                 'attempts' => $valid ? 0 : 1,
                 'next_attempt_at' => now(),

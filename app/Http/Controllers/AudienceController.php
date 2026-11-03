@@ -81,7 +81,7 @@ class AudienceController extends Controller
             'label' => $resolved->label,
             'edited' => $resolved->edited,
             'count' => $resolved->recipients->count(),
-            'recipients' => $resolved->recipients->map(fn (Member|Applicant $member): array => $this->row($member, $request->user()))->values(),
+            'recipients' => $resolved->recipients->map(fn (Member|Applicant $recipient): array => $this->row($recipient, $request->user()))->values(),
             'skipped' => $resolved->skipped->map(fn (Member $member): array => $this->row($member, $request->user()))->values(),
         ]);
     }
@@ -101,24 +101,24 @@ class AudienceController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function row(Member|Applicant $member, ?Member $viewer): array
+    private function row(Member|Applicant $recipient, ?Member $viewer): array
     {
-        if ($member instanceof Applicant) {
+        if ($recipient instanceof Applicant) {
             return [
-                'id' => $member->id,
-                'first_name' => $member->first_name,
-                'last_name' => $member->last_name,
+                'id' => $recipient->id,
+                'first_name' => $recipient->first_name,
+                'last_name' => $recipient->last_name,
                 'photo' => null,
-                'standing' => $member->status->value,
+                'standing' => $recipient->status->value,
             ];
         }
 
         return [
-            'id' => $member->id,
-            'first_name' => $member->first_name,
-            'last_name' => $member->last_name,
-            'photo' => $member->photoUrlFor($viewer),
-            'standing' => $member->category->value,
+            'id' => $recipient->id,
+            'first_name' => $recipient->first_name,
+            'last_name' => $recipient->last_name,
+            'photo' => $recipient->photoUrlFor($viewer),
+            'standing' => $recipient->category->value,
         ];
     }
 
