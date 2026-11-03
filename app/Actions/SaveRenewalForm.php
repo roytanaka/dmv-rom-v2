@@ -37,7 +37,7 @@ class SaveRenewalForm
 
     public function editing(Member $member): bool
     {
-        return (int) ($member->getAttributes()['renewal_year'] ?? 0) === $member->renewalServedYear();
+        return (int) $member->renewal_year === $member->renewalServedYear();
     }
 
     /**

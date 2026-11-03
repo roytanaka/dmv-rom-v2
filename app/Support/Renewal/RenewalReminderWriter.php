@@ -5,10 +5,11 @@ namespace App\Support\Renewal;
 use App\Enums\Category;
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Mail\RenewalReminderSummary;
 use App\Models\Delivery;
 use App\Models\Member;
 use App\Models\RenewalSetting;
-use App\Support\Notices\RenewalReminderSummaryNoticeWriter;
+use App\Support\Notices\RecordsRoster;
 use App\Support\OrgTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,7 +20,8 @@ use Illuminate\Support\Carbon;
  * rows**; the Drain sends them.
  *
  * For each of Active and Sustaining, once today (org time) is on or after the Category's send date
- * plus six weeks, the first series is open; at ten weeks, the second replaces it. Every Member of the
+ * plus six weeks, the first series is open; at ten weeks, the second replaces it; a week later the
+ * second closes and nothing more goes. Every Member of the
  * Category whose paid-through year is below the renewal year (or unset), without the no-email flag,
  * gets one {@see DeliveryKind::RenewalReminder} Delivery in the open series, written with
  * {@see Delivery::firstOrCreate} on the (kind, series, series year, Member) grain. That is the sent
@@ -35,7 +37,12 @@ class RenewalReminderWriter
     /** The weeks after the send date each series opens, keyed by series number. */
     private const SERIES_WEEKS = [1 => 6, 2 => 10];
 
-    public function __construct(private RenewalReminderSummaryNoticeWriter $summary) {}
+    /**
+     * The days the second series stays open. The Legacy app sent it on its one day and nothing
+     * after; the window keeps a missed pass's catch-up and then closes, so a Member first caught
+     * weeks later, or a renewal year bumped before the send dates move, gets nothing.
+     */
+    private const SECOND_SERIES_OPEN_DAYS = 7;
 
     public function write(): void
     {
@@ -66,17 +73,25 @@ class RenewalReminderWriter
         }
 
         if ($mailed !== []) {
-            $this->summary->write($mailed, $settings->renewal_year);
+            // The Legacy app mailed this list to the Records mailbox after each series.
+            RecordsRoster::writeNotice(RenewalReminderSummary::snapshot($mailed, $settings->renewal_year));
         }
     }
 
     /**
-     * The one open series number for a send date, or null before six weeks. The latest series
-     * reached wins, so the first closes when the second opens: a Member first caught after ten
-     * weeks gets the second reminder only, never both on one day.
+     * The one open series number for a send date, or null before six weeks and once the second
+     * series has closed. The latest series reached wins, so the first closes when the second
+     * opens: a Member first caught after ten weeks gets the second reminder only, never both on
+     * one day.
      */
     private function openSeries(CarbonImmutable $sendDate, CarbonImmutable $today): ?int
     {
+        $closes = $sendDate->addWeeks(self::SERIES_WEEKS[2])->addDays(self::SECOND_SERIES_OPEN_DAYS)->startOfDay();
+
+        if ($today->gte($closes)) {
+            return null;
+        }
+
         $open = null;
 
         foreach (self::SERIES_WEEKS as $number => $weeks) {

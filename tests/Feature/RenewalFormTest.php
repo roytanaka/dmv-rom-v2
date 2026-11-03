@@ -412,6 +412,33 @@ it('copies a Notice with changes to each external address, and only then', funct
         ->and($copies[0]->payload['changes'][0]['field'])->toBe('last_name');
 });
 
+it('copies a Notice to the external addresses on a Category change alone', function () {
+    openRenewalForm(settings: ['external_addresses' => ['membership@rom.on.ca']]);
+    renewalRecordsMember();
+    $member = renewalFormMember();
+    placeIn($member, 'Docents');
+
+    $this->actingAs($member)->post('/renew/form', renewalSubmission(['category' => 'Sust']));
+
+    $copy = Delivery::query()->whereNull('member_id')->sole();
+    expect($copy->email)->toBe('membership@rom.on.ca')
+        ->and($copy->payload['changes'])->toBe([])
+        ->and($copy->payload['category_change'])->toBe(['from' => 'Active', 'to' => 'Sust']);
+});
+
+it('writes no Notice and no external copy while the Beta mail-off switch is on', function () {
+    openRenewalForm(settings: ['external_addresses' => ['membership@rom.on.ca']]);
+    renewalRecordsMember();
+    $member = renewalFormMember();
+    placeIn($member, 'Docents');
+    config(['mail.daily_pass_off' => true]);
+
+    $this->actingAs($member)->post('/renew/form', renewalSubmission(['last_name' => 'Okafor-Reyes', 'category' => 'Sust']));
+
+    expect($member->fresh()->renewal_year)->toBe(2027)
+        ->and(Delivery::count())->toBe(0);
+});
+
 it('writes no external copy when no address is set', function () {
     openRenewalForm();
     renewalRecordsMember();

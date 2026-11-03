@@ -11,13 +11,24 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * The ROM-expiry notice (#943, ADR-0038 §9). {@see RomExpiryNoticeWriter} writes the Delivery; the
- * Drain builds this Mailable in the recipient's locale. The text is translated copy, a placeholder
- * until the Records Chair confirms the wording.
+ * The ROM-expiry notice (#943, ADR-0038 §9). {@see RomExpiryNoticeWriter} writes the Delivery with
+ * the Member's name and expiry date in its payload; the Drain builds this Mailable in the
+ * recipient's locale. The text is translated copy in the Legacy app's shape (a greeting by name,
+ * then the expiry date), a placeholder until the Records Chair confirms the wording.
  */
 class RomExpiryNotice extends Mailable
 {
     use Queueable, SerializesModels;
+
+    public function __construct(public string $name, public string $expiry) {}
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public static function fromSnapshot(array $payload): self
+    {
+        return new self($payload['name'], $payload['membership_expiry']);
+    }
 
     public function envelope(): Envelope
     {

@@ -31,8 +31,7 @@ class ProfileController extends Controller
                 // The year the Member last renewed for (#941): ahead of the paid-through year
                 // means renewed, payment pending (ADR-0038 §9).
                 'renewal_year' => $member->renewal_year,
-                'payment_pending' => $member->renewal_year !== null
-                    && ($member->paid_through_year === null || $member->paid_through_year < $member->renewal_year),
+                'payment_pending' => $member->paymentPending(),
             ],
             // Whether the Member shows their photo to peers (#922, ADR-0038 §3).
             'photoPublic' => (bool) $member->photo_public,

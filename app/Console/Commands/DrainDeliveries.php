@@ -330,8 +330,8 @@ class DrainDeliveries extends Command
             DeliveryKind::EmptyDesk => EmptyDeskAlert::fromSnapshot($delivery->payload),
             // A Renewal reminder renders the settings text frozen in its payload (#942).
             DeliveryKind::RenewalReminder => RenewalReminder::fromSnapshot($delivery->payload),
-            // The ROM-expiry notice is translated text alone (#943).
-            DeliveryKind::RomExpiryNotice => new RomExpiryNotice,
+            // The ROM-expiry notice: translated text around the name and date in its payload (#943).
+            DeliveryKind::RomExpiryNotice => RomExpiryNotice::fromSnapshot($delivery->payload),
             DeliveryKind::Broadcast => new BroadcastMail($delivery->broadcast),
             DeliveryKind::Invitation => new InvitationMail($delivery->broadcast),
             // The sender's copy carries the roll of who was not reached, read from the failed

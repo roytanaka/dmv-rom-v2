@@ -215,15 +215,29 @@ class Member extends Authenticatable implements HasLocalePreference
     /** Whether the renewal status is LOA: the Member chose leave on their last Renewal. */
     public function onRenewalLeave(): bool
     {
-        return strtoupper(trim((string) ($this->getAttributes()['renewal_status'] ?? null))) === 'LOA';
+        return strtoupper(trim((string) $this->renewal_status)) === 'LOA';
     }
 
-    /** The paid-through year Records typed, or null. Read raw: a Member made in memory may lack it. */
+    /** The paid-through year Records typed, or null. */
     public function paidThroughYear(): ?int
     {
-        $year = $this->getAttributes()['paid_through_year'] ?? null;
+        return $this->paid_through_year === null ? null : (int) $this->paid_through_year;
+    }
 
-        return $year === null ? null : (int) $year;
+    /** Whether the code of conduct is accepted for the year the Renewal serves (step 1, #939). */
+    public function acceptedCodeOfConduct(?RenewalSetting $settings = null): bool
+    {
+        return (int) $this->code_of_conduct_year === $this->renewalServedYear($settings);
+    }
+
+    /**
+     * Renewed, payment pending (#941, ADR-0038 §9): the year last renewed for is ahead of the
+     * paid-through year, or there is no paid-through year yet.
+     */
+    public function paymentPending(): bool
+    {
+        return $this->renewal_year !== null
+            && ($this->paid_through_year === null || $this->paid_through_year < $this->renewal_year);
     }
 
     /**

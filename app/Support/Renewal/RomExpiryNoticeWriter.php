@@ -8,7 +8,6 @@ use App\Enums\DeliveryState;
 use App\Mail\RomExpirySummary;
 use App\Models\Delivery;
 use App\Models\Member;
-use App\Models\RenewalSetting;
 use App\Support\Notices\RecordsRoster;
 use App\Support\OrgTime;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,9 +21,10 @@ use Illuminate\Database\Eloquent\Builder;
  * Sustaining Member whose ROM membership expiry is before today, who is not a lifetime member and
  * has no no-email flag, gets one {@see DeliveryKind::RomExpiryNotice} Delivery, written with
  * {@see Delivery::firstOrCreate} on the (kind, series `rom-expiry`, YYYYMM, Member) grain, so a
- * second run that day writes nothing. A run that wrote any sends the Records Audience a summary.
- * Nothing is written while the show flag is off. The Beta mail-off switch is read by the pass
- * before this step runs.
+ * second run that day writes nothing; its payload carries the Member's name and expiry date. A run
+ * that wrote any sends the Records Audience a summary. The show flag does not gate it: the Legacy
+ * app and the ADR do not, and it runs June to February, mostly while the Renewal is closed. The
+ * Beta mail-off switch is read by the pass before this step runs.
  */
 class RomExpiryNoticeWriter
 {
@@ -35,10 +35,6 @@ class RomExpiryNoticeWriter
 
     public function write(): void
     {
-        if (! RenewalSetting::current()->show_renewal) {
-            return;
-        }
-
         $today = OrgTime::today();
 
         if ($today->day !== 1 || ! in_array($today->month, self::MONTHS, true)) {
@@ -70,6 +66,11 @@ class RomExpiryNoticeWriter
                 ],
                 [
                     'email' => $member->email,
+                    // The Legacy app's text greets by name and names the expiry date.
+                    'payload' => [
+                        'name' => $member->fullName(),
+                        'membership_expiry' => $member->membership_expiry->toDateString(),
+                    ],
                     'state' => DeliveryState::Pending,
                     'next_attempt_at' => now(),
                 ],

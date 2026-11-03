@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureCodeOfConductAccepted;
 use App\Http\Middleware\EnsureMemberIsCurrent;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LocalizeFromReferer;
@@ -41,6 +42,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'localeViewPath' => LaravelLocalizationViewPath::class,
             // A non-localized write answers in the language of the page that sent it (#668).
             'localizeFromReferer' => LocalizeFromReferer::class,
+            // Renewal steps 2 to 4 send a Member back to the code of conduct until it is accepted.
+            'renewal.code-of-conduct' => EnsureCodeOfConductAccepted::class,
         ]);
 
         // The sidebar:state cookie is written client-side by the shadcn

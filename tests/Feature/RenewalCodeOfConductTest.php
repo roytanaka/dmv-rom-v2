@@ -106,10 +106,25 @@ it('acts only on the signed-in Member', function () {
         ->and($member->fresh()->code_of_conduct_year)->toBe(2027);
 });
 
+it('sends a Member who has not accepted the code of conduct for the year back to it from steps 2 to 4', function (string $method, string $path) {
+    openRenewal();
+    $member = renewingMember(['renewal_year' => 2027, 'renewal_status' => 'Active', 'amount_paid' => 25]);
+
+    $this->actingAs($member)->{$method}($path, ['skills' => []])->assertRedirect('/renew');
+
+    expect($member->fresh()->renewal_status)->toBe('Active');
+})->with([
+    'form' => ['get', '/renew/form'],
+    'form save' => ['post', '/renew/form'],
+    'skills' => ['get', '/renew/skills'],
+    'skills save' => ['post', '/renew/skills'],
+    'payment' => ['get', '/renew/payment'],
+]);
+
 it('opens the French twins of steps 2 to 4', function () {
     openRenewal();
-    // Saved the form for the year, so steps 3 and 4 open rather than send it back.
-    $member = renewingMember(['renewal_year' => 2027, 'renewal_status' => 'Active', 'amount_paid' => 25]);
+    // Accepted the code of conduct and saved the form for the year, so steps 2 to 4 open.
+    $member = renewingMember(['code_of_conduct_year' => 2027, 'renewal_year' => 2027, 'renewal_status' => 'Active', 'amount_paid' => 25]);
 
     $this->withLocaleRoutes('fr', function () use ($member) {
         foreach (['/fr/renouveler/formulaire', '/fr/renouveler/competences', '/fr/renouveler/paiement'] as $path) {

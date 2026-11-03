@@ -165,6 +165,26 @@ it('closes the first series when the second opens, so nobody gets both on one da
     expect($row->series)->toBe('active-2');
 });
 
+it('closes the second series seven days after it opens, so a Member first eligible later gets nothing', function () {
+    renewalReminderSettings();
+    $early = unpaidMember();
+
+    runRenewalPassOn('2026-11-16'); // the last day of the second series (opened 2026-11-10)
+    $late = unpaidMember();
+    runRenewalPassOn('2026-11-17');
+
+    expect(Delivery::where('kind', DeliveryKind::RenewalReminder)->pluck('member_id')->all())->toBe([$early->id]);
+});
+
+it('writes nothing when the renewal year is bumped but the send dates are last year\'s', function () {
+    renewalReminderSettings(['renewal_year' => 2028]);
+    unpaidMember(attributes: ['paid_through_year' => 2027]);
+
+    runRenewalPassOn('2027-09-01');
+
+    expect(Delivery::count())->toBe(0);
+});
+
 it('runs the Sustaining series from its own send date', function () {
     renewalReminderSettings(['active_send_date' => '2026-12-01', 'sustaining_send_date' => '2026-09-01']);
     unpaidMember();

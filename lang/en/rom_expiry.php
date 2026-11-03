@@ -7,7 +7,8 @@
 return [
     'from' => 'DMV Records',
     'subject' => 'Update your ROM membership expiry date',
-    'body' => 'Our records show that your ROM membership has expired. Please update your ROM membership expiry date in Account settings.',
+    'greeting' => 'Hello :name,',
+    'body' => 'Your record shows that your ROM membership recently expired on :date. Please update your ROM membership expiry date in Account settings.',
     'summary' => [
         'subject' => 'ROM-expiry notices sent today',
         'heading' => 'ROM-expiry notices sent',

@@ -110,15 +110,16 @@ Route::group([
     }
 
     // The Renewal (#939, ADR-0038 §9): the four steps, /renew ↔ /fr/renouveler, then form, skills
-    // and payment under it. RenewalRequest on each refuses a Member who need not renew.
+    // and payment under it. RenewalRequest on each refuses a Member who need not renew; steps 2 to
+    // 4 send a Member back to step 1 until the code of conduct is accepted for the year.
     Route::get(LaravelLocalization::transRoute('routes.renew'), [RenewalController::class, 'codeOfConduct'])
         ->middleware('auth')->name('renew');
     Route::get(LaravelLocalization::transRoute('routes.renew.form'), [RenewalController::class, 'form'])
-        ->middleware('auth')->name('renew.form');
+        ->middleware(['auth', 'renewal.code-of-conduct'])->name('renew.form');
     Route::get(LaravelLocalization::transRoute('routes.renew.skills'), [RenewalController::class, 'skills'])
-        ->middleware('auth')->name('renew.skills');
+        ->middleware(['auth', 'renewal.code-of-conduct'])->name('renew.skills');
     Route::get(LaravelLocalization::transRoute('routes.renew.payment'), [RenewalController::class, 'payment'])
-        ->middleware('auth')->name('renew.payment');
+        ->middleware(['auth', 'renewal.code-of-conduct'])->name('renew.payment');
     Route::get(LaravelLocalization::transRoute('routes.renew.contact'), [RenewalController::class, 'contact'])
         ->middleware('auth')->name('renew.contact');
 
@@ -526,10 +527,10 @@ Route::post('renew/code-of-conduct', [RenewalController::class, 'storeCodeOfCond
     ->middleware(['auth'])
     ->name('renew.code-of-conduct.store');
 Route::post('renew/form', [RenewalController::class, 'storeForm'])
-    ->middleware(['auth'])
+    ->middleware(['auth', 'renewal.code-of-conduct'])
     ->name('renew.form.store');
 Route::post('renew/skills', [RenewalController::class, 'storeSkills'])
-    ->middleware(['auth'])
+    ->middleware(['auth', 'renewal.code-of-conduct'])
     ->name('renew.skills.store');
 
 // Save Renewal settings (#937, ADR-0038 §9). Member administration, via `administer-members` in

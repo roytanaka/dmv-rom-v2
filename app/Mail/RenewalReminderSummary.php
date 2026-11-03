@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Support\Notices\RenewalReminderSummaryNoticeWriter;
+use App\Support\Renewal\RenewalReminderWriter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -12,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * The Renewal reminder summary Notice (#942, ADR-0038 §9): who one daily-pass run mailed, by
- * series, for the Records Audience. {@see RenewalReminderSummaryNoticeWriter} writes the Deliveries;
+ * series, for the Records Audience. {@see RenewalReminderWriter} writes the Deliveries;
  * the Drain rebuilds this Mailable from the payload in the recipient's locale.
  */
 class RenewalReminderSummary extends Mailable

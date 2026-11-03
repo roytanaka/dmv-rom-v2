@@ -2,8 +2,6 @@
 
 namespace App\Support\Notices;
 
-use App\Enums\DeliveryKind;
-use App\Enums\DeliveryState;
 use App\Mail\RenewalSubmitted;
 use App\Models\Delivery;
 use App\Models\Member;
@@ -11,9 +9,10 @@ use App\Models\Member;
 /**
  * The renewal Notice (#940, ADR-0038 §9, §14.5): a Member saved the renewal form. The Legacy app
  * mailed the Records mailbox on every first submission, and on a later edit only when something
- * changed; it mailed the ROM membership mailboxes the changed fields only. Here: one Notice
- * {@see Delivery} per member of the Records Audience, skipping the no-email flag, on the same
- * rule; the external addresses get a copy when any tracked field changed.
+ * changed; it mailed the ROM membership mailboxes the changes. Here: one Notice {@see Delivery} per
+ * member of the Records Audience, skipping the no-email flag, on the same rule; the external
+ * addresses get a copy when any tracked field or the Category changed. Nothing is written while
+ * the Beta mail-off switch is on (ADR-0038 Beta: every Notice is off during Beta).
  */
 class RenewalSubmittedNoticeWriter
 {
@@ -25,6 +24,10 @@ class RenewalSubmittedNoticeWriter
      */
     public function write(Member $member, int $year, bool $update, array $changes, ?array $categoryChange, bool $expired): void
     {
+        if (config('mail.daily_pass_off')) {
+            return;
+        }
+
         if ($update && $changes === [] && $categoryChange === null) {
             return;
         }
@@ -44,18 +47,9 @@ class RenewalSubmittedNoticeWriter
             'expired' => $expired,
         ];
 
-        RecordsRoster::members()
-            ->reject(fn (Member $recipient): bool => $recipient->no_email)
-            ->each(fn (Member $recipient) => Delivery::create([
-                'kind' => DeliveryKind::Notice,
-                'member_id' => $recipient->getKey(),
-                'email' => $recipient->email,
-                'payload' => $payload,
-                'state' => DeliveryState::Pending,
-                'next_attempt_at' => now(),
-            ]));
+        RecordsRoster::writeNotice($payload);
 
-        if ($changes !== []) {
+        if ($changes !== [] || $categoryChange !== null) {
             $this->external->write($payload);
         }
     }

@@ -16,8 +16,8 @@ use Illuminate\Support\Carbon;
  * The ROM-expiry notice in the daily pass (#943, ADR-0038 §9). On the first of June, August,
  * October, December and February, every Active and Sustaining Member whose ROM membership expiry
  * is before today, who is not a lifetime member and has no no-email flag, gets one Delivery on the
- * (kind, series `rom-expiry`, YYYYMM, Member) grain. Off when the show flag is off or the Beta
- * switch is on. Prior art: RenewalReminderPassTest.
+ * (kind, series `rom-expiry`, YYYYMM, Member) grain, carrying the Member's name and expiry date.
+ * The show flag does not gate it; the Beta switch does. Prior art: RenewalReminderPassTest.
  */
 
 /** Renewal shown, but no renewal year, so the Renewal reminders stay quiet. */
@@ -58,6 +58,7 @@ it('writes one notice per expired Active or Sustaining Member on the first of a 
     expect($row->state)->toBe(DeliveryState::Pending);
     expect($row->series)->toBe('rom-expiry');
     expect($row->series_year)->toBe(202606);
+    expect($row->payload)->toBe(['name' => $active->fullName(), 'membership_expiry' => '2026-03-31']);
 });
 
 it('writes nothing on other days or in the months not listed', function () {
@@ -129,11 +130,17 @@ it('writes one summary Notice per Records Member for a run that wrote, and none 
     expect($summary->payload)->toBe(['notice' => 'rom_expiry_summary', 'mailed' => ['Ann Active', 'Sam Sustaining']]);
 });
 
-it('writes nothing when the show flag is off or the Beta mail-off switch is on', function () {
-    expiredMember();
-
+it('writes while the show flag is off, as the Legacy app does', function () {
     romExpirySettings(show: false);
+    $member = expiredMember();
+
     runRomExpiryPassOn('2026-06-01');
+
+    expect(romExpiryRows()->pluck('member_id')->all())->toBe([$member->id]);
+});
+
+it('writes nothing when the Beta mail-off switch is on', function () {
+    expiredMember();
 
     romExpirySettings();
     config(['mail.daily_pass_off' => true]);

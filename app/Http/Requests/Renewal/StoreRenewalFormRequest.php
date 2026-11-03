@@ -19,7 +19,7 @@ class StoreRenewalFormRequest extends RenewalRequest
     public function rules(): array
     {
         $form = app(SaveRenewalForm::class);
-        $rows = count($form->checklist($this->user()->refresh()));
+        $rows = count($form->checklist($this->user()));
         $groups = $form->groups()->pluck('id')->all();
 
         return [

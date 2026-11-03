@@ -7,7 +7,8 @@
 return [
     'from' => 'Dossiers DMV',
     'subject' => 'Mettez à jour la date d’expiration de votre adhésion au ROM',
-    'body' => 'Nos dossiers indiquent que votre adhésion au ROM est expirée. Veuillez mettre à jour la date d’expiration de votre adhésion au ROM dans les paramètres du compte.',
+    'greeting' => 'Bonjour :name,',
+    'body' => 'Votre dossier indique que votre adhésion au ROM a expiré le :date. Veuillez mettre à jour la date d’expiration de votre adhésion au ROM dans les paramètres du compte.',
     'summary' => [
         'subject' => 'Avis d’expiration ROM envoyés aujourd’hui',
         'heading' => 'Avis d’expiration ROM envoyés',

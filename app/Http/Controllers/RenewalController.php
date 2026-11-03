@@ -27,16 +27,14 @@ class RenewalController extends Controller
     public function codeOfConduct(RenewalRequest $request): Response|RedirectResponse
     {
         $member = $request->user();
-        $year = $member->renewalServedYear();
 
-        // Read raw: the signed-in Member made in memory (a test's actingAs) may lack the column.
-        if ((int) ($member->getAttributes()['code_of_conduct_year'] ?? 0) === $year) {
+        if ($member->acceptedCodeOfConduct()) {
             return to_route('renew.form');
         }
 
         // The text is a translation string (ADR-0038 §9), sent whole so its list of duties renders in order.
         return Inertia::render('renew/CodeOfConduct', [
-            'year' => $year,
+            'year' => $member->renewalServedYear(),
             'text' => __('renewal.code_of_conduct'),
         ]);
     }

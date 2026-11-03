@@ -19,12 +19,17 @@ use App\Models\RenewalSetting;
 class ExternalAddressCopyWriter
 {
     /**
-     * One Notice Delivery per external address. Nothing when the list is empty.
+     * One Notice Delivery per external address. Nothing when the list is empty, or while the Beta
+     * mail-off switch is on (ADR-0038 Beta: every Notice is off during Beta).
      *
      * @param  array<string, mixed>  $payload  the Notice payload, `notice` discriminator included
      */
     public function write(array $payload): void
     {
+        if (config('mail.daily_pass_off')) {
+            return;
+        }
+
         foreach (array_unique(RenewalSetting::current()->external_addresses ?? []) as $address) {
             if (blank($address)) {
                 continue;
