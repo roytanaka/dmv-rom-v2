@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\BlankExpiredSignIns;
 use App\Console\Commands\DrainDeliveries;
 use App\Console\Commands\RunDailyMailPass;
 use Illuminate\Foundation\Inspiring;
@@ -25,5 +26,12 @@ Schedule::command(DrainDeliveries::class)
 // Drain's cron monitor.
 Schedule::command(RunDailyMailPass::class)
     ->dailyAt('06:00')
+    ->timezone(config('app.org_timezone'))
+    ->withoutOverlapping(10);
+
+// The Sign-in log's retention (#926, ADR-0038 §12) — nightly, blanks the IP address and user agent
+// on rows past one year.
+Schedule::command(BlankExpiredSignIns::class)
+    ->dailyAt('03:00')
     ->timezone(config('app.org_timezone'))
     ->withoutOverlapping(10);

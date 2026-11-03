@@ -23,7 +23,7 @@ class MemberRecordController extends Controller
     {
         Gate::authorize('administer', $member);
 
-        $member->load('memberships.group', 'memberships.roles', 'updatedBy');
+        $member->load('memberships.group', 'memberships.roles', 'updatedBy')->loadCount('signIns');
 
         return Inertia::render('officer/members/Record', [
             'member' => (new MemberResource($member))->withRecordsFields(),
@@ -33,6 +33,7 @@ class MemberRecordController extends Controller
                 ->orderBy('id')
                 ->get(['code', 'name', 'amount']),
             'serviceAwards' => ServiceAward::query()->where('active', true)->orderBy('years')->get(['code', 'years']),
+            'signInsCount' => $member->sign_ins_count,
             'lastUpdated' => $member->updatedBy === null ? null : [
                 'name' => $member->updatedBy->fullName(),
                 'date' => $member->updated_at->timezone(config('app.org_timezone'))->toDateString(),

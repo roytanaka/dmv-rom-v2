@@ -205,6 +205,16 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * The Member's rows in the Sign-in log (ADR-0038 §12).
+     *
+     * @return HasMany<SignIn, $this>
+     */
+    public function signIns(): HasMany
+    {
+        return $this->hasMany(SignIn::class);
+    }
+
+    /**
      * The public URL of the member's profile photo, or null when none is set. The
      * photo lane is public (webserver-served via `storage:link`), so this is a plain
      * static URL — no gated controller round-trip (contrast the Documents lane,
