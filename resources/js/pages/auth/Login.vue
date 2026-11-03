@@ -33,7 +33,8 @@ const officeEmail = 'volunteers@rom.on.ca';
 // The Applicant code entry (#930, ADR-0038 §8): shown only while the code is published and
 // unexpired. The right code opens the application form; a wrong one comes back on `code`.
 const codeForm = useForm({ code: '' });
-const startApplication = () => codeForm.get(route('apply'));
+// A GET remounts the page unless state is kept, which would drop the error before it shows.
+const startApplication = () => codeForm.get(route('apply'), { preserveState: true });
 
 const submit = () => {
     form.post(route('login'), {

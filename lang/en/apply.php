@@ -20,6 +20,8 @@ return [
         'published' => 'Offer the application on the sign-in page',
         'expires_on' => 'Good until',
         'save' => 'Save',
+        'code_required' => 'Give a code to offer the application.',
+        'expires_required' => 'Give the last day the code is good for.',
         'cancel' => 'Cancel',
     ],
 ];

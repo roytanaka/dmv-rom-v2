@@ -28,4 +28,15 @@ class UpdateApplicantCodeRequest extends FormRequest
             'expires_on' => ['nullable', 'required_if_accepted:published', 'date'],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'code.required_if_accepted' => __('apply.code.code_required'),
+            'expires_on.required_if_accepted' => __('apply.code.expires_required'),
+        ];
+    }
 }

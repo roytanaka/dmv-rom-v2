@@ -20,6 +20,8 @@ return [
         'published' => 'Offrir la candidature sur la page de connexion',
         'expires_on' => "Valide jusqu'au",
         'save' => 'Enregistrer',
+        'code_required' => 'Indiquez un code pour offrir la candidature.',
+        'expires_required' => 'Indiquez le dernier jour où le code est valide.',
         'cancel' => 'Annuler',
     ],
 ];
