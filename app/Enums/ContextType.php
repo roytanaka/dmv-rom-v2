@@ -30,4 +30,8 @@ enum ContextType: string
 
     // A Member's profile: the one-Member Direct-message Audience.
     case Member = 'member';
+
+    // One Invitation (ADR-0034 §7): its Guests, narrowed by the Audience key. Only its Host
+    // and the super-tier may pick here.
+    case Invitation = 'invitation';
 }

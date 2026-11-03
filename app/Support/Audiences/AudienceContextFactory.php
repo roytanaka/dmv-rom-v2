@@ -4,6 +4,7 @@ namespace App\Support\Audiences;
 
 use App\Enums\ContextType;
 use App\Models\Group;
+use App\Models\Invitation;
 use App\Models\Member;
 use App\Models\Schedule;
 use App\Models\Shift;
@@ -37,6 +38,7 @@ class AudienceContextFactory
             ContextType::Shift => AudienceContext::shift(Shift::findOrFail($subject)),
             ContextType::Member => AudienceContext::member(Member::findOrFail($subject)),
             ContextType::Directory => AudienceContext::directory(),
+            ContextType::Invitation => AudienceContext::invitation(Invitation::findOrFail($subject)),
         };
     }
 }

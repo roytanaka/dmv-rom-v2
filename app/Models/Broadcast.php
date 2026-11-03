@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\BroadcastKind;
-use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Policies\BroadcastPolicy;
 use Database\Factories\BroadcastFactory;
@@ -35,6 +34,7 @@ class Broadcast extends Model
         'kind',
         'sender_id',
         'group_id',
+        'invitation_id',
         'audience_key',
         'audience_label',
         'edited',
@@ -81,6 +81,17 @@ class Broadcast extends Model
     }
 
     /**
+     * The Invitation a Host's mail belongs to; null on every other kind. A deleted Invitation
+     * still loads, because the sender copy reads its Host.
+     *
+     * @return BelongsTo<Invitation, $this>
+     */
+    public function invitation(): BelongsTo
+    {
+        return $this->belongsTo(Invitation::class)->withTrashed();
+    }
+
+    /**
      * Every Delivery written for this Broadcast — the per-recipient rows and the sender
      * copy alike, since both carry the `broadcast_id`.
      *
@@ -92,14 +103,14 @@ class Broadcast extends Model
     }
 
     /**
-     * The recipient Delivery rows (the Broadcast kind), without the sender copy — the
-     * list the sent and failed counts are derived from.
+     * The recipient Delivery rows, without the sender copy — the list the sent and failed
+     * counts are derived from.
      *
      * @return HasMany<Delivery, $this>
      */
     public function recipientDeliveries(): HasMany
     {
-        return $this->deliveries()->where('kind', DeliveryKind::Broadcast);
+        return $this->deliveries()->where('kind', $this->kind->deliveryKind());
     }
 
     /**
@@ -119,14 +130,23 @@ class Broadcast extends Model
     }
 
     /**
+     * Who a reply reaches: the sender, or the Host on an Invitation's mail, which the
+     * super-tier may send for them (ADR-0034 §7).
+     */
+    public function replyToMember(): Member
+    {
+        return $this->invitation->host ?? $this->sender;
+    }
+
+    /**
      * The display name the From line wears: the sender's own name for a Direct message
-     * (ADR-0024 §6), the Group's name for a Group Broadcast, the app's name for an
-     * org-wide send (ADR-0024 §3).
+     * (ADR-0024 §6), the Host's for an Invitation (ADR-0034 §7), the Group's name for a
+     * Group Broadcast, the app's name for an org-wide send (ADR-0024 §3).
      */
     public function fromName(): string
     {
-        if ($this->kind === BroadcastKind::DirectMessage) {
-            return $this->sender->fullName();
+        if ($this->kind !== BroadcastKind::Broadcast) {
+            return $this->replyToMember()->fullName();
         }
 
         return $this->group?->name ?? config('app.name');

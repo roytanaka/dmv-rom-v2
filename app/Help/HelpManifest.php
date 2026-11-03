@@ -266,6 +266,17 @@ final class HelpManifest
             new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Published, route: 'news'),
             new HelpArticle('post-a-news-item', HelpSection::News, requires: ['news_editor'], status: ArticleStatus::Published, route: 'news'),
 
+            // Invitations (#910, spec #901, ADR-0034). Replying is for every Member; the Host's
+            // tasks need Full access, which is a Category, not a role token, so they carry no badge.
+            new HelpArticle('invitations', HelpSection::Invitations, isOverview: true, status: ArticleStatus::Draft, route: 'invitations'),
+            new HelpArticle('reply-to-an-invitation', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations', routes: ['invitations.show']),
+            new HelpArticle('create-an-invitation', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.hosting', routes: ['invitations.create', 'invitations.edit']),
+            new HelpArticle('pick-your-guests', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.guests'),
+            new HelpArticle('send-an-invitation', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.hosting'),
+            new HelpArticle('track-the-replies', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.replies'),
+            new HelpArticle('set-a-reply-for-a-guest', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.replies'),
+            new HelpArticle('email-accepted-guests', HelpSection::Invitations, status: ArticleStatus::Draft, route: 'invitations.replies'),
+
             // Groups and Scheduling for members (#525) — what an ordinary Member of a Group does.
             new HelpArticle('groups', HelpSection::Groups, isOverview: true, route: 'groups.show'),
             new HelpArticle('find-your-group', HelpSection::Groups),

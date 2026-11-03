@@ -32,7 +32,7 @@ From the grilling session for [#698](https://github.com/roytanaka/dmv-rom-v2/iss
 
 10. **Guests reply until Closed.** A Host may set a Reply after Closed, to record an answer given at the door.
 
-11. **Only the Host and the super-tier see the guest list and Replies.** A Guest sees only their own Reply. The page shows no email addresses. The Host mails Accepted Guests through the app. The Host's view has totals and Print, and it lists Guests with No reply. There is no CSV. *Deviation:* the old app has no server check on these screens.
+11. **Only the Host and the super-tier see the guest list and Replies.** A Guest sees only their own Reply. The page shows no email addresses. The Host mails Accepted Guests through the app, on any Invitation: this mail changes no state, so a Draft stays a Draft, and it stays available after Closed. The Host's view has totals and Print, and it lists Guests with No reply. There is no CSV. *Deviation:* the old app has no server check on these screens.
 
 12. **The Invitations Reminder is a window with a sent record** ([ADR-0024](0024-emailing-model.md) §7). The daily pass writes one Delivery per Invitation and Guest, inside the 4-day lead, for Accepted Replies on Open Invitations. A Guest who accepts inside the window still gets one. A Guest who has since declined does not. The Delivery expires at the occasion's start. The mail is in the Guest's locale and names their Options, the description, and the Host. The old per-event `reminder` flag is dropped: the old app ignores it.
 
@@ -52,3 +52,4 @@ From the grilling session for [#698](https://github.com/roytanaka/dmv-rom-v2/iss
 - The Invitations Reminder keeps the four-day lead from ADR-0024 §7. That lead is fixed for the feature, because no Group owns its settings.
 - Who can invite All Members now depends on which Groups hold the `org_mail` stewardship. Only seeders set that today. [#815](https://github.com/roytanaka/dmv-rom-v2/issues/815) asks for a page to manage it.
 - Past occasions from the old app are not imported.
+- `invitations` stores its date and times as the museum's wall clock, not UTC, because an occasion is the day and hours a Host wrote and Closed compares days on that clock, and `Invitation::startsAt()` derives the instant where one is needed.

@@ -11,7 +11,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 /*
  * Fixed global top bar + nav model (#194, PRD #187, ADR-0013 amendment). The black
  * top bar is now ONE fixed global navigation strip, identical on every page: the
- * primary-four destinations (My Hours · My Calendar · News · Directory) plus a Help
+ * primary destinations (My Hours · My Calendar · News · Invitations · Directory) plus a Help
  * utility, shared from the server as a chrome-nav model distinct from a Group's
  * section set and the rail. Hrefs are localized server-side per ADR-0008, and any
  * declared destination gating resolves server-side — the client never echoes it.
@@ -30,7 +30,8 @@ function assertEnglishDestinations(Assert $page, string $articleHref): Assert
         ->where('chromeNav.destinations.0', ['key' => 'hours', 'labelKey' => 'nav.personal.hours', 'href' => '/hours'])
         ->where('chromeNav.destinations.1', ['key' => 'calendar', 'labelKey' => 'nav.personal.calendar', 'href' => '/calendar'])
         ->where('chromeNav.destinations.2', ['key' => 'news', 'labelKey' => 'nav.personal.news', 'href' => '/news'])
-        ->where('chromeNav.destinations.3', ['key' => 'directory', 'labelKey' => 'nav.personal.directory', 'href' => '/directory'])
+        ->where('chromeNav.destinations.3', ['key' => 'invitations', 'labelKey' => 'nav.personal.invitations', 'href' => '/invitations'])
+        ->where('chromeNav.destinations.4', ['key' => 'directory', 'labelKey' => 'nav.personal.directory', 'href' => '/directory'])
         ->where('chromeNav.help', helpMenu(helpPageItem($articleHref), helpCentreItem(), ...feedbackItems()));
 }
 
@@ -182,7 +183,8 @@ it('localizes the global destination hrefs to their French twins under /fr/', fu
                 ->where('chromeNav.destinations.0.href', '/fr/heures')
                 ->where('chromeNav.destinations.1.href', '/fr/calendrier')
                 ->where('chromeNav.destinations.2.href', '/fr/nouvelles')
-                ->where('chromeNav.destinations.3.href', '/fr/annuaire')
+                ->where('chromeNav.destinations.3.href', '/fr/invitations')
+                ->where('chromeNav.destinations.4.href', '/fr/annuaire')
                 ->where('chromeNav.help', helpMenu(helpPageItem('/fr/aide/groups'), helpCentreItem('/fr/aide'), ...feedbackItems('/fr/retroaction'))));
     });
 });

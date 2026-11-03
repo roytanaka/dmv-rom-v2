@@ -52,4 +52,11 @@ return [
         'docents' => 'Guides de cette visite',
         'view_schedule' => 'Voir l’horaire',
     ],
+    // L'avis de limite atteinte (#906, ADR-0034 §9). :name est le nom de l'invitation, tel qu'écrit.
+    'invitation_full' => [
+        'subject' => "Limite d'invités atteinte : :name",
+        'heading' => 'Votre invitation est complète',
+        'intro' => ":name a atteint sa limite d'invités.",
+        'view_replies' => 'Voir les réponses',
+    ],
 ];

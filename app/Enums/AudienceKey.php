@@ -45,6 +45,11 @@ enum AudienceKey: string
     // Direct message — pickable by any Member, from a profile.
     case OneMember = 'one_member';
 
+    // Invitation Audiences — pickable by the Host, from an Invitation (ADR-0034 §7).
+    case InvitationGuests = 'invitation_guests';
+    case InvitationNoReply = 'invitation_no_reply';
+    case InvitationAccepted = 'invitation_accepted';
+
     /**
      * Whether this Audience carries a parameter beside its key (the chosen status,
      * category, child Group, or Member). The resolver requires the parameter for

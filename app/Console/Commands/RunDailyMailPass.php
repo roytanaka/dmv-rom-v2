@@ -4,9 +4,11 @@ namespace App\Console\Commands;
 
 use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
+use App\Enums\Reply;
 use App\Enums\ScheduleState;
 use App\Models\Delivery;
 use App\Models\Group;
+use App\Models\Guest;
 use App\Models\SignUp;
 use App\Support\EmptyDesk\EmptyDeskAlertWriter;
 use App\Support\OrgTime;
@@ -36,6 +38,9 @@ class RunDailyMailPass extends Command
 
     protected $description = 'Write the day’s Reminder and empty-desk-alert Deliveries';
 
+    /** How many days ahead of the occasion an Invitation Reminder goes (ADR-0034 §12). */
+    private const INVITATION_REMINDER_LEAD_DAYS = 4;
+
     public function handle(EmptyDeskAlertWriter $emptyDeskAlerts): int
     {
         $now = now();
@@ -48,6 +53,8 @@ class RunDailyMailPass extends Command
         foreach ($groups as $group) {
             $this->writeReminders($group, $now);
         }
+
+        $this->writeInvitationReminders($now);
 
         // The empty-desk alert runs on its own every-third-day cadence and Group-setting gate,
         // so it is its own writer (ADR-0024 §7); the pass just hands it the wheel.
@@ -90,6 +97,57 @@ class RunDailyMailPass extends Command
                     'expires_at' => $signUp->shift->starts_at,
                 ],
             );
+        }
+    }
+
+    /**
+     * Write the Invitation Reminders (#909, ADR-0034 §12), the same window with a sent record
+     * on the (Invitation, Member) grain. The lead is fixed, because no Group owns the setting.
+     * A Guest who is no longer current stays on the list but gets no more mail (spec #901).
+     *
+     * The row is still the sent record, so a Reminder that went out is never written again. An
+     * Expired row never went out: its Guest declined or the Invitation went back to Draft, and
+     * the Drain ended it. A Guest who qualifies again gets that same row back, on a fresh expiry.
+     */
+    private function writeInvitationReminders(\DateTimeInterface $now): void
+    {
+        $lastDay = OrgTime::today()->addDays(self::INVITATION_REMINDER_LEAD_DAYS);
+
+        $guests = Guest::query()
+            ->with(['invitation', 'member'])
+            ->where('reply', Reply::Accepted)
+            ->whereHas('member', fn (Builder $member) => $member->inDirectory()->where('no_email', false))
+            ->whereHas('invitation', fn (Builder $invitation) => $invitation
+                ->takingReplies()
+                ->whereDate('date', '<=', $lastDay->toDateString()))
+            ->get();
+
+        foreach ($guests as $guest) {
+            $startsAt = $guest->invitation->startsAt();
+
+            if ($startsAt->lte($now)) {
+                continue;
+            }
+
+            $queued = [
+                'email' => $guest->member->email,
+                'state' => DeliveryState::Pending,
+                'next_attempt_at' => $now,
+                'expires_at' => $startsAt,
+            ];
+
+            $row = Delivery::firstOrCreate(
+                [
+                    'kind' => DeliveryKind::InvitationReminder,
+                    'invitation_id' => $guest->invitation_id,
+                    'member_id' => $guest->member_id,
+                ],
+                $queued,
+            );
+
+            if ($row->state === DeliveryState::Expired && $row->sent_at === null) {
+                $row->update($queued);
+            }
         }
     }
 }
