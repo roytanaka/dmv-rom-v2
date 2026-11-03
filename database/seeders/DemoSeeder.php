@@ -19,6 +19,7 @@ use App\Enums\ScheduleState;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
 use App\Models\Applicant;
+use App\Models\ApplicantCode;
 use App\Models\Booking;
 use App\Models\BookingType;
 use App\Models\Document;
@@ -492,6 +493,7 @@ class DemoSeeder extends Seeder
         $this->personaRecordLists();
         $this->savedQueries();
         $this->applicants();
+        $this->applicantCode();
         $this->prunePhotoFiles();
         $this->objects();
         $this->scheduling();
@@ -929,6 +931,20 @@ class DemoSeeder extends Seeder
                 $this->acceptedApplicantMember($applicant, $mentor);
             }
         }
+    }
+
+    /**
+     * A published Applicant code (#930), open for a year from the seed, so staging testers reach the
+     * public application form after every reseed. One settings row, healed on a reseed.
+     */
+    private function applicantCode(): void
+    {
+        $code = ApplicantCode::current();
+        $code->forceFill([
+            'code' => 'APPLY2026',
+            'published' => true,
+            'expires_on' => OrgTime::today()->addYear()->toDateString(),
+        ])->save();
     }
 
     /**

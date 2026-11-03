@@ -16,6 +16,7 @@ use App\Enums\ScheduleState;
 use App\Enums\ShiftAudience;
 use App\Enums\StewardshipFunction;
 use App\Models\Applicant;
+use App\Models\ApplicantCode;
 use App\Models\Booking;
 use App\Models\BookingType;
 use App\Models\Document;
@@ -291,6 +292,19 @@ it('seeds a dozen Applicants across every status, mentored from the Membership r
         ->and($applicants->whereNotNull('mentor_id')->pluck('mentor_id')->diff($roster))->toBeEmpty()
         ->and($applicants->where('entered_by_applicant', true)->whereNull('mentor_id'))->not->toBeEmpty()
         ->and($applicants->where('status', ApplicantStatus::Incomplete)->whereNull('departure_reason'))->toBeEmpty();
+});
+
+it('publishes the Applicant code APPLY2026 for a year, so testers reach the public form', function () {
+    $code = ApplicantCode::current();
+
+    expect($code->code)->toBe('APPLY2026')
+        ->and($code->isOpen())->toBeTrue()
+        ->and($code->expires_on->toDateString())->toBe(OrgTime::today()->addYear()->toDateString())
+        ->and(ApplicantCode::count())->toBe(1);
+
+    $this->seed(DemoSeeder::class);
+
+    expect(ApplicantCode::count())->toBe(1);
 });
 
 it('links every Applicant past acceptance to a Provisional Member, and no other', function () {
