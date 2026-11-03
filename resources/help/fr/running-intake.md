@@ -6,7 +6,13 @@ Le groupe Adhésion mène chaque candidat de la demande jusqu’au statut de mem
 
 1. Sélectionnez **Outils des responsables**, puis **Candidats**. L’administration des membres sélectionne **Membres**, puis **Candidats**.
 2. La liste affiche **Tous** : tous les dossiers sauf Incomplet et Prêt à devenir actif.
+
+    ![La liste des candidats avec le statut, les dates, le courriel et le mentor de chaque dossier](01.png)
+
 3. Choisissez un filtre de statut pour voir une seule étape.
+
+    ![La liste des candidats filtrée sur les dossiers acceptés](02.png)
+
 4. Tapez un nom de famille dans la recherche pour trouver un dossier.
 5. Sélectionnez un nom pour ouvrir le dossier du candidat.
 
@@ -15,6 +21,9 @@ Le groupe Adhésion mène chaque candidat de la demande jusqu’au statut de mem
 ## Faire avancer un dossier
 
 1. Dans le dossier du candidat, choisissez le nouveau **Statut**.
+
+    ![Un dossier de candidat avec les listes Statut, Affectation et Mentor](03.png)
+
 2. Pour **Incomplet**, choisissez aussi un **Motif**.
 3. Choisissez une **Affectation** et un **Mentor** s’ils ont changé.
 4. Ajoutez une ligne dans **Nouvelle note** pour noter ce qui s’est passé.
