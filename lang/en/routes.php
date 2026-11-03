@@ -66,6 +66,7 @@ return [
 
     // Zone C — officer/admin
     'officer.members' => 'officer/members',
+    'officer.members.record' => 'officer/members/records/{member}',
     'officer.communications' => 'officer/communications',
     'officer.reports' => 'officer/reports',
     'officer.flash-messages' => 'officer/flash-messages',

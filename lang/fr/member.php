@@ -21,6 +21,7 @@ return [
     // Affichés uniquement lorsque le lecteur peut administrer les membres — le
     // MemberResource protège les données sous-jacentes.
     'administration' => 'Administration des membres',
+    'open_record' => 'Dossier de membre',
     'no_email' => 'Aucun courriel',
     'no_email_help' => 'Faire taire tous les courriels destinés à ce membre — diffusions, messages directs, rappels et avis.',
 

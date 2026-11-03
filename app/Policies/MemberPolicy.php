@@ -34,6 +34,25 @@ class MemberPolicy
     }
 
     /**
+     * Who may open and save the Member record (ADR-0038 §2): member-administration authority
+     * only. Unlike {@see update()}, the Member themself is not admitted; their own fields are
+     * edited through Settings. Super-tier passes via the Gate::before short-circuit.
+     */
+    public function administer(Member $actor, Member $target): bool
+    {
+        return $actor->hasMemberAdminAuthority();
+    }
+
+    /**
+     * Who may see the Records-only fields ({@see Member::RECORDS_FIELDS}, ADR-0038 §3): the
+     * Member themself and member-administration authority, never a peer or a Group officer.
+     */
+    public function viewRecordsFields(Member $viewer, Member $target): bool
+    {
+        return $viewer->is($target) || $viewer->hasMemberAdminAuthority();
+    }
+
+    /**
      * Who may see a member's gated contact details (email, phone, …). Granted to
      * member-administration authority (the Records stewardship) org-wide, and to an
      * own-Group officer holding a contact-need role for members of that same Group.

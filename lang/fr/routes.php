@@ -57,6 +57,7 @@ return [
 
     // Zone C — officer/admin
     'officer.members' => 'officier/membres',
+    'officer.members.record' => 'officier/membres/dossiers/{member}',
     'officer.communications' => 'officier/communications',
     'officer.reports' => 'officier/rapports',
     'officer.flash-messages' => 'officier/messages-eclair',

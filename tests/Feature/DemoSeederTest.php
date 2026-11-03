@@ -1739,6 +1739,24 @@ it('seeds the group-tour shift kind and Schedule label for Docents and GDR', fun
     'GDR' => ['guides-du-rom', 'Visite de groupe', 'Visites de groupe'],
 ]);
 
+it('fills the Member record on the personas and the bulk roster', function () {
+    $persona = Member::where('email', PersonaCatalogue::all()[0]->email)->firstOrFail();
+    $bulk = Member::whereNotIn('email', PersonaCatalogue::emails())->orderByDesc('id')->firstOrFail();
+
+    foreach ([$persona, $bulk] as $member) {
+        expect($member->membership_number)->not->toBeNull()
+            ->and($member->paid_through_year)->not->toBeNull()
+            ->and($member->fee_category)->not->toBeNull()
+            ->and($member->entry_year)->not->toBeNull()
+            ->and($member->next_award_year)->not->toBeNull()
+            ->and($member->emergency_contact)->not->toBeNull()
+            ->and($member->status_date)->not->toBeNull()
+            ->and($member->notes)->not->toBeNull();
+    }
+
+    expect(Member::whereNull('membership_number')->count())->toBe(0);
+});
+
 it('keeps the booking types idempotent across a reseed', function () {
     $before = BookingType::count();
 

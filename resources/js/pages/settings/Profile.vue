@@ -8,6 +8,7 @@ import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLocalizedHref } from '@/composables/useLocalizedHref';
@@ -21,9 +22,16 @@ interface Props {
     // Per-resource UI hint from MemberPolicy (ADR-0017). Drives whether the save
     // control renders enabled; the server enforces the action regardless.
     can: { update: boolean };
+    // The Records fields a Member sees about themself (ADR-0038 §3). Only the ROM expiry is theirs to edit.
+    membership: {
+        paid_through_year: number | null;
+        membership_expiry: string | null;
+        membership_lifetime: boolean;
+        last_award_year: number | null;
+    };
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 const localizeHref = useLocalizedHref();
 
@@ -54,6 +62,8 @@ const form = useForm({
     address_province: user.address_province ?? 'ON',
     address_postal_code: user.address_postal_code ?? '',
     address_country: user.address_country ?? 'Canada',
+    membership_expiry: props.membership.membership_expiry ?? '',
+    membership_lifetime: props.membership.membership_lifetime,
     // Optional photo upload (#233). A File here makes useForm submit multipart with
     // method spoofing; null leaves photo_path untouched server-side.
     photo: null as File | null,
@@ -105,6 +115,13 @@ const removePhoto = () => {
             clearSelectedPreview();
         },
     });
+};
+
+const toggleLifetime = (checked: boolean) => {
+    form.membership_lifetime = checked;
+    if (checked) {
+        form.membership_expiry = '';
+    }
 };
 
 const submit = () => {
@@ -258,6 +275,34 @@ const submit = () => {
                         <Label for="address_country">{{ trans('settings.profile.address_country') }}</Label>
                         <Input id="address_country" class="mt-1 block w-full" v-model="form.address_country" autocomplete="country-name" />
                         <InputError class="mt-2" :message="form.errors.address_country" />
+                    </div>
+
+                    <div class="grid gap-2 border-t pt-6">
+                        <HeadingSmall :title="trans('settings.profile.membership_heading')" />
+                    </div>
+
+                    <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+                        <dt class="text-muted-foreground">{{ trans('settings.profile.paid_through_year') }}</dt>
+                        <dd>{{ membership.paid_through_year ?? '—' }}</dd>
+                        <dt class="text-muted-foreground">{{ trans('settings.profile.last_award_year') }}</dt>
+                        <dd>{{ membership.last_award_year ?? '—' }}</dd>
+                    </dl>
+
+                    <div class="grid gap-2">
+                        <Label for="membership_expiry">{{ trans('settings.profile.membership_expiry') }}</Label>
+                        <Input
+                            id="membership_expiry"
+                            type="date"
+                            class="mt-1 block w-full"
+                            v-model="form.membership_expiry"
+                            :disabled="form.membership_lifetime"
+                        />
+                        <InputError class="mt-2" :message="form.errors.membership_expiry" />
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <Checkbox id="membership_lifetime" :checked="form.membership_lifetime" @update:checked="toggleLifetime" />
+                        <Label for="membership_lifetime">{{ trans('settings.profile.membership_lifetime') }}</Label>
                     </div>
 
                     <div v-if="emailIsChanging" class="grid gap-2">

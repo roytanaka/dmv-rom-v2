@@ -35,6 +35,7 @@ use App\Http\Controllers\LinkDocumentController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberRecordController;
 use App\Http\Controllers\MoveDocumentController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
@@ -91,6 +92,11 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // The Member record (#917, ADR-0038 §3): member administration's page for one Member
+    // (/officer/members/records/1 ↔ /fr/officier/membres/dossiers/1).
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.record'), [MemberRecordController::class, 'show'])
+        ->middleware('auth')->name('officer.members.record');
 
     // DMV Settings (#841, PRD #836, ADR-0036 §3): the super-tier's page for the org's Group
     // structure and Stewardships. Two sections, each a route (/officer/settings ↔
@@ -381,6 +387,12 @@ Route::get('help-status', HelpStatusController::class)
 Route::patch('members/{member}', [MemberController::class, 'update'])
     ->middleware(['auth'])
     ->name('members.update');
+
+// Save the Member record (#917, ADR-0038 §2). Member administration or super-tier, via
+// `MemberPolicy::administer` in the UpdateMemberRecordRequest.
+Route::patch('members/{member}/record', [MemberRecordController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('members.record.update');
 
 // Grant/revoke super-tier (ADR-0017 §1). A dedicated, separately-gated action —
 // never a field on a member form. Reserved to super-tier itself via the
