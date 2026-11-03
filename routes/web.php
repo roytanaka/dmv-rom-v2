@@ -47,6 +47,7 @@ use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
 use App\Http\Controllers\QualificationController;
 use App\Http\Controllers\ReplyController;
+use App\Http\Controllers\SavedQueryController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SelfServeShiftController;
 use App\Http\Controllers\ShiftController;
@@ -97,6 +98,18 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // Saved queries (#923, ADR-0038 §7): the index, the form and the run, under Officer Tools →
+    // Members (/officer/members/queries ↔ /fr/officier/membres/requetes). Above the lists route,
+    // whose {list?} would take the one-word index. Member administration only (SavedQueryPolicy).
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries'), [SavedQueryController::class, 'index'])
+        ->middleware('auth')->name('officer.members.queries');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.create'), [SavedQueryController::class, 'create'])
+        ->middleware('auth')->name('officer.members.queries.create');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.edit'), [SavedQueryController::class, 'edit'])
+        ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.edit');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.run'), [SavedQueryController::class, 'run'])
+        ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.run');
 
     // The Member lists (#919, ADR-0038 §5): one route, the list a translated word
     // (/officer/members/resigned ↔ /fr/officier/membres/demissionnaires). A bare path opens
@@ -417,6 +430,15 @@ Route::delete('members/{member}/category-changes/{categoryChange}', [CategoryCha
 Route::post('members/{member}/reinstate', [CategoryChangeController::class, 'reinstate'])
     ->middleware(['auth'])
     ->name('members.reinstate');
+
+// Saved query writes (#923, ADR-0038 §7): create, edit, rename and delete. Member administration
+// or super-tier, via SavedQueryPolicy in each Form Request.
+Route::middleware('auth')->group(function () {
+    Route::post('saved-queries', [SavedQueryController::class, 'store'])->name('saved-queries.store');
+    Route::put('saved-queries/{savedQuery}', [SavedQueryController::class, 'update'])->name('saved-queries.update');
+    Route::patch('saved-queries/{savedQuery}/name', [SavedQueryController::class, 'rename'])->name('saved-queries.rename');
+    Route::delete('saved-queries/{savedQuery}', [SavedQueryController::class, 'destroy'])->name('saved-queries.destroy');
+});
 
 // The Records Photo action (#922, ADR-0038 §3): upload or replace any Member's photo and set the
 // photo-public flag. Member administration or super-tier, via `MemberPolicy::administer` in the
