@@ -6,6 +6,8 @@ An Invitation asks Members to an occasion, such as the Annual Meeting or a small
 
 Every Member has this tab. It lists the Open Invitations you are on, with your Reply beside each one. Read [Reply to an Invitation](reply-to-an-invitation) for the steps.
 
+![The Invitations page with the My invitations and Hosting tabs, and one Accepted Invitation](01.png)
+
 ## Hosting
 
 Members with Full access also see the **Hosting** tab. The Member who creates an Invitation is its Host. Only the Host and the super-tier see the guest list and the Replies.
@@ -21,7 +23,7 @@ Hosting has these parts:
 
 ## Draft, Open, and Closed
 
-A new Invitation is a Draft. Only its Host sees it. Sending moves it to Open, and Guests can then reply. It is Closed once its date has passed.
+A new Invitation is a Draft. Only its Host and the super-tier see it. Sending moves it to Open, and Guests can then reply. It is Closed once its date has passed.
 
 ## Reminders
 

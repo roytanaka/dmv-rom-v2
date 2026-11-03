@@ -7,11 +7,21 @@ Email your Guests and open the Invitation for Replies.
 1. Add your Guests first. You cannot send to an empty list.
 2. Find the Draft on the **Hosting** tab.
 3. Select **Send**.
+
+    ![The email panel's Who step with All Guests and a name for each Guest](01.png)
+
 4. Check the **To** list and select **Next**.
+
+    ![The email panel's Message step with the subject and message filled in from the Invitation](02.png)
+
 5. Edit the subject and message. The app fills them in from your Invitation.
 6. Select **Send**.
 
-The Invitation is now Open. Each Guest gets their own email, with a link to reply. You get a copy.
+    ![The email panel after sending, with the emails queued for 24 members](03.png)
+
+The Invitation is now Open. Each Guest gets their own email, with a link to reply. Delivery can take up to an hour. You get a copy when it is done.
+
+![The Hosting tab with the Invitation marked Open and a Re-send action](04.png)
 
 > **Note:** To stop, close the email panel before you select **Send**. The Invitation stays a Draft.
 

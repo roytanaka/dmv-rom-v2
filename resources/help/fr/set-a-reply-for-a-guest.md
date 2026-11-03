@@ -5,6 +5,9 @@ Notez une réponse donnée par téléphone ou à la porte. Cela fonctionne aussi
 1. Trouvez l'invitation dans l'onglet **Organisation**.
 2. Sélectionnez **Réponses**.
 3. Sélectionnez **Saisir la réponse** à côté de l'invité.
+
+    ![La boîte de dialogue Saisir la réponse avec la réponse et les options d'un invité](01.png)
+
 4. Choisissez **Acceptée** ou **Refusée**.
 5. Si vous choisissez **Acceptée**, cochez les options de l'invité.
 6. Sélectionnez **Enregistrer**.

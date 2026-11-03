@@ -5,6 +5,9 @@
 # Run: resources/help/screenshot-runner/run.sh send-an-invitation
 #
 # The Sent step sends for real. See README.md, "Shots that send mail".
+#
+# 02.png is hand-shot at 1280 x 900: the Message step's Send button clips at 800 px. Open the
+# Send sheet on the Draft at that height, shoot it, and close the sheet without sending.
 
 persona oliver.bennett@dmv.test
 start /invitations/hosting
