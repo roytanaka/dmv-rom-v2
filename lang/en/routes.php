@@ -50,6 +50,7 @@ return [
     'renew.form' => 'renew/form',
     'renew.skills' => 'renew/skills',
     'renew.payment' => 'renew/payment',
+    'renew.contact' => 'renew/contact',
     // Help centre (#517, ADR-0025). The index at 'help' and one article at
     // 'help/{article}'. The {article} slug is an identifier — the SAME string in
     // both locales — so only the 'help' word changes in the French twin.

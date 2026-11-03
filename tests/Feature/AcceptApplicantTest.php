@@ -12,6 +12,7 @@ use App\Models\Delivery;
 use App\Models\Group;
 use App\Models\GroupStewardship;
 use App\Models\Member;
+use App\Models\RenewalSetting;
 use App\Support\OrgTime;
 use Illuminate\Support\Facades\Mail;
 
@@ -224,6 +225,20 @@ it('tells every Records member and the mentor on accept, and nobody else', funct
     $this->artisan('mail:drain')->assertSuccessful();
     Mail::assertSent(ApplicantNotice::class, fn (ApplicantNotice $mail) => $mail->hasTo($org['records'][0]->email)
         && str_contains($mail->render(), '/officer/members/records/'.$applicant->fresh()->member_id));
+});
+
+it('copies the accept Notice to each external address of the Renewal settings, and only that Notice', function () {
+    RenewalSetting::current()->forceFill(['external_addresses' => ['membership@rom.on.ca']])->save();
+    $org = acceptOrg();
+    $applicant = acceptApplicant($org, ['placement_group_id' => $org['membership']->id]);
+
+    moveApplicant($org['chair'], $applicant, 'accepted')->assertSessionHasNoErrors();
+    moveApplicant($org['chair'], $applicant->fresh(), 'placed')->assertSessionHasNoErrors();
+
+    $copy = Delivery::whereNull('member_id')->sole();
+    expect($copy->email)->toBe('membership@rom.on.ca')
+        ->and($copy->payload['notice'])->toBe(ApplicantNotice::ACCEPTED)
+        ->and($copy->payload['locale'])->toBe('en');
 });
 
 it('tells the mentor when an accepted Applicant is placed', function () {

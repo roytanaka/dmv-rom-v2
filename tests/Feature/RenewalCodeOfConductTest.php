@@ -106,14 +106,13 @@ it('acts only on the signed-in Member', function () {
         ->and($member->fresh()->code_of_conduct_year)->toBe(2027);
 });
 
-it('renders steps 2 to 4 as placeholders', function (string $path, string $step) {
+it('renders steps 3 and 4 as placeholders', function (string $path, string $step) {
     openRenewal();
 
     $this->actingAs(renewingMember())->get($path)
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('renew/Placeholder')->where('step', $step));
 })->with([
-    ['/renew/form', 'form'],
     ['/renew/skills', 'skills'],
     ['/renew/payment', 'payment'],
 ]);

@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\SaveRenewalForm;
 use App\Http\Requests\Renewal\RenewalRequest;
 use App\Http\Requests\Renewal\StoreCodeOfConductRequest;
+use App\Http\Requests\Renewal\StoreRenewalFormRequest;
+use App\Models\FeeCategory;
+use App\Support\Renewal\RenewalPlacements;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -44,10 +48,46 @@ class RenewalController extends Controller
         return to_route('renew.form');
     }
 
-    /** Step 2: the renewal form. A placeholder until #940. */
-    public function form(RenewalRequest $request): Response
+    /**
+     * Step 2: the renewal form (#940), pre-filled from the record; in edit mode, from what the
+     * Member saved for the year.
+     */
+    public function form(RenewalRequest $request, SaveRenewalForm $form): Response
     {
-        return $this->placeholder('form');
+        // Every column, read fresh: the form shows the Records fields the session's copy may lack.
+        $member = $request->user()->refresh();
+
+        return Inertia::render('renew/Form', [
+            'year' => $member->renewalServedYear(),
+            'editing' => $form->editing($member),
+            'fields' => $form->fields($member),
+            'placements' => $form->checklist($member),
+            'groups' => $form->groups(),
+            'positions' => RenewalPlacements::POSITIONS,
+            'categories' => $form->categories()->map(fn (FeeCategory $fee): array => [
+                'code' => $fee->code,
+                'name' => $fee->name,
+                'extra' => $fee->extra,
+                'amount' => $fee->amount,
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Save step 2. Resign, LOA and Active to Sustaining end the flow on a page that says Records
+     * will be in touch; everything else moves on to skills.
+     */
+    public function storeForm(StoreRenewalFormRequest $request, SaveRenewalForm $form): RedirectResponse
+    {
+        $ends = $form->save($request->user()->refresh(), $request->validated());
+
+        return to_route($ends ? 'renew.contact' : 'renew.skills');
+    }
+
+    /** The end of a Renewal that Records follows up in person (#940). */
+    public function contact(RenewalRequest $request): Response
+    {
+        return Inertia::render('renew/RecordsInTouch');
     }
 
     /** Step 3: skills. A placeholder until #941. */

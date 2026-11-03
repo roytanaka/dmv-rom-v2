@@ -44,6 +44,7 @@ return [
     'renew.form' => 'renouveler/formulaire',
     'renew.skills' => 'renouveler/competences',
     'renew.payment' => 'renouveler/paiement',
+    'renew.contact' => 'renouveler/contact',
     // Centre d'aide (#517, ADR-0025). L'index à « aide » et un article à
     // « aide/{article} ». Le slug {article} est un identifiant — la MÊME chaîne dans
     // les deux langues — donc seul le mot « aide » change ici.

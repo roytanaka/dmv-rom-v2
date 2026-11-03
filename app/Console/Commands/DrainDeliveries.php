@@ -18,6 +18,7 @@ use App\Mail\InvitationReminder;
 use App\Mail\MenteeActivated;
 use App\Mail\RenewalReminder;
 use App\Mail\RenewalReminderSummary;
+use App\Mail\RenewalSubmitted;
 use App\Mail\SavedQueryResults;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
@@ -366,6 +367,7 @@ class DrainDeliveries extends Command
             MenteeActivated::NOTICE_TYPE => MenteeActivated::fromSnapshot($payload),
             SavedQueryResults::NOTICE_TYPE => SavedQueryResults::fromSnapshot($payload),
             RenewalReminderSummary::NOTICE_TYPE => RenewalReminderSummary::fromSnapshot($payload),
+            RenewalSubmitted::NOTICE_TYPE => RenewalSubmitted::fromSnapshot($payload),
             ApplicantNotice::ACCEPTED, ApplicantNotice::PLACED, ApplicantNotice::YELLOW_CARD, ApplicantNotice::INCOMPLETE => ApplicantNotice::fromSnapshot($payload),
             default => SignUpCancelled::fromSnapshot($payload),
         };

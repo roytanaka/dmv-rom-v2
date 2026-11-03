@@ -119,6 +119,8 @@ Route::group([
         ->middleware('auth')->name('renew.skills');
     Route::get(LaravelLocalization::transRoute('routes.renew.payment'), [RenewalController::class, 'payment'])
         ->middleware('auth')->name('renew.payment');
+    Route::get(LaravelLocalization::transRoute('routes.renew.contact'), [RenewalController::class, 'contact'])
+        ->middleware('auth')->name('renew.contact');
 
     // Saved queries (#923, ADR-0038 §7): the index, the form and the run, under Officer Tools →
     // Members (/officer/members/queries ↔ /fr/officier/membres/requetes). Above the lists route,
@@ -523,6 +525,9 @@ Route::post('members/remove-personal-data', [RemovePersonalDataController::class
 Route::post('renew/code-of-conduct', [RenewalController::class, 'storeCodeOfConduct'])
     ->middleware(['auth'])
     ->name('renew.code-of-conduct.store');
+Route::post('renew/form', [RenewalController::class, 'storeForm'])
+    ->middleware(['auth'])
+    ->name('renew.form.store');
 
 // Save Renewal settings (#937, ADR-0038 §9). Member administration, via `administer-members` in
 // the UpdateRenewalSettingsRequest. Sent as a POST with `_method=PUT`, since PHP parses a file

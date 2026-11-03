@@ -121,4 +121,19 @@ return [
             'sustaining-2' => '2e rappel, membres de soutien',
         ],
     ],
+    // L’avis de renouvellement (#940, ADR-0038 §9) : un membre a enregistré le formulaire de
+    // renouvellement. Les noms et les valeurs saisies sont tels quels.
+    'renewal_submitted' => [
+        'from' => 'Dossiers DMV',
+        'subject' => ':member : renouvellement DMV :year',
+        'subject_update' => ':member : mise à jour du renouvellement DMV :year',
+        'heading' => 'Formulaire de renouvellement enregistré',
+        'intro' => ':member a rempli le renouvellement :year.',
+        'intro_update' => ':member a modifié son renouvellement :year.',
+        'membership_number' => 'Numéro de membre du ROM',
+        'expired' => 'Son adhésion au ROM est expirée.',
+        'changes' => 'Modifications',
+        'from_to' => 'de « :from » à « :to »',
+        'category_change' => 'Changement de catégorie : de :from à :to',
+    ],
 ];
