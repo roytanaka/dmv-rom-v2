@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ApplicantStatus;
 use App\Models\Applicant;
 use App\Models\ApplicantLanguage;
 use App\Models\MemberLanguage;
 use App\Policies\ApplicantPolicy;
+use App\Support\Applicants\ApplicantFilter;
 use App\Support\OrgTime;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -26,17 +25,12 @@ class ApplicantPrintController extends Controller
     {
         Gate::authorize('viewAny', Applicant::class);
 
-        $status = $request->query('status');
-        $filter = is_string($status) ? ApplicantStatus::tryFrom($status) : null;
-        $query = $request->query('q');
-        $search = is_string($query) && trim($query) !== '' ? trim($query) : null;
+        $filter = ApplicantFilter::fromRequest($request);
 
         return Inertia::render('officer/applicants/PrintList', [
-            'status' => $filter?->value ?? ApplicantController::ALL,
-            'search' => $search,
-            'applicants' => ApplicantController::listed($filter)
-                ->when($search, fn (Builder $rows, string $term) => $rows->whereLike('applicants.last_name', addcslashes($term, '%_\\').'%'))
-                ->with(['mentor', 'placementGroup'])
+            'status' => $filter->statusWord(),
+            'search' => $filter->search,
+            'applicants' => $filter->query()
                 ->get()
                 ->map(fn (Applicant $applicant) => [
                     'id' => $applicant->id,

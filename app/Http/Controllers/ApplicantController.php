@@ -13,9 +13,9 @@ use App\Models\Applicant;
 use App\Models\ApplicantCode;
 use App\Models\ApplicantLanguage;
 use App\Policies\ApplicantPolicy;
+use App\Support\Applicants\ApplicantFilter;
 use App\Support\Applicants\ApplicantOptions;
 use App\Support\OrgTime;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -33,31 +33,23 @@ class ApplicantController extends Controller
 {
     private const PER_PAGE = 50;
 
-    /** The list's default filter: every live case ({@see ApplicantStatus::live()}). */
-    public const ALL = 'all';
-
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', Applicant::class);
 
-        $status = $request->query('status');
-        $filter = is_string($status) ? ApplicantStatus::tryFrom($status) : null;
-        $query = $request->query('q');
-        $search = is_string($query) && trim($query) !== '' ? trim($query) : null;
+        $filter = ApplicantFilter::fromRequest($request);
         $actor = $request->user();
 
         return Inertia::render('officer/applicants/Index', [
-            'status' => $filter?->value ?? self::ALL,
+            'status' => $filter->statusWord(),
             'statuses' => array_map(fn (ApplicantStatus $case) => $case->value, ApplicantStatus::cases()),
-            'search' => $search,
+            'search' => $filter->search,
             'canCreate' => $actor->can('create', Applicant::class),
             // Member administration reaches this page as the seventh Member list, so it keeps the tabs.
             'memberListTabs' => $actor->can('administer-members') ? MemberList::tabs() : null,
             // The Applicant code dialog (#930): the Applicant Chair's alone.
             'applicantCode' => $actor->can('setCode', Applicant::class) ? self::code() : null,
-            'applicants' => self::listed($filter)
-                ->when($search, fn (Builder $rows, string $term) => $rows->whereLike('applicants.last_name', addcslashes($term, '%_\\').'%'))
-                ->with(['mentor', 'placementGroup'])
+            'applicants' => $filter->query()
                 ->paginate(self::PER_PAGE)
                 ->withQueryString()
                 ->through(fn (Applicant $applicant) => [
@@ -73,30 +65,6 @@ class ApplicantController extends Controller
                     'can_edit' => $actor->can('update', $applicant),
                 ]),
         ]);
-    }
-
-    /**
-     * The Applicants a filter shows, sorted by mentor then last name: one status, or every live
-     * one. The unassigned sort first, as the Legacy app's blank Mentor did. Public so Send email
-     * (#929) can resolve the same rows.
-     *
-     * @return Builder<Applicant>
-     */
-    public static function listed(?ApplicantStatus $status): Builder
-    {
-        return Applicant::query()
-            ->select('applicants.*')
-            ->when(
-                $status,
-                fn (Builder $rows, ApplicantStatus $one) => $rows->where('status', $one),
-                fn (Builder $rows) => $rows->whereIn('status', ApplicantStatus::live()),
-            )
-            ->leftJoin('members as mentors', 'mentors.id', '=', 'applicants.mentor_id')
-            ->orderBy('mentors.last_name')
-            ->orderBy('mentors.first_name')
-            ->orderBy('applicants.last_name')
-            ->orderBy('applicants.first_name')
-            ->orderBy('applicants.id');
     }
 
     /**

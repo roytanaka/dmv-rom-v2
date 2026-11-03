@@ -2,7 +2,6 @@
 
 namespace App\Support\Audiences;
 
-use App\Enums\ApplicantStatus;
 use App\Enums\ContextType;
 use App\Enums\MemberList;
 use App\Models\Group;
@@ -11,6 +10,7 @@ use App\Models\Member;
 use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
+use App\Support\Applicants\ApplicantFilter;
 
 /**
  * The surface an Audience is being picked from (ADR-0024 §6) — a {@see ContextType}
@@ -22,7 +22,7 @@ final class AudienceContext
 {
     private function __construct(
         public readonly ContextType $type,
-        public readonly Group|Schedule|Shift|Member|Invitation|MemberList|SavedQuery|ApplicantStatus|null $subject,
+        public readonly Group|Schedule|Shift|Member|Invitation|MemberList|SavedQuery|ApplicantFilter|null $subject,
     ) {}
 
     public static function memberList(MemberList $list): self
@@ -35,10 +35,10 @@ final class AudienceContext
         return new self(ContextType::SavedQuery, $query);
     }
 
-    /** The Applicants list under one status filter; null is All, every live status. */
-    public static function applicants(?ApplicantStatus $status): self
+    /** The Applicants list under its filter. */
+    public static function applicants(ApplicantFilter $filter): self
     {
-        return new self(ContextType::Applicants, $status);
+        return new self(ContextType::Applicants, $filter);
     }
 
     public static function group(Group $group): self

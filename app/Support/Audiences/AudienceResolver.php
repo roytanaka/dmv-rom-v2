@@ -10,7 +10,6 @@ use App\Enums\Kind;
 use App\Enums\MembershipStatus;
 use App\Enums\Reply;
 use App\Enums\Role;
-use App\Http\Controllers\ApplicantController;
 use App\Models\Applicant;
 use App\Models\Group;
 use App\Models\GroupMember;
@@ -394,7 +393,7 @@ class AudienceResolver
      */
     private function filteredApplicants(AudienceContext $context): Collection
     {
-        return ApplicantController::listed($context->subject)->get();
+        return $context->subject->query()->get();
     }
 
     /**
@@ -618,7 +617,7 @@ class AudienceResolver
             AudienceKey::MemberList => (string) __('audience.member_list', ['list' => __('records.list.'.$context->subject->value)]),
             AudienceKey::SavedQuery => $context->subject->name,
             AudienceKey::Applicants => (string) __('audience.applicants', [
-                'status' => __('applicants.status.'.($context->subject?->value ?? ApplicantController::ALL)),
+                'status' => __('applicants.status.'.$context->subject->statusWord()),
             ]),
             default => (string) __('audience.'.$key->value),
         };
