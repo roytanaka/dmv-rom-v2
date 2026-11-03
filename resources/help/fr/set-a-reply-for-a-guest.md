@@ -9,6 +9,8 @@ Notez une réponse donnée par téléphone ou à la porte. Cela fonctionne aussi
 5. Si vous choisissez **Acceptée**, cochez les options de l'invité.
 6. Sélectionnez **Enregistrer**.
 
+![La boîte de dialogue Saisir la réponse avec la réponse et les options d'un invité](01.png)
+
 Pour répondre pour un membre qui n'est pas sur la liste, sélectionnez **Répondre pour un membre** et choisissez son nom. Il devient un invité.
 
 > **Note :** Vous pouvez dépasser votre propre limite d'invités. La limite arrête seulement les invités qui répondent eux-mêmes.

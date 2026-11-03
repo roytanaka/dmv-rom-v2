@@ -9,7 +9,13 @@ Tell the Host whether you are coming.
 3. If the Invitation lists Options, tick the ones you want.
 4. Select **Accept** or **Decline**.
 
+![My invitations with one Invitation marked No reply](01.png)
+
+![The Invitation with its details, one Option, and the Accept and Decline buttons](02.png)
+
 Your Reply appears beside **Your reply**. Other Guests do not see it. The Host and the super-tier do.
+
+![The Invitation with Your reply marked Accepted and the Option ticked](03.png)
 
 ## Change your Reply
 
@@ -17,7 +23,7 @@ Open the Invitation and select **Accept** or **Decline** again. To change your O
 
 ## When the Invitation is full
 
-The Invitation says it is full, and **Accept** is gone. You can still select **Decline**. If you already accepted, you keep your spot.
+The Invitation says it is full, and **Accept** is gone. You can still select **Decline**. If you already accepted, you keep your spot and can still change your Options.
 
 > **Note:** An Invitation closes the day after its date. It then leaves My invitations, and you can no longer reply.
 

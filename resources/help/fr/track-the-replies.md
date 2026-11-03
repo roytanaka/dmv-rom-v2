@@ -7,6 +7,8 @@ Voyez qui vient et imprimez la liste pour la porte.
 3. Lisez la liste sous les totaux. Elle montre chaque invité avec sa réponse et ses options. Les invités qui ont accepté viennent en premier.
 4. Sélectionnez **Imprimer** pour imprimer les totaux et la liste.
 
+![La page Réponses avec les totaux en haut et chaque invité avec sa réponse et ses options](01.png)
+
 Vous recevez un courriel quand les réponses acceptées atteignent votre limite d'invités.
 
 ## Et ensuite

@@ -4,10 +4,12 @@ Write to everyone who accepted an Invitation. The page shows no email addresses.
 
 1. Find the Invitation on the **Hosting** tab.
 2. Select **Replies**.
-3. Select **Email Accepted Guests**.
+3. Select **Email Accepted Guests**. This button stays off until a Guest accepts.
 4. Check the **To** list and select **Next**.
 5. Write your subject and message.
 6. Select **Send**.
+
+![The email panel with the Accepted Guests in the To list](01.png)
 
 ## What next
 

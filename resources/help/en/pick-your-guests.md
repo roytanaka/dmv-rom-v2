@@ -9,9 +9,15 @@ Build the guest list for your Invitation, one Member at a time or by whole Group
 3. To add one Member, pick a name under **Add a Member** and select **Add**.
 4. To add a whole Group, pick it under **Add a group** and select **Add**.
 
+![The Guests page with Add a Member, Add a group, and no Guests yet](01.png)
+
 The list shows every Guest and the total.
 
+![The Guests page with 24 Guests added from Docents](02.png)
+
 **Add a group** lists the Groups you belong to. An org-wide sender also sees every Group and All members.
+
+Only current Members can be Guests: Active, Honourary, Sustaining, and LOA. A Group or All members leaves out everyone else, such as Provisional and PreActive Members.
 
 ## Remove a Guest
 

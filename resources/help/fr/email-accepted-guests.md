@@ -4,10 +4,12 @@
 
 1. Trouvez l'invitation dans l'onglet **Organisation**.
 2. Sélectionnez **Réponses**.
-3. Sélectionnez **Écrire aux invités ayant accepté**.
+3. Sélectionnez **Écrire aux invités ayant accepté**. Ce bouton reste inactif jusqu'à ce qu'un invité accepte.
 4. Vérifiez la liste **À** et sélectionnez **Suivant**.
 5. Écrivez votre objet et votre message.
 6. Sélectionnez **Envoyer**.
+
+![Le panneau de courriel avec les invités ayant accepté dans la liste À](01.png)
 
 ## Et ensuite
 

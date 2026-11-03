@@ -11,7 +11,15 @@
 5. Modifiez l'objet et le message. L'application les remplit à partir de votre invitation.
 6. Sélectionnez **Envoyer**.
 
-L'invitation est maintenant ouverte. Chaque invité reçoit son propre courriel, avec un lien pour répondre. Vous recevez une copie.
+![L'étape Qui du panneau de courriel avec Tous les invités et un nom pour chaque invité](01.png)
+
+![L'étape Message du panneau de courriel avec l'objet et le message remplis à partir de l'invitation](02.png)
+
+![Le panneau de courriel après l'envoi, avec les courriels en file pour 24 membres](03.png)
+
+L'invitation est maintenant ouverte. Chaque invité reçoit son propre courriel, avec un lien pour répondre. La livraison peut prendre jusqu'à une heure. Vous recevez une copie quand elle est terminée.
+
+![L'onglet Organisation avec l'invitation marquée Ouverte et une action Renvoyer](04.png)
 
 > **Note :** Pour arrêter, fermez le panneau de courriel avant de sélectionner **Envoyer**. L'invitation reste un brouillon.
 

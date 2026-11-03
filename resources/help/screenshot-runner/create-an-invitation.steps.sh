@@ -11,5 +11,6 @@ start /invitations/hosting
 
 nav /invitations/hosting 01     # the Hosting tab, empty, with New invitation
 nav /invitations/create
-act fillSampleInvitation 02     # the form filled in, with one Option
-act saveInvitation 03           # the Hosting tab: the new Invitation as a Draft
+act fillSampleInvitation 02     # the form filled in, top of the page
+act showInvitationOptions 03    # the Guest limit, one Option, and Save
+act saveInvitation 04           # the Hosting tab: the new Invitation as a Draft
