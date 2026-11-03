@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\BoardPosition;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\Member;
+use App\Models\MemberLanguage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -183,6 +185,12 @@ class MemberResource extends JsonResource
                 ...$this->resource->only(Member::RECORDS_FIELDS),
                 'membership_expiry' => $this->membership_expiry?->toDateString(),
                 'status_date' => $this->status_date?->toDateString(),
+                'languages' => $this->whenLoaded('languages', fn () => $this->languages
+                    ->map(fn (MemberLanguage $language) => $language->only('id', 'language_code', 'speaks', 'reads', 'writes'))
+                    ->all()),
+                'board_positions' => $this->whenLoaded('boardPositions', fn () => $this->boardPositions
+                    ->map(fn (BoardPosition $position) => $position->only('id', 'position', 'years'))
+                    ->all()),
             ]),
         ];
     }

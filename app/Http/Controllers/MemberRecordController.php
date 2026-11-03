@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateMemberRecordRequest;
 use App\Http\Resources\MemberResource;
+use App\Models\BoardPosition;
 use App\Models\FeeCategory;
 use App\Models\Member;
 use App\Models\ServiceAward;
@@ -23,7 +24,13 @@ class MemberRecordController extends Controller
     {
         Gate::authorize('administer', $member);
 
-        $member->load('memberships.group', 'memberships.roles', 'updatedBy');
+        $member->load([
+            'memberships.group',
+            'memberships.roles',
+            'updatedBy',
+            'languages' => fn ($query) => $query->orderBy('id'),
+            'boardPositions' => fn ($query) => $query->orderByDesc('id'),
+        ])->loadCount('signIns');
 
         return Inertia::render('officer/members/Record', [
             'member' => (new MemberResource($member))->withRecordsFields(),
@@ -33,6 +40,8 @@ class MemberRecordController extends Controller
                 ->orderBy('id')
                 ->get(['code', 'name', 'amount']),
             'serviceAwards' => ServiceAward::query()->where('active', true)->orderBy('years')->get(['code', 'years']),
+            'boardPositionSuggestions' => BoardPosition::query()->distinct()->orderBy('position')->pluck('position'),
+            'signInsCount' => $member->sign_ins_count,
             'lastUpdated' => $member->updatedBy === null ? null : [
                 'name' => $member->updatedBy->fullName(),
                 'date' => $member->updated_at->timezone(config('app.org_timezone'))->toDateString(),
@@ -43,6 +52,12 @@ class MemberRecordController extends Controller
     public function update(UpdateMemberRecordRequest $request, Member $member): RedirectResponse
     {
         $member->fill($request->safe()->except('new_note'));
+
+        // A new last award year plans the next one (ADR-0038 §10). A year sent alongside it is
+        // the admin's override, even when it is the year already stored.
+        if ($member->isDirty('last_award_year') && $member->last_award_year !== null && ! $request->has('next_award_year')) {
+            $member->next_award_year = $member->last_award_year + 5;
+        }
 
         if ($member->isDirty('email')) {
             $member->email_verified_at = null;

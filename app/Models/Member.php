@@ -130,6 +130,8 @@ class Member extends Authenticatable implements HasLocalePreference
         'remember_token',
         'created_by',
         'updated_by',
+        'languages',
+        'boardPositions',
         ...self::RECORDS_FIELDS,
     ];
 
@@ -205,6 +207,46 @@ class Member extends Authenticatable implements HasLocalePreference
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(Member::class, 'updated_by');
+    }
+
+    /**
+     * Sign a change kept outside this row, such as a language or a board position, as an edit of
+     * the record, so "Last updated by" stays true.
+     */
+    public function markUpdatedBy(Member $actor): void
+    {
+        $this->updated_by = $actor->id;
+        $this->touch();
+    }
+
+    /**
+     * The Member's languages (ADR-0038 §3). Records-only.
+     *
+     * @return HasMany<MemberLanguage, $this>
+     */
+    public function languages(): HasMany
+    {
+        return $this->hasMany(MemberLanguage::class);
+    }
+
+    /**
+     * The board positions the Member has held (ADR-0038 §3). Records-only.
+     *
+     * @return HasMany<BoardPosition, $this>
+     */
+    public function boardPositions(): HasMany
+    {
+        return $this->hasMany(BoardPosition::class);
+    }
+
+    /**
+     * The Member's rows in the Sign-in log (ADR-0038 §12).
+     *
+     * @return HasMany<SignIn, $this>
+     */
+    public function signIns(): HasMany
+    {
+        return $this->hasMany(SignIn::class);
     }
 
     /**

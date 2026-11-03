@@ -61,6 +61,8 @@ return [
         'emergency' => 'Emergency contact',
         'renewal' => 'Renewal',
         'background' => 'Background',
+        'languages' => 'Languages',
+        'board' => 'Board positions',
         'notes' => 'Notes',
         'groups' => 'Memberships and roles',
     ],
@@ -106,9 +108,42 @@ return [
         'category' => 'Category',
         'status_date' => 'Status date',
         'last_sign_in_at' => 'Last sign-in',
+        'sign_ins_count' => 'Sign-ins',
     ],
 
     'paid_through_add_year' => 'Add a year to the paid-through year',
     'award_years' => ':years years',
     'no_notes' => 'No notes yet.',
+
+    'add' => 'Add',
+    'remove' => 'Remove',
+    'add_award' => 'Add an award',
+    'remove_award' => 'Remove :award',
+    'no_awards' => 'No awards yet.',
+
+    'languages' => [
+        'add' => 'Add a language',
+        'none' => 'No languages yet.',
+        'language' => 'Language',
+        'other_name' => 'Other language',
+        'speaks' => 'Speaks',
+        'reads' => 'Reads',
+        'writes' => 'Writes',
+        'remove' => 'Remove :language',
+        'name' => [
+            'en' => 'English',
+            'fr' => 'French',
+            'asl' => 'American Sign Language',
+            'lsq' => 'Langue des signes du Québec',
+            'other' => 'Other',
+        ],
+    ],
+
+    'board' => [
+        'add' => 'Add a board position',
+        'none' => 'No board positions yet.',
+        'position' => 'Position',
+        'years' => 'Years',
+        'remove' => 'Remove :position',
+    ],
 ];
