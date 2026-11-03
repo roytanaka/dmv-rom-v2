@@ -14,6 +14,7 @@ import { ref } from 'vue';
 defineProps<{
     status?: string;
     canResetPassword: boolean;
+    applicationOpen: boolean;
 }>();
 
 // Remember me keeps the member signed in on this device (#687; lifetime in ADR-0001).
@@ -28,6 +29,11 @@ const showPassword = ref(false);
 
 const receptionPhone = '(416) 586-8097';
 const officeEmail = 'volunteers@rom.on.ca';
+
+// The Applicant code entry (#930, ADR-0038 §8): shown only while the code is published and
+// unexpired. The right code opens the application form; a wrong one comes back on `code`.
+const codeForm = useForm({ code: '' });
+const startApplication = () => codeForm.get(route('apply'));
 
 const submit = () => {
     form.post(route('login'), {
@@ -102,6 +108,16 @@ const submit = () => {
                 <PhArrowRight class="h-4 w-4" />
                 {{ trans('auth.login.submit') }}
             </Button>
+        </form>
+
+        <form v-if="applicationOpen" class="mt-8 flex flex-col gap-2 border-t pt-6" @submit.prevent="startApplication">
+            <p class="text-sm">{{ trans('apply.prompt') }}</p>
+            <Label for="applicant-code" class="sr-only">{{ trans('apply.code_label') }}</Label>
+            <div class="flex gap-2">
+                <Input id="applicant-code" v-model="codeForm.code" required autocomplete="off" maxlength="64" />
+                <Button type="submit" variant="outline" :loading="codeForm.processing">{{ trans('apply.start') }}</Button>
+            </div>
+            <InputError :message="codeForm.errors.code" />
         </form>
 
         <p class="text-muted-foreground mt-8 text-sm">

@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\ApplicantCodeController;
 use App\Http\Controllers\ApplicantController;
+use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\BoardPositionController;
@@ -125,6 +127,14 @@ Route::group([
     // Above the Member lists' {list?} route, which would otherwise take the word.
     Route::get(LaravelLocalization::transRoute('routes.officer.members.remove-personal-data'), [RemovePersonalDataController::class, 'show'])
         ->middleware('auth')->name('officer.members.remove-personal-data');
+
+    // The public application form (#930, ADR-0038 §8, §14.6), for guests (/apply ↔ /fr/postuler):
+    // the GET checks the Applicant code typed on the sign-in page and shows the form, the POST
+    // stores the application. ApplicationController holds the code check and its throttle.
+    Route::get(LaravelLocalization::transRoute('routes.apply'), [ApplicationController::class, 'show'])
+        ->middleware('guest')->name('apply');
+    Route::post(LaravelLocalization::transRoute('routes.apply'), [ApplicationController::class, 'store'])
+        ->middleware('guest')->name('apply.store');
 
     // The Applicants pages (#928, ADR-0038 §8): the list owns the Applicants Member list's word
     // (/officer/members/applicants ↔ /fr/officier/membres/candidats), so it sits above the lists
@@ -489,6 +499,8 @@ Route::post('members/{member}/photo', MemberPhotoController::class)
 Route::middleware('auth')->group(function () {
     Route::post('applicants', [ApplicantController::class, 'store'])->name('applicants.store');
     Route::patch('applicants/{applicant}', [ApplicantController::class, 'update'])->name('applicants.update');
+    // The Applicant code dialog (#930): the Applicant Chair, via ApplicantPolicy::setCode.
+    Route::put('applicant-code', [ApplicantCodeController::class, 'update'])->name('applicant-code.update');
 });
 
 // The structured lists on the Member record (#918, ADR-0038 §3). Member administration or

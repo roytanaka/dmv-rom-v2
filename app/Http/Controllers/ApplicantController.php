@@ -10,6 +10,7 @@ use App\Enums\MemberList;
 use App\Http\Requests\StoreApplicantRequest;
 use App\Http\Requests\UpdateApplicantRequest;
 use App\Models\Applicant;
+use App\Models\ApplicantCode;
 use App\Models\ApplicantLanguage;
 use App\Policies\ApplicantPolicy;
 use App\Support\Applicants\ApplicantOptions;
@@ -52,6 +53,8 @@ class ApplicantController extends Controller
             'canCreate' => $actor->can('create', Applicant::class),
             // Member administration reaches this page as the seventh Member list, so it keeps the tabs.
             'memberListTabs' => $actor->can('administer-members') ? MemberList::tabs() : null,
+            // The Applicant code dialog (#930): the Applicant Chair's alone.
+            'applicantCode' => $actor->can('setCode', Applicant::class) ? self::code() : null,
             'applicants' => self::listed($filter)
                 ->when($search, fn (Builder $rows, string $term) => $rows->whereLike('applicants.last_name', addcslashes($term, '%_\\').'%'))
                 ->with(['mentor', 'placementGroup'])
@@ -94,6 +97,22 @@ class ApplicantController extends Controller
             ->orderBy('applicants.last_name')
             ->orderBy('applicants.first_name')
             ->orderBy('applicants.id');
+    }
+
+    /**
+     * The Applicant code as the dialog edits it (#930).
+     *
+     * @return array{code: string|null, published: bool, expires_on: string|null}
+     */
+    private static function code(): array
+    {
+        $code = ApplicantCode::current();
+
+        return [
+            'code' => $code->code,
+            'published' => (bool) $code->published,
+            'expires_on' => $code->expires_on?->toDateString(),
+        ];
     }
 
     public function create(): Response
