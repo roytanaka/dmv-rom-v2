@@ -9,8 +9,8 @@ use Illuminate\Validation\Validator;
 
 /**
  * Run Remove personal data (#921, ADR-0038 §6), through `MemberPolicy::removePersonalData`. The
- * member admin types the number of Members the preview counted; the count is taken again here, so
- * a stale preview cannot confirm a different run.
+ * member admin types the total the preview counted, Members and Applicants (ADR-0038 §6); the count
+ * is taken again here, so a stale preview cannot confirm a different run.
  */
 class RemovePersonalDataRequest extends FormRequest
 {
@@ -41,7 +41,7 @@ class RemovePersonalDataRequest extends FormRequest
                     return;
                 }
 
-                $count = app(RemovePersonalData::class)->members((int) $this->input('year'))->count();
+                $count = app(RemovePersonalData::class)->total((int) $this->input('year'));
 
                 if ((int) $this->input('confirm_count') !== $count) {
                     $validator->errors()->add('confirm_count', __('records.remove_personal_data.count_mismatch'));

@@ -84,6 +84,12 @@ class RemovePersonalData
         return $this->applicants($year)->count();
     }
 
+    /** The number the run is confirmed with: the Members it blanks and the Applicants it deletes. */
+    public function total(int $year): int
+    {
+        return $this->members($year)->count() + $this->applicantCount($year);
+    }
+
     /** Run the clean-up and return how many Members it touched. */
     public function run(int $year, Member $actor): int
     {

@@ -208,8 +208,14 @@ it('counts and deletes exactly the Applicants whose status date is before the ye
     $this->actingAs($admin)->get('/officer/members/remove-personal-data?year=2019')
         ->assertInertia(fn (Assert $page) => $page->where('memberCount', 0)->where('applicantCount', 2));
 
+    // The typed number is the total, Members and Applicants (ADR-0038 §6: it names the count).
     $this->actingAs($admin)
         ->post(route('members.remove-personal-data'), ['year' => 2019, 'confirm_count' => '0'])
+        ->assertSessionHasErrors('confirm_count');
+    expect(Applicant::count())->toBe(4);
+
+    $this->actingAs($admin)
+        ->post(route('members.remove-personal-data'), ['year' => 2019, 'confirm_count' => '2'])
         ->assertSessionHasNoErrors();
 
     expect(Applicant::pluck('id')->sort()->values()->all())->toBe([$newer->id, $undated->id])
