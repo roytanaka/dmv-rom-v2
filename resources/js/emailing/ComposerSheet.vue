@@ -50,6 +50,9 @@ const props = defineProps<{
     prefill?: { subject: string; body: string } | null;
     // The first Send of a Draft Invitation goes to every Guest (ADR-0034 §7), so its chips stay put.
     lockRecipients?: boolean;
+    // Ids un-ticked as the sheet opens (#925): a Saved query run's unchecked rows. They post as
+    // removals, the hand-picked edit path, so the server re-resolves the run and drops them.
+    exclude?: number[];
 }>();
 
 const emit = defineEmits<{ (e: 'update:open', value: boolean): void }>();
@@ -144,7 +147,8 @@ async function loadRecipients(audience: AudienceOption): Promise<void> {
     }
     directory.value = merged;
     baseIds.value = data.recipients.map((recipient) => recipient.id);
-    ticked.value = new Set(baseIds.value);
+    const excluded = new Set(props.exclude ?? []);
+    ticked.value = new Set(baseIds.value.filter((id) => !excluded.has(id)));
 }
 
 const recipientCount = computed(() => ticked.value.size);
@@ -338,7 +342,9 @@ function close(): void {
                     </div>
                 </div>
 
-                <div v-if="context !== 'invitation'">
+                <!-- No Add people where the Audience is the whole page: an Invitation's Guests, a
+                     Records list, a Saved query run. -->
+                <div v-if="!['invitation', 'member_list', 'saved_query'].includes(context)">
                     <Button v-if="!panelOpen" type="button" variant="outline" size="sm" @click="panelOpen = true">
                         {{ trans('broadcasts.composer.add_people') }}
                     </Button>

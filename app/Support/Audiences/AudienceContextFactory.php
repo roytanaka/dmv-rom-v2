@@ -3,9 +3,11 @@
 namespace App\Support\Audiences;
 
 use App\Enums\ContextType;
+use App\Enums\MemberList;
 use App\Models\Group;
 use App\Models\Invitation;
 use App\Models\Member;
+use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
 use Illuminate\Http\Request;
@@ -39,6 +41,21 @@ class AudienceContextFactory
             ContextType::Member => AudienceContext::member(Member::findOrFail($subject)),
             ContextType::Directory => AudienceContext::directory(),
             ContextType::Invitation => AudienceContext::invitation(Invitation::findOrFail($subject)),
+            ContextType::MemberList => AudienceContext::memberList($this->memberList($subject)),
+            ContextType::SavedQuery => AudienceContext::savedQuery(SavedQuery::findOrFail($subject)),
         };
+    }
+
+    /**
+     * The Member list named by its list word, or a 404 when it names none or a list that
+     * offers no Send email: only Current and Resigned do, as in the Legacy app (ADR-0038 §5).
+     */
+    private function memberList(mixed $subject): MemberList
+    {
+        $list = is_string($subject) ? MemberList::tryFrom($subject) : null;
+
+        abort_if($list === null || ! $list->offersSendEmail(), 404);
+
+        return $list;
     }
 }
