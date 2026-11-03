@@ -18,13 +18,13 @@ function listsMemberAdmin(): Member
 {
     $records = Group::factory()->create();
     GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
-    $admin = Member::factory()->create(['category' => Category::Admin, 'last_name' => 'Zzrecords']);
+    $admin = Member::factory()->create(['category' => Category::Active, 'last_name' => 'Zzrecords']);
     $records->memberships()->create(['member_id' => $admin->id, 'status' => MembershipStatus::Full]);
 
     return $admin;
 }
 
-/** One Member per list, keyed by the list's URL word. */
+/** One Member per list, keyed by the list's URL word. The acting member admin is Current too. */
 function oneMemberPerList(): array
 {
     return [
@@ -32,6 +32,7 @@ function oneMemberPerList(): array
         'resigned' => Member::factory()->create(['category' => Category::Withdrawn])->id,
         'past' => Member::factory()->create(['category' => Category::Resigned, 'personal_data_removed_at' => now()])->id,
         'deceased' => Member::factory()->create(['category' => Category::Deceased])->id,
+        'admin' => Member::factory()->create(['category' => Category::Admin])->id,
         'donors' => Member::factory()->create(['category' => Category::Donor])->id,
     ];
 }
@@ -47,13 +48,13 @@ it('opens on the Current list', function () {
             ->component('officer/members/Index')
             ->where('list', 'current')
             ->has('tabs', 7)
-            ->where('members.data', fn ($rows) => collect($rows)->pluck('id')->all() === [$members['current']]));
+            ->where('members.data', fn ($rows) => collect($rows)->pluck('id')->all() === [$members['current'], $admin->id]));
 });
 
 it('returns exactly the Members of each list', function (string $word) {
     $admin = listsMemberAdmin();
     $members = oneMemberPerList();
-    $expected = $word === 'admin' ? [$admin->id] : [$members[$word]];
+    $expected = $word === 'current' ? [$members['current'], $admin->id] : [$members[$word]];
 
     $this->actingAs($admin)
         ->get("/officer/members/{$word}")
@@ -104,7 +105,7 @@ it('sorts by last name and searches by the start of it', function () {
     $this->actingAs($admin)->get('/officer/members')
         ->assertInertia(fn (Assert $page) => $page->where(
             'members.data',
-            fn ($rows) => collect($rows)->pluck('last_name')->all() === ['Abara', 'Petrov', 'Tremblay', 'Trudeau'],
+            fn ($rows) => collect($rows)->pluck('last_name')->all() === ['Abara', 'Petrov', 'Tremblay', 'Trudeau', 'Zzrecords'],
         ));
 
     $this->actingAs($admin)->get('/officer/members?q=tr')

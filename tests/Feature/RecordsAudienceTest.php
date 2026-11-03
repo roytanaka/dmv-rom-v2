@@ -23,7 +23,7 @@ function recordsAudienceAdmin(): Member
 {
     $records = Group::factory()->create();
     GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
-    $admin = Member::factory()->create(['category' => Category::Admin]);
+    $admin = Member::factory()->create(['category' => Category::Active]);
     $records->memberships()->create(['member_id' => $admin->id, 'status' => MembershipStatus::Full]);
 
     return $admin;
@@ -48,7 +48,9 @@ function recordsAudienceIds(array $rows): array
 
 it('resolves a Member list Audience to exactly the list\'s Members', function () {
     $admin = recordsAudienceAdmin();
+    // The acting member admin is Current too.
     $current = [
+        $admin->id,
         Member::factory()->create(['category' => Category::Active])->id,
         Member::factory()->create(['category' => Category::Sustaining])->id,
     ];
@@ -59,7 +61,7 @@ it('resolves a Member list Audience to exactly the list\'s Members', function ()
         ->getJson(route('audiences.index', ['context' => 'member_list', 'subject' => 'current']))
         ->assertOk()
         ->assertJsonPath('audiences.0.key', 'member_list')
-        ->assertJsonPath('audiences.0.count', 2)
+        ->assertJsonPath('audiences.0.count', 3)
         ->assertJsonCount(1, 'audiences');
 
     $show = $this->actingAs($admin)
@@ -168,6 +170,7 @@ it('names the empty reason for a Member without member administration', function
 it('sends a Broadcast from a list with one Delivery per Member, skipping no_email', function () {
     $admin = recordsAudienceAdmin();
     $reachable = [
+        $admin->id,
         Member::factory()->create(['category' => Category::Active])->id,
         Member::factory()->create(['category' => Category::Provisional])->id,
     ];
@@ -179,7 +182,7 @@ it('sends a Broadcast from a list with one Delivery per Member, skipping no_emai
             'subject' => 'Renewals', 'body' => '<p>Please renew.</p>',
         ])
         ->assertOk()
-        ->assertJsonPath('queued', 2)
+        ->assertJsonPath('queued', 3)
         ->assertJsonPath('skipped', [$flagged->fullName()]);
 
     $broadcast = Broadcast::sole();

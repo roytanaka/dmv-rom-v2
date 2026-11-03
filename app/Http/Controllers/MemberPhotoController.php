@@ -27,10 +27,8 @@ class MemberPhotoController extends Controller
         }
 
         if ($member->isDirty()) {
-            $member->updated_by = $request->user()->id;
+            $member->markUpdatedBy($request->user());
         }
-
-        $member->save();
 
         if ($previousPath !== null) {
             $photos->delete($previousPath);

@@ -6,9 +6,11 @@ use App\Models\Group;
 use App\Models\GroupStewardship;
 use App\Models\Member;
 use App\Models\SignIn;
+use App\Personas\PersonaCatalogue;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
@@ -52,6 +54,31 @@ it('writes nothing on a failed login', function () {
 
     expect(SignIn::count())->toBe(0)
         ->and($member->fresh()->last_sign_in_at)->toBeNull();
+});
+
+it('records nothing when a support operator becomes a Persona or stops', function () {
+    $operator = Member::factory()->create();
+    $operator->forceFill(['support_operator' => true])->save();
+    $chair = Member::factory()->create(['email' => PersonaCatalogue::CHAIR_EMAIL]);
+
+    $this->actingAs($operator)->post(route('impersonation.start'), ['email' => $chair->email]);
+    $this->assertAuthenticatedAs($chair);
+    $this->delete(route('impersonation.stop'));
+    $this->assertAuthenticatedAs($operator);
+
+    expect(SignIn::count())->toBe(0)
+        ->and($chair->fresh()->last_sign_in_at)->toBeNull()
+        ->and($operator->fresh()->last_sign_in_at)->toBeNull();
+});
+
+it('records a sign-in restored from a Remember me cookie', function () {
+    $member = Member::factory()->create();
+    $member->forceFill(['remember_token' => 'remembered-token'])->save();
+    $recaller = $member->id.'|remembered-token|'.$member->getAuthPassword();
+
+    $this->withCookie(Auth::guard('web')->getRecallerName(), $recaller)->get('/dashboard')->assertOk();
+
+    expect(SignIn::where('member_id', $member->id)->count())->toBe(1);
 });
 
 it('leaves the record’s last update alone', function () {

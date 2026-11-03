@@ -22,7 +22,7 @@ function outputsMemberAdmin(): Member
 {
     $records = Group::factory()->create(['name' => 'Records']);
     GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
-    $admin = Member::factory()->create(['category' => Category::Admin, 'first_name' => 'Rita', 'last_name' => 'Records']);
+    $admin = Member::factory()->create(['category' => Category::Active, 'first_name' => 'Rita', 'last_name' => 'Records']);
     $records->memberships()->create(['member_id' => $admin->id, 'status' => MembershipStatus::Full]);
 
     return $admin;
@@ -193,8 +193,10 @@ it('offers Current and Admin Members as email recipients on demand', function ()
             ->missing('recipients')
             ->reloadOnly('recipients', fn (Assert $reload) => $reload->where('recipients', function ($recipients) use ($admin, $active, $resigned) {
                 $ids = collect($recipients)->pluck('id');
+                // Plain rows: never a serialized Member with its appended attributes.
+                $keys = collect($recipients)->every(fn ($row) => array_keys((array) $row) === ['id', 'first_name', 'last_name']);
 
-                return $ids->contains($admin->id) && $ids->contains($active->id) && ! $ids->contains($resigned->id);
+                return $keys && $ids->contains($admin->id) && $ids->contains($active->id) && ! $ids->contains($resigned->id);
             })));
 });
 

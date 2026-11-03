@@ -7,6 +7,7 @@ use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\Member;
 use App\Models\MemberLanguage;
+use App\Support\OrgTime;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -101,7 +102,7 @@ class MemberResource extends JsonResource
             'standing' => $this->category->value,
             'email' => $this->email,
             'phone' => $this->phone,
-            'last_update' => $this->updated_at?->timezone(config('app.org_timezone'))->toDateString(),
+            'last_update' => $this->updated_at === null ? null : OrgTime::toLocal($this->updated_at)->toDateString(),
             // For the Photo action (#922): the list's viewer is member administration.
             'photo' => $this->photo_url,
             'photo_public' => (bool) $this->photo_public,

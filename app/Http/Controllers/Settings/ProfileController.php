@@ -66,10 +66,8 @@ class ProfileController extends Controller
         }
 
         if ($member->isDirty()) {
-            $member->updated_by = $member->id;
+            $member->markUpdatedBy($member);
         }
-
-        $member->save();
 
         if ($previousPath !== null) {
             $photos->delete($previousPath);

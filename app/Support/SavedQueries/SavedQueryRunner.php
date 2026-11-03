@@ -4,11 +4,13 @@ namespace App\Support\SavedQueries;
 
 use App\Enums\Category;
 use App\Enums\CategoryGroup;
+use App\Enums\SavedQueryFieldType;
 use App\Models\BoardPosition;
 use App\Models\CategoryChange;
 use App\Models\GroupMember;
 use App\Models\Member;
 use App\Models\SavedQuery;
+use App\Support\OrgTime;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -181,7 +183,7 @@ final class SavedQueryRunner
             $this->condition($members, $column, $type, $positive, $value);
         } elseif ($value === '') {
             $members->whereNotNull($column)->when(
-                in_array($type, ['text', 'list'], true),
+                $type->isTextual(),
                 fn (Builder $filled) => $filled->where($column, '!=', '')->where($column, '!=', '[]'),
             );
         } else {
@@ -196,11 +198,11 @@ final class SavedQueryRunner
      *
      * @param  Builder<covariant \Illuminate\Database\Eloquent\Model>  $query
      */
-    private function condition(Builder $query, string $column, string $type, string $operator, string $value): void
+    private function condition(Builder $query, string $column, SavedQueryFieldType $type, string $operator, string $value): void
     {
         if ($value === '') {
             $query->where(fn (Builder $blank) => $blank->whereNull($column)->when(
-                in_array($type, ['text', 'list'], true),
+                $type->isTextual(),
                 fn (Builder $empty) => $empty->orWhere($column, '')->orWhere($column, '[]'),
             ));
 
@@ -216,11 +218,11 @@ final class SavedQueryRunner
         $symbol = self::SYMBOL[$operator];
 
         match ($type) {
-            'category_group' => $query->whereIn('category', Category::inGroup(CategoryGroup::from($value))),
-            'group' => $query->whereHas('group', fn (Builder $group) => $group->where('slug', $value)),
-            'boolean' => $query->where($column, $value === 'yes'),
-            'number' => $query->where($column, $symbol, $value + 0),
-            'date', 'datetime' => $query->whereDate($column, $symbol, $value),
+            SavedQueryFieldType::CategoryGroup => $query->whereIn('category', Category::inGroup(CategoryGroup::from($value))),
+            SavedQueryFieldType::Group => $query->whereHas('group', fn (Builder $group) => $group->where('slug', $value)),
+            SavedQueryFieldType::Boolean => $query->where($column, $value === 'yes'),
+            SavedQueryFieldType::Number => $query->where($column, $symbol, $value + 0),
+            SavedQueryFieldType::Date, SavedQueryFieldType::Datetime => $query->whereDate($column, $symbol, $value),
             default => $query->where($column, $symbol, $value),
         };
     }
@@ -230,7 +232,7 @@ final class SavedQueryRunner
     {
         $type = SavedQueryFields::type($clause['source'], $clause['field']);
         $value = trim((string) ($clause['value'] ?? ''));
-        $options = SavedQueryFields::options($type) ?? [];
+        $options = $type->options() ?? [];
 
         $shown = match (true) {
             $value === '' => __('saved_queries.blank'),
@@ -266,9 +268,9 @@ final class SavedQueryRunner
 
         return match (true) {
             $value === null => null,
-            $value instanceof BackedEnum => SavedQueryFields::options($type)[$value->value] ?? (string) $value->value,
-            $type === 'boolean' => __($value ? 'saved_queries.yes' : 'saved_queries.no'),
-            $type === 'datetime' && $value instanceof Carbon => $value->timezone(config('app.org_timezone'))->format('Y-m-d H:i'),
+            $value instanceof BackedEnum => $type->options()[$value->value] ?? (string) $value->value,
+            $type === SavedQueryFieldType::Boolean => __($value ? 'saved_queries.yes' : 'saved_queries.no'),
+            $type === SavedQueryFieldType::Datetime && $value instanceof Carbon => OrgTime::toLocal($value)->format('Y-m-d H:i'),
             $value instanceof Carbon => $value->toDateString(),
             is_array($value) => implode(', ', $value),
             default => (string) $value,
@@ -277,7 +279,7 @@ final class SavedQueryRunner
 
     private function historyLabel(CategoryChange $change): string
     {
-        return SavedQueryFields::options('history_category')[$change->category] ?? $change->category;
+        return SavedQueryFieldType::HistoryCategory->options()[$change->category] ?? $change->category;
     }
 
     /** @param  iterable<string>  $parts */

@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\DeliveryKind;
-use App\Enums\DeliveryState;
 use App\Http\Requests\EmailSavedQueryResultsRequest;
-use App\Mail\SavedQueryResults;
-use App\Models\Delivery;
 use App\Models\Member;
 use App\Models\SavedQuery;
 use App\Policies\SavedQueryPolicy;
 use App\Support\CsvExport;
+use App\Support\Notices\SavedQueryResultsNoticeWriter;
 use App\Support\SavedQueries\SavedQueryFields;
 use App\Support\SavedQueries\SavedQueryRunner;
 use Illuminate\Http\RedirectResponse;
@@ -52,10 +49,7 @@ class SavedQueryOutputController extends Controller
         return CsvExport::download("{$name}-".now()->toDateString().'.csv', $rows);
     }
 
-    /**
-     * The mailing labels, in sheets of thirty: name, street, "city, province", then the postal
-     * code, which the country leads only outside Canada (the Legacy app's rule).
-     */
+    /** The mailing labels ({@see Member::mailingLabel()}), in sheets of thirty. */
     public function labels(Request $request, SavedQueryRunner $runner, SavedQuery $savedQuery): Response
     {
         Gate::authorize('run', $savedQuery);
@@ -64,7 +58,7 @@ class SavedQueryOutputController extends Controller
 
         $labels = $runner->query($savedQuery)
             ->get(['id', 'first_name', 'last_name', 'address_street', 'address_city', 'address_province', 'address_postal_code', 'address_country'])
-            ->map(fn (Member $member) => $this->label($member));
+            ->map(fn (Member $member) => $member->mailingLabel());
 
         return Inertia::render('officer/members/queries/Labels', [
             'query' => $savedQuery->only('id', 'name'),
@@ -78,43 +72,10 @@ class SavedQueryOutputController extends Controller
      * One Notice per chosen Member with the note and a link to the run; a Member with the
      * no-email flag or no address is skipped.
      */
-    public function emailResults(EmailSavedQueryResultsRequest $request, SavedQuery $savedQuery): RedirectResponse
+    public function emailResults(EmailSavedQueryResultsRequest $request, SavedQueryResultsNoticeWriter $notices, SavedQuery $savedQuery): RedirectResponse
     {
-        $sender = $request->user()->fullName();
-
-        Member::query()
-            ->whereIn('id', $request->validated('member_ids'))
-            ->where('no_email', false)
-            ->whereNotNull('email')
-            ->get()
-            ->each(fn (Member $member) => Delivery::create([
-                'kind' => DeliveryKind::Notice,
-                'member_id' => $member->id,
-                'email' => $member->email,
-                'payload' => [
-                    'notice' => SavedQueryResults::NOTICE_TYPE,
-                    'query' => ['id' => $savedQuery->id, 'name' => $savedQuery->name],
-                    'note' => $request->validated('note'),
-                    'sender' => $sender,
-                ],
-                'state' => DeliveryState::Pending,
-                'next_attempt_at' => now(),
-            ]));
+        $notices->write($savedQuery, $request->validated('member_ids'), $request->validated('note'), $request->user());
 
         return back();
-    }
-
-    /** @return list<string> */
-    private function label(Member $member): array
-    {
-        $country = trim((string) $member->address_country);
-        $prefix = $country === '' || strcasecmp($country, 'canada') === 0 ? '' : $country.'    ';
-
-        return [
-            $member->fullName(),
-            (string) $member->address_street,
-            trim(implode(', ', array_filter([$member->address_city, $member->address_province], 'filled'))),
-            $prefix.$member->address_postal_code,
-        ];
     }
 }

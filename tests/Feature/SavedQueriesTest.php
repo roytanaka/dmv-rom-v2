@@ -18,7 +18,7 @@ function queriesMemberAdmin(): Member
 {
     $records = Group::factory()->create(['name' => 'Records']);
     GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
-    $admin = Member::factory()->create(['category' => Category::Admin, 'first_name' => 'Rita', 'last_name' => 'Records']);
+    $admin = Member::factory()->create(['category' => Category::Active, 'first_name' => 'Rita', 'last_name' => 'Records']);
     $records->memberships()->create(['member_id' => $admin->id, 'status' => MembershipStatus::Full]);
 
     return $admin;
@@ -41,7 +41,7 @@ function queriesMake(array $clauses, string $conjunction = 'and', array $columns
     ]);
 }
 
-/** The ids a run returns, in order. */
+/** The ids a run returns, in order, leaving out the acting member admin, who is Current too. */
 function queriesRunIds(Member $admin, SavedQuery $query): array
 {
     $ids = null;
@@ -49,9 +49,9 @@ function queriesRunIds(Member $admin, SavedQuery $query): array
     test()->actingAs($admin)
         ->get(route('officer.members.queries.run', $query))
         ->assertOk()
-        ->assertInertia(function (Assert $page) use (&$ids) {
+        ->assertInertia(function (Assert $page) use (&$ids, $admin) {
             $page->component('officer/members/queries/Run');
-            $ids = collect($page->toArray()['props']['rows'])->pluck('id')->all();
+            $ids = collect($page->toArray()['props']['rows'])->pluck('id')->reject(fn (int $id) => $id === $admin->id)->values()->all();
         });
 
     return $ids;

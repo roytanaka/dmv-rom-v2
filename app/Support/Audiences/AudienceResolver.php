@@ -5,7 +5,6 @@ namespace App\Support\Audiences;
 use App\Enums\AccessTier;
 use App\Enums\AudienceKey;
 use App\Enums\Category;
-use App\Enums\CategoryGroup;
 use App\Enums\ContextType;
 use App\Enums\Kind;
 use App\Enums\MembershipStatus;
@@ -342,8 +341,7 @@ class AudienceResolver
             AudienceKey::InvitationGuests => $this->guestMembers($context->subject),
             AudienceKey::InvitationNoReply => $this->guestMembers($context->subject, Reply::NoReply),
             AudienceKey::InvitationAccepted => $this->guestMembers($context->subject, Reply::Accepted),
-            AudienceKey::MemberList => $context->subject->members()->get(),
-            AudienceKey::SavedQuery => $this->queries->query($context->subject)->get(),
+            AudienceKey::MemberList, AudienceKey::SavedQuery => $this->recordsMembers($context),
         };
     }
 
@@ -361,11 +359,23 @@ class AudienceResolver
             ContextType::Member => collect([$context->subject]),
             ContextType::Invitation => $this->guestMembers($context->subject),
             // One Audience and no hand-pick: the list or the run is the whole page.
-            ContextType::MemberList => $context->subject->members()->get(),
-            ContextType::SavedQuery => $this->queries->query($context->subject)->get(),
+            ContextType::MemberList, ContextType::SavedQuery => $this->recordsMembers($context),
             default => $context->owningGroup()->memberships()->with('member')->get()
                 ->map(fn (GroupMember $membership): Member => $membership->member),
         };
+    }
+
+    /**
+     * The Members of a Records office list or Saved query run (ADR-0038 §5, §7): the one Audience
+     * such a page offers, and its whole roster.
+     *
+     * @return Collection<int, Member>
+     */
+    private function recordsMembers(AudienceContext $context): Collection
+    {
+        return $context->type === ContextType::MemberList
+            ? $context->subject->members()->get()
+            : $this->queries->query($context->subject)->get();
     }
 
     /**
@@ -565,7 +575,7 @@ class AudienceResolver
             AudienceKey::OneCategory => Member::query()->get(['category'])
                 ->map(fn (Member $member): Category => $member->category)
                 ->unique()
-                ->reject(fn (Category $category): bool => in_array($category->group(), [CategoryGroup::Resigned, CategoryGroup::Deceased], true))
+                ->reject(fn (Category $category): bool => $category->isDeparted())
                 ->map(fn (Category $category): string => $category->value)
                 ->sort()->values()->all(),
             AudienceKey::ChildRoster => $context->owningGroup()->children()->orderBy('display_order')

@@ -3,21 +3,19 @@
 namespace App\Actions;
 
 use App\Enums\Category;
-use App\Enums\CategoryGroup;
 use App\Models\Member;
 use App\Support\OrgTime;
 use App\Support\ProfilePhotoStorage;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 /**
  * Remove personal data (#921, ADR-0038 §6): the yearly privacy clean-up. Every Resigned or
  * Deceased Member whose status date is before 1 January of the chosen year loses the personal
  * fields and moves to the Past list; the name, Category history, board positions and Hours
- * records stay. Old Applicants are deleted too, once the Applicants PRD (#914) adds their table.
+ * records stay. Old Applicants are deleted too, once the Applicants PRD (#914) adds them.
  */
 class RemovePersonalData
 {
@@ -64,18 +62,15 @@ class RemovePersonalData
     public function members(int $year): Builder
     {
         return Member::query()
-            ->whereIn('category', [
-                ...Category::inGroup(CategoryGroup::Resigned),
-                ...Category::inGroup(CategoryGroup::Deceased),
-            ])
+            ->whereIn('category', Category::departed())
             ->whereNull('personal_data_removed_at')
             ->where('status_date', '<', sprintf('%04d-01-01', $year));
     }
 
-    /** The Applicants the run deletes: zero until the Applicants table exists (#914). */
+    /** The Applicants the run deletes: none until the Applicants PRD (#914) adds them with their model. */
     public function applicantCount(int $year): int
     {
-        return $this->applicants($year)?->count() ?? 0;
+        return 0;
     }
 
     /** Run the clean-up and return how many Members it touched. */
@@ -94,16 +89,16 @@ class RemovePersonalData
                         ...array_fill_keys(self::BLANKED, null),
                         'photo_public' => false,
                         'personal_data_removed_at' => now(),
-                        'updated_by' => $actor->id,
-                    ])->save();
+                    ]);
+                    // A Remember me cookie stops matching.
+                    $member->setRememberToken(Str::random(60));
+                    $member->markUpdatedBy($actor);
 
                     $member->languages()->delete();
                     $member->skills()->detach();
                     $count++;
                 }
             });
-
-            $this->applicants($year)?->delete();
 
             return $count;
         });
@@ -121,18 +116,5 @@ class RemovePersonalData
         ]);
 
         return $count;
-    }
-
-    /**
-     * The old Applicants, or null while the table does not exist. Query builder rather than a
-     * model: the Applicants PRD (#914) owns the model and should swap it in here.
-     */
-    private function applicants(int $year): ?QueryBuilder
-    {
-        if (! Schema::hasTable('applicants')) {
-            return null;
-        }
-
-        return DB::table('applicants')->where('status_date', '<', sprintf('%04d-01-01', $year));
     }
 }

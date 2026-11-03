@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Carbon\Exceptions\InvalidFormatException;
 
 /**
@@ -52,6 +53,15 @@ class OrgTime
     public static function now(): CarbonImmutable
     {
         return CarbonImmutable::now(config('app.org_timezone'));
+    }
+
+    /**
+     * A stored instant on the organization's wall clock, for a server-rendered date or time (the
+     * day a record was last updated, a datetime in an export).
+     */
+    public static function toLocal(CarbonInterface $instant): CarbonImmutable
+    {
+        return CarbonImmutable::instance($instant)->setTimezone(config('app.org_timezone'));
     }
 
     /**
