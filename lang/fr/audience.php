@@ -36,6 +36,7 @@ return [
 
     // Audiences du bureau des dossiers (ADR-0038 §5, §7). Une requête enregistrée garde son nom, tel que saisi.
     'member_list' => 'Liste « :list »',
+    'applicants' => 'Candidats : :status',
 
     // Suffixe d'audience modifiée, ajouté lorsque le sélecteur a retiré des
     // personnes (ADR-0024 §6) : le nom de l'audience demeure et le nombre de

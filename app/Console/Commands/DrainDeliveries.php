@@ -342,7 +342,8 @@ class DrainDeliveries extends Command
             ->where('state', DeliveryState::Failed)
             ->with('member')
             ->get()
-            ->map(fn (Delivery $delivery): string => $delivery->member->fullName())
+            // An Applicant's row (#929) has no Member and names the Applicant in its payload.
+            ->map(fn (Delivery $delivery): string => $delivery->member?->fullName() ?? (string) ($delivery->payload['name'] ?? ''))
             ->all();
     }
 

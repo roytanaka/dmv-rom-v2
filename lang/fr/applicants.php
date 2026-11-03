@@ -73,4 +73,24 @@ return [
         'other' => 'Autre langue',
         'add_other' => 'Ajouter une autre langue',
     ],
+
+    // Imprimer, Supprimer et Envoyer un courriel (#929).
+    'outputs' => [
+        'print' => 'Imprimer',
+        'print_record' => 'Imprimer le dossier',
+        'back' => 'Retour',
+        'list_title' => 'Candidats : :status',
+        'search' => 'Nom de famille commençant par « :term »',
+        'count' => ':count candidat|:count candidats',
+        'phone' => 'Téléphone',
+        'entered_by' => 'Saisi par',
+        'the_applicant' => 'Le candidat',
+        'last_updated' => 'Dernière mise à jour',
+        'by_on' => ':name le :date',
+        'send_email' => 'Envoyer un courriel',
+        'delete' => 'Supprimer',
+        'delete_title' => 'Supprimer :name ?',
+        'delete_body' => 'La candidature, ses langues et ses notes sont supprimées définitivement.',
+        'cancel' => 'Annuler',
+    ],
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Support\Audiences;
 
+use App\Enums\ApplicantStatus;
 use App\Enums\ContextType;
 use App\Enums\MemberList;
 use App\Models\Group;
@@ -21,7 +22,7 @@ final class AudienceContext
 {
     private function __construct(
         public readonly ContextType $type,
-        public readonly Group|Schedule|Shift|Member|Invitation|MemberList|SavedQuery|null $subject,
+        public readonly Group|Schedule|Shift|Member|Invitation|MemberList|SavedQuery|ApplicantStatus|null $subject,
     ) {}
 
     public static function memberList(MemberList $list): self
@@ -32,6 +33,12 @@ final class AudienceContext
     public static function savedQuery(SavedQuery $query): self
     {
         return new self(ContextType::SavedQuery, $query);
+    }
+
+    /** The Applicants list under one status filter; null is All, every live status. */
+    public static function applicants(?ApplicantStatus $status): self
+    {
+        return new self(ContextType::Applicants, $status);
     }
 
     public static function group(Group $group): self
@@ -77,7 +84,7 @@ final class AudienceContext
             ContextType::Schedule => $this->subject->group,
             ContextType::Shift => $this->subject->schedule->group,
             ContextType::Directory, ContextType::Member, ContextType::Invitation,
-            ContextType::MemberList, ContextType::SavedQuery => null,
+            ContextType::MemberList, ContextType::SavedQuery, ContextType::Applicants => null,
         };
     }
 }

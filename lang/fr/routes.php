@@ -69,6 +69,8 @@ return [
     'officer.members.list.applicants' => 'officier/membres/candidats',
     'officer.members.applicants.create' => 'officier/membres/candidats/nouveau',
     'officer.members.applicants.show' => 'officier/membres/candidats/{applicant}',
+    'officer.members.applicants.print' => 'officier/membres/candidats/imprimer',
+    'officer.members.applicants.print-record' => 'officier/membres/candidats/{applicant}/imprimer',
     'officer.members.record' => 'officier/membres/dossiers/{member}',
     // Les requêtes enregistrées (#923, ADR-0038 §7) : la liste, une nouvelle requête, le formulaire et l'exécution.
     'officer.members.queries' => 'officier/membres/requetes',

@@ -73,4 +73,24 @@ return [
         'other' => 'Other language',
         'add_other' => 'Add another language',
     ],
+
+    // Print, Delete and Send email (#929).
+    'outputs' => [
+        'print' => 'Print',
+        'print_record' => 'Print record',
+        'back' => 'Back',
+        'list_title' => 'Applicants: :status',
+        'search' => 'Last name starts with “:term”',
+        'count' => ':count applicant|:count applicants',
+        'phone' => 'Phone',
+        'entered_by' => 'Entered by',
+        'the_applicant' => 'The applicant',
+        'last_updated' => 'Last updated',
+        'by_on' => ':name on :date',
+        'send_email' => 'Send email',
+        'delete' => 'Delete',
+        'delete_title' => 'Delete :name?',
+        'delete_body' => 'The application, its languages and its notes are removed for good.',
+        'cancel' => 'Cancel',
+    ],
 ];

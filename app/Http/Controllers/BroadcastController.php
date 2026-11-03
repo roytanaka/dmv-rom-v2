@@ -9,6 +9,7 @@ use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\InvitationState;
 use App\Http\Requests\SendBroadcastRequest;
+use App\Models\Applicant;
 use App\Models\Broadcast;
 use App\Models\Delivery;
 use App\Models\Member;
@@ -128,16 +129,21 @@ class BroadcastController extends Controller
      * One Broadcast Delivery per recipient, snapshotting the address at write time. An address
      * that fails validation here is a permanent failure written failed at once (ADR-0024 §4), so
      * the row still exists to be named in the sender's copy but is never handed to the transport.
+     * An Applicant (#929) is no Member: its row carries no Member, and the payload names it for
+     * the sender's copy and takes the sender's language for the Drain.
      */
     private function writeRecipientDeliveries(Broadcast $broadcast, ResolvedAudience $resolved): void
     {
         foreach ($resolved->recipients as $member) {
             $valid = filter_var($member->email, FILTER_VALIDATE_EMAIL) !== false;
+            $applicant = $member instanceof Applicant;
 
             $broadcast->deliveries()->create([
                 'kind' => $broadcast->kind->deliveryKind(),
-                'member_id' => $member->getKey(),
-                'email' => $member->email,
+                'member_id' => $applicant ? null : $member->getKey(),
+                'payload' => $applicant ? ['name' => $member->fullName(), 'locale' => app()->getLocale()] : null,
+                // An imported Applicant or Member may have no address: the row is written failed.
+                'email' => $member->email ?? '',
                 'state' => $valid ? DeliveryState::Pending : DeliveryState::Failed,
                 'attempts' => $valid ? 0 : 1,
                 'next_attempt_at' => now(),

@@ -343,8 +343,8 @@ function close(): void {
                 </div>
 
                 <!-- No Add people where the Audience is the whole page: an Invitation's Guests, a
-                     Records list, a Saved query run. -->
-                <div v-if="!['invitation', 'member_list', 'saved_query'].includes(context)">
+                     Records list, a Saved query run, the Applicants list. -->
+                <div v-if="!['invitation', 'member_list', 'saved_query', 'applicants'].includes(context)">
                     <Button v-if="!panelOpen" type="button" variant="outline" size="sm" @click="panelOpen = true">
                         {{ trans('broadcasts.composer.add_people') }}
                     </Button>
