@@ -7,6 +7,7 @@ use App\Http\Controllers\BookingEarnedController;
 use App\Http\Controllers\BookingMailController;
 use App\Http\Controllers\BookingTypeController;
 use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\CategoryChangeController;
 use App\Http\Controllers\DmvSettingsController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
@@ -400,6 +401,19 @@ Route::patch('members/{member}', [MemberController::class, 'update'])
 Route::patch('members/{member}/record', [MemberRecordController::class, 'update'])
     ->middleware(['auth'])
     ->name('members.record.update');
+
+// The Category history (#920, ADR-0038 §4): add an entry, remove a wrong one, and Reinstate a
+// Resigned Member. Member administration or super-tier, via the Form Requests.
+Route::post('members/{member}/category-changes', [CategoryChangeController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('members.category-changes.store');
+Route::delete('members/{member}/category-changes/{categoryChange}', [CategoryChangeController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->scopeBindings()
+    ->name('members.category-changes.destroy');
+Route::post('members/{member}/reinstate', [CategoryChangeController::class, 'reinstate'])
+    ->middleware(['auth'])
+    ->name('members.reinstate');
 
 // Grant/revoke super-tier (ADR-0017 §1). A dedicated, separately-gated action —
 // never a field on a member form. Reserved to super-tier itself via the

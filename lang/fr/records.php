@@ -105,4 +105,17 @@ return [
     'paid_through_add_year' => 'Ajouter une année au paiement',
     'award_years' => ':years ans',
     'no_notes' => 'Aucune note pour l’instant.',
+
+    // L'historique de catégorie (#920, ADR-0038 §4).
+    'history' => [
+        'title' => 'Historique de catégorie',
+        'category' => 'Catégorie',
+        'date' => 'Date',
+        'departure_reason' => 'Motif du départ',
+        'add' => 'Ajouter l’entrée',
+        'remove' => 'Retirer l’entrée',
+        'empty' => 'Aucune entrée pour l’instant.',
+        'reinstate' => 'Réintégration',
+        'choose' => 'Choisir…',
+    ],
 ];

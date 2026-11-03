@@ -105,4 +105,17 @@ return [
     'paid_through_add_year' => 'Add a year to the paid-through year',
     'award_years' => ':years years',
     'no_notes' => 'No notes yet.',
+
+    // The Category history (#920, ADR-0038 §4).
+    'history' => [
+        'title' => 'Category history',
+        'category' => 'Category',
+        'date' => 'Date',
+        'departure_reason' => 'Departure reason',
+        'add' => 'Add entry',
+        'remove' => 'Remove entry',
+        'empty' => 'No entries yet.',
+        'reinstate' => 'Reinstate',
+        'choose' => 'Choose…',
+    ],
 ];

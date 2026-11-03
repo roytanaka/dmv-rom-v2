@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // The Member lists (#919, ADR-0038 §5): Officer Tools → Members. Seven tabs, one route; the server
 // sends the rows, the list's row actions and its Send email answer. The search is a query
-// parameter, applied on submit. Edit opens the Member record. Photo, Reinstate, Delete and Send
-// email stay disabled until their tickets wire them. Below `md` the row's facts ride under the name
+// parameter, applied on submit. Edit opens the Member record; Reinstate posts (#920). Photo, Delete
+// and Send email stay disabled until their tickets wire them. Below `md` the row's facts ride under the name
 // (docs/conventions.md § Tables on small screens). Names are content, shown as stored.
 import type { NavNode } from '@/chrome/types';
 import SectionTabs from '@/components/SectionTabs.vue';
@@ -54,7 +54,13 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href
 const tabItems = computed<NavNode[]>(() => props.tabs.map((tab) => ({ href: tab.href, labelKey: `records.list.${tab.key}` })));
 
 // The actions a later ticket wires; each renders disabled until then.
-const pendingActions = computed(() => props.actions.filter((action) => action !== 'edit'));
+const pendingActions = computed(() => props.actions.filter((action) => action !== 'edit' && action !== 'reinstate'));
+const canReinstate = computed(() => props.actions.includes('reinstate'));
+
+// Reinstate (#920): Reinstate then Active, dated today; the Member leaves this list.
+const reinstate = (id: number) => {
+    router.post(route('members.reinstate', { member: id }), {}, { preserveScroll: true });
+};
 
 const term = ref(props.search ?? '');
 watch(
@@ -128,6 +134,9 @@ const submitSearch = () => {
                             <div class="flex flex-wrap justify-end gap-2">
                                 <Button variant="outline" as-child>
                                     <Link :href="route('officer.members.record', { member: member.id })">{{ trans('records.action.edit') }}</Link>
+                                </Button>
+                                <Button v-if="canReinstate" variant="outline" @click="reinstate(member.id)">
+                                    {{ trans('records.action.reinstate') }}
                                 </Button>
                                 <Button v-for="action in pendingActions" :key="action" variant="outline" disabled>
                                     {{ trans(`records.action.${action}`) }}

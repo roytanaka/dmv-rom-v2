@@ -180,6 +180,7 @@ class MemberResource extends JsonResource
                 ...$this->resource->only(Member::RECORDS_FIELDS),
                 'membership_expiry' => $this->membership_expiry?->toDateString(),
                 'status_date' => $this->status_date?->toDateString(),
+                'departure_reason' => $this->departure_reason?->value,
             ]),
         ];
     }

@@ -205,6 +205,16 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * The Member's Category history (ADR-0038 §4).
+     *
+     * @return HasMany<CategoryChange, $this>
+     */
+    public function categoryChanges(): HasMany
+    {
+        return $this->hasMany(CategoryChange::class);
+    }
+
+    /**
      * The Member's rows in the Sign-in log (ADR-0038 §12).
      *
      * @return HasMany<SignIn, $this>

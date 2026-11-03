@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Category;
+use App\Enums\DepartureReason;
 use App\Http\Requests\UpdateMemberRecordRequest;
 use App\Http\Resources\MemberResource;
+use App\Models\CategoryChange;
 use App\Models\FeeCategory;
 use App\Models\Member;
 use App\Models\ServiceAward;
@@ -34,6 +37,16 @@ class MemberRecordController extends Controller
                 ->get(['code', 'name', 'amount']),
             'serviceAwards' => ServiceAward::query()->where('active', true)->orderBy('years')->get(['code', 'years']),
             'signInsCount' => $member->sign_ins_count,
+            // The Category history, newest first (#920, ADR-0038 §4).
+            'categoryHistory' => $member->categoryChanges()->newestFirst()->get()
+                ->map(fn (CategoryChange $change) => [
+                    'id' => $change->id,
+                    'category' => $change->category,
+                    'date' => $change->date->toDateString(),
+                    'departure_reason' => $change->departure_reason?->value,
+                ]),
+            'categories' => array_map(fn (Category $category) => $category->value, Category::cases()),
+            'departureReasons' => array_map(fn (DepartureReason $reason) => $reason->value, DepartureReason::cases()),
             'lastUpdated' => $member->updatedBy === null ? null : [
                 'name' => $member->updatedBy->fullName(),
                 'date' => $member->updated_at->timezone(config('app.org_timezone'))->toDateString(),
