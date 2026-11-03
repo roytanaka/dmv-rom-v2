@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Enums\Category;
+use App\Models\Applicant;
 use App\Models\Member;
 use App\Support\OrgTime;
 use App\Support\ProfilePhotoStorage;
@@ -15,7 +16,8 @@ use Illuminate\Support\Str;
  * Remove personal data (#921, ADR-0038 §6): the yearly privacy clean-up. Every Resigned or
  * Deceased Member whose status date is before 1 January of the chosen year loses the personal
  * fields and moves to the Past list; the name, Category history, board positions and Hours
- * records stay. Old Applicants are deleted too, once the Applicants PRD (#914) adds them.
+ * records stay. Every Applicant whose status date is before that day is deleted (#932), linked to
+ * a Member or not, as the Legacy app did; an Applicant without a status date is never deleted.
  */
 class RemovePersonalData
 {
@@ -67,18 +69,31 @@ class RemovePersonalData
             ->where('status_date', '<', sprintf('%04d-01-01', $year));
     }
 
-    /** The Applicants the run deletes: none until the Applicants PRD (#914) adds them with their model. */
+    /**
+     * The Applicants the run deletes: status date before 1 January of the year.
+     *
+     * @return Builder<Applicant>
+     */
+    public function applicants(int $year): Builder
+    {
+        return Applicant::query()->where('status_date', '<', sprintf('%04d-01-01', $year));
+    }
+
     public function applicantCount(int $year): int
     {
-        return 0;
+        return $this->applicants($year)->count();
     }
 
     /** Run the clean-up and return how many Members it touched. */
     public function run(int $year, Member $actor): int
     {
         $photoPaths = [];
+        $applicantCount = 0;
 
-        $count = DB::transaction(function () use ($year, $actor, &$photoPaths): int {
+        $count = DB::transaction(function () use ($year, $actor, &$photoPaths, &$applicantCount): int {
+            // Their languages go with them (cascade).
+            $applicantCount = $this->applicants($year)->delete();
+
             $count = 0;
 
             $this->members($year)->chunkById(100, function ($members) use ($actor, &$photoPaths, &$count): void {
@@ -110,6 +125,7 @@ class RemovePersonalData
 
         Log::info('Records: personal data removed', [
             'count' => $count,
+            'applicant_count' => $applicantCount,
             'year' => $year,
             'actor_id' => $actor->id,
             'at' => now()->toIso8601String(),
