@@ -7,15 +7,17 @@
 1. Ajoutez d'abord vos invités. Vous ne pouvez pas envoyer à une liste vide.
 2. Trouvez le brouillon dans l'onglet **Organisation**.
 3. Sélectionnez **Envoyer**.
+
+    ![L'étape Qui du panneau de courriel avec Tous les invités et un nom pour chaque invité](01.png)
+
 4. Vérifiez la liste **À** et sélectionnez **Suivant**.
+
+    ![L'étape Message du panneau de courriel avec l'objet et le message remplis à partir de l'invitation](02.png)
+
 5. Modifiez l'objet et le message. L'application les remplit à partir de votre invitation.
 6. Sélectionnez **Envoyer**.
 
-![L'étape Qui du panneau de courriel avec Tous les invités et un nom pour chaque invité](01.png)
-
-![L'étape Message du panneau de courriel avec l'objet et le message remplis à partir de l'invitation](02.png)
-
-![Le panneau de courriel après l'envoi, avec les courriels en file pour 24 membres](03.png)
+    ![Le panneau de courriel après l'envoi, avec les courriels en file pour 24 membres](03.png)
 
 L'invitation est maintenant ouverte. Chaque invité reçoit son propre courriel, avec un lien pour répondre. La livraison peut prendre jusqu'à une heure. Vous recevez une copie quand elle est terminée.
 

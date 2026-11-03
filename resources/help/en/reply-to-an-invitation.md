@@ -5,13 +5,15 @@ Tell the Host whether you are coming.
 ## Send your Reply
 
 1. Select **Invitations** in the top bar. You can also use the link in the Invitation email.
+
+    ![My invitations with one Invitation marked No reply](01.png)
+
 2. Select the name of the Invitation.
+
+    ![The Invitation with its details, one Option, and the Accept and Decline buttons](02.png)
+
 3. If the Invitation lists Options, tick the ones you want.
 4. Select **Accept** or **Decline**.
-
-![My invitations with one Invitation marked No reply](01.png)
-
-![The Invitation with its details, one Option, and the Accept and Decline buttons](02.png)
 
 Your Reply appears beside **Your reply**. Other Guests do not see it. The Host and the super-tier do.
 

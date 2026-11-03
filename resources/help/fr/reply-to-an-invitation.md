@@ -5,13 +5,15 @@ Dites à l'hôte si vous venez.
 ## Envoyer votre réponse
 
 1. Sélectionnez **Invitations** dans la barre du haut. Vous pouvez aussi utiliser le lien dans le courriel d'invitation.
+
+    ![Mes invitations avec une invitation marquée Aucune réponse](01.png)
+
 2. Sélectionnez le nom de l'invitation.
+
+    ![L'invitation avec ses détails, une option et les boutons Accepter et Refuser](02.png)
+
 3. Si l'invitation propose des options, cochez celles que vous voulez.
 4. Sélectionnez **Accepter** ou **Refuser**.
-
-![Mes invitations avec une invitation marquée Aucune réponse](01.png)
-
-![L'invitation avec ses détails, une option et les boutons Accepter et Refuser](02.png)
 
 Votre réponse s'affiche à côté de **Votre réponse**. Les autres invités ne la voient pas. L'hôte et le super-niveau la voient.
 
