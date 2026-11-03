@@ -14,6 +14,7 @@ use App\Support\EmptyDesk\EmptyDeskAlertWriter;
 use App\Support\OrgTime;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 
 /**
  * The daily pass (spec #479, ADR-0024 §7, §10) — the once-a-day, 06:00-org-time task that writes
@@ -31,6 +32,9 @@ use Illuminate\Database\Eloquent\Builder;
  *
  * The Delivery expires at the Shift's start (a Reminder past due is worthless), and a deleted
  * Shift cascades its Reminder away — so the Drain always renders a Reminder from a live Shift.
+ *
+ * The Beta mail-off switch (`mail.daily_pass_off`, ADR-0035 §6) is read once at the top: when on,
+ * the pass writes nothing and logs one line. Every writer added here sits below that check.
  */
 class RunDailyMailPass extends Command
 {
@@ -43,6 +47,12 @@ class RunDailyMailPass extends Command
 
     public function handle(EmptyDeskAlertWriter $emptyDeskAlerts): int
     {
+        if (config('mail.daily_pass_off')) {
+            Log::info('mail:daily-pass skipped: MAIL_DAILY_PASS_OFF is on (Beta), so no Deliveries were written.');
+
+            return self::SUCCESS;
+        }
+
         $now = now();
 
         $groups = Group::query()
