@@ -685,9 +685,7 @@ class Member extends Authenticatable implements HasLocalePreference
      */
     public function hasMemberAdminAuthority(): bool
     {
-        $records = Group::stewardOf(StewardshipFunction::MemberAdmin);
-
-        return $records !== null && $this->membershipIn($records) !== null;
+        return $this->stewardMembership(StewardshipFunction::MemberAdmin) !== null;
     }
 
     /**
@@ -699,9 +697,7 @@ class Member extends Authenticatable implements HasLocalePreference
      */
     public function hasApplicantAuthority(): bool
     {
-        $holder = Group::stewardOf(StewardshipFunction::Applicants);
-
-        return $holder !== null && $this->membershipIn($holder) !== null;
+        return $this->stewardMembership(StewardshipFunction::Applicants) !== null;
     }
 
     /**
@@ -711,10 +707,15 @@ class Member extends Authenticatable implements HasLocalePreference
      */
     public function isApplicantChair(): bool
     {
-        $holder = Group::stewardOf(StewardshipFunction::Applicants);
+        return (bool) $this->stewardMembership(StewardshipFunction::Applicants)?->roles->contains('role', Role::Chair);
+    }
 
-        return $holder !== null
-            && (bool) $this->membershipIn($holder)?->roles->contains('role', Role::Chair);
+    /** This Member's membership in the Group stewarding the function, or null (none, or no holder). */
+    private function stewardMembership(StewardshipFunction $function): ?GroupMember
+    {
+        $holder = Group::stewardOf($function);
+
+        return $holder === null ? null : $this->membershipIn($holder);
     }
 
     /**
