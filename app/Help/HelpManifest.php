@@ -250,9 +250,6 @@ final class HelpManifest
         return [
             new HelpArticle('getting-started', HelpSection::GettingStarted, isOverview: true, status: ArticleStatus::Published, route: 'dashboard'),
             new HelpArticle('change-your-language', HelpSection::GettingStarted, status: ArticleStatus::Published),
-            // The public application form (#930, ADR-0038 §8). The help centre is login-only (ADR-0025),
-            // so a visitor cannot read it; Members point applicants to it.
-            new HelpArticle('applying-to-volunteer', HelpSection::GettingStarted, status: ArticleStatus::Draft, route: 'apply'),
 
             // Volunteer basics (#524) — the everyday pages, one section per app area.
             new HelpArticle('dashboard', HelpSection::Dashboard, isOverview: true, status: ArticleStatus::Published, route: 'dashboard'),
@@ -270,7 +267,7 @@ final class HelpManifest
             new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Published, route: 'officer.members.remove-personal-data'),
             // Running intake (#931, spec #914, ADR-0038 §8): the Membership Group's Applicants. No role
             // token names the `applicants` holder, so the article carries no badge.
-            new HelpArticle('running-intake', HelpSection::Directory, status: ArticleStatus::Draft, route: 'officer.members.list.applicants', routes: ['officer.members.applicants.show']),
+            new HelpArticle('running-intake', HelpSection::Directory, status: ArticleStatus::Published, route: 'officer.members.list.applicants', routes: ['officer.members.applicants.show']),
 
             new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Published, route: 'news'),
             new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Published, route: 'news'),

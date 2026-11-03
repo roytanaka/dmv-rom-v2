@@ -6,7 +6,13 @@ The Membership Group moves each Applicant from application to Provisional Member
 
 1. Select **Officer Tools**, then **Applicants**. Member administration selects **Members**, then **Applicants**.
 2. The list shows **All**: every case except Incomplete and Ready to go active.
+
+    ![The Applicants list with the status, dates, email and mentor of each case](01.png)
+
 3. Choose a status filter to see one stage.
+
+    ![The Applicants list filtered to the Accepted cases](02.png)
+
 4. Type a last name in the search box to find one case.
 5. Select a name to open the Applicant record.
 
@@ -15,6 +21,9 @@ The Membership Group moves each Applicant from application to Provisional Member
 ## Move a case on
 
 1. On the Applicant record, choose the new **Status**.
+
+    ![An Applicant record with the Status, Placement and Mentor selects](03.png)
+
 2. For **Incomplete**, choose a **Reason** as well.
 3. Choose a **Placement** and a **Mentor** if they have changed.
 4. Add a line in **New note** to record what happened.
