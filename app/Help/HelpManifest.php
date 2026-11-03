@@ -264,10 +264,10 @@ final class HelpManifest
             new HelpArticle('directory', HelpSection::Directory, isOverview: true, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('find-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('what-you-can-see-about-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'members.show'),
-            new HelpArticle('member-lists-and-the-member-record', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members', routes: ['officer.members.record']),
+            new HelpArticle('member-lists-and-the-member-record', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Published, route: 'officer.members', routes: ['officer.members.record']),
             // Saved queries (#923, ADR-0038 §7): member administration's named filters.
-            new HelpArticle('saved-queries', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.queries', routes: ['officer.members.queries.create', 'officer.members.queries.edit', 'officer.members.queries.run']),
-            new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.remove-personal-data'),
+            new HelpArticle('saved-queries', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Published, route: 'officer.members.queries', routes: ['officer.members.queries.create', 'officer.members.queries.edit', 'officer.members.queries.run']),
+            new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Published, route: 'officer.members.remove-personal-data'),
             // Running intake (#931, spec #914, ADR-0038 §8): the Membership Group's Applicants. No role
             // token names the `applicants` holder, so the article carries no badge.
             new HelpArticle('running-intake', HelpSection::Directory, status: ArticleStatus::Draft, route: 'officer.members.list.applicants', routes: ['officer.members.applicants.show']),

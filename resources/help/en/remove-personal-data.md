@@ -6,12 +6,15 @@ Once a year, the Records office clears the personal details of Members who left 
 
 1. Select **Officer Tools**, then **Members**.
 2. Select **Remove personal data**. The year starts at seven years ago.
-3. Change the year in **Status date before 1 January of** if you need to.
-4. Select **Preview**. The page counts the Resigned or Deceased Members and the Applicants it will clear, and their **Total**.
+3. Read the counts: the Resigned or Deceased Members it clears, the Applicants it deletes, and the **Total**.
+4. To use another year, change **Status date before 1 January of**. Then select **Preview** to count again.
 5. Type the **Total** in **Type the total to confirm**.
+
+    ![The Remove personal data page with the year, the counts, and the total typed back](01.png)
+
 6. Select **Remove personal data**. The **Past** list opens with those Members on it.
 
-The run clears the address, phones, email, membership number and expiry, and paid-through year. It also clears experience and education, skills, languages, next award year, emergency contact, photo and notes. The name, Category history, board positions and hours stay.
+The run clears the address, phones, email, membership number, expiry, life membership, amount paid and paid-through year. It also clears experience and education, skills, languages, next award year, emergency contact, photo and notes. The name, Category history, board positions and hours stay.
 
 > **Note:** A Member whose personal data is removed can no longer sign in.
 
@@ -20,10 +23,16 @@ The run clears the address, phones, email, membership number and expiry, and pai
 You can delete a Member only from the **Past**, **Deceased** or **Admin** list.
 
 1. Select **Delete** on the Member's row.
-2. Type the Member's last name.
-3. Select **Delete**. The Member and their Memberships, Category history, languages and Sign-ups are gone.
 
-> **Note:** A Member with hours cannot be deleted. Remove their personal data instead.
+    ![The Deceased list with Edit and Delete on the row](02.png)
+
+2. Type the Member's last name.
+
+    ![The Delete dialog with the last name typed back](03.png)
+
+3. Select **Delete**. The Member and their Memberships, Category history, board positions, languages, Sign-ups, Deliveries and Sign-in log are gone.
+
+> **Note:** You cannot delete a Member who has hours or hosts an Invitation. For a Member with hours, remove their personal data instead.
 
 ## What next
 
