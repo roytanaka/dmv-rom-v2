@@ -1,8 +1,11 @@
 <?php
 
+use App\Enums\ApplicantStatus;
 use App\Enums\Category;
 use App\Enums\MembershipStatus;
 use App\Enums\StewardshipFunction;
+use App\Models\Applicant;
+use App\Models\ApplicantLanguage;
 use App\Models\Group;
 use App\Models\GroupStewardship;
 use App\Models\HoursRecord;
@@ -189,4 +192,30 @@ it('forbids a Member without member administration', function () {
     $this->actingAs($member)
         ->post(route('members.remove-personal-data'), ['year' => 2019, 'confirm_count' => '0'])
         ->assertForbidden();
+});
+
+it('counts and deletes exactly the Applicants whose status date is before the year, linked or not', function () {
+    $this->travelTo('2026-11-03');
+    $admin = removalMemberAdmin();
+    $old = Applicant::factory()->status(ApplicantStatus::Incomplete)->create(['status_date' => '2018-12-31']);
+    $old->languages()->create(['language_code' => 'fr', 'speaks' => true]);
+    $linked = Applicant::factory()->status(ApplicantStatus::ReadyToGoActive)
+        ->create(['status_date' => '2015-06-01', 'member_id' => Member::factory()->create()->id]);
+    $newer = Applicant::factory()->create(['status_date' => '2019-01-01']);
+    $undated = Applicant::factory()->create(['status_date' => null]);
+    Log::spy();
+
+    $this->actingAs($admin)->get('/officer/members/remove-personal-data?year=2019')
+        ->assertInertia(fn (Assert $page) => $page->where('memberCount', 0)->where('applicantCount', 2));
+
+    $this->actingAs($admin)
+        ->post(route('members.remove-personal-data'), ['year' => 2019, 'confirm_count' => '0'])
+        ->assertSessionHasNoErrors();
+
+    expect(Applicant::pluck('id')->sort()->values()->all())->toBe([$newer->id, $undated->id])
+        ->and(ApplicantLanguage::where('applicant_id', $old->id)->count())->toBe(0)
+        ->and(Member::find($linked->member_id))->not->toBeNull();
+
+    Log::shouldHaveReceived('info')->once()->withArgs(fn (string $message, array $context) => $context['count'] === 0
+        && $context['applicant_count'] === 2);
 });
