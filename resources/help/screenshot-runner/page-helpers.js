@@ -1021,7 +1021,7 @@
     async function fillSampleInvitation() {
         const field = (id) => document.getElementById(id);
         if (!field('invitation-name')) return false;
-        setControl(field('invitation-name'), 'Spring volunteer lunch');
+        setControl(field('invitation-name'), 'Volunteer appreciation lunch');
         setControl(field('invitation-date'), new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
         setControl(field('invitation-start-time'), '12', 'change');
         setControl(field('invitation-end-time'), '14', 'change');
@@ -1030,6 +1030,14 @@
         buttonLabelled(/^add option$/i)?.click();
         await settle();
         setControl(document.querySelector('input[aria-label="Option name"]'), 'Museum tour after lunch');
+        return settle();
+    }
+
+    // The end of the form: Guest limit, Options, and Save, below the fold on a 800 px screen.
+    function showInvitationOptions() {
+        const field = document.getElementById('invitation-guest-limit');
+        if (!field) return false;
+        scrollUnderStickyStrip(field);
         return settle();
     }
 
@@ -1052,12 +1060,14 @@
     }
 
     // Pick Docents under Add a group and add it. The select holds an index, so the option is
-    // found by its label.
-    function addDocentsAsGuests() {
+    // found by its label. NativeSelect tells the page on the next tick, so an immediate
+    // submit would still see an empty pick and do nothing.
+    async function addDocentsAsGuests() {
         const select = document.getElementById('guest-audience');
         const option = Array.from(select?.options ?? []).find((element) => element.textContent.trim() === 'Docents');
         if (!option) return false;
         setControl(select, option.value, 'change');
+        await settle(100);
         return clickAndWaitFor(select.closest('form').querySelector('button[type="submit"]'), () => document.querySelector('table tbody tr'));
     }
 
@@ -1096,6 +1106,7 @@
 
     window.__help = {
         fillSampleInvitation,
+        showInvitationOptions,
         saveInvitation,
         openInvitationGuests,
         openInvitationReplies,

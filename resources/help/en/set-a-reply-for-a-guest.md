@@ -5,6 +5,9 @@ Record an answer you get by phone or at the door. It works after the Invitation 
 1. Find the Invitation on the **Hosting** tab.
 2. Select **Replies**.
 3. Select **Set reply** beside the Guest.
+
+    ![The Set reply dialog with a Guest's Reply and Options](01.png)
+
 4. Pick **Accepted** or **Declined**.
 5. If you pick **Accepted**, tick the Guest's Options.
 6. Select **Save**.

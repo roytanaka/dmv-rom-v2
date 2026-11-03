@@ -28,7 +28,7 @@ From the grilling session for [#698](https://github.com/roytanaka/dmv-rom-v2/iss
 
 8. **Changes after sending send no mail.** A changed date, a removed Guest, a deleted Invitation, and a Guest added late all send nothing automatically, as in the old app. The Host uses the re-send or email-Guests action. Removing a Guest also removes their Reply. *Deviation:* the old app keeps two lists that drift apart.
 
-9. **The Guest limit is enforced on the server.** The limit counts Accepted Replies. It does not count Options. A Decline frees a spot. A Host may go over the limit. There is no waitlist. The Host gets one mail when the limit is reached. The old `overflow` counter is dropped, because it counted page views.
+9. **The Guest limit is enforced on the server.** The limit counts Accepted Replies. It does not count Options. A Decline frees a spot. A Host may go over the limit. There is no waitlist. The Host gets a mail each time the Accepted count reaches the limit. After a Decline frees a spot, the next Accept sends another. The old `overflow` counter is dropped, because it counted page views.
 
 10. **Guests reply until Closed.** A Host may set a Reply after Closed, to record an answer given at the door.
 
