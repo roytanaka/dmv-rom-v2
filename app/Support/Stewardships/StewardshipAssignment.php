@@ -45,16 +45,16 @@ final class StewardshipAssignment
 
     /**
      * Who gains and who loses each live stewardship's authority if the draft were saved. The
-     * same reading as `Member::hasMemberAdminAuthority()` and `Member::isOrgWideSender()`. A
-     * Chair of an active Group sends org-wide whatever the stewardship says, so org-wide sender
-     * leaves them out. A null member-admin draft keeps the saved holder.
+     * same reading as `Member::hasMemberAdminAuthority()`, `Member::hasApplicantAuthority()` and
+     * `Member::isOrgWideSender()`. A Chair of an active Group sends org-wide whatever the
+     * stewardship says, so org-wide sender leaves them out. A null single-holder draft keeps the
+     * saved holder.
      *
      * @param  list<int>  $orgMail
      * @return array<string, array{gain: list<array{id: int, name: string}>, lose: list<array{id: int, name: string}>}>
      */
-    public static function preview(?int $memberAdmin, array $orgMail): array
+    public static function preview(?int $memberAdmin, ?int $applicants, array $orgMail): array
     {
-        $savedMemberAdmin = self::holderIds(StewardshipFunction::MemberAdmin);
 
         $chairs = Member::query()
             ->whereHas('memberships', fn (Builder $membership) => $membership
@@ -63,9 +63,22 @@ final class StewardshipAssignment
             ->pluck('id');
 
         return [
-            StewardshipFunction::MemberAdmin->value => self::authorityDiff($savedMemberAdmin, $memberAdmin === null ? $savedMemberAdmin : [$memberAdmin], collect()),
+            StewardshipFunction::MemberAdmin->value => self::singleHolderDiff(StewardshipFunction::MemberAdmin, $memberAdmin),
+            StewardshipFunction::Applicants->value => self::singleHolderDiff(StewardshipFunction::Applicants, $applicants),
             StewardshipFunction::OrgMail->value => self::authorityDiff(self::holderIds(StewardshipFunction::OrgMail), $orgMail, $chairs),
         ];
+    }
+
+    /**
+     * The diff for a single-holder stewardship; a null draft keeps the saved holder.
+     *
+     * @return array{gain: list<array{id: int, name: string}>, lose: list<array{id: int, name: string}>}
+     */
+    private static function singleHolderDiff(StewardshipFunction $function, ?int $draft): array
+    {
+        $saved = self::holderIds($function);
+
+        return self::authorityDiff($saved, $draft === null ? $saved : [$draft], collect());
     }
 
     /**

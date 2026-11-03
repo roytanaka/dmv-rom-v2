@@ -42,6 +42,7 @@ return [
         // Short Stewardship names for the Status column.
         'stewardship' => [
             'member_admin' => 'Member admin',
+            'applicants' => 'Applicants',
             'org_mail' => 'Org-wide sender',
         ],
         'hours' => 'Hours ×:multiplier',
@@ -192,6 +193,7 @@ return [
         'slug_taken' => 'Another Group uses this slug.',
         'slug_format' => 'Use lowercase letters, digits and hyphens.',
         'member_admin_required' => 'Choose a Group. Member administration always has a holder.',
+        'applicants_required' => 'Choose a Group. Applicants always has a holder.',
         'inactive_group' => 'Choose an active Group.',
         'parent_cycle' => 'A Group cannot sit under itself or one of its own Groups.',
         'root_parent' => 'Choose a section, not the root.',
@@ -209,6 +211,10 @@ return [
         'member_admin' => [
             'title' => 'Member administration',
             'description' => 'Members of this Group edit every Member\'s record and open the all-DMV reports. Exactly one Group holds it.',
+        ],
+        'applicants' => [
+            'title' => 'Applicants',
+            'description' => 'Members of this Group run intake: they handle applications and their Chair publishes the applicant code. Exactly one Group holds it.',
         ],
         'org_mail' => [
             'title' => 'Org-wide sender',

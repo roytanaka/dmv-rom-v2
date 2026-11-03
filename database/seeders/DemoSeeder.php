@@ -534,6 +534,12 @@ class DemoSeeder extends Seeder
         $records = Group::where('slug', self::RECORDS)->firstOrFail();
         $this->steward($records, StewardshipFunction::MemberAdmin);
 
+        // The Membership Group runs intake (ADR-0038 §2): it stewards `applicants`. Skips a
+        // trimmed tree without it rather than failing.
+        if (($membership = $this->findGroup('membership')) !== null) {
+            $this->steward($membership, StewardshipFunction::Applicants);
+        }
+
         // The org-wide mail franchise (ADR-0024 §5): the Executive, Records, and
         // Awards Groups may send the org-wide Broadcast Audiences. A member of any of
         // them is an org-wide sender. Org structure, not a Persona; skips a Group

@@ -502,9 +502,9 @@ Route::put('members/{member}/no-email-flag', NoEmailFlagController::class)
 
 // DMV Settings › Stewardships write seam (#846, ADR-0036 §7). Replaces one stewardship's
 // holder Groups. Super-tier only via `administer-groups` in the UpdateStewardshipRequest.
-// Only the two live stewardships route; statistics and website stay hidden.
+// Only the live stewardships route; statistics and website stay hidden.
 Route::put('officer/settings/stewardships/{function}', [DmvSettingsController::class, 'updateStewardship'])
-    ->whereIn('function', ['member_admin', 'org_mail'])
+    ->whereIn('function', array_map(fn ($function) => $function->value, DmvSettingsController::LIVE_STEWARDSHIPS))
     ->middleware(['auth'])
     ->name('dmv-settings.stewardships.update');
 

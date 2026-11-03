@@ -275,6 +275,10 @@ it('resolves a Group stewarding an org-wide function via the stewardship helper'
         ->and($steward->stewardships()->where('function', StewardshipFunction::MemberAdmin)->exists())->toBeTrue();
 });
 
+it('gives the applicants stewardship to the Membership Group', function () {
+    expect(Group::stewardOf(StewardshipFunction::Applicants)?->slug)->toBe('membership');
+});
+
 it('leaves no membership orphaned — every one references a real Group and Member', function () {
     GroupMember::with(['group', 'member'])->get()->each(function (GroupMember $membership) {
         expect($membership->group)->not->toBeNull()

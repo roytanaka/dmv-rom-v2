@@ -691,6 +691,33 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * Whether this Member has applicant authority (ADR-0038 §2): membership, any status and any
+     * role, in the Group that stewards `applicants` (Membership today). Such a Member edits the
+     * Applicants they mentor and reads the rest; the Applicant Chair ({@see isApplicantChair()})
+     * edits all. False when no Group stewards the function. The super-tier inherits it through
+     * the `administer-applicants` Gate, not here.
+     */
+    public function hasApplicantAuthority(): bool
+    {
+        $holder = Group::stewardOf(StewardshipFunction::Applicants);
+
+        return $holder !== null && $this->membershipIn($holder) !== null;
+    }
+
+    /**
+     * Whether this Member chairs the Group that stewards `applicants` (ADR-0038 §2): the Applicant
+     * Chair, who edits every Applicant and publishes the Applicant code. False when no Group
+     * stewards the function.
+     */
+    public function isApplicantChair(): bool
+    {
+        $holder = Group::stewardOf(StewardshipFunction::Applicants);
+
+        return $holder !== null
+            && (bool) $this->membershipIn($holder)?->roles->contains('role', Role::Chair);
+    }
+
+    /**
      * Whether this Member sees every Who's who list on the Directory (#699), not only
      * the open ones ({@see DirectoryList::isOpen()}). As on the old site: Records, and
      * Officers — a Chair, Secretary, Treasurer, or Statistician in any Group. Super-tier

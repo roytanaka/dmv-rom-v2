@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Open the Stewardships section (#846, ADR-0036 §7), optionally with a draft to preview in the
- * query string: `?member_admin=ID&org_mail[]=ID`. Super-tier only, through `administer-groups`.
+ * query string: `?member_admin=ID&applicants=ID&org_mail[]=ID`. Super-tier only, through `administer-groups`.
  * A query string drops an empty array, so an absent `org_mail` beside a `member_admin` is a
  * draft of no org-wide senders.
  */
@@ -25,6 +25,7 @@ class PreviewStewardshipsRequest extends FormRequest
     {
         return [
             'member_admin' => ['nullable', 'integer'],
+            'applicants' => ['nullable', 'integer'],
             'org_mail' => ['array'],
             'org_mail.*' => ['integer'],
         ];
@@ -33,13 +34,21 @@ class PreviewStewardshipsRequest extends FormRequest
     /** Whether the query carries a draft; without one there is nothing to preview. */
     public function hasDraft(): bool
     {
-        return $this->hasAny(['member_admin', 'org_mail']);
+        return $this->hasAny(['member_admin', 'applicants', 'org_mail']);
     }
 
     /** The draft member-admin holder; null keeps the saved one. */
     public function draftMemberAdmin(): ?int
     {
         $id = $this->validated('member_admin');
+
+        return $id === null ? null : (int) $id;
+    }
+
+    /** The draft applicants holder; null keeps the saved one. */
+    public function draftApplicants(): ?int
+    {
+        $id = $this->validated('applicants');
 
         return $id === null ? null : (int) $id;
     }

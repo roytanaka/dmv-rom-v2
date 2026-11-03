@@ -12,8 +12,8 @@ use Illuminate\Foundation\Http\FormRequest;
  * Reassign one stewardship (#846, ADR-0036 §7). Super-tier only, through the Group-less
  * `administer-groups` gate, so an archived holder never blocks the move away from it.
  *
- * Member administration takes exactly one Group (`group_id`): `Group::stewardOf()` reads one
- * holder, and an empty value would leave nobody able to administer Members. Org-wide sender
+ * Member administration and Applicants take exactly one Group (`group_id`): `Group::stewardOf()`
+ * reads one holder, and an empty value would leave nobody holding the authority. Org-wide sender
  * takes zero or more (`group_ids`). Every holder must be an active, non-root Group.
  */
 class UpdateStewardshipRequest extends FormRequest
@@ -28,7 +28,7 @@ class UpdateStewardshipRequest extends FormRequest
      */
     public function rules(): array
     {
-        if ($this->stewardship() === StewardshipFunction::MemberAdmin) {
+        if ($this->stewardship()->hasSingleHolder()) {
             return [
                 'group_id' => ['bail', 'required', 'integer', $this->activeHolders()],
             ];
@@ -45,9 +45,11 @@ class UpdateStewardshipRequest extends FormRequest
      */
     public function messages(): array
     {
+        $required = __("dmv_settings.error.{$this->stewardship()->value}_required");
+
         return [
-            'group_id.required' => __('dmv_settings.error.member_admin_required'),
-            'group_id.integer' => __('dmv_settings.error.member_admin_required'),
+            'group_id.required' => $required,
+            'group_id.integer' => $required,
         ];
     }
 
@@ -58,7 +60,7 @@ class UpdateStewardshipRequest extends FormRequest
     }
 
     /**
-     * The validated holder ids, one for member administration, any number for org-wide sender.
+     * The validated holder ids, one for a single-holder stewardship, any number for org-wide sender.
      *
      * @return list<int>
      */
@@ -66,7 +68,7 @@ class UpdateStewardshipRequest extends FormRequest
     {
         $validated = $this->validated();
 
-        return $this->stewardship() === StewardshipFunction::MemberAdmin
+        return $this->stewardship()->hasSingleHolder()
             ? [(int) $validated['group_id']]
             : array_values(array_unique(array_map('intval', $validated['group_ids'] ?? [])));
     }

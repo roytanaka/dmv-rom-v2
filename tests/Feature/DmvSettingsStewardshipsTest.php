@@ -47,9 +47,10 @@ function steward(Group $group, StewardshipFunction $function): GroupStewardship
 
 // --- Listing --------------------------------------------------------------------------
 
-it('lists member administration and org-wide sender with their holders, never statistics or website', function () {
+it('lists member administration, applicants and org-wide sender with their holders, never statistics or website', function () {
     $org = stewardshipsOrg();
     steward($org['records'], StewardshipFunction::MemberAdmin);
+    steward($org['awards'], StewardshipFunction::Applicants);
     steward($org['records'], StewardshipFunction::OrgMail);
     steward($org['executive'], StewardshipFunction::OrgMail);
     steward($org['awards'], StewardshipFunction::Statistics);
@@ -59,7 +60,8 @@ it('lists member administration and org-wide sender with their holders, never st
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('officer/settings/Stewardships')
-            ->has('stewardships', 2)
+            ->has('stewardships', 3)
+            ->where('stewardships.applicants.holders', [['id' => $org['awards']->id, 'name' => 'Awards']])
             ->where('stewardships.member_admin', [
                 'holders' => [['id' => $org['records']->id, 'name' => 'Records']],
                 'updatedBy' => null,
@@ -147,6 +149,81 @@ it('refuses an inactive Group or the root as the member administration holder', 
 
     expect(Group::stewardOf(StewardshipFunction::MemberAdmin)->is($org['records']))->toBeTrue();
 })->with(['retired', 'root']);
+
+// --- Applicants -----------------------------------------------------------------------
+
+it('moves applicants to one other Group and records who did it', function () {
+    $org = stewardshipsOrg();
+    steward($org['awards'], StewardshipFunction::Applicants);
+    steward($org['records'], StewardshipFunction::MemberAdmin);
+    $president = Member::factory()->superTier()->create();
+
+    $this->actingAs($president)
+        ->from('/officer/settings/stewardships')
+        ->put('/officer/settings/stewardships/applicants', ['group_id' => $org['executive']->id])
+        ->assertRedirect('/officer/settings/stewardships')
+        ->assertSessionHasNoErrors();
+
+    expect(Group::stewardOf(StewardshipFunction::Applicants)->is($org['executive']))->toBeTrue()
+        ->and(Group::stewardOf(StewardshipFunction::MemberAdmin)->is($org['records']))->toBeTrue();
+    $this->assertDatabaseHas('group_stewardships', [
+        'group_id' => $org['executive']->id, 'function' => 'applicants', 'created_by' => $president->id,
+    ]);
+    $this->assertDatabaseMissing('group_stewardships', ['group_id' => $org['awards']->id, 'function' => 'applicants']);
+});
+
+it('refuses to leave applicants without a holder', function (array $payload) {
+    $org = stewardshipsOrg();
+    steward($org['awards'], StewardshipFunction::Applicants);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->put('/officer/settings/stewardships/applicants', $payload)
+        ->assertSessionHasErrors(['group_id' => __('dmv_settings.error.applicants_required')]);
+
+    expect(Group::stewardOf(StewardshipFunction::Applicants)->is($org['awards']))->toBeTrue();
+})->with(['empty' => [['group_id' => '']], 'absent' => [[]], 'many' => [['group_ids' => [1, 2]]]]);
+
+it('refuses an inactive Group as the applicants holder', function () {
+    $org = stewardshipsOrg();
+    steward($org['awards'], StewardshipFunction::Applicants);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->put('/officer/settings/stewardships/applicants', ['group_id' => $org['retired']->id])
+        ->assertSessionHasErrors(['group_id' => __('dmv_settings.error.inactive_group')]);
+
+    expect(Group::stewardOf(StewardshipFunction::Applicants)->is($org['awards']))->toBeTrue();
+});
+
+it('previews by name who gains and who loses applicants before saving', function () {
+    $org = stewardshipsOrg();
+    steward($org['awards'], StewardshipFunction::Applicants);
+    steward($org['records'], StewardshipFunction::MemberAdmin);
+    $ann = stewardshipsMemberOf($org['awards'], 'Ann', 'Award');
+    $eve = stewardshipsMemberOf($org['executive'], 'Eve', 'Exec');
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/officer/settings/stewardships?applicants='.$org['executive']->id)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('preview.applicants', [
+                'gain' => [['id' => $eve->id, 'name' => 'Eve Exec']],
+                'lose' => [['id' => $ann->id, 'name' => 'Ann Award']],
+            ])
+            // No member_admin in the draft: the saved holder stands.
+            ->where('preview.member_admin', ['gain' => [], 'lose' => []]));
+});
+
+it('forbids the applicants write to anyone but the super-tier', function () {
+    $org = stewardshipsOrg();
+    steward($org['awards'], StewardshipFunction::Applicants);
+    $chair = stewardshipsMemberOf($org['awards'], 'Cha', 'Chair');
+
+    $this->actingAs($chair)
+        ->put('/officer/settings/stewardships/applicants', ['group_id' => $org['executive']->id])
+        ->assertForbidden();
+
+    expect(Group::stewardOf(StewardshipFunction::Applicants)->is($org['awards']))->toBeTrue();
+});
 
 // --- Org-wide sender ------------------------------------------------------------------
 

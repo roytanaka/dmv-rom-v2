@@ -74,6 +74,18 @@ it('refuses to archive a Group that holds a stewardship, naming it', function ()
     expect($group->fresh()->lifecycle_state)->toBe(LifecycleState::Active);
 });
 
+it('refuses to archive the applicants holder', function () {
+    $root = archiveRoot();
+    $group = Group::factory()->program()->create(['parent_id' => $root->id, 'slug' => 'membership', 'name' => 'Membership']);
+    $group->stewardships()->create(['function' => StewardshipFunction::Applicants]);
+
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->patch('/officer/settings/groups/membership/archive')
+        ->assertSessionHasErrors(['archive' => 'Membership holds Applicants. Move the Stewardship first.']);
+
+    expect($group->fresh()->lifecycle_state)->toBe(LifecycleState::Active);
+});
+
 it('names the stewardship in French', function () {
     $root = archiveRoot();
     $group = Group::factory()->program()->create(['parent_id' => $root->id, 'slug' => 'records', 'name' => 'Records']);
