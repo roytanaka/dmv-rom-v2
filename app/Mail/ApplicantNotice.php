@@ -30,8 +30,6 @@ class ApplicantNotice extends Mailable
 
     public const INCOMPLETE = 'applicant_incomplete';
 
-    public const TYPES = [self::ACCEPTED, self::PLACED, self::YELLOW_CARD, self::INCOMPLETE];
-
     /**
      * @param  array<string, mixed>  $payload
      */
