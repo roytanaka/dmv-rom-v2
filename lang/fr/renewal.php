@@ -50,6 +50,17 @@ return [
         'heading' => 'Merci',
         'body' => 'Un membre des Dossiers DMV communiquera avec vous. Ce renouvellement reste ouvert d’ici là.',
     ],
+    'payment' => [
+        'thanks' => 'Merci d’avoir rempli votre renouvellement.',
+        'fee' => 'Votre don d’adhésion',
+        'card_heading' => 'Par carte de crédit ou de débit',
+        'card' => 'Faites votre don d’adhésion de :amount sur le site du ROM. Une fois le paiement terminé, vous recevrez une lettre de remerciement du DMV et un reçu fiscal du ROM.',
+        'link' => 'Page de dons du ROM',
+        'cheque_heading' => 'Par chèque',
+        'cheque' => 'Inscrivez votre nom et le montant de votre cotisation au DMV, plus tout don supplémentaire facultatif, sur le chèque. Libellez-le à l’ordre de « ROM DMV » et postez-le à : Department of Museum Volunteers, 100 Queens Park, Toronto (Ontario) M5S 2C6. Vous recevrez un reçu fiscal du ROM plus tard.',
+        'cash' => 'Le paiement en espèces n’est pas possible.',
+        'no_fee' => 'Les Dossiers DMV vous confirmeront le montant de votre cotisation.',
+    ],
     'code_of_conduct' => [
         'title' => 'Code de conduite',
         'preamble_heading' => 'Préambule',

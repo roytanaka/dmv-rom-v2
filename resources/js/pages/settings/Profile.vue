@@ -30,6 +30,8 @@ interface Props {
         membership_expiry: string | null;
         membership_lifetime: boolean;
         last_award_year: number | null;
+        renewal_year: number | null;
+        payment_pending: boolean;
     };
 }
 
@@ -296,6 +298,13 @@ const submit = () => {
                     <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
                         <dt class="text-muted-foreground">{{ trans('settings.profile.paid_through_year') }}</dt>
                         <dd>{{ membership.paid_through_year ?? '—' }}</dd>
+                        <dt class="text-muted-foreground">{{ trans('settings.profile.renewal_year') }}</dt>
+                        <dd>
+                            {{ membership.renewal_year ?? '—' }}
+                            <span v-if="membership.payment_pending" class="text-muted-foreground">
+                                ({{ trans('settings.profile.payment_pending') }})
+                            </span>
+                        </dd>
                         <dt class="text-muted-foreground">{{ trans('settings.profile.last_award_year') }}</dt>
                         <dd>{{ membership.last_award_year ?? '—' }}</dd>
                     </dl>

@@ -6,7 +6,9 @@ use App\Actions\SaveRenewalForm;
 use App\Http\Requests\Renewal\RenewalRequest;
 use App\Http\Requests\Renewal\StoreCodeOfConductRequest;
 use App\Http\Requests\Renewal\StoreRenewalFormRequest;
+use App\Http\Requests\Renewal\StoreRenewalSkillsRequest;
 use App\Models\FeeCategory;
+use App\Models\SkillCategory;
 use App\Support\Renewal\RenewalPlacements;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -90,20 +92,66 @@ class RenewalController extends Controller
         return Inertia::render('renew/RecordsInTouch');
     }
 
-    /** Step 3: skills. A placeholder until #941. */
-    public function skills(RenewalRequest $request): Response
+    /**
+     * Step 3: skills (#941), the Settings skills picker inside the Renewal. A Member who chose
+     * Sustaining goes straight to payment, as in the Legacy app.
+     */
+    public function skills(RenewalRequest $request, SaveRenewalForm $form): Response|RedirectResponse
     {
-        return $this->placeholder('skills');
+        $member = $request->user()->refresh();
+
+        if (! $form->editing($member)) {
+            return to_route('renew.form');
+        }
+
+        if ($form->skipsSkills($member)) {
+            return to_route('renew.payment');
+        }
+
+        return Inertia::render('renew/Skills', [
+            'year' => $member->renewalServedYear(),
+            'catalog' => SkillCategory::catalog(),
+            'selected' => $member->skills()->pluck('skills.id'),
+        ]);
     }
 
-    /** Step 4: the payment page. A placeholder until #941. */
-    public function payment(RenewalRequest $request): Response
+    /** Save step 3: the whole skill set replaced, as Settings → Skills does, and on to payment. */
+    public function storeSkills(StoreRenewalSkillsRequest $request): RedirectResponse
     {
-        return $this->placeholder('payment');
+        $request->user()->skills()->sync($request->validated('skills') ?? []);
+
+        return to_route('renew.payment');
     }
 
-    private function placeholder(string $step): Response
+    /**
+     * Step 4: the payment page (#941). The fee is the amount paid the form set; the link is the
+     * ROM's Akaraisin page with only the amount, as the Legacy app builds it. Nothing comes back:
+     * Records types the paid-through year when the money arrives. With no amount (a Provisional
+     * Member, whose fee Records sets), the page shows neither fee nor link.
+     */
+    public function payment(RenewalRequest $request, SaveRenewalForm $form): Response|RedirectResponse
     {
-        return Inertia::render('renew/Placeholder', ['step' => $step]);
+        $member = $request->user()->refresh();
+
+        if (! $form->editing($member)) {
+            return to_route('renew.form');
+        }
+
+        $amount = $member->amount_paid;
+
+        return Inertia::render('renew/Payment', [
+            'year' => $member->renewalServedYear(),
+            'amount' => $amount,
+            'link' => $amount === null ? null : $this->akaraisinLink($amount),
+        ]);
+    }
+
+    /** The Akaraisin base URL with `amt` appended: whole dollars bare, as the Legacy app sends. */
+    private function akaraisinLink(string $amount): string
+    {
+        $base = (string) config('services.akaraisin.url');
+        $amt = fmod((float) $amount, 1.0) === 0.0 ? (string) (int) $amount : $amount;
+
+        return $base.(str_contains($base, '?') ? '&' : '?').http_build_query(['amt' => $amt]);
     }
 }

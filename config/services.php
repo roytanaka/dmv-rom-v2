@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // The ROM's Akaraisin donation page the Renewal's payment step links to (#941, ADR-0038 §9).
+    // The page appends `amt=<fee>`; nothing comes back. The default is the Legacy app's link.
+    'akaraisin' => [
+        'url' => env('AKARAISIN_URL', 'https://rom.akaraisin.com/ui/dmv2/donations/start?it=1'),
+    ],
+
 ];

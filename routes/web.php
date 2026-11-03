@@ -528,6 +528,9 @@ Route::post('renew/code-of-conduct', [RenewalController::class, 'storeCodeOfCond
 Route::post('renew/form', [RenewalController::class, 'storeForm'])
     ->middleware(['auth'])
     ->name('renew.form.store');
+Route::post('renew/skills', [RenewalController::class, 'storeSkills'])
+    ->middleware(['auth'])
+    ->name('renew.skills.store');
 
 // Save Renewal settings (#937, ADR-0038 §9). Member administration, via `administer-members` in
 // the UpdateRenewalSettingsRequest. Sent as a POST with `_method=PUT`, since PHP parses a file

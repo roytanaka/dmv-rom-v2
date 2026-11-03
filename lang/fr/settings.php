@@ -37,6 +37,8 @@ return [
         // Les champs des dossiers qu’un membre voit à son sujet (#917, ADR-0038 §3).
         'membership_heading' => 'Adhésion au ROM',
         'paid_through_year' => 'Payé jusqu’en',
+        'renewal_year' => 'Année de renouvellement',
+        'payment_pending' => 'renouvelé, paiement en attente',
         'last_award_year' => 'Dernier prix',
         'membership_expiry' => 'Expiration de l’adhésion au ROM',
         'membership_lifetime' => 'À vie',

@@ -381,6 +381,8 @@ final class HelpManifest
             new HelpArticle('update-your-profile', HelpSection::Settings, status: ArticleStatus::Published, route: 'settings.profile'),
             new HelpArticle('change-your-password', HelpSection::Settings, status: ArticleStatus::Published, route: 'settings.password'),
             new HelpArticle('record-your-skills', HelpSection::Settings, status: ArticleStatus::Published, route: 'settings.skills'),
+            // The Member's yearly Renewal (#941, ADR-0038 §9): its four steps and the state in My Profile.
+            new HelpArticle('renewing-your-membership', HelpSection::Settings, status: ArticleStatus::Draft, route: 'renew', routes: ['renew.form', 'renew.skills', 'renew.payment', 'renew.contact']),
 
             // Support (#527, ADR-0009) — the non-production dev Role-switcher, an operator tool.
             // Its overview (#623, ADR-0025 §5) stays a draft until its screenshots land.

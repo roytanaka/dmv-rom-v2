@@ -50,6 +50,19 @@ return [
         'heading' => 'Thank you',
         'body' => 'A member of DMV Records will be in touch with you. This renewal stays open until then.',
     ],
+    // Step 4, the payment page (#941): the Legacy app's `_paymentText`. Nothing comes back from
+    // the ROM's page; Records records the payment by hand.
+    'payment' => [
+        'thanks' => 'Thank you for filling in your renewal.',
+        'fee' => 'Your membership donation',
+        'card_heading' => 'By credit or debit card',
+        'card' => 'Make your membership donation of :amount on the ROM website. When you complete the payment, you will receive a thank-you letter from the DMV and a tax receipt from the ROM.',
+        'link' => 'ROM donation page',
+        'cheque_heading' => 'By cheque',
+        'cheque' => 'Write your name and the amount of your DMV dues, plus any optional extra donation, on the cheque. Make it payable to “ROM DMV” and mail it to: Department of Museum Volunteers, 100 Queens Park, Toronto, ON M5S 2C6. You will receive a tax receipt from the ROM later.',
+        'cash' => 'Payment by cash is not possible.',
+        'no_fee' => 'DMV Records will confirm your fee with you.',
+    ],
     'code_of_conduct' => [
         'title' => 'Code of Conduct',
         'preamble_heading' => 'Preamble',

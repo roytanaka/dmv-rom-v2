@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * An org-owned grouping heading for the Skills catalog (PRD #243) — Communications,
@@ -64,5 +65,28 @@ class SkillCategory extends Model
     public function scopeActive(Builder $query): void
     {
         $query->where('active', true)->orderBy('display_order');
+    }
+
+    /**
+     * The active catalog as the skills pickers render it (Settings → Skills, the Renewal's
+     * skills step): categories in display_order, each with its active skills by name. Names come
+     * from the DB and render as authored: content, not chrome, so not translated.
+     *
+     * @return Collection<int, array{id: int, name: string, skills: Collection<int, array{id: int, name: string}>}>
+     */
+    public static function catalog(): Collection
+    {
+        return static::query()
+            ->active()
+            ->with(['skills' => fn ($query) => $query->active()->orderBy('name')])
+            ->get()
+            ->map(fn (SkillCategory $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'skills' => $category->skills->map(fn (Skill $skill) => [
+                    'id' => $skill->id,
+                    'name' => $skill->name,
+                ])->values(),
+            ]);
     }
 }

@@ -106,20 +106,10 @@ it('acts only on the signed-in Member', function () {
         ->and($member->fresh()->code_of_conduct_year)->toBe(2027);
 });
 
-it('renders steps 3 and 4 as placeholders', function (string $path, string $step) {
-    openRenewal();
-
-    $this->actingAs(renewingMember())->get($path)
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('renew/Placeholder')->where('step', $step));
-})->with([
-    ['/renew/skills', 'skills'],
-    ['/renew/payment', 'payment'],
-]);
-
 it('opens the French twins of steps 2 to 4', function () {
     openRenewal();
-    $member = renewingMember();
+    // Saved the form for the year, so steps 3 and 4 open rather than send it back.
+    $member = renewingMember(['renewal_year' => 2027, 'renewal_status' => 'Active', 'amount_paid' => 25]);
 
     $this->withLocaleRoutes('fr', function () use ($member) {
         foreach (['/fr/renouveler/formulaire', '/fr/renouveler/competences', '/fr/renouveler/paiement'] as $path) {

@@ -183,6 +183,15 @@ class SaveRenewalForm
     }
 
     /**
+     * Whether the skills step is skipped (#941): the Member chose a Sustaining category, as the
+     * Legacy app's `Sust` / `Sust-SR` check.
+     */
+    public function skipsSkills(Member $member): bool
+    {
+        return $this->base((string) $member->renewal_status) === 'Sust';
+    }
+
+    /**
      * The tracked fields the Member changed, as the Legacy app's `renewalChange` lists them.
      *
      * @param  array<string, mixed>  $data

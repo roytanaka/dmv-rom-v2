@@ -28,6 +28,11 @@ class ProfileController extends Controller
                 'membership_expiry' => $member->membership_expiry?->toDateString(),
                 'membership_lifetime' => (bool) $member->membership_lifetime,
                 'last_award_year' => $member->last_award_year,
+                // The year the Member last renewed for (#941): ahead of the paid-through year
+                // means renewed, payment pending (ADR-0038 §9).
+                'renewal_year' => $member->renewal_year,
+                'payment_pending' => $member->renewal_year !== null
+                    && ($member->paid_through_year === null || $member->paid_through_year < $member->renewal_year),
             ],
             // Whether the Member shows their photo to peers (#922, ADR-0038 §3).
             'photoPublic' => (bool) $member->photo_public,
