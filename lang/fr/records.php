@@ -10,6 +10,39 @@ return [
     'saved' => 'Enregistré.',
     'none' => 'Aucune',
 
+    // Les listes de membres (#919, ADR-0038 §5).
+    'list' => [
+        'current' => 'Actuels',
+        'resigned' => 'Démissionnaires',
+        'past' => 'Anciens',
+        'deceased' => 'Décédés',
+        'admin' => 'Administration',
+        'donors' => 'Donateurs',
+        'applicants' => 'Candidats',
+    ],
+    'column' => [
+        'name' => 'Nom',
+        'category' => 'Catégorie',
+        'email' => 'Courriel',
+        'phone' => 'Téléphone',
+        'last_update' => 'Dernière mise à jour',
+        'actions' => 'Actions',
+    ],
+    'action' => [
+        'edit' => 'Modifier',
+        'photo' => 'Photo',
+        'reinstate' => 'Réintégrer',
+        'delete' => 'Supprimer',
+    ],
+    'send_email' => 'Envoyer un courriel',
+    'search' => 'Rechercher',
+    'search_last_name' => 'Rechercher par nom de famille',
+    'list_empty' => 'Aucun membre dans cette liste.',
+    'list_no_match' => 'Aucun membre ne correspond à ce nom de famille.',
+    'previous' => 'Précédent',
+    'next' => 'Suivant',
+    'page' => 'Page :current de :last',
+
     'section' => [
         'standing' => 'Statut',
         'identity' => 'Nom et courriel',
