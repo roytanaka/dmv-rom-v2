@@ -50,6 +50,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index('last_name');
+            $table->index('first_name');
+            $table->index('status_date');
         });
 
         Schema::create('applicant_languages', function (Blueprint $table) {
