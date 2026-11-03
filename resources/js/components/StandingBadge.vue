@@ -16,6 +16,16 @@ const TONES: Record<string, BadgeVariants['variant']> = {
     honourary: 'info',
     sustaining: 'secondary',
     loa: 'warning',
+    pre_active: 'secondary',
+    provisional: 'secondary',
+    withdrawn: 'secondary',
+    resigned: 'secondary',
+    deceased: 'secondary',
+    donor: 'secondary',
+    guest: 'secondary',
+    volunteer: 'secondary',
+    admin: 'secondary',
+    security: 'secondary',
 };
 
 const variant = computed<BadgeVariants['variant']>(() => TONES[props.standing] ?? 'secondary');

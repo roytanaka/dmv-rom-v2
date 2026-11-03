@@ -165,6 +165,32 @@ it('resolves One Category to that Category alone', function () {
     expect($resolved->recipients->pluck('id')->all())->toBe([$provisional->id]);
 });
 
+it('keeps the non-member standings out of All Members and on leave', function (Category $category) {
+    $outsider = Member::factory()->category($category)->create();
+
+    $resolved = resolver()->resolve(
+        member('clerk@dmv.test'),
+        AudienceContext::directory(),
+        AudienceKey::AllMembersOnLeave,
+    );
+
+    expect($resolved->recipients->pluck('id'))->not->toContain($outsider->id);
+})->with([Category::Donor, Category::Guest, Category::Volunteer, Category::Admin, Category::Security]);
+
+it('offers a non-member standing as One Category and never a departed one', function () {
+    Member::factory()->category(Category::Donor)->create();
+    Member::factory()->category(Category::Security)->create();
+    Member::factory()->category(Category::Resigned)->create();
+    Member::factory()->category(Category::Deceased)->create();
+
+    $offered = resolver()->available(member('clerk@dmv.test'), AudienceContext::directory())
+        ->where('key', AudienceKey::OneCategory)
+        ->pluck('parameter');
+
+    expect($offered)->toContain(Category::Donor->value, Category::Security->value)
+        ->and($offered)->not->toContain(Category::Resigned->value, Category::Deceased->value);
+});
+
 it('resolves Sign-ups on a Schedule to holders of live Shifts', function () {
     $schedule = $this->docents->schedules()->firstOrFail();
     $shift = $schedule->shifts()->create([

@@ -22,6 +22,11 @@ enum Category: string
     case Withdrawn = 'withdrawn';
     case Resigned = 'resigned';
     case Deceased = 'deceased';
+    case Donor = 'donor';
+    case Guest = 'guest';
+    case Volunteer = 'volunteer';
+    case Admin = 'admin';
+    case Security = 'security';
 
     /**
      * The breadth-of-access tier this DMV-wide Category resolves to (ADR-0017).
@@ -33,15 +38,17 @@ enum Category: string
         return match ($this) {
             self::Active, self::Honourary, self::Sustaining, self::Loa => AccessTier::Full,
             self::Provisional, self::PreActive => AccessTier::Limited,
-            self::Withdrawn, self::Resigned, self::Deceased => AccessTier::None,
+            self::Withdrawn, self::Resigned, self::Deceased,
+            self::Donor, self::Guest, self::Volunteer, self::Admin, self::Security => AccessTier::None,
         };
     }
 
     /**
      * Whether this DMV-wide standing lists the Member in the org-wide Directory —
      * the root DMV Group's Roster. Active, Honourary, Sustaining, and LOA qualify
-     * (present, full-view standing); the departed (Resigned / Withdrawn / Deceased)
-     * and the not-yet-activated (PreActive / Provisional) do not. This is the single
+     * (present, full-view standing); the departed (Resigned / Withdrawn / Deceased),
+     * the not-yet-activated (PreActive / Provisional) and the non-member standings
+     * (Donor / Guest / Volunteer / Admin / Security) do not. This is the single
      * resolution the Directory ({@see Member::scopeInDirectory()}) and the My Groups
      * root DMV node (ADR-0020 §B) both key off — membership in the root is derived
      * from standing, never a stored row.
@@ -50,7 +57,8 @@ enum Category: string
     {
         return match ($this) {
             self::Active, self::Honourary, self::Sustaining, self::Loa => true,
-            self::PreActive, self::Provisional, self::Withdrawn, self::Resigned, self::Deceased => false,
+            self::PreActive, self::Provisional, self::Withdrawn, self::Resigned, self::Deceased,
+            self::Donor, self::Guest, self::Volunteer, self::Admin, self::Security => false,
         };
     }
 
@@ -64,7 +72,24 @@ enum Category: string
         return match ($this) {
             self::Active, self::Honourary, self::Sustaining,
             self::Provisional, self::PreActive => true,
-            self::Loa, self::Withdrawn, self::Resigned, self::Deceased => false,
+            self::Loa, self::Withdrawn, self::Resigned, self::Deceased,
+            self::Donor, self::Guest, self::Volunteer, self::Admin, self::Security => false,
+        };
+    }
+
+    /**
+     * The Category group the Records office lists and filters by (ADR-0038 §4).
+     */
+    public function group(): CategoryGroup
+    {
+        return match ($this) {
+            self::Active, self::Provisional, self::Honourary,
+            self::Sustaining, self::Loa, self::PreActive => CategoryGroup::Current,
+            self::Resigned, self::Withdrawn => CategoryGroup::Resigned,
+            self::Deceased => CategoryGroup::Deceased,
+            self::Admin => CategoryGroup::Admin,
+            self::Donor, self::Guest, self::Volunteer => CategoryGroup::NonMember,
+            self::Security => CategoryGroup::Security,
         };
     }
 }

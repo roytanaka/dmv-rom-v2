@@ -37,5 +37,35 @@ return [
         'withdrawn' => 'Retiré',
         'resigned' => 'Démissionnaire',
         'deceased' => 'Décédé',
+        'donor' => 'Donateur',
+        'guest' => 'Invité',
+        'volunteer' => 'Bénévole',
+        'admin' => 'Administration',
+        'security' => 'Sécurité',
+    ],
+
+    // Groupes de catégories (ADR-0038 §4), indexés par la valeur de CategoryGroup.
+    'category_group' => [
+        'current' => 'Actuel',
+        'resigned' => 'Démissionnaire',
+        'deceased' => 'Décédé',
+        'admin' => 'Administration',
+        'non_member' => 'Non-membre',
+        'security' => 'Sécurité',
+    ],
+
+    // Motif du départ d'un membre démissionnaire ou retiré (ADR-0038 §4), indexé par la
+    // valeur de DepartureReason.
+    'departure_reason' => [
+        'family' => 'Famille',
+        'job' => 'Emploi',
+        'health' => 'Santé',
+        'moved' => 'Déménagement',
+        'none_given' => 'Aucun motif donné',
+        'age' => 'Âge',
+        'schedule' => 'Horaire',
+        'stopped' => 'Arrêt',
+        'other' => 'Autre',
+        'involuntary' => 'Involontaire',
     ],
 ];

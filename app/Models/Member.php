@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Category;
+use App\Enums\CategoryGroup;
+use App\Enums\DepartureReason;
 use App\Enums\DirectoryList;
 use App\Enums\Kind;
 use App\Enums\Role;
@@ -44,6 +46,8 @@ class Member extends Authenticatable implements HasLocalePreference
         'address_country',
         'password',
         'category',
+        'departure_reason',
+        'personal_data_removed_at',
         'locale',
     ];
 
@@ -79,6 +83,8 @@ class Member extends Authenticatable implements HasLocalePreference
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'category' => Category::class,
+            'departure_reason' => DepartureReason::class,
+            'personal_data_removed_at' => 'datetime',
             'super_tier' => 'boolean',
             'support_operator' => 'boolean',
             'no_email' => 'boolean',
@@ -111,9 +117,9 @@ class Member extends Authenticatable implements HasLocalePreference
     /**
      * The directory roster: Members whose DMV-wide Category grants a listing —
      * Active, Honourary, Sustaining, and LOA (on leave, but still Full access).
-     * Excludes the departed (Resigned / Withdrawn / Deceased) and the not-yet-
-     * activated (PreActive / Provisional). The privacy rule has one home here —
-     * tunable in a single place, never scattered across controllers.
+     * Excludes the departed (Resigned / Withdrawn / Deceased), the not-yet-activated
+     * (PreActive / Provisional) and the non-member standings. The privacy rule has one
+     * home here — tunable in a single place, never scattered across controllers.
      *
      * @param  Builder<Member>  $query
      */
@@ -123,6 +129,21 @@ class Member extends Authenticatable implements HasLocalePreference
             Category::cases(),
             fn (Category $category) => $category->grantsDirectoryListing(),
         ));
+    }
+
+    /**
+     * The Past Members: the Resigned and Deceased groups once Remove personal data has
+     * reached them (ADR-0038 §4, §6).
+     *
+     * @param  Builder<Member>  $query
+     */
+    public function scopePast(Builder $query): void
+    {
+        $query->whereNotNull('personal_data_removed_at')
+            ->whereIn('category', array_filter(
+                Category::cases(),
+                fn (Category $category) => in_array($category->group(), [CategoryGroup::Resigned, CategoryGroup::Deceased], true),
+            ));
     }
 
     /**

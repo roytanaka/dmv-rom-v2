@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AudienceKey;
 use App\Enums\Category;
 use App\Enums\DocumentKind;
 use App\Enums\DocumentVisibility;
@@ -35,6 +36,8 @@ use App\Models\ShiftKind;
 use App\Models\SignUp;
 use App\Models\Tour;
 use App\Personas\PersonaCatalogue;
+use App\Support\Audiences\AudienceContext;
+use App\Support\Audiences\AudienceResolver;
 use App\Support\CommitteeHoursStatistics;
 use App\Support\OrgTime;
 use App\Support\VisitorInteractionStatistics;
@@ -358,6 +361,29 @@ it('excludes the departed Persona from the Directory and My-Groups sources', fun
         true,
     ));
     expect($qualifying)->toBeEmpty();
+});
+
+it('seeds a Donor Persona that One Category reaches and the Directory does not', function () {
+    $donor = Member::where('email', 'harriet.osei@dmv.test')->firstOrFail();
+
+    expect($donor->category)->toBe(Category::Donor)
+        ->and(Member::inDirectory()->whereKey($donor->id)->exists())->toBeFalse();
+
+    $operator = Member::where('super_tier', true)->firstOrFail();
+
+    $this->actingAs($operator)
+        ->getJson(route('audiences.index', ['context' => 'directory']))
+        ->assertOk()
+        ->assertJsonFragment(['key' => 'one_category', 'parameter' => 'donor', 'label' => 'Donor', 'count' => 1]);
+
+    $recipients = app(AudienceResolver::class)->resolve(
+        $operator,
+        AudienceContext::directory(),
+        AudienceKey::OneCategory,
+        Category::Donor->value,
+    )->recipients;
+
+    expect($recipients->pluck('id')->all())->toBe([$donor->id]);
 });
 
 it('gives the multi-group no-office Persona Full standing in several programs', function () {
