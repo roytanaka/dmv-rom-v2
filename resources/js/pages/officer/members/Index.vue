@@ -1,20 +1,25 @@
 <script setup lang="ts">
 // The Member lists (#919, ADR-0038 §5): Officer Tools → Members. Seven tabs, one route; the server
 // sends the rows, the list's row actions and its Send email answer. The search is a query
-// parameter, applied on submit. Edit opens the Member record; Reinstate posts (#920). Photo, Delete
-// and Send email stay disabled until their tickets wire them. Below `md` the row's facts ride under the name
+// parameter, applied on submit. Edit opens the Member record; Reinstate posts (#920). Delete and
+// Send email stay disabled until their tickets wire them. Photo (#922) opens a dialog that uploads or
+// replaces the Member's photo and sets whether peers see it. Below `md` the row's facts ride under the name
 // (docs/conventions.md § Tables on small screens). Names are content, shown as stored.
 import type { NavNode } from '@/chrome/types';
 import SectionTabs from '@/components/SectionTabs.vue';
 import StandingBadge from '@/components/StandingBadge.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import InputError from '@/components/InputError.vue';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { PhEnvelopeSimple, PhMagnifyingGlass } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -27,6 +32,8 @@ interface Row {
     email: string | null;
     phone: string | null;
     last_update: string | null;
+    photo: string | null;
+    photo_public: boolean;
 }
 
 const props = defineProps<{
@@ -54,12 +61,53 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [{ title: title.value, href
 const tabItems = computed<NavNode[]>(() => props.tabs.map((tab) => ({ href: tab.href, labelKey: `records.list.${tab.key}` })));
 
 // The actions a later ticket wires; each renders disabled until then.
-const pendingActions = computed(() => props.actions.filter((action) => action !== 'edit' && action !== 'reinstate'));
+const pendingActions = computed(() => props.actions.filter((action) => !['edit', 'photo', 'reinstate'].includes(action)));
 const canReinstate = computed(() => props.actions.includes('reinstate'));
 
 // Reinstate (#920): Reinstate then Active, dated today; the Member leaves this list.
 const reinstate = (id: number) => {
     router.post(route('members.reinstate', { member: id }), {}, { preserveScroll: true });
+};
+
+// The Photo dialog (#922): one Member at a time, the file optional so the flag can change alone.
+const photoMember = ref<Row | null>(null);
+const photoOpen = ref(false);
+const photoPreview = ref<string | null>(null);
+const photoForm = useForm({ photo: null as File | null, photo_public: true });
+
+const setPreview = (file: File | null) => {
+    if (photoPreview.value) {
+        URL.revokeObjectURL(photoPreview.value);
+    }
+    photoPreview.value = file ? URL.createObjectURL(file) : null;
+};
+
+const openPhoto = (member: Row) => {
+    photoMember.value = member;
+    photoForm.clearErrors();
+    photoForm.photo = null;
+    photoForm.photo_public = member.photo_public;
+    setPreview(null);
+    photoOpen.value = true;
+};
+
+const onPhotoChange = (event: Event) => {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    photoForm.photo = file;
+    setPreview(file);
+};
+
+const savePhoto = () => {
+    if (!photoMember.value) {
+        return;
+    }
+    photoForm.post(route('members.photo.update', { member: photoMember.value.id }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            photoOpen.value = false;
+            setPreview(null);
+        },
+    });
 };
 
 const term = ref(props.search ?? '');
@@ -138,6 +186,9 @@ const submitSearch = () => {
                                 <Button v-if="canReinstate" variant="outline" @click="reinstate(member.id)">
                                     {{ trans('records.action.reinstate') }}
                                 </Button>
+                                <Button v-if="actions.includes('photo')" variant="outline" @click="openPhoto(member)">
+                                    {{ trans('records.action.photo') }}
+                                </Button>
                                 <Button v-for="action in pendingActions" :key="action" variant="outline" disabled>
                                     {{ trans(`records.action.${action}`) }}
                                 </Button>
@@ -164,6 +215,52 @@ const submitSearch = () => {
                 </Button>
                 <span v-else />
             </nav>
+
+            <Dialog v-model:open="photoOpen">
+                <DialogContent v-if="photoMember">
+                    <form class="flex flex-col gap-4" @submit.prevent="savePhoto">
+                        <DialogHeader>
+                            <DialogTitle>{{
+                                trans('records.photo.title', { name: `${photoMember.first_name} ${photoMember.last_name}` })
+                            }}</DialogTitle>
+                        </DialogHeader>
+                        <Avatar size="lg">
+                            <AvatarImage
+                                v-if="photoPreview ?? photoMember.photo"
+                                :src="photoPreview ?? photoMember.photo ?? ''"
+                                :alt="`${photoMember.first_name} ${photoMember.last_name}`"
+                            />
+                            <AvatarFallback>{{
+                                `${photoMember.first_name.charAt(0)}${photoMember.last_name.charAt(0)}`.toUpperCase()
+                            }}</AvatarFallback>
+                        </Avatar>
+                        <div class="grid gap-2">
+                            <Label for="records-photo">{{ trans('records.photo.file') }}</Label>
+                            <input
+                                id="records-photo"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="file:bg-secondary file:text-foreground hover:file:bg-secondary/80 block w-full text-sm text-neutral-700 file:mr-4 file:rounded-md file:border-0 file:px-4 file:py-2 file:text-sm file:font-medium"
+                                @change="onPhotoChange"
+                            />
+                            <InputError :message="photoForm.errors.photo" />
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <Checkbox
+                                id="records-photo-public"
+                                :checked="photoForm.photo_public"
+                                @update:checked="(checked: boolean) => (photoForm.photo_public = checked)"
+                            />
+                            <Label for="records-photo-public">{{ trans('records.photo.public') }}</Label>
+                        </div>
+                        <InputError :message="photoForm.errors.photo_public" />
+                        <DialogFooter>
+                            <Button type="button" variant="outline" @click="photoOpen = false">{{ trans('records.photo.cancel') }}</Button>
+                            <Button type="submit" :disabled="photoForm.processing">{{ trans('records.save') }}</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     </AppLayout>
 </template>

@@ -22,6 +22,8 @@ interface Props {
     // Per-resource UI hint from MemberPolicy (ADR-0017). Drives whether the save
     // control renders enabled; the server enforces the action regardless.
     can: { update: boolean };
+    // Whether the Member shows their photo to peers (#922, ADR-0038 §3).
+    photoPublic: boolean;
     // The Records fields a Member sees about themself (ADR-0038 §3). Only the ROM expiry is theirs to edit.
     membership: {
         paid_through_year: number | null;
@@ -67,6 +69,7 @@ const form = useForm({
     // Optional photo upload (#233). A File here makes useForm submit multipart with
     // method spoofing; null leaves photo_path untouched server-side.
     photo: null as File | null,
+    photo_public: props.photoPublic,
     current_password: '',
 });
 
@@ -175,6 +178,15 @@ const submit = () => {
                                 {{ trans('settings.profile.photo_remove') }}
                             </Button>
                             <InputError class="mt-2" :message="form.errors.photo" />
+                            <div class="flex items-center gap-2">
+                                <Checkbox
+                                    id="photo_public"
+                                    :checked="form.photo_public"
+                                    @update:checked="(checked: boolean) => (form.photo_public = checked)"
+                                />
+                                <Label for="photo_public">{{ trans('settings.profile.photo_public') }}</Label>
+                            </div>
+                            <InputError :message="form.errors.photo_public" />
                         </div>
                     </div>
 

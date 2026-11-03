@@ -80,8 +80,8 @@ class AudienceController extends Controller
             'label' => $resolved->label,
             'edited' => $resolved->edited,
             'count' => $resolved->recipients->count(),
-            'recipients' => $resolved->recipients->map(fn (Member $member): array => $this->row($member))->values(),
-            'skipped' => $resolved->skipped->map(fn (Member $member): array => $this->row($member))->values(),
+            'recipients' => $resolved->recipients->map(fn (Member $member): array => $this->row($member, $request->user()))->values(),
+            'skipped' => $resolved->skipped->map(fn (Member $member): array => $this->row($member, $request->user()))->values(),
         ]);
     }
 
@@ -99,13 +99,13 @@ class AudienceController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function row(Member $member): array
+    private function row(Member $member, ?Member $viewer): array
     {
         return [
             'id' => $member->id,
             'first_name' => $member->first_name,
             'last_name' => $member->last_name,
-            'photo' => $member->photo_url,
+            'photo' => $member->photoUrlFor($viewer),
             'standing' => $member->category->value,
         ];
     }

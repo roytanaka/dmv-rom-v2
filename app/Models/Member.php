@@ -67,6 +67,7 @@ class Member extends Authenticatable implements HasLocalePreference
         'education',
         'notes',
         'last_sign_in_at',
+        'photo_public',
     ];
 
     /**
@@ -116,6 +117,7 @@ class Member extends Authenticatable implements HasLocalePreference
         'volunteer_experience',
         'past_experience',
         'education',
+        'photo_public',
     ];
 
     /**
@@ -128,6 +130,8 @@ class Member extends Authenticatable implements HasLocalePreference
         'remember_token',
         'created_by',
         'updated_by',
+        'languages',
+        'boardPositions',
         ...self::RECORDS_FIELDS,
     ];
 
@@ -165,6 +169,7 @@ class Member extends Authenticatable implements HasLocalePreference
             'newsletter_opt_in' => 'boolean',
             'status_date' => 'date',
             'last_sign_in_at' => 'datetime',
+            'photo_public' => 'boolean',
         ];
     }
 
@@ -215,6 +220,36 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * Sign a change kept outside this row, such as a language or a board position, as an edit of
+     * the record, so "Last updated by" stays true.
+     */
+    public function markUpdatedBy(Member $actor): void
+    {
+        $this->updated_by = $actor->id;
+        $this->touch();
+    }
+
+    /**
+     * The Member's languages (ADR-0038 §3). Records-only.
+     *
+     * @return HasMany<MemberLanguage, $this>
+     */
+    public function languages(): HasMany
+    {
+        return $this->hasMany(MemberLanguage::class);
+    }
+
+    /**
+     * The board positions the Member has held (ADR-0038 §3). Records-only.
+     *
+     * @return HasMany<BoardPosition, $this>
+     */
+    public function boardPositions(): HasMany
+    {
+        return $this->hasMany(BoardPosition::class);
+    }
+
+    /**
      * The Member's rows in the Sign-in log (ADR-0038 §12).
      *
      * @return HasMany<SignIn, $this>
@@ -245,6 +280,22 @@ class Member extends Authenticatable implements HasLocalePreference
                 return $path ? Storage::disk('public')->url($path) : null;
             },
         );
+    }
+
+    /**
+     * The photo URL as the viewer may see it (#922, ADR-0038 §3): null when the Member keeps their
+     * photo from peers and the viewer is not the Member, member administration or the super-tier.
+     * An unhydrated flag reads as the column default, public.
+     */
+    public function photoUrlFor(?Member $viewer): ?string
+    {
+        $url = $this->photo_url;
+
+        if ($url === null || ($this->getAttributes()['photo_public'] ?? true)) {
+            return $url;
+        }
+
+        return $viewer?->can('viewPhoto', $this) ? $url : null;
     }
 
     /**

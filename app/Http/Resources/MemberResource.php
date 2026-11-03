@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\BoardPosition;
 use App\Models\GroupMember;
 use App\Models\GroupMemberRole;
 use App\Models\Member;
+use App\Models\MemberLanguage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,7 +19,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * The shape is an allowlist, least-privilege by default:
  *
  * - Always public to any logged-in member: id, first/last name, photo (if
- *   uploaded), DMV-wide standing, and the member's Groups + roles — enough for a
+ *   uploaded and not kept from peers), DMV-wide standing, and the member's Groups + roles — enough for a
  *   useful directory.
  * - Gated behind the `viewContact` ability (peer-visible tier): email and the
  *   three phone numbers. A field not added to a gated block is simply absent —
@@ -100,6 +102,9 @@ class MemberResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'last_update' => $this->updated_at?->timezone(config('app.org_timezone'))->toDateString(),
+            // For the Photo action (#922): the list's viewer is member administration.
+            'photo' => $this->photo_url,
+            'photo_public' => (bool) $this->photo_public,
         ];
     }
 
@@ -132,9 +137,9 @@ class MemberResource extends JsonResource
             'id' => $this->id,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
-            // Public avatar URL (#233), or null when the member has uploaded none.
-            // Always public — a face is opt-in by uploading (contrast gated contact PII).
-            'photo' => $this->photo_url,
+            // Public avatar URL (#233), or null when the member has uploaded none, or keeps
+            // it from peers and this viewer is one (#922, ADR-0038 §3).
+            'photo' => $this->resource->photoUrlFor($request->user()),
             // DMV-wide standing (the Member's Category, glossary-named "standing").
             // Not PII — drives the directory/profile standing badge. The raw enum
             // attribute stays absent; the frontend maps this value to a chrome label.
@@ -181,6 +186,12 @@ class MemberResource extends JsonResource
                 'membership_expiry' => $this->membership_expiry?->toDateString(),
                 'status_date' => $this->status_date?->toDateString(),
                 'departure_reason' => $this->departure_reason?->value,
+                'languages' => $this->whenLoaded('languages', fn () => $this->languages
+                    ->map(fn (MemberLanguage $language) => $language->only('id', 'language_code', 'speaks', 'reads', 'writes'))
+                    ->all()),
+                'board_positions' => $this->whenLoaded('boardPositions', fn () => $this->boardPositions
+                    ->map(fn (BoardPosition $position) => $position->only('id', 'position', 'years'))
+                    ->all()),
             ]),
         ];
     }

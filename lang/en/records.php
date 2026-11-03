@@ -35,6 +35,13 @@ return [
         'delete' => 'Delete',
     ],
     'send_email' => 'Send email',
+    // The Photo action (#922, ADR-0038 §3).
+    'photo' => [
+        'title' => 'Photo for :name',
+        'file' => 'New photo',
+        'public' => 'Show this photo to all Members',
+        'cancel' => 'Cancel',
+    ],
     'search' => 'Search',
     'search_last_name' => 'Search by last name',
     'list_empty' => 'No Members on this list.',
@@ -54,6 +61,8 @@ return [
         'emergency' => 'Emergency contact',
         'renewal' => 'Renewal',
         'background' => 'Background',
+        'languages' => 'Languages',
+        'board' => 'Board positions',
         'notes' => 'Notes',
         'groups' => 'Memberships and roles',
     ],
@@ -117,5 +126,37 @@ return [
         'empty' => 'No entries yet.',
         'reinstate' => 'Reinstate',
         'choose' => 'Choose…',
+    ],
+
+    'add' => 'Add',
+    'remove' => 'Remove',
+    'add_award' => 'Add an award',
+    'remove_award' => 'Remove :award',
+    'no_awards' => 'No awards yet.',
+
+    'languages' => [
+        'add' => 'Add a language',
+        'none' => 'No languages yet.',
+        'language' => 'Language',
+        'other_name' => 'Other language',
+        'speaks' => 'Speaks',
+        'reads' => 'Reads',
+        'writes' => 'Writes',
+        'remove' => 'Remove :language',
+        'name' => [
+            'en' => 'English',
+            'fr' => 'French',
+            'asl' => 'American Sign Language',
+            'lsq' => 'Langue des signes du Québec',
+            'other' => 'Other',
+        ],
+    ],
+
+    'board' => [
+        'add' => 'Add a board position',
+        'none' => 'No board positions yet.',
+        'position' => 'Position',
+        'years' => 'Years',
+        'remove' => 'Remove :position',
     ],
 ];

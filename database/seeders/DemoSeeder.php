@@ -485,6 +485,7 @@ class DemoSeeder extends Seeder
         $this->roster();
         $this->bulkRoster();
         $this->memberRecords();
+        $this->personaRecordLists();
         $this->prunePhotoFiles();
         $this->objects();
         $this->scheduling();
@@ -737,6 +738,51 @@ class DemoSeeder extends Seeder
         }
 
         $member->forceFill(['status_date' => end($entries)[1], 'departure_reason' => $reason])->saveQuietly();
+    }
+
+    /**
+     * Give a few Personas the Member record's structured lists (#918, ADR-0038 §3, §10):
+     * languages, a Service award and a board position, whatever the hash dealt them above.
+     */
+    private function personaRecordLists(): void
+    {
+        $year = (int) now()->year;
+
+        $lists = [
+            PersonaCatalogue::CHAIR_EMAIL => [
+                'languages' => [['en', true, true, true], ['fr', true, true, false]],
+                'position' => ['Past President', sprintf('%d-%d', $year - 6, $year - 4)],
+            ],
+            PersonaCatalogue::SCHEDULER_EMAIL => [
+                'languages' => [['en', true, true, true], ['asl', true, false, false]],
+                'position' => ['Treasurer', sprintf('%d-%d', $year - 3, $year - 1)],
+            ],
+            PersonaCatalogue::MEMBER_EMAIL => [
+                'languages' => [['en', true, true, true], ['Italian', true, false, false]],
+                'position' => ['Member at Large', (string) ($year - 2)],
+            ],
+        ];
+
+        foreach ($lists as $email => $list) {
+            $member = Member::where('email', $email)->firstOrFail();
+
+            foreach ($list['languages'] as [$code, $speaks, $reads, $writes]) {
+                $member->languages()->updateOrCreate(
+                    ['language_code' => $code],
+                    ['speaks' => $speaks, 'reads' => $reads, 'writes' => $writes],
+                );
+            }
+
+            [$position, $years] = $list['position'];
+            $member->boardPositions()->updateOrCreate(['position' => $position], ['years' => $years]);
+
+            $member->forceFill([
+                'entry_year' => $year - 11,
+                'service_awards' => ['5 yr', '10 yr'],
+                'last_award_year' => $year - 1,
+                'next_award_year' => $year + 4,
+            ])->saveQuietly();
+        }
     }
 
     /**

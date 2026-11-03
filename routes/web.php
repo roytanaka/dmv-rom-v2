@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
+use App\Http\Controllers\BoardPositionController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingEarnedController;
 use App\Http\Controllers\BookingMailController;
@@ -36,7 +37,9 @@ use App\Http\Controllers\LinkDocumentController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberLanguageController;
 use App\Http\Controllers\MemberListController;
+use App\Http\Controllers\MemberPhotoController;
 use App\Http\Controllers\MemberRecordController;
 use App\Http\Controllers\MoveDocumentController;
 use App\Http\Controllers\NewsController;
@@ -414,6 +417,25 @@ Route::delete('members/{member}/category-changes/{categoryChange}', [CategoryCha
 Route::post('members/{member}/reinstate', [CategoryChangeController::class, 'reinstate'])
     ->middleware(['auth'])
     ->name('members.reinstate');
+
+// The Records Photo action (#922, ADR-0038 §3): upload or replace any Member's photo and set the
+// photo-public flag. Member administration or super-tier, via `MemberPolicy::administer` in the
+// UpdateMemberPhotoRequest.
+Route::post('members/{member}/photo', MemberPhotoController::class)
+    ->middleware(['auth'])
+    ->name('members.photo.update');
+
+// The structured lists on the Member record (#918, ADR-0038 §3). Member administration or
+// super-tier, via `MemberPolicy::administer` in each Form Request. A row answers only under its
+// own Member.
+Route::middleware('auth')->scopeBindings()->group(function () {
+    Route::post('members/{member}/languages', [MemberLanguageController::class, 'store'])->name('members.languages.store');
+    Route::patch('members/{member}/languages/{language}', [MemberLanguageController::class, 'update'])->name('members.languages.update');
+    Route::delete('members/{member}/languages/{language}', [MemberLanguageController::class, 'destroy'])->name('members.languages.destroy');
+    Route::post('members/{member}/board-positions', [BoardPositionController::class, 'store'])->name('members.board-positions.store');
+    Route::patch('members/{member}/board-positions/{boardPosition}', [BoardPositionController::class, 'update'])->name('members.board-positions.update');
+    Route::delete('members/{member}/board-positions/{boardPosition}', [BoardPositionController::class, 'destroy'])->name('members.board-positions.destroy');
+});
 
 // Grant/revoke super-tier (ADR-0017 §1). A dedicated, separately-gated action —
 // never a field on a member form. Reserved to super-tier itself via the

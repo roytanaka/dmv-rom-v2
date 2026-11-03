@@ -71,6 +71,15 @@ class MemberPolicy
     }
 
     /**
+     * Who may see a photo its Member keeps from peers (#922, ADR-0038 §3): the Member themself and
+     * member-administration authority. A public photo needs no check ({@see Member::photoUrlFor()}).
+     */
+    public function viewPhoto(Member $viewer, Member $target): bool
+    {
+        return $viewer->is($target) || $viewer->hasMemberAdminAuthority();
+    }
+
+    /**
      * Who may see a member's gated contact details (email, phone, …). Granted to
      * member-administration authority (the Records stewardship) org-wide, and to an
      * own-Group officer holding a contact-need role for members of that same Group.

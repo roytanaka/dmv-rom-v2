@@ -2,10 +2,13 @@
 // The Member record (#917, ADR-0038 §3): the Records office's page for one Member. One form, one
 // PATCH, one Save, built on the DMV Settings cards. Category, status date and last sign-in are
 // shown, never edited: Category moves through a Category history entry, added and removed in its
-// own section with its own POST (#920). Notes are a log: the page
-// shows it and takes a new line, which the server dates and signs.
+// own section with its own POST (#920). Notes are a log: the page shows it and takes a new line,
+// which the server dates and signs. Languages and board positions sit in their own rows and save
+// on their own (#918), so they keep their own forms.
+import BoardPositionsEditor from '@/components/BoardPositionsEditor.vue';
 import DmvSettingsSection from '@/components/DmvSettingsSection.vue';
 import InputError from '@/components/InputError.vue';
+import MemberLanguagesEditor, { type MemberLanguage } from '@/components/MemberLanguagesEditor.vue';
 import StandingBadge from '@/components/StandingBadge.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +23,9 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { PhTrash } from '@phosphor-icons/vue';
+import { PhX } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const LINES = {
     identity: ['first_name', 'last_name', 'email'],
@@ -75,12 +78,15 @@ interface RecordMember {
     notes: string | null;
     last_sign_in_at: string | null;
     departure_reason: string | null;
+    languages: MemberLanguage[];
+    board_positions: { id: number; position: string; years: string | null }[];
 }
 
 const props = defineProps<{
     member: RecordMember;
     feeCategories: { code: string; name: string; amount: string }[];
     serviceAwards: { code: string; years: number }[];
+    boardPositionSuggestions: string[];
     signInsCount: number;
     lastUpdated: { name: string; date: string } | null;
     categoryHistory: { id: number; category: string; date: string; departure_reason: string | null }[];
@@ -154,9 +160,39 @@ const toggleLifetime = (checked: boolean) => {
     }
 };
 
-const toggleAward = (code: string, checked: boolean) => {
-    form.service_awards = checked ? [...form.service_awards, code] : form.service_awards.filter((held) => held !== code);
+const awardLabel = (code: string) => {
+    const award = props.serviceAwards.find((candidate) => candidate.code === code);
+
+    return award ? trans('records.award_years', { years: String(award.years) }) : code;
 };
+
+const awardsToOffer = computed(() => props.serviceAwards.filter((award) => !form.service_awards.includes(award.code)));
+
+// As the Legacy app's picker: choosing an award appends it and the picker returns to blank.
+const awardToAdd = ref('');
+watch(awardToAdd, (code) => {
+    if (code !== '') {
+        form.service_awards = [...form.service_awards, code];
+        awardToAdd.value = '';
+    }
+});
+
+const removeAward = (code: string) => {
+    form.service_awards = form.service_awards.filter((held) => held !== code);
+};
+
+// As the Legacy app's helper, a new last award year plans the next one, live. The server applies
+// the same rule, so the next year is sent only once the admin has typed over it.
+const nextAwardOverridden = ref(false);
+watch(
+    () => form.last_award_year,
+    (year) => {
+        if (year !== '' && !nextAwardOverridden.value) {
+            form.next_award_year = Number(year) + 5;
+        }
+    },
+);
+form.transform(({ next_award_year, ...fields }) => (nextAwardOverridden.value ? { ...fields, next_award_year } : fields));
 
 // The yearly update, as the Legacy app's helper: a blank year stays blank.
 const addPaidYear = () => {
@@ -193,7 +229,10 @@ const historyLabel = (category: string) => (category === 'reinstate' ? trans('re
 const save = () => {
     form.patch(route('members.record.update', { member: props.member.id }), {
         preserveScroll: true,
-        onSuccess: () => form.reset('new_note'),
+        onSuccess: () => {
+            form.reset('new_note');
+            nextAwardOverridden.value = false;
+        },
     });
 };
 </script>
@@ -282,7 +321,7 @@ const save = () => {
                                 </TableCell>
                                 <TableCell class="text-right">
                                     <Button variant="ghost" size="icon" :aria-label="trans('records.history.remove')" @click="removeEntry(change.id)">
-                                        <PhTrash aria-hidden="true" />
+                                        <PhX aria-hidden="true" />
                                     </Button>
                                 </TableCell>
                             </TableRow>
@@ -367,23 +406,40 @@ const save = () => {
                 <DmvSettingsSection id="awards" :title="trans('records.section.awards')" layout="grid gap-4 sm:grid-cols-3">
                     <div v-for="field in AWARD_YEARS" :key="field" class="grid gap-2">
                         <Label :for="field">{{ trans(`records.field.${field}`) }}</Label>
-                        <Input :id="field" v-model="form[field]" type="number" />
+                        <Input
+                            :id="field"
+                            v-model="form[field]"
+                            type="number"
+                            @input="nextAwardOverridden = nextAwardOverridden || field === 'next_award_year'"
+                        />
                         <InputError :message="form.errors[field]" />
                     </div>
-                    <fieldset class="grid gap-2 sm:col-span-3">
-                        <legend class="mb-2 text-sm font-medium">{{ trans('records.field.service_awards') }}</legend>
-                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                            <div v-for="award in serviceAwards" :key="award.code" class="flex items-center gap-2">
-                                <Checkbox
-                                    :id="`award-${award.years}`"
-                                    :checked="form.service_awards.includes(award.code)"
-                                    @update:checked="(checked: boolean) => toggleAward(award.code, checked)"
-                                />
-                                <Label :for="`award-${award.years}`">{{ trans('records.award_years', { years: String(award.years) }) }}</Label>
-                            </div>
-                        </div>
+                    <div class="grid gap-2 sm:col-span-3">
+                        <p class="text-sm font-medium">{{ trans('records.field.service_awards') }}</p>
+                        <ul v-if="form.service_awards.length" class="flex flex-wrap gap-2">
+                            <li v-for="code in form.service_awards" :key="code">
+                                <Badge variant="secondary" class="gap-1">
+                                    {{ awardLabel(code) }}
+                                    <button
+                                        type="button"
+                                        :aria-label="trans('records.remove_award', { award: awardLabel(code) })"
+                                        @click="removeAward(code)"
+                                    >
+                                        <PhX class="size-3" aria-hidden="true" />
+                                    </button>
+                                </Badge>
+                            </li>
+                        </ul>
+                        <p v-else class="text-muted-foreground text-sm">{{ trans('records.no_awards') }}</p>
                         <InputError :message="form.errors.service_awards" />
-                    </fieldset>
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="new_award">{{ trans('records.add_award') }}</Label>
+                        <NativeSelect id="new_award" v-model="awardToAdd">
+                            <option value="">{{ trans('records.none') }}</option>
+                            <option v-for="award in awardsToOffer" :key="award.code" :value="award.code">{{ awardLabel(award.code) }}</option>
+                        </NativeSelect>
+                    </div>
                     <div class="grid gap-2 sm:col-span-3">
                         <Label for="other_awards">{{ trans('records.field.other_awards') }}</Label>
                         <Input id="other_awards" v-model="form.other_awards" />
@@ -422,6 +478,10 @@ const save = () => {
                     </div>
                 </DmvSettingsSection>
 
+                <DmvSettingsSection id="languages" :title="trans('records.section.languages')">
+                    <MemberLanguagesEditor :member-id="member.id" :languages="member.languages" />
+                </DmvSettingsSection>
+
                 <DmvSettingsSection id="notes" :title="trans('records.section.notes')">
                     <div class="grid gap-2">
                         <Label for="new_note">{{ trans('records.field.new_note') }}</Label>
@@ -442,6 +502,10 @@ const save = () => {
                         </li>
                     </ul>
                     <p v-else class="text-muted-foreground text-sm">{{ trans('member.no_groups') }}</p>
+                </DmvSettingsSection>
+
+                <DmvSettingsSection id="board" :title="trans('records.section.board')">
+                    <BoardPositionsEditor :member-id="member.id" :positions="member.board_positions" :suggestions="boardPositionSuggestions" />
                 </DmvSettingsSection>
 
                 <div class="bg-background sticky bottom-0 z-10 flex flex-col gap-3 border-t py-3 sm:flex-row sm:items-center">
