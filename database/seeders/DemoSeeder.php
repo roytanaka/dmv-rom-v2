@@ -492,6 +492,7 @@ class DemoSeeder extends Seeder
         $this->memberRecords();
         $this->personaRecordLists();
         $this->savedQueries();
+        $this->departedMembers();
         $this->applicants();
         $this->applicantCode();
         $this->prunePhotoFiles();
@@ -680,8 +681,12 @@ class DemoSeeder extends Seeder
         $year = (int) now()->year;
         $fees = ['Active', 'Active-SR', 'Active-ST', 'Sust', 'LOA'];
         $mentors = ['Alex Morgan', 'Sam Chen', 'Priya Nair', 'Louise Tremblay'];
+        // A home address, so the Saved query labels (#924) print a full address.
+        $streets = ['Bloor Street West', 'Avenue Road', 'Queen Street East', 'Dundas Street West', 'Yonge Street'];
+        // City and the first letters of its postal codes.
+        $cities = [['Toronto', 'M5R'], ['Toronto', 'M4K'], ['Toronto', 'M6P'], ['Mississauga', 'L5B'], ['Markham', 'L3R']];
 
-        Member::query()->orderBy('id')->each(function (Member $member) use ($year, $fees, $mentors): void {
+        Member::query()->orderBy('id')->each(function (Member $member) use ($year, $fees, $mentors, $streets, $cities): void {
             $hash = $this->hash((string) $member->email);
             $entryYear = $year - 2 - $hash % 26;
             // Awards up to last year, so this year's are still to come and the next award year
@@ -691,7 +696,13 @@ class DemoSeeder extends Seeder
             $paidThrough = $hash % 4 === 0 ? $year - 1 : $year;
             $lifetime = $hash % 13 === 0;
 
+            [$city, $postalArea] = $cities[($hash >> 3) % count($cities)];
+
             $member->forceFill([
+                'address_street' => sprintf('%d %s', 10 + $hash % 990, $streets[$hash % count($streets)]),
+                'address_city' => $city,
+                'address_province' => 'ON',
+                'address_postal_code' => sprintf('%s %dA%d', $postalArea, $hash % 10, ($hash >> 4) % 10),
                 'membership_number' => sprintf('R%06d', $hash % 1000000),
                 'membership_expiry' => $lifetime ? null : sprintf('%d-%02d-01', $year + 1 + $hash % 2, 1 + $hash % 12),
                 'membership_lifetime' => $lifetime,
@@ -845,6 +856,27 @@ class DemoSeeder extends Seeder
         foreach ($queries as $name => $query) {
             SavedQuery::updateOrCreate(['name' => $name], [...$query, 'conjunction' => 'and', 'sort' => 'last_name']);
         }
+    }
+
+    /**
+     * Two Members who left long ago (#921, ADR-0038 §6), so the Deceased list and the Remove
+     * personal data preview are not empty: both status dates fall before the page's default
+     * year. Keyed on the Member's name, so a reseed heals them.
+     */
+    private function departedMembers(): void
+    {
+        $year = (int) OrgTime::now()->year;
+
+        $this->recordsDemoMember('Winifred', 'Ashdown', Category::Resigned, [
+            [Category::Provisional, sprintf('%d-09-01', $year - 20)],
+            [Category::Active, sprintf('%d-09-01', $year - 19)],
+            [Category::Resigned, sprintf('%d-05-31', $year - 10)],
+        ], 'winifred.ashdown@dmv.test');
+        $this->recordsDemoMember('Bartholomew', 'Iqbal-Reyes', Category::Deceased, [
+            [Category::Provisional, sprintf('%d-09-01', $year - 30)],
+            [Category::Active, sprintf('%d-09-01', $year - 29)],
+            [Category::Deceased, sprintf('%d-02-14', $year - 9)],
+        ]);
     }
 
     /**

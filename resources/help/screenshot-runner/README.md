@@ -70,6 +70,7 @@ view, never carries into a shot.
 | Officer tasks (Statistician) | Statistician of Docents | `ravi.singh@dmv.test`      |
 | Officer tasks (Librarian)    | Librarian of Docents    | `hannah.schmidt@dmv.test`  |
 | Reading a shared library     | Outside Docents         | `felix.andersson@dmv.test` |
+| Records office tasks         | Records steward         | `priya.nair@dmv.test`      |
 | Support and Role-switcher    | Support operator        | `operator@dmv.test`        |
 | Super-tier (President) view  | President               | `margaret.chen@dmv.test`   |
 

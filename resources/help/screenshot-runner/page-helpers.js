@@ -1104,7 +1104,47 @@
         });
     }
 
+    // Records office (#936). A seeded Member's id is not stable across seeds, so the Member
+    // record opens from the list's first Edit link, not a `nav` to its permalink.
+    function openFirstMemberRecord() {
+        const edit = Array.from(document.querySelectorAll('table a')).find((element) => /^edit$/i.test(element.textContent.trim()));
+        if (!edit) return false;
+        return followLink(edit);
+    }
+
+    // A Saved query's run: open the Email results dialog and wait for its recipient picker.
+    function openEmailResults() {
+        return clickAndWaitFor(buttonLabelled(/^email results$/i), () => document.getElementById('email-results-recipients'));
+    }
+
+    // Remove personal data: type the previewed Total back, as the reader does before the run.
+    // The run itself is never selected: it blanks the demo Members for good.
+    function typeRemovalTotal() {
+        const total = document.body.textContent.match(/Total:\s*(\d+)/);
+        if (!total) return false;
+        typeInto(document.getElementById('removal-confirm'), total[1]);
+        return settle();
+    }
+
+    // The Deceased list: open Delete on the first row and type the last name back. Delete in
+    // the dialog is never selected.
+    async function openFirstDeleteDialog() {
+        const deleteIn = (row) => buttonLabelled(/^delete$/i, (button) => row.contains(button));
+        const row = Array.from(document.querySelectorAll('tbody tr')).find(deleteIn);
+        if (!row) return false;
+        // The name cell reads "Last, First".
+        const lastName = row.querySelector('td').textContent.split(',')[0].trim();
+        const field = () => document.getElementById('records-delete-last-name');
+        if (!(await clickAndWaitFor(deleteIn(row), field))) return false;
+        typeInto(field(), lastName);
+        return settle();
+    }
+
     window.__help = {
+        openFirstMemberRecord,
+        openEmailResults,
+        typeRemovalTotal,
+        openFirstDeleteDialog,
         fillSampleInvitation,
         showInvitationOptions,
         saveInvitation,
