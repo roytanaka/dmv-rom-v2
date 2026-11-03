@@ -35,6 +35,7 @@ use App\Http\Controllers\LinkDocumentController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberListController;
 use App\Http\Controllers\MemberRecordController;
 use App\Http\Controllers\MoveDocumentController;
 use App\Http\Controllers\NewsController;
@@ -83,7 +84,7 @@ Route::group([
         // Zone A — personal
         'calendar', 'documents', 'profile', 'renew',
         // Zone C — officer/admin
-        'officer.members', 'officer.communications', 'officer.reports',
+        'officer.communications', 'officer.reports',
         'officer.flash-messages',
     ];
 
@@ -92,6 +93,12 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // The Member lists (#919, ADR-0038 §5): one route, the list a translated word
+    // (/officer/members/resigned ↔ /fr/officier/membres/demissionnaires). A bare path opens
+    // Current. Register any new one-word officer/members page above this route.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members'), MemberListController::class)
+        ->middleware('auth')->name('officer.members');
 
     // The Member record (#917, ADR-0038 §3): member administration's page for one Member
     // (/officer/members/records/1 ↔ /fr/officier/membres/dossiers/1).

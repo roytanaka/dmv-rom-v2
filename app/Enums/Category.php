@@ -78,6 +78,16 @@ enum Category: string
     }
 
     /**
+     * The Categories of one Category group.
+     *
+     * @return list<self>
+     */
+    public static function inGroup(CategoryGroup $group): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $category) => $category->group() === $group));
+    }
+
+    /**
      * The Category group the Records office lists and filters by (ADR-0038 §4).
      */
     public function group(): CategoryGroup

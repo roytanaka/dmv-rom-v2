@@ -213,10 +213,8 @@ final class HelpManifest
         return [
             // Coming Soon stubs (routes/web.php) — pages that do not exist yet.
             'calendar', 'documents', 'profile', 'renew',
-            'officer.members', 'officer.communications', 'officer.reports',
+            'officer.communications', 'officer.reports',
             'officer.flash-messages',
-            // The Member record's article ships with the Member lists (#919).
-            'officer.members.record',
             // CSV export twins — each rides behind a report page an article covers.
             'groups.hours.report.csv',
             'groups.hours.month.csv',
@@ -263,6 +261,7 @@ final class HelpManifest
             new HelpArticle('directory', HelpSection::Directory, isOverview: true, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('find-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('what-you-can-see-about-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'members.show'),
+            new HelpArticle('member-lists-and-the-member-record', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members', routes: ['officer.members.record']),
 
             new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Published, route: 'news'),
             new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Published, route: 'news'),
