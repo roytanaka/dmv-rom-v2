@@ -37,6 +37,7 @@ use App\Http\Controllers\LinkDocumentController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberDeletionController;
 use App\Http\Controllers\MemberLanguageController;
 use App\Http\Controllers\MemberListController;
 use App\Http\Controllers\MemberPhotoController;
@@ -46,6 +47,7 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
 use App\Http\Controllers\QualificationController;
+use App\Http\Controllers\RemovePersonalDataController;
 use App\Http\Controllers\ReplyController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SelfServeShiftController;
@@ -97,6 +99,12 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // Remove personal data (#921, ADR-0038 §6): the preview and the typed-count form
+    // (/officer/members/remove-personal-data ↔ /fr/officier/membres/retrait-donnees-personnelles).
+    // Above the Member lists' {list?} route, which would otherwise take the word.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.remove-personal-data'), [RemovePersonalDataController::class, 'show'])
+        ->middleware('auth')->name('officer.members.remove-personal-data');
 
     // The Member lists (#919, ADR-0038 §5): one route, the list a translated word
     // (/officer/members/resigned ↔ /fr/officier/membres/demissionnaires). A bare path opens
@@ -417,6 +425,16 @@ Route::delete('members/{member}/category-changes/{categoryChange}', [CategoryCha
 Route::post('members/{member}/reinstate', [CategoryChangeController::class, 'reinstate'])
     ->middleware(['auth'])
     ->name('members.reinstate');
+
+// Delete and Remove personal data (#921, ADR-0038 §6). Member administration or super-tier, via
+// `MemberPolicy::delete` and `MemberPolicy::removePersonalData` in the Form Requests; each needs a
+// typed confirmation.
+Route::delete('members/{member}', MemberDeletionController::class)
+    ->middleware(['auth'])
+    ->name('members.destroy');
+Route::post('members/remove-personal-data', [RemovePersonalDataController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('members.remove-personal-data');
 
 // The Records Photo action (#922, ADR-0038 §3): upload or replace any Member's photo and set the
 // photo-public flag. Member administration or super-tier, via `MemberPolicy::administer` in the

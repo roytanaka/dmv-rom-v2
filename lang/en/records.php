@@ -152,6 +152,29 @@ return [
         ],
     ],
 
+    // Delete (#921, ADR-0038 §6).
+    'delete' => [
+        'title' => 'Delete :name',
+        'confirm_last_name' => 'Type the last name to confirm',
+        'submit' => 'Delete',
+        'cancel' => 'Cancel',
+        'last_name_mismatch' => 'The last name does not match.',
+        'has_hours' => 'This Member has Hours records and cannot be deleted. Use Remove personal data instead.',
+        'hosts_invitation' => 'This Member hosts an Invitation and cannot be deleted.',
+    ],
+
+    // Remove personal data (#921, ADR-0038 §6).
+    'remove_personal_data' => [
+        'title' => 'Remove personal data',
+        'year' => 'Status date before 1 January of',
+        'preview' => 'Preview',
+        'members' => 'Resigned or Deceased Members: :count',
+        'applicants' => 'Applicants: :count',
+        'confirm_count' => 'Type the number of Members to confirm',
+        'submit' => 'Remove personal data',
+        'count_mismatch' => 'The number does not match.',
+    ],
+
     'board' => [
         'add' => 'Add a board position',
         'none' => 'No board positions yet.',

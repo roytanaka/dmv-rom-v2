@@ -67,6 +67,7 @@ return [
     // Zone C — officer/admin
     // The Member lists (#919, ADR-0038 §5). One route; each list word is keyed below so the
     // segment table carries it. The default list (Current) has a bare path.
+    'officer.members.remove-personal-data' => 'officer/members/remove-personal-data',
     'officer.members' => 'officer/members/{list?}',
     'officer.members.list.current' => 'officer/members/current',
     'officer.members.list.resigned' => 'officer/members/resigned',

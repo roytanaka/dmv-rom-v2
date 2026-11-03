@@ -62,6 +62,35 @@ class MemberPolicy
     }
 
     /**
+     * Who may Delete a Member (#921, ADR-0038 §6): member-administration authority, and only for a
+     * Member on the Past, Deceased or Admin list, the lists that offer it. Super-tier skips this
+     * method via Gate::before, so the Form Request checks {@see deletable()} again.
+     */
+    public function delete(Member $actor, Member $target): bool
+    {
+        return $actor->hasMemberAdminAuthority() && self::deletable($target);
+    }
+
+    /** Whether a Member stands on a list that offers Delete: Past, Deceased or Admin. */
+    public static function deletable(Member $target): bool
+    {
+        return match ($target->category->group()) {
+            CategoryGroup::Deceased, CategoryGroup::Admin => true,
+            CategoryGroup::Resigned => $target->personal_data_removed_at !== null,
+            default => false,
+        };
+    }
+
+    /**
+     * Who may run Remove personal data (#921, ADR-0038 §6): member-administration authority.
+     * Super-tier passes via the Gate::before short-circuit.
+     */
+    public function removePersonalData(Member $actor): bool
+    {
+        return $actor->hasMemberAdminAuthority();
+    }
+
+    /**
      * Who may see the Records-only fields ({@see Member::RECORDS_FIELDS}, ADR-0038 §3): the
      * Member themself and member-administration authority, never a peer or a Group officer.
      */

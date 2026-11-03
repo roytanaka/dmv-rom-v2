@@ -58,6 +58,7 @@ return [
     // Zone C — officer/admin
     // Les listes de membres (#919, ADR-0038 §5). Une seule route ; chaque mot de liste est
     // inscrit ci-dessous pour figurer dans la table des segments.
+    'officer.members.remove-personal-data' => 'officier/membres/retrait-donnees-personnelles',
     'officer.members' => 'officier/membres/{list?}',
     'officer.members.list.current' => 'officier/membres/actuels',
     'officer.members.list.resigned' => 'officier/membres/demissionnaires',

@@ -262,6 +262,7 @@ final class HelpManifest
             new HelpArticle('find-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('what-you-can-see-about-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'members.show'),
             new HelpArticle('member-lists-and-the-member-record', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members', routes: ['officer.members.record']),
+            new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.remove-personal-data'),
 
             new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Published, route: 'news'),
             new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Published, route: 'news'),
