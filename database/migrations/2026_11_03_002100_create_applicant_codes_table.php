@@ -12,7 +12,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('applicant_code', function (Blueprint $table) {
+        Schema::create('applicant_codes', function (Blueprint $table) {
             $table->id();
             $table->string('code', 64)->nullable();
             $table->boolean('published')->default(false);
@@ -24,6 +24,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('applicant_code');
+        Schema::dropIfExists('applicant_codes');
     }
 };

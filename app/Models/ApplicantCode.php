@@ -17,8 +17,6 @@ use Illuminate\Support\Carbon;
  */
 class ApplicantCode extends Model
 {
-    protected $table = 'applicant_code';
-
     protected $fillable = ['code', 'published', 'expires_on'];
 
     protected function casts(): array
