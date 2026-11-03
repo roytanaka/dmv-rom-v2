@@ -21,7 +21,7 @@ import { formatDateOnly } from '@/lib/dates';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import InputError from '@/components/InputError.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { PhEnvelopeSimple, PhMagnifyingGlass } from '@phosphor-icons/vue';
+import { PhEnvelopeSimple, PhListMagnifyingGlass, PhMagnifyingGlass } from '@phosphor-icons/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
@@ -153,6 +153,12 @@ const submitSearch = () => {
             <header class="flex flex-wrap items-center justify-between gap-3">
                 <h1 class="text-rom-ink text-2xl font-semibold">{{ title }}</h1>
                 <div class="flex flex-wrap gap-2">
+                    <Button variant="outline" as-child>
+                        <Link :href="route('officer.members.queries')">
+                            <PhListMagnifyingGlass aria-hidden="true" />
+                            {{ trans('saved_queries.title') }}
+                        </Link>
+                    </Button>
                     <Button v-if="canSendEmail" variant="outline" disabled>
                         <PhEnvelopeSimple aria-hidden="true" />
                         {{ trans('records.send_email') }}

@@ -262,6 +262,8 @@ final class HelpManifest
             new HelpArticle('find-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('what-you-can-see-about-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'members.show'),
             new HelpArticle('member-lists-and-the-member-record', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members', routes: ['officer.members.record']),
+            // Saved queries (#923, ADR-0038 §7): member administration's named filters.
+            new HelpArticle('saved-queries', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.queries', routes: ['officer.members.queries.create', 'officer.members.queries.edit', 'officer.members.queries.run']),
             new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.remove-personal-data'),
 
             new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Published, route: 'news'),

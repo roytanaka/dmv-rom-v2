@@ -68,6 +68,11 @@ return [
     'officer.members.list.donors' => 'officier/membres/donateurs',
     'officer.members.list.applicants' => 'officier/membres/candidats',
     'officer.members.record' => 'officier/membres/dossiers/{member}',
+    // Les requêtes enregistrées (#923, ADR-0038 §7) : la liste, une nouvelle requête, le formulaire et l'exécution.
+    'officer.members.queries' => 'officier/membres/requetes',
+    'officer.members.queries.create' => 'officier/membres/requetes/creer',
+    'officer.members.queries.edit' => 'officier/membres/requetes/{savedQuery}/modifier',
+    'officer.members.queries.run' => 'officier/membres/requetes/{savedQuery}',
     'officer.communications' => 'officier/communications',
     'officer.reports' => 'officier/rapports',
     'officer.flash-messages' => 'officier/messages-eclair',

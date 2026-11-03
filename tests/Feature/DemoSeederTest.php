@@ -30,6 +30,7 @@ use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\Qualification;
+use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
@@ -1788,4 +1789,18 @@ it('writes a Category history that ends at each Member’s Category', function (
 
     $resigned = Member::where('email', 'sven.larsson@dmv.test')->firstOrFail();
     expect($resigned->departure_reason)->not->toBeNull();
+});
+
+it('seeds three Saved queries that each run with results (#923)', function () {
+    $super = Member::where('super_tier', true)->firstOrFail();
+
+    expect(SavedQuery::orderBy('name')->pluck('name')->all())
+        ->toBe(['Active with no email', 'Resigned last year', 'Service awards this year']);
+
+    foreach (SavedQuery::all() as $query) {
+        $this->actingAs($super)
+            ->get(route('officer.members.queries.run', $query))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('count', fn (int $count) => $count > 0));
+    }
 });
