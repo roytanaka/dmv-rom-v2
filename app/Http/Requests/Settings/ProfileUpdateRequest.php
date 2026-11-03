@@ -60,6 +60,8 @@ class ProfileUpdateRequest extends FormRequest
             // specific messages rather than a generic file error. Absent field = no
             // change; the controller only touches photo_path when a file is present.
             'photo' => ['nullable', 'file', new ProfilePhoto],
+            // Whether the photo reaches peers (#922, ADR-0038 §3). Absent = no change.
+            'photo_public' => ['sometimes', 'boolean'],
             // PRD #228: re-authenticate on email change so a stray session can't hijack
             // the account. Rule::when so current_password is validated ONLY on an email
             // change — the form always sends the field (empty), and ConvertEmptyStrings-

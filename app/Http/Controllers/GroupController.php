@@ -296,7 +296,7 @@ class GroupController extends Controller
                 // row (identity, photo, within-Group standing; never an address) drawn
                 // from the already-loaded memberships; the server re-resolves who is
                 // actually reached at send time (§5).
-                'roster' => $this->emailRoster($group),
+                'roster' => $this->emailRoster($group, $request->user()),
             ],
             // UI hints only — the server enforces in the Form Requests. `update`
             // drives the Overview's inline About Us edit and banner picker;
@@ -804,7 +804,7 @@ class GroupController extends Controller
      *
      * @return list<array{id: int, first_name: string, last_name: string, photo: string|null, standing: string}>
      */
-    private function emailRoster(Group $group): array
+    private function emailRoster(Group $group, Member $viewer): array
     {
         return $group->memberships
             ->whereNotIn('status', [MembershipStatus::Resigned, MembershipStatus::Deceased])
@@ -813,7 +813,7 @@ class GroupController extends Controller
                 'id' => $membership->member->id,
                 'first_name' => $membership->member->first_name,
                 'last_name' => $membership->member->last_name,
-                'photo' => $membership->member->photo_url,
+                'photo' => $membership->member->photoUrlFor($viewer),
                 'standing' => $membership->status->value,
             ])
             ->values()

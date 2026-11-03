@@ -67,6 +67,7 @@ class Member extends Authenticatable implements HasLocalePreference
         'education',
         'notes',
         'last_sign_in_at',
+        'photo_public',
     ];
 
     /**
@@ -116,6 +117,7 @@ class Member extends Authenticatable implements HasLocalePreference
         'volunteer_experience',
         'past_experience',
         'education',
+        'photo_public',
     ];
 
     /**
@@ -165,6 +167,7 @@ class Member extends Authenticatable implements HasLocalePreference
             'newsletter_opt_in' => 'boolean',
             'status_date' => 'date',
             'last_sign_in_at' => 'datetime',
+            'photo_public' => 'boolean',
         ];
     }
 
@@ -225,6 +228,22 @@ class Member extends Authenticatable implements HasLocalePreference
                 return $path ? Storage::disk('public')->url($path) : null;
             },
         );
+    }
+
+    /**
+     * The photo URL as the viewer may see it (#922, ADR-0038 §3): null when the Member keeps their
+     * photo from peers and the viewer is not the Member, member administration or the super-tier.
+     * An unhydrated flag reads as the column default, public.
+     */
+    public function photoUrlFor(?Member $viewer): ?string
+    {
+        $url = $this->photo_url;
+
+        if ($url === null || ($this->getAttributes()['photo_public'] ?? true)) {
+            return $url;
+        }
+
+        return $viewer?->can('viewPhoto', $this) ? $url : null;
     }
 
     /**

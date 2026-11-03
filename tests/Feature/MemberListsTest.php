@@ -143,6 +143,8 @@ it('shows name, Category, email, phone and last update on a row, and no more', f
             'email' => 'ada@example.test',
             'phone' => '416-555-0100',
             'last_update' => '2026-03-02',
+            'photo' => null,
+            'photo_public' => true,
         ]));
 });
 

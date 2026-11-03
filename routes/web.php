@@ -36,6 +36,7 @@ use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberListController;
+use App\Http\Controllers\MemberPhotoController;
 use App\Http\Controllers\MemberRecordController;
 use App\Http\Controllers\MoveDocumentController;
 use App\Http\Controllers\NewsController;
@@ -400,6 +401,13 @@ Route::patch('members/{member}', [MemberController::class, 'update'])
 Route::patch('members/{member}/record', [MemberRecordController::class, 'update'])
     ->middleware(['auth'])
     ->name('members.record.update');
+
+// The Records Photo action (#922, ADR-0038 §3): upload or replace any Member's photo and set the
+// photo-public flag. Member administration or super-tier, via `MemberPolicy::administer` in the
+// UpdateMemberPhotoRequest.
+Route::post('members/{member}/photo', MemberPhotoController::class)
+    ->middleware(['auth'])
+    ->name('members.photo.update');
 
 // Grant/revoke super-tier (ADR-0017 §1). A dedicated, separately-gated action —
 // never a field on a member form. Reserved to super-tier itself via the
