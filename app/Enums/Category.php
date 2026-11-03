@@ -88,6 +88,23 @@ enum Category: string
     }
 
     /**
+     * The departed Categories: the Resigned and Deceased groups, the ones Remove personal data
+     * reaches and Past is made of (ADR-0038 §4, §6).
+     *
+     * @return list<self>
+     */
+    public static function departed(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $category) => $category->isDeparted()));
+    }
+
+    /** Whether this Category is in the Resigned or Deceased group. */
+    public function isDeparted(): bool
+    {
+        return in_array($this->group(), [CategoryGroup::Resigned, CategoryGroup::Deceased], true);
+    }
+
+    /**
      * The Category group the Records office lists and filters by (ADR-0038 §4).
      */
     public function group(): CategoryGroup

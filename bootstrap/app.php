@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureMemberIsCurrent;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LocalizeFromReferer;
 use Illuminate\Foundation\Application;
@@ -23,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
+            // Before Inertia shares props, so a departed Member is never served a page.
+            EnsureMemberIsCurrent::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);

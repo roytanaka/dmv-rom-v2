@@ -12,6 +12,7 @@ use App\Support\Notices\StandingChangeNoticeWriter;
 use App\Support\OrgTime;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * The one path that moves a Member's Category (#920, ADR-0038 §4). Each change is a dated
@@ -83,6 +84,7 @@ class ChangeCategory
     /**
      * The newest entry that names a Category becomes the Category, the status date and the
      * reason. With no such entry left the Category stays as it was and the status date clears.
+     * A move out of Current cycles the remember token.
      */
     private function recompute(Member $member): void
     {
@@ -91,11 +93,20 @@ class ChangeCategory
             ->get()
             ->first(fn (CategoryChange $change) => $change->toCategory() !== null);
 
+        $wasCurrent = $member->isCurrent();
+
         $member->forceFill([
             'category' => $newest?->toCategory() ?? $member->category,
             'status_date' => $newest?->date,
             'departure_reason' => $newest?->departure_reason,
-        ])->save();
+        ]);
+
+        // Leaving Current closes access: a Remember me cookie stops matching (ADR-0038 §4).
+        if ($wasCurrent && ! $member->isCurrent()) {
+            $member->setRememberToken(Str::random(60));
+        }
+
+        $member->save();
     }
 
     private function sideEffects(Member $member, Category $previous, Category $new, CarbonInterface $date): void

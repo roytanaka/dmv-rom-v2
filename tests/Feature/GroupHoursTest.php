@@ -141,7 +141,7 @@ it('carries extra interactions on each of the viewer\'s records', function () {
 
 // --- The entry `can` hint ---------------------------------------------------
 
-it('hints entry on for a participating Member and off for a departed one', function () {
+it('hints entry on for a participating Member, and signs a departed one out', function () {
     $group = hoursReadGroup();
 
     $this->actingAs(Member::factory()->create(['category' => Category::Active]))
@@ -150,7 +150,7 @@ it('hints entry on for a participating Member and off for a departed one', funct
 
     $this->actingAs(Member::factory()->create(['category' => Category::Resigned]))
         ->get(route('groups.show', ['group' => $group, 'section' => 'hours']))
-        ->assertInertia(fn (Assert $page) => $page->where('can.enterHours', false));
+        ->assertRedirect(route('login'));
 });
 
 // --- A sub-Group's records are its own --------------------------------------

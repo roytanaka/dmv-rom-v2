@@ -324,10 +324,16 @@ class Member extends Authenticatable implements HasLocalePreference
     public function scopePast(Builder $query): void
     {
         $query->whereNotNull('personal_data_removed_at')
-            ->whereIn('category', array_filter(
-                Category::cases(),
-                fn (Category $category) => in_array($category->group(), [CategoryGroup::Resigned, CategoryGroup::Deceased], true),
-            ));
+            ->whereIn('category', Category::departed());
+    }
+
+    /**
+     * Whether this Member is in the Current Category group: the only standing that may sign in or
+     * stay signed in (ADR-0038 §4).
+     */
+    public function isCurrent(): bool
+    {
+        return $this->category->group() === CategoryGroup::Current;
     }
 
     /**

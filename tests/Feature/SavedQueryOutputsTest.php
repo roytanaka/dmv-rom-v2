@@ -22,7 +22,7 @@ function outputsMemberAdmin(): Member
 {
     $records = Group::factory()->create(['name' => 'Records']);
     GroupStewardship::factory()->stewarding(StewardshipFunction::MemberAdmin)->create(['group_id' => $records->id]);
-    $admin = Member::factory()->create(['category' => Category::Admin, 'first_name' => 'Rita', 'last_name' => 'Records']);
+    $admin = Member::factory()->create(['category' => Category::Active, 'first_name' => 'Rita', 'last_name' => 'Records']);
     $records->memberships()->create(['member_id' => $admin->id, 'status' => MembershipStatus::Full]);
 
     return $admin;
