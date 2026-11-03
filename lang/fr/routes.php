@@ -56,7 +56,26 @@ return [
     'feedback.unfollow' => 'retroaction/abonnes/{follower}/arreter',
 
     // Zone C — officer/admin
-    'officer.members' => 'officier/membres',
+    // Les listes de membres (#919, ADR-0038 §5). Une seule route ; chaque mot de liste est
+    // inscrit ci-dessous pour figurer dans la table des segments.
+    'officer.members.remove-personal-data' => 'officier/membres/retrait-donnees-personnelles',
+    'officer.members' => 'officier/membres/{list?}',
+    'officer.members.list.current' => 'officier/membres/actuels',
+    'officer.members.list.resigned' => 'officier/membres/demissionnaires',
+    'officer.members.list.past' => 'officier/membres/anciens',
+    'officer.members.list.deceased' => 'officier/membres/decedes',
+    'officer.members.list.admin' => 'officier/membres/administration',
+    'officer.members.list.donors' => 'officier/membres/donateurs',
+    'officer.members.list.applicants' => 'officier/membres/candidats',
+    'officer.members.record' => 'officier/membres/dossiers/{member}',
+    // Les requêtes enregistrées (#923, ADR-0038 §7) : la liste, une nouvelle requête, le formulaire et l'exécution.
+    'officer.members.queries' => 'officier/membres/requetes',
+    'officer.members.queries.create' => 'officier/membres/requetes/creer',
+    'officer.members.queries.edit' => 'officier/membres/requetes/{savedQuery}/modifier',
+    'officer.members.queries.run' => 'officier/membres/requetes/{savedQuery}',
+    // Les sorties d'une exécution (#924) : le CSV et la page d'étiquettes Avery 5160.
+    'officer.members.queries.csv' => 'officier/membres/requetes/{savedQuery}/export.csv',
+    'officer.members.queries.labels' => 'officier/membres/requetes/{savedQuery}/etiquettes',
     'officer.communications' => 'officier/communications',
     'officer.reports' => 'officier/rapports',
     'officer.flash-messages' => 'officier/messages-eclair',

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Category;
+use App\Enums\DepartureReason;
 use App\Models\Member;
 
 /*
@@ -24,6 +25,31 @@ it('round-trips a Member identity', function () {
         ->and($fresh->last_name)->toBe('Lovelace')
         ->and($fresh->email)->toBe('ada@example.com')
         ->and($fresh->exists)->toBeTrue();
+});
+
+it('round-trips a departure reason, empty by default', function () {
+    $member = Member::factory()->category(Category::Resigned)->create();
+
+    expect($member->fresh()->departure_reason)->toBeNull();
+
+    $member->update(['departure_reason' => DepartureReason::Moved]);
+
+    expect($member->fresh()->departure_reason)->toBe(DepartureReason::Moved);
+});
+
+it('holds in Past only a Resigned or Deceased group Member whose personal data was removed', function () {
+    $removed = ['personal_data_removed_at' => now()];
+
+    $resigned = Member::factory()->category(Category::Resigned)->create($removed);
+    $withdrawn = Member::factory()->category(Category::Withdrawn)->create($removed);
+    $deceased = Member::factory()->category(Category::Deceased)->create($removed);
+    Member::factory()->category(Category::Resigned)->create();
+    Member::factory()->category(Category::Deceased)->create();
+    Member::factory()->category(Category::Active)->create($removed);
+    Member::factory()->category(Category::Donor)->create($removed);
+
+    expect(Member::past()->pluck('id')->all())
+        ->toEqualCanonicalizing([$resigned->id, $withdrawn->id, $deceased->id]);
 });
 
 it('casts category to the Category enum', function () {

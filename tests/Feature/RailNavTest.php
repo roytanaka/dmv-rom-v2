@@ -305,12 +305,13 @@ it('leads My Groups with the DMV org node — a leaf, absent from Other Groups �
             ->count('rail.otherGroups.items', 4));
 });
 
-it('gives no DMV node in My Groups to a Member whose Category is departed', function () {
+it('gives no DMV node in My Groups to a Member whose Category is not listed', function () {
     seedFourPeerTree();
 
-    // Resigned standing lists in no Directory, so the root grants no node — and with no
-    // belonged Group either, the whole My Groups section is omitted.
-    $member = Member::factory()->category(Category::Resigned)->create();
+    // Provisional standing lists in no Directory, so the root grants no node — and with no
+    // belonged Group either, the whole My Groups section is omitted. (A departed Member is
+    // signed out before any page.)
+    $member = Member::factory()->category(Category::Provisional)->create();
 
     $this->actingAs($member)
         ->get('/dashboard')

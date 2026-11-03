@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AudienceController;
+use App\Http\Controllers\BoardPositionController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingEarnedController;
 use App\Http\Controllers\BookingMailController;
 use App\Http\Controllers\BookingTypeController;
 use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\CategoryChangeController;
 use App\Http\Controllers\DmvSettingsController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
@@ -35,12 +37,20 @@ use App\Http\Controllers\LinkDocumentController;
 use App\Http\Controllers\MailStatusController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberDeletionController;
+use App\Http\Controllers\MemberLanguageController;
+use App\Http\Controllers\MemberListController;
+use App\Http\Controllers\MemberPhotoController;
+use App\Http\Controllers\MemberRecordController;
 use App\Http\Controllers\MoveDocumentController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
 use App\Http\Controllers\QualificationController;
+use App\Http\Controllers\RemovePersonalDataController;
 use App\Http\Controllers\ReplyController;
+use App\Http\Controllers\SavedQueryController;
+use App\Http\Controllers\SavedQueryOutputController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SelfServeShiftController;
 use App\Http\Controllers\ShiftController;
@@ -82,7 +92,7 @@ Route::group([
         // Zone A — personal
         'calendar', 'documents', 'profile', 'renew',
         // Zone C — officer/admin
-        'officer.members', 'officer.communications', 'officer.reports',
+        'officer.communications', 'officer.reports',
         'officer.flash-messages',
     ];
 
@@ -91,6 +101,40 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // Saved queries (#923, ADR-0038 §7): the index, the form and the run, under Officer Tools →
+    // Members (/officer/members/queries ↔ /fr/officier/membres/requetes). Above the lists route,
+    // whose {list?} would take the one-word index. Member administration only (SavedQueryPolicy).
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries'), [SavedQueryController::class, 'index'])
+        ->middleware('auth')->name('officer.members.queries');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.create'), [SavedQueryController::class, 'create'])
+        ->middleware('auth')->name('officer.members.queries.create');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.edit'), [SavedQueryController::class, 'edit'])
+        ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.edit');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.run'), [SavedQueryController::class, 'run'])
+        ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.run');
+    // A run's CSV and Labels (#924): the whole query, as the Legacy app's outputs were.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.csv'), [SavedQueryOutputController::class, 'csv'])
+        ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.csv');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.labels'), [SavedQueryOutputController::class, 'labels'])
+        ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.labels');
+
+    // Remove personal data (#921, ADR-0038 §6): the preview and the typed-count form
+    // (/officer/members/remove-personal-data ↔ /fr/officier/membres/retrait-donnees-personnelles).
+    // Above the Member lists' {list?} route, which would otherwise take the word.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.remove-personal-data'), [RemovePersonalDataController::class, 'show'])
+        ->middleware('auth')->name('officer.members.remove-personal-data');
+
+    // The Member lists (#919, ADR-0038 §5): one route, the list a translated word
+    // (/officer/members/resigned ↔ /fr/officier/membres/demissionnaires). A bare path opens
+    // Current. Register any new one-word officer/members page above this route.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members'), MemberListController::class)
+        ->middleware('auth')->name('officer.members');
+
+    // The Member record (#917, ADR-0038 §3): member administration's page for one Member
+    // (/officer/members/records/1 ↔ /fr/officier/membres/dossiers/1).
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.record'), [MemberRecordController::class, 'show'])
+        ->middleware('auth')->name('officer.members.record');
 
     // DMV Settings (#841, PRD #836, ADR-0036 §3): the super-tier's page for the org's Group
     // structure and Stewardships. Two sections, each a route (/officer/settings ↔
@@ -381,6 +425,65 @@ Route::get('help-status', HelpStatusController::class)
 Route::patch('members/{member}', [MemberController::class, 'update'])
     ->middleware(['auth'])
     ->name('members.update');
+
+// Save the Member record (#917, ADR-0038 §2). Member administration or super-tier, via
+// `MemberPolicy::administer` in the UpdateMemberRecordRequest.
+Route::patch('members/{member}/record', [MemberRecordController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('members.record.update');
+
+// The Category history (#920, ADR-0038 §4): add an entry, remove a wrong one, and Reinstate a
+// Resigned Member. Member administration or super-tier, via the Form Requests.
+Route::post('members/{member}/category-changes', [CategoryChangeController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('members.category-changes.store');
+Route::delete('members/{member}/category-changes/{categoryChange}', [CategoryChangeController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->scopeBindings()
+    ->name('members.category-changes.destroy');
+Route::post('members/{member}/reinstate', [CategoryChangeController::class, 'reinstate'])
+    ->middleware(['auth'])
+    ->name('members.reinstate');
+
+// Saved query writes (#923, ADR-0038 §7): create, edit, rename and delete. Member administration
+// or super-tier, via SavedQueryPolicy in each Form Request.
+Route::middleware('auth')->group(function () {
+    Route::post('saved-queries', [SavedQueryController::class, 'store'])->name('saved-queries.store');
+    Route::put('saved-queries/{savedQuery}', [SavedQueryController::class, 'update'])->name('saved-queries.update');
+    Route::patch('saved-queries/{savedQuery}/name', [SavedQueryController::class, 'rename'])->name('saved-queries.rename');
+    Route::delete('saved-queries/{savedQuery}', [SavedQueryController::class, 'destroy'])->name('saved-queries.destroy');
+    // Email results (#924): a Notice per chosen Member, linking to the run.
+    Route::post('saved-queries/{savedQuery}/email-results', [SavedQueryOutputController::class, 'emailResults'])->name('saved-queries.email-results');
+});
+
+// Delete and Remove personal data (#921, ADR-0038 §6). Member administration or super-tier, via
+// `MemberPolicy::delete` and `MemberPolicy::removePersonalData` in the Form Requests; each needs a
+// typed confirmation.
+Route::delete('members/{member}', MemberDeletionController::class)
+    ->middleware(['auth'])
+    ->name('members.destroy');
+Route::post('members/remove-personal-data', [RemovePersonalDataController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('members.remove-personal-data');
+
+// The Records Photo action (#922, ADR-0038 §3): upload or replace any Member's photo and set the
+// photo-public flag. Member administration or super-tier, via `MemberPolicy::administer` in the
+// UpdateMemberPhotoRequest.
+Route::post('members/{member}/photo', MemberPhotoController::class)
+    ->middleware(['auth'])
+    ->name('members.photo.update');
+
+// The structured lists on the Member record (#918, ADR-0038 §3). Member administration or
+// super-tier, via `MemberPolicy::administer` in each Form Request. A row answers only under its
+// own Member.
+Route::middleware('auth')->scopeBindings()->group(function () {
+    Route::post('members/{member}/languages', [MemberLanguageController::class, 'store'])->name('members.languages.store');
+    Route::patch('members/{member}/languages/{language}', [MemberLanguageController::class, 'update'])->name('members.languages.update');
+    Route::delete('members/{member}/languages/{language}', [MemberLanguageController::class, 'destroy'])->name('members.languages.destroy');
+    Route::post('members/{member}/board-positions', [BoardPositionController::class, 'store'])->name('members.board-positions.store');
+    Route::patch('members/{member}/board-positions/{boardPosition}', [BoardPositionController::class, 'update'])->name('members.board-positions.update');
+    Route::delete('members/{member}/board-positions/{boardPosition}', [BoardPositionController::class, 'destroy'])->name('members.board-positions.destroy');
+});
 
 // Grant/revoke super-tier (ADR-0017 §1). A dedicated, separately-gated action —
 // never a field on a member form. Reserved to super-tier itself via the

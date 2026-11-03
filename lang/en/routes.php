@@ -65,7 +65,26 @@ return [
     'feedback.unfollow' => 'feedback/followers/{follower}/stop',
 
     // Zone C — officer/admin
-    'officer.members' => 'officer/members',
+    // The Member lists (#919, ADR-0038 §5). One route; each list word is keyed below so the
+    // segment table carries it. The default list (Current) has a bare path.
+    'officer.members.remove-personal-data' => 'officer/members/remove-personal-data',
+    'officer.members' => 'officer/members/{list?}',
+    'officer.members.list.current' => 'officer/members/current',
+    'officer.members.list.resigned' => 'officer/members/resigned',
+    'officer.members.list.past' => 'officer/members/past',
+    'officer.members.list.deceased' => 'officer/members/deceased',
+    'officer.members.list.admin' => 'officer/members/admin',
+    'officer.members.list.donors' => 'officer/members/donors',
+    'officer.members.list.applicants' => 'officer/members/applicants',
+    'officer.members.record' => 'officer/members/records/{member}',
+    // Saved queries (#923, ADR-0038 §7): the index, a new query, the form and the run.
+    'officer.members.queries' => 'officer/members/queries',
+    'officer.members.queries.create' => 'officer/members/queries/create',
+    'officer.members.queries.edit' => 'officer/members/queries/{savedQuery}/edit',
+    'officer.members.queries.run' => 'officer/members/queries/{savedQuery}',
+    // A run's outputs (#924): the CSV and the Avery 5160 labels page.
+    'officer.members.queries.csv' => 'officer/members/queries/{savedQuery}/export.csv',
+    'officer.members.queries.labels' => 'officer/members/queries/{savedQuery}/labels',
     'officer.communications' => 'officer/communications',
     'officer.reports' => 'officer/reports',
     'officer.flash-messages' => 'officer/flash-messages',

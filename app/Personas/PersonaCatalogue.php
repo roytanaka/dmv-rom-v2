@@ -223,6 +223,9 @@ final class PersonaCatalogue
             new Persona('sven.larsson@dmv.test', 'Sven', 'Larsson', PersonaGroup::Negative, 'Resigned · Docents', category: Category::Resigned, placements: [
                 new PersonaPlacement(self::DOCENTS, MembershipStatus::Resigned),
             ]),
+            // A non-member standing: no access tier, no Directory listing, no Group,
+            // reached only through the "one Category" Audience (ADR-0038 §4).
+            new Persona('harriet.osei@dmv.test', 'Harriet', 'Osei', PersonaGroup::Negative, 'Donor · non-member', category: Category::Donor),
         ];
     }
 

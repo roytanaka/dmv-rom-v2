@@ -213,7 +213,7 @@ final class HelpManifest
         return [
             // Coming Soon stubs (routes/web.php) — pages that do not exist yet.
             'calendar', 'documents', 'profile', 'renew',
-            'officer.members', 'officer.communications', 'officer.reports',
+            'officer.communications', 'officer.reports',
             'officer.flash-messages',
             // CSV export twins — each rides behind a report page an article covers.
             'groups.hours.report.csv',
@@ -261,6 +261,10 @@ final class HelpManifest
             new HelpArticle('directory', HelpSection::Directory, isOverview: true, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('find-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'directory'),
             new HelpArticle('what-you-can-see-about-a-member', HelpSection::Directory, status: ArticleStatus::Published, route: 'members.show'),
+            new HelpArticle('member-lists-and-the-member-record', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members', routes: ['officer.members.record']),
+            // Saved queries (#923, ADR-0038 §7): member administration's named filters.
+            new HelpArticle('saved-queries', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.queries', routes: ['officer.members.queries.create', 'officer.members.queries.edit', 'officer.members.queries.run']),
+            new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.remove-personal-data'),
 
             new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Published, route: 'news'),
             new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Published, route: 'news'),

@@ -258,7 +258,7 @@ it('refuses every other Member on a Draft', function () use ($fields) {
 
 it('refuses a Host who has lost Full access', function () use ($fields) {
     $invitation = Invitation::factory()->create();
-    $invitation->host->update(['category' => Category::Resigned]);
+    $invitation->host->update(['category' => Category::Provisional]);
 
     $this->actingAs($invitation->host)->patch(route('invitations.update', $invitation), $fields)->assertForbidden();
 });

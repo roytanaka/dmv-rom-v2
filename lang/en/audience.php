@@ -34,6 +34,9 @@ return [
     'invitation_no_reply' => 'Guests with No reply',
     'invitation_accepted' => 'Accepted Guests',
 
+    // Records office Audiences (ADR-0038 §5, §7). A Saved query's label is its name, as authored.
+    'member_list' => ':list list',
+
     // The edited-Audience suffix, appended when the picker removed anyone
     // (ADR-0024 §6): the Audience name stays and the count of removals is named.
     'edited' => ':label, :count removed',
@@ -43,5 +46,6 @@ return [
     // pickable is named rather than left blank. 'not_member' on a non-root Group the viewer
     // has not joined; 'not_org_wide_sender' on the root, whose Audiences are org-wide.
     'not_member' => 'Join this group to email its members.',
+    'not_member_admin' => 'Only member administration can email a Records list.',
     'not_org_wide_sender' => 'Only Chairs and members of the Executive, Records, and Awards groups can email all of the DMV.',
 ];

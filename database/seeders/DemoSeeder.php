@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Enums\Category;
+use App\Enums\CategoryGroup;
+use App\Enums\DepartureReason;
 use App\Enums\DocumentKind;
 use App\Enums\DocumentVisibility;
 use App\Enums\GroupLogo;
@@ -31,6 +33,7 @@ use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\News;
 use App\Models\Qualification;
+use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
 use App\Models\ShiftKind;
@@ -483,6 +486,9 @@ class DemoSeeder extends Seeder
 
         $this->roster();
         $this->bulkRoster();
+        $this->memberRecords();
+        $this->personaRecordLists();
+        $this->savedQueries();
         $this->prunePhotoFiles();
         $this->objects();
         $this->scheduling();
@@ -651,6 +657,224 @@ class DemoSeeder extends Seeder
     {
         $pool = $this->memberPool();
         $this->distribute($pool);
+    }
+
+    /**
+     * Fill the Member record's fields (#917, ADR-0038 §3) on every Member, personas and bulk
+     * roster alike, so the Records pages are never empty. Derived from the email hash, so a
+     * reseed lands the same values.
+     */
+    private function memberRecords(): void
+    {
+        $year = (int) now()->year;
+        $fees = ['Active', 'Active-SR', 'Active-ST', 'Sust', 'LOA'];
+        $mentors = ['Alex Morgan', 'Sam Chen', 'Priya Nair', 'Louise Tremblay'];
+
+        Member::query()->orderBy('id')->each(function (Member $member) use ($year, $fees, $mentors): void {
+            $hash = $this->hash((string) $member->email);
+            $entryYear = $year - 2 - $hash % 26;
+            // Awards up to last year, so this year's are still to come and the next award year
+            // lands this year for about one Member in five (the Saved query demo, #923).
+            $awards = (int) floor(($year - 1 - $entryYear) / 5);
+            $lastAwardYear = $awards > 0 ? $entryYear + $awards * 5 : null;
+            $paidThrough = $hash % 4 === 0 ? $year - 1 : $year;
+            $lifetime = $hash % 13 === 0;
+
+            $member->forceFill([
+                'membership_number' => sprintf('R%06d', $hash % 1000000),
+                'membership_expiry' => $lifetime ? null : sprintf('%d-%02d-01', $year + 1 + $hash % 2, 1 + $hash % 12),
+                'membership_lifetime' => $lifetime,
+                'amount_paid' => 25,
+                'paid_through_year' => $paidThrough,
+                'fee_category' => $fees[$hash % count($fees)],
+                'entry_year' => $entryYear,
+                'service_awards' => array_map(fn (int $step) => ($step * 5).' yr', $awards > 0 ? range(1, min($awards, 12)) : []),
+                'last_award_year' => $lastAwardYear,
+                'next_award_year' => ($lastAwardYear ?? $entryYear) + 5,
+                'emergency_contact' => $mentors[($hash + 1) % count($mentors)],
+                'emergency_contact_number' => sprintf('416-555-%04d', $hash % 10000),
+                'newsletter_opt_in' => $hash % 5 !== 0,
+                'status_date' => sprintf('%d-09-01', $entryYear),
+                'code_of_conduct_year' => $paidThrough,
+                'renewal_year' => $paidThrough,
+                'renewal_status' => 'Active',
+                'renewal_placements' => 'Current Group placements confirmed.',
+                'mentor_name' => $mentors[$hash % count($mentors)],
+                'volunteer_experience' => 'Community museum guide and school library helper.',
+                'past_experience' => 'Retired from a career in teaching.',
+                'education' => 'BA, University of Toronto.',
+                'notes' => sprintf("%d-03-15 DMV Records: Renewal received.\n%d-09-01 DMV Records: Welcome package sent.", $paidThrough, $entryYear),
+            ])->saveQuietly();
+
+            $this->categoryHistory($member, $entryYear);
+        });
+    }
+
+    /**
+     * Write a Category history (#920, ADR-0038 §4) that ends at the Member's seeded Category, so
+     * the record is never empty: Provisional on entry, Active a year on, then the current
+     * standing when it is neither. The newest entry sets the status date, as the action would.
+     * Rewritten on each seed, so a reseed lands the same rows.
+     */
+    private function categoryHistory(Member $member, int $entryYear): void
+    {
+        $entries = [[Category::Provisional, sprintf('%d-09-01', $entryYear)]];
+
+        if (! in_array($member->category, [Category::Provisional, Category::PreActive], true)) {
+            $entries[] = [Category::Active, sprintf('%d-09-01', $entryYear + 1)];
+        }
+
+        if (! in_array($member->category, [Category::Active, Category::Provisional], true)) {
+            $entries[] = [$member->category, OrgTime::now()->subMonth()->toDateString()];
+        }
+
+        $reason = in_array($member->category, [Category::Resigned, Category::Withdrawn], true)
+            ? DepartureReason::Moved
+            : null;
+
+        $member->categoryChanges()->delete();
+
+        foreach ($entries as [$category, $date]) {
+            $member->categoryChanges()->create([
+                'category' => $category->value,
+                'date' => $date,
+                'departure_reason' => $category === $member->category ? $reason : null,
+            ]);
+        }
+
+        $member->forceFill(['status_date' => end($entries)[1], 'departure_reason' => $reason])->saveQuietly();
+    }
+
+    /**
+     * Give a few Personas the Member record's structured lists (#918, ADR-0038 §3, §10):
+     * languages, a Service award and a board position, whatever the hash dealt them above.
+     */
+    private function personaRecordLists(): void
+    {
+        $year = (int) now()->year;
+
+        $lists = [
+            PersonaCatalogue::CHAIR_EMAIL => [
+                'languages' => [['en', true, true, true], ['fr', true, true, false]],
+                'position' => ['Past President', sprintf('%d-%d', $year - 6, $year - 4)],
+            ],
+            PersonaCatalogue::SCHEDULER_EMAIL => [
+                'languages' => [['en', true, true, true], ['asl', true, false, false]],
+                'position' => ['Treasurer', sprintf('%d-%d', $year - 3, $year - 1)],
+            ],
+            PersonaCatalogue::MEMBER_EMAIL => [
+                'languages' => [['en', true, true, true], ['Italian', true, false, false]],
+                'position' => ['Member at Large', (string) ($year - 2)],
+            ],
+        ];
+
+        foreach ($lists as $email => $list) {
+            $member = Member::where('email', $email)->firstOrFail();
+
+            foreach ($list['languages'] as [$code, $speaks, $reads, $writes]) {
+                $member->languages()->updateOrCreate(
+                    ['language_code' => $code],
+                    ['speaks' => $speaks, 'reads' => $reads, 'writes' => $writes],
+                );
+            }
+
+            [$position, $years] = $list['position'];
+            $member->boardPositions()->updateOrCreate(['position' => $position], ['years' => $years]);
+
+            $member->forceFill([
+                'entry_year' => $year - 11,
+                'service_awards' => ['5 yr', '10 yr'],
+                'last_award_year' => $year - 1,
+                'next_award_year' => $year + 4,
+            ])->saveQuietly();
+        }
+    }
+
+    /**
+     * Three Saved queries (#923, ADR-0038 §7) as the Records office keeps them, and the two Members
+     * that give the second and third a row: a Current Member with no email and one who resigned
+     * last year. Keyed on the query name and the Member's name, so a reseed heals them.
+     */
+    private function savedQueries(): void
+    {
+        $year = (int) OrgTime::now()->year;
+
+        $this->recordsDemoMember('Marguerite', 'Okonkwo-Bell', Category::Active, [
+            [Category::Provisional, sprintf('%d-09-01', $year - 8)],
+            [Category::Active, sprintf('%d-09-01', $year - 7)],
+        ]);
+        $this->recordsDemoMember('Theodore', 'Vasquez-Lin', Category::Resigned, [
+            [Category::Provisional, sprintf('%d-09-01', $year - 12)],
+            [Category::Active, sprintf('%d-09-01', $year - 11)],
+            [Category::Resigned, sprintf('%d-06-15', $year - 1)],
+        ], 'theodore.vasquez-lin@dmv.test');
+
+        $queries = [
+            'Service awards this year' => [
+                'clauses' => [['source' => 'member', 'field' => 'next_award_year', 'operator' => 'is', 'value' => (string) $year]],
+                'output_columns' => ['first_name', 'last_name', 'entry_year', 'last_award_year', 'next_award_year', 'service_awards'],
+            ],
+            'Active with no email' => [
+                'clauses' => [
+                    ['source' => 'member', 'field' => 'category', 'operator' => 'is', 'value' => Category::Active->value],
+                    ['source' => 'member', 'field' => 'email', 'operator' => 'is', 'value' => ''],
+                ],
+                'output_columns' => ['first_name', 'last_name', 'phone', 'address_city'],
+            ],
+            'Resigned last year' => [
+                'clauses' => [
+                    ['source' => 'member', 'field' => 'category_group', 'operator' => 'is', 'value' => CategoryGroup::Resigned->value],
+                    ['source' => 'member', 'field' => 'status_date', 'operator' => 'greater_than', 'value' => sprintf('%d-12-31', $year - 2)],
+                    ['source' => 'member', 'field' => 'status_date', 'operator' => 'less_than', 'value' => sprintf('%d-01-01', $year)],
+                ],
+                'output_columns' => ['first_name', 'last_name', 'category', 'departure_reason', 'status_date', 'category_history'],
+            ],
+        ];
+
+        foreach ($queries as $name => $query) {
+            SavedQuery::updateOrCreate(['name' => $name], [...$query, 'conjunction' => 'and', 'sort' => 'last_name']);
+        }
+    }
+
+    /**
+     * A Member the Saved query demo needs, with a Category history ending at their Category.
+     *
+     * @param  list<array{0: Category, 1: string}>  $history
+     */
+    private function recordsDemoMember(string $first, string $last, Category $category, array $history, ?string $email = null): void
+    {
+        $member = Member::firstOrNew(['first_name' => $first, 'last_name' => $last]);
+        $statusDate = end($history)[1];
+        $entryYear = (int) substr($history[0][1], 0, 4);
+        $reason = $category === Category::Resigned ? DepartureReason::Moved : null;
+
+        $member->forceFill([
+            'email' => $email,
+            'password' => $member->password ?? Hash::make('password'),
+            'category' => $category,
+            'phone' => '416-555-0199',
+            'address_city' => 'Toronto',
+            'membership_number' => sprintf('R9%05d', $this->hash($first.$last) % 100000),
+            'entry_year' => $entryYear,
+            'paid_through_year' => (int) substr($statusDate, 0, 4),
+            'fee_category' => 'Active',
+            'next_award_year' => $entryYear + 10,
+            'emergency_contact' => 'Sam Chen',
+            'emergency_contact_number' => '416-555-0198',
+            'notes' => sprintf('%s DMV Records: Category history entered.', $statusDate),
+            'status_date' => $statusDate,
+            'departure_reason' => $reason,
+        ])->save();
+
+        $member->categoryChanges()->delete();
+
+        foreach ($history as [$entry, $date]) {
+            $member->categoryChanges()->create([
+                'category' => $entry->value,
+                'date' => $date,
+                'departure_reason' => $entry === $category ? $reason : null,
+            ]);
+        }
     }
 
     /**
