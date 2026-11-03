@@ -1757,6 +1757,17 @@ it('fills the Member record on the personas and the bulk roster', function () {
     expect(Member::whereNull('membership_number')->count())->toBe(0);
 });
 
+it('gives a few Personas languages, a Service award and a board position (#918)', function () {
+    foreach ([PersonaCatalogue::CHAIR_EMAIL, PersonaCatalogue::SCHEDULER_EMAIL, PersonaCatalogue::MEMBER_EMAIL] as $email) {
+        $member = Member::where('email', $email)->firstOrFail();
+
+        expect($member->languages()->count())->toBe(2)
+            ->and($member->boardPositions()->count())->toBe(1)
+            ->and($member->service_awards)->not->toBeEmpty()
+            ->and($member->next_award_year)->toBe($member->last_award_year + 5);
+    }
+});
+
 it('keeps the booking types idempotent across a reseed', function () {
     $before = BookingType::count();
 

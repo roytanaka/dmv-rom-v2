@@ -21,6 +21,8 @@ return [
         'emergency' => 'Personne à joindre en cas d’urgence',
         'renewal' => 'Renouvellement',
         'background' => 'Parcours',
+        'languages' => 'Langues',
+        'board' => 'Postes au conseil',
         'notes' => 'Notes',
         'groups' => 'Adhésions et rôles',
     ],
@@ -71,4 +73,36 @@ return [
     'paid_through_add_year' => 'Ajouter une année au paiement',
     'award_years' => ':years ans',
     'no_notes' => 'Aucune note pour l’instant.',
+
+    'add' => 'Ajouter',
+    'remove' => 'Retirer',
+    'add_award' => 'Ajouter un prix',
+    'remove_award' => 'Retirer :award',
+    'no_awards' => 'Aucun prix pour l’instant.',
+
+    'languages' => [
+        'add' => 'Ajouter une langue',
+        'none' => 'Aucune langue pour l’instant.',
+        'language' => 'Langue',
+        'other_name' => 'Autre langue',
+        'speaks' => 'Parle',
+        'reads' => 'Lit',
+        'writes' => 'Écrit',
+        'remove' => 'Retirer :language',
+        'name' => [
+            'en' => 'Anglais',
+            'fr' => 'Français',
+            'asl' => 'American Sign Language',
+            'lsq' => 'Langue des signes québécoise',
+            'other' => 'Autre',
+        ],
+    ],
+
+    'board' => [
+        'add' => 'Ajouter un poste au conseil',
+        'none' => 'Aucun poste au conseil pour l’instant.',
+        'position' => 'Poste',
+        'years' => 'Années',
+        'remove' => 'Retirer :position',
+    ],
 ];
