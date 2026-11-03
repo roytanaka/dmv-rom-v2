@@ -14,8 +14,8 @@ use Inertia\Response;
 
 /**
  * The public application form (#930, ADR-0038 §8, §14.6). A visitor types the Applicant code on
- * the sign-in page; the right code, while published and unexpired, opens the form and is kept in
- * the session as proof for the store. A wrong one is refused with the number to call, and five
+ * the sign-in page, which POSTs it so it never sits in a URL or a log; the right code, while
+ * published and unexpired, is kept in the session as proof for the form and the store. A wrong one is refused with the number to call, and five
  * wrong tries from one address lock the check out as the sign-in form's do. Nothing is written
  * until the store validates; the application is then spent, and the visitor sees the confirmation.
  */
@@ -36,15 +36,20 @@ class ApplicationController extends Controller
             return Inertia::render('apply/Received');
         }
 
-        $typed = $request->query('code');
-
-        if (is_string($typed)) {
-            $this->check($request, $typed);
-        } elseif (! self::codeAccepted($request)) {
+        if (! self::codeAccepted($request)) {
             return redirect()->route('login');
         }
 
         return Inertia::render('apply/Form');
+    }
+
+    /** Check the typed code and open the form, or send the visitor back with the error. */
+    public function code(Request $request): RedirectResponse
+    {
+        $typed = $request->input('code');
+        $this->check($request, is_string($typed) ? $typed : '');
+
+        return redirect()->route('apply');
     }
 
     public function store(StoreApplicationRequest $request, RecordApplication $action): RedirectResponse

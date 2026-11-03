@@ -8,6 +8,7 @@
 return [
     'dashboard' => 'dashboard',
     'apply' => 'apply',
+    'apply_code' => 'apply/code',
 
     // Zone A — personal
     'calendar' => 'calendar',

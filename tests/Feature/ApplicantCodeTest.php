@@ -150,15 +150,24 @@ it('offers the code entry on the sign-in page only while published and unexpired
 it('shows the form for the right code, in either case', function () {
     openCode('ROM2026');
 
-    $this->get('/apply?code=rom2026')
+    $this->post('/apply/code', ['code' => 'rom2026'])->assertRedirect('/apply');
+
+    $this->get('/apply')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('apply/Form'));
+});
+
+it('takes the code only in a POST body, never from the URL', function () {
+    openCode('ROM2026');
+
+    $this->get('/apply?code=ROM2026')->assertRedirect('/login');
+    $this->get('/apply')->assertRedirect('/login');
 });
 
 it('refuses a wrong code with the number to call, and creates nothing', function () {
     openCode('ROM2026');
 
-    $this->from('/login')->get('/apply?code=WRONG')
+    $this->from('/login')->post('/apply/code', ['code' => 'WRONG'])
         ->assertRedirect('/login')
         ->assertSessionHasErrors(['code' => __('apply.wrong_code', ['phone' => '(416) 586-8097'])]);
 
@@ -168,18 +177,18 @@ it('refuses a wrong code with the number to call, and creates nothing', function
 it('refuses the right code once the application is closed', function () {
     openCode('ROM2026', OrgTime::today()->subDay()->toDateString());
 
-    $this->from('/login')->get('/apply?code=ROM2026')->assertRedirect('/login')->assertSessionHasErrors('code');
+    $this->from('/login')->post('/apply/code', ['code' => 'ROM2026'])->assertRedirect('/login')->assertSessionHasErrors('code');
 });
 
 it('throttles the sixth try from one address', function () {
     openCode('ROM2026');
 
     foreach (range(1, 5) as $try) {
-        $this->from('/login')->get('/apply?code=WRONG'.$try)
+        $this->from('/login')->post('/apply/code', ['code' => 'WRONG'.$try])
             ->assertSessionHasErrors(['code' => __('apply.wrong_code', ['phone' => '(416) 586-8097'])]);
     }
 
-    $this->from('/login')->get('/apply?code=ROM2026')
+    $this->from('/login')->post('/apply/code', ['code' => 'ROM2026'])
         ->assertRedirect('/login')
         ->assertSessionHasErrors('code');
     expect(session('errors')->first('code'))->not->toBe(__('apply.wrong_code', ['phone' => '(416) 586-8097']));
@@ -194,7 +203,7 @@ it('sends a visitor without the code back to the sign-in page', function () {
 it('keeps a signed-in Member off the guest pages', function () {
     openCode('ROM2026');
 
-    $this->actingAs(Member::factory()->create())->get('/apply?code=ROM2026')->assertRedirect();
+    $this->actingAs(Member::factory()->create())->post('/apply/code', ['code' => 'ROM2026'])->assertRedirect();
     expect(Applicant::count())->toBe(0);
 });
 
@@ -202,7 +211,7 @@ it('keeps a signed-in Member off the guest pages', function () {
 
 it('stores a New, self-entered Applicant with its languages and shows the confirmation', function () {
     openCode('ROM2026');
-    $this->get('/apply?code=ROM2026')->assertOk();
+    $this->post('/apply/code', ['code' => 'ROM2026'])->assertRedirect('/apply');
 
     $this->post('/apply', publicApplication())->assertRedirect('/apply');
 
@@ -232,7 +241,7 @@ it('stores a New, self-entered Applicant with its languages and shows the confir
 
 it('creates nothing when a required field is missing or the phone is short', function (string $field, mixed $value) {
     openCode('ROM2026');
-    $this->get('/apply?code=ROM2026');
+    $this->post('/apply/code', ['code' => 'ROM2026']);
 
     $this->post('/apply', publicApplication([$field => $value]))->assertSessionHasErrors($field);
 
@@ -248,7 +257,7 @@ it('creates nothing when a required field is missing or the phone is short', fun
 
 it('takes one other language at most, and none of the office fields', function () {
     openCode('ROM2026');
-    $this->get('/apply?code=ROM2026');
+    $this->post('/apply/code', ['code' => 'ROM2026']);
 
     $this->post('/apply', publicApplication(['languages' => [
         ['language_code' => 'Japanese', 'speaks' => true],
@@ -268,11 +277,11 @@ it('refuses a store without the code, or once the code is withdrawn', function (
 
     $this->post('/apply', publicApplication())->assertForbidden();
 
-    $this->get('/apply?code=ROM2026');
+    $this->post('/apply/code', ['code' => 'ROM2026']);
     $row->forceFill(['published' => false])->save();
     $this->post('/apply', publicApplication())->assertForbidden();
 
-    $this->get('/apply?code=ROM2026');
+    $this->post('/apply/code', ['code' => 'ROM2026']);
     expect(Applicant::count())->toBe(0);
 });
 
@@ -280,7 +289,8 @@ it('serves the form and the store at their French addresses', function () {
     openCode('ROM2026');
 
     $this->withLocaleRoutes('fr', function () {
-        $this->get('/fr/postuler?code=ROM2026')
+        $this->post('/fr/postuler/code', ['code' => 'ROM2026'])->assertRedirect('/fr/postuler');
+        $this->get('/fr/postuler')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('apply/Form')->where('locale', 'fr'));
 

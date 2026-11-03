@@ -8,6 +8,7 @@
 return [
     'dashboard' => 'tableau-de-bord',
     'apply' => 'postuler',
+    'apply_code' => 'postuler/code',
 
     // Zone A — personal
     'calendar' => 'calendrier',
