@@ -77,4 +77,35 @@ return [
         'view' => 'Ouvrir les résultats',
         'footer' => 'Le lien s’ouvre après connexion, pour les membres du bureau des dossiers.',
     ],
+    // Les avis d'accueil (#931, ADR-0038 §8) : le statut d'un candidat a changé. :applicant,
+    // :mentor et :group tels que saisis.
+    'applicant' => [
+        'from' => 'Adhésion DMV',
+        'mentor' => 'Mentor : :mentor',
+        'placement' => 'Affectation : :group',
+        'reason' => 'Raison : :reason',
+        'view_member' => 'Ouvrir le dossier du membre',
+        'view_applicant' => 'Ouvrir le dossier du candidat',
+        'footer' => 'Les liens s’ouvrent après connexion, pour les personnes qui peuvent voir les candidats.',
+    ],
+    'applicant_accepted' => [
+        'subject' => 'Nouveau membre provisoire DMV : :applicant',
+        'heading' => 'Nouveau membre provisoire',
+        'intro' => ':applicant a été accepté et est maintenant membre provisoire.',
+    ],
+    'applicant_placed' => [
+        'subject' => 'Affectation d’un candidat : :applicant',
+        'heading' => 'Candidat affecté',
+        'intro' => ':applicant a été affecté à :group.',
+    ],
+    'applicant_yellow_card' => [
+        'subject' => 'Carte jaune complétée : :applicant',
+        'heading' => 'Carte jaune complétée',
+        'intro' => ':applicant a complété la carte jaune et est prêt à passer au statut actif.',
+    ],
+    'applicant_incomplete' => [
+        'subject' => 'Candidat retiré : :applicant',
+        'heading' => 'Candidat marqué incomplet',
+        'intro' => ':applicant a été marqué incomplet. Son dossier de membre devrait être retiré.',
+    ],
 ];

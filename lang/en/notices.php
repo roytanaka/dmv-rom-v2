@@ -76,4 +76,35 @@ return [
         'view' => 'Open the results',
         'footer' => 'The link opens after you sign in, for members of the Records office.',
     ],
+    // The intake Notices (#931, ADR-0038 §8): an Applicant's status moved. :applicant, :mentor and
+    // :group are as-authored.
+    'applicant' => [
+        'from' => 'DMV Membership',
+        'mentor' => 'Mentor: :mentor',
+        'placement' => 'Placement: :group',
+        'reason' => 'Reason: :reason',
+        'view_member' => 'Open the Member record',
+        'view_applicant' => 'Open the Applicant record',
+        'footer' => 'The links open after you sign in, for those who may see Applicants.',
+    ],
+    'applicant_accepted' => [
+        'subject' => 'New DMV Provisional Member: :applicant',
+        'heading' => 'New Provisional Member',
+        'intro' => ':applicant has been accepted and is now a Provisional Member.',
+    ],
+    'applicant_placed' => [
+        'subject' => 'Applicant placement: :applicant',
+        'heading' => 'Applicant placed',
+        'intro' => ':applicant has been placed in :group.',
+    ],
+    'applicant_yellow_card' => [
+        'subject' => 'Yellow card completed: :applicant',
+        'heading' => 'Yellow card completed',
+        'intro' => ':applicant has completed the yellow card and is ready to go Active.',
+    ],
+    'applicant_incomplete' => [
+        'subject' => 'Applicant withdrawn: :applicant',
+        'heading' => 'Applicant marked Incomplete',
+        'intro' => ':applicant has been marked Incomplete. Their Member record should be withdrawn.',
+    ],
 ];

@@ -66,6 +66,7 @@ return [
     'entered_by_applicant' => 'Entered by the applicant',
     'unassigned' => 'Unassigned',
     'duplicate_email' => 'A Member already has this email.',
+    'email_taken' => 'Member :member already has this email. Match the name to theirs to update that Member, or change the email.',
 
     'languages' => [
         'title' => 'Languages',

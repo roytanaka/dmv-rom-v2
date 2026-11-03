@@ -265,6 +265,9 @@ final class HelpManifest
             // Saved queries (#923, ADR-0038 §7): member administration's named filters.
             new HelpArticle('saved-queries', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.queries', routes: ['officer.members.queries.create', 'officer.members.queries.edit', 'officer.members.queries.run']),
             new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.remove-personal-data'),
+            // Running intake (#931, spec #914, ADR-0038 §8): the Membership Group's Applicants. No role
+            // token names the `applicants` holder, so the article carries no badge.
+            new HelpArticle('running-intake', HelpSection::Directory, status: ArticleStatus::Draft, route: 'officer.members.list.applicants', routes: ['officer.members.applicants.show']),
 
             new HelpArticle('news', HelpSection::News, isOverview: true, status: ArticleStatus::Published, route: 'news'),
             new HelpArticle('read-news', HelpSection::News, status: ArticleStatus::Published, route: 'news'),

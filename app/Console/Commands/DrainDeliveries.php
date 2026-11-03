@@ -7,6 +7,7 @@ use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\InvitationState;
 use App\Enums\Reply;
+use App\Mail\ApplicantNotice;
 use App\Mail\BookingMail;
 use App\Mail\BroadcastMail;
 use App\Mail\BroadcastSenderCopy;
@@ -360,6 +361,7 @@ class DrainDeliveries extends Command
             InvitationFull::NOTICE_TYPE => InvitationFull::fromSnapshot($payload),
             MenteeActivated::NOTICE_TYPE => MenteeActivated::fromSnapshot($payload),
             SavedQueryResults::NOTICE_TYPE => SavedQueryResults::fromSnapshot($payload),
+            ApplicantNotice::ACCEPTED, ApplicantNotice::PLACED, ApplicantNotice::YELLOW_CARD, ApplicantNotice::INCOMPLETE => ApplicantNotice::fromSnapshot($payload),
             default => SignUpCancelled::fromSnapshot($payload),
         };
     }

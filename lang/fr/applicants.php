@@ -66,6 +66,7 @@ return [
     'entered_by_applicant' => 'Saisi par le candidat',
     'unassigned' => 'Non assigné',
     'duplicate_email' => 'Un membre a déjà ce courriel.',
+    'email_taken' => 'Le membre :member a déjà ce courriel. Faites correspondre le nom au sien pour mettre ce membre à jour, ou changez le courriel.',
 
     'languages' => [
         'title' => 'Langues',
