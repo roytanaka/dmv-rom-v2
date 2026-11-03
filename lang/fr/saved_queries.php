@@ -42,6 +42,28 @@ return [
     'labels' => 'Étiquettes',
     'email_results' => 'Envoyer les résultats',
 
+    // Les sorties d'une exécution (#924) : la page d'étiquettes et la boîte « Envoyer les résultats ».
+    'labels_page' => [
+        'title' => 'Étiquettes : :query',
+        'back' => 'Retour aux résultats',
+        'printer' => 'Imprimante',
+        'print' => 'Imprimer',
+        'sheet' => 'Feuille :number',
+        'printers' => [
+            'xerox' => 'Imprimante Xerox',
+            'inkjet' => 'Imprimante à jet d’encre',
+            'laser' => 'Imprimante laser',
+        ],
+    ],
+    'email_dialog' => [
+        'title' => 'Envoyer les résultats',
+        'recipients' => 'Destinataires',
+        'note' => 'Note',
+        'cancel' => 'Annuler',
+        'send' => 'Envoyer',
+        'sent' => 'Les résultats sont en route.',
+    ],
+
     'yes' => 'Oui',
     'no' => 'Non',
     'blank' => 'vide',

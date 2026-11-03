@@ -28,6 +28,16 @@ A source is the Member record, Memberships, board positions or the Category hist
 2. Read the count and the conditions at the top.
 3. Check the table. Every row starts with its box ticked.
 
+## Export, print labels or email the results
+
+Each of these covers every Member the query lists, ticked or not.
+
+1. Select **CSV** to download the table's columns as a spreadsheet file.
+2. Select **Labels** to open the mailing labels, thirty to a sheet of Avery 5160 labels. Choose your **Printer**, then select **Print**. In the print window, set the margins to none.
+3. Select **Email results** to send the query to colleagues. Pick each Member under **Send to**, type a **Note** if you like, then select **Send**. Each gets an email with a link to the results, which opens only for the Records office after sign-in.
+
+> **Note:** A label shows the country only for an address outside Canada.
+
 ## Change, rename or delete a query
 
 1. Select **Edit** to change the conditions, columns or sort, then select **Save**.

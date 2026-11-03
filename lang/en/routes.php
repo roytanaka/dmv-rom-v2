@@ -82,6 +82,9 @@ return [
     'officer.members.queries.create' => 'officer/members/queries/create',
     'officer.members.queries.edit' => 'officer/members/queries/{savedQuery}/edit',
     'officer.members.queries.run' => 'officer/members/queries/{savedQuery}',
+    // A run's outputs (#924): the CSV and the Avery 5160 labels page.
+    'officer.members.queries.csv' => 'officer/members/queries/{savedQuery}/export.csv',
+    'officer.members.queries.labels' => 'officer/members/queries/{savedQuery}/labels',
     'officer.communications' => 'officer/communications',
     'officer.reports' => 'officer/reports',
     'officer.flash-messages' => 'officer/flash-messages',

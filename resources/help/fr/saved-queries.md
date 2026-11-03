@@ -28,6 +28,16 @@ Une source est le dossier du membre, les adhésions, les postes au conseil ou l'
 2. Lisez le nombre et les conditions en haut de la page.
 3. Vérifiez le tableau. Chaque ligne commence cochée.
 
+## Exporter, imprimer des étiquettes ou envoyer les résultats
+
+Chacune de ces actions porte sur tous les membres de la requête, cochés ou non.
+
+1. Sélectionnez **CSV** pour télécharger les colonnes du tableau dans un fichier de tableur.
+2. Sélectionnez **Étiquettes** pour ouvrir les étiquettes postales, trente par feuille d'étiquettes Avery 5160. Choisissez votre **Imprimante**, puis sélectionnez **Imprimer**. Dans la fenêtre d'impression, réglez les marges sur aucune.
+3. Sélectionnez **Envoyer les résultats** pour transmettre la requête à des collègues. Choisissez chaque membre sous **Destinataires**, ajoutez une **Note** au besoin, puis sélectionnez **Envoyer**. Chacun reçoit un courriel avec un lien vers les résultats, qui ne s'ouvre qu'au bureau des dossiers, après connexion.
+
+> **Remarque :** Une étiquette n'affiche le pays que pour une adresse hors du Canada.
+
 ## Modifier, renommer ou supprimer une requête
 
 1. Sélectionnez **Modifier** pour changer les conditions, les colonnes ou le tri, puis sélectionnez **Enregistrer**.

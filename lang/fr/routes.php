@@ -73,6 +73,9 @@ return [
     'officer.members.queries.create' => 'officier/membres/requetes/creer',
     'officer.members.queries.edit' => 'officier/membres/requetes/{savedQuery}/modifier',
     'officer.members.queries.run' => 'officier/membres/requetes/{savedQuery}',
+    // Les sorties d'une exécution (#924) : le CSV et la page d'étiquettes Avery 5160.
+    'officer.members.queries.csv' => 'officier/membres/requetes/{savedQuery}/export.csv',
+    'officer.members.queries.labels' => 'officier/membres/requetes/{savedQuery}/etiquettes',
     'officer.communications' => 'officier/communications',
     'officer.reports' => 'officier/rapports',
     'officer.flash-messages' => 'officier/messages-eclair',

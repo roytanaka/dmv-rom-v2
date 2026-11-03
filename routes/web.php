@@ -50,6 +50,7 @@ use App\Http\Controllers\QualificationController;
 use App\Http\Controllers\RemovePersonalDataController;
 use App\Http\Controllers\ReplyController;
 use App\Http\Controllers\SavedQueryController;
+use App\Http\Controllers\SavedQueryOutputController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SelfServeShiftController;
 use App\Http\Controllers\ShiftController;
@@ -112,6 +113,11 @@ Route::group([
         ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.edit');
     Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.run'), [SavedQueryController::class, 'run'])
         ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.run');
+    // A run's CSV and Labels (#924): the whole query, as the Legacy app's outputs were.
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.csv'), [SavedQueryOutputController::class, 'csv'])
+        ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.csv');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.queries.labels'), [SavedQueryOutputController::class, 'labels'])
+        ->middleware('auth')->whereNumber('savedQuery')->name('officer.members.queries.labels');
 
     // Remove personal data (#921, ADR-0038 §6): the preview and the typed-count form
     // (/officer/members/remove-personal-data ↔ /fr/officier/membres/retrait-donnees-personnelles).
@@ -446,6 +452,8 @@ Route::middleware('auth')->group(function () {
     Route::put('saved-queries/{savedQuery}', [SavedQueryController::class, 'update'])->name('saved-queries.update');
     Route::patch('saved-queries/{savedQuery}/name', [SavedQueryController::class, 'rename'])->name('saved-queries.rename');
     Route::delete('saved-queries/{savedQuery}', [SavedQueryController::class, 'destroy'])->name('saved-queries.destroy');
+    // Email results (#924): a Notice per chosen Member, linking to the run.
+    Route::post('saved-queries/{savedQuery}/email-results', [SavedQueryOutputController::class, 'emailResults'])->name('saved-queries.email-results');
 });
 
 // Delete and Remove personal data (#921, ADR-0038 §6). Member administration or super-tier, via

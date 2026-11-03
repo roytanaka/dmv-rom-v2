@@ -42,6 +42,28 @@ return [
     'labels' => 'Labels',
     'email_results' => 'Email results',
 
+    // A run's outputs (#924): the labels page and the Email results dialog.
+    'labels_page' => [
+        'title' => 'Labels: :query',
+        'back' => 'Back to the results',
+        'printer' => 'Printer',
+        'print' => 'Print',
+        'sheet' => 'Sheet :number',
+        'printers' => [
+            'xerox' => 'Xerox printer',
+            'inkjet' => 'Inkjet printer',
+            'laser' => 'Laser printer',
+        ],
+    ],
+    'email_dialog' => [
+        'title' => 'Email results',
+        'recipients' => 'Send to',
+        'note' => 'Note',
+        'cancel' => 'Cancel',
+        'send' => 'Send',
+        'sent' => 'The results are on their way.',
+    ],
+
     'yes' => 'Yes',
     'no' => 'No',
     'blank' => 'blank',
