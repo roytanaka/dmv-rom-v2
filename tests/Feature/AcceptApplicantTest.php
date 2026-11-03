@@ -164,6 +164,17 @@ it('accepts on a direct move to Placed too, and only once', function () {
         ->and($applicant->fresh()->member_id)->not->toBeNull();
 });
 
+it('accepts only on a move, so a save on an unlinked Accepted Applicant makes no Member', function () {
+    $org = acceptOrg();
+    $applicant = acceptApplicant($org, ['status' => ApplicantStatus::Accepted]);
+
+    moveApplicant($org['chair'], $applicant, 'accepted', ['new_note' => 'Called back.'])->assertSessionHasNoErrors();
+
+    expect($applicant->fresh()->member_id)->toBeNull()
+        ->and(Member::where('email', 'ada@example.test')->exists())->toBeFalse()
+        ->and(Delivery::count())->toBe(0);
+});
+
 it('updates a Member matching by email and name, leaving its Category alone', function () {
     $org = acceptOrg();
     $donor = Member::factory()->category(Category::Donor)->create([

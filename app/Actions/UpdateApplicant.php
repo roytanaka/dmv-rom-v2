@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\DB;
  * Legacy app ran on save. A status change moves the status date to today; a departure reason
  * stands only beside Incomplete; a new note is prepended, dated and signed.
  *
- * Then intake moves on (#931): Accepted or Placed with no Member linked accepts the Applicant, and a
- * status change writes its Notice. All in one transaction, so a refused accept saves nothing.
+ * Then intake moves on (#931): a move to Accepted or Placed with no Member linked accepts the
+ * Applicant (spec story 38: a move, not any save), and a status change writes its Notice. All in one transaction, so a refused accept saves nothing.
  */
 class UpdateApplicant
 {
@@ -56,6 +56,10 @@ class UpdateApplicant
 
     private function moveIntake(Applicant $applicant, bool $statusChanged, Member $actor): void
     {
+        if (! $statusChanged) {
+            return;
+        }
+
         $accepting = $applicant->member_id === null
             && in_array($applicant->status, [ApplicantStatus::Accepted, ApplicantStatus::Placed], true);
 
@@ -63,10 +67,6 @@ class UpdateApplicant
             // Accepting tells the mentor already, the placement named, so Placed adds no second Notice.
             $this->notices->accepted($applicant, $this->acceptApplicant->accept($applicant, $actor));
 
-            return;
-        }
-
-        if (! $statusChanged) {
             return;
         }
 
