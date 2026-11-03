@@ -197,6 +197,24 @@ it('resolves the Applicants Audience to the rows a status filter shows', functio
         ->assertNotFound();
 });
 
+it('sends to the rows the last-name search shows too, as the list and Print list do', function () {
+    $org = outputsOrg();
+    $smith = Applicant::factory()->status(ApplicantStatus::New)->create(['last_name' => 'Smith']);
+    Applicant::factory()->status(ApplicantStatus::New)->create(['last_name' => 'Jones']);
+    Applicant::factory()->status(ApplicantStatus::Placed)->create(['last_name' => 'Smithers']);
+
+    $this->actingAs($org['member'])->get('/officer/members/applicants?status=new&q=Smi')
+        ->assertInertia(fn (Assert $page) => $page->where('emailSubject', 'new:Smi'));
+    $this->actingAs($org['member'])->get('/officer/members/applicants')
+        ->assertInertia(fn (Assert $page) => $page->where('emailSubject', 'all'));
+
+    $show = $this->actingAs($org['member'])
+        ->getJson(route('audiences.show', ['audience' => 'applicants', 'context' => 'applicants', 'subject' => 'new:Smi']))
+        ->assertOk()
+        ->assertJsonPath('label', 'Applicants: New');
+    expect(collect($show->json('recipients'))->pluck('id')->all())->toBe([$smith->id]);
+});
+
 it('offers the Applicants Audience to holder members only', function () {
     $org = outputsOrg();
     Applicant::factory()->create();

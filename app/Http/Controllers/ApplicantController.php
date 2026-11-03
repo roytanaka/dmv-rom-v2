@@ -44,6 +44,8 @@ class ApplicantController extends Controller
             'status' => $filter->statusWord(),
             'statuses' => array_map(fn (ApplicantStatus $case) => $case->value, ApplicantStatus::cases()),
             'search' => $filter->search,
+            // Send email mails the rows the list shows: the status and the search (#929, story 27).
+            'emailSubject' => $filter->subject(),
             'canCreate' => $actor->can('create', Applicant::class),
             // Member administration reaches this page as the seventh Member list, so it keeps the tabs.
             'memberListTabs' => $actor->can('administer-members') ? MemberList::tabs() : null,

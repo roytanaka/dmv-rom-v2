@@ -2,7 +2,6 @@
 
 namespace App\Support\Audiences;
 
-use App\Enums\ApplicantStatus;
 use App\Enums\ContextType;
 use App\Enums\MemberList;
 use App\Models\Group;
@@ -50,19 +49,16 @@ class AudienceContextFactory
     }
 
     /**
-     * The Applicants list's status filter: `all`, one Applicant status, or a 404.
+     * The Applicants list's filter, its status and search ({@see ApplicantFilter::fromSubject()}),
+     * or a 404 for an unknown status.
      */
     private function applicantFilter(mixed $subject): ApplicantFilter
     {
-        if ($subject === ApplicantFilter::ALL) {
-            return new ApplicantFilter;
-        }
+        $filter = ApplicantFilter::fromSubject($subject);
 
-        $status = is_string($subject) ? ApplicantStatus::tryFrom($subject) : null;
+        abort_if($filter === null, 404);
 
-        abort_if($status === null, 404);
-
-        return new ApplicantFilter($status);
+        return $filter;
     }
 
     /**

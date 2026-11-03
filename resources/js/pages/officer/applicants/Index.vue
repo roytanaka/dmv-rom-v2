@@ -39,6 +39,7 @@ const props = defineProps<{
     status: string;
     statuses: string[];
     search: string | null;
+    emailSubject: string;
     canCreate: boolean;
     memberListTabs: { key: string; href: string }[] | null;
     applicantCode: ApplicantCodeSettings | null;
@@ -106,11 +107,11 @@ const reload = () => {
                 <h1 class="text-rom-ink text-2xl font-semibold">{{ title }}</h1>
                 <div class="flex flex-wrap gap-2">
                     <ApplicantCodeDialog v-if="applicantCode" :settings="applicantCode" />
-                    <!-- Send email mails the Applicants the status filter shows; holder members only, as Add applicant. -->
+                    <!-- Send email mails the Applicants the filter and search show; holder members only, as Add applicant. -->
                     <RecordsSendEmail
                         v-if="canCreate"
                         context="applicants"
-                        :context-subject="status"
+                        :context-subject="emailSubject"
                         :label="trans('applicants.outputs.send_email')"
                     />
                     <Button variant="outline" as-child>

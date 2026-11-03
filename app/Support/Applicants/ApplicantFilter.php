@@ -34,6 +34,32 @@ final class ApplicantFilter
         );
     }
 
+    /**
+     * The filter as Send email names it (`context_subject`): the status word, then `:` and the
+     * search when there is one, as `new:Smi`. Null for an unknown status word.
+     */
+    public static function fromSubject(mixed $subject): ?self
+    {
+        if (! is_string($subject)) {
+            return null;
+        }
+
+        [$word, $search] = array_pad(explode(':', $subject, 2), 2, null);
+        $status = $word === self::ALL ? null : ApplicantStatus::tryFrom($word);
+
+        if ($word !== self::ALL && $status === null) {
+            return null;
+        }
+
+        return new self($status, is_string($search) && trim($search) !== '' ? trim($search) : null);
+    }
+
+    /** The Send email subject for this filter; {@see fromSubject()} reads it back. */
+    public function subject(): string
+    {
+        return $this->search === null ? $this->statusWord() : $this->statusWord().':'.$this->search;
+    }
+
     /** The status word: a status value, or `all`. */
     public function statusWord(): string
     {
