@@ -33,6 +33,7 @@ return [
         'directory' => 'Directory',
         'documents' => 'Documents',
         'news' => 'News',
+        'invitations' => 'Invitations',
         'profile' => 'My Profile',
     ],
 

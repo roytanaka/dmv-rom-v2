@@ -26,6 +26,22 @@ return [
     // map can point at; {document} is the id in both locales.
     'documents.download' => 'documents/{document}/download',
     'news' => 'news',
+    // Invitations (#902, ADR-0034): My invitations at the root, the Hosting tab, a Host's
+    // create and edit pages. {invitation} is the id in both locales.
+    'invitations' => 'invitations',
+    'invitations.hosting' => 'invitations/hosting',
+    'invitations.create' => 'invitations/create',
+    'invitations.invitation' => 'invitations/{invitation}',
+    'invitations.edit' => 'invitations/{invitation}/edit',
+    // Moving between Draft and Open, and a Guest's own Reply (#904).
+    'invitations.draft' => 'invitations/{invitation}/draft',
+    'invitations.reply' => 'invitations/{invitation}/reply',
+    // The guest list (#903): the page and a single pick, a bulk pick, one Guest.
+    'invitations.guests' => 'invitations/{invitation}/guests',
+    'invitations.guests.audience' => 'invitations/{invitation}/guests/audience',
+    'invitations.guest' => 'invitations/{invitation}/guests/{guest}',
+    // The Host's Replies page and a Reply set for a Guest (#905).
+    'invitations.replies' => 'invitations/{invitation}/replies',
     'profile' => 'profile',
     'renew' => 'renew',
     // Help centre (#517, ADR-0025). The index at 'help' and one article at
