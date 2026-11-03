@@ -10,6 +10,8 @@ return [
     'save' => 'Save',
     'saved' => 'Saved.',
     'none' => 'None',
+    // Spec #914 story 50: Beta copies the Legacy app's Applicants over these pages every night.
+    'overwritten_nightly' => 'During Beta, Applicants are copied from the old DMV site every night, so changes made here are overwritten.',
 
     'status' => [
         'all' => 'All',

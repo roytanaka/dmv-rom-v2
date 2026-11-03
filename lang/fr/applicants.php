@@ -9,6 +9,7 @@ return [
     'new_title' => 'Nouveau candidat',
     'save' => 'Enregistrer',
     'saved' => 'Enregistré.',
+    'overwritten_nightly' => 'Pendant la bêta, les candidats sont copiés de l’ancien site du DMV chaque nuit : les changements faits ici sont écrasés.',
     'none' => 'Aucun',
 
     'status' => [

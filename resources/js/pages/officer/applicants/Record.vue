@@ -135,6 +135,7 @@ const save = () => {
                 <p class="text-muted-foreground text-sm">{{ trans('applicants.title') }}</p>
                 <h1 class="text-rom-ink text-2xl font-semibold">{{ fullName }}</h1>
                 <p v-if="enteredByLine" class="text-muted-foreground text-sm">{{ enteredByLine }}</p>
+                <p class="text-muted-foreground text-sm">{{ trans('applicants.overwritten_nightly') }}</p>
                 <ApplicantRecordActions class="mt-2" :applicant-id="applicant.id" :name="fullName" :can-delete="canDelete" />
                 <Link
                     v-if="canOpenMember && applicant.member_id"

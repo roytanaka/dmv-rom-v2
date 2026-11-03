@@ -128,6 +128,8 @@ const reload = () => {
                 </div>
             </header>
 
+            <p class="text-muted-foreground text-sm">{{ trans('applicants.overwritten_nightly') }}</p>
+
             <SectionTabs v-if="memberListTabs" :items="tabItems" variant="body" />
 
             <div class="flex flex-wrap items-end gap-4">
