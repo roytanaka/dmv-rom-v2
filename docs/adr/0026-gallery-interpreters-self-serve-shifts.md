@@ -50,7 +50,7 @@ The setting is on the **Group**, not the Schedule. GI is self-serve as a Group, 
 
 **Entity `Object`, group-scoped, with a name, an active flag and a sort order** — the same three columns and the same maintenance screen shape as `ShiftKind`, under the same schedule-admin gate as #567. **A Sign-up carries zero or more Objects.** This is [ADR-0015](0015-scheduling-model.md)'s object-reservation strategy, landing where that ADR said it would: on the Sign-up, because several volunteers may share one Shift and each reserves their own.
 
-**When the Group has any active Object, a self-serve Sign-up must carry at least one.** Legacy's desk refuses to submit without an object, and one row in 820 lacks one. A Group with no Objects never sees the field.
+**When the Group has any active Object, a self-serve Sign-up must carry at least one.** Legacy's desk refuses to submit without an object, and one row in 820 lacks one. A Group with no Objects never sees the field. _(Amended 2026-11-05, [ADR-0039](0039-objects-tab-and-capability.md): Objects have their own capability, `has_objects`, and their own tab. The rule applies when `has_objects` is on and the Group has an active Object. The gate is `ObjectPolicy`, not the schedule admin.)_
 
 **Object clash is a hard block, on the server.** A Sign-up may not carry an Object that another Sign-up carries on a Shift whose time range overlaps, on any Shift in the Group, regular or event, excluding the row being edited. Legacy runs the same check three ways in the browser and once more against events; one overlap query replaces all four, and it runs where legacy's does not, which is the security half of the faithful-port rule.
 

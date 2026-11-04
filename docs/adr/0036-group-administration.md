@@ -57,7 +57,7 @@ The route gates on the super-tier, as ADR-0027 §4 requires of every Officer Too
 
 ### 5. The structure form
 
-**Super-tier edits:** name, parent, kind, listing visibility, display order (a number), logo, time-boxed plus start and end dates, the six capability flags, the four visitor-figure collection flags, the hours multiplier, and the archived state. A "last changed by X on date" line sits at the foot.
+**Super-tier edits:** name, parent, kind, listing visibility, display order (a number), logo, time-boxed plus start and end dates, the six capability flags, the four visitor-figure collection flags, the hours multiplier, and the archived state. A "last changed by X on date" line sits at the foot. _(Amended 2026-11-05, [ADR-0039](0039-objects-tab-and-capability.md): seven capability flags; `has_objects` is the seventh. It cannot go off while a future Sign-up carries an Object. `has_objects`, `objects.folder_id` and `tours.folder_id` join the v2-only list.)_
 
 **Group officers keep description and banner only**, edited inline on the Overview as ADR-0027 §2 decided.
 
