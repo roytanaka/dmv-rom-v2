@@ -36,16 +36,17 @@ Facts that shaped the decision:
 
 Readers are signed-in Members. Guests reach no Group page.
 
-| Tab        | Non-member                                    | Member              | Officer extras                             |
-| ---------- | --------------------------------------------- | ------------------- | ------------------------------------------ |
-| Overview   | yes                                           | yes                 | Secretary/Chair edit About and How to join |
-| Members    | names only                                    | yes                 | roster edits, past members                 |
-| Meetings   | join prompt (§2)                              | published Meetings  | unpublished Meetings, manage               |
-| Documents  | `group` Folders                               | all Folders         | Librarian manages                          |
-| Scheduling | published Schedules; sign up on `open` Shifts | also `group` Shifts | Scheduler/Chair: drafts, all seat numbers  |
-| Tours      | join prompt (§2)                              | yes                 | Vetting manages                            |
-| Hours      | own records                                   | own records         | Chair/Statistician reports                 |
-| Settings   | hidden                                        | hidden              | per configuration right (ADR-0027)         |
+| Tab        | Non-member                                    | Member              | Officer extras                                                          |
+| ---------- | --------------------------------------------- | ------------------- | ----------------------------------------------------------------------- |
+| Overview   | yes                                           | yes                 | Secretary/Chair edit About and How to join                              |
+| Members    | names only                                    | yes                 | roster edits, past members                                              |
+| Meetings   | join prompt (§2)                              | published Meetings  | unpublished Meetings, manage                                            |
+| Documents  | `group` Folders                               | all Folders         | Librarian manages                                                       |
+| Scheduling | published Schedules; sign up on `open` Shifts | also `group` Shifts | Scheduler/Chair: drafts, all seat numbers                               |
+| Tours      | join prompt (§2)                              | yes                 | Vetting manages                                                         |
+| Objects    | join prompt (§2)                              | yes                 | Scheduler/Chair manage ([ADR-0039](0039-objects-tab-and-capability.md)) |
+| Hours      | own records                                   | own records         | Chair/Statistician reports                                              |
+| Settings   | hidden                                        | hidden              | per configuration right (ADR-0027)                                      |
 
 **A Private Group still returns 404 to a non-member**, whatever the matrix says (ADR-0019). A Container still returns 404 to everyone.
 

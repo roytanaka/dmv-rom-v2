@@ -41,17 +41,17 @@ The label is `Settings` and not `Admin` or `Manage`. `Admin` is the word `GLOSSA
 
 ### 2. What moves to the tab, and what stays inline
 
-**The rule: a setting moves, a record stays.** A setting is a value an officer sets once and the app reads on every later action: a switch, a unit length, a list of kinds. A record is a row the app stores per event: a Shift, a Sign-up, a Meeting, a roster line. Settings go on the Settings tab. Records are authored inline on the section where they are read, exactly as ADR-0021 §6 and ADR-0023 §5 built them.
+**The rule: a setting moves, a record stays.** A setting is a value an officer sets once and the app reads on every later action: a switch, a unit length, a list of kinds. A record is a row the app stores per event: a Shift, a Sign-up, a Meeting, a roster line. Settings go on the Settings tab. Records are authored inline on the section where they are read, exactly as ADR-0021 §6 and ADR-0023 §5 built them. _(Amended 2026-11-05, [ADR-0039](0039-objects-tab-and-capability.md): a list that has its own tab is edited on that tab. The Objects, Tours and Tour rules cards leave Settings for the Objects and Tours tabs.)_
 
 Moves to the Settings tab, as cards, each rendered only when its own gate passes:
 
-| Card                        | Today                          | Gate                |
-| --------------------------- | ------------------------------ | ------------------- |
-| Reminders                   | Scheduling list view           | `manageReminders`   |
-| Empty-desk alert            | Scheduling list view           | `manageEmptyDesk`   |
-| Self-serve shifts and unit  | Scheduling list view           | `manageSelfServe`   |
-| Shift kinds, with off-site  | Scheduling list view           | `manageShiftKinds`  |
-| Objects                     | Scheduling list view           | `manageObjects`     |
+| Card                       | Today                | Gate               |
+| -------------------------- | -------------------- | ------------------ |
+| Reminders                  | Scheduling list view | `manageReminders`  |
+| Empty-desk alert           | Scheduling list view | `manageEmptyDesk`  |
+| Self-serve shifts and unit | Scheduling list view | `manageSelfServe`  |
+| Shift kinds, with off-site | Scheduling list view | `manageShiftKinds` |
+| Objects                    | Scheduling list view | `manageObjects`    |
 
 The scheduling cards render only while `has_scheduling` is on, the same condition as the Scheduling tab itself.
 
