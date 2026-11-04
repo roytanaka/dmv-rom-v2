@@ -11,6 +11,7 @@ use App\Enums\LifecycleState;
 use App\Enums\ListingVisibility;
 use App\Enums\MeetingLinkKind;
 use App\Enums\MembershipStatus;
+use App\Enums\RenewalEligibility;
 use App\Enums\Role;
 use App\Enums\ScheduleState;
 use App\Enums\ShiftAudience;
@@ -1263,6 +1264,17 @@ it('seats the Member Persona on the outstanding Docents Shift, so her My sign-up
         ->exists();
 
     expect($outstanding)->toBeTrue();
+});
+
+it('leaves the Member Persona this year\'s Renewal to do, from the code of conduct on (#953)', function () {
+    // The Renewing your membership screenshots start at step 1 and walk every step, so the
+    // Persona must be eligible, must not have accepted this year's code yet, and must pay a fee
+    // that does not skip the skills step.
+    $member = Member::where('email', PersonaCatalogue::MEMBER_EMAIL)->firstOrFail();
+
+    expect($member->renewalEligibility())->toBe(RenewalEligibility::Renew)
+        ->and($member->acceptedCodeOfConduct())->toBeFalse()
+        ->and($member->fee_category)->toBe('Active');
 });
 
 it('seats the Member Persona on the last Shift of the Docents month, so she has a seat to drop', function () {

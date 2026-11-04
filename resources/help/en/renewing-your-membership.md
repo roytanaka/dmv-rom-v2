@@ -15,6 +15,9 @@ The link shows only while the renewal is open and you have not paid for the year
 
 1. Read the DMV Code of Conduct.
 2. Tick **I have read and agree to adhere to this Code of Conduct**.
+
+    ![Step 1 of the renewal with the DMV Code of Conduct](01.png)
+
 3. Select **Next**.
 
 You accept it once a year. Next time you open your renewal, this step is skipped.
@@ -22,6 +25,9 @@ You accept it once a year. Next time you open your renewal, this step is skipped
 ## Step 2: the renewal form
 
 1. Check your ROM membership number, then tick the box to confirm it.
+
+    ![The renewal form with the ROM membership number, its confirm box and the expiry date](02.png)
+
 2. Enter your ROM membership expiry date. If your card is for life, tick **Life**.
 3. Correct your name, address and phones where they have changed.
 4. Tick each placement you will keep this year.
@@ -37,6 +43,9 @@ Keep at least one placement, unless you choose Sustaining, Leave of Absence or R
 ## Step 3: your skills
 
 1. Tick every skill you are willing to use for the DMV.
+
+    ![Step 3 of the renewal with the skills in their categories](03.png)
+
 2. Select **Next**.
 
 If you chose a Sustaining category, this step is skipped.
@@ -46,6 +55,9 @@ If you chose a Sustaining category, this step is skipped.
 The payment page shows your membership donation for the year. Pay by card or by cheque.
 
 1. To pay by credit or debit card, select **ROM donation page**. The ROM's page opens with your amount filled in.
+
+    ![The payment page with the membership donation, the ROM donation page link and the cheque address](04.png)
+
 2. To pay by cheque, make it payable to "ROM DMV". Write your name on it, and mail it to the address on the page.
 
 You cannot pay by cash. If the page shows no amount, DMV Records confirms your fee with you.
@@ -55,6 +67,8 @@ You cannot pay by cash. If the page shows no amount, DMV Records confirms your f
 1. Select your initials or photo in the top bar.
 2. Select **My Profile**.
 3. Look under **ROM membership** for your paid-through year and your renewal year.
+
+    ![My Profile with the paid-through year and the renewal year marked "renewed, payment pending"](05.png)
 
 After you renew, it says "renewed, payment pending" next to your renewal year. DMV Records records your payment by hand when it arrives. Then the paid-through year catches up, and the Renew link goes away.
 

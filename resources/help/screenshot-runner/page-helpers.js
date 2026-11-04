@@ -1112,6 +1112,59 @@
         return followLink(edit);
     }
 
+    // The Member record's Dues section (#953): the paid-through year and its +1 button. Back off
+    // by the 64 px top bar plus 16 px of air, so the section title stays in the shot.
+    function showDuesSection() {
+        const section = document.getElementById('dues');
+        if (!section) return false;
+        section.scrollIntoView({ block: 'start' });
+        window.scrollBy(0, -80);
+        return settle();
+    }
+
+    // Tick a reka-ui Checkbox by its id. It toggles on a DOM click(); an already ticked box is
+    // left as it is.
+    function tick(id) {
+        const box = document.getElementById(id);
+        if (!box) return false;
+        if (box.getAttribute('data-state') !== 'checked') box.click();
+        return true;
+    }
+
+    // Renewal step 1 (#953): tick the code of conduct and select Next. Waits for the form page.
+    async function acceptCodeOfConduct() {
+        if (!tick('accept')) return false;
+        await settle(200);
+        return clickAndWaitFor(buttonLabelled(/^next$/i), () => location.pathname.endsWith('/renew/form'));
+    }
+
+    // Renewal step 2 (#953): save the form as the reader would, so the skills, payment and
+    // My Profile shots show a renewed Member. Ticks both confirm boxes, keeps one placement,
+    // and picks the Active category, so the flow goes on to skills. A blank expiry (the form
+    // blanks a past one) gets a date next year. Waits for the skills page.
+    async function saveRenewalForm() {
+        if (!tick('membership_number_confirmed') || !tick('emergency_verified')) return false;
+        if (!document.querySelector('[id^="placement-"][data-state="checked"]')) tick('placement-0');
+        const expiry = document.getElementById('membership_expiry');
+        if (expiry && !expiry.disabled && !expiry.value) typeInto(expiry, `${new Date().getFullYear() + 1}-06-01`);
+        // The section around the select carries the id `category` too, so name the select.
+        const category = document.querySelector('select#category');
+        if (!category) return false;
+        category.value = 'Active';
+        category.dispatchEvent(new Event('change', { bubbles: true }));
+        await settle(200);
+        return clickAndWaitFor(buttonLabelled(/^save$/i), () => location.pathname.endsWith('/renew/skills'));
+    }
+
+    // My Profile (#953): the ROM membership block with the paid-through and renewal years. Its
+    // heading has no id, so find it by its English text and centre it.
+    function showRomMembership() {
+        const heading = Array.from(document.querySelectorAll('h3')).find((element) => /^rom membership$/i.test(element.textContent.trim()));
+        if (!heading) return false;
+        heading.scrollIntoView({ block: 'center' });
+        return settle();
+    }
+
     // A Saved query's run: open the Email results dialog and wait for its recipient picker.
     function openEmailResults() {
         return clickAndWaitFor(buttonLabelled(/^email results$/i), () => document.getElementById('email-results-recipients'));
@@ -1252,5 +1305,9 @@
         openArchiveConfirm,
         showSubGroupsCard,
         openCreateSubGroupDialog,
+        showDuesSection,
+        acceptCodeOfConduct,
+        saveRenewalForm,
+        showRomMembership,
     };
 })();

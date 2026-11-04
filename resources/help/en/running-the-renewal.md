@@ -5,7 +5,13 @@ Each year, the Records office opens the Renewal, sets the reminders and records 
 ## Set up the renewal
 
 1. Select **Officer Tools**, then **Members**.
+
+    ![The Members list with the Renewal settings button at the top](01.png)
+
 2. Select **Renewal settings**.
+
+    ![Renewal settings with the Renewed for and Paid through counts above the Show the renewal box and the Renewal year](02.png)
+
 3. Tick **Show the renewal** to open the Renewal. Untick it to close it.
 4. Type the year the Renewal is for in **Renewal year**.
 5. Under **Active reminders**, pick the **Send date**.
@@ -32,6 +38,9 @@ A Member who renewed but is not yet paid through the renewal year has not paid.
 
 1. Open the Member's record from a Member list.
 2. Under **Dues**, type the year in **Paid-through year**. Or select **+1** to add one year.
+
+    ![The Dues section of a Member record with the Paid-through year and the +1 button](03.png)
+
 3. Select **Save**.
 
 ## What next

@@ -112,6 +112,11 @@ Some scripts save a form, so a second run finds a different page. The
 then leaves My sign-ups. Shoot `shifts-you-owe-a-number-for` first, or
 reseed with `pnpm sail artisan migrate:fresh --seed` before you shoot again.
 
+The `renewing-your-membership` script accepts the code of conduct and saves the
+renewal form. A second run finds step 1 skipped, so reseed before you shoot it
+again. Shoot it after the other `amara.abara` scripts: after it, My Profile shows
+"renewed, payment pending".
+
 The demo data has no Invitations, so the Invitations scripts build one between
 them. Reseed, then run them in this order: `create-an-invitation`,
 `pick-your-guests`, `send-an-invitation`, `reply-to-an-invitation`,
