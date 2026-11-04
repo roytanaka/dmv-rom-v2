@@ -497,6 +497,7 @@ class DemoSeeder extends Seeder
         $this->applicants();
         $this->applicantCode();
         $this->renewalSettings();
+        $this->renewalPersona();
         $this->prunePhotoFiles();
         $this->objects();
         $this->scheduling();
@@ -1001,6 +1002,24 @@ class DemoSeeder extends Seeder
             'sustaining_message_2' => 'A last reminder: your Sustaining renewal is still open. The form is attached. (Demo text.)',
             'external_addresses' => [],
         ])->save();
+    }
+
+    /**
+     * The member Persona still has this year's Renewal to do (#953), whatever the hash dealt the
+     * record above: paid through last year, so the Renew link shows, with last year's code of conduct
+     * and form, so step 1 opens. An Active fee, so the Renewal walks every step. The help
+     * screenshots for `renewing-your-membership` start from this state.
+     */
+    private function renewalPersona(): void
+    {
+        $lastYear = RenewalSetting::current()->renewal_year - 1;
+
+        Member::where('email', PersonaCatalogue::MEMBER_EMAIL)->firstOrFail()->forceFill([
+            'paid_through_year' => $lastYear,
+            'code_of_conduct_year' => $lastYear,
+            'renewal_year' => $lastYear,
+            'fee_category' => 'Active',
+        ])->saveQuietly();
     }
 
     /**
