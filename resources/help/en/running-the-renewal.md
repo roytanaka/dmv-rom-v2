@@ -10,7 +10,7 @@ Each year, the Records office opens the Renewal, sets the reminders and records 
 
 2. Select **Renewal settings**.
 
-    ![Renewal settings with the two counts, Show the renewal and the Renewal year](02.png)
+    ![Renewal settings with the Renewed for and Paid through counts above the Show the renewal box and the Renewal year](02.png)
 
 3. Tick **Show the renewal** to open the Renewal. Untick it to close it.
 4. Type the year the Renewal is for in **Renewal year**.

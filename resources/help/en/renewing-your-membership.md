@@ -68,7 +68,7 @@ You cannot pay by cash. If the page shows no amount, DMV Records confirms your f
 2. Select **My Profile**.
 3. Look under **ROM membership** for your paid-through year and your renewal year.
 
-    ![My Profile with the paid-through year and the renewal year marked renewed, payment pending](05.png)
+    ![My Profile with the paid-through year and the renewal year marked "renewed, payment pending"](05.png)
 
 
 After you renew, it says "renewed, payment pending" next to your renewal year. DMV Records records your payment by hand when it arrives. Then the paid-through year catches up, and the Renew link goes away.

@@ -1113,7 +1113,7 @@
     }
 
     // The Member record's Dues section (#953): the paid-through year and its +1 button. Back off
-    // by the 64 px top bar so the section title stays in the shot.
+    // by the 64 px top bar plus 16 px of air, so the section title stays in the shot.
     function showDuesSection() {
         const section = document.getElementById('dues');
         if (!section) return false;

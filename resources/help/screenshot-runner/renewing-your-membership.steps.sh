@@ -9,7 +9,7 @@
 persona amara.abara@dmv.test
 start /renew
 
-nav /renew 01                # step 1: the code of conduct and its checkbox
+nav /renew 01                # step 1: the top of the code of conduct
 act acceptCodeOfConduct 02   # step 2: the renewal form
 act saveRenewalForm 03       # step 3: the skills picker
 nav /renew/payment 04        # step 4: the fee, the ROM donation page link, the cheque text

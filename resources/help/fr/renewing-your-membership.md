@@ -68,7 +68,7 @@ Le paiement en espèces n'est pas possible. Si la page n'affiche aucun montant, 
 2. Sélectionnez **Mon profil**.
 3. Sous **Adhésion au ROM**, repérez l'année payée et votre année de renouvellement.
 
-    ![Mon profil avec l'année payée et l'année de renouvellement marquée renouvelé, paiement en attente](05.png)
+    ![Mon profil avec l'année payée et l'année de renouvellement marquée « renouvelé, paiement en attente »](05.png)
 
 
 Après votre renouvellement, la mention « renouvelé, paiement en attente » s'affiche à côté de l'année de renouvellement. Les Dossiers DMV inscrivent votre paiement à la main quand il arrive. L'année payée se met alors à jour, et le lien de renouvellement disparaît.

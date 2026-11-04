@@ -10,7 +10,7 @@ Chaque année, Records ouvre le renouvellement, règle les rappels et note qui a
 
 2. Sélectionnez **Paramètres du renouvellement**.
 
-    ![Les paramètres du renouvellement avec les deux décomptes, Afficher le renouvellement et l'année de renouvellement](02.png)
+    ![Les paramètres du renouvellement avec les décomptes Renouvellements pour et Cotisations payées jusqu’en au-dessus de la case Afficher le renouvellement et de l'année de renouvellement](02.png)
 
 3. Cochez **Afficher le renouvellement** pour ouvrir le renouvellement. Décochez-la pour le fermer.
 4. Tapez l'année du renouvellement dans **Année de renouvellement**.
