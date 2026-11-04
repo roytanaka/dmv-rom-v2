@@ -37,6 +37,8 @@ return [
         // The Records fields a Member sees about themself (#917, ADR-0038 §3).
         'membership_heading' => 'ROM membership',
         'paid_through_year' => 'Paid-through year',
+        'renewal_year' => 'Renewal year',
+        'payment_pending' => 'renewed, payment pending',
         'last_award_year' => 'Last award',
         'membership_expiry' => 'ROM membership expiry',
         'membership_lifetime' => 'Life',

@@ -36,6 +36,11 @@ class MemberFactory extends Factory
             'super_tier' => false,
             'support_operator' => false,
             'no_email' => false,
+            // The Renewal columns (ADR-0038 §9), so a made Member reads them under strict mode.
+            'paid_through_year' => null,
+            'code_of_conduct_year' => null,
+            'renewal_year' => null,
+            'renewal_status' => null,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];

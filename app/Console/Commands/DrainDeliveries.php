@@ -16,6 +16,11 @@ use App\Mail\InvitationFull;
 use App\Mail\InvitationMail;
 use App\Mail\InvitationReminder;
 use App\Mail\MenteeActivated;
+use App\Mail\RenewalReminder;
+use App\Mail\RenewalReminderSummary;
+use App\Mail\RenewalSubmitted;
+use App\Mail\RomExpiryNotice;
+use App\Mail\RomExpirySummary;
 use App\Mail\SavedQueryResults;
 use App\Mail\ShiftReminder;
 use App\Mail\SignUpCancelled;
@@ -323,6 +328,10 @@ class DrainDeliveries extends Command
             // The empty-desk alert renders from its payload snapshot too — the Shifts it names
             // may be filled or gone by now (ADR-0024 §7).
             DeliveryKind::EmptyDesk => EmptyDeskAlert::fromSnapshot($delivery->payload),
+            // A Renewal reminder renders the settings text frozen in its payload (#942).
+            DeliveryKind::RenewalReminder => RenewalReminder::fromSnapshot($delivery->payload),
+            // The ROM-expiry notice: translated text around the name and date in its payload (#943).
+            DeliveryKind::RomExpiryNotice => RomExpiryNotice::fromSnapshot($delivery->payload),
             DeliveryKind::Broadcast => new BroadcastMail($delivery->broadcast),
             DeliveryKind::Invitation => new InvitationMail($delivery->broadcast),
             // The sender's copy carries the roll of who was not reached, read from the failed
@@ -361,6 +370,9 @@ class DrainDeliveries extends Command
             InvitationFull::NOTICE_TYPE => InvitationFull::fromSnapshot($payload),
             MenteeActivated::NOTICE_TYPE => MenteeActivated::fromSnapshot($payload),
             SavedQueryResults::NOTICE_TYPE => SavedQueryResults::fromSnapshot($payload),
+            RenewalReminderSummary::NOTICE_TYPE => RenewalReminderSummary::fromSnapshot($payload),
+            RenewalSubmitted::NOTICE_TYPE => RenewalSubmitted::fromSnapshot($payload),
+            RomExpirySummary::NOTICE_TYPE => RomExpirySummary::fromSnapshot($payload),
             ApplicantNotice::ACCEPTED, ApplicantNotice::PLACED, ApplicantNotice::YELLOW_CARD, ApplicantNotice::INCOMPLETE => ApplicantNotice::fromSnapshot($payload),
             default => SignUpCancelled::fromSnapshot($payload),
         };

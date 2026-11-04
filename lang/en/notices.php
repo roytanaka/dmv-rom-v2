@@ -107,4 +107,33 @@ return [
         'heading' => 'Applicant marked Incomplete',
         'intro' => ':applicant has been marked Incomplete. Their Member record should be withdrawn.',
     ],
+    // The Renewal reminder summary (#942, ADR-0038 §9): who one daily-pass run mailed, by series.
+    // The names are as-authored.
+    'renewal_reminder_summary' => [
+        'from' => 'DMV Records',
+        'subject' => 'Renewal reminder emails sent today',
+        'heading' => 'Renewal reminders sent',
+        'intro' => 'Today’s daily mail pass wrote these reminders for the :year renewal.',
+        'series' => [
+            'active-1' => '1st reminder, Active Members',
+            'active-2' => '2nd reminder, Active Members',
+            'sustaining-1' => '1st reminder, Sustaining Members',
+            'sustaining-2' => '2nd reminder, Sustaining Members',
+        ],
+    ],
+    // The renewal Notice (#940, ADR-0038 §9): a Member saved the renewal form. Names and typed
+    // values are as-authored.
+    'renewal_submitted' => [
+        'from' => 'DMV Records',
+        'subject' => ':member: DMV renewal :year',
+        'subject_update' => ':member: DMV renewal update :year',
+        'heading' => 'Renewal form saved',
+        'intro' => ':member has completed the :year renewal.',
+        'intro_update' => ':member has changed their :year renewal.',
+        'membership_number' => 'ROM membership number',
+        'expired' => 'Their ROM membership has expired.',
+        'changes' => 'Changes',
+        'from_to' => 'from “:from” to “:to”',
+        'category_change' => 'Category change: from :from to :to',
+    ],
 ];

@@ -116,4 +116,10 @@ return [
     // Each new Feedback item is emailed here (ADR-0029 §16). Empty sends nothing.
     'feedback_notify_address' => env('FEEDBACK_NOTIFY_ADDRESS'),
 
+    // The Beta mail-off switch (ADR-0035 §6): when true, the daily mail pass writes nothing.
+    // Every writer the pass runs honours it, and so do the renewal Notice and the external-address
+    // copies written on save (ADR-0038: every Notice is off during Beta); account email and
+    // Invitations are not covered.
+    'daily_pass_off' => (bool) env('MAIL_DAILY_PASS_OFF', false),
+
 ];

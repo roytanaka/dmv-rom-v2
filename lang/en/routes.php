@@ -46,6 +46,11 @@ return [
     'invitations.replies' => 'invitations/{invitation}/replies',
     'profile' => 'profile',
     'renew' => 'renew',
+    // The Renewal's steps 2 to 4 (#939, ADR-0038 §9).
+    'renew.form' => 'renew/form',
+    'renew.skills' => 'renew/skills',
+    'renew.payment' => 'renew/payment',
+    'renew.contact' => 'renew/contact',
     // Help centre (#517, ADR-0025). The index at 'help' and one article at
     // 'help/{article}'. The {article} slug is an identifier — the SAME string in
     // both locales — so only the 'help' word changes in the French twin.
@@ -70,6 +75,9 @@ return [
     // The Member lists (#919, ADR-0038 §5). One route; each list word is keyed below so the
     // segment table carries it. The default list (Current) has a bare path.
     'officer.members.remove-personal-data' => 'officer/members/remove-personal-data',
+    // Renewal settings (#937, ADR-0038 §9) and its Sustaining attachment.
+    'officer.members.renewal' => 'officer/members/renewal',
+    'officer.members.renewal.attachment' => 'officer/members/renewal/attachment',
     'officer.members' => 'officer/members/{list?}',
     'officer.members.list.current' => 'officer/members/current',
     'officer.members.list.resigned' => 'officer/members/resigned',

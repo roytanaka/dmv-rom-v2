@@ -6,7 +6,6 @@ use App\Enums\DeliveryKind;
 use App\Enums\DeliveryState;
 use App\Enums\MembershipStatus;
 use App\Enums\Role;
-use App\Enums\StewardshipFunction;
 use App\Mail\ApplicantNotice;
 use App\Models\Applicant;
 use App\Models\Delivery;
@@ -24,15 +23,20 @@ use Illuminate\Support\Collection;
  * - placed: the mentor;
  * - yellow card completed: the Treasurer of the DMV Executive;
  * - incomplete, once a Member is linked: the mentor, with the reason.
+ *
+ * The accepted Notice also goes to each external address of the Renewal settings (ADR-0038 §14.5).
  */
 class ApplicantNoticeWriter
 {
+    public function __construct(private ExternalAddressCopyWriter $external) {}
+
+    /** The one intake Notice to the Records Audience, so the one the external addresses get too. */
     public function accepted(Applicant $applicant, Member $member): void
     {
-        $this->write(
-            $this->payload(ApplicantNotice::ACCEPTED, $applicant, ['member' => ['id' => $member->id]]),
-            $this->recordsRoster()->push($applicant->mentor),
-        );
+        $payload = $this->payload(ApplicantNotice::ACCEPTED, $applicant, ['member' => ['id' => $member->id]]);
+
+        $this->write($payload, RecordsRoster::members()->push($applicant->mentor));
+        $this->external->write($payload);
     }
 
     public function placed(Applicant $applicant): void
@@ -101,18 +105,6 @@ class ApplicantNoticeWriter
             'placement' => $applicant->placementGroup?->name,
             ...$extra,
         ];
-    }
-
-    /**
-     * The member-administration holder's roster (the Records Audience).
-     *
-     * @return Collection<int, Member>
-     */
-    private function recordsRoster(): Collection
-    {
-        $records = Group::stewardOf(StewardshipFunction::MemberAdmin);
-
-        return $records === null ? collect() : $this->roster($records)->map(fn (GroupMember $m): Member => $m->member);
     }
 
     /**

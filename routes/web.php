@@ -53,6 +53,8 @@ use App\Http\Controllers\NoEmailFlagController;
 use App\Http\Controllers\ObjectController;
 use App\Http\Controllers\QualificationController;
 use App\Http\Controllers\RemovePersonalDataController;
+use App\Http\Controllers\RenewalController;
+use App\Http\Controllers\RenewalSettingsController;
 use App\Http\Controllers\ReplyController;
 use App\Http\Controllers\SavedQueryController;
 use App\Http\Controllers\SavedQueryOutputController;
@@ -95,7 +97,7 @@ Route::group([
     // exist. They all render one shared "coming soon" placeholder.
     $stubRoutes = [
         // Zone A — personal
-        'calendar', 'documents', 'profile', 'renew',
+        'calendar', 'documents', 'profile',
         // Zone C — officer/admin
         'officer.communications', 'officer.reports',
         'officer.flash-messages',
@@ -106,6 +108,20 @@ Route::group([
             ->middleware('auth')
             ->name($name);
     }
+
+    // The Renewal (#939, ADR-0038 §9): the four steps, /renew ↔ /fr/renouveler, then form, skills
+    // and payment under it. RenewalRequest on each refuses a Member who need not renew; steps 2 to
+    // 4 send a Member back to step 1 until the code of conduct is accepted for the year.
+    Route::get(LaravelLocalization::transRoute('routes.renew'), [RenewalController::class, 'codeOfConduct'])
+        ->middleware('auth')->name('renew');
+    Route::get(LaravelLocalization::transRoute('routes.renew.form'), [RenewalController::class, 'form'])
+        ->middleware(['auth', 'renewal.code-of-conduct'])->name('renew.form');
+    Route::get(LaravelLocalization::transRoute('routes.renew.skills'), [RenewalController::class, 'skills'])
+        ->middleware(['auth', 'renewal.code-of-conduct'])->name('renew.skills');
+    Route::get(LaravelLocalization::transRoute('routes.renew.payment'), [RenewalController::class, 'payment'])
+        ->middleware(['auth', 'renewal.code-of-conduct'])->name('renew.payment');
+    Route::get(LaravelLocalization::transRoute('routes.renew.contact'), [RenewalController::class, 'contact'])
+        ->middleware('auth')->name('renew.contact');
 
     // Saved queries (#923, ADR-0038 §7): the index, the form and the run, under Officer Tools →
     // Members (/officer/members/queries ↔ /fr/officier/membres/requetes). Above the lists route,
@@ -129,6 +145,14 @@ Route::group([
     // Above the Member lists' {list?} route, which would otherwise take the word.
     Route::get(LaravelLocalization::transRoute('routes.officer.members.remove-personal-data'), [RemovePersonalDataController::class, 'show'])
         ->middleware('auth')->name('officer.members.remove-personal-data');
+
+    // Renewal settings (#937, ADR-0038 §9): the page and the Sustaining attachment's gated download
+    // (/officer/members/renewal ↔ /fr/officier/membres/renouvellement). Above the Member lists'
+    // {list?} route. Member administration only (`administer-members`).
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.renewal'), [RenewalSettingsController::class, 'show'])
+        ->middleware('auth')->name('officer.members.renewal');
+    Route::get(LaravelLocalization::transRoute('routes.officer.members.renewal.attachment'), [RenewalSettingsController::class, 'attachment'])
+        ->middleware('auth')->name('officer.members.renewal.attachment');
 
     // The public application form (#930, #949, ADR-0038 §8, §14.6), for guests (/apply ↔ /fr/postuler):
     // /apply asks for the Applicant code and POSTs it (in the body, never the URL or the logs) to
@@ -496,6 +520,25 @@ Route::delete('members/{member}', MemberDeletionController::class)
 Route::post('members/remove-personal-data', [RemovePersonalDataController::class, 'store'])
     ->middleware(['auth'])
     ->name('members.remove-personal-data');
+
+// The Renewal's step saves (#939, ADR-0038 §9), on the signed-in Member only. Step 1, the code of
+// conduct; the form (#940) and skills (#941) steps post alongside.
+Route::post('renew/code-of-conduct', [RenewalController::class, 'storeCodeOfConduct'])
+    ->middleware(['auth'])
+    ->name('renew.code-of-conduct.store');
+Route::post('renew/form', [RenewalController::class, 'storeForm'])
+    ->middleware(['auth', 'renewal.code-of-conduct'])
+    ->name('renew.form.store');
+Route::post('renew/skills', [RenewalController::class, 'storeSkills'])
+    ->middleware(['auth', 'renewal.code-of-conduct'])
+    ->name('renew.skills.store');
+
+// Save Renewal settings (#937, ADR-0038 §9). Member administration, via `administer-members` in
+// the UpdateRenewalSettingsRequest. Sent as a POST with `_method=PUT`, since PHP parses a file
+// upload only from a POST body.
+Route::put('renewal-settings', [RenewalSettingsController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('renewal-settings.update');
 
 // The Records Photo action (#922, ADR-0038 §3): upload or replace any Member's photo and set the
 // photo-public flag. Member administration or super-tier, via `MemberPolicy::administer` in the

@@ -160,6 +160,9 @@ const submitSearch = () => {
                             {{ trans('saved_queries.title') }}
                         </Link>
                     </Button>
+                    <Button variant="outline" as-child>
+                        <Link :href="route('officer.members.renewal')">{{ trans('renewal_settings.title') }}</Link>
+                    </Button>
                     <RecordsSendEmail v-if="canSendEmail" context="member_list" :context-subject="list" :label="trans('records.send_email')" />
                     <Button variant="outline" as-child>
                         <Link :href="route('officer.members.remove-personal-data')">{{ trans('records.remove_personal_data.title') }}</Link>

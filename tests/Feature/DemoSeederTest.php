@@ -33,6 +33,7 @@ use App\Models\Meeting;
 use App\Models\MeetingLink;
 use App\Models\Member;
 use App\Models\Qualification;
+use App\Models\RenewalSetting;
 use App\Models\SavedQuery;
 use App\Models\Schedule;
 use App\Models\Shift;
@@ -292,6 +293,26 @@ it('seeds a dozen Applicants across every status, mentored from the Membership r
         ->and($applicants->whereNotNull('mentor_id')->pluck('mentor_id')->diff($roster))->toBeEmpty()
         ->and($applicants->where('entered_by_applicant', true)->whereNull('mentor_id'))->not->toBeEmpty()
         ->and($applicants->where('status', ApplicantStatus::Incomplete)->whereNull('departure_reason'))->toBeEmpty();
+});
+
+it('turns on this year\'s Renewal with past send dates and placeholder texts, in one row', function () {
+    $row = RenewalSetting::current();
+    $today = OrgTime::today()->toDateString();
+
+    expect($row->exists)->toBeTrue()
+        ->and($row->show_renewal)->toBeTrue()
+        ->and($row->renewal_year)->toBe(OrgTime::today()->year)
+        ->and($row->active_send_date->toDateString())->toBeLessThan($today)
+        ->and($row->sustaining_send_date->toDateString())->toBeLessThan($today)
+        ->and($row->active_message_1)->not->toBeEmpty()
+        ->and($row->active_message_2)->not->toBeEmpty()
+        ->and($row->sustaining_message_1)->not->toBeEmpty()
+        ->and($row->sustaining_message_2)->not->toBeEmpty()
+        ->and($row->external_addresses)->toBe([]);
+
+    $this->seed(DemoSeeder::class);
+
+    expect(RenewalSetting::count())->toBe(1);
 });
 
 it('publishes the Applicant code APPLY2026 for a year, so testers reach the public form', function () {

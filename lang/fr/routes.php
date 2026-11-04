@@ -40,6 +40,11 @@ return [
     'invitations.replies' => 'invitations/{invitation}/reponses',
     'profile' => 'profil',
     'renew' => 'renouveler',
+    // Les étapes 2 à 4 du renouvellement (#939, ADR-0038 §9).
+    'renew.form' => 'renouveler/formulaire',
+    'renew.skills' => 'renouveler/competences',
+    'renew.payment' => 'renouveler/paiement',
+    'renew.contact' => 'renouveler/contact',
     // Centre d'aide (#517, ADR-0025). L'index à « aide » et un article à
     // « aide/{article} ». Le slug {article} est un identifiant — la MÊME chaîne dans
     // les deux langues — donc seul le mot « aide » change ici.
@@ -61,6 +66,8 @@ return [
     // Les listes de membres (#919, ADR-0038 §5). Une seule route ; chaque mot de liste est
     // inscrit ci-dessous pour figurer dans la table des segments.
     'officer.members.remove-personal-data' => 'officier/membres/retrait-donnees-personnelles',
+    'officer.members.renewal' => 'officier/membres/renouvellement',
+    'officer.members.renewal.attachment' => 'officier/membres/renouvellement/piece-jointe',
     'officer.members' => 'officier/membres/{list?}',
     'officer.members.list.current' => 'officier/membres/actuels',
     'officer.members.list.resigned' => 'officier/membres/demissionnaires',

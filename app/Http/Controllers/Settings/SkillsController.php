@@ -7,7 +7,6 @@ use App\Http\Requests\Settings\SkillsUpdateRequest;
 use App\Models\SkillCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,7 +19,7 @@ class SkillsController extends Controller
     public function edit(Request $request): Response
     {
         return Inertia::render('settings/Skills', [
-            'catalog' => $this->catalog(),
+            'catalog' => SkillCategory::catalog(),
             // Not shared in any peer-visible payload; only the owner's own settings page.
             'selected' => $request->user()->skills()->pluck('skills.id'),
             // Fine-grained, per-resource UI hint (ADR-0017 §9): may this member edit
@@ -41,27 +40,5 @@ class SkillsController extends Controller
         $request->user()->skills()->sync($request->validated('skills') ?? []);
 
         return to_route('settings.skills');
-    }
-
-    /**
-     * Active catalog: categories in display_order, each carrying their active skills.
-     * Names come from DB and render as-authored — content, not chrome, so not translated.
-     *
-     * @return Collection<int, array<string, mixed>>
-     */
-    private function catalog()
-    {
-        return SkillCategory::query()
-            ->active()
-            ->with(['skills' => fn ($query) => $query->active()->orderBy('name')])
-            ->get()
-            ->map(fn (SkillCategory $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'skills' => $category->skills->map(fn ($skill) => [
-                    'id' => $skill->id,
-                    'name' => $skill->name,
-                ])->values(),
-            ]);
     }
 }

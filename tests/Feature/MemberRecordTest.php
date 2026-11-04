@@ -358,6 +358,8 @@ describe('account settings', function () {
                 'membership_expiry' => '2027-03-31',
                 'membership_lifetime' => false,
                 'last_award_year' => 2020,
+                'renewal_year' => null,
+                'payment_pending' => false,
             ]));
     });
 

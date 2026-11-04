@@ -89,7 +89,7 @@ The Records office page that drives a year's **Renewal**: the show flag, the ren
 _Avoid_: "renewal control" (the legacy table) and putting it under **DMV Settings** (that is the super-tier's page).
 
 **Renewal reminder**:
-An automatic mail from the daily pass to each Active or Sustaining Member not yet paid for the renewal year: the first once on or after the send date plus six weeks, the second at ten weeks. A window with a sent record, like a **Reminder**. Its sibling the **ROM-expiry notice** goes every second month to Members whose ROM card has expired. Both off during Beta.
+An automatic mail from the daily pass to each Active or Sustaining Member not yet paid for the renewal year: the first once on or after the send date plus six weeks, the second at ten weeks, which closes a week later. A window with a sent record, like a **Reminder**. Its sibling the **ROM-expiry notice** goes every second month to Members whose ROM card has expired. Both off during Beta.
 _Avoid_: "fees not paid" (the legacy name of the expiry notice, which is not about dues) and an exact-day match.
 
 **Sign-in log**:

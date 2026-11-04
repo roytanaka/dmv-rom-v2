@@ -25,6 +25,9 @@ const localizeHref = useLocalizedHref();
 // renders here (the lg:hidden group below). It is a SELECTABLE list with a checkmark
 // on the active locale — never a toggle — so the current selection is always visible.
 const localeSwitcher = computed(() => page.props.localeSwitcher);
+
+// The Renew link (#939): null unless the Member must act on the Renewal.
+const renewal = computed(() => page.props.renewal);
 </script>
 
 <template>
@@ -41,11 +44,12 @@ const localeSwitcher = computed(() => page.props.localeSwitcher);
                 {{ trans('user.profile') }}
             </Link>
         </DropdownMenuItem>
-        <!-- Renew Membership: account-menu action (#196), locale-aware href per ADR-0008. -->
-        <DropdownMenuItem class="py-2.5" :as-child="true">
+        <!-- Renew Membership: account-menu action (#196), locale-aware href per ADR-0008. Shown only
+             when the Member must act on the Renewal, with the server's text for why (#939). -->
+        <DropdownMenuItem v-if="renewal" class="py-2.5" :as-child="true">
             <Link class="block w-full" :href="localizeHref('/renew')" as="button">
                 <PhArrowSquareOut class="mr-2 h-4 w-4" />
-                {{ trans('user.renew') }}
+                {{ trans(renewal.labelKey) }}
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>

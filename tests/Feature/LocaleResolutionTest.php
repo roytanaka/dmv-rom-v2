@@ -42,7 +42,8 @@ class LocaleResolutionTest extends TestCase
             'help' => ['en' => '/help', 'fr' => '/fr/aide', 'component' => 'help/Index'],
             'help article' => ['en' => '/help/getting-started', 'fr' => '/fr/aide/getting-started', 'component' => 'help/Article'],
             'profile' => ['en' => '/profile', 'fr' => '/fr/profil', 'component' => 'ComingSoon'],
-            'renew' => ['en' => '/renew', 'fr' => '/fr/renouveler', 'component' => 'ComingSoon'],
+            // A factory Member (Active, no paid-through year) is Provisional to Active while the Renewal is off (#939).
+            'renew' => ['en' => '/renew', 'fr' => '/fr/renouveler', 'component' => 'renew/CodeOfConduct'],
 
             // Zone C — officer/admin
             'officer communications' => ['en' => '/officer/communications', 'fr' => '/fr/officier/communications', 'component' => 'ComingSoon'],
