@@ -299,8 +299,14 @@ const pickBanner = (key: string | null) => {
             <!-- Persistent header — a full-bleed banner from the curated set (#191),
                  the Group name on a dark bottom gradient, the parent breadcrumb, and
                  the lifecycle badge. The heritage gradient shows through as the
-                 neutral default when no banner is set. No Kind badge (PRD #186). -->
-            <header class="from-rom-ink to-rom-slate-700 relative isolate flex h-44 items-end overflow-hidden bg-gradient-to-br sm:h-52 lg:h-56">
+                 neutral default when no banner is set. No Kind badge (PRD #186).
+                 Its height follows the screen height (#959): 28% of it, from 96 to 224 px.
+                 svh, not dvh, so a phone's browser bar does not make the page jump; 28%
+                 keeps the 224 px banner at the help screenshots' 800 px height. A min
+                 height, not a height, so a long Group name grows the banner, not clips. -->
+            <header
+                class="from-rom-ink to-rom-slate-700 relative isolate flex min-h-[clamp(6rem,28svh,14rem)] items-end overflow-hidden bg-gradient-to-br"
+            >
                 <picture v-if="banner">
                     <source :srcset="banner.avif" type="image/avif" />
                     <img :src="banner.jpg" :alt="trans('group.banner.aria')" class="absolute inset-0 h-full w-full object-cover" />
@@ -343,7 +349,14 @@ const pickBanner = (key: string | null) => {
                     </DialogContent>
                 </Dialog>
 
-                <div class="relative z-10 flex w-full flex-col gap-1.5 p-4 sm:p-6">
+                <!-- With the Change banner button, the top padding clears it, so a short
+                     banner never puts the button over the parent link or the name. The
+                     padding follows the button's top-4 and its height: 36 px, or 44 px on
+                     a touch screen (pointer-coarse). -->
+                <div
+                    class="relative z-10 flex w-full flex-col gap-1.5 px-4 pb-4 sm:px-6 sm:pb-6"
+                    :class="can.update ? 'pt-14 pointer-coarse:pt-16' : 'pt-4 sm:pt-6'"
+                >
                     <nav v-if="group.parent" aria-label="Breadcrumb" class="text-sm text-white/80">
                         <TextLink
                             :href="route('groups.show', { group: group.parent.slug })"
