@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\Kind;
+use App\Enums\ListingVisibility;
 use App\Enums\MembershipStatus;
 use App\Models\Group;
 use App\Rules\ParentInOfficerSubtree;
@@ -19,7 +20,8 @@ use Illuminate\Validation\Rule;
  *   The slug is set here only (the structure form never changes it), so it must be URL-safe
  *   and unused. The parent is any active Group but the root: a Group always sits under one of
  *   the root's children (#850, ADR-0036 §4), so a crafted root parent is refused too.
- * - A parent officer (#884, ADR-0036 §11): a name and a parent only. The parent must pass
+ * - A parent officer (#884, ADR-0036 §11): a name, a parent and a listing visibility (#958,
+ *   optional, Group when not sent). The parent must pass
  *   `create-sub-group` (their own Group or one below it, never the root or a Container), else
  *   an `outside_subtree` error, as the structure form refuses a move. Siblings under one parent
  *   have unique names. The server makes the slug; a slug, kind or flag in a crafted request is
@@ -48,6 +50,12 @@ class StoreGroupRequest extends FormRequest
         return Group::query()->findOrFail($this->validated('parent_id'));
     }
 
+    /** A parent officer's listing pick (#958), Group when none is sent. Call after validation. */
+    public function listingVisibility(): ListingVisibility
+    {
+        return ListingVisibility::from($this->validated('listing_visibility', ListingVisibility::Group->value));
+    }
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -60,6 +68,7 @@ class StoreGroupRequest extends FormRequest
                 'chair_id' => ['nullable', 'integer', Rule::exists('group_member', 'member_id')
                     ->where('group_id', $this->integer('parent_id'))
                     ->whereIn('status', MembershipStatus::belongingValues())],
+                'listing_visibility' => ['sometimes', 'required', Rule::enum(ListingVisibility::class)],
             ];
         }
 

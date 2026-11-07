@@ -386,7 +386,7 @@ A section of a **Group**'s Overview that tells a Member how to join the Group. A
 _Avoid_: putting join steps in the About text.
 
 **DMV Settings**:
-The **Officer Tools** page for the organisation's own settings. Two sections: **Groups** (the org tree, create a Group, and each Group's structure: name, parent, Kind, visibility, order, logo, time-box, capabilities, hours multiplier, archived) and **Stewardships**. The slug is set once at create and never changes. The **super-tier** sees all of it. A Group's Secretary or Chair sees only the Groups section, limited to the **sub-groups** below their Group, with name, parent and Chair on create and name and parent after. See [ADR-0036](docs/adr/0036-group-administration.md) §11.
+The **Officer Tools** page for the organisation's own settings. Two sections: **Groups** (the org tree, create a Group, and each Group's structure: name, parent, Kind, visibility, order, logo, time-box, capabilities, hours multiplier, archived) and **Stewardships**. The slug is set once at create and never changes. The **super-tier** sees all of it. A Group's Secretary or Chair sees only the Groups section, limited to the **sub-groups** below their Group, with name, parent, Chair and listing visibility on create and name, parent and listing visibility after. See [ADR-0036](docs/adr/0036-group-administration.md) §11.
 _Avoid_: putting a Group officer's settings here (those are **Group Settings**), or calling this "admin". The root Group and a Container are not configured here past their About text and banner.
 
 **Stewardship**:

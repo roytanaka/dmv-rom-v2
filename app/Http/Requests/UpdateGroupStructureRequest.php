@@ -24,7 +24,7 @@ use Illuminate\Validation\Validator;
  * structure form: name, parent, kind, listing, logo, dates, the capability and collection
  * flags and the hours multiplier. The slug is never accepted, so a crafted one is dropped.
  *
- * A parent officer (ADR-0036 §11, #886) gets name and parent only, through `restructure-group`:
+ * A parent officer (ADR-0036 §11, #886) gets name, parent and listing visibility (#958), through `restructure-group`:
  * a sub-group below a Group they administer, never their own. The parent stays in their
  * subtree, and a sibling under it must not have the name.
  *
@@ -81,7 +81,7 @@ class UpdateGroupStructureRequest extends FormRequest
     }
 
     /**
-     * A parent officer's form (ADR-0036 §11): name and parent only, so every other field a
+     * A parent officer's form (ADR-0036 §11): name, parent and listing visibility (#958), so every other field a
      * crafted request carries is dropped. The new parent must sit in their subtree (their own
      * Group or below it) and be active; the cycle check is the super-tier's.
      *
@@ -96,6 +96,7 @@ class UpdateGroupStructureRequest extends FormRequest
                     $fail('dmv_settings.error.parent_cycle')->translate();
                 }
             }, new ParentInOfficerSubtree($this->user(), $group->parent_id)],
+            'listing_visibility' => ['sometimes', 'required', Rule::enum(ListingVisibility::class)],
         ];
     }
 
@@ -210,7 +211,7 @@ class UpdateGroupStructureRequest extends FormRequest
         return $structure;
     }
 
-    /** A parent officer, not the super-tier: the name-and-parent form. */
+    /** A parent officer, not the super-tier: the name, parent and visibility form. */
     private function scoped(): bool
     {
         return ! $this->user()->administersWholeOrg();

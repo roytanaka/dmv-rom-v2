@@ -1,6 +1,6 @@
 # Gérer les sous-groupes de votre groupe
 
-Créez, renommez, déplacez et archivez les sous-groupes de votre groupe, et gérez leur liste des membres. Vous avez besoin du rôle Secrétaire ou Président·e.
+Créez, renommez, déplacez et archivez les sous-groupes de votre groupe, choisissez qui les voit dans la liste, et gérez leur liste des membres. Vous avez besoin du rôle Secrétaire ou Président·e.
 
 Un sous-groupe est tout groupe sous le vôtre, à n'importe quel niveau. Vous ne pouvez pas renommer, déplacer ni archiver votre propre groupe. La présidence du DMV s'en charge.
 
@@ -22,27 +22,40 @@ La page montre votre groupe et chaque sous-groupe en dessous. La ligne de votre 
 
 1. Sélectionnez **Créer un sous-groupe**.
 
-    ![La fenêtre Créer un sous-groupe : un nom, Docents comme parent, et la recherche de la présidence parmi les membres des Docents](03.png)
+    ![La fenêtre Créer un sous-groupe : un nom, Docents comme parent, la recherche de la présidence parmi les membres des Docents, et Visibilité dans la liste](03.png)
 
 2. Entrez un nom. Deux sous-groupes sous le même parent ne peuvent pas porter le même nom.
 3. Choisissez le parent. Ce peut être votre groupe ou tout sous-groupe actif en dessous.
 4. Pour nommer la présidence tout de suite, cherchez parmi les membres du groupe parent et choisissez-en un·e. Vous pouvez laisser ce champ vide.
-5. Sélectionnez **Créer**.
+5. Choisissez la **Visibilité dans la liste**. **Membres du groupe parent** est sélectionné par défaut. Lisez **Qui voit un sous-groupe** plus bas.
+6. Sélectionnez **Créer**.
 
 La page du nouveau sous-groupe s'ouvre dans les Paramètres du DMV. Le·la Président·e choisi·e s'y joint comme membre régulier·ère avec le rôle Président·e. Le sous-groupe commence avec les Réunions et les Documents activés.
 
 > **Note :** Demandez à la présidence du DMV d'activer toute autre fonction, comme l'horaire.
 
-## Renommer ou déplacer un sous-groupe
+## Renommer, déplacer ou changer qui voit un sous-groupe
 
 1. Sélectionnez le nom du sous-groupe dans la liste.
 
-    ![La page de Sections dans les Paramètres du DMV : Nom et Parent, la carte Archivage, et Enregistrer les modifications](04.png)
+    ![La page de Sections dans les Paramètres du DMV : Nom, Parent et Visibilité dans la liste, la carte Archivage, et Enregistrer les modifications](04.png)
 
-2. Modifiez le **Nom**, ou choisissez un nouveau **Parent**.
+2. Modifiez le **Nom**, choisissez un nouveau **Parent**, ou choisissez une nouvelle **Visibilité dans la liste**.
 3. Sélectionnez **Enregistrer les modifications**.
 
 Vous pouvez déplacer un sous-groupe seulement à l'intérieur de votre propre groupe. Il ne peut pas se placer sous lui-même ni sous l'un de ses sous-groupes.
+
+## Qui voit un sous-groupe
+
+La **Visibilité dans la liste** contrôle qui voit le sous-groupe dans la barre latérale gauche et dans les listes de groupes.
+
+- **Public** : tous les membres.
+- **Membres du groupe parent** : les membres du groupe juste au-dessus.
+- **Membres seulement** : seulement les membres du sous-groupe. Personne d'autre ne peut trouver sa page.
+
+> **Note :** **Membres seulement** vous cache aussi la page, les Réunions et les Documents du sous-groupe, sauf si vous en êtes membre. Pour les revoir, ajoutez-vous au sous-groupe.
+
+Vous voyez toujours un sous-groupe **Membres seulement** dans les Paramètres du DMV, et vous pouvez toujours gérer sa liste des membres.
 
 ## Archiver un sous-groupe
 

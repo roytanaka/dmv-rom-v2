@@ -224,7 +224,6 @@ it('starts the sub-group at its defaults and ignores a crafted slug, kind or fla
         'kind' => 'standing_committee',
         'has_scheduling' => true,
         'has_announcements' => true,
-        'listing_visibility' => 'public',
         'hours_multiplier' => 3,
     ])->assertSessionHasNoErrors();
 
@@ -249,6 +248,41 @@ it('starts the sub-group at its defaults and ignores a crafted slug, kind or fla
         ->and($group->collects_visitor_provenance)->toBeFalse()
         ->and($group->visitor_figures_await_booking)->toBeFalse()
         ->and($group->hours_multiplier)->toBe('1.000');
+});
+
+/*
+ * Listing visibility on create (#958, ADR-0036 §11): Public, Group or Private, Group by default.
+ */
+
+it('sends a parent officer the listing visibilities, and the super-tier none', function () {
+    [, , $docents] = subGroupTree();
+
+    $this->actingAs(subGroupOfficerOf($docents))
+        ->get('/officer/settings')
+        ->assertInertia(fn (Assert $page) => $page->where('visibilities', ['public', 'group', 'private']));
+    $this->actingAs(Member::factory()->superTier()->create())
+        ->get('/officer/settings')
+        ->assertInertia(fn (Assert $page) => $page->where('visibilities', []));
+});
+
+it('creates the sub-group with the listing visibility the parent officer picks', function (string $visibility) {
+    [, , $docents] = subGroupTree();
+
+    $this->actingAs(subGroupOfficerOf($docents))
+        ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $docents->id, 'listing_visibility' => $visibility])
+        ->assertSessionHasNoErrors();
+
+    expect(Group::where('name', 'Tours')->sole()->listing_visibility->value)->toBe($visibility);
+})->with(['public', 'group', 'private']);
+
+it('refuses an unknown listing visibility on create', function () {
+    [, , $docents] = subGroupTree();
+
+    $this->actingAs(subGroupOfficerOf($docents))
+        ->post('/officer/settings/groups', ['name' => 'Tours', 'parent_id' => $docents->id, 'listing_visibility' => 'secret'])
+        ->assertSessionHasErrors('listing_visibility');
+
+    expect(Group::where('name', 'Tours')->exists())->toBeFalse();
 });
 
 /*
