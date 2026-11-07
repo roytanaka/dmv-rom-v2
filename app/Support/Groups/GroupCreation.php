@@ -58,19 +58,25 @@ final class GroupCreation
 
     /**
      * A parent officer's sub-group (#884): a name and a parent, the slug made here. It starts as
-     * a Legacy sub-committee did: a Working group with Meetings and Documents on and a Group
-     * listing. An optional Chair from the parent's roster (#885) joins it as Full with the Chair
-     * role, in the same transaction: no Group is left behind if that write fails.
+     * a Legacy sub-committee did: a Working group with Meetings and Documents on, with the
+     * listing the officer picks (#958), Group by default. An optional Chair from the parent's
+     * roster (#885) joins it as Full with the Chair role, in the same transaction: no Group is
+     * left behind if that write fails.
      */
-    public static function subGroup(Group $parent, string $name, ?int $chairId, Member $actor): Group
-    {
-        return DB::transaction(function () use ($parent, $name, $chairId, $actor) {
+    public static function subGroup(
+        Group $parent,
+        string $name,
+        ?int $chairId,
+        Member $actor,
+        ListingVisibility $visibility = ListingVisibility::Group,
+    ): Group {
+        return DB::transaction(function () use ($parent, $name, $chairId, $actor, $visibility) {
             $group = self::create([
                 'name' => $name,
                 'slug' => SubGroupSlug::for($name, $parent),
                 'parent_id' => $parent->id,
                 'kind' => Kind::WorkingGroup,
-                'listing_visibility' => ListingVisibility::Group,
+                'listing_visibility' => $visibility,
                 'has_meetings' => true,
                 'has_documents' => true,
             ], $actor);

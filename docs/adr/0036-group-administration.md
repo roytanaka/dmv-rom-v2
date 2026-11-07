@@ -105,17 +105,18 @@ From a grilling session on 2026-10-29, on Tester feedback items 92 and 93. **Thi
 
 **Where.** Officer Tools → DMV Settings → Groups, the same place the super-tier works. A parent officer sees the rail item, and the Groups section shows only the subtrees below their Groups. They do not see the Stewardships section. Group Settings gets one "Manage sub-groups" link that opens DMV Settings on that Group, because Testers looked there first. ADR-0027's split stands: the link goes to the feature, it does not move it.
 
-**The Create form for a parent officer.** Three fields:
+**The Create form for a parent officer.** Four fields _(amended 2026-11-08, #958: Visibility added)_:
 
 - **Name.** A sibling with the same name under the same parent is refused.
 - **Parent.** A select of their own Group and its active descendants.
 - **Chair** (optional). A search over the parent Group's active roster. The chosen Member joins the sub-group as Full with the Chair role, in the same save.
+- **Visibility.** Public, Group or Private (ADR-0019). Group is selected by default.
 
 **The slug is generated, never shown.** It comes from the name. If it is taken, the parent's slug goes in front (`docents-sections`). If that is taken too, a number follows (`docents-sections-2`). A parent officer cannot fix a slug clash, so the form never asks them to. The super-tier keeps the editable slug on its own form.
 
-**Defaults.** Kind is Working group. Meetings and Documents are on, and every other capability flag is off. Listing visibility is Group, the hours multiplier is 1, and there is no time-box. This matches a Legacy sub-committee, which had its own Meetings, Publications, Who's Who and Extra Hours. Hours need no flag (ADR-0022). Anything else is a request to the super-tier.
+**Defaults.** Kind is Working group. Meetings and Documents are on, and every other capability flag is off. Listing visibility is Group unless the officer picks another, the hours multiplier is 1, and there is no time-box. This matches a Legacy sub-committee, which had its own Meetings, Publications, Who's Who and Extra Hours. Hours need no flag (ADR-0022). Anything else is a request to the super-tier.
 
-**The structure form for a parent officer.** Name and parent only. The Chair is changed on the sub-group's roster, like any role. Kind, capabilities, collection flags, visibility, display order, logo, time-box and hours multiplier stay super-tier only.
+**The structure form for a parent officer.** Name, parent and listing visibility. The Chair is changed on the sub-group's roster, like any role. Kind, capabilities, collection flags, display order, logo, time-box and hours multiplier stay super-tier only. _(Amended 2026-11-08, Tester feedback item 98, #958: listing visibility added on both scoped forms. ADR-0019 does not change: a parent officer who sets Private and is not a member loses sight of the sub-group's page and content. They keep its structure and roster here, so they can add themselves.)_
 
 **Deviations from Legacy, each raised and accepted:**
 
@@ -160,7 +161,7 @@ Staging reseeds on every push (ADR-0007), so a Group created on staging lives un
 - **Help articles** (ADR-0025): one for Groups administration, one for Stewardships, super-tier required role.
 - **The design pass**: the Groups tree and structure form get a dedicated design ticket before build, so the UI is right the first time.
 - **ADR-0019 §B** remains deferred. This ADR does not build the parent-officer cascade. _(Amended 2026-10-29: §11 builds it for structure and roster.)_
-- **DMV Settings gains a scoped mode** for parent officers (§11): the rail item, the Groups section filtered to their subtrees, a three-field Create form and a two-field structure form. A Group Settings link opens it. The roster policy gains the ancestor check for the roster abilities. Add a help article for Chairs, and a demo persona who chairs a sub-group.
+- **DMV Settings gains a scoped mode** for parent officers (§11): the rail item, the Groups section filtered to their subtrees, a four-field Create form and a three-field structure form. A Group Settings link opens it. The roster policy gains the ancestor check for the roster abilities. Add a help article for Chairs, and a demo persona who chairs a sub-group.
 
 ## References
 

@@ -14,7 +14,7 @@ start /groups/docents/settings
 
 act showSubGroupsCard 01                                  # the Settings tab's Sub-groups card with Manage sub-groups
 nav /officer/settings 02                                  # the scoped tree: Docents (Your Group), Sections, archived cohorts; Create a sub-group
-act openCreateSubGroupDialog 03                           # the Create a sub-group dialog: name, parent Docents, the Chair search
-nav /officer/settings/groups/docents-sections 04          # Sections' structure form: Identity (name, parent), Archive, save bar, Open the Group page
+act openCreateSubGroupDialog 03                           # the Create a sub-group dialog: name, parent Docents, the Chair search, Listing visibility
+nav /officer/settings/groups/docents-sections 04          # Sections' structure form: Identity (name, parent, listing visibility), Archive, save bar, Open the Group page
 act openArchiveConfirm 05                                 # the Archive confirmation dialog
 nav /groups/docents-sections/roster 06                    # Sections' Members tab as the parent Chair: Add member, Rosa as Chair

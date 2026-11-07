@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Create a sub-group from DMV Settings (#884, ADR-0036 §11): a parent officer's dialog. Lean
-// form: name, parent and an optional Chair (#885) picked from the chosen parent's active roster
-// in the roster's own pick list; changing the parent clears the pick. The server makes the slug and sets every other field (a Working group
+// form: name, parent, an optional Chair (#885) picked from the chosen parent's active roster
+// in the roster's own pick list (changing the parent clears the pick), and the listing
+// visibility (#958), Group by default. The server makes the slug and sets every other field (a Working group
 // with Meetings and Documents on). The parent select lists the officer's Groups and their
 // active descendants, indented by depth. The super-tier uses CreateGroupDialog instead. On
 // success the server redirects to the new sub-group's structure form.
@@ -24,13 +25,14 @@ export interface SubGroupParent {
     depth: number;
 }
 
-const props = defineProps<{ parents: SubGroupParent[]; chairs: Record<number, RosterCandidate[]> }>();
+const props = defineProps<{ parents: SubGroupParent[]; chairs: Record<number, RosterCandidate[]>; visibilities: string[] }>();
 const open = defineModel<boolean>('open', { required: true });
 
-const form = useForm<{ name: string; parent_id: number | null; chair_id: number | null }>({
+const form = useForm<{ name: string; parent_id: number | null; chair_id: number | null; listing_visibility: string }>({
     name: '',
     parent_id: null,
     chair_id: null,
+    listing_visibility: 'group',
 });
 
 // The pick list holds a list; the Chair is its one entry, if any.
@@ -85,6 +87,15 @@ function submit(): void {
                     <Label for="new-sub-group-chair">{{ trans('dmv_settings.field.chair') }}</Label>
                     <MemberPickList v-model="chairPick" :candidates="chairCandidates" input-id="new-sub-group-chair" :multiple="false" />
                     <InputError :message="form.errors.chair_id" />
+                </div>
+                <div class="grid gap-2">
+                    <Label for="new-sub-group-visibility">{{ trans('dmv_settings.field.visibility') }}</Label>
+                    <NativeSelect id="new-sub-group-visibility" v-model="form.listing_visibility" required>
+                        <option v-for="visibility in visibilities" :key="visibility" :value="visibility">
+                            {{ trans(`dmv_settings.visibility.${visibility}`) }}
+                        </option>
+                    </NativeSelect>
+                    <InputError :message="form.errors.listing_visibility" />
                 </div>
                 <DialogFooter>
                     <Button type="button" variant="outline" :disabled="form.processing" @click="open = false">
