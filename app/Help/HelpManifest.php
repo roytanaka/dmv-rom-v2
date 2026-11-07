@@ -266,7 +266,7 @@ final class HelpManifest
             new HelpArticle('saved-queries', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Published, route: 'officer.members.queries', routes: ['officer.members.queries.create', 'officer.members.queries.edit', 'officer.members.queries.run']),
             new HelpArticle('remove-personal-data', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Published, route: 'officer.members.remove-personal-data'),
             // Running the renewal (#937, spec #915, ADR-0038 §9): Renewal settings and the paid-through year.
-            new HelpArticle('running-the-renewal', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Draft, route: 'officer.members.renewal'),
+            new HelpArticle('running-the-renewal', HelpSection::Directory, requires: ['records'], status: ArticleStatus::Published, route: 'officer.members.renewal'),
             // Running intake (#931, spec #914, ADR-0038 §8): the Membership Group's Applicants. No role
             // token names the `applicants` holder, so the article carries no badge.
             new HelpArticle('running-intake', HelpSection::Directory, status: ArticleStatus::Published, route: 'officer.members.list.applicants', routes: ['officer.members.applicants.show']),
@@ -379,7 +379,7 @@ final class HelpManifest
             new HelpArticle('change-your-password', HelpSection::Settings, status: ArticleStatus::Published, route: 'settings.password'),
             new HelpArticle('record-your-skills', HelpSection::Settings, status: ArticleStatus::Published, route: 'settings.skills'),
             // The Member's yearly Renewal (#941, ADR-0038 §9): its four steps and the state in My Profile.
-            new HelpArticle('renewing-your-membership', HelpSection::Settings, status: ArticleStatus::Draft, route: 'renew', routes: ['renew.form', 'renew.skills', 'renew.payment', 'renew.contact']),
+            new HelpArticle('renewing-your-membership', HelpSection::Settings, status: ArticleStatus::Published, route: 'renew', routes: ['renew.form', 'renew.skills', 'renew.payment', 'renew.contact']),
 
             // Support (#527, ADR-0009) — the non-production dev Role-switcher, an operator tool.
             // Its overview (#623, ADR-0025 §5) stays a draft until its screenshots land.

@@ -5,7 +5,13 @@ Chaque année, Records ouvre le renouvellement, règle les rappels et note qui a
 ## Préparer le renouvellement
 
 1. Sélectionnez **Outils des responsables**, puis **Membres**.
+
+    ![La liste des membres avec le bouton Paramètres du renouvellement en haut](01.png)
+
 2. Sélectionnez **Paramètres du renouvellement**.
+
+    ![Les paramètres du renouvellement avec les décomptes Renouvellements pour et Cotisations payées jusqu’en au-dessus de la case Afficher le renouvellement et de l'année de renouvellement](02.png)
+
 3. Cochez **Afficher le renouvellement** pour ouvrir le renouvellement. Décochez-la pour le fermer.
 4. Tapez l'année du renouvellement dans **Année de renouvellement**.
 5. Sous **Rappels aux membres actifs**, choisissez la **Date d’envoi**.
@@ -32,6 +38,9 @@ Un membre qui a renouvelé, mais dont l'année payée est antérieure à l'anné
 
 1. Ouvrez le dossier du membre depuis une liste de membres.
 2. Sous **Cotisation**, tapez l'année dans **Payé jusqu’en**. Ou sélectionnez **+1** pour ajouter une année.
+
+    ![La section Cotisation d'un dossier de membre avec l'année payée et le bouton +1](03.png)
+
 3. Sélectionnez **Enregistrer**.
 
 ## Et ensuite
