@@ -59,6 +59,7 @@ const props = defineProps<{
     kinds: string[];
     subGroupParents: SubGroupParent[];
     subGroupChairs: Record<number, RosterCandidate[]>;
+    visibilities: string[];
     groupsHref: string;
     stewardshipsHref: string;
 }>();
@@ -282,7 +283,13 @@ const indent = (row: TreeRow) => ({ '--indent': `${row.depth}` });
             </div>
         </div>
 
-        <CreateSubGroupDialog v-if="!can.administerGroups" v-model:open="createOpen" :parents="subGroupParents" :chairs="subGroupChairs" />
+        <CreateSubGroupDialog
+            v-if="!can.administerGroups"
+            v-model:open="createOpen"
+            :parents="subGroupParents"
+            :chairs="subGroupChairs"
+            :visibilities="visibilities"
+        />
         <CreateGroupDialog v-else v-model:open="createOpen" :parent-options="parentOptions" :kinds="kinds" />
     </AppLayout>
 </template>

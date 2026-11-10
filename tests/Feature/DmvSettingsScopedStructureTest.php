@@ -9,7 +9,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 /*
  * A parent officer renames and moves a sub-group (#886, PRD #881, ADR-0036 §11). Their
- * structure form is name and parent only; the parent is any active Group in their subtree,
+ * structure form is name, parent and listing visibility (#958); the parent is any active Group in their subtree,
  * never the sub-group itself or one below it. A sibling with the same name is refused. Every
  * other field stays super-tier only, and so does their own Group.
  *
@@ -158,7 +158,7 @@ it('refuses a name a sibling under the new parent already has, and allows it und
     expect($west->refresh()->name)->toBe('Field');
 });
 
-it('ignores every field beyond name and parent in a crafted request', function () {
+it('ignores every field beyond name, parent and listing visibility in a crafted request', function () {
     [, , $docents] = restructureTree();
     $sections = Group::factory()->workingGroup()->privateListing()->create([
         'parent_id' => $docents->id, 'slug' => 'docents-sections', 'name' => 'Sections', 'display_order' => 2, 'has_meetings' => true,
@@ -167,7 +167,7 @@ it('ignores every field beyond name and parent in a crafted request', function (
     $this->actingAs(restructureOfficerOf($docents))
         ->patch('/officer/settings/groups/docents-sections', [
             'name' => 'Sections', 'parent_id' => $docents->id, 'slug' => 'hijack', 'kind' => 'program',
-            'listing_visibility' => 'public', 'display_order' => 9, 'has_meetings' => false, 'has_bookings' => true,
+            'display_order' => 9, 'has_meetings' => false, 'has_bookings' => true,
             'time_boxed' => true, 'start_date' => '2026-01-01', 'end_date' => '2026-02-01', 'hours_multiplier' => '5',
             'lifecycle_state' => 'archived',
         ])
@@ -176,7 +176,6 @@ it('ignores every field beyond name and parent in a crafted request', function (
     $sections->refresh();
     expect($sections->slug)->toBe('docents-sections')
         ->and($sections->kind->value)->toBe('working_group')
-        ->and($sections->listing_visibility->value)->toBe('private')
         ->and($sections->display_order)->toBe(2)
         ->and($sections->has_meetings)->toBeTrue()
         ->and($sections->has_bookings)->toBeFalse()
@@ -191,13 +190,48 @@ it('refuses a parent officer their own Group, a Group outside their subtree and 
     Group::factory()->workingGroup()->archived()->create(['parent_id' => $docents->id, 'slug' => 'old', 'name' => 'Old']);
     $officer = restructureOfficerOf($docents);
 
-    $this->actingAs($officer)->patch('/officer/settings/groups/docents', ['name' => 'Renamed', 'parent_id' => $docents->parent_id])->assertForbidden();
-    $this->actingAs($officer)->patch('/officer/settings/groups/youth-sections', ['name' => 'Renamed', 'parent_id' => $youth->id])->assertForbidden();
+    $this->actingAs($officer)->patch('/officer/settings/groups/docents', ['name' => 'Renamed', 'parent_id' => $docents->parent_id, 'listing_visibility' => 'private'])->assertForbidden();
+    $this->actingAs($officer)->patch('/officer/settings/groups/youth-sections', ['name' => 'Renamed', 'parent_id' => $youth->id, 'listing_visibility' => 'private'])->assertForbidden();
     $this->actingAs($officer)
         ->patch('/officer/settings/groups/old', ['name' => 'Renamed', 'parent_id' => $docents->id])
         ->assertSessionHasErrors(['group' => __('dmv_settings.error.archived')]);
 
     expect($docents->refresh()->name)->toBe('Docents')
+        ->and($docents->listing_visibility->value)->not->toBe('private')
+        ->and(Group::query()->where('slug', 'youth-sections')->sole()->listing_visibility->value)->not->toBe('private')
         ->and(Group::query()->where('slug', 'youth-sections')->value('name'))->toBe('Sections')
         ->and(Group::query()->where('slug', 'old')->value('name'))->toBe('Old');
+});
+
+it('sends a parent officer the sub-group\'s listing visibility and the choices', function () {
+    [, , $docents] = restructureTree();
+    Group::factory()->workingGroup()->privateListing()->create(['parent_id' => $docents->id, 'slug' => 'docents-sections', 'name' => 'Sections']);
+
+    $this->actingAs(restructureOfficerOf($docents))
+        ->get('/officer/settings/groups/docents-sections')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('group.listing_visibility', 'private')
+            ->where('visibilities', ['public', 'group', 'private']));
+});
+
+it('lets a parent officer change a sub-group\'s listing visibility', function (string $visibility) {
+    [, , $docents] = restructureTree();
+    $sections = Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'docents-sections', 'name' => 'Sections']);
+
+    $this->actingAs(restructureOfficerOf($docents))
+        ->patch('/officer/settings/groups/docents-sections', ['name' => 'Sections', 'parent_id' => $docents->id, 'listing_visibility' => $visibility])
+        ->assertSessionHasNoErrors();
+
+    expect($sections->refresh()->listing_visibility->value)->toBe($visibility);
+})->with(['public', 'group', 'private']);
+
+it('refuses an unknown listing visibility on the structure form', function () {
+    [, , $docents] = restructureTree();
+    $sections = Group::factory()->workingGroup()->create(['parent_id' => $docents->id, 'slug' => 'docents-sections', 'name' => 'Sections']);
+
+    $this->actingAs(restructureOfficerOf($docents))
+        ->patch('/officer/settings/groups/docents-sections', ['name' => 'Sections', 'parent_id' => $docents->id, 'listing_visibility' => 'secret'])
+        ->assertSessionHasErrors('listing_visibility');
+
+    expect($sections->refresh()->listing_visibility->value)->toBe('group');
 });

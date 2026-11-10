@@ -1754,6 +1754,20 @@ it('seeds a Persona who chairs an active Docents sub-group (#882)', function () 
         ->and($chair->administers($docents))->toBeFalse();
 });
 
+it('seeds the Records Chair Persona as the one Leila Dubois, still on her roster Groups', function () {
+    $records = Group::where('slug', 'records')->firstOrFail();
+    $chair = Member::where('email', PersonaCatalogue::RECORDS_CHAIR_EMAIL)->firstOrFail();
+
+    $recordsChairs = GroupMemberRole::where('role', Role::Chair)
+        ->whereHas('groupMember', fn ($query) => $query->where('group_id', $records->id))
+        ->count();
+
+    expect($chair->canActAs(Role::Chair, $records))->toBeTrue()
+        ->and($recordsChairs)->toBe(1)
+        ->and(Member::where('first_name', 'Leila')->where('last_name', 'Dubois')->count())->toBe(1)
+        ->and($chair->memberships()->count())->toBeGreaterThan(1);
+});
+
 it('seeds a Persona outside Docents who reads its shared Folders but not its Group-only ones', function () {
     $reader = Member::where('email', PersonaCatalogue::LIBRARY_READER_EMAIL)->firstOrFail();
     $docents = Group::where('slug', 'docents')->firstOrFail();
