@@ -12,7 +12,8 @@
 // the save bar. The ten flags and Time-boxed are DmvSettingsFlagRow switches; a capability that
 // is on shows how many records sit behind it, and once switched off in the draft, how many
 // become hidden (#844). A parent officer's form (`can.administerGroups` false, ADR-0036 §11,
-// #886) is the Identity card with name and one parent select over their own subtrees, and the Archive card (#887); every
+// #886) is the Identity card with name, one parent select over their own subtrees and the
+// listing visibility (#958), and the Archive card (#887); every
 // other card stays super-tier only.
 import DmvSettingsFlagRow from '@/components/DmvSettingsFlagRow.vue';
 import DmvSettingsSection from '@/components/DmvSettingsSection.vue';
@@ -131,7 +132,7 @@ function save(): void {
                   start_date: data.time_boxed ? data.start_date || null : null,
                   end_date: data.time_boxed ? data.end_date || null : null,
               }
-            : { name: data.name, parent_id: data.parent_id },
+            : { name: data.name, parent_id: data.parent_id, listing_visibility: data.listing_visibility },
     ).patch(route('dmv-settings.groups.update', { group: props.group.slug }), { preserveScroll: true });
 }
 
@@ -177,8 +178,11 @@ const sections = computed(() =>
     SECTIONS.filter((section) => (section.id === 'archive' ? !props.group.archived : props.can.administerGroups || section.id === 'identity')),
 );
 const sectionTitle = (section: Section): string => trans(`dmv_settings.group.${section.key}`);
+// A parent officer's Visibility sits in Identity (#958), so its error marks that entry.
+const sectionFields = (section: Section): readonly Field[] =>
+    section.id === 'identity' && !props.can.administerGroups ? [...section.fields, 'listing_visibility'] : section.fields;
 const sectionHasError = (section: Section): boolean =>
-    section.id === 'archive' ? archiveError.value !== undefined : section.fields.some((field) => errors.value[field] !== undefined);
+    section.id === 'archive' ? archiveError.value !== undefined : sectionFields(section).some((field) => errors.value[field] !== undefined);
 
 // Under a capability: the records behind it while it is on; once switched off in the draft,
 // how many become hidden. Only a capability saved as on carries a count. Both label keys end
@@ -258,16 +262,28 @@ const countLine = (flag: Capability): string | null => {
                                 <Input id="group-name" v-model="form.name" required maxlength="255" />
                                 <InputError :message="errors.name" />
                             </div>
-                            <!-- A parent officer: one select over their own subtrees, each head at depth 0. -->
-                            <div v-if="!can.administerGroups" class="grid gap-2">
-                                <Label for="group-parent">{{ trans('dmv_settings.field.parent') }}</Label>
-                                <NativeSelect id="group-parent" v-model="form.parent_id" required>
-                                    <option v-for="option in props.parents" :key="option.id" :value="option.id">
-                                        {{ treeIndent(option.depth) + parentLabel(option) }}
-                                    </option>
-                                </NativeSelect>
-                                <InputError :message="errors.parent_id" />
-                            </div>
+                            <!-- A parent officer: one select over their own subtrees, each head at depth 0, and
+                                 the listing (#958); the super-tier's sits in the Listing card. -->
+                            <template v-if="!can.administerGroups">
+                                <div class="grid gap-2">
+                                    <Label for="group-parent">{{ trans('dmv_settings.field.parent') }}</Label>
+                                    <NativeSelect id="group-parent" v-model="form.parent_id" required>
+                                        <option v-for="option in props.parents" :key="option.id" :value="option.id">
+                                            {{ treeIndent(option.depth) + parentLabel(option) }}
+                                        </option>
+                                    </NativeSelect>
+                                    <InputError :message="errors.parent_id" />
+                                </div>
+                                <div class="grid gap-2">
+                                    <Label for="group-visibility">{{ trans('dmv_settings.field.visibility') }}</Label>
+                                    <NativeSelect id="group-visibility" v-model="form.listing_visibility" required>
+                                        <option v-for="visibility in visibilities" :key="visibility" :value="visibility">
+                                            {{ trans(`dmv_settings.visibility.${visibility}`) }}
+                                        </option>
+                                    </NativeSelect>
+                                    <InputError :message="errors.listing_visibility" />
+                                </div>
+                            </template>
                             <!-- Section and Parent are a real pair (#850): a subgrid keeps label, control and
                                  error in line across the columns however a French label wraps. -->
                             <div v-else class="grid gap-x-4 gap-y-2 sm:grid-cols-2">

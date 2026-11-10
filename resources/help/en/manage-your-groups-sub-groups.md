@@ -1,6 +1,6 @@
 # Manage your Group's sub-groups
 
-Create, rename, move and archive the sub-groups below your Group, and run their rosters. You need the Secretary or Chair role.
+Create, rename, move and archive the sub-groups below your Group, set who sees them listed, and run their rosters. You need the Secretary or Chair role.
 
 A sub-group is any Group below yours, at any depth. You cannot rename, move or archive your own Group. The President's office does that.
 
@@ -22,27 +22,40 @@ The page lists your Group and every sub-group below it. Your Group's row reads *
 
 1. Select **Create a sub-group**.
 
-    ![The Create a sub-group dialog: a name, Docents as the parent, and the Chair search over the Docents members](03.png)
+    ![The Create a sub-group dialog: a name, Docents as the parent, the Chair search over the Docents members, and Listing visibility](03.png)
 
 2. Enter a name. Two sub-groups under the same parent cannot share a name.
 3. Choose the parent. It can be your Group or any active sub-group below it.
 4. To name the Chair now, search the parent Group's members and pick one. You can leave the Chair empty.
-5. Select **Create**.
+5. Choose the **Listing visibility**. **Parent Group members** is selected by default. Read **Who sees a sub-group** below.
+6. Select **Create**.
 
 The new sub-group's page opens in DMV Settings. The Chair you picked joins it as a Full member with the Chair role. The sub-group starts with Meetings and Documents on.
 
 > **Note:** Ask the President's office to switch on anything else, such as Scheduling.
 
-## Rename or move a sub-group
+## Rename, move or change who sees a sub-group
 
 1. Select the sub-group's name in the list.
 
-    ![The Sections page in DMV Settings: Name and Parent, the Archive card, and Save changes](04.png)
+    ![The Sections page in DMV Settings: Name, Parent and Listing visibility, the Archive card, and Save changes](04.png)
 
-2. Change the **Name**, or choose a new **Parent**.
+2. Change the **Name**, choose a new **Parent**, or choose a new **Listing visibility**.
 3. Select **Save changes**.
 
 You can move a sub-group only within your own Group. It cannot go under itself or under one of its own sub-groups.
+
+## Who sees a sub-group
+
+The **Listing visibility** controls who sees the sub-group in the Left Side Bar and the Group lists.
+
+- **Public**: every Member.
+- **Parent Group members**: the members of the Group directly above it.
+- **Members only**: only the sub-group's own members. Nobody else can find its page.
+
+> **Note:** **Members only** also hides the sub-group's page, Meetings and Documents from you, unless you are its member. To see them again, add yourself to the sub-group.
+
+You still see a **Members only** sub-group in DMV Settings, and you can still run its roster.
 
 ## Archive a sub-group
 

@@ -79,6 +79,8 @@ class DmvSettingsController extends Controller
                 ),
                 // Its Chair select (#885): each parent's active roster, keyed by parent id.
                 'subGroupChairs' => $this->subGroupChairs(array_map(fn (OrgTreeNode $node) => $node->group->id, $parents)),
+                // Its Visibility select (#958).
+                'visibilities' => array_column(ListingVisibility::cases(), 'value'),
             ]);
         }
 
@@ -96,6 +98,7 @@ class DmvSettingsController extends Controller
             'kinds' => array_values(array_diff(array_column(Kind::cases(), 'value'), [Kind::Container->value])),
             'subGroupParents' => [],
             'subGroupChairs' => [],
+            'visibilities' => [],
         ]);
     }
 
@@ -166,7 +169,7 @@ class DmvSettingsController extends Controller
     public function store(StoreGroupRequest $request): RedirectResponse
     {
         $group = $request->scoped()
-            ? GroupCreation::subGroup($request->parent(), $request->validated('name'), $request->validated('chair_id'), $request->user())
+            ? GroupCreation::subGroup($request->parent(), $request->validated('name'), $request->validated('chair_id'), $request->user(), $request->listingVisibility())
             : GroupCreation::create($request->validated(), $request->user());
 
         return redirect()->route('officer.settings.group', ['group' => $group->slug]);
@@ -191,9 +194,9 @@ class DmvSettingsController extends Controller
      * archived Group still opens, read-only; its h1 carries the Archived or Ended badge.
      *
      * A parent officer (ADR-0036 §11) opens a Group below one they administer, never their own
-     * Group, the root or a Container (403). Their form (`scoped`) is name and parent only, and
-     * its parent choices are their own subtrees, each headed by a Group they administer, so
-     * nothing about the rest of the org is sent.
+     * Group, the root or a Container (403). Their form (`scoped`) is name, parent and listing
+     * visibility (#958), and its parent choices are their own subtrees, each headed by a Group
+     * they administer, so nothing about the rest of the org is sent.
      */
     public function group(Request $request, Group $group): Response
     {
@@ -208,7 +211,7 @@ class DmvSettingsController extends Controller
         return Inertia::render('officer/settings/Group', [
             ...$this->shell(),
             // The super-tier gets every field and the section strip; a parent officer the
-            // Identity card (name and parent) and the Archive section only.
+            // Identity card (name, parent and listing visibility) and the Archive section only.
             'can' => ['administerGroups' => $wholeOrg],
             'group' => [
                 'id' => $group->id,

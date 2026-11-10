@@ -73,6 +73,10 @@ final class PersonaCatalogue
     // parent-officer view (ADR-0036 §11).
     public const SUBGROUP_CHAIR_EMAIL = 'rosa.delgado@dmv.test';
 
+    // The Records Chair Persona: the bulk-roster member who already chairs Records on
+    // staging, so her email keeps the roster's index suffix (DemoSeeder::memberPool()).
+    public const RECORDS_CHAIR_EMAIL = 'leila.dubois42@dmv.test';
+
     /**
      * Every catalogued Persona, in picker order (grouped by function).
      *
@@ -123,6 +127,13 @@ final class PersonaCatalogue
             new Persona(self::SUBGROUP_CHAIR_EMAIL, 'Rosa', 'Delgado', PersonaGroup::Officers, 'Chair · Docents › Sections', placements: [
                 new PersonaPlacement(self::DOCENTS),
                 new PersonaPlacement(self::DOCENTS_SECTIONS, roles: [Role::Chair]),
+            ]),
+            // The Records Chair (Feedback item 105): Chair of the Group that stewards member
+            // administration, so Records testers can see its Chair view. Catalogued under her
+            // bulk-roster email, so the roster draw reuses this row: she keeps the name and
+            // the other Groups testers already know her by, and stays the only Leila Dubois.
+            new Persona(self::RECORDS_CHAIR_EMAIL, 'Leila', 'Dubois', PersonaGroup::Officers, 'Chair · Records', placements: [
+                new PersonaPlacement(self::RECORDS, roles: [Role::Chair]),
             ]),
             // Secretary and Treasurer sit on the Executive committee — a real Group —
             // alongside the President / VPs. Governance & Operations is now a page-less
