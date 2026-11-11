@@ -166,7 +166,7 @@ class Invitation extends Model
     {
         if ($this->state !== InvitationState::Open
             || $this->startsAt()->isPast()
-            || ! $member->category->grantsDirectoryListing()) {
+            || ! $member->category->canBeGuest()) {
             return null;
         }
 
@@ -262,14 +262,14 @@ class Invitation extends Model
     }
 
     /**
-     * The current Members not on the guest list, as a Host's pickers name them: by surname,
+     * The Members who may be Guests and are not on the list yet, as a Host's pickers name them: by surname,
      * with no address.
      *
      * @return list<array{id: int, name: string}>
      */
     public function candidates(): array
     {
-        return Member::query()->inDirectory()
+        return Member::query()->canBeGuest()
             ->whereNotIn('id', $this->guests()->pluck('member_id'))
             ->get()
             ->sortBy(fn (Member $member): string => $member->surnameKey())

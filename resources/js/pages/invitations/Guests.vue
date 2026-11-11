@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A Host's guest list (ADR-0034 §3): add one current Member or a whole Audience, remove a
+// A Host's guest list (ADR-0034 §3): add one Member who may be a Guest or a whole Audience, remove a
 // Guest. The server resolves an Audience and checks that this Host may pick it. A removed
 // Guest's Reply goes with them.
 import InputError from '@/components/InputError.vue';

@@ -50,7 +50,7 @@ class GuestController extends Controller
     }
 
     /**
-     * Add one current Member.
+     * Add one Member who may be a Guest.
      */
     public function store(StoreGuestRequest $request, Invitation $invitation): RedirectResponse
     {

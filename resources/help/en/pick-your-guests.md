@@ -16,9 +16,9 @@ The list shows every Guest and the total.
 
 ![The Guests page with 24 Guests added from Docents](02.png)
 
-**Add a group** lists the Groups you belong to. An org-wide sender also sees every Group and All members.
+**Add a group** lists the Groups you belong to. An org-wide sender also sees every Group, All members, Active, and Provisional. Active adds only the Active Members. Provisional adds only the Provisional Members.
 
-Only current Members can be Guests: Active, Honourary, Sustaining, and LOA. Provisional and PreActive Members cannot be Guests. A Group or All members also leaves out Members on leave. Add them one at a time.
+Active, Honourary, Sustaining, LOA, and Provisional Members can be Guests. PreActive Members cannot be Guests. A Group or All members also leaves out Members on leave. Add them one at a time.
 
 ## Remove a Guest
 

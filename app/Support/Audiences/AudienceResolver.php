@@ -152,17 +152,27 @@ class AudienceResolver
     }
 
     /**
-     * The bulk picks a Host may make for a guest list (ADR-0034 §3): All Members for an
-     * org-wide sender, and the live Groups they may pick. The Broadcast rule gives a Group's
-     * members its roster; an org-wide sender also gets every Group, which the Broadcast rule
-     * does not grant, so it is added here and Broadcasts stay as they are. The root stores no
-     * roster and a Container holds none, and All Members already covers the root.
+     * The bulk picks a Host may make for a guest list (ADR-0034 §3): All Members, the Active
+     * Members, and the Provisional Members for an org-wide sender (#960), and the live Groups
+     * they may pick. The Broadcast rule gives a Group's members its roster; an org-wide sender
+     * also gets every Group, which the Broadcast rule does not grant, so it is added here and
+     * Broadcasts stay as they are. The root stores no roster and a Container holds none, and
+     * All Members already covers the root.
      *
      * @return Collection<int, Audience>
      */
     public function guestAudiences(Member $actor): Collection
     {
         $directory = AudienceContext::directory();
+
+        $categories = collect($this->canPick($actor, $directory, AudienceKey::OneCategory)
+            ? [Category::Active, Category::Provisional]
+            : [])
+            ->map(fn (Category $category): Audience => new Audience(
+                AudienceKey::OneCategory,
+                $category->value,
+                $this->label($directory, AudienceKey::OneCategory, $category->value),
+            ));
 
         $groups = Group::query()->active()
             ->where('slug', '!=', Group::ROOT_SLUG)
@@ -176,6 +186,7 @@ class AudienceResolver
         return collect($this->canPick($actor, $directory, AudienceKey::AllMembers)
             ? [new Audience(AudienceKey::AllMembers, null, $this->label($directory, AudienceKey::AllMembers, null))]
             : [])
+            ->concat($categories)
             ->concat($groups)
             ->values();
     }
@@ -183,8 +194,8 @@ class AudienceResolver
     /**
      * Resolve a bulk pick to the Members it puts on a guest list, or a 403 when the actor
      * may not pick it. Unlike {@see resolve()} this keeps no-email Members: the flag stops
-     * mail, not an Invitation. It keeps only current Members, the same standing a single pick
-     * needs: a Directory listing.
+     * mail, not an Invitation. It keeps only the Members who may be Guests, the same standing
+     * a single pick needs ({@see Category::canBeGuest()}).
      *
      * @return Collection<int, Member>
      */
@@ -202,8 +213,8 @@ class AudienceResolver
             ? AudienceContext::group(Group::where('slug', $parameter)->firstOrFail())
             : AudienceContext::directory();
 
-        return $this->base($context, $key, null)
-            ->filter(fn (Member $member): bool => $member->category->grantsDirectoryListing())
+        return $this->base($context, $key, $key === AudienceKey::OneCategory ? $parameter : null)
+            ->filter(fn (Member $member): bool => $member->category->canBeGuest())
             ->unique(fn (Member $member): int => $member->getKey())
             ->values();
     }
@@ -397,8 +408,8 @@ class AudienceResolver
     }
 
     /**
-     * The Invitation's current Guests, optionally only those with one Reply. A Guest who
-     * stops being current stays on the list and gets no more mail (spec #901).
+     * The Invitation's Guests who may still be Guests, optionally only those with one Reply. A Guest
+     * whose standing stops qualifying stays on the list and gets no more mail (spec #901).
      *
      * @return Collection<int, Member>
      */
@@ -406,7 +417,7 @@ class AudienceResolver
     {
         return $invitation->guests()
             ->when($reply !== null, fn ($query) => $query->where('reply', $reply))
-            ->whereHas('member', fn ($query) => $query->inDirectory())
+            ->whereHas('member', fn ($query) => $query->canBeGuest())
             ->with('member')
             ->get()
             ->map(fn (Guest $guest): Member => $guest->member)

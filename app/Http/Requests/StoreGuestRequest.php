@@ -7,8 +7,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Adding one Member as a Guest (ADR-0034 §3): the Invitation's Host or the super-tier.
- * Any current Member will do, and current means the standing that gives a Directory
- * listing, so the Host need not share a Group with them.
+ * Any Member whose standing lets them be a Guest will do (Category::canBeGuest()), so the
+ * Host need not share a Group with them.
  */
 class StoreGuestRequest extends FormRequest
 {
