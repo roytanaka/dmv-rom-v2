@@ -123,7 +123,7 @@ class RunDailyMailPass extends Command
     /**
      * Write the Invitation Reminders (#909, ADR-0034 §12), the same window with a sent record
      * on the (Invitation, Member) grain. The lead is fixed, because no Group owns the setting.
-     * A Guest who is no longer current stays on the list but gets no more mail (spec #901).
+     * A Guest whose standing no longer qualifies stays on the list but gets no more mail (spec #901).
      *
      * The row is still the sent record, so a Reminder that went out is never written again. An
      * Expired row never went out: its Guest declined or the Invitation went back to Draft, and
@@ -136,7 +136,7 @@ class RunDailyMailPass extends Command
         $guests = Guest::query()
             ->with(['invitation', 'member'])
             ->where('reply', Reply::Accepted)
-            ->whereHas('member', fn (Builder $member) => $member->inDirectory()->where('no_email', false))
+            ->whereHas('member', fn (Builder $member) => $member->canBeGuest()->where('no_email', false))
             ->whereHas('invitation', fn (Builder $invitation) => $invitation
                 ->takingReplies()
                 ->whereDate('date', '<=', $lastDay->toDateString()))

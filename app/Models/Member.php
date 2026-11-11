@@ -358,6 +358,19 @@ class Member extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * Members a Host may put on a guest list: {@see Category::canBeGuest()} as a query.
+     *
+     * @param  Builder<Member>  $query
+     */
+    public function scopeCanBeGuest(Builder $query): void
+    {
+        $query->whereIn('category', array_filter(
+            Category::cases(),
+            fn (Category $category) => $category->canBeGuest(),
+        ));
+    }
+
+    /**
      * The Past Members: the Resigned and Deceased groups once Remove personal data has
      * reached them (ADR-0038 §4, §6).
      *

@@ -98,7 +98,7 @@ it('sends nothing for an Invitation moved back to Draft, or to a removed Guest',
     expect(Delivery::where('state', DeliveryState::Expired)->count())->toBe(2);
 });
 
-it('sends nothing to a Guest who stopped being current', function (Category $category) {
+it('sends nothing to a Guest whose standing no longer qualifies', function (Category $category) {
     Mail::fake();
 
     queuedInvitationReminder()->member->update(['category' => $category]);
@@ -109,7 +109,7 @@ it('sends nothing to a Guest who stopped being current', function (Category $cat
     expect(Delivery::sole()->state)->toBe(DeliveryState::Expired);
 })->with([
     'resigned' => [Category::Resigned],
-    'provisional, who has no Directory listing' => [Category::Provisional],
+    'pre-active' => [Category::PreActive],
 ]);
 
 it('sends nothing once the occasion has started', function () {

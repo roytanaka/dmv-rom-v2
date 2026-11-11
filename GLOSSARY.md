@@ -310,7 +310,7 @@ The **Member** who creates an **Invitation** and runs it. Any Member whose **Cat
 _Avoid_: "organiser", "creator", and the legacy "executive host" or "super-host".
 
 **Guest**:
-A **Member** on an **Invitation**'s guest list. Each Guest carries one **Reply**. A Host who replies for a Member adds them as a Guest.
+A **Member** on an **Invitation**'s guest list. Each Guest carries one **Reply**. A Host who replies for a Member adds them as a Guest. Active, Honourary, Sustaining, LOA and Provisional Members may be Guests ([ADR-0034](docs/adr/0034-invitations.md) §3).
 _Avoid_: "invitee", "attendee". And reading a Guest as someone who came: like a **Sign-up**, a Guest says nothing about **attendance**.
 
 **Reply**:

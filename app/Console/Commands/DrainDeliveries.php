@@ -186,7 +186,7 @@ class DrainDeliveries extends Command
         if ($invitation === null
             || $invitation->trashed()
             || ($invitation->state !== InvitationState::Open && $audience !== AudienceKey::InvitationAccepted)
-            || ! $delivery->member->category->grantsDirectoryListing()) {
+            || ! $delivery->member->category->canBeGuest()) {
             return false;
         }
 

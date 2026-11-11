@@ -237,6 +237,19 @@ it('lets a Guest accept and choose Options', function () {
         ->and($guest->options()->pluck('options.id')->sort()->values()->all())->toBe([$lunch->id, $tour->id]);
 });
 
+it('lets a Provisional Guest find the Invitation and accept', function () {
+    $member = Member::factory()->category(Category::Provisional)->create();
+    $invitation = openInvitation(['name' => 'Service Awards']);
+    $guest = guestOn($invitation, $member);
+
+    $this->actingAs($member)
+        ->get(route('invitations'))
+        ->assertInertia(fn (Assert $page) => $page->where('invitations.0.name', 'Service Awards'));
+    replyAs($member, $invitation, ['reply' => 'accepted'])->assertSessionHasNoErrors();
+
+    expect($guest->fresh()->reply)->toBe(Reply::Accepted);
+});
+
 it('lets a Guest accept with no Options', function () {
     $member = Member::factory()->create();
     $invitation = openInvitation();

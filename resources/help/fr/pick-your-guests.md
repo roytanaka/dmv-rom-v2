@@ -16,9 +16,9 @@ La liste montre chaque invité et le total.
 
 ![La page Invités avec 24 invités ajoutés depuis les Docents](02.png)
 
-**Ajouter un groupe** liste les groupes dont vous êtes membre. Un expéditeur à l'échelle de l'organisme voit aussi tous les groupes et Tous les membres.
+**Ajouter un groupe** liste les groupes dont vous êtes membre. Un expéditeur à l'échelle de l'organisme voit aussi tous les groupes, Tous les membres, Actif et Provisoire. Actif ajoute seulement les membres actifs. Provisoire ajoute seulement les membres provisoires.
 
-Seuls les membres actuels peuvent être invités : actifs, honoraires, de soutien et en congé. Les membres provisoires et pré-actifs ne peuvent pas être invités. Un groupe ou Tous les membres laisse aussi de côté les membres en congé. Ajoutez-les un à la fois.
+Les membres actifs, honoraires, de soutien, en congé et provisoires peuvent être invités. Les membres pré-actifs ne peuvent pas être invités. Un groupe ou Tous les membres laisse aussi de côté les membres en congé. Ajoutez-les un à la fois.
 
 ## Retirer un invité
 

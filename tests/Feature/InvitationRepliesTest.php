@@ -113,11 +113,11 @@ it('holds no email address in the payload', function () {
         ->assertDontSee($candidate->email);
 });
 
-it('offers current Members not on the list, so a Host can reply for them', function () {
+it('offers Members who may be Guests and are not on the list, so a Host can reply for them', function () {
     $invitation = repliesOf(['host_id' => Member::factory()->create(['first_name' => 'Hal', 'last_name' => 'Host'])->id]);
     guestWithReply($invitation, Reply::NoReply);
     $candidate = Member::factory()->create(['first_name' => 'Ada', 'last_name' => 'Lee']);
-    Member::factory()->category(Category::Provisional)->create();
+    Member::factory()->category(Category::PreActive)->create();
 
     $this->actingAs($invitation->host)
         ->get(repliesUrl($invitation))
@@ -206,7 +206,7 @@ it('still lets a Host answer for a Guest who is no longer current', function () 
     expect($guest->fresh()->reply)->toBe(Reply::Declined);
 });
 
-it('refuses to add a Member who is not current', function (Category $category) {
+it('refuses to add a Member who may not be a Guest', function (Category $category) {
     $invitation = repliesOf();
     $member = Member::factory()->category($category)->create();
 
@@ -217,7 +217,7 @@ it('refuses to add a Member who is not current', function (Category $category) {
     expect($invitation->guests()->count())->toBe(0);
 })->with([
     'resigned' => [Category::Resigned],
-    'provisional, who has no Directory listing' => [Category::Provisional],
+    'pre-active' => [Category::PreActive],
 ]);
 
 it('refuses an Option from another Invitation and a Reply that is not an answer', function () {

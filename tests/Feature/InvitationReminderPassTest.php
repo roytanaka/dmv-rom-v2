@@ -107,7 +107,15 @@ it('writes nothing for a Guest who has not accepted, a Draft, a deleted Invitati
     expect(Delivery::count())->toBe(0);
 });
 
-it('writes nothing for a Guest who is not current', function (Category $category) {
+it('writes a Reminder for a Provisional Guest', function () {
+    repliedGuest(occasionOn('2026-11-12'), Reply::Accepted, Member::factory()->create(['category' => Category::Provisional]));
+
+    $this->artisan('mail:daily-pass')->assertSuccessful();
+
+    expect(Delivery::count())->toBe(1);
+});
+
+it('writes nothing for a Guest whose standing no longer qualifies', function (Category $category) {
     repliedGuest(occasionOn('2026-11-12'), Reply::Accepted, Member::factory()->create(['category' => $category]));
 
     $this->artisan('mail:daily-pass')->assertSuccessful();
@@ -115,7 +123,7 @@ it('writes nothing for a Guest who is not current', function (Category $category
     expect(Delivery::count())->toBe(0);
 })->with([
     'resigned' => [Category::Resigned],
-    'provisional, who has no Directory listing' => [Category::Provisional],
+    'pre-active' => [Category::PreActive],
 ]);
 
 it('writes no second Reminder on a later pass', function () {

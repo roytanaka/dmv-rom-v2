@@ -25,7 +25,7 @@ class StoreGuestAudienceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'audience' => ['required', Rule::enum(AudienceKey::class)->only([AudienceKey::AllMembers, AudienceKey::WholeGroup])],
+            'audience' => ['required', Rule::enum(AudienceKey::class)->only([AudienceKey::AllMembers, AudienceKey::OneCategory, AudienceKey::WholeGroup])],
             'parameter' => ['nullable', 'string'],
         ];
     }

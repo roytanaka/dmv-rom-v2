@@ -9,7 +9,8 @@ use Illuminate\Foundation\Http\FormRequest;
 /**
  * A Host setting a Reply for someone (ADR-0034 §10): the Invitation's Host or the
  * super-tier, whether or not it is Closed. The Member is a Guest already, who stays
- * answerable even if no longer current, or a current Member who becomes a Guest.
+ * answerable even if their standing has changed, or a Member who may be a Guest and
+ * becomes one.
  */
 class SetGuestReplyRequest extends FormRequest
 {

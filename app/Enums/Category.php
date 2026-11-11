@@ -63,6 +63,16 @@ enum Category: string
     }
 
     /**
+     * Whether a Member in this standing may be a Guest on an Invitation (ADR-0034 §3): the
+     * Directory standings and Provisional (#960). A Host picks them, the Drain mails them,
+     * and the Reminder reaches them.
+     */
+    public function canBeGuest(): bool
+    {
+        return $this->grantsDirectoryListing() || $this === self::Provisional;
+    }
+
+    /**
      * Whether members in this Category may sign up for shifts — the floor the
      * sign-up gate checks before any role check. Orthogonal to accessTier():
      * LOA has Full view but cannot sign up.

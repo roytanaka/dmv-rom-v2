@@ -58,7 +58,18 @@ it('lets a Host add any single current Member as a Guest', function () {
     expect(guestNames($invitation->host, $invitation))->toBe(['Ada Lee']);
 });
 
-it('refuses a Member who is not current as a single pick', function (Category $category) {
+it('lets a Host add a Provisional Member as a single pick', function () {
+    $invitation = hostedInvitation();
+    $provisional = Member::factory()->category(Category::Provisional)->create(['first_name' => 'Pat', 'last_name' => 'New']);
+
+    $this->actingAs($invitation->host)
+        ->post(route('invitations.guests.store', ['invitation' => $invitation->id]), ['member' => $provisional->id])
+        ->assertRedirect();
+
+    expect(guestNames($invitation->host, $invitation))->toBe(['Pat New']);
+});
+
+it('refuses a Member who may not be a Guest as a single pick', function (Category $category) {
     $invitation = hostedInvitation();
     $member = Member::factory()->category($category)->create();
 
@@ -70,7 +81,7 @@ it('refuses a Member who is not current as a single pick', function (Category $c
 })->with([
     'resigned' => [Category::Resigned],
     'deceased' => [Category::Deceased],
-    'provisional, who has no Directory listing' => [Category::Provisional],
+    'pre-active' => [Category::PreActive],
 ]);
 
 it('leaves one Guest, with their Reply, when the same Member is added twice', function () {
@@ -173,7 +184,7 @@ it('lets a Host add a whole Group they belong to, with its no-email Members', fu
     expect(guestNames($host, $invitation))->toBe(['Hal Host', 'Ada Lee', 'Bo Ray']);
 });
 
-it('leaves Members who are not current out of a whole Group', function () {
+it('leaves Members who may not be Guests out of a whole Group', function () {
     $host = Member::factory()->create(['first_name' => 'Hal', 'last_name' => 'Host']);
     $invitation = hostedInvitation($host);
     $group = Group::factory()->create();
@@ -181,13 +192,14 @@ it('leaves Members who are not current out of a whole Group', function () {
         $group,
         $host,
         Member::factory()->category(Category::Resigned)->create(),
-        Member::factory()->category(Category::Provisional)->create(),
+        Member::factory()->category(Category::PreActive)->create(),
+        Member::factory()->category(Category::Provisional)->create(['first_name' => 'Pat', 'last_name' => 'New']),
     );
 
     $this->actingAs($host);
     addAudience($invitation, ['audience' => 'whole_group', 'parameter' => $group->slug])->assertRedirect();
 
-    expect(guestNames($host, $invitation))->toBe(['Hal Host']);
+    expect(guestNames($host, $invitation))->toBe(['Hal Host', 'Pat New']);
 });
 
 it('refuses a Group the Host does not belong to', function () {
@@ -227,11 +239,12 @@ it('lets an org-wide sender add any Group', function () {
     expect(guestNames($invitation->host, $invitation))->toBe(['Ada Lee']);
 });
 
-it('lets an org-wide sender add All Members, without those on leave or not current', function () {
+it('lets an org-wide sender add All Members, without those on leave or who may not be Guests', function () {
     $host = chair();
     $invitation = hostedInvitation($host);
     $sustaining = Member::factory()->category(Category::Sustaining)->create();
-    Member::factory()->category(Category::Provisional)->create();
+    $provisional = Member::factory()->category(Category::Provisional)->create();
+    Member::factory()->category(Category::PreActive)->create();
     Member::factory()->category(Category::Loa)->create();
     Member::factory()->category(Category::Resigned)->create();
 
@@ -239,7 +252,7 @@ it('lets an org-wide sender add All Members, without those on leave or not curre
     addAudience($invitation, ['audience' => 'all_members'])->assertRedirect();
 
     expect(Guest::pluck('member_id')->sort()->values()->all())
-        ->toBe(collect([$host->id, $sustaining->id])->sort()->values()->all());
+        ->toBe(collect([$host->id, $sustaining->id, $provisional->id])->sort()->values()->all());
 });
 
 it('refuses All Members from a Host who is not an org-wide sender', function () {
@@ -248,6 +261,54 @@ it('refuses All Members from a Host who is not an org-wide sender', function () 
 
     $this->actingAs($invitation->host);
     addAudience($invitation, ['audience' => 'all_members'])->assertForbidden();
+
+    expect(Guest::count())->toBe(0);
+});
+
+it('lets an org-wide sender add the Active Members alone', function () {
+    $host = chair()->fresh();
+    $host->update(['category' => Category::Active]);
+    $invitation = hostedInvitation($host);
+    $active = Member::factory()->category(Category::Active)->create();
+    Member::factory()->category(Category::Sustaining)->create();
+    Member::factory()->category(Category::Loa)->create();
+    Member::factory()->category(Category::Provisional)->create();
+
+    $this->actingAs($host);
+    addAudience($invitation, ['audience' => 'one_category', 'parameter' => 'active'])->assertRedirect();
+
+    expect(Guest::pluck('member_id')->sort()->values()->all())
+        ->toBe(collect([$host->id, $active->id])->sort()->values()->all());
+});
+
+it('lets an org-wide sender add the Provisional Members alone', function () {
+    $invitation = hostedInvitation(chair());
+    $provisional = Member::factory()->category(Category::Provisional)->create(['first_name' => 'Pat', 'last_name' => 'New']);
+    Member::factory()->category(Category::Active)->create();
+    Member::factory()->category(Category::PreActive)->create();
+
+    $this->actingAs($invitation->host);
+    addAudience($invitation, ['audience' => 'one_category', 'parameter' => 'provisional'])->assertRedirect();
+
+    expect(guestNames($invitation->host, $invitation))->toBe(['Pat New']);
+});
+
+it('refuses a Category pick from a Host who is not an org-wide sender', function (string $category) {
+    $invitation = hostedInvitation();
+    Member::factory()->category(Category::from($category))->create();
+
+    $this->actingAs($invitation->host);
+    addAudience($invitation, ['audience' => 'one_category', 'parameter' => $category])->assertForbidden();
+
+    expect(Guest::count())->toBe(0);
+})->with(['active', 'provisional']);
+
+it('refuses a Category a guest list does not offer', function () {
+    $invitation = hostedInvitation(chair());
+    Member::factory()->category(Category::Sustaining)->create();
+
+    $this->actingAs($invitation->host);
+    addAudience($invitation, ['audience' => 'one_category', 'parameter' => 'sustaining'])->assertForbidden();
 
     expect(Guest::count())->toBe(0);
 });
@@ -291,7 +352,7 @@ it('offers a Host only the Audiences they may pick', function () {
         ]));
 });
 
-it('offers an org-wide sender All Members and every live Group, not the root or Containers', function () {
+it('offers an org-wide sender All Members, Active, Provisional, and every live Group, not the root or Containers', function () {
     $host = chair();
     $invitation = hostedInvitation($host);
     Group::factory()->create(['name' => 'Aardvarks']);
@@ -302,9 +363,23 @@ it('offers an org-wide sender All Members and every live Group, not the root or 
     $this->actingAs($host)
         ->get(route('invitations.guests', ['invitation' => $invitation->id]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('audiences.0.key', 'all_members')
+            ->where('audiences.0', ['key' => 'all_members', 'parameter' => null, 'label' => 'All members'])
+            ->where('audiences.1', ['key' => 'one_category', 'parameter' => 'active', 'label' => 'Active'])
+            ->where('audiences.2', ['key' => 'one_category', 'parameter' => 'provisional', 'label' => 'Provisional'])
             ->where('audiences', fn ($audiences) => collect($audiences)->pluck('label')->contains('Aardvarks'))
-            ->has('audiences', 3)); // All Members, the Chair's own Group, Aardvarks.
+            ->has('audiences', 5)); // All Members, Active, Provisional, the Chair's own Group, Aardvarks.
+});
+
+it('labels the Category picks in French', function () {
+    $invitation = hostedInvitation(chair());
+
+    $this->actingAs($invitation->host);
+    $this->withLocaleRoutes('fr', function () use ($invitation) {
+        $this->get("/fr/invitations/{$invitation->id}/invites")
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('audiences.1.label', 'Actif')
+                ->where('audiences.2.label', 'Provisoire'));
+    });
 });
 
 // --- Removing ------------------------------------------------------------------
@@ -363,17 +438,19 @@ it('holds no email address in the guest-list payload', function () {
     $response->assertDontSee($guest->member->email)->assertDontSee($candidate->email);
 });
 
-it('offers current Members not yet on the list as single picks', function () {
+it('offers Members who may be Guests and are not yet on the list as single picks', function () {
     $invitation = hostedInvitation(Member::factory()->create(['first_name' => 'Hal', 'last_name' => 'Host']));
     Guest::factory()->create(['invitation_id' => $invitation->id]);
     $candidate = Member::factory()->create(['first_name' => 'Ada', 'last_name' => 'Lee']);
-    Member::factory()->category(Category::Provisional)->create();
+    $provisional = Member::factory()->category(Category::Provisional)->create(['first_name' => 'Pat', 'last_name' => 'New']);
+    Member::factory()->category(Category::PreActive)->create();
 
     $this->actingAs($invitation->host)
         ->get(route('invitations.guests', ['invitation' => $invitation->id]))
         ->assertInertia(fn (Assert $page) => $page->where('candidates', [
             ['id' => $invitation->host->id, 'name' => 'Hal Host'],
             ['id' => $candidate->id, 'name' => 'Ada Lee'],
+            ['id' => $provisional->id, 'name' => 'Pat New'],
         ]));
 });
 

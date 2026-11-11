@@ -161,7 +161,17 @@ it('still sends a queued mail to a Guest in its Audience', function (AudienceKey
     'an all Guests mail to a Guest who declined' => [AudienceKey::InvitationGuests, Reply::Declined],
 ]);
 
-it('expires a queued mail to a Guest who stopped being current', function (Category $category) {
+it('sends a queued mail to a Provisional Guest', function () {
+    Mail::fake();
+    $row = queuedInvitationMail($this->broadcast, $this->invitation);
+
+    $row->member->update(['category' => Category::Provisional]);
+    $this->artisan('mail:drain')->assertSuccessful();
+
+    expect($row->fresh()->state)->toBe(DeliveryState::Sent);
+});
+
+it('expires a queued mail to a Guest whose standing no longer qualifies', function (Category $category) {
     Mail::fake();
     $row = queuedInvitationMail($this->broadcast, $this->invitation);
 
@@ -172,7 +182,7 @@ it('expires a queued mail to a Guest who stopped being current', function (Categ
     expect($row->fresh()->state)->toBe(DeliveryState::Expired);
 })->with([
     'resigned' => [Category::Resigned],
-    'provisional, who has no Directory listing' => [Category::Provisional],
+    'pre-active' => [Category::PreActive],
 ]);
 
 it('still sends the sender copy after a deleted Invitation', function () {

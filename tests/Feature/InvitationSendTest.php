@@ -138,7 +138,15 @@ it('skips a no-email Guest and names them', function () {
     expect(invitationRecipients())->toBe([$reached->member_id]);
 });
 
-it('sends nothing to a Guest who is no longer current', function (Category $category) {
+it('sends to a Provisional Guest', function () {
+    $reached = guestRow($this->invitation, ['category' => Category::Provisional]);
+
+    sendInvitation($this->host, $this->invitation)->assertOk()->assertJson(['queued' => 1]);
+
+    expect(invitationRecipients())->toBe([$reached->member_id]);
+});
+
+it('sends nothing to a Guest whose standing no longer qualifies', function (Category $category) {
     $reached = guestRow($this->invitation);
     guestRow($this->invitation, ['category' => $category]);
 
@@ -147,7 +155,7 @@ it('sends nothing to a Guest who is no longer current', function (Category $cate
     expect(invitationRecipients())->toBe([$reached->member_id]);
 })->with([
     'resigned' => [Category::Resigned],
-    'provisional, who has no Directory listing' => [Category::Provisional],
+    'pre-active' => [Category::PreActive],
 ]);
 
 it('refuses a send on a Draft that would not reach every Guest, and writes nothing', function (Closure $request) {
