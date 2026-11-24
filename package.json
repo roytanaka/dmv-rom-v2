@@ -29,15 +29,15 @@
         "@ai-hero/sandcastle": "^0.14.0",
         "@eslint/js": "^10.0.1",
         "@vue/eslint-config-typescript": "^14.9.0",
-        "eslint": "^10.14.0",
+        "eslint": "^10.15.0",
         "eslint-config-prettier": "^10.0.1",
         "eslint-plugin-vue": "^10.12.1",
         "husky": "^9.1.7",
-        "lint-staged": "^17.6.0",
-        "prettier": "^3.10.0",
+        "lint-staged": "^17.6.1",
+        "prettier": "^3.10.1",
         "prettier-plugin-organize-imports": "^4.1.0",
         "prettier-plugin-tailwindcss": "^0.8.1",
-        "typescript-eslint": "^8.72.2"
+        "typescript-eslint": "^8.73.0"
     },
     "dependencies": {
         "@headlessui/vue": "^1.7.23",
@@ -46,7 +46,7 @@
         "@tailwindcss/forms": "^0.5.3",
         "@tailwindcss/vite": "^4.3.5",
         "@types/node": "^26.6.6",
-        "@vitejs/plugin-vue": "^6.0.10",
+        "@vitejs/plugin-vue": "^6.0.11",
         "@vueuse/core": "^15.0.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -61,10 +61,10 @@
         "vite": "^8.3.8",
         "vue": "^3.5.45",
         "vue-tsc": "^3.3.14",
-        "ziggy-js": "^2.6.5"
+        "ziggy-js": "^2.7.0"
     },
     "optionalDependencies": {
-        "@rollup/rollup-linux-x64-gnu": "4.68.2",
+        "@rollup/rollup-linux-x64-gnu": "4.68.7",
         "lightningcss-linux-x64-gnu": "^1.33.0"
     },
     "lint-staged": {
